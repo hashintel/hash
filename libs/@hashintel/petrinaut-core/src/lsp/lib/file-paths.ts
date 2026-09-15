@@ -20,7 +20,9 @@ export type SDCPNFileType =
   | "adhoc-session-defs"
   | "adhoc-value-code"
   | "metric-session-defs"
-  | "metric-code";
+  | "metric-code"
+  | "constraint-session-defs"
+  | "constraint-code";
 
 type FilePathParams = {
   "sdcpn-lib-defs": Record<string, never>;
@@ -40,6 +42,8 @@ type FilePathParams = {
   "adhoc-value-code": { sessionId: string; slotKey: string };
   "metric-session-defs": { sessionId: string };
   "metric-code": { sessionId: string };
+  "constraint-session-defs": { sessionId: string };
+  "constraint-code": { sessionId: string };
 };
 
 /**
@@ -145,6 +149,16 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     case "metric-code": {
       const { sessionId } = params as FilePathParams["metric-code"];
       return `/_temp/metrics/${sessionId}/code.ts`;
+    }
+
+    case "constraint-session-defs": {
+      const { sessionId } = params as FilePathParams["constraint-session-defs"];
+      return `/_temp/constraints/${sessionId}/defs.d.ts`;
+    }
+
+    case "constraint-code": {
+      const { sessionId } = params as FilePathParams["constraint-code"];
+      return `/_temp/constraints/${sessionId}/code.ts`;
     }
 
     default:

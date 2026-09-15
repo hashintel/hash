@@ -27,6 +27,16 @@ For host applications that own their Petri net data, implement a
 guide lives in the architecture docs:
 [Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
 
+### `PetrinautProps`
+
+Pass `title` to show a document title in the top bar. The title is read-only
+unless the host also supplies `setTitle`; when supplied, Petrinaut calls it
+with edits from the title field.
+
+Use `hideNetManagementControls="except-title"` to hide the document-management
+menu items while keeping the title visible, or `"all"` to hide the title and
+those menu items.
+
 ### Presentation profiles
 
 `presentationProfile` chooses how much editing chrome the component draws:
@@ -83,9 +93,10 @@ Run Petrinaut's component stories from the repository root:
 yarn workspace @hashintel/petrinaut dev
 ```
 
-The **Simulate / SimulateView / Run Supply Chain optimization** story opens
-the optimization UI with an internal fake optimizer, so it does not require
-the Python service or Docker.
+The **Simulate / SimulateView / Run Supply Chain optimization (synthetic
+optimizer)** story creates a parameter sweep with its study, as the Create
+Experiment drawer's Optimize does, and drives it with an internal fake
+optimizer, so it does not require the Python service or Docker.
 
 ## Host-owned interactive AI tools
 
@@ -129,6 +140,8 @@ Any object with a `parse(unknown)` method can be used as a schema; Zod is only
 an example and is not required by Petrinaut. The input schema is checked when
 the dynamic call arrives and again before rendering. The output schema is
 checked before Petrinaut calls the AI SDK's `addToolOutput`.
+
+A host can instead register a non-interactive dynamic tool in `aiAssistant.automaticTools`. Each registration names the tool, supplies input and output parsers, and implements `execute({ input, mutations, commands, handle, readDiagnosticsContext, toolCallId, signal })`. Petrinaut validates the input, passes the mounted mutation and command surfaces, the document handle, a `readDiagnosticsContext()` that reports the editor's current TypeScript diagnostics as the built-in compilation read does, and an `AbortSignal` (aborted on Stop or conversation switch), validates the returned output, inserts that one outer result, and continues the turn automatically. When a host tool changes the document, Petrinaut treats diagnostics as pending until they catch up with that change; a host tool that leaves the document unchanged does not. `petrinautDocsContent` (from `/ui`) exposes the user-guide pages the built-in documentation read serves, so a host tool under its own name can answer with the same text.
 
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`

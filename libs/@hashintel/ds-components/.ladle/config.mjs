@@ -2,7 +2,7 @@
 export default {
   base: process.env.LADLE_BASE_PATH || "/",
   stories: "src/**/*.stories.{js,ts,tsx,mdx}",
-  port: 61000,
+  port: Number(process.env.PORT ?? 61000),
   viteConfig: "./vite.config.ts",
   outDir: ".build/ladle",
   envDir: ".",

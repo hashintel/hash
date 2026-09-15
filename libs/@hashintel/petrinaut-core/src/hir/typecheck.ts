@@ -159,6 +159,21 @@ class Typechecker {
 
   constructor(private readonly context: HirSurfaceContext) {}
 
+  /**
+   * Whether a condition's result type is boolean. `unknown` passes only when
+   * an error already explains it, so that a silent collapse — branches of
+   * `?:` with different types — cannot slip a non-boolean condition through.
+   */
+  private isBooleanCondition(type: HirType): boolean {
+    if (type.kind === "bool") {
+      return true;
+    }
+    return (
+      type.kind === "unknown" &&
+      this.diagnostics.some((diagnostic) => diagnostic.severity === "error")
+    );
+  }
+
   report(
     span: Span,
     code: string,
@@ -848,7 +863,15 @@ class Typechecker {
         return;
       }
       case "metric": {
-        if (!isNumeric(returnType)) {
+        if (context.expected === "boolean") {
+          if (!this.isBooleanCondition(returnType)) {
+            this.report(
+              bodySpan,
+              "hir:metric-return",
+              `This condition must return a boolean, got ${formatHirType(returnType)}.`,
+            );
+          }
+        } else if (!isNumeric(returnType)) {
           this.report(
             bodySpan,
             "hir:metric-return",
@@ -859,7 +882,7 @@ class Typechecker {
       }
       case "scenario-expression": {
         if (context.expected === "boolean") {
-          if (!isBoolish(returnType)) {
+          if (!this.isBooleanCondition(returnType)) {
             this.report(
               bodySpan,
               "hir:scenario-return",

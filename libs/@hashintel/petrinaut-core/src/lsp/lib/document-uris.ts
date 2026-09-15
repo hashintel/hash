@@ -54,6 +54,11 @@ export function getMetricDocumentUri(sessionId: string): string {
   return `inmemory://sdcpn/_temp/metrics/${sessionId}/code.ts`;
 }
 
+/** Build a document URI for a constraint expression (used as Monaco model URI). */
+export function getConstraintDocumentUri(sessionId: string): string {
+  return `inmemory://sdcpn/_temp/constraints/${sessionId}/code.ts`;
+}
+
 /**
  * Build a document URI for one ad-hoc scenario value (used as Monaco model
  * URI). `slotKey` is an `adHocSlotKey` string, which is path-safe.
@@ -84,6 +89,9 @@ const SCENARIO_INITIAL_STATE_FULL_CODE_URI_RE =
 
 const METRIC_URI_RE = /^inmemory:\/\/sdcpn\/_temp\/metrics\/([^/]+)\/code\.ts$/;
 
+const CONSTRAINT_URI_RE =
+  /^inmemory:\/\/sdcpn\/_temp\/constraints\/([^/]+)\/code\.ts$/;
+
 const ADHOC_VALUE_URI_RE =
   /^inmemory:\/\/sdcpn\/_temp\/adhoc\/([^/]+)\/values\/([^/]+)\.ts$/;
 
@@ -103,6 +111,8 @@ const SCENARIO_INITIAL_STATE_FULL_CODE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/initial_state_code\/code\.ts$/;
 
 const METRIC_PATH_RE = /^\/_temp\/metrics\/([^/]+)\/code\.ts$/;
+
+const CONSTRAINT_PATH_RE = /^\/_temp\/constraints\/([^/]+)\/code\.ts$/;
 
 const ADHOC_VALUE_PATH_RE =
   /^\/_temp\/adhoc\/([^/]+)\/values\/([^/]+)\/code\.ts$/;
@@ -175,6 +185,14 @@ export function parseMetricDocumentUri(
   return match ? { sessionId: match[1]! } : null;
 }
 
+/** Extract the session id from a constraint document URI string. */
+export function parseConstraintDocumentUri(
+  uri: string,
+): { sessionId: string } | null {
+  const match = CONSTRAINT_URI_RE.exec(uri);
+  return match ? { sessionId: match[1]! } : null;
+}
+
 /** Extract session id and slot key from an ad-hoc value document URI. */
 export function parseAdHocDocumentUri(
   uri: string,
@@ -240,6 +258,13 @@ export function uriToFilePath(uri: string): string | null {
     });
   }
 
+  const constraintParsed = parseConstraintDocumentUri(uri);
+  if (constraintParsed) {
+    return getItemFilePath("constraint-code", {
+      sessionId: constraintParsed.sessionId,
+    });
+  }
+
   // Try ad-hoc value URIs
   const adHocParsed = parseAdHocDocumentUri(uri);
   if (adHocParsed) {
@@ -301,6 +326,11 @@ export function filePathToUri(filePath: string): string | null {
   match = METRIC_PATH_RE.exec(filePath);
   if (match) {
     return getMetricDocumentUri(match[1]!);
+  }
+
+  match = CONSTRAINT_PATH_RE.exec(filePath);
+  if (match) {
+    return getConstraintDocumentUri(match[1]!);
   }
 
   match = ADHOC_VALUE_PATH_RE.exec(filePath);

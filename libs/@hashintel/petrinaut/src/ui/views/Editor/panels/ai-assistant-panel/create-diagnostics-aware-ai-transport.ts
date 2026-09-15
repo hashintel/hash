@@ -46,13 +46,11 @@ const lastMessageIsCompleteToolResultMessage = (
 };
 
 export const createDiagnosticsAwareAiTransport = ({
-  getDiagnosticsContext,
+  readDiagnosticsContext,
   transport,
-  waitForDiagnosticsRefresh,
 }: {
-  getDiagnosticsContext: () => string;
+  readDiagnosticsContext: () => Promise<string>;
   transport: PetrinautAiTransport;
-  waitForDiagnosticsRefresh: () => Promise<void>;
 }): PetrinautAiTransport => {
   const wrappedTransport: ChatTransport<PetrinautAiMessage> = {
     reconnectToStream: (options) => transport.reconnectToStream(options),
@@ -61,13 +59,13 @@ export const createDiagnosticsAwareAiTransport = ({
         return transport.sendMessages(options);
       }
 
-      await waitForDiagnosticsRefresh();
+      const diagnosticsContext = await readDiagnosticsContext();
 
       return transport.sendMessages({
         ...options,
         messages: [
           ...options.messages,
-          createDiagnosticsContextMessage(getDiagnosticsContext()),
+          createDiagnosticsContextMessage(diagnosticsContext),
         ],
       });
     },

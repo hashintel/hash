@@ -40,11 +40,13 @@ const ExperimentStatusBadge = ({
     <Chip
       variant="soft"
       color={
-        isActive || status === "idle"
+        isActive
           ? "blue"
-          : status === "complete"
-            ? "green"
-            : "red"
+          : status === "idle"
+            ? "grey"
+            : status === "complete"
+              ? "green"
+              : "red"
       }
       prefix={
         isActive

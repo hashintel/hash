@@ -19,6 +19,7 @@ import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 
+import type { ConstraintSpace } from "../../constraint/constraint";
 import type {
   Color,
   ColorElementType,
@@ -504,6 +505,32 @@ export function generateVirtualFiles(
 }
 
 /**
+ * Declarations shared by every file of a scenario-scoped session: ambient net
+ * `parameters`, the `scenario` object typed from the given entries (or
+ * `Record<string, never>` when there are none), and the scenario helpers.
+ */
+function buildScenarioScopePrefix(
+  scenarioEntries: ReadonlyArray<{
+    identifier: string;
+    type: ColorElementType | "ratio";
+  }>,
+): string {
+  const scenarioProps = scenarioEntries
+    .map((entry) => `  "${entry.identifier}": ${toTsType(entry.type)};`)
+    .join("\n");
+  const scenarioTypeDecl =
+    scenarioProps.length > 0
+      ? `declare const scenario: {\n${scenarioProps}\n};`
+      : `declare const scenario: Record<string, never>;`;
+  return [
+    `import type { Parameters } from "${getItemFilePath("parameters-defs")}";`,
+    `declare const parameters: Parameters;`,
+    scenarioTypeDecl,
+    SCENARIO_HELPER_TYPE_DECLARATIONS,
+  ].join("\n");
+}
+
+/**
  * Data required to generate virtual files for a scenario editing session.
  */
 export type ScenarioSessionData = {
@@ -532,25 +559,9 @@ export function generateScenarioSessionFiles(
   const files = new Map<string, VirtualFile>();
   const { sessionId } = session;
 
-  const parametersDefsPath = getItemFilePath("parameters-defs");
-
-  // Build scenario object type: { hello: number; world: boolean; ... }
-  const scenarioProps = session.scenarioParameters
-    .filter((p) => p.identifier.trim() !== "")
-    .map((p) => `  "${p.identifier}": ${toTsType(p.type)};`)
-    .join("\n");
-
-  const scenarioTypeDecl =
-    scenarioProps.length > 0
-      ? `declare const scenario: {\n${scenarioProps}\n};`
-      : `declare const scenario: Record<string, never>;`;
-
-  const commonPrefix = [
-    `import type { Parameters } from "${parametersDefsPath}";`,
-    `declare const parameters: Parameters;`,
-    scenarioTypeDecl,
-    SCENARIO_HELPER_TYPE_DECLARATIONS,
-  ].join("\n");
+  const commonPrefix = buildScenarioScopePrefix(
+    session.scenarioParameters.filter((p) => p.identifier.trim() !== ""),
+  );
 
   // Generate defs file (shared declarations for this session)
   const defsPath = getItemFilePath("scenario-session-defs", { sessionId });
@@ -682,26 +693,13 @@ export type MetricSessionData = {
 };
 
 /**
- * Generates virtual files for a metric editing session.
- *
- * The user code is a function body whose `state` parameter exposes
- * `state.places.<PlaceName>` with `count` and (for colored places) `tokens`.
- * Net parameters are available ambiently as `parameters.<name>` (scenario
- * parameters are not). The expression is wrapped so the body is type-checked
- * as `(state) => number`.
+ * The `MetricState` declaration file content: `state.places.<PlaceName>` with
+ * `count` and `tokens`. Colored places expose typed `tokens` arrays;
+ * uncolored places (and places whose color can't be resolved) always yield
+ * `[]` at runtime, so their element type is `never` — indexing into them is
+ * a type error instead of a phantom token record.
  */
-export function generateMetricSessionFiles(
-  sdcpn: SDCPN,
-  session: MetricSessionData,
-): Map<string, VirtualFile> {
-  const files = new Map<string, VirtualFile>();
-  const { sessionId } = session;
-  const parametersDefsPath = getItemFilePath("parameters-defs");
-
-  // Build per-place state types. Colored places expose typed `tokens` arrays;
-  // uncolored places (and places whose color can't be resolved) always yield
-  // `[]` at runtime, so their element type is `never` — indexing into them is
-  // a type error instead of a phantom token record.
+function buildMetricStateDefs(sdcpn: SDCPN): string {
   const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
   const placeStateImports: string[] = [];
   const placeStateProperties: string[] = [];
@@ -736,36 +734,137 @@ export function generateMetricSessionFiles(
       ? `{\n${placeStateProperties.join("\n")}\n}`
       : "Record<string, { count: number; tokens: Record<string, number | boolean | bigint | string>[] }>";
 
+  return [
+    ...placeStateImports,
+    `export type MetricState = {`,
+    `  places: ${placesType};`,
+    `};`,
+  ].join("\n");
+}
+
+/**
+ * Wraps a metric-surface function body so it type-checks as
+ * `(state: MetricState) => <returnType>`, with net parameters ambient as
+ * `parameters.<name>`.
+ */
+function metricBodyFile(options: {
+  defsPath: string;
+  functionName: string;
+  returnType: "number" | "boolean";
+  body: string;
+}): VirtualFile {
+  return {
+    prefix: [
+      `import type { MetricState } from "${options.defsPath}";`,
+      `import type { Parameters } from "${getItemFilePath("parameters-defs")}";`,
+      `declare const parameters: Parameters;`,
+      `function ${options.functionName}(state: MetricState): ${options.returnType} {`,
+      "",
+    ].join("\n"),
+    content: options.body,
+    suffix: `\n}`,
+  };
+}
+
+/**
+ * Generates virtual files for a metric editing session.
+ *
+ * The user code is a function body whose `state` parameter exposes
+ * `state.places.<PlaceName>` with `count` and (for colored places) `tokens`.
+ * Net parameters are available ambiently as `parameters.<name>` (scenario
+ * parameters are not). The expression is wrapped so the body is type-checked
+ * as `(state) => number`.
+ */
+export function generateMetricSessionFiles(
+  sdcpn: SDCPN,
+  session: MetricSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId } = session;
+
   // defs file (kept separate so updates only invalidate code on real changes)
   const defsPath = getItemFilePath("metric-session-defs", { sessionId });
-  files.set(defsPath, {
-    content: [
-      ...placeStateImports,
-      `export type MetricState = {`,
-      `  places: ${placesType};`,
-      `};`,
-    ].join("\n"),
-  });
+  files.set(defsPath, { content: buildMetricStateDefs(sdcpn) });
 
   // Skip wrapping when the body is empty — there's nothing meaningful to lint.
   if (session.code.trim() === "") {
     return files;
   }
 
-  const codePath = getItemFilePath("metric-code", { sessionId });
-  files.set(codePath, {
-    prefix: [
-      `import type { MetricState } from "${defsPath}";`,
-      `import type { Parameters } from "${parametersDefsPath}";`,
-      // Net parameters are ambient in metric code (not a function argument).
-      `declare const parameters: Parameters;`,
-      `function __metric(state: MetricState): number {`,
-      "",
-    ].join("\n"),
-    content: session.code,
-    suffix: `\n}`,
-  });
+  files.set(
+    getItemFilePath("metric-code", { sessionId }),
+    metricBodyFile({
+      defsPath,
+      functionName: "__metric",
+      returnType: "number",
+      body: session.code,
+    }),
+  );
 
+  return files;
+}
+
+/**
+ * Data required to generate virtual files for a constraint editing session:
+ * one constraint expression and the space it ranges over.
+ */
+export type ConstraintSessionData = {
+  sessionId: string;
+  space: ConstraintSpace;
+  /** The constraint's source text; empty means nothing to lint. */
+  code: string;
+  /** The study's scenario parameters, ambient as `scenario.*` in the parameters space. */
+  scenarioParameters: ScenarioParameter[];
+};
+
+/**
+ * Generates virtual files for a constraint editing session.
+ *
+ * A `parameters` constraint is an expression over `scenario.*` and
+ * `parameters.*`, wrapped like a scenario parameter override but checked as
+ * boolean. A `state` constraint is a function body over the metric `state`
+ * (`state.places.<PlaceName>`) plus ambient `parameters`, wrapped like a
+ * metric body but checked as boolean. Empty code yields the defs file only.
+ */
+export function generateConstraintSessionFiles(
+  sdcpn: SDCPN,
+  session: ConstraintSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId } = session;
+  const defsPath = getItemFilePath("constraint-session-defs", { sessionId });
+  const codePath = getItemFilePath("constraint-code", { sessionId });
+  const emptyCode = session.code.trim() === "";
+
+  if (session.space === "parameters") {
+    const commonPrefix = buildScenarioScopePrefix(
+      session.scenarioParameters.filter(
+        (parameter) => parameter.identifier.trim() !== "",
+      ),
+    );
+    files.set(defsPath, { content: commonPrefix });
+    if (!emptyCode) {
+      files.set(codePath, {
+        prefix: `${commonPrefix}\nfunction __check(): boolean { return (\n`,
+        content: session.code,
+        suffix: `\n); }`,
+      });
+    }
+    return files;
+  }
+
+  files.set(defsPath, { content: buildMetricStateDefs(sdcpn) });
+  if (!emptyCode) {
+    files.set(
+      codePath,
+      metricBodyFile({
+        defsPath,
+        functionName: "__constraint",
+        returnType: "boolean",
+        body: session.code,
+      }),
+    );
+  }
   return files;
 }
 
@@ -797,22 +896,14 @@ export function generateAdHocSessionFiles(
   const files = new Map<string, VirtualFile>();
   const { sessionId, state } = session;
 
-  const parametersDefsPath = getItemFilePath("parameters-defs");
-  const scenarioProps = state.variables
-    .filter((variable) => isValidAdHocVariableName(variable.name))
-    .map((variable) => `  "${variable.name}": ${toTsType(variable.type)};`)
-    .join("\n");
-  const scenarioTypeDecl =
-    scenarioProps.length > 0
-      ? `declare const scenario: {\n${scenarioProps}\n};`
-      : `declare const scenario: Record<string, never>;`;
-
-  const commonPrefix = [
-    `import type { Parameters } from "${parametersDefsPath}";`,
-    `declare const parameters: Parameters;`,
-    scenarioTypeDecl,
-    SCENARIO_HELPER_TYPE_DECLARATIONS,
-  ].join("\n");
+  const commonPrefix = buildScenarioScopePrefix(
+    state.variables
+      .filter((variable) => isValidAdHocVariableName(variable.name))
+      .map((variable) => ({
+        identifier: variable.name,
+        type: variable.type,
+      })),
+  );
 
   files.set(getItemFilePath("adhoc-session-defs", { sessionId }), {
     content: commonPrefix,

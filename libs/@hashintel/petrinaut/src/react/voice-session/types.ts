@@ -22,6 +22,8 @@ export type PetrinautAiVoiceSessionState = {
   canRepeatQuestion?: boolean;
   /** Whether the user can cancel Voice output and start their turn. */
   canTakeTurn?: boolean;
+  /** Whether speaking can interrupt assistant audio. */
+  interruptionBySpeaking?: boolean;
   errorMessage: string | null;
   /** Whether microphone capture is muted independently of whose turn it is. */
   microphoneMuted: boolean;

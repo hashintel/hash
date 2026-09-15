@@ -19,17 +19,24 @@ import {
 import { captureStorePath } from "../db-path.ts";
 import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
+import type { CaptureStoreResult } from "@hashintel/brunch-agent";
+
 export interface CaptureSweepCapture {
   readonly id: string;
   readonly excerpt: string;
   readonly payload: unknown;
 }
 
-export interface CaptureSweepResult {
-  readonly appliedCaptureIds: readonly string[];
-  readonly skippedDedupKeys: readonly string[];
+/** The store's apply-sweep value, compressed with the captures it applied. */
+export type CaptureSweepResult = Pick<
+  Extract<
+    Extract<CaptureStoreResult, { ok: true }>["value"],
+    { appliedCaptureIds: unknown }
+  >,
+  "appliedCaptureIds" | "skippedDedupKeys"
+> & {
   readonly captures: readonly CaptureSweepCapture[];
-}
+};
 
 const conversationUrl = (instanceId: string): string =>
   `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;

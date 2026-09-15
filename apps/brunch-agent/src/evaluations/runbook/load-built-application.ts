@@ -1,7 +1,10 @@
-export interface BuiltBrunchApplication {
-  readonly fetch: (request: Request) => Response | Promise<Response>;
-  readonly stop: (timeoutMs?: number) => Promise<void>;
-}
+import type { LoadedFlueNodeApplication } from "@flue/vite";
+
+/** The two capabilities a headless drive needs from the built artifact. */
+export type BuiltBrunchApplication = Pick<
+  LoadedFlueNodeApplication,
+  "fetch" | "stop"
+>;
 
 type BuiltApplicationModule = {
   readonly loadFlueNodeApplication?: () => Promise<BuiltBrunchApplication>;

@@ -1,7 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { useRef } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getLatestNetDefinitionToolName,
@@ -38,6 +38,7 @@ export type ToolRenderItem = {
   summary: AiToolSummary;
   tone: ToolTone;
   toolName: string;
+  notApplied: boolean;
   /** True only for the persisted spoken answer to this exact tool call. */
   voiceOrigin: boolean;
   /** Server-reported error message for tools whose state is `output-error`. */
@@ -273,6 +274,12 @@ const toolStatusStyle = cva({
   },
 });
 
+const toolProgressSpinnerStyle = css({
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "[none !important]",
+  },
+});
+
 const toolTextStyle = css({
   display: "flex",
   flex: "[1]",
@@ -360,6 +367,13 @@ const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
   return undefined;
 };
 
+const isNotAppliedResult = (part: RenderableToolPart): boolean =>
+  part.state === "output-available" &&
+  typeof part.output === "object" &&
+  part.output !== null &&
+  "applied" in part.output &&
+  part.output.applied === false;
+
 export const getToolSummaryFromPart = (
   part: RenderableToolPart,
 ): AiToolSummary => {
@@ -380,6 +394,16 @@ export const getToolSummaryFromPart = (
     return {
       title: docName ? `Read user guide: ${docName}` : "Read user guide",
       href: docName ? `${petrinautDocsBaseUrl}/${docName}.md` : undefined,
+    };
+  }
+  if (isNotAppliedResult(part)) {
+    const output = part.output as { reason?: unknown };
+    return {
+      title: "Not applied",
+      detail:
+        typeof output.reason === "string"
+          ? output.reason
+          : "No change was applied.",
     };
   }
   if (toolName === setNetTitleToolName) {
@@ -436,14 +460,17 @@ const getToolTone = ({
   state,
   summary,
   toolName,
+  notApplied,
 }: {
   state: string;
   summary: AiToolSummary;
   toolName: string;
+  notApplied: boolean;
 }): ToolTone => {
   if (state === "output-error") {
     return "danger";
   }
+  if (notApplied) return "neutral";
 
   if (
     toolName === getLatestNetDefinitionToolName ||
@@ -470,8 +497,12 @@ export const toToolRenderItem = (
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
-  const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
+  const summary =
+    state === "input-streaming"
+      ? { title: toolName }
+      : getToolSummaryFromPart(part);
+  const notApplied = isNotAppliedResult(part);
 
   const interactiveDefinition = hasInteractiveToolInput(state)
     ? getInteractiveTool(toolName, part.input, interactiveTools)
@@ -491,8 +522,9 @@ export const toToolRenderItem = (
         : `${message.id}-${part.type}`,
     state,
     summary,
-    tone: getToolTone({ state, summary, toolName }),
+    tone: getToolTone({ state, summary, toolName, notApplied }),
     toolName,
+    notApplied,
     voiceOrigin:
       state === "output-available" &&
       typeof part.toolCallId === "string" &&
@@ -592,6 +624,12 @@ const ToolItem = ({
 
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
+  const progressLabel =
+    tool.state === "input-streaming"
+      ? "Preparing…"
+      : tool.state === "input-available"
+        ? "Running…"
+        : undefined;
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
@@ -608,6 +646,7 @@ const ToolItem = ({
         rel="noopener noreferrer"
         className={toolItemStyle({ tone: tool.tone, link: true })}
         data-tone={tool.tone}
+        aria-busy={progressLabel ? true : undefined}
       >
         <span
           className={toolStatusStyle({
@@ -615,7 +654,16 @@ const ToolItem = ({
             tone: tool.tone,
           })}
         >
-          {complete ? <Icon name="check" size="xs" /> : null}
+          {complete ? (
+            <Icon name="check" size="xs" />
+          ) : progressLabel ? (
+            <LoadingSpinner
+              aria-hidden="true"
+              className={toolProgressSpinnerStyle}
+              size="xs"
+              variant="bars"
+            />
+          ) : null}
         </span>
         <span className={toolTextStyle}>
           <span>{title}</span>
@@ -623,6 +671,9 @@ const ToolItem = ({
             <span className={toolDetailStyle} data-testid="tool-detail">
               {tool.summary.detail}
             </span>
+          )}
+          {progressLabel && (
+            <span className={toolDetailStyle}>{progressLabel}</span>
           )}
         </span>
       </a>
@@ -635,6 +686,7 @@ const ToolItem = ({
       className={toolItemStyle({ tone: tool.tone })}
       data-tone={tool.tone}
       disabled={!target && !expandable}
+      aria-busy={progressLabel ? true : undefined}
       onClick={() => {
         if (target) {
           onSelectToolTarget?.(target);
@@ -649,8 +701,17 @@ const ToolItem = ({
       >
         {errored ? (
           <Icon name="close" size="xs" />
+        ) : tool.notApplied ? (
+          <Icon name="dash" size="xs" data-tool-result-icon="not-applied" />
         ) : complete ? (
-          <Icon name="check" size="xs" />
+          <Icon name="check" size="xs" data-tool-result-icon="complete" />
+        ) : progressLabel ? (
+          <LoadingSpinner
+            aria-hidden="true"
+            className={toolProgressSpinnerStyle}
+            size="xs"
+            variant="bars"
+          />
         ) : null}
       </span>
       <span className={toolTextStyle}>
@@ -664,6 +725,9 @@ const ToolItem = ({
             {tool.summary.detail}
           </span>
         ) : null}
+        {progressLabel && (
+          <span className={toolDetailStyle}>{progressLabel}</span>
+        )}
       </span>
       {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
     </button>
@@ -724,6 +788,15 @@ export const AiAssistantToolList = ({
     (tool) =>
       tool.state === "output-available" || tool.state === "output-error",
   );
+  const groupProgressLabel = tools.some(
+    (tool) => !tool.interactive && tool.state === "input-available",
+  )
+    ? "Running…"
+    : tools.some(
+          (tool) => !tool.interactive && tool.state === "input-streaming",
+        )
+      ? "Preparing…"
+      : undefined;
 
   if (tools.length === 0) {
     return null;
@@ -749,12 +822,16 @@ export const AiAssistantToolList = ({
       key={allComplete ? "complete" : "streaming"}
       className={toolListStyle({ kind: "group" })}
       defaultOpen={!allComplete}
+      aria-busy={groupProgressLabel ? true : undefined}
     >
       <Collapsible.Trigger className={toolHeaderStyle}>
         <span className={toolHeaderIconStyle}>
           <Icon name="arrowsLeftRight" size="xs" />
         </span>
-        <span style={{ flex: 1 }}>{tools.length} changes</span>
+        <span style={{ flex: 1 }}>
+          {tools.length} operations
+          {groupProgressLabel ? ` · ${groupProgressLabel}` : ""}
+        </span>
         <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>

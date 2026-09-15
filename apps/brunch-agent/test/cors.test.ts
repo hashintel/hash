@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 
+import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+
 import {
   agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,
@@ -113,7 +115,9 @@ const buildCorsTestApp = (
 ) => {
   const app = new Hono();
   app.use("/agents/*", createAgentCors(allowedOrigins));
-  app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`));
+  app.use("/api/worked-models/*", createAgentCors(allowedOrigins));
+  app.all("/api/worked-models/*", (context) => context.text("admitted"));
+  app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
   app.all(`${mount}/*`, (context) => context.text("admitted"));
   app.get(HEALTH_ROUTE, (context) => context.text("healthy"));
   app.get("/", (context) => context.text("root"));
@@ -132,6 +136,7 @@ test("answers an allowed preflight before ownership", async () => {
           "content-type",
           BRUNCH_PRINCIPAL_HEADER,
           BRUNCH_CONVERSATION_HEADER,
+          BRUNCH_DOCUMENT_REVISION_HEADER,
         ].join(","),
       },
     }),
@@ -142,16 +147,43 @@ test("answers an allowed preflight before ownership", async () => {
     allowedOrigin,
   );
   expect(response.headers.get("access-control-allow-methods")).toBe(
-    "GET,POST,OPTIONS",
+    "GET,POST,PUT,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER}`,
+    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
   );
   expect(response.headers.get("access-control-max-age")).toBe("600");
   expect(response.headers.get("access-control-allow-credentials")).toBeNull();
   expect(response.headers.get("vary")).toContain("Origin");
   expect(response.headers.get("vary")).toContain(
     "Access-Control-Request-Headers",
+  );
+});
+
+test("answers an allowed worked-model PUT preflight with its actual request envelope", async () => {
+  const response = await buildCorsTestApp().fetch(
+    new Request(
+      "http://brunch.test/api/worked-models/copies/copy-1/definition",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: allowedOrigin,
+          "Access-Control-Request-Method": "PUT",
+          "Access-Control-Request-Headers": `content-type,${BRUNCH_PRINCIPAL_HEADER}`,
+        },
+      },
+    ),
+  );
+
+  expect(response.status).toBe(204);
+  expect(response.headers.get("access-control-allow-origin")).toBe(
+    allowedOrigin,
+  );
+  expect(response.headers.get("access-control-allow-methods")).toBe(
+    "GET,POST,PUT,OPTIONS",
+  );
+  expect(response.headers.get("access-control-allow-headers")).toBe(
+    `Content-Type,${BRUNCH_PRINCIPAL_HEADER},${BRUNCH_CONVERSATION_HEADER},${BRUNCH_DOCUMENT_REVISION_HEADER}`,
   );
 });
 

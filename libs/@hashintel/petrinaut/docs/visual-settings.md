@@ -10,7 +10,7 @@ preferences and are not reverted by browser navigation.
 
 ### Animations
 
-Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues.
+Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues. The results drawers follow it too: the header's condensing, the cards' folds and bar fills, and the purple pulse of a sweep's **Parameters** card while the optimizer drives it all hold still when animations are off, or when your system asks for reduced motion.
 
 ### Keep panels mounted
 
@@ -33,20 +33,18 @@ Switch between two node rendering styles:
 
 Toggle freely -- this setting only affects rendering, not the underlying net.
 
+### Highlight on hover
+
+When enabled (the default), resting the pointer on a node highlights its [neighbourhood](drawing-a-net.md#neighbourhood-highlight): what feeds it, what it feeds, and the arcs between.
+
+Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
+
 ### Partial selection
 
 Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select-modes):
 
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
-
-### Entities tree view (experimental)
-
-Replaces the tabbed left sidebar with a unified **tree view** showing all entities (nodes, types, equations, parameters) in a single hierarchy.
-
-### Ad-hoc scenarios (experimental)
-
-Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment and optimization drawers, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
 
 ### WebGPU (experimental)
 
@@ -58,11 +56,11 @@ Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom pa
 
 ### Parameter sweeps (experimental)
 
-Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in the experiment form, so an experiment can explore an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
+Off by default. Adds an interval toggle to every numeric value of the experiment form -- **Sweep**, or **Optimize** when In-browser optimization is on -- so an experiment explores an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
 
-### Optimization surface (experimental)
+### In-browser optimization (experimental)
 
-Off by default. Adds a **Surface** section to an optimization study with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with an **Objective** and **Constraints** chosen in the form. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ### Arcs rendering
 

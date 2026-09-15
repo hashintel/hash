@@ -33,8 +33,8 @@ Quick-action buttons next to the picker let you edit the selected scenario, crea
 
 Override values for this run:
 
-- With **No scenario** selected: each [net-level parameter](petri-net-extensions.md#global-parameters) shows its name and variable name. Boolean parameters use a toggle; real and integer parameters use a numeric input pre-filled with the default.
-- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. A scenario saved from the ad-hoc form shows its definition; any other scenario shows a computed preview of the exact tokens the run will start with, recomputed as you change parameter values (very large places preview their first 100 rows).
+- With **No scenario** selected: the form's **Parameters** table -- an expression per [net-level parameter](petri-net-extensions.md#global-parameters), the default shown with a `default` tag until you override it; expressions may read the Variables above as `scenario.<name>`.
+- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter overrides](scenarios.md#parameters) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. A scenario saved from the ad-hoc form shows its definition; any other scenario shows a computed preview of the exact tokens the run will start with, recomputed as you change parameter values (very large places preview their first 100 rows).
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
@@ -51,7 +51,7 @@ Default: `0.01` seconds.
 
 Press **Play** in the bottom toolbar. The simulation:
 
-1. Initializes with a fixed random seed, the current dt, and parameter values. The seed is the same one used by [optimization](optimization.md) trials, so pressing Play twice with the same configuration reproduces the same trajectory, and a single run can reproduce an optimization trial given the same scenario parameter values, dt, and max time.
+1. Initializes with a fixed random seed, the current dt, and parameter values, so pressing Play twice with the same configuration reproduces the same trajectory. Many runs at once, and a search over parameters, are an [experiment](experiments.md).
 2. Computes frames in a background Web Worker.
 3. Streams frames to the UI for playback.
 
@@ -76,6 +76,12 @@ Each simulation step proceeds in two phases:
 
 Simulation time advances by `dt` each frame.
 
+## What a firing looks like
+
+A transition that fires flashes yellow, shows a lightning bolt, and thickens the arcs it moved tokens along, by an amount that grows with how many fired at once.
+
+Firings you cannot see are not animated: a node off the side of the canvas, or a net zoomed out far enough that a node is only a few pixels across. Token counts, arcs and the timeline are unaffected -- only the flash is skipped, which is what keeps a large net moving at speed. Zoom in and the firings you are looking at animate as usual.
+
 ## Deadlock
 
 If no transition fires in a step **and** no transition is structurally enabled (regardless of lambda values), the simulation reports **deadlock** and stops (a "Simulation Complete" message is shown).
@@ -90,16 +96,17 @@ A transition blocked only because its output place is at [capacity](drawing-a-ne
 
 The bottom toolbar provides playback controls:
 
-| Control          | Description                         |
-| ---------------- | ----------------------------------- |
-| **Play**         | Start or resume playback.           |
-| **Pause**        | Pause at the current frame.         |
-| **Stop / Reset** | Stop playback and reset to frame 0. |
+| Control          | Description                               |
+| ---------------- | ----------------------------------------- |
+| **Play**         | Start or resume playback.                 |
+| **Pause**        | Pause at the current point in the run.    |
+| **Stop / Reset** | Stop playback and reset to the run start. |
 
-The frame counter shows the current frame number, total frames, and elapsed simulation time.
+The time readout shows the elapsed simulation time and the run's total
+simulated time, at the precision the run's time step carries.
 
 Playback widens the toolbar, so in a narrow window it keeps Play and folds the
-scrubber, the frame counter and the playback settings away until you point at
+scrubber, the time readout and the playback settings away until you point at
 it.
 
 <img width="717" height="62" alt="simulation-toolbar" src="https://github.com/user-attachments/assets/fc39afbe-8603-4be5-88b1-83d5b09d5367" />
@@ -133,6 +140,7 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
+- **Closing the panel** -- a closed timeline stops reading frames and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
 - **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: click the **N/M shown** badge (or anywhere else in the selector) to open the full list for searching, which is also where traces that don't fit in the strip live. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
 ## Viewing state during simulation
@@ -140,6 +148,8 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 Select a place during simulation to see its current token values in the properties panel. For typed places, individual token dimension values are displayed.
 
 If the place has a [visualizer](petri-net-extensions.md#visualizer) defined, it renders live in the properties panel, updating as the simulation progresses.
+
+The same visualizer is reachable on the canvas: point at the place, click the button that appears above it, and its [pin](petri-net-extensions.md#visualizer) holds it open while you scrub the timeline or change the initial state.
 
 ![visualiser](https://github.com/user-attachments/assets/9324bb5b-4912-499e-8a5d-f2bc6a7754c2)
 

@@ -1,0 +1,63 @@
+# Draft — Worked-example distribution and portfolio breadth
+
+> Next mission planning only. Not execution authority. Lu deferred these two outcomes from Mission 7c on 2026-09-13. Cut a new live mission only after accepting the from-scratch persona worked example; numbering, issue and branch assignment remain to be settled at that cut. Distribution and breadth are distinct acceptance claims within this successor, not prerequisites to producing the first example.
+
+## Inputs and re-entry
+
+- [Mission 7c](../../MISSION.md) supplies an accepted Inventory conversation, workpiece and agent-constructed net, with native provenance and review evidence. Do not substitute the established reference net or operator-authored history for that worked example.
+- [Worked-model terms](../../CONTEXT.md#document-lifecycle) distinguish a complete connected-bundle copy from a net projection.
+- [`apps/brunch-agent/src/standard-worked-model-fixtures.ts`](../../../../../apps/brunch-agent/src/standard-worked-model-fixtures.ts) discovers build inputs under `src/worked-model-fixtures/*.json`.
+- [`apps/brunch-agent/src/database-config.ts`](../../../../../apps/brunch-agent/src/database-config.ts) supplies the existing SQLite/Postgres adapter; [`worked-model-store.ts`](../../../../../apps/brunch-agent/src/worked-model-store.ts) owns the catalogue and partial instantiation path.
+- [`documents/`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/documents/) and [`use-process-agent-binding.ts`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistants/brunch/use-process-agent-binding.ts) own document-source crossing and conversation association.
+- The current implementation and verification limits are reported in [PR #9667](https://github.com/hashintel/hash/pull/9667). Re-inspect them at cut time; neither this draft nor the prior PR is a fresh verification.
+
+## Outcome 1 — Distribute an accepted worked example
+
+Package the complete accepted Inventory fixture as a versioned app build input and seed it idempotently into Postgres on database creation or upgrade. Local persona development produces the input; this is not a runtime promotion path or a second persistence system. SQLite remains for lightweight tests and disposable local work.
+
+**Product-manager script:** open `?bundle=inventory-purchasing` and receive an independently writable copy of the retained conversation, workpiece and net with their references intact; ask why two consequential elements exist; correct one operational fact in ordinary language; observe a compiler-clean bounded change and coherent layout; close and reopen the same connected copy; confirm the template and a sibling are unchanged; and create a clean complete-bundle copy. The document states “This document uses the Brunch process assistant”, has a read-only template title and offers no assistant switch. An ordinary local document retains the stock assistant's independent transport, tools and history.
+
+### Connected-bundle contract
+
+- Principal-scoped resolution creates or resumes the correct independently writable copy. Retained conversation, workpiece history/current revision/passages, mutation provenance, net, document revision history and their links survive under stable or coherently remapped identities.
+- Copy edits cannot reach the seeded template or a sibling. Same-copy reopen preserves the connected bundle; clean copy resets session, workpiece and net together.
+- The route selects a fail-closed remote document source independently of host-local assistant preference, fixes Brunch, hides switching and restores the untouched preference on returning to an ordinary route. The repository persists identity-explicit revisions; the process-agent binding carries conversation identity. The template title remains read-only.
+- A `?bundle=` key is not authentication by obscurity. A bearer-capability proposal requires explicit review of entropy, logging, sharing, revocation and authorization.
+- Catalogue-controlled instantiation is not arbitrary import/clone, attachment rebinding or complete historical-effect migration. Those need a named portability consumer and separate scope.
+- Carried host-persistence limitations, observed on the FE-1713 follow-up branch and left for this cut: the net projection carries no `lastUpdated`, so `DocumentRecord.lastUpdated` is optional and the Open list cannot order remote documents; when a persist is refused the host shows "Changes not saved" but later edits chain from the refused revision with no reload-from-source action, and on the remote route the projection hook additionally records the write error as repository unavailability, replacing the whole editor with "Worked-model document unavailable" instead of the indicator; the local route adopts a revision another tab stored by recreating the editor handle (dropping undo history), while the remote route has no equivalent reconciliation when the server revision advances outside the open handle; `writeBrowserStorage` swallows storage exceptions such as quota, so a full store still fails silently; and `readStore` keeps unrecognized entries but drops unknown fields on recognized documents.
+
+### Candidate evidence and open capability
+
+| Claim | Oracle and current limit |
+| --- | --- |
+| Partial net projection is source- and identity-explicit | [Store](../../../../../apps/brunch-agent/test/worked-model-store.test.ts), [routes](../../../../../apps/brunch-agent/test/worked-model-routes.test.ts), [browser integration](../../../../../apps/brunch-agent/test/integration/worked-model-net-projection.test.ts) and website document tests cover principal-scoped GET/POST/PUT, fresh net projections, fail-closed selection, revision persistence, typed binding, fixed Brunch and read-only title. The PR reports passes, but browser evidence uses an in-memory fixture and Postgres skips without its test URL. This is not complete-bundle proof. |
+| Complete connected-bundle copying | Five expected failures in [bundle-copy contract](../../../../../apps/brunch-agent/test/worked-model-bundle-copy.contract.test.ts) pin session/workpiece availability before a new turn, remapped provenance links, same-copy reopen, clean session/workpiece/net reset and build-discovered Postgres delivery. Convert each to an ordinary passing test as its capability lands; expected failure does not satisfy it. |
+| Real delivery and isolation | Build/seed and Postgres integration plus a two-principal product witness must use the exact accepted fixture and exercise the full PM script. Neither injected browser fixtures nor a fresh empty conversation count. |
+| Assistant-mode continuity | On ordinary local documents, host tests and a flag-off product comparison must preserve transports, manifests and each provider's history without reinterpreting tool calls. The remote worked-model path must enforce fixed Brunch mode and the stated title/switch behavior. [Host selection tests](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx) supply partial coverage, not the whole witness. |
+
+**Seeded session/workpiece fork — unresolved:** the 7c investigation reports no supported public fork/export-import operation in Flue 2.0.3; projected `history()` cannot reconstruct canonical stream records or persistent state. Recheck the supported API at cut time. Decide whether the capability belongs in Flue, an adapter utility or an application-owned archival format, and which identities it remaps. Never clone private Flue tables or present transcript replay as retained history. The existing principal-owned object mints an empty conversation and is a net projection, not a copy. This capability blocks distribution, not Mission 7c's original-session run.
+
+Stop distribution if copying changes the template/sibling, loses provenance links, or cannot reopen the same connected copy. Preserve stock-mode independence; a generic host extension must not become Brunch-specific coupling inside Petrinaut.
+
+After delivery, evaluate retiring the user-facing crew-reservation selector, manifest and preparation flow. Retain useful frozen regression histories under tests and historical archives; the legacy Mission 6 fixture is not a demo template or a precedent for copy semantics. A second polished seeded bundle is not required.
+
+## Outcome 2 — Establish portfolio breadth
+
+Use the accepted Inventory run as the flagship tier. Probe all six named operational-process packs through the construction route: Vestera Scheduling, Data Centre Thermal Operations, Industrial Gas VMI, Pharma Cold Chain, Semiconductor Fab Operations and Truck Fleet Maintenance. At least one non-Inventory pack also receives a fresh end-to-end construction and correction run through the visible product. Full end-to-end proof for all six and a second polished bundle are not required.
+
+| Claim | Candidate oracle |
+| --- | --- |
+| Tiered portfolio coverage | Repeatable native run records identify the case, relevant operation classes, success/refusal and limitations for every tier; scan reusable guidance for Inventory-specific nouns or IDs. Select per-pack probe/turn budgets, the non-Inventory end-to-end case and exact scan at cut time. |
+| Complete, honest capability envelope | The [capability matrix](../reference/architecture/mutation-capability-matrix.md) owns admission. Canonical batch, plugin carrier and website executor must admit the same operations; every admitted shape verifies `applied` at the receiver. An unadmitted shape refuses at its position with admitted names before any application. [Carrier tests](../../packages/plugin-sdcpn/test/mutate-petrinet.test.ts) and [admission controls](../../../../../apps/brunch-agent/test/integration/admission-controls.test.ts) are mechanism coverage; representative live-browser construction/correction establishes product breadth. |
+| Ordinary requests work or refuse honestly | Across the declared envelope, succeed canonically or refuse unsupported work visibly and specifically. No crashes, stalls, corruption, silent omissions, hidden partial state or false success. A safe refusal is not proof that a supported ordinary request succeeded. |
+| Tool authority and topology are coherent | Topology/import/mount tests agree with a checked catalogue that detects duplicate names, ownerless tools, copied schemas and unrecorded mount modes. The [catalogue](../../../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts) and [schema-carriage comparison](../../../../../apps/brunch-agent/test/integration/native-schema-carriage.integration.ts) exist; full gate adjudication remains open. |
+
+Provider/product probes decide whether the existing full carrier, capability-grouped carriers or supported deferred loading is simplest. Stop expansion if representative operation selection/population fails; do not infer a provider limit from an arbitrary schema-byte threshold. Broader semantic/behavioral quality belongs to the [after-demo evaluation](7-explainable-construction.md), not this tiered capability claim.
+
+## Joins and non-claims
+
+Consume the original run's compaction disposition. If it did not cross compaction, exercise reopen, current-workpiece recovery and explanation after real compaction before Mission 9 or a hosted long-lived provenance claim. Distribution must prove the copied record, not infer continuity from the original session's success.
+
+[Mission 9](9-traceable-projection.md) follows this successor for unchanged repeat, changed-input impact, retirement/epochs, concurrent/manual edits, cross-revision passage identity and additional schema/scenario classes required by those behaviors. General reviewer authority remains Mission 10; optimization handoff remains Mission 11.
+
+No simulation scenarios/metrics, structured-question widgets, public deployment, hosted authentication, spend-control product, backup/recovery or multi-replica claim is added here. Existing reference scenarios/metrics remain reference content, not supported creation/editing or behavioral proof. Tim owns the Mission 8 hosted continuation and Kostandin owns Voice. Before a cut, select concrete model/allocation/participants/retry bounds under [execution safety](../../evaluations/README.md#execution-safety); this draft grants no paid budget.

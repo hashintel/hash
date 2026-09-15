@@ -5,17 +5,36 @@
     "@rust/hash-telemetry"
   ],
   "tasks": {
-    "analyze-benchmarks": [
-      "build"
-    ],
-    "build": [],
-    "doc:dependency-diagram": [
-      "build"
-    ],
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "upload-benchmarks": [
-      "build"
-    ]
+    "analyze-benchmarks": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
+    "build": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "doc:dependency-diagram": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "upload-benchmarks": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    }
   }
 }

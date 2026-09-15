@@ -10,26 +10,7 @@ type VisualizerProps = {
 
 type VisualizerComponent = (props: VisualizerProps) => ReactElement;
 
-/**
- * Compiles TypeScript/JSX visualizer code into a React component.
- * Expects a module with a default export using the Visualization constructor.
- *
- * @param code - The TypeScript/JSX module code with a default export.
- *               Should follow the pattern: `export default Visualization(({ tokens, parameters }) => { ... })`
- * @returns A compiled React component function
- *
- * @example
- * ```typescript
- * const code = `
- *   export default Visualization(({ tokens, parameters }) => {
- *     return <div>{tokens.length} satellites</div>;
- *   });
- * `;
- * const Component = compileVisualizer(code);
- * const element = <Component tokens={[]} parameters={{}} />;
- * ```
- */
-export function compileVisualizer(code: string): VisualizerComponent {
+function compile(code: string): VisualizerComponent {
   try {
     // Transform TypeScript + JSX to JavaScript
     // Using classic runtime to avoid needing react/jsx-runtime imports
@@ -110,4 +91,76 @@ export function compileVisualizer(code: string): VisualizerComponent {
 
     throw new Error(`Failed to compile visualizer code: ${errorMessage}`);
   }
+}
+
+/**
+ * Compiled visualizers, kept by their source.
+ *
+ * Compiling is a pure function of the code, so each source is compiled once
+ * and its result kept, the failure too: a visualizer that does not compile is
+ * asked for as often as one that does.
+ *
+ * Bounded, and least-recently-used first: editing the code produces an entry
+ * per keystroke, so evicting by arrival would throw out the visualizers being
+ * looked at to make room for one keystroke's worth of drafts.
+ */
+const CACHE_LIMIT = 24;
+const compiled = new Map<
+  string,
+  { component: VisualizerComponent } | { error: unknown }
+>();
+
+/**
+ * Compiles TypeScript/JSX visualizer code into a React component.
+ * Expects a module with a default export using the Visualization constructor.
+ *
+ * The same code compiles once: repeat calls return the component already
+ * made, so a component identity is stable across renders and re-opens.
+ *
+ * @param code - The TypeScript/JSX module code with a default export.
+ *               Should follow the pattern: `export default Visualization(({ tokens, parameters }) => { ... })`
+ * @returns A compiled React component function
+ *
+ * @example
+ * ```typescript
+ * const code = `
+ *   export default Visualization(({ tokens, parameters }) => {
+ *     return <div>{tokens.length} satellites</div>;
+ *   });
+ * `;
+ * const Component = compileVisualizer(code);
+ * const element = <Component tokens={[]} parameters={{}} />;
+ * ```
+ */
+export function compileVisualizer(code: string): VisualizerComponent {
+  const cached = compiled.get(code);
+  if (cached) {
+    // Re-inserting makes this the newest entry, so use decides what survives.
+    compiled.delete(code);
+    compiled.set(code, cached);
+    if ("error" in cached) {
+      throw cached.error;
+    }
+    return cached.component;
+  }
+
+  let outcome: { component: VisualizerComponent } | { error: unknown };
+  try {
+    outcome = { component: compile(code) };
+  } catch (error) {
+    outcome = { error };
+  }
+
+  compiled.set(code, outcome);
+  if (compiled.size > CACHE_LIMIT) {
+    const oldest = compiled.keys().next();
+    if (!oldest.done) {
+      compiled.delete(oldest.value);
+    }
+  }
+
+  if ("error" in outcome) {
+    throw outcome.error;
+  }
+  return outcome.component;
 }

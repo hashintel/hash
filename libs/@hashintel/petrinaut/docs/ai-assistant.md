@@ -7,24 +7,36 @@ Petrinaut has an in-app AI assistant that can build a net from a natural-languag
 There are two entry points:
 
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
-2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
+2. **File → New → Build with Brunch**. When the host enables its experimental Brunch demo mode, shows net-management controls, and provides an assistant, this creates a fresh empty net, opens the assistant, and offers two chips before the first message: **Interview first** (elicit before inventing missing detail or drawing the net) or **Quick preview** (fill reasonable gaps, mark them as provisional, and wait for assent). **Start blank** creates the same empty net without opening the assistant or showing the first-run prompt. Without that host flag, **New** retains its ordinary direct blank-net behavior.
+3. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
 
-The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Its header has one **AI** label because text and voice share the same transcript rather than separate chats.
+The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Text and voice share the **AI** transcript. Some hosts add a second tab, such as **Workpiece**, for a saved document. Select a tab to switch views, or use the left/right arrow keys while a tab is focused. Switching does not end a response, clear your draft or interrupt Voice; the composer and active controls remain available.
 
 ## The conversation
 
 While a response is streaming you can:
 
 - Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
+- Follow tool operations as they run. A spinner and **Preparing…** or **Running…** distinguish an unfinished operation from its completed or failed result; a collapsed group also shows its active status. Preparing is available only when the host streams tool arguments. Brunch currently publishes tool cards after argument validation, so a proposal may still be generating before its card appears. Interactive questions remain waiting for your answer rather than showing a running spinner.
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. A Stop pressed while the assistant is reading or editing the net also withholds browser tools that have not started and the follow-up reply that would otherwise start automatically. Already-applied changes are not rolled back.
 - Type your next message in the composer -- it is queued for after the current response ends.
+
+The assistant's compilation check runs against the current model, even when its diagnostics are unchanged from the previous check. If you edit the model during that check, the result asks for another check instead of claiming the new version compiles. Compilation checks do not establish simulation correctness.
 
 The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
 If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
 
 If an assistant request fails, Petrinaut shows the complete error in a persistent toast rather than adding it to the conversation. Long errors wrap, diagnostic details can be copied, and the toast stays open until you close it. Retry from the composer when the assistant is ready.
 
-Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host. Durably aborted assistant entries retain their **Response stopped** label even after later completed replies. If Brunch had already completed a tool-call step when Stop withheld its browser follow-up, that local decision has no durable cancellation record: reopening can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host. Durably aborted assistant entries retain their **Response stopped** label even after later completed replies. If a tool-call step had already completed when Stop withheld its browser follow-up, that local decision has no durable cancellation record: hosts using initial-history recovery can recover the tool as pending work. Do not treat that local withholding as a reload-safe cancellation.
+
+A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
+
+### Workpiece in Brunch
+
+In Brunch construction conversations, the **Workpiece** tab shows the saved account as a readable document. It updates when Brunch saves a revision, without covering the canvas or opening another panel. You can read it while continuing to type in the same composer, then switch to **AI** to inspect the reply. Closing and reopening the assistant retains the selected tab for that mounted conversation.
+
+The revision label describes the recorded account, not a promise of continuing freshness. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to read the workpiece or explain the relevant model part again when you need a fresh answer. **Recorded details** expands the revision identifiers, exact saved Markdown and structured explanation results; those records do not prove the modelling rationale is correct.
 
 ### Prepared local demo fixture
 
@@ -72,13 +84,24 @@ transcription and Realtime audio are ephemeral. Finalized spoken user messages c
 carries the same chip, so Voice provenance remains visible without duplicating an answer while the
 session is mounted.
 
-Voice is half-duplex. The microphone is closed while the interviewer speaks or the assistant is
-working, which prevents playback from becoming a false answer. Select **Your turn** to interrupt:
-the dock shows the handoff as thinking while it clears pending audio and waits for the provider to
-finish cancellation, then opens a fresh input turn. Audio captured before that completed handoff is
-discarded. Semantic voice detection finishes your answer automatically after a natural pause, so
-there is no required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are
-not submitted; the dock asks you to try again. An overlong answer instead asks for a shorter response.
+**Interruption by speaking** is on by default. Start speaking while Brunch is talking to stop its
+audio and give your answer. Your interrupting words are captured; you do not need to repeat them.
+If Brunch is still finishing its previous turn, the dock shows **Answer captured. Waiting for Brunch.**
+and sends that answer when it is ready. Wait for that answer to be sent before giving another one.
+
+Open **Voice playback options** and uncheck **Interruption by speaking** to use manual handover.
+This preference is remembered in your browser. In manual mode the microphone closes during
+assistant output. Select **Your turn**, wait for cancellation to finish, then speak; audio before
+that handover is discarded. The **Your turn** control is hidden when interruption by speaking is on.
+If speaker playback causes unwanted interruptions, use headphones or switch to manual handover.
+
+Semantic voice detection finishes your answer automatically after a natural pause, so there is no
+required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are not submitted.
+An empty or failed transcript asks you to try again, and an overlong answer asks for a shorter response.
+Completed interruptions that strongly repeat the transcription vocabulary or the assistant's active
+speech are silently discarded rather than sent as your answer. Short answers such as “stop”, “no”,
+and “wait” remain valid. A false speech detection can still stop playback even when its transcript
+is discarded.
 Provisional words remain display-only until the provider completes their transcript.
 
 Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and
@@ -121,8 +144,9 @@ When no interview is active and the host permits clearing, **Clear AI chat** via
 The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
-- **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
-- **`setNetTitle`** -- renames the net.
+- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
+- **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
+- **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
 - **Host-specific questions and actions** -- an application embedding Petrinaut
   may add interactive widgets. For example, an elicitation assistant can ask a
@@ -133,6 +157,14 @@ The assistant has tools for inspecting and modifying the current net. You'll see
   still prevent completion.
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
+
+An embedding application can check its live document immediately before and after a mutation, or refuse the change if the document no longer matches the request. A refusal leaves the document unchanged; an execution error remains attached to the matching tool call. These optional host checks do not change the stock assistant, read-only restrictions, or Stop behaviour. They do not cover title changes or auto-layout commands.
+
+### Document titles
+
+Title editing is a host capability. When the embedding application supplies `setTitle`, Petrinaut shows the editable title control. Without `setTitle`, the supplied title is read-only. The host also controls the assistant's tool manifest: `setNetTitle` is useful only alongside `setTitle` and should be omitted for a read-only title. If it is nevertheless called, Petrinaut reports that no change was applied because the host does not provide title editing.
+
+For example, the Petrinaut website's worked-model route displays its template title as read-only and its Brunch tool manifest exposes no title mutation while still allowing permitted net edits. Ordinary local documents on that website supply title editing.
 
 After applying changes, the assistant may automatically check TypeScript compile diagnostics (you'll see a **Checked net compilation errors** card) and fix problems on its own before continuing.
 
@@ -147,7 +179,11 @@ The composer stays open in all of these cases, so you can still ask questions, r
 
 ## Diagnostics integration
 
-When the assistant edits code surfaces (lambdas, kernels, dynamics, visualizers, metric/scenario code), it sees the resulting TypeScript diagnostics on the next turn and can iteratively fix them. You don't have to relay errors manually -- the post-edit re-check happens automatically. The same diagnostics also appear in the bottom **Diagnostics** tab as usual; the assistant just sees them in addition.
+The assistant can request a fresh TypeScript check of the current net and
+use the returned errors to revise its code. An unchanged set of errors still
+counts as a completed check. If checking fails, the assistant receives an
+error. The bottom **Diagnostics** tab continues to show diagnostics for the
+code you are editing.
 
 ## Host configuration
 

@@ -45,16 +45,14 @@ export type UserSettings = {
   timelineChartType: TimelineChartType;
   showMinimap: boolean;
   snapToGrid: boolean;
+  /**
+   * Whether resting the pointer on a node highlights its neighbourhood.
+   * Off, the canvas answers only to the selection.
+   */
+  highlightOnHover: boolean;
   partialSelection: boolean;
-  useEntitiesTreeView: boolean;
   enableNetComponents: boolean;
   enableNotebookView: boolean;
-  /**
-   * Experimental: offer the ad-hoc scenario form — inline Initial State +
-   * Parameters — in Simulation Settings, experiments, optimizations, and
-   * scenario creation. Off, every surface renders as before the feature.
-   */
-  enableAdHocScenarios: boolean;
   /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
@@ -83,25 +81,28 @@ export type UserSettings = {
    */
   showCompilationOutput: boolean;
   /**
-   * Experimental: offer parameter sweeps. On, every numeric scenario parameter
-   * in the experiment form gets a Sweep toggle that turns its value into an
-   * interval. Off, experiments take fixed values only.
+   * Experimental: offer parameter sweeps. On, every numeric value of the
+   * experiment form gets an interval toggle — reading Sweep, or Optimize when
+   * In-browser optimization is on — that turns its value into an interval.
+   * Off, experiments take fixed values only.
    */
   enableParameterSweeps: boolean;
   /**
-   * Experimental: show the optimization drawer's Surface section, which
-   * recomputes the objective locally over two optimized parameters. Off, a
-   * study drawer runs no compute of its own.
-   */
-  enableOptimizationSurface: boolean;
-  /**
-   * Experimental: connect a host-supplied in-browser optimizer, which runs
-   * studies through the experiments backend and streams each step's metrics
-   * as it is evaluated. Off, a connected optimizer counts as none at all and
-   * the Optimizations surfaces stay hidden. A remote optimization capability
-   * is unaffected either way.
+   * Experimental: connect a host-supplied in-browser optimizer. On, the
+   * experiment form's interval toggles read Optimize: creating the experiment
+   * starts a study over the selected intervals, with an Objective and
+   * Constraints chosen in the form. Off, a connected optimizer counts as none
+   * at all, the toggles read Sweep and the sweep waits for a selection; any
+   * running in-browser optimization is cancelled. A remote optimization
+   * capability is unaffected either way.
    */
   enableInBrowserOptimization: boolean;
+  /**
+   * Shows a host's Brunch demo affordances, such as the demo site's
+   * prepared-fixture selector. Toggled from a palette command the host
+   * registers; the settings dialog has no control for it.
+   */
+  brunchDemoMode: boolean;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -122,17 +123,16 @@ export type UserSettingsActions = {
   setTimelineChartType: (value: TimelineChartType) => void;
   setShowMinimap: (value: boolean) => void;
   setSnapToGrid: (value: boolean) => void;
+  setHighlightOnHover: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
-  setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setEnableNotebookView: (value: boolean) => void;
-  setEnableAdHocScenarios: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setEnableParameterSweeps: (value: boolean) => void;
-  setEnableOptimizationSurface: (value: boolean) => void;
   setEnableInBrowserOptimization: (value: boolean) => void;
+  setBrunchDemoMode: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -158,22 +158,25 @@ export const defaultUserSettings: UserSettings = {
   timelineChartType: "run",
   showMinimap: true,
   snapToGrid: true,
+  highlightOnHover: true,
   partialSelection: true,
-  useEntitiesTreeView: false,
   enableNetComponents: false,
   enableNotebookView: false,
-  enableAdHocScenarios: false,
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
   showCompilationOutput: false,
   enableParameterSweeps: false,
-  enableOptimizationSurface: false,
   enableInBrowserOptimization: false,
+  brunchDemoMode: false,
   subViewPanels: {},
   canvasViewports: {},
 };
 
-const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
+/**
+ * The value outside any provider. `UserSettingsProvider` compares against it
+ * to tell whether an ancestor already provides the settings.
+ */
+export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   ...defaultUserSettings,
   setShowAnimations: () => {},
   setKeepPanelsMounted: () => {},
@@ -189,21 +192,20 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setTimelineChartType: () => {},
   setShowMinimap: () => {},
   setSnapToGrid: () => {},
+  setHighlightOnHover: () => {},
   setPartialSelection: () => {},
-  setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
   setEnableNotebookView: () => {},
-  setEnableAdHocScenarios: () => {},
   setShowWalkthroughOnInit: () => {},
   setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},
   setEnableParameterSweeps: () => {},
-  setEnableOptimizationSurface: () => {},
   setEnableInBrowserOptimization: () => {},
+  setBrunchDemoMode: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };
 
 export const UserSettingsContext = createContext<UserSettingsContextValue>(
-  DEFAULT_CONTEXT_VALUE,
+  defaultUserSettingsContextValue,
 );

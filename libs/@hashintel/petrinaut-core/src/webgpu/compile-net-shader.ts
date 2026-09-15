@@ -15,18 +15,24 @@
  * The concerns live in `compile-net-shader/`: `token-layout` (state and
  * attribute encoding), `transition-firing` (enabledness, token choice,
  * consumption), `output-emission` (kernel outputs), `dynamics` (ODE stages),
- * `histograms` (on-device metrics) and `run-parameters` (per-run buffer).
+ * `histograms` (on-device metrics), `metric-sample` (metric bodies over the
+ * live state) and `run-parameters` (per-run buffer).
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
 import { emitDynamics } from "./compile-net-shader/dynamics";
 import {
   emitFrameHistograms,
   histogramBinCount,
+  histogramHelperLines,
   histogramWindowUniformLines,
   observedRangeBindingLines,
   sampledCountCeiling,
   workgroupHistogramLines,
 } from "./compile-net-shader/histograms";
+import {
+  layoutPlaceBindings,
+  metricStateValue,
+} from "./compile-net-shader/metric-sample";
 import {
   emitKernelValues,
   emitOutputWrites,
@@ -56,6 +62,7 @@ import type { HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader/dynamics";
 import type { GpuMetricSpec } from "./compile-net-shader/histograms";
+import type { MetricPlaceBinding } from "./compile-net-shader/metric-sample";
 import type { GpuNetProfile } from "./eligibility";
 
 export {
@@ -63,8 +70,13 @@ export {
   GPU_HISTOGRAM_MAX_BINS,
   histogramBinCount,
 } from "./compile-net-shader/histograms";
+export {
+  emitMetricSample,
+  metricStateValue,
+  probePlaceBindings,
+} from "./compile-net-shader/metric-sample";
 export { encodeInitialTokenWords } from "./compile-net-shader/token-layout";
-export type { GpuMetricSpec, GpuOdeMethod };
+export type { GpuMetricSpec, GpuOdeMethod, MetricPlaceBinding };
 
 /** Invocations per workgroup. 256 is the guaranteed WebGPU maximum. */
 export const GPU_WORKGROUP_SIZE = 256;
@@ -201,6 +213,11 @@ export function compileNetShader(
     const layout = planStateLayout(profile, sdcpn.transitions.length);
     const placeCount = profile.places.length;
     const transitionCount = sdcpn.transitions.length;
+    // `state` for expression metrics: every place by display name over the
+    // live registers and slots, built once and read at each frame's sample.
+    const metricState = metricStateValue(
+      layoutPlaceBindings(profile, layout, discreteTypes),
+    );
 
     const lines: string[] = [];
     const push = (line: string) => lines.push(line);
@@ -244,6 +261,9 @@ export function compileNetShader(
     push("");
     push(wgslPrelude());
     push("");
+    for (const line of histogramHelperLines(metrics.length)) {
+      push(line);
+    }
     for (const line of workgroupHistogramLines(metrics.length, histogramBins)) {
       push(line);
     }
@@ -296,6 +316,16 @@ export function compileNetShader(
       `  for (var frame: u32 = 0u; frame < config.chunk_frames; frame = frame + 1u) {`,
     );
     push(`    let absolute_frame = config.base_frame + frame;`);
+
+    emitFrameHistograms(push, {
+      metrics,
+      placeIndexById,
+      bins: histogramBins,
+      workgroupSize: GPU_WORKGROUP_SIZE,
+      metricState,
+      parameterValues: emitterParameterValues,
+    });
+
     push(
       `    let running = in_range && status == 0u && absolute_frame < config.frame_limit;`,
     );
@@ -411,14 +441,6 @@ export function compileNetShader(
       );
     }
     push(`    }`);
-    push("");
-
-    emitFrameHistograms(push, {
-      metrics,
-      placeIndexById,
-      bins: histogramBins,
-      workgroupSize: GPU_WORKGROUP_SIZE,
-    });
 
     push(`  }`);
     push("");

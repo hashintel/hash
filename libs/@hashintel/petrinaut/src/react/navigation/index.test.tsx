@@ -503,7 +503,6 @@ describe("Petrinaut navigation", () => {
       "create-scenario",
       "create-metric",
       "create-experiment",
-      "create-optimization",
     ] as const) {
       const drawer = { type };
       // A create drawer layers over the open record rather than replacing it.
@@ -542,11 +541,8 @@ describe("Petrinaut navigation", () => {
         id: "experiment-a",
       }),
     ).toEqual({ type: "view-experiment", experimentId: "experiment-a" });
-    expect(
-      navigationResourceToSimulateDrawer({
-        type: "optimization",
-        id: "optimization-a",
-      }),
-    ).toEqual({ type: "closed" });
+    expect(navigationResourceToSimulateDrawer(null)).toEqual({
+      type: "closed",
+    });
   });
 });

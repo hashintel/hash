@@ -5,6 +5,14 @@
     "@rust/darwin-kperf-events"
   ],
   "tasks": {
-    "lint:clippy": []
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    }
   }
 }

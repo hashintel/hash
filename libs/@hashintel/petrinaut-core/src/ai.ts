@@ -93,7 +93,6 @@ export const petrinautDocNames = [
   "scenarios",
   "ad-hoc-scenarios",
   "experiments",
-  "optimization",
   "actual-mode",
   "preview",
   "ai-assistant",
@@ -114,13 +113,11 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   simulation:
     "Single-run simulation: initial state, simulation settings (scenario picker, dt, ODE solver, parameters), running, frame computation, deadlock, playback controls, timeline, locked editing.",
   scenarios:
-    "Named simulation configurations: scenario parameters, parameter bindings, per-place vs code-mode initial state, running and switching scenarios.",
+    "Named simulation configurations authored through the scenario form: Variables exposed as scenario parameters, parameter overrides, per-place initial state blocks, running and switching scenarios, the expression language, scenarios stored per place or as code by files, the AI or earlier versions.",
   "ad-hoc-scenarios":
-    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/count-optimized rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, optimizations), and Optimize selections with generated adhoc.* parameter names.",
+    "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, scenario creation and editing with Scenario Parameter toggles), interval selections — Sweep or Optimize by setting — with generated adhoc_* parameter names, saved scenarios shown in run mode.",
   experiments:
-    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), lifecycle/statuses, cancel/remove, results (median/mean/p10/p90), active-experiments popover.",
-  optimization:
-    "Optuna search over a selected scenario's flat parameters: explicit scenario selection, fixed vs optimized parameters and typed domains, one saved or run-local custom-code metric with maximize/minimize direction (not Experiment metric shortcuts), streamed trials, cancellation, and results.",
+    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), Optimize toggles and an Objective section (metric, direction, steps) at creation, the drawer opening already optimizing, Stop on the Parameters card, one study per experiment, lifecycle/statuses, cancel/remove, header columns (Steps, Steps clear), metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   preview:
@@ -128,7 +125,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
-    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, optimization surface.",
+    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, in-browser optimization.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:
@@ -144,7 +141,7 @@ const getLatestNetDefinitionToolInputSchema = z
 const getNetCompilationErrorsToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after the net to check whether the model compiles.",
+    "Validate the current Petrinaut net snapshot and return its TypeScript and HIR diagnostics.",
   );
 
 export const setNetTitleToolInputSchema = z

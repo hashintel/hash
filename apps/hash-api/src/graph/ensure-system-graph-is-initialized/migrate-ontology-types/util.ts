@@ -68,6 +68,10 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
+import type {
+  HashEntity,
+  QueryEntitiesRequest,
+} from "@local/hash-graph-sdk/entity";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import type {
   SchemaKind,
@@ -945,12 +949,32 @@ export const getEntitiesByType: ImpureGraphFunction<
     includePermissions: false,
   }).then(({ entities }) => entities);
 
+export const queryAllEntityPages: ImpureGraphFunction<
+  QueryEntitiesRequest,
+  Promise<HashEntity[]>
+> = async (context, authentication, request) => {
+  const entities: HashEntity[] = [];
+  let cursor = request.cursor;
+
+  do {
+    const response = await queryEntities(context, authentication, {
+      ...request,
+      cursor,
+    });
+
+    entities.push(...response.entities);
+    cursor = response.cursor;
+  } while (cursor);
+
+  return entities;
+};
+
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,
   Promise<{ users: Entity[]; orgs: Entity[] }>
 > = async (context, authentication) => {
-  const [{ entities: users }, { entities: orgs }] = await Promise.all([
-    queryEntities(context, authentication, {
+  const [users, orgs] = await Promise.all([
+    queryAllEntityPages(context, authentication, {
       filter: {
         all: [
           {
@@ -965,7 +989,7 @@ export const getExistingUsersAndOrgs: ImpureGraphFunction<
       includeDrafts: false,
       includePermissions: false,
     }),
-    queryEntities(context, authentication, {
+    queryAllEntityPages(context, authentication, {
       filter: {
         all: [
           {

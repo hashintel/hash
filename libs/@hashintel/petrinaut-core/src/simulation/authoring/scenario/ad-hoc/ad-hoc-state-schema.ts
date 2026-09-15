@@ -30,7 +30,7 @@ const valueSchema = z.strictObject(valueShape);
 const variableSchema = z.strictObject({
   ...valueShape,
   name: z.string(),
-  type: z.enum(["real", "integer", "boolean"]),
+  type: z.enum(["real", "integer", "boolean", "ratio"]),
   exposed: z.boolean().optional(),
 });
 

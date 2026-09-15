@@ -25,5 +25,6 @@ export default defineConfig({
   root: packageRoot,
   test: {
     include: ["test/**/*.test.ts"],
+    passWithNoTests: true,
   },
 });

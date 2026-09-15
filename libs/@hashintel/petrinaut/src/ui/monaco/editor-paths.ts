@@ -3,8 +3,8 @@
  * Monaco components import from here for convenience.
  */
 export {
+  getConstraintDocumentUri,
   getDocumentUri,
   getMetricDocumentUri,
-  getScenarioDocumentUri,
   parseDocumentUri,
 } from "@hashintel/petrinaut-core";

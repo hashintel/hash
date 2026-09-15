@@ -27,15 +27,13 @@ import type { SelectionItem } from "@hashintel/petrinaut-core";
 export type PetrinautSimulateResource =
   | { type: "scenario"; id: string }
   | { type: "metric"; id: string }
-  | { type: "experiment"; id: string }
-  | { type: "optimization"; id: string };
+  | { type: "experiment"; id: string };
 
 export type PetrinautNavigationOverlay =
   | { type: "viewport-settings" }
   | { type: "create-scenario" }
   | { type: "create-metric" }
   | { type: "create-experiment" }
-  | { type: "create-optimization" }
   | null;
 
 /**
@@ -303,8 +301,6 @@ const simulateResourceTypeToView = (
       return "metrics";
     case "experiment":
       return "experiments";
-    case "optimization":
-      return "optimizations";
   }
 };
 
@@ -342,7 +338,6 @@ export const simulateDrawerToNavigationResource = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return current.simulateResource;
     // `closed` means whichever drawer is on top. Closing a create overlay
     // reveals the record it was layered over; closing that record's own
@@ -362,7 +357,6 @@ export const simulateDrawerToNavigationOverlay = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return { type: drawer.type };
     case "closed":
     case "view-scenario":
@@ -380,7 +374,6 @@ export const navigationResourceToSimulateDrawer = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return { type: overlay.type };
     case "viewport-settings":
     case undefined:
@@ -393,7 +386,6 @@ export const navigationResourceToSimulateDrawer = (
       return { type: "view-metric", metricId: resource.id };
     case "experiment":
       return { type: "view-experiment", experimentId: resource.id };
-    case "optimization":
     case undefined:
       return { type: "closed" };
   }

@@ -52,8 +52,11 @@ interface HistoryModel {
 }
 
 export interface AdHocFormHistory {
-  /** Applies one action and records the step for undo. */
-  dispatch: (action: AdHocAction) => void;
+  /**
+   * Applies one action, or a batch of actions as one step, and records the
+   * step for undo.
+   */
+  dispatch: (action: AdHocAction | AdHocAction[]) => void;
   /** Moves the cursor back and replays that snapshot; never dispatches. */
   undo: () => void;
   /** Moves the cursor forward and replays that snapshot; never dispatches. */
@@ -130,16 +133,24 @@ export function useAdHocFormHistory(
 
   const stateRef = useLatest(state);
 
-  const dispatch = (action: AdHocAction) => {
+  const dispatch = (action: AdHocAction | AdHocAction[]) => {
     // Through the latest-state ref: a dispatch can fire from an async
     // continuation (the format-on-commit round-trip), and applying it to a
     // render-closure snapshot would overwrite edits made meanwhile.
     const latest = stateRef.current;
-    const next = applyAdHocAction(latest, context, action);
+    // A batch is one edit to the user (a type change that also drops the
+    // selection the new type cannot carry), so it is one undo step. Two
+    // dispatches in one tick would both read the same `latest` and the
+    // second would overwrite the first, so the actions chain here instead.
+    const actions = Array.isArray(action) ? action : [action];
+    let next = latest;
+    for (const step of actions) {
+      next = applyAdHocAction(next, context, step);
+    }
     if (next === latest) {
       return;
     }
-    const key = adHocActionCoalescingKey(action);
+    const key = Array.isArray(action) ? null : adHocActionCoalescingKey(action);
     setModel((current) => {
       const atTop = current.cursor === current.entries.length - 1;
       if (key !== null && key === current.hotKey && atTop) {

@@ -2,9 +2,9 @@
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
  * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section, and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run or
- * a record inside the open document rather than a place in the app.
+ * the focused item, the editor's mode, its Simulate section and the overlay it
+ * has open. It deliberately leaves out `simulateResource`, which names a run
+ * or a record inside the open document rather than a place in the app.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is

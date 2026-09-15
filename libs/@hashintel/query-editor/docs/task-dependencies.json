@@ -7,20 +7,59 @@
     "@local/eslint"
   ],
   "tasks": {
-    "fix:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:eslint": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/graph#build",
-      "@blockprotocol/type-system#build",
-      "@local/eslint#build"
-    ]
+    "fix:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/graph#build",
+        "@blockprotocol/type-system#build",
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
+      ]
+    }
   }
 }

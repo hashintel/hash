@@ -50,13 +50,13 @@ const diagnostic = (
 });
 
 describe("formatDiagnosticsForAi", () => {
-  test("reports an empty diagnostics state", () => {
+  test("reports that no errors or warnings were found in net function code", () => {
     expect(
       formatDiagnosticsForAi({
         definition,
         diagnosticsByUri: new Map(),
       }),
-    ).toBe("No errors detected in your model – everything compiles!");
+    ).toBe("No errors or warnings found in net function code.");
   });
 
   test("formats transition and differential-equation diagnostics", () => {

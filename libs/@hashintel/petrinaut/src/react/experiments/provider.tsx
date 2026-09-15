@@ -40,19 +40,15 @@ import {
   isExperimentActive,
   isTerminalExperimentStatus,
 } from "./context";
+import { experimentSdcpnWithMetrics } from "./experiment-sdcpn-with-metrics";
 import {
   assertExperimentInput,
   buildSweepAxes,
   compileExperimentScenario,
   createExperimentRequestBuilder,
   experimentBackendRegistrations,
-  experimentSdcpnWithMetrics,
   newExperimentRecord,
 } from "./provider/create-experiment";
-import {
-  createDetachedObjectiveSampler,
-  type DetachedObjectiveSampler,
-} from "./provider/detached-objective";
 import {
   latestFramesById,
   mapExperimentStatus,
@@ -149,9 +145,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
   /** Backends an experiment chose, disposed with the experiment. */
   const backendsRef = useRef(new Map<string, ExperimentBackend[]>());
-  const detachedObjectiveSamplerRef = useRef<DetachedObjectiveSampler | null>(
-    null,
-  );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const selectedExperimentId =
     navigation.state.simulateResource?.type === "experiment"
@@ -176,10 +169,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const pendingRegistrations = pendingRegistrationsRef.current;
     const sweepSessions = sweepSessionsRef.current;
     const chosenBackends = backendsRef.current;
-    const detachedObjectiveSampler = detachedObjectiveSamplerRef;
     return () => {
-      detachedObjectiveSampler.current?.dispose();
-      detachedObjectiveSampler.current = null;
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
       }
@@ -354,17 +344,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
+      // Nothing computes until a control moves or an optimizer navigates.
+      startComputing: false,
       // Leading-edge, so the first frames publish instantly; while a
       // batch streams, ~10 re-renders a second read as live on a chart
       // and leave the rest of the UI most of each frame's budget.
       publishThrottleMs: 100,
       instantiateBatch: createSweepBatchInstantiator({
+        axes,
         registrations,
         buildRequest,
         compiler,
         netParameterVariableNames,
-        createWorker: reusableWorkerFactory,
-        shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
         onBackendChosen: (selection) => {
           rememberBackend(experimentId, selection.backend);
           const [firstDeclined] = selection.declined;
@@ -382,15 +373,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         },
         onNote,
       }),
-      initialMarkingKey: (values) => {
-        try {
-          return JSON.stringify(
-            compiler.compileForValues(values).result.initialState,
-          );
-        } catch {
-          return null;
-        }
-      },
       onUpdate: (update) => {
         patchExperiment(experimentId, {
           status: update.failed
@@ -398,20 +380,23 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             : update.computing
               ? "running"
               : "idle",
+          // A failure belongs to the selection that failed: the next
+          // selection's publish clears it from the record.
+          ...(update.failed ? {} : { error: null }),
           metricFrames: update.metricFrames,
           latestMetricFramesById: latestFramesById(update.metricFrames),
           progress: update.progress,
           sweep: {
             selection: update.selection,
+            selectionKey: update.selectionKey,
             runsCompleted: update.runsCompleted,
             runsSampled: update.runsSampled,
             runTarget: update.runTarget,
             computing: update.computing,
+            visited: update.visited,
           },
+          sweepBatches: update.batches,
         });
-      },
-      onBatches: (sweepBatches) => {
-        patchExperiment(experimentId, { sweepBatches });
       },
       onError: (message) => {
         patchExperiment(experimentId, {
@@ -464,10 +449,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       input,
       scenarioName:
         scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
-      axes,
+      axes: compiled.axes,
+      fixedScenarioValues: compiled.fixedScenarioValues,
+      scenario: compiled.scenario,
     });
     setExperiments((prev) => [experiment, ...prev]);
-    setSelectedExperimentId(experimentId);
 
     const abortController = new AbortController();
     pendingRegistrationsRef.current.set(experimentId, { abortController });
@@ -499,10 +485,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           });
         };
 
-        if (axes.length > 0 && compiled.sweptCompiler) {
+        if (compiled.axes.length > 0 && compiled.sweptCompiler) {
           startSweepSession({
             experiment,
-            axes,
+            axes: compiled.axes,
             registrations,
             buildRequest,
             compiler: compiled.sweptCompiler,
@@ -589,7 +575,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     void initializeExperiment();
 
-    return experimentId;
+    return experiment;
   };
 
   const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
@@ -636,19 +622,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
-  const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
-    async (experimentId, positions, runsPerCell, onPartial) => {
-      const session = sweepSessionsRef.current.get(experimentId);
-      if (!session) {
-        return null;
-      }
-      // The navigator's selection always comes first: surface chunks wait
-      // until it has streamed its first frames (the gate re-arms on every
-      // selection change), so the metric charts fill before surface sampling
-      // competes for workers.
-      await session.whenSelectionStreamed();
-      return session.sampleCells(positions, runsPerCell, onPartial);
-    };
+  const navigateSweep: ExperimentsContextValue["navigateSweep"] = (
+    experimentId,
+    selection,
+    options,
+  ) =>
+    sweepSessionsRef.current
+      .get(experimentId)
+      ?.navigateTo(selection, options) ??
+    Promise.reject(new Error("The sweep is no longer running"));
 
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
@@ -661,27 +643,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const stableCancelExperiment = useStableCallback(cancelExperiment);
   const stableRemoveExperiment = useStableCallback(removeExperiment);
   const stableSetSweepSelection = useStableCallback(setSweepSelection);
-  const stableSampleSurfaceCells = useStableCallback(sampleSurfaceCells);
-  // Built on first use: a session that never opens an optimization surface
-  // or runs a study in the browser spawns no extra worker lane.
-  const getDetachedObjectiveSampler = (): DetachedObjectiveSampler => {
-    detachedObjectiveSamplerRef.current ??= createDetachedObjectiveSampler({
-      languageClient: languageClientRef,
-      createWorker: reusableWorkerFactory,
-      shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
-    });
-    return detachedObjectiveSamplerRef.current;
-  };
-  const sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"] =
-    (request) => getDetachedObjectiveSampler().sample(request);
-  const runDetachedObjective: ExperimentsContextValue["runDetachedObjective"] =
-    (request) => getDetachedObjectiveSampler().run(request);
-
-  const stableSampleDetachedObjective = useStableCallback(
-    sampleDetachedObjective,
-  );
-  const stableRunDetachedObjective = useStableCallback(runDetachedObjective);
-
+  const stableNavigateSweep = useStableCallback(navigateSweep);
   // Every callback is identity-stable, so this object never changes and
   // actions-only consumers sit out the per-publish re-render storm.
   const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
@@ -690,9 +652,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     cancelExperiment: stableCancelExperiment,
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: stableSetSweepSelection,
-    sampleSurfaceCells: stableSampleSurfaceCells,
-    sampleDetachedObjective: stableSampleDetachedObjective,
-    runDetachedObjective: stableRunDetachedObjective,
+    navigateSweep: stableNavigateSweep,
   }));
 
   const contextValue: ExperimentsContextValue = {

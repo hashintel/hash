@@ -34,8 +34,14 @@ import {
   type AddNotificationInput,
 } from "../notifications/context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
-import { ExperimentsContext, type ExperimentsContextValue } from "./context";
+import {
+  type CreateExperimentInput,
+  type ExperimentRecord,
+  ExperimentsContext,
+  type ExperimentsContextValue,
+} from "./context";
 import { buildSweepAxes, ExperimentsProvider } from "./provider";
+import { compileExperimentScenario } from "./provider/create-experiment";
 
 import type { LanguageClientContextValue } from "../lsp/context";
 import type { PetrinautNavigationState } from "../navigation";
@@ -163,6 +169,20 @@ const flushWorkerSetup = async () => {
   await new Promise((resolve) => {
     setTimeout(resolve, 0);
   });
+};
+
+/**
+ * Creates through the provider and selects the record, as the Create
+ * Experiment drawer does once creation resolves; the tests below read the
+ * experiment back through `selectedExperiment`.
+ */
+const createSelectedExperiment = async (
+  getValue: () => ExperimentsContextValue,
+  input: CreateExperimentInput,
+): Promise<string> => {
+  const experiment = await getValue().createExperiment(input);
+  getValue().setSelectedExperimentId(experiment.id);
+  return experiment.id;
 };
 
 /**
@@ -401,7 +421,7 @@ describe("buildSweepAxes", () => {
 });
 
 describe("ExperimentsProvider", () => {
-  it("replaces the creation overlay with the created experiment location", async () => {
+  it("leaves the creation overlay open until the caller selects the created experiment", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getNavigationState, getValue, renderResult } =
       renderExperimentsProvider(worker, {
@@ -409,9 +429,9 @@ describe("ExperimentsProvider", () => {
       });
 
     try {
-      let experimentId = "";
+      let experiment!: ExperimentRecord;
       await act(async () => {
-        experimentId = await getValue().createExperiment({
+        experiment = await getValue().createExperiment({
           name: "Navigated experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -424,10 +444,20 @@ describe("ExperimentsProvider", () => {
         await flushWorkerSetup();
       });
 
+      // Creation navigates nowhere: the drawer decides what opens, and when.
+      expect(getNavigationState()).toMatchObject({
+        simulateResource: null,
+        overlay: { type: "create-experiment" },
+      });
+
+      await act(async () => {
+        getValue().setSelectedExperimentId(experiment.id);
+      });
+
       expect(getNavigationState()).toMatchObject({
         mode: "simulate",
         simulateView: "experiments",
-        simulateResource: { type: "experiment", id: experimentId },
+        simulateResource: { type: "experiment", id: experiment.id },
         overlay: null,
       });
     } finally {
@@ -440,9 +470,9 @@ describe("ExperimentsProvider", () => {
     const { getValue, renderResult } = renderExperimentsProvider(worker);
 
     try {
-      let experimentId = "";
+      let experiment!: ExperimentRecord;
       await act(async () => {
-        experimentId = await getValue().createExperiment({
+        experiment = await getValue().createExperiment({
           name: "Initializing experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -456,13 +486,21 @@ describe("ExperimentsProvider", () => {
       });
 
       expect(worker.sent.map((message) => message.type)).toEqual(["init"]);
-      expect(getValue().experiments).toHaveLength(1);
-      expect(getValue().selectedExperimentId).toBe(experimentId);
-      expect(getValue().selectedExperiment).toMatchObject({
-        id: experimentId,
+      // The resolved record is the one in the list, and nothing selected it.
+      expect(getValue().experiments).toEqual([
+        expect.objectContaining({
+          id: experiment.id,
+          name: "Initializing experiment",
+          status: "initializing",
+          scenario: null,
+        }),
+      ]);
+      expect(experiment).toMatchObject({
         name: "Initializing experiment",
         status: "initializing",
+        sweep: null,
       });
+      expect(getValue().selectedExperimentId).toBeNull();
 
       await act(async () => {
         worker.emit({ type: "ready" });
@@ -473,7 +511,7 @@ describe("ExperimentsProvider", () => {
         "init",
         "start",
       ]);
-      expect(getValue().selectedExperiment?.status).toBe("running");
+      expect(getValue().experiments[0]?.status).toBe("running");
     } finally {
       renderResult.unmount();
     }
@@ -486,7 +524,7 @@ describe("ExperimentsProvider", () => {
     try {
       let experimentId = "";
       await act(async () => {
-        experimentId = await getValue().createExperiment({
+        experimentId = await createSelectedExperiment(getValue, {
           name: "Remove before ready",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -526,7 +564,7 @@ describe("ExperimentsProvider", () => {
     try {
       let experimentId = "";
       await act(async () => {
-        experimentId = await getValue().createExperiment({
+        experimentId = await createSelectedExperiment(getValue, {
           name: "Cancel before ready",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -578,7 +616,7 @@ describe("ExperimentsProvider", () => {
     try {
       let experimentId = "";
       await act(async () => {
-        experimentId = await getValue().createExperiment({
+        experimentId = await createSelectedExperiment(getValue, {
           name: "Cancel during compile",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -665,7 +703,7 @@ describe("ExperimentsProvider", () => {
       });
 
       worker.emit({ type: "ready" });
-      experimentId = await createPromise;
+      experimentId = (await createPromise).id;
     });
 
     expect(worker.sent.map((message) => message.type)).toEqual([
@@ -673,8 +711,13 @@ describe("ExperimentsProvider", () => {
       "start",
     ]);
     expect(getValue().experiments).toHaveLength(1);
+    expect(getValue().selectedExperimentId).toBeNull();
+    expect(getValue().experiments[0]?.status).toBe("running");
+
+    await act(async () => {
+      getValue().setSelectedExperimentId(experimentId);
+    });
     expect(getValue().selectedExperimentId).toBe(experimentId);
-    expect(getValue().selectedExperiment?.status).toBe("running");
 
     const frame = makeMetricFrame();
     const progress = makeProgress();
@@ -773,7 +816,7 @@ describe("ExperimentsProvider", () => {
     const runExperiment = async () => {
       let experimentId = "";
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "Pooled",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -829,7 +872,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "Blocking experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -920,7 +963,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "Ad-hoc experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1001,7 +1044,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "Metric experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1079,7 +1122,7 @@ describe("ExperimentsProvider", () => {
 
       try {
         await act(async () => {
-          const createPromise = getValue().createExperiment({
+          const createPromise = createSelectedExperiment(getValue, {
             name: `${computeBackend} experiment`,
             scenarioId: null,
             scenarioParameterValues: {},
@@ -1142,7 +1185,7 @@ describe("ExperimentsProvider", () => {
     try {
       await withWebGpuAvailable(async () => {
         await act(async () => {
-          const createPromise = getValue().createExperiment({
+          const createPromise = createSelectedExperiment(getValue, {
             name: "gpu experiment",
             scenarioId: null,
             scenarioParameterValues: {},
@@ -1192,7 +1235,7 @@ describe("ExperimentsProvider", () => {
       let createPromise!: Promise<string>;
 
       await act(async () => {
-        createPromise = getValue().createExperiment({
+        createPromise = createSelectedExperiment(getValue, {
           name: "Timed experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1274,7 +1317,7 @@ describe("ExperimentsProvider", () => {
     try {
       let createPromise!: Promise<string>;
       await act(async () => {
-        createPromise = getValue().createExperiment({
+        createPromise = createSelectedExperiment(getValue, {
           name: "Erroring experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1325,7 +1368,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        void getValue().createExperiment({
+        void createSelectedExperiment(getValue, {
           name: "Cancelled during setup",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1359,7 +1402,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "CPU experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1390,9 +1433,10 @@ describe("ExperimentsProvider", () => {
   });
 
   it("falls back to the CPU and records why when the GPU declines the net", async () => {
-    // The GPU backend cannot serve expression metrics, so requesting it for this
-    // experiment is declined. It must still run — silently switching backends is
-    // wrong, and failing outright is worse.
+    // The constant metric translates to WGSL, so the GPU backend gets as far as
+    // the net itself, which has nothing to simulate, and declines it. It must
+    // still run — silently switching backends is wrong, and failing outright is
+    // worse.
     const worker = new FakeMonteCarloWorker();
     const notifications: AddNotificationInput[] = [];
     const { getValue, renderResult } = renderExperimentsProvider(worker, {
@@ -1405,7 +1449,7 @@ describe("ExperimentsProvider", () => {
     try {
       await withWebGpuAvailable(async () => {
         await act(async () => {
-          const createPromise = getValue().createExperiment({
+          const createPromise = createSelectedExperiment(getValue, {
             name: "GPU experiment",
             scenarioId: null,
             scenarioParameterValues: {},
@@ -1429,10 +1473,10 @@ describe("ExperimentsProvider", () => {
 
         const experiment = getValue().selectedExperiment;
         expect(experiment?.computeBackend).toBe("cpu");
-        // The metric shape, not "no GPU here": with an adapter present the backend
-        // is genuinely asked about the net, and this is the reason it gives.
+        // The net, not "no GPU here": with an adapter present the backend is
+        // genuinely asked about the net, and this is the reason it gives.
         expect(experiment?.computeBackendFallbackReason).toMatch(
-          /place token counts/i,
+          /no transitions/i,
         );
         // It still ran, on the CPU worker.
         expect(worker.sent.map((message) => message.type)).toEqual([
@@ -1460,7 +1504,7 @@ describe("ExperimentsProvider", () => {
 
     try {
       await act(async () => {
-        const createPromise = getValue().createExperiment({
+        const createPromise = createSelectedExperiment(getValue, {
           name: "Erroring experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -1493,5 +1537,292 @@ describe("ExperimentsProvider", () => {
     } finally {
       renderResult.unmount();
     }
+  });
+
+  it("registers a sweep's session before creation resolves, so a navigation right after it is taken", async () => {
+    // A study's first trial navigates the sweep as soon as `createExperiment`
+    // resolves. That works only because the sweep branch of initialization
+    // awaits nothing before `startSweepSession`; an await inserted there
+    // would surface as "The sweep is no longer running" on every such trial.
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: {
+        ...EMPTY_SDCPN,
+        scenarios: [
+          {
+            id: "scenario",
+            name: "Scenario",
+            scenarioParameters: [
+              { type: "real", identifier: "beta", default: 0.5 },
+            ],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          },
+        ],
+      },
+    });
+    const rejected = vi.fn();
+    const resolved = vi.fn();
+
+    try {
+      let experiment!: ExperimentRecord;
+      await act(async () => {
+        experiment = await getValue().createExperiment({
+          name: "Sweep",
+          scenarioId: "scenario",
+          scenarioParameterValues: { beta: { mode: "range", min: 0, max: 1 } },
+          runCount: 8,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        getValue()
+          .navigateSweep(experiment.id, { beta: { from: 10, to: 10 } })
+          .then(resolved, rejected);
+        await flushWorkerSetup();
+      });
+
+      expect(experiment).toMatchObject({
+        status: "initializing",
+        sweep: { computing: false, selectionKey: "beta=0..50" },
+        scenario: { id: "scenario" },
+      });
+      // The session took the move: a batch reached the worker, and the
+      // navigation waits for its runs rather than failing.
+      expect(worker.sent.map((message) => message.type)).toEqual(["init"]);
+      expect(rejected).not.toHaveBeenCalled();
+      expect(resolved).not.toHaveBeenCalled();
+      expect(getValue().experiments[0]).toMatchObject({
+        id: experiment.id,
+        sweep: { computing: true, selectionKey: "beta=10" },
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("cancelling a sweep mid-batch leaves its selection idle", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: {
+        ...EMPTY_SDCPN,
+        scenarios: [
+          {
+            id: "scenario",
+            name: "Scenario",
+            scenarioParameters: [
+              { type: "real", identifier: "beta", default: 0.5 },
+            ],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          },
+        ],
+      },
+    });
+
+    let experimentId = "";
+    await act(async () => {
+      experimentId = await createSelectedExperiment(getValue, {
+        name: "Sweep",
+        scenarioId: "scenario",
+        scenarioParameterValues: { beta: { mode: "range", min: 0, max: 1 } },
+        runCount: 8,
+        seed: 42,
+        dt: 1,
+        maxTime: 10,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      });
+    });
+    // Nothing computes until a point is selected.
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "idle",
+      sweep: { computing: false, selectionKey: "beta=0..50" },
+    });
+
+    await act(async () => {
+      getValue().setSweepSelection(experimentId, {
+        beta: { from: 10, to: 10 },
+      });
+      await flushWorkerSetup();
+      worker.emit({ type: "ready" });
+    });
+    await waitFor(() =>
+      expect(worker.sent.map((message) => message.type)).toContain("start"),
+    );
+    await act(async () => {
+      worker.emit({ type: "metricFrames", frames: [makeMetricFrame()] });
+      worker.emit({ type: "progress", progress: makeProgress() });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "running",
+      sweep: { computing: true, runTarget: 8, selectionKey: "beta=10" },
+    });
+    expect(getValue().selectedExperiment?.sweepBatches).toMatchObject([
+      { kind: "selection", runCount: 8 },
+    ]);
+
+    await act(async () => {
+      getValue().cancelExperiment(experimentId);
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "cancelled",
+      progress: null,
+      sweepBatches: [],
+      sweep: { computing: false, runTarget: null },
+    });
+    renderResult.unmount();
+  });
+
+  it("clears a failed selection's error once the next selection computes", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition: {
+        ...EMPTY_SDCPN,
+        scenarios: [
+          {
+            id: "scenario",
+            name: "Scenario",
+            scenarioParameters: [
+              { type: "real", identifier: "beta", default: 0.5 },
+            ],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          },
+        ],
+      },
+    });
+
+    let experimentId = "";
+    await act(async () => {
+      experimentId = await createSelectedExperiment(getValue, {
+        name: "Sweep",
+        scenarioId: "scenario",
+        scenarioParameterValues: { beta: { mode: "range", min: 0, max: 1 } },
+        runCount: 8,
+        seed: 42,
+        dt: 1,
+        maxTime: 10,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      });
+    });
+
+    const selectAndStart = async (position: number) => {
+      const startsBefore = worker.sent.filter(
+        (message) => message.type === "start",
+      ).length;
+      await act(async () => {
+        getValue().setSweepSelection(experimentId, {
+          beta: { from: position, to: position },
+        });
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+      });
+      await waitFor(() =>
+        expect(
+          worker.sent.filter((message) => message.type === "start"),
+        ).toHaveLength(startsBefore + 1),
+      );
+    };
+
+    await selectAndStart(10);
+    await act(async () => {
+      worker.emit({ type: "error", message: "device lost", itemId: null });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "error",
+      error: "device lost",
+      sweep: { computing: false, selectionKey: "beta=10" },
+    });
+
+    // The failure belonged to that selection: the next one computes and the
+    // record forgets the message.
+    await selectAndStart(20);
+    await act(async () => {
+      worker.emit({ type: "metricFrames", frames: [makeMetricFrame()] });
+      worker.emit({ type: "progress", progress: makeProgress() });
+    });
+    expect(getValue().selectedExperiment).toMatchObject({
+      status: "running",
+      error: null,
+      sweep: { computing: true, selectionKey: "beta=20" },
+    });
+    renderResult.unmount();
+  });
+});
+
+describe("compileExperimentScenario with an ad-hoc definition", () => {
+  const sdcpn: SDCPN = {
+    ...EMPTY_SDCPN,
+    places: [
+      {
+        id: "place-queue",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      },
+    ],
+  };
+  const adHocScenario: AdHocScenarioState = {
+    variables: [],
+    netParameters: [],
+    places: {
+      "place-queue": {
+        kind: "uncoloured",
+        count: {
+          expression: "4",
+          optimize: { min: "2", max: "8", scale: "linear" },
+        },
+      },
+    },
+  };
+  const compile = (adHocSweeps: boolean) =>
+    compileExperimentScenario({
+      input: {
+        name: "Ad-hoc sweep",
+        scenarioId: null,
+        scenarioParameterValues: {},
+        adHocScenario,
+        adHocSweeps,
+        runCount: 2,
+        seed: 42,
+        dt: 1,
+        maxTime: 1,
+        metricSpecs: CONSTANT_METRIC_SPEC,
+      },
+      scenario: null,
+      fixedValues: {},
+      axes: [],
+      sdcpn,
+      requestScenarioHir: (scenario, adHocContext) =>
+        Promise.resolve(lowerScenarioToHir(scenario, { adHocContext })),
+    });
+
+  it("sweeps each selection as a generated parameter with the value's label", async () => {
+    const compiled = await compile(true);
+    expect(compiled.axes).toEqual([
+      {
+        identifier: "adhoc_count_Queue",
+        label: "Queue › count",
+        min: 2,
+        max: 8,
+        stepCount: 6,
+        integer: true,
+      },
+    ]);
+    expect(
+      compiled.sweptCompiler?.compileForValues({ adhoc_count_Queue: 5 }).result
+        .initialState["place-queue"],
+    ).toBe(5);
+  });
+
+  it("runs the definition at its fixed values when sweeps are off", async () => {
+    const compiled = await compile(false);
+    expect(compiled.axes).toEqual([]);
+    expect(compiled.sweptCompiler).toBeNull();
+    expect(compiled.initialMarking["place-queue"]).toBe(4);
   });
 });

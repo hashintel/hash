@@ -63,7 +63,7 @@ export const adHocValueTargetSchema = z.discriminatedUnion("kind", [
   }),
 ]) satisfies z.ZodType<AdHocValueTarget>;
 
-const variableTypeSchema = z.enum(["real", "integer", "boolean"]);
+const variableTypeSchema = z.enum(["real", "integer", "boolean", "ratio"]);
 
 export const adHocActionInputSchemas = {
   setExpression: z

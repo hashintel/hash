@@ -9,27 +9,26 @@ import {
   NumberInput,
   Select,
   TextInput,
-  Toggle,
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   EMPTY_AD_HOC_STATE,
   isWebGpuAvailable,
+  synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import {
-  ExperimentsActionsContext,
-  type ExperimentMetricSpecInput,
-} from "../../../../../../react/experiments/context";
-import {
+  axisDisplayName,
+  buildAdHocSweepAxes,
   buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
-  type ExperimentParameterRangeInput,
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -46,6 +45,31 @@ import {
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
+import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
+import {
+  type ConstraintDraftsState,
+  EMPTY_CONSTRAINT_DRAFTS,
+} from "./create-experiment-drawer/constraint-drafts";
+import { summarizeConstraintLspErrors } from "./create-experiment-drawer/constraint-lsp";
+import { ConstraintsSection } from "./create-experiment-drawer/constraints-section";
+import {
+  fieldStyle,
+  gridStyle,
+  labelStyle,
+} from "./create-experiment-drawer/form-field-styles";
+import {
+  constraintPolicyFor,
+  lowerConstraintDrafts,
+  stateConstraintGateSpecs,
+} from "./create-experiment-drawer/lower-constraint-drafts";
+import { ObjectiveSection } from "./create-experiment-drawer/objective-section";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "./create-experiment-drawer/sweep-objective";
+import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
   EMPTY_METRIC_LSP_DIAGNOSTICS,
@@ -53,76 +77,18 @@ import {
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
+import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type { AdHocFormSelection } from "../../../../../components/ad-hoc-scenario-form/form-context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
   Scenario,
-  ScenarioParameter,
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
-
-const fieldStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
-});
-
-const labelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const gridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
-});
-
-const paramRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
-
-const paramNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  width: "[140px]",
-  flexShrink: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-});
-
-const paramTypeStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  width: "[60px]",
-  flexShrink: 0,
-});
-
-const paramSweepToggleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flexShrink: 0,
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const paramRangeStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  flex: "1",
-  minWidth: "[0]",
-  "& > *": { flex: "1", minWidth: "[0]" },
-});
 
 const sweepSummaryStyle = css({
   fontSize: "xs",
@@ -249,15 +215,6 @@ const codeDiagnosticStyle = css({
   fontSize: "xs",
   color: "red.s100",
   whiteSpace: "pre-wrap",
-});
-
-const emptyParamsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingY: "[16px]",
-  fontSize: "sm",
-  color: "neutral.s80",
 });
 
 const errorStyle = css({
@@ -508,81 +465,6 @@ function buildMetricSpecs(
 }
 
 // -- Component ----------------------------------------------------------------
-
-/** The interval a parameter starts sweeping with: around its default. */
-function initialRangeFor(
-  param: ScenarioParameter,
-): ExperimentParameterRangeInput {
-  const base = typeof param.default === "number" ? param.default : 0;
-  if (param.type === "ratio") {
-    return { mode: "range", min: 0, max: 1 };
-  }
-  const spread = Math.max(Math.abs(base), 1);
-  const min =
-    param.type === "integer" ? Math.round(base - spread) : base - spread;
-  const max =
-    param.type === "integer" ? Math.round(base + spread) : base + spread;
-  return { mode: "range", min, max };
-}
-
-const ScenarioParameterRow = ({
-  param,
-  value,
-  sweepable,
-  onChange,
-}: {
-  param: ScenarioParameter;
-  value: ExperimentParameterInput;
-  /** Whether the parameter may be turned into an interval. */
-  sweepable: boolean;
-  onChange: (value: ExperimentParameterInput) => void;
-}) => (
-  <div className={paramRowStyle}>
-    <span className={paramNameStyle}>{param.identifier}</span>
-    <span className={paramTypeStyle}>{param.type}</span>
-    {value.mode === "range" ? (
-      <div className={paramRangeStyle}>
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} minimum`}
-          step="any"
-          value={Number.isFinite(value.min) ? value.min : null}
-          onChange={(min) => onChange({ ...value, min: min ?? Number.NaN })}
-        />
-        <NumberInput
-          size="sm"
-          aria-label={`${param.identifier} maximum`}
-          step="any"
-          value={Number.isFinite(value.max) ? value.max : null}
-          onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
-        />
-      </div>
-    ) : (
-      <CodeEditor
-        singleLine
-        language="typescript"
-        value={value.value}
-        onChange={(v) => onChange({ mode: "fixed", value: v ?? "" })}
-        placeholder={String(param.default)}
-      />
-    )}
-    {sweepable && param.type !== "boolean" ? (
-      <span className={paramSweepToggleStyle}>
-        Sweep
-        <Toggle
-          size="sm"
-          aria-label={`Sweep ${param.identifier}`}
-          value={value.mode === "range"}
-          onChange={(checked) =>
-            onChange(
-              checked ? initialRangeFor(param) : { mode: "fixed", value: "" },
-            )
-          }
-        />
-      </span>
-    ) : null}
-  </div>
-);
 
 const ExperimentMetricLspSession = ({
   code,
@@ -903,9 +785,10 @@ export const CreateExperimentDrawer = ({
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, enableAdHocScenarios, enableParameterSweeps } =
-    use(UserSettingsContext);
-  const { createExperiment } = use(ExperimentsActionsContext);
+  const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
+  const createOptimizedExperiment = useCreateOptimizedExperiment();
+  const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
+  const optimizationSource = useOptimizationSource();
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -920,6 +803,9 @@ export const CreateExperimentDrawer = ({
   const [dt, setDt] = useState(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
+  const [constraintDrafts, setConstraintDrafts] =
+    useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
+  const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
   );
@@ -945,20 +831,32 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
+
+  // The net the ad-hoc form resolves names and types against, shared by the
+  // form and by the sweep summary that reads its selections.
+  const adHocFormContext = {
+    netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+    places: petriNetDefinition.places,
+    types: extensions.colors ? petriNetDefinition.types : [],
+  };
+  const adHocSweeping =
+    enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const optimizerConnected =
+    optimizationSource !== null && isConnectedOptimization(optimizationSource);
+  // The word on every interval toggle, from the settings and the source
+  // alone — never from how many toggles are on: Optimize where the
+  // in-browser optimizer can drive the sweep, Sweep otherwise.
+  const selection: AdHocFormSelection = !enableParameterSweeps
+    ? "none"
+    : optimizerConnected
+      ? "optimize"
+      : "sweep";
+
   /**
    * The sweep the current interval inputs define. `error` carries the first
    * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
    * single-combination experiment.
    */
-  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
-  // range and shows as blank there.
-  const fixedParamValues: Record<string, string> = {};
-  for (const [identifier, input] of Object.entries(paramInputs)) {
-    if (input.mode === "fixed") {
-      fixedParamValues[identifier] = input.value;
-    }
-  }
-
   const sweepSummary = ((): {
     text: string;
     tone: "neutral" | "warning" | "error";
@@ -976,26 +874,115 @@ export const CreateExperimentDrawer = ({
       }
       axes.push(outcome.axis);
     }
+    if (adHocSweeping && adHocState) {
+      // A definition that does not synthesize reports at its slots. While a
+      // toggle is on, the summary carries its first error the way a saved
+      // scenario's invalid interval does, so the Objective section and the
+      // footer word hold their place while a bound is being edited.
+      const synthesized = synthesizeAdHocOptimization(
+        adHocState,
+        adHocFormContext,
+      );
+      if (synthesized.ok) {
+        const outcome = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+        if (!outcome.ok) {
+          return { text: outcome.error, tone: "error", error: true };
+        }
+        axes.push(...outcome.axes);
+      } else if (hasAdHocIntervalToggle(adHocState)) {
+        const firstError = synthesized.errors[0];
+        if (firstError) {
+          return { text: firstError.message, tone: "error", error: true };
+        }
+      }
+    }
     if (axes.length === 0) {
       return null;
     }
-    const names = axes.map((axis) => axis.identifier).join(", ");
+    const names = axes.map(axisDisplayName).join(", ");
+    const intervals =
+      axes.length === 1 ? "over its interval" : "over their intervals";
     return {
-      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
+      text:
+        selection === "optimize"
+          ? `${names} optimized ${intervals} — the study picks the points`
+          : `${names} swept ${intervals} — the sweep computes only the points you select, click on the Surface`,
       tone: "neutral",
       error: false,
     };
   })();
 
-  const footerError = error ?? metricFormError;
+  // Shown under whichever scenario body is on screen: the form, or a saved
+  // scenario shown through it.
+  const sweepSummaryLine = sweepSummary ? (
+    <span className={sweepSummaryStyle} data-tone={sweepSummary.tone}>
+      {sweepSummary.text}
+    </span>
+  ) : null;
+
+  // An interval toggle is on and the in-browser optimizer can drive the
+  // sweep: creating the experiment starts its study, so the drawer asks for
+  // the objective. Constraints are authored only where a study could read
+  // them by name: a saved scenario's sweep (an ad-hoc definition's generated
+  // names are not authorable). The rows stay in state while the section is
+  // hidden and are never lowered.
+  const objectiveEnabled = selection === "optimize" && sweepSummary !== null;
+  const constraintsEnabled = objectiveEnabled && selectedScenario !== undefined;
+  const constraintLspError = constraintsEnabled
+    ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
+    : null;
+  const objectiveMetrics = metricDrafts.map((metric, index) => ({
+    id: metric.id,
+    label:
+      metric.label.trim() === "" ? `Metric ${index + 1}` : metric.label.trim(),
+  }));
+  const objectiveMetricId = resolveObjectiveMetricId(
+    objectiveDraft,
+    objectiveMetrics,
+  );
+  const objectiveExecution = {
+    dt: Number(dt),
+    maxTime: Number(maxTime),
+    runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
+  };
+  const objectiveError = objectiveEnabled
+    ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
+    : null;
+
+  const footerError =
+    error ?? metricFormError ?? objectiveError ?? constraintLspError;
   const canRun =
-    !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
+    !isSubmitting &&
+    metricFormError === null &&
+    objectiveError === null &&
+    constraintLspError === null &&
+    sweepSummary?.error !== true;
+  const submitLabel = objectiveEnabled
+    ? isSubmitting
+      ? "Starting"
+      : "Optimize"
+    : sweepSummary
+      ? isSubmitting
+        ? "Creating"
+        : "Create sweep"
+      : isSubmitting
+        ? "Starting"
+        : "Run";
 
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
-  // judge yet, and Run is disabled for the same reason.
+  // judge yet, and Run is disabled for the same reason. A drafted state
+  // constraint rides along as the placeholder spec the gate refuses.
   let draftMetricSpecs: ExperimentMetricSpecInput[] | null = null;
   try {
-    draftMetricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
+    draftMetricSpecs = [
+      ...buildMetricSpecs(metricDrafts, petriNetDefinition),
+      ...(constraintsEnabled
+        ? stateConstraintGateSpecs(
+            constraintDrafts,
+            petriNetDefinition.places[0]?.id,
+          )
+        : []),
+    ];
   } catch {
     draftMetricSpecs = null;
   }
@@ -1024,6 +1011,8 @@ export const CreateExperimentDrawer = ({
     setDt(DEFAULT_DT);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
+    setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1042,6 +1031,8 @@ export const CreateExperimentDrawer = ({
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
     setParamInputs({});
+    // The rows type-checked against the previous scenario's parameters.
+    setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setError(null);
   };
 
@@ -1111,27 +1102,61 @@ export const CreateExperimentDrawer = ({
 
     try {
       const metricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
-      await createExperiment({
-        name,
-        scenarioId:
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? null
-            : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramInputs,
-        adHocScenario:
-          enableAdHocScenarios &&
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
-            ? adHocState
-            : null,
-        runCount: Number(runCount),
-        seed: Number(seed),
-        dt: Number(dt),
-        maxTime: Number(maxTime),
-        metricSpecs,
-        // Read here rather than in ExperimentsProvider, which is mounted outside
-        // UserSettingsProvider and so cannot see this setting.
-        computeBackend,
-      });
+      // Lowered against the net at creation and never re-lowered; a row that
+      // does not compile rejects with its label and lands in the footer.
+      const constraints = constraintsEnabled
+        ? await lowerConstraintDrafts({
+            drafts: constraintDrafts,
+            requestConstraint,
+            context: {
+              netParameters: extensions.parameters
+                ? petriNetDefinition.parameters
+                : [],
+              scenarioParameters: selectedScenario.scenarioParameters,
+              sdcpn: petriNetDefinition,
+              extensions,
+            },
+          })
+        : [];
+      // Create, start the study when there is an objective, then select:
+      // the results drawer mounts with the study already in place, and a
+      // study that cannot start leaves no experiment behind.
+      await createOptimizedExperiment(
+        {
+          name,
+          scenarioId:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? null
+              : effectiveSelectedScenarioId,
+          scenarioParameterValues: paramInputs,
+          adHocScenario:
+            effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+              ? adHocState
+              : null,
+          adHocSweeps: adHocSweeping,
+          runCount: Number(runCount),
+          seed: Number(seed),
+          dt: Number(dt),
+          maxTime: Number(maxTime),
+          metricSpecs,
+          // Read here rather than in ExperimentsProvider, which is mounted outside
+          // UserSettingsProvider and so cannot see this setting.
+          computeBackend,
+          constraints,
+          constraintPolicy:
+            constraints.length > 0
+              ? constraintPolicyFor(constraintDrafts.passThresholdPercent)
+              : undefined,
+        },
+        objectiveEnabled
+          ? sweepObjectiveFor(
+              objectiveDraft,
+              objectiveMetricId,
+              objectiveExecution,
+            )
+          : null,
+      );
+      // A no-op on the unmounted drawer once the selection navigated away.
       resetForm();
     } catch (submitError) {
       setIsSubmitting(false);
@@ -1261,88 +1286,64 @@ export const CreateExperimentDrawer = ({
             </div>
 
             {selectedScenario ? (
-              enableAdHocScenarios ? (
-                // The selected scenario shows through the ad-hoc form in run
-                // mode: scenario parameters editable in worksheet style, and
-                // a collapsed "Computed state" preview of the exact values
-                // and tokens each run starts with.
+              // The selected scenario shows through the form in run mode:
+              // scenario parameters editable in worksheet style, and a
+              // collapsed "Computed state" preview of the exact values and
+              // tokens each run starts with.
+              <>
                 <ExperimentScenarioRun
                   scenario={selectedScenario}
-                  context={{
-                    netParameters: extensions.parameters
-                      ? petriNetDefinition.parameters
-                      : [],
-                    places: petriNetDefinition.places,
-                    types: extensions.colors ? petriNetDefinition.types : [],
-                  }}
-                  values={fixedParamValues}
-                  onValuesChange={(updates) =>
+                  context={adHocFormContext}
+                  inputs={paramInputs}
+                  selection={selection}
+                  onInputsChange={(updates) =>
                     setParamInputs((prev) => {
                       const next = { ...prev };
                       for (const update of updates) {
-                        next[update.identifier] = {
-                          mode: "fixed",
-                          value: update.value,
-                        };
+                        next[update.identifier] = update.input;
                       }
                       return next;
                     })
                   }
                 />
-              ) : selectedScenario.scenarioParameters.length === 0 ? (
-                <div className={emptyParamsStyle}>No scenario parameters</div>
-              ) : (
-                <>
-                  {selectedScenario.scenarioParameters.map((param) => (
-                    <ScenarioParameterRow
-                      key={param.identifier}
-                      param={param}
-                      sweepable={enableParameterSweeps}
-                      value={
-                        paramInputs[param.identifier] ?? {
-                          mode: "fixed",
-                          value: "",
-                        }
-                      }
-                      onChange={(v) =>
-                        setParamInputs((prev) => ({
-                          ...prev,
-                          [param.identifier]: v,
-                        }))
-                      }
-                    />
-                  ))}
-                  {sweepSummary ? (
-                    <span
-                      className={sweepSummaryStyle}
-                      data-tone={sweepSummary.tone}
-                    >
-                      {sweepSummary.text}
-                    </span>
-                  ) : null}
-                </>
-              )
-            ) : enableAdHocScenarios ? (
+                {sweepSummaryLine}
+              </>
+            ) : (
               // With no scenario, the experiment's Initial State + Parameters
               // are defined inline and compile through a scenario generated
               // at experiment start, never persisted. Left untouched, the
-              // experiment runs exactly as before. Behind the Ad-hoc
-              // scenarios setting; off, no scenario means the model's own
-              // initial marking, as before the feature.
-              <AdHocScenarioForm
-                state={adHocState ?? EMPTY_AD_HOC_STATE}
-                onChange={setAdHocState}
-                context={{
-                  netParameters: extensions.parameters
-                    ? petriNetDefinition.parameters
-                    : [],
-                  places: petriNetDefinition.places,
-                  types: extensions.colors ? petriNetDefinition.types : [],
-                }}
-                selection="none"
-              />
-            ) : null}
+              // experiment runs from the model's own initial marking.
+              <>
+                <AdHocScenarioForm
+                  state={adHocState ?? EMPTY_AD_HOC_STATE}
+                  onChange={setAdHocState}
+                  context={adHocFormContext}
+                  selection={selection}
+                />
+                {sweepSummaryLine}
+              </>
+            )}
           </Section>
+
+          {objectiveEnabled ? (
+            <ObjectiveSection
+              draft={objectiveDraft}
+              metricId={objectiveMetricId}
+              metrics={objectiveMetrics}
+              error={objectiveError}
+              onChange={setObjectiveDraft}
+              disabled={isSubmitting}
+            />
+          ) : null}
+
+          {constraintsEnabled ? (
+            <ConstraintsSection
+              drafts={constraintDrafts}
+              onChange={setConstraintDrafts}
+              scenarioParameters={selectedScenario.scenarioParameters}
+              disabled={isSubmitting}
+            />
+          ) : null}
 
           <Section title="Metrics" collapsible defaultOpen>
             <div className={metricListStyle}>
@@ -1405,11 +1406,18 @@ export const CreateExperimentDrawer = ({
               tone="neutral"
               size="sm"
               disabled={!canRun}
-              tooltip={metricFormError ?? undefined}
+              tooltip={
+                metricFormError ??
+                objectiveError ??
+                constraintLspError ??
+                undefined
+              }
               prefix={
                 isSubmitting ? (
                   <LoadingSpinner size="sm" variant="bars" />
-                ) : (
+                ) : objectiveEnabled ? (
+                  <Icon name="sparkles" size="sm" />
+                ) : sweepSummary ? undefined : (
                   <Icon name="play" size="sm" />
                 )
               }
@@ -1417,7 +1425,7 @@ export const CreateExperimentDrawer = ({
                 void handleSubmit();
               }}
             >
-              {isSubmitting ? "Starting" : "Run"}
+              {submitLabel}
             </Button>
           </>
         }

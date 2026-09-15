@@ -99,7 +99,7 @@ const PlaceVisualizerContent: React.FC = () => {
     return (
       <div className={messageStyle}>
         Enable the visualizer to define a custom token visualization for this
-        place, viewable when a simulation is running.
+        place. It renders here, and on the canvas when you point at the place.
       </div>
     );
   }

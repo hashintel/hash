@@ -28,16 +28,6 @@ vi.mock("./panels/SimulateView/metrics/create-metric-drawer", () => ({
     </button>
   ),
 }));
-vi.mock(
-  "./panels/SimulateView/optimizations/create-optimization-drawer",
-  () => ({
-    CreateOptimizationDrawer: ({ onClose }: { onClose: () => void }) => (
-      <button type="button" onClick={onClose}>
-        optimization
-      </button>
-    ),
-  }),
-);
 vi.mock("./panels/SimulateView/scenarios/create-scenario-drawer", () => ({
   CreateScenarioDrawer: ({ onClose }: { onClose: () => void }) => (
     <button type="button" onClick={onClose}>
@@ -49,7 +39,6 @@ vi.mock("./panels/SimulateView/scenarios/create-scenario-drawer", () => ({
 const drawerCases = [
   ["create-experiment", "experiment"],
   ["create-metric", "metric"],
-  ["create-optimization", "optimization"],
   ["create-scenario", "scenario"],
 ] as const satisfies readonly [SimulateDrawerState["type"], string][];
 

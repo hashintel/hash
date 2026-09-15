@@ -1,8 +1,7 @@
 # Git workflow: one issue, one branch, one pull request
 
 Brunch branches are plain Git branches with GitHub pull requests, per the repository's
-`managing-git-workflow` skill; a branch that depends on another unmerged branch is managed with
-`gh stack`. The submission unit is exactly one Linear issue, one branch, and one GitHub pull
+`managing-git-workflow` skill; a branch that depends on another unmerged branch retains explicit parent/child ordering using the owner's selected stack tooling. The submission unit is exactly one Linear issue, one branch, and one GitHub pull
 request. This is an identity and visibility rule, not a ticket decomposition method: the branch is
 still governed by its mission.
 
@@ -25,14 +24,9 @@ If an active branch predates its issue, create and link the issue before submiss
 checked-out or stacked branch solely for cosmetic compliance when doing so would endanger in-flight
 work; make the relationship explicit in the PR and follow the naming rule on subsequent branches.
 
-## Git and `gh stack` boundary
+## Stack-tool boundary
 
-Use plain `git` for local reads, staging, and commits: `status`, `diff`, `log`, `add`, and `commit`.
-A branch based on `main` needs nothing more: create it with `git`, push it, and open the pull
-request with `gh pr create --draft`. Use `gh stack` for stack-aware operations on a branch based on
-another unmerged branch: `init`, `add`, `checkout`, `rebase`, `sync`, and `submit`. Raw rebasing of
-a stacked branch bypasses the parent and child ordering that `gh stack` records. Run `gh stack`
-with the non-interactive flags from the `gh-stack` skill.
+Preserve the inspected parent/child ordering when aligning stacked branches. Use the owner's selected tooling and its installed help; this shared procedure does not prescribe a stack manager. Inspect synchronization side effects before invocation: commands may fetch, update ancestors, stash or push. Permission to align a branch is not permission for those additional effects or for an automatic history rewrite. A tool's lineage metadata is not proof that branch content is aligned.
 
 The worktree is shared infrastructure. Before switching branches or rebasing a stack, inspect every
 involved worktree for uncommitted or in-flight work. Never stash, reset, clean, or relocate another
@@ -48,14 +42,11 @@ tenant's changes to make a stack operation proceed.
    per `AGENTS.md`.
 2. After explicit approval, create its Linear issue in the `brunch-agent` project and assign the
    accountable human.
-3. Create the branch from `main` with `git`, or from its parent with `gh stack add` (or
-   `gh stack init <parent> <branch>` when the parent is not in a stack yet), or explicitly link a
-   pre-existing branch.
+3. Create the branch from the inspected `main` or parent commit, or explicitly link a pre-existing branch using the owner's chosen tooling. Verify actual ancestry and content; do not change parent relationships implicitly.
 4. Commit the branch's work and proof without creating issues for incidental implementation steps.
 5. Fill the GitHub PR template. The visible summary states what the mission establishes and does
    not establish; Agent notes carry the full execution record.
-6. Push the branch and open the pull request with `gh pr create --draft`, or `gh stack submit
-   --auto` for a stack, and verify that the Linear issue, branch, and PR link to one another.
+6. When submission is authorized, push the branch and open the pull request with `gh pr create --draft`; verify the base branch and that the Linear issue, branch and PR link to one another.
 7. At close, update the PR with proof results, fog-line answers, and carried flags. Update Linear
    status or comments only with explicit approval.
 

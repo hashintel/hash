@@ -18,13 +18,7 @@ export type TransitionFrameState = NonNullable<
 
 export type PlaceNodeData = CanvasPlaceNode;
 
-export type TransitionNodeData = CanvasTransitionNode & {
-  /**
-   * State of this transition in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
-};
+export type TransitionNodeData = CanvasTransitionNode;
 
 export type ComponentInstanceNodeData = CanvasComponentInstanceNode;
 
@@ -42,12 +36,9 @@ export type NodeType =
   | PlaceNodeType
   | ComponentInstanceNodeType;
 
-export type ArcData = Pick<CanvasArc, "kind" | "weight"> & {
-  /**
-   * State of the transition connected to this arc in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
-};
+export type ArcData = Pick<
+  CanvasArc,
+  "kind" | "weight" | "focus" | "transitionId"
+>;
 
 export type ArcEdgeType = Edge<ArcData>;

@@ -115,7 +115,9 @@ export const attachOptimizerWorker = (
           ),
         (error: unknown) => postError(runId, error),
       )
-      .finally(() => cancelled.delete(runId));
+      .finally(() => {
+        cancelled.delete(runId);
+      });
   };
 
   /** Ends the run's segment early: its loop stops at the next poll, and its trials in flight are pruned. */

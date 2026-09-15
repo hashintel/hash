@@ -86,13 +86,6 @@ export default defineConfig(({ mode }) => {
     server: {
       /** the Claude Code preview may provide a PORT to run on */
       port: process.env.PORT ? Number(process.env.PORT) : 5173,
-      proxy: {
-        "/api/petrinaut-opt": {
-          target: process.env.PETRINAUT_OPT_ORIGIN ?? "http://127.0.0.1:4004",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/petrinaut-opt/u, ""),
-        },
-      },
     },
 
     plugins: [

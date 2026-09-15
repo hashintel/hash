@@ -83,7 +83,6 @@ export {
 } from "./optimizations/context";
 export type {
   OptimizationBest,
-  OptimizationConnectionState,
   OptimizationRecord,
   OptimizationStatus,
   OptimizationsContextValue,
@@ -113,9 +112,22 @@ export type {
   SimulationProviderProps,
 } from "./simulation/provider";
 
+// --- User settings ---
+// A host mounts the provider above `Petrinaut` to read and change the
+// persisted settings from its own components; the editor reuses that instance.
+export { UserSettingsContext } from "./state/user-settings-context";
+export type {
+  UserSettings,
+  UserSettingsContextValue,
+} from "./state/user-settings-context";
+export { UserSettingsProvider } from "./state/user-settings-provider";
+
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";
-export type { ErrorTracker } from "./error-tracker-context";
+export type {
+  ErrorTracker,
+  ErrorTrackerCaptureContext,
+} from "./error-tracker-context";
 
 // --- Public hook surface ---
 export * from "./hooks";

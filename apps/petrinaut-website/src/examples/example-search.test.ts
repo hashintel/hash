@@ -72,4 +72,24 @@ describe("example search contract", () => {
       }),
     ).toBe("itemId=place-1&itemType=place&scenario=scenario-1&subnet=subnet-1");
   });
+
+  it("normalises a link to the retired Optimizations section", () => {
+    // Links shared before optimization folded into the Experiments tab named
+    // that section and a `present` param; both drop out, and the page opens on
+    // the editor's default section in Simulate mode.
+    const search = validateSharedExampleSearch({
+      mode: "simulate",
+      view: "optimizations",
+      present: "full",
+      overlay: "create-optimization",
+    });
+    expect(search).toEqual({
+      scenario: undefined,
+      subnet: undefined,
+      mode: "simulate",
+      view: undefined,
+      overlay: undefined,
+    });
+    expect(canonicalSearchString(search)).toBe("mode=simulate");
+  });
 });

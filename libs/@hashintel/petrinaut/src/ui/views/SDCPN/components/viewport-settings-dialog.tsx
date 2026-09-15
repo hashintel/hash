@@ -100,24 +100,20 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setShowMinimap,
     snapToGrid,
     setSnapToGrid,
+    highlightOnHover,
+    setHighlightOnHover,
     partialSelection,
     setPartialSelection,
-    useEntitiesTreeView,
-    setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
     enableNotebookView,
     setEnableNotebookView,
-    enableAdHocScenarios,
-    setEnableAdHocScenarios,
     webGpuEnabled,
     setWebGpuEnabled,
     showCompilationOutput,
     setShowCompilationOutput,
     enableParameterSweeps,
     setEnableParameterSweeps,
-    enableOptimizationSurface,
-    setEnableOptimizationSurface,
     enableInBrowserOptimization,
     setEnableInBrowserOptimization,
   } = use(UserSettingsContext);
@@ -156,6 +152,16 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         </SettingRow>
         <SettingRow label="Compact nodes">
           <Toggle value={compactNodes} onChange={setCompactNodes} size="sm" />
+        </SettingRow>
+        <SettingRow
+          label="Highlight on hover"
+          description="Highlight a node's inputs and outputs when the pointer rests on it"
+        >
+          <Toggle
+            value={highlightOnHover}
+            onChange={setHighlightOnHover}
+            size="sm"
+          />
         </SettingRow>
         <SettingRow
           label="Partial selection"
@@ -208,23 +214,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         <SettingRow
           label={
             <>
-              Entities tree view{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Show a unified tree of all entities in the left sidebar"
-        >
-          <Toggle
-            value={useEntitiesTreeView}
-            onChange={setUseEntitiesTreeView}
-            size="sm"
-          />
-        </SettingRow>
-        <SettingRow
-          label={
-            <>
               Notebook view{" "}
               <Chip size="xs" color="orange" variant="outline" shape="round">
                 Experimental
@@ -258,23 +247,6 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             />
           </SettingRow>
         )}
-        <SettingRow
-          label={
-            <>
-              Ad-hoc scenarios{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Define initial state and parameters inline in simulation, experiment, and scenario forms"
-        >
-          <Toggle
-            value={enableAdHocScenarios}
-            onChange={setEnableAdHocScenarios}
-            size="sm"
-          />
-        </SettingRow>
         <h3 className={sectionTitleStyle}>Simulation</h3>
         <SettingRow
           label={
@@ -324,28 +296,11 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               </Chip>
             </>
           }
-          description="Add a Sweep toggle to numeric scenario parameters when creating an experiment, so it explores an interval of values instead of one"
+          description="Add an interval toggle to every numeric value of the experiment form — Sweep, or Optimize when In-browser optimization is on — so an experiment explores an interval instead of one value"
         >
           <Toggle
             value={enableParameterSweeps}
             onChange={setEnableParameterSweeps}
-            size="sm"
-          />
-        </SettingRow>
-        <SettingRow
-          label={
-            <>
-              Optimization surface{" "}
-              <Chip size="xs" color="orange" variant="outline" shape="round">
-                Experimental
-              </Chip>
-            </>
-          }
-          description="Show a contour of the objective over two optimized parameters in a study's drawer, computed locally on this machine"
-        >
-          <Toggle
-            value={enableOptimizationSurface}
-            onChange={setEnableOptimizationSurface}
             size="sm"
           />
         </SettingRow>
@@ -359,7 +314,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
                 </Chip>
               </>
             }
-            description="Run optimization studies in this browser through the experiments backend, streaming each step's metrics as it is evaluated"
+            description="On, the experiment form's interval toggles read Optimize: creating the experiment starts a study over the selected intervals, with an Objective and Constraints chosen in the form. Off, the toggles read Sweep and the sweep waits for your selection; any running in-browser optimization is cancelled"
           >
             <Toggle
               value={enableInBrowserOptimization}

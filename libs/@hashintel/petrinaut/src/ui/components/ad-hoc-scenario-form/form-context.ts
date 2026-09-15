@@ -4,7 +4,7 @@
  *
  * - the whole form state and the net context, for attribution labels and
  *   place totals;
- * - whether Optimize controls exist at all in this consumer;
+ * - what the selection toggle means in this consumer, if it exists at all;
  * - the LSP session the slots' Monaco documents belong to;
  * - per-slot error lookup, joining synthesis errors with LSP diagnostics
  *   through `adHocSlotKey`.
@@ -17,21 +17,55 @@ import { EMPTY_AD_HOC_HIGHLIGHT } from "./dependency-highlight";
 import type { AdHocFocusTarget, AdHocHighlight } from "./dependency-highlight";
 import type {
   AdHocAction,
+  AdHocPlaceTotal,
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
+  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 /**
- * What selecting a value means in this consumer: nothing, marking a value
- * for the optimizer (with bounds), or exposing a top-level Variable as a
- * scenario parameter the saved scenario's users can tune.
+ * What selecting a value means in this consumer: nothing; marking a numeric
+ * value's interval for an experiment — the toggle reads "Optimize" when the
+ * in-browser optimizer will search it, "Sweep" when the sweep waits for a
+ * selection (Min and Max, nothing else); or exposing a top-level Variable as
+ * a scenario parameter the saved scenario's users can tune.
  */
-export type AdHocFormSelection = "none" | "optimize" | "expose";
+export type AdHocFormSelection = "none" | "optimize" | "sweep" | "expose";
 
 /** The visible name of the selection toggle. */
-export const adHocSelectionText = (selection: AdHocFormSelection): string =>
-  selection === "expose" ? "Scenario Parameter" : "Optimize";
+export const adHocSelectionText = (selection: AdHocFormSelection): string => {
+  switch (selection) {
+    case "expose":
+      return "Scenario Parameter";
+    case "sweep":
+      return "Sweep";
+    default:
+      return "Optimize";
+  }
+};
+
+/** Whether the selection marks an interval on a value slot ("optimize" or "sweep"). */
+export const adHocIntervalSelection = (
+  selection: AdHocFormSelection,
+): selection is "optimize" | "sweep" =>
+  selection === "optimize" || selection === "sweep";
+
+/**
+ * Whether a value of this domain can carry a selection in this consumer. An
+ * interval needs a number: real, integer, ratio or count. Text and boolean
+ * values never carry one: synthesis reports them at the slot when a stale
+ * toggle is on.
+ */
+export const adHocSelectionApplies = (
+  selection: AdHocFormSelection,
+  kind: "real" | "integer" | "boolean" | "ratio" | "string" | "uuid" | "count",
+): boolean =>
+  adHocIntervalSelection(selection) &&
+  (kind === "real" ||
+    kind === "integer" ||
+    kind === "ratio" ||
+    kind === "count");
 
 /**
  * What the form lets the user change. "author" is the full editor. "run"
@@ -49,9 +83,10 @@ export interface AdHocFormServices {
   formState: AdHocScenarioState;
   /**
    * The one write path: every edit is a serializable action applied by the
-   * pure reducer in petrinaut-core and recorded as an undo step.
+   * pure reducer in petrinaut-core and recorded as an undo step. A batch of
+   * actions applies in order and records one step.
    */
-  dispatch: (action: AdHocAction) => void;
+  dispatch: (action: AdHocAction | AdHocAction[]) => void;
   /** The net the form resolves names and types against. */
   synthesisContext: AdHocSynthesisContext;
   /** What selecting a value means here; "none" hides the toggles. */
@@ -62,6 +97,16 @@ export interface AdHocFormServices {
   errorFor: (slot: AdHocSlot) => string | undefined;
   /** The Monaco document URI for a slot ("" when no session is wired). */
   uriFor: (slot: AdHocSlot) => string;
+  /**
+   * The user-facing path of a value (`Space › item 0 › x`), from an index
+   * the form builds once per render rather than per slot.
+   */
+  labelFor: (target: AdHocValueTarget) => string;
+  /**
+   * A place's token total, from one normalization of the whole state per
+   * render rather than one per place.
+   */
+  placeTotal: (placeId: string) => AdHocPlaceTotal;
   /** The rows and cells connected to the focused value. */
   highlight: AdHocHighlight;
   /** Reports which value or row holds focus, driving the highlight. */
@@ -101,6 +146,8 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   sessionId: "",
   errorFor: () => undefined,
   uriFor: () => "",
+  labelFor: () => "",
+  placeTotal: () => ({ resolved: true, total: 0 }),
   highlight: EMPTY_AD_HOC_HIGHLIGHT,
   setFocusedValue: () => {},
   formatExpression: () => Promise.resolve(null),

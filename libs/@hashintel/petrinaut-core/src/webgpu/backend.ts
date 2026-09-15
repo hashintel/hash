@@ -106,6 +106,12 @@ export type GpuBackend = {
    * through the same escape/overflow re-runs that calibrate from scratch.
    */
   calibration: Map<string, GpuCalibration>;
+  /**
+   * Probes in flight, keyed like `calibration`: a batch that starts while
+   * another still probes its marking awaits the entry instead of probing
+   * too (`gpu-experiment-handle/shared-calibration`).
+   */
+  calibrating: Map<string, Promise<void>>;
   framesPerDispatch: number;
   /** Notes that did not prevent use, e.g. user code that fell back to a default. */
   warnings: string[];
@@ -236,6 +242,7 @@ export async function requestGpuExperimentBackend(
     derivedCapacities: probeCapacities,
     recompile: compileWith,
     calibration: new Map(),
+    calibrating: new Map(),
     framesPerDispatch,
     warnings,
   };

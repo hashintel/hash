@@ -102,3 +102,12 @@ export const useVoiceSessionNotice = (): string | null => {
     () => null,
   );
 };
+
+export const useVoiceSessionInterruptionBySpeaking = (): boolean => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.interruptionBySpeaking ?? false,
+    () => false,
+  );
+};

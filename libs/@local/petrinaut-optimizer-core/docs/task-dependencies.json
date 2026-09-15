@@ -2,8 +2,17 @@
   "package": "@local/petrinaut-optimizer-core",
   "dependencies": [],
   "tasks": {
-    "lint:ruff": [],
-    "lint:types": [],
-    "test:unit": []
+    "lint:ruff": {
+      "dependsOn": []
+    },
+    "lint:types": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

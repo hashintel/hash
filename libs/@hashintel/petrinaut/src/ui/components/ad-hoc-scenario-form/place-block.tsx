@@ -15,7 +15,6 @@ import { use, useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { AdHocFormContext } from "./form-context";
@@ -239,7 +238,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { formState, synthesisContext, dense } = use(AdHocFormContext);
+  const { placeTotal, dense } = use(AdHocFormContext);
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
@@ -254,7 +253,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
     collapse: () => setCollapsed(true),
     expand: () => setCollapsed(false),
   });
-  const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
+  const total = placeTotal(place.id);
   const totalText = total.resolved ? `${total.total}` : total.text;
 
   return (

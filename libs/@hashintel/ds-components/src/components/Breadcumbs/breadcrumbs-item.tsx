@@ -8,7 +8,7 @@ import { Menu, type MenuItem } from "../Menu/menu";
 import { Tooltip } from "../Tooltip/tooltip";
 
 import type { FormInputSize } from "../../util/form-shared";
-import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
+import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { styles } from "./breadcrumbs.recipe";
 import type { ExclusifyUnion } from "type-fest";
 

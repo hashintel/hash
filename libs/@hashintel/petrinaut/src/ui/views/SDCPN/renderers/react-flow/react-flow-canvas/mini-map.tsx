@@ -6,6 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../../../constants/ui";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
+import { miniMapFocusColor } from "../../../styles/focus";
 import { miniMapPlaceFillColor } from "../../../styles/type-colors";
 
 import type { NodeType } from "./react-flow-types";
@@ -24,12 +25,17 @@ const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
-const SELECTED_COLOR = "#3bb9f6";
-const SELECTED_STROKE_WIDTH = 12;
+/** Thick and solid: at map scale a ring has to carry the whole signal. */
+const FOCUS_STROKE_WIDTH = 22;
 
 /**
  * Custom node renderer for the MiniMap.
- * Renders place nodes as circles and transition nodes as rectangles.
+ * Renders place nodes as circles and transition nodes as rectangles, carrying
+ * the canvas's focus roles: a shape at the focused item is boxed in the
+ * role's colour and the rest of the net drops far back, so a glance at the
+ * map answers "where is this neighbourhood" on a net larger than the screen.
+ * The map is too small for the canvas's white band, so the box and the fade
+ * carry it alone.
  */
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
@@ -49,7 +55,23 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         ? DEFAULT_COMPONENT_FILL
         : DEFAULT_TRANSITION_FILL;
 
-  const isSelected = node.selected;
+  const focus = node.selected ? "focused" : node.data.focus;
+  const ringColor = miniMapFocusColor(focus);
+  // The pane fades the shapes outside the neighbourhood, keyed off these
+  // classes, so a hover leaves every other shape's props untouched.
+  const shapeClass =
+    ringColor === undefined
+      ? "minimap-shape"
+      : "minimap-shape canvas-focus-role";
+  const shapeStyle = {
+    fill,
+    stroke: ringColor ?? "none",
+    strokeWidth: ringColor === undefined ? 0 : FOCUS_STROKE_WIDTH,
+    // Solid, and painted outside the shape rather than straddling its edge,
+    // so the box reads as a box and the fill stays the token type's colour.
+    strokeOpacity: 1,
+    paintOrder: "stroke",
+  };
 
   if (node.data.kind === "place") {
     return (
@@ -57,10 +79,8 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         cx={x + SHAPE_SIZE / 2}
         cy={y + SHAPE_SIZE / 2}
         r={SHAPE_SIZE / 2}
-        fill={isSelected ? SELECTED_COLOR : fill}
-        stroke={isSelected ? SELECTED_COLOR : "none"}
-        strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
-        strokeOpacity={0.4}
+        className={shapeClass}
+        style={shapeStyle}
       />
     );
   }
@@ -73,10 +93,8 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
         width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
         height={SHAPE_SIZE}
         rx={12}
-        fill={isSelected ? SELECTED_COLOR : fill}
-        stroke={isSelected ? SELECTED_COLOR : "none"}
-        strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
-        strokeOpacity={0.4}
+        className={shapeClass}
+        style={shapeStyle}
       />
     );
   }
@@ -87,10 +105,8 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
       y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
       width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
       height={SHAPE_SIZE}
-      fill={isSelected ? SELECTED_COLOR : fill}
-      stroke={isSelected ? SELECTED_COLOR : "none"}
-      strokeWidth={isSelected ? SELECTED_STROKE_WIDTH : 0}
-      strokeOpacity={0.4}
+      className={shapeClass}
+      style={shapeStyle}
     />
   );
 };

@@ -149,6 +149,36 @@ const getVoiceInterviewDisclosureStorage = (): Storage | null => {
   }
 };
 
+const interruptionBySpeakingStorageKey =
+  "petrinaut:interruption-by-speaking:v1";
+
+export const readInterruptionBySpeakingPreference = (
+  storage: Pick<
+    Storage,
+    "getItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): boolean => {
+  try {
+    return storage?.getItem(interruptionBySpeakingStorageKey) !== "false";
+  } catch {
+    return true;
+  }
+};
+
+export const saveInterruptionBySpeakingPreference = (
+  enabled: boolean,
+  storage: Pick<
+    Storage,
+    "setItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): void => {
+  try {
+    storage?.setItem(interruptionBySpeakingStorageKey, String(enabled));
+  } catch {
+    // The preference still applies to this session when storage is unavailable.
+  }
+};
+
 export const isVoiceInterviewDisclosureAcknowledged = (
   storage: Pick<
     Storage,
@@ -485,6 +515,9 @@ const AvailableVoiceInterviewControl = ({
       session,
       submitText: (input) => latestSubmitVoiceInput(input),
     });
+    controller.setInterruptionBySpeaking(
+      readInterruptionBySpeakingPreference(),
+    );
     return {
       bridge,
       controller,
@@ -599,6 +632,10 @@ const AvailableVoiceInterviewControl = ({
         resume: () => {
           void store.controller.resume();
         },
+        setInterruptionBySpeaking: (enabled) => {
+          store.controller.setInterruptionBySpeaking(enabled);
+          saveInterruptionBySpeakingPreference(enabled);
+        },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
         takeTurn: () => store.controller.takeTurn(),
@@ -624,6 +661,7 @@ const AvailableVoiceInterviewControl = ({
     if (inputMode === "text") {
       handledVoiceSelectionRef.current = false;
       if (!active) {
+        // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes this consent-state machine
         setShowDisclosure(false);
       }
       return;

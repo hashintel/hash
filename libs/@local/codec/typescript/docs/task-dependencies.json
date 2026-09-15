@@ -4,14 +4,44 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "codegen"
-    ],
-    "codegen": [
-      "@rust/hash-codec#build:types"
-    ],
-    "lint:tsc": [
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "affectedBy": [
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": [
+        "@rust/hash-codec#build:types"
+      ],
+      "affectedBy": [
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "affectedBy": [
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen"
+      ]
+    }
   }
 }

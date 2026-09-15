@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@blockprotocol/type-system-rs#manifest"]
+    },
     "codegen": {
       "dependsOn": [
         "@blockprotocol/type-system-rs#build:types",

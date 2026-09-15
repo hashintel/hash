@@ -1,6 +1,6 @@
 # Compilation Output
 
-The **Compilation** tab explains what Petrinaut's compiler made of your net's code: which conditions, kernels and differential equations were understood, and what stops the net running on the [GPU backend](experiments.md#compute-backend-experimental).
+The **Compilation** tab explains what Petrinaut's compiler made of your net's code: which conditions, kernels, differential equations and metrics were understood, and what stops the net running on the [GPU backend](experiments.md#compute-backend-experimental).
 
 It is a diagnostic view about the compiler, not about your model — for errors in your code, use [Diagnostics](petri-net-extensions.md#diagnostics) instead.
 
@@ -14,13 +14,13 @@ Under **Settings → Simulation**, switch on **Compilation output**. A **Compila
 
 A pill reads **Runs on GPU** or **CPU only**, followed by:
 
-- **B/run** -- bytes of GPU state one simulation run needs. The backend refuses nets above 4096 bytes, so this is the number to watch when raising [token capacities](drawing-a-net.md#token-capacity).
+- **B/run** -- bytes of GPU state one simulation run needs. The backend refuses a run above one megabyte of state, so this is the number to watch when raising [token capacities](drawing-a-net.md#token-capacity).
 - **lines of WGSL** -- size of the generated shader, when one was generated.
 - **compiled items** -- how many pieces of user code the net contains.
 
 ### Blocks GPU compilation
 
-Structural reasons the net was refused before any code was generated — a typed place without a capacity, an unsupported attribute type, an arc consuming more than one typed token. Each reason names the item; click it to select that item on the canvas.
+Structural reasons the net was refused before any code was generated — an unsupported attribute type, an arc consuming more than two typed tokens from one place, a run whose state exceeds the device's memory gate. Each reason names the item; click it to select that item on the canvas.
 
 ### Shader emission failed
 
@@ -28,9 +28,11 @@ The net passed the structural checks, but the generator could not turn some expr
 
 When a transition kernel reads as **CPU**, the detail names what WGSL cannot express — a `string` attribute, a generated `uuid`. A net with such a kernel is refused rather than run: a produced token whose attributes were never written would report zeros as results.
 
+A metric reads as **CPU** when the shader cannot translate its body — `.concat` over two places, indexing a token by position, a `string` attribute. A metric is not a node on the canvas, so its row has no detail to open here; the **Run on GPU** switch in the Create Experiment drawer names the metric and the construct on hover when that metric is measured, and the experiment runs on the CPU with the same message.
+
 ### Compiled code
 
-One row per piece of user code — transition conditions, transition kernels, and per-place dynamics — with the size of its compiled expression and where it can run:
+One row per piece of user code — transition conditions, transition kernels, per-place dynamics, and metrics — with the size of its compiled expression and where it can run:
 
 | Label        | Meaning                                                                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |

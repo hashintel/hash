@@ -24,9 +24,11 @@ If no behavioral execution or stronger analysis occurred, say so. Do not convert
 
 ## Before construction
 
+Apply these checks to the fragment being added or changed. Unresolved material elsewhere remains a workpiece gap, not a prerequisite for this fragment.
+
 - The intended question, comparison, or decision is stated in the person's terms.
-- The boundary and a meaningful concrete case are cold-readable from the workpiece.
-- The process spine says what flows, what admits it, what happens and in what order, what changes the path, where waiting comes from, and what outcome or handoff ends it.
+- The fragment's boundary and a meaningful concrete case are cold-readable from the workpiece.
+- An activity and an adjacent state or relationship are supported, with the flow, ordering and enabling conditions needed for the proposed change. A complete end-to-end process spine is not required for an intermediate fragment.
 - Inputs that matter are distinguished as consumed, reserved/released, or read.
 - Required resource availability and release are recorded or visibly unknown.
 - Consequential quantities retain their context and supported precision.
@@ -34,7 +36,7 @@ If no behavioral execution or stronger analysis occurred, say so. Do not convert
 - Construction can proceed without recovering a load-bearing fact from transcript memory.
 - Assumptions, unresolved matters, omissions, and anticipated losses are visible.
 
-If the missing material admits materially different process structures, formulate the smallest resolving question before constructing. Ask it only during interactive elicitation; in construct-only execution, return it as a blocking re-entry question. If the person has stopped, deliver the partial workpiece instead of opening a new topic.
+If missing material admits materially different structures for the proposed fragment, formulate the smallest resolving question before constructing that portion. Ask it only during interactive elicitation; in construct-only execution, return it as a blocking re-entry question for that portion. If the person has stopped, deliver the partial workpiece and already-checked net instead of opening a new topic.
 
 ## Tool-schema acceptance checks
 
@@ -48,10 +50,10 @@ Re-inspect after dependent stages and once at the end. Record rejected calls and
 
 ## Agent-reviewed structural correspondence
 
-Compare the latest inspected definition with the authoritative workpiece claims.
+Compare the latest inspected definition with the authoritative workpiece claims. During incremental construction, review the represented fragment and name its open boundaries; at final delivery, review coverage against the full intended scope. A partial fragment is not an end-to-end result.
 
 - The definition contains at least one meaningful place and transition corresponding to the process account.
-- It contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.
+- The fragment's supported states and activities are connected as recorded. For an end-to-end result, the definition contains a candidate structural path from a represented initial or admitted condition toward an outcome. This does not establish that the path can fire.
 - Visible branches, joins, loops, and recovery structures correspond to the workpiece's stated ordering and conditions.
 - For each enumerated resource-holding path, the intended acquisition and return structures are present. This does not establish conservation over every execution.
 - Consumed inputs lack an unintended return structure; reserved inputs have an intended return structure; read-only information remains visibly available by the chosen representation.

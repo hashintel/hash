@@ -6,18 +6,66 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@blockprotocol/type-system#build",
-      "@local/hash-graph-authorization#build",
-      "codegen"
-    ],
-    "codegen": [
-      "@rust/hash-graph-store#build:types"
-    ],
-    "lint:tsc": [
-      "@blockprotocol/type-system#build",
-      "@local/hash-graph-authorization#build",
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-authorization#build",
+        "codegen"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-store",
+        "@rust/hash-graph-temporal-versioning",
+        "@rust/hash-graph-types",
+        "@rust/hash-temporal-client"
+      ]
+    },
+    "codegen": {
+      "dependsOn": [
+        "@rust/hash-graph-store#build:types"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-store",
+        "@rust/hash-graph-temporal-versioning",
+        "@rust/hash-graph-types",
+        "@rust/hash-temporal-client"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@blockprotocol/type-system#build",
+        "@local/hash-graph-authorization#build",
+        "codegen"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-authorization",
+        "@rust/hash-graph-store",
+        "@rust/hash-graph-temporal-versioning",
+        "@rust/hash-graph-types",
+        "@rust/hash-temporal-client"
+      ]
+    }
   }
 }

@@ -10,9 +10,12 @@
  */
 
 export { Petrinaut } from "./petrinaut";
-export type {
-  PetrinautAiMessage,
-  PetrinautAiMessageMetadata,
+export {
+  // The user-guide pages the built-in documentation read serves, so a host
+  // tool under its own name can answer with the same text.
+  petrinautDocsContent,
+  type PetrinautAiMessage,
+  type PetrinautAiMessageMetadata,
 } from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,
@@ -44,6 +47,10 @@ export type {
   PetrinautNavigationUpdater,
   PetrinautSimulateResource,
 } from "../react/navigation";
+export type {
+  PetrinautAiAutomaticTool,
+  PetrinautAiAutomaticToolExecuteParams,
+} from "./types/ai-automatic-tool";
 export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 export type {
   PetrinautAiInteractiveTool,

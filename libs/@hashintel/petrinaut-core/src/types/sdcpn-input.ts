@@ -9,6 +9,7 @@ import type {
   Metric,
   OutputArc,
   Parameter,
+  Place,
   Scenario,
   SDCPN,
   Subnet,
@@ -61,6 +62,7 @@ export type SDCPNPlaceInput = {
   dynamicsEnabled?: boolean;
   /** @default null */
   differentialEquationId?: ID | null;
+  capacity?: Place["capacity"];
   isPort?: boolean;
   visualizerCode?: string;
   showAsInitialState?: boolean;
@@ -125,7 +127,7 @@ function arcEndpointFields(arc: SDCPNArcEndpointInput): SDCPNArcEndpointInput {
  * {@link SDCPN}. Idempotent: normalizing an already-complete `SDCPN` returns an
  * equivalent value.
  *
- * Optional output fields (`isPort`, `visualizerCode`, `showAsInitialState`,
+ * Optional output fields (`capacity`, `isPort`, `visualizerCode`, `showAsInitialState`,
  * arc `placeId`/`endpoint`, `scenarios`, `metrics`, `subnets`,
  * `componentInstances`) are only set when present on the input, so the result
  * matches the shape the editor itself produces (relevant for structural
@@ -145,6 +147,9 @@ export function normalizeSDCPN(input: SDCPNInput): SDCPN {
       };
       if (place.description !== undefined) {
         normalized.description = place.description;
+      }
+      if (place.capacity !== undefined) {
+        normalized.capacity = place.capacity;
       }
       if (place.isPort !== undefined) {
         normalized.isPort = place.isPort;

@@ -1,16 +1,20 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 and conversation transport updated by FE-1574 / Mission 5 on 2026-09-03 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
+**Status: living package-tree map.** Original ratification 2026-08-17 (ADR-0002); transport
+updated by Mission 5. This file records where code lives now. It is not a placement roadmap
+and not a capture-store or YAML-plugin plan. `✓` complies today; `○` exists but is unmounted
+or rejected as product provenance.
 
 ## Verification — the tree as it stands
 
 ```text
-packages/core                      CORE HARNESS + Flue-native agent contribution
+packages/core                      CORE + Flue-native agent contribution
 ├─ prompts/SYSTEM.md  ✓ authoritative context- and formalism-independent always-on prompt
 ├─ skills/elicitation/ ✓ core's one capability skill: `SKILL.md` + `references/universal-elicitation.md`,
 │                        packaged through `skills/skill-markdown.ts` and mounted by `flue.ts`
 ├─ flue.ts            ✓ `useBrunchAgent()`: model, elicitation skill, returned core prompt (`./flue`)
-├─ evidence/          ✓ active capture-store and archived-session evidence authority
+├─ evidence/          ○ capture-store code still exported; rejected as product provenance on
+│                        2026-09-04. Archived-session evidence remains the binding-owned archive lane.
 ├─ conversation/      ✓ tool naming and the harness reply-event contract
 ├─ _suspended/conversation/ ○ compiled ask/affordance and settlement protocols; not mounted;
 │                        re-exported only for contracts other packages still type against
@@ -53,14 +57,24 @@ packages/plugin-gherkin            TARGET POLICY + Flue-native contribution bund
 packages/plugin-dafny              STUB contribution bundle (topology pressure test; not composed)
 ├─ prompts/APPEND_SYSTEM.md, skills/dafny-verification/SKILL.md, flue.ts — placeholder homes only
 
+packages/plugin-claims             STUB contribution bundle (normative-source interference probe; not composed)
+├─ index.ts, flue.ts, skills/claims-formalization/ — pairing identity, append, and job skill;
+│                        no ledger API or application mount
+
 packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
 ├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
+├─ worked-model-net-projection.ts ✓ `./worked-model` wire parse/type for principal-owned
+│                        net projections; not mounted into the Flue contribution
 ├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append
 ├─ skills/sdcpn-modelling/ ✓ `SKILL.md` + `references/{profile,pn-construction,checks}.md`
 │                        + `templates/workpiece.md`; activates core `elicitation` for human knowledge
-├─ flue.ts            ✓  `useSdcpnPlugin()`: append, job skill, doc tool, conditional construction tools
+├─ flue.ts            ✓  `useSdcpnPlugin()`: append, job skill, doc tool, ordinary batched
+│                        construction, and retained legacy/headless fixture modes
 └─ tools/
-   ├─ petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
+   ├─ mutate-petrinet.ts ✓ one ordinary model-facing root-net carrier over the selected
+   │                        canonical Petrinaut actions
+   ├─ petrinaut-construction.ts ✓ bounded individual realization tools retained for
+   │                              headless and legacy test modes
    └─ read-petrinaut-doc.ts     ✓ Petrinaut editor guidance exposed as a client-executed tool
 
 apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
@@ -73,42 +87,99 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 │  └─ tools/ping.ts   ✓  app-only server-path diagnostic
 ├─ src/http/          ✓  HTTP authority: assets, mounted route names, ownership guard, and local origins;
 │                        `/agents/chat/:instanceId` is the sole Brunch conversation door
-├─ src/conversation/  ✓  server identity verification, client-tool catalog, and operator transcript;
-│                        browser AI SDK projection lives in `transport-aisdk`
+├─ src/conversation/  ✓  server identity verification, client-tool results, current-net
+│                        freshness, candidate history projection, current-revision explanation,
+│                        and operator transcript; browser AI SDK projection lives in `transport-aisdk`
+├─ src/worked-model-store.ts ✓ app-owned build-fixture catalogue and persistence of principal
+│                              net projections; plugin `./worked-model` owns the wire parse/type.
+│                              Postgres implementation stays beside it in its private subtree
+├─ src/http/worked-models.ts ✓ legacy-path GET/POST/PUT API for resolving, refreshing and updating
+│                              principal-owned net projections
 ├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
 │                        no elicitation policy
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
 │                        not product runtime authority
 ├─ src/diagnostics/   ✓  operator-facing transcript CLI
-├─ src/ui/            ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
-│                        (divergence risk 1). Never: growing new part-rendering features here.
+├─ src/ui/            ✓  local diagnostics client only; do not grow part-rendering here.
+│                        `@flue/react` remains appropriate for this debug UI (spine later concerns).
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
+
+apps/petrinaut-website/src/main/app/local-storage-demo
+├─ documents/document-repository.ts ✓ storage-neutral document/source/controller contracts and
+│                                      the typed process-agent seed
+├─ documents/local-storage/
+│  ├─ use-local-document-repository.ts ✓ ordinary browser-local persistence
+│  └─ use-fixture-document-overlay.ts  ✓ local-only prepared-fixture decorator
+├─ documents/remote/
+│  ├─ use-remote-document-repository.ts ✓ worked-model source and read-only title boundary
+│  ├─ use-worked-model-net-projection.ts ✓ queued identity-explicit remote revision persistence
+│  └─ worked-model-net-projection-client.ts ✓ principal-scoped GET/POST/PUT net projection
+├─ documents/use-document-controller.ts ✓ the only host seam that crosses document sources
+└─ assistants/brunch/use-process-agent-binding.ts ✓ document/incarnation/conversation binding;
+                                                     consumes the typed seed without choosing storage
 ```
 
-## Specification — where what's next lands
+Route identity selects the local or remote source; assistant preference does
+not. A repository owns document persistence, while the controller creates a
+local document before crossing from a remote route. The process-agent binding
+owns conversation identity. Remote worked-model titles are inherited and
+read-only because that repository exposes no rename action. This
+repository/controller/binding authority split remains valid.
 
-- **N1 (the structural repair, discharged by FE-1422 + FE-1392).**
-  `packages/core/src/conversation/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
-  reply-binding signal payload, and instruction fragments. `packages/core/src/conversation/sweep-protocol.ts`
-  owns range selection, trigger/repair decisions (including reopening the loop guard after a
-  refusal), prompt content, and advisory semantics;
-  `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
-  refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563; retired 2026-09-02).** The YAML cell/repertoire machinery described here was removed on 2026-09-02 once plugins became Flue-native contribution bundles; this paragraph is history. Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities.
-- **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
-  shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
-  Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing
-  integration.
-  Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
-  about one another.
-- **N4 (experiments).** Experiment runners live under the consuming app's `src/evaluations/`, use the JS-API pattern with `observe()` accounting, and never enter `packages/` or become bespoke daemons. Reusable cases, oracles, and protocols remain under the context-root `evaluations/`; observed output remains under `docs/evidence/evaluations/`.
-- **N5 (storage-port implementations; local target discharged by FE-1391).** One per (binding ×
-  deploy target), always in the binding package, always implementing core's `CaptureStore` +
-  parse-on-read. The local implementation provisions a versioned target-document record around
-  both capture and archive state. The Cloudflare case (per-object SQLite) is a new implementation
-  behind the same port — the file-path assumption never leaks above the binding.
-- **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
-  gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
+A worked-model copy must preserve one independently writable, complete
+connected bundle: retained conversation/session, workpiece history and current
+revision, Petrinaut document and revision history, net, mutation provenance and
+the links among them. The landed GET/POST/PUT and remote repository path is an
+explicitly incomplete net projection: the fixture catalogue packages session,
+workpiece and net, but the path currently projects only the net under fresh
+document, incarnation and empty-conversation identities. Workpiece or history
+created inside that projection proves post-open behavior only, not fixture
+bundle copying, identity remapping or provenance preservation.
 
-Ratification note: N1 was the only item that changed existing code in the original 2026-08-17 ratification; FE-1422 extracted the ask protocol and FE-1392 continued the same repair for sweep mechanism. Mission 3 later narrowed N2's blanket app-skill prohibition for one directly authored proving instrument without reactivating plugin composition. N2–N6 otherwise constrain future placement. ADR-0002 records the original ratification. The boundary gates in `test/boundaries.test.ts` should learn enforceable package rules as their packages arrive; N5's "port implementations only in bindings" remains mechanically checkable.
+## Ordinary browser-bound Brunch tools
+
+[`apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts`](../../../../../../apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts)
+is the checked name/ownership map. The native-provider carriage probe compares
+the live mounted names against it through both provider entrypoints and fails
+on duplicates, additions, removals or ordering drift. It records no schemas;
+those remain with their definition owners.
+
+| Name | Definition owner | Execution owner | Role |
+| --- | --- | --- | --- |
+| `task` | Flue | Flue | substrate delegation |
+| `activate_skill` | Flue | Flue | skill activation |
+| `read_skill_resource` | Flue | Flue | skill resource read |
+| `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
+| `mutate_workpiece` | Brunch core | Brunch app | durable full-revision write with recorded delta |
+| `read_petrinaut_net` | Petrinaut Core | Petrinaut website | current document read |
+| `read_petrinaut_docs` | Petrinaut Core | Petrinaut website | user-guide read |
+| `read_petrinaut_diagnostics` | Petrinaut Core | Petrinaut website | diagnostics read |
+| `layout_petrinaut_net` | Petrinaut Core | Petrinaut website | recorded layout mutation |
+| `mutate_petrinaut_net` | SDCPN plugin over Petrinaut actions | Petrinaut website | selected root-net mutation carrier |
+| `read_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
+| `query_workpiece` | Brunch app | Brunch app | current-model explanation and provenance query |
+| `ping` | Brunch app | Brunch app | server diagnostic |
+
+Stock Petrinaut has its own canonical individual AI-tool surface and history.
+Legacy/headless Brunch modes still mount individual construction tools for
+their bounded tests; they are not the ordinary product surface.
+
+## Current placement locks
+
+These replace the old N1–N6 "where next work lands" list. Retired N items (ask/sweep remount,
+YAML repertoire, plugin-assurance-for-symmetry) are history in [ADR-0002](../../adr/0002-topology-and-placement-rules.md).
+
+- **App vs libraries.** `apps/brunch-agent` is the registration and host-composition shell.
+  `apps/petrinaut-website` owns the user-facing integration. Applications may compose public
+  surfaces; reusable libraries may not know about one another.
+- **Flue-native contributions.** Core and plugins expose production resources through `./flue`
+  subpaths. Plugins depend inward on core, never on bindings. Transport never depends on a
+  binding. Suspended code stays under `src/_suspended/` and is never mounted.
+- **Experiments.** Runners live under the consuming app, use the JS-API `observe()` pattern, and
+  never enter `packages/`. Cases, oracles, and protocols stay in context-root `evaluations/`;
+  observed output stays under `apps/brunch-agent/.data-wipe-me/evaluations/`.
+- **Durable state.** Workpiece revisions settle in per-conversation state; Flue `history()` is
+  the conversation log. Binding-owned storage ports may implement the session-log archive lane
+  per deploy target; they must not revive capture envelopes as the document of record. File-path
+  assumptions never leak above the binding.

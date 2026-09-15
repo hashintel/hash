@@ -33,7 +33,6 @@ import { LanguageClientContext } from "../lsp/context";
 import { usePetrinautNavigation } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
-import { UserSettingsContext } from "../state/user-settings-context";
 import { useStore } from "../use-store";
 import {
   type InitialMarking,
@@ -242,6 +241,26 @@ export type SimulationProviderProps = React.PropsWithChildren<{
   requireScenario?: boolean;
 }>;
 
+/**
+ * Compiles a run's scenario, or throws its errors as one message. Kept out
+ * of `initialize`: a `throw` inside that function's `try`/`catch` is syntax
+ * React Compiler does not lower, and the one statement excluded the whole
+ * provider from compilation — every render then rebuilt every derived value
+ * and re-rendered every consumer of the simulation context, the canvas
+ * included.
+ */
+const compileScenarioForRun = (
+  ...args: Parameters<typeof compileScenario>
+): CompiledScenarioResult => {
+  const outcome = compileScenario(...args);
+  if (!outcome.ok) {
+    throw new Error(
+      outcome.errors.map((scenarioError) => scenarioError.message).join("\n"),
+    );
+  }
+  return outcome.result;
+};
+
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,
   compiler,
@@ -258,10 +277,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const navigation = usePetrinautNavigation();
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
-  // Gates the inline ad-hoc definition end to end: with the setting off, a
-  // definition kept in state (typed while it was on) must not steer runs
-  // the pre-feature UI no longer shows it in.
-  const { enableAdHocScenarios } = use(UserSettingsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -376,6 +391,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     initializationGenerationRef.current += 1;
     simulationRef.current?.dispose();
     simulationRef.current = null;
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- reacting to a scenario switch from navigation: the running simulation is disposed here, and the resets run once per switch behind the previous-id guard above
     setSimulation(null);
     setError(null);
     setErrorItemId(null);
@@ -569,24 +585,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         if (initializationGenerationRef.current !== generation) {
           return;
         }
-        const outcome = compileScenario(
+        const compiled = compileScenarioForRun(
           scenarioToCompile.scenario,
           scenarioHir,
           scenarioToCompile.netParameters,
           sdcpn.places,
           sdcpn.types,
         );
-        if (!outcome.ok) {
-          throw new Error(
-            outcome.errors
-              .map((scenarioError) => scenarioError.message)
-              .join("\n"),
-          );
-        }
-        parameterValues = outcome.result.parameterValues;
+        parameterValues = compiled.parameterValues;
         initialMarking = {
           ...manualInitialMarking,
-          ...outcome.result.initialState,
+          ...compiled.initialState,
         };
       }
 
@@ -775,7 +784,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }))
     : [];
   const adHocSynthesized =
-    enableAdHocScenarios && !selectedScenario && stateValues.adHocScenario
+    !selectedScenario && stateValues.adHocScenario
       ? synthesizeAdHocScenario(stateValues.adHocScenario, {
           netParameters: adHocNetParameters,
           places: petriNetDefinition.places,

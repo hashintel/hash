@@ -2,13 +2,13 @@
  * The editor every value slot opens, in place: the trigger is the cell, and
  * opening replaces it with a Monaco single-line editor at exactly the cell's
  * position — no chrome, no padding. The slot's attribution path (`Space ›
- * item 0 › x`) floats quietly above the cell; the Optimize control floats
- * below it, and turning Optimize on replaces the expression editor with a
- * small bounds spreadsheet in the same slot: labeled Min/Max/Scale cells
- * (Step where definable), each a square expression cell with the form's
- * selection model — focus selects, Enter edits in a frameless Monaco,
- * Enter or Escape returns to the cell. Toggling destroys nothing: the core
- * transition retains bounds and expression alike.
+ * item 0 › x`) floats quietly above the cell; the interval toggle (Optimize
+ * or Sweep) floats below it, and turning it on replaces the expression
+ * editor with a small bounds spreadsheet in the same slot: labeled Min and
+ * Max cells, each a square expression cell with the form's selection model
+ * — focus selects, Enter edits in a frameless Monaco, Enter or Escape
+ * returns to the cell. Toggling destroys nothing: the core transition
+ * retains bounds and expression alike.
  *
  * A closed slot still shows its problems: the trigger underlines in red and
  * carries the first synthesis error or LSP diagnostic as its tooltip.
@@ -27,24 +27,25 @@ import {
 
 import {
   PortalContainerContext,
-  Select,
   usePortalContainerRef,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocNeutralExpression,
   adHocSlotKey,
-  adHocTargetLabel,
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { sameAdHocFocusTarget } from "./dependency-highlight";
-import { AdHocFormContext, adHocSelectionText } from "./form-context";
+import {
+  AdHocFormContext,
+  adHocSelectionApplies,
+  adHocSelectionText,
+} from "./form-context";
 import {
   cellButtonStyle,
   cellErrorUnderlineStyle,
-  cellSelectStyle,
   dependencyHighlightStyle,
 } from "./spreadsheet/form-table";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
@@ -96,7 +97,7 @@ const overlayStyle = css({
   // A portal container is often a full-bleed layer that lets presses through
   // to the app beneath it (`pointer-events: none`), so a surface portaled
   // into one has to take its own presses back. Without this the whole slab
-  // is click-through: Min, Max, Step and Scale never see the press, and the
+  // is click-through: Min and Max never see the press, and the
   // press lands on whatever sits under the slab — which the dismiss handler
   // then reads as a click outside and closes the slab.
   pointerEvents: "auto",
@@ -177,10 +178,6 @@ const boundsColumnStyle = css({
   _first: { borderLeft: "none" },
 });
 
-const boundsScaleColumnStyle = css({
-  flex: "[0 0 96px]",
-});
-
 const boundsLabelStyle = css({
   display: "flex",
   alignItems: "center",
@@ -216,16 +213,6 @@ const fieldErrorStyle = css({
   paddingX: "1",
 });
 
-const booleanNoteStyle = css({
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "[10px]",
-  color: "purple.s110",
-  whiteSpace: "nowrap",
-});
-
 const expressionRowStyle = css({
   display: "flex",
   width: "[100%]",
@@ -243,12 +230,12 @@ export interface ValueEditorProps {
   target: AdHocValueTarget;
   /**
    * The slot's value domain — one fact, everything else derives from it:
-   * booleans optimize as a true/false choice with no bounds and step with
-   * Up/Down; integers get a Step bound; counts are integers with an implied
-   * step of 1 (no Step field); strings and UUIDs don't arrow-step. The
-   * default placeholder is the domain's neutral value.
+   * numbers carry an interval toggle, booleans and text never do; booleans
+   * step with Up/Down as true/false; ratios step by 0.1 within 0 and 1;
+   * strings and UUIDs don't arrow-step. The default placeholder is the
+   * domain's neutral value.
    */
-  kind: ColorElementType | "count";
+  kind: ColorElementType | "count" | "ratio";
   /**
    * Rendered as derived: dimmed, chevron-prefixed, out of the tab order, and
    * editing is delegated to the shared column's own editor by the parent.
@@ -297,6 +284,9 @@ const MIN_OVERLAY_WIDTH = 220;
 
 /** The wider minimum when the bounds spreadsheet is showing. */
 const MIN_BOUNDS_OVERLAY_WIDTH = 340;
+
+/** The interval's two bounds, in the order the cells sit and the arrows walk. */
+type BoundKey = "min" | "max";
 
 interface BoundCellProps {
   /** The visible field label ("Min"); the accessible name appends the value's path. */
@@ -432,8 +422,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const {
     errorFor,
     uriFor,
-    formState,
-    synthesisContext,
+    labelFor,
     selection,
     highlight,
     setFocusedValue,
@@ -441,10 +430,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     dispatch,
     overlayKeyDown,
   } = use(AdHocFormContext);
-  const booleanDomain = kind === "boolean";
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
-  const label = adHocTargetLabel(target, formState, synthesisContext);
+  const label = labelFor(target);
   const dependencyHighlighted = highlight.slotKeys.has(
     adHocSlotKey({ target, part: "expression" }),
   );
@@ -467,13 +455,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // Which bound cell holds an open expression editor. Escape peels one
   // layer: it leaves the bound edit first, and closes the slab from a
   // selected cell.
-  const [editingBound, setEditingBound] = useState<
-    "min" | "max" | "step" | null
-  >(null);
+  const [editingBound, setEditingBound] = useState<BoundKey | null>(null);
   if (!open && editingBound !== null) {
     setEditingBound(null);
   }
-  const boundRefs = useRef(new Map<string, HTMLButtonElement>());
+  const boundRefs = useRef(new Map<BoundKey, HTMLButtonElement>());
   // Opening the slab selects the Min cell once, and the guard is the element
   // it selected rather than a flag. The ref callback is a fresh closure on
   // every render, so React detaches and re-attaches it on every commit, and a
@@ -484,9 +470,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // so a reopened slab always presents a new button to select.
   const minSelectedElementRef = useRef<HTMLButtonElement | null>(null);
 
-  // Value slots carry Optimize toggles only in optimize mode; expose mode
-  // marks whole top-level Variables (in their own rows), never value slots.
-  const selectable = selection === "optimize";
+  // Value slots carry the interval toggle (Optimize or Sweep) when the value
+  // is a number; expose mode marks whole top-level Variables (in their own
+  // rows), never value slots.
+  const selectable = adHocSelectionApplies(selection, kind);
   const optimized = selectable && value.optimize !== null;
   // Closing the slab commits the expression, and a valid one is re-printed
   // canonically (worker-side, from the lowered tree) — normalized spacing,
@@ -538,7 +525,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     }
   }, [open, editorId]);
 
-  const endBoundEdit = (key: "min" | "max" | "step") => {
+  const endBoundEdit = (key: BoundKey) => {
     setEditingBound(null);
     setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
   };
@@ -553,9 +540,11 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const stepMode =
     kind === "boolean"
       ? "boolean"
-      : kind === "string" || kind === "uuid"
-        ? "none"
-        : "number";
+      : kind === "ratio"
+        ? "ratio"
+        : kind === "string" || kind === "uuid"
+          ? "none"
+          : "number";
   const stepValueWithArrows = (event: React.KeyboardEvent) => {
     if (
       (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||
@@ -697,8 +686,8 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       ) {
         return;
       }
-      // An open Ark layer inside the slab (the Scale select) is above the
-      // slab: its own dismissal handles this Escape.
+      // An open Ark layer inside the slab is above the slab: its own
+      // dismissal handles this Escape.
       if (
         overlay?.querySelector('[data-part="trigger"][aria-expanded="true"]')
       ) {
@@ -767,37 +756,33 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const text =
     display ??
     (optimized
-      ? booleanDomain
-        ? "true / false"
-        : `${value.optimize!.min} … ${value.optimize!.max}`
+      ? `${value.optimize!.min} … ${value.optimize!.max}`
       : value.expression || triggerPlaceholder);
 
   const expressionSlot = { target, part: "expression" as const };
-  const error = optimized
+  const boundsError = optimized
     ? (errorFor({ target, part: "min" }) ??
       errorFor({ target, part: "max" }) ??
       errorFor({ target, part: "step" }))
-    : errorFor(expressionSlot);
+    : undefined;
+  // An optimized slot's kept value can fail too (a ratio outside 0..1
+  // behind valid bounds); the trigger carries that after any bound error.
+  const error = boundsError ?? errorFor(expressionSlot);
   const showTriggerError = error !== undefined && !open;
 
-  const boundsError = optimized ? error : undefined;
-
-  const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
+  const boundFields: { key: BoundKey; fieldLabel: string }[] = [
     { key: "min", fieldLabel: "Min" },
     { key: "max", fieldLabel: "Max" },
-    ...(kind === "integer"
-      ? [{ key: "step" as const, fieldLabel: "Step" }]
-      : []),
   ];
-  const boundOrder = [...boundFields.map((field) => field.key), "scale"];
-  const navigateBound = (from: string, delta: -1 | 1) => {
+  const boundOrder = boundFields.map((field) => field.key);
+  const navigateBound = (from: BoundKey, delta: -1 | 1) => {
     const next = boundOrder[boundOrder.indexOf(from) + delta];
     if (next) {
       boundRefs.current.get(next)?.focus();
     }
   };
   const registerBound =
-    (key: string, selectOnAttach = false) =>
+    (key: BoundKey, selectOnAttach = false) =>
     (element: HTMLButtonElement | null) => {
       if (element) {
         boundRefs.current.set(key, element);
@@ -809,10 +794,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         boundRefs.current.delete(key);
       }
     };
-  const boundValue = (key: "min" | "max" | "step"): string =>
-    key === "step"
-      ? (value.optimize?.step ?? "1")
-      : (value.optimize?.[key] ?? "");
+  const boundValue = (key: BoundKey): string => value.optimize?.[key] ?? "";
 
   return (
     <>
@@ -914,19 +896,16 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
               left: rect.left,
               width: Math.max(
                 rect.width,
-                optimized && !booleanDomain
-                  ? MIN_BOUNDS_OVERLAY_WIDTH
-                  : MIN_OVERLAY_WIDTH,
+                optimized ? MIN_BOUNDS_OVERLAY_WIDTH : MIN_OVERLAY_WIDTH,
               ),
               minHeight: rect.height,
             }}
           >
-            {/* A layer opened from inside the slab — the Scale list — portals
-                into the slab itself, not into the app container it would
-                otherwise share with the slab as a sibling. As a descendant it
-                inherits the slab's pointer events, the dismiss handler's
-                containment test accepts a press on it, and choosing a value
-                commits instead of closing the slab. */}
+            {/* A layer opened from inside the slab portals into the slab
+                itself, not into the app container it would otherwise share
+                with the slab as a sibling. As a descendant it inherits the
+                slab's pointer events and the dismiss handler's containment
+                test accepts a press on it. */}
             <PortalContainerContext value={overlayRef}>
               <div className={pathLabelStyle}>{label}</div>
               <div
@@ -935,11 +914,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                   !selectable && bodyBottomEdgeStyle,
                 )}
               >
-                {optimized && booleanDomain ? (
-                  <div className={booleanNoteStyle}>
-                    The optimizer tries true and false.
-                  </div>
-                ) : optimized ? (
+                {optimized ? (
                   <div className={boundsGridStyle}>
                     {boundFields.map((field, fieldIndex) => (
                       <div key={field.key} className={boundsColumnStyle}>
@@ -976,57 +951,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                         />
                       </div>
                     ))}
-                    <div
-                      ref={(element) => {
-                        const trigger =
-                          element?.querySelector<HTMLButtonElement>(
-                            "[data-part='trigger']",
-                          ) ?? null;
-                        if (trigger) {
-                          boundRefs.current.set("scale", trigger);
-                        } else {
-                          boundRefs.current.delete("scale");
-                        }
-                      }}
-                      className={cx(
-                        boundsColumnStyle,
-                        boundsScaleColumnStyle,
-                        cellSelectStyle,
-                      )}
-                      onKeyDownCapture={(event) => {
-                        const trigger = event.currentTarget.querySelector(
-                          "[data-part='trigger']",
-                        );
-                        if (trigger?.getAttribute("aria-expanded") === "true") {
-                          return;
-                        }
-                        if (event.key === "ArrowLeft") {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          navigateBound("scale", -1);
-                        }
-                      }}
-                    >
-                      <div className={boundsLabelStyle}>Scale</div>
-                      <Select
-                        required
-                        size="sm"
-                        aria-label={`Scale of ${label}`}
-                        value={value.optimize!.scale}
-                        onChange={(scale) =>
-                          dispatch({
-                            type: "setDomainField",
-                            target,
-                            field: "scale",
-                            value: scale,
-                          })
-                        }
-                        items={[
-                          { value: "linear", text: "Linear" },
-                          { value: "log", text: "Log" },
-                        ]}
-                      />
-                    </div>
                   </div>
                 ) : (
                   <div className={expressionRowStyle}>

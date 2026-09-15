@@ -31,11 +31,7 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode =
-  | "scenarios"
-  | "metrics"
-  | "experiments"
-  | "optimizations";
+export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -44,8 +40,7 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" }
-  | { type: "create-optimization" };
+  | { type: "create-experiment" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
@@ -92,10 +87,21 @@ export type EditorState = {
   selection: SelectionMap;
   /** Whether any items are currently selected. */
   hasSelection: boolean;
-  /** Whether any items on the canvas are currently selected. */
-  hasCanvasSelection: boolean;
   /** The item currently being hovered, if any. */
   hoveredItem: SelectionItem | null;
+  /**
+   * Places whose state visualizer is pinned open on the canvas. A pinned
+   * visualizer stays up when the pointer leaves the place, so it can be
+   * watched while the timeline is scrubbed or the initial state edited.
+   */
+  pinnedVisualizerPlaceIds: Set<string>;
+  /**
+   * The place whose state visualizer has been opened from the button that
+   * pointing at a place offers. It belongs to that hover: moving the pointer
+   * to another place, or off the canvas, closes it again. Pinning is what
+   * outlasts a hover.
+   */
+  openVisualizerPlaceId: string | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
   /**
@@ -141,12 +147,6 @@ export type EditorActions = {
   setAddComponentMode: (subnetId: string) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
-  /** Check whether a node/edge is connected to any selected item via an arc. */
-  isSelectedConnection: (id: string) => boolean;
-  /** Check whether a node/edge is not connected to any selected item via an arc. */
-  isNotSelectedConnection: (id: string) => boolean;
-  /** Map of all items connected to the current selection, keyed by id. */
-  selectedConnections: SelectionMap;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
     options?: { cause: "normalization" } | { batch: "react-flow" },
@@ -158,12 +158,10 @@ export type EditorActions = {
   clearSelection: () => void;
   setHoveredItem: (item: SelectionItem) => void;
   clearHoveredItem: () => void;
-  /** Check whether a given ID is the currently hovered item. */
-  isHovered: (id: string) => boolean;
-  /** Check whether a given ID is connected to the currently hovered item. */
-  isHoveredConnection: (id: string) => boolean;
-  /** Check whether a given ID is not connected to the currently hovered item. */
-  isNotHoveredConnection: (id: string) => boolean;
+  /** Pin a place's state visualizer open, or release it. */
+  toggleVisualizerPin: (placeId: string) => void;
+  /** Open a place's state visualizer for the hover it is part of. */
+  openPlaceVisualizer: (placeId: string) => void;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
@@ -201,8 +199,9 @@ export const initialEditorState: EditorState = {
   componentSubnetId: null,
   selection: new Map(),
   hasSelection: false,
-  hasCanvasSelection: false,
   hoveredItem: null,
+  pinnedVisualizerPlaceIds: new Set<string>(),
+  openVisualizerPlaceId: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
@@ -230,9 +229,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setActiveBottomPanelTab: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,
-  isSelectedConnection: () => false,
-  isNotSelectedConnection: () => false,
-  selectedConnections: new Map(),
   setSelection: () => {},
   beginSelectionGesture: () => {},
   endSelectionGesture: () => {},
@@ -241,9 +237,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   clearSelection: () => {},
   setHoveredItem: () => {},
   clearHoveredItem: () => {},
-  isHovered: () => false,
-  isHoveredConnection: () => false,
-  isNotHoveredConnection: () => false,
+  toggleVisualizerPin: () => {},
+  openPlaceVisualizer: () => {},
   setDraggingStateByNodeId: () => {},
   updateDraggingStateByNodeId: () => {},
   resetDraggingState: () => {},

@@ -88,24 +88,35 @@ const singleLineContainerStyle = cva({
   },
 });
 
+// The wait for Monaco, shown twice: as the Suspense fallback while the
+// module loads and as Monaco's own `loading` while the editor mounts.
+// Dimmed, so it reads as a wait and not as content; it fills its box
+// because Monaco centres whatever it is given.
 const loadingStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "2",
   height: "full",
+  width: "full",
   color: "fg.muted",
   bg: "bg.subtle",
   fontSize: "base",
+  opacity: "[0.3]",
 });
 
+// Inline editors left-align the label where the text will land, so it does
+// not jump from the centre when the editor mounts.
 const singleLineLoadingStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-start",
   height: "full",
-  paddingX: "2",
+  width: "full",
+  paddingLeft: "[12px]",
   color: "neutral.s80",
   fontSize: "sm",
+  opacity: "[0.3]",
 });
 
 const placeholderStyle = css({
@@ -173,12 +184,16 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   // Withholding `value` makes @monaco-editor/react skip its sync; the prop
   // resumes syncing external changes once focus leaves.
   const [editorFocused, setEditorFocused] = useState(false);
+  // Until Monaco mounts, its `loading` label sits where the placeholder
+  // would, so the placeholder waits for the mount rather than overlapping it.
+  const [editorMounted, setEditorMounted] = useState(false);
 
   const handleMount = (
     editorInstance: editor.IStandaloneCodeEditor,
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    setEditorMounted(true);
 
     // With a `path`, @monaco-editor/react reuses the existing model and
     // ignores `value` — a reopened editor would show the model's stale text
@@ -302,7 +317,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
 
   return (
     <>
-      {singleLine && placeholder && !value && (
+      {singleLine && placeholder && !value && editorMounted && (
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
@@ -348,6 +363,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
           options={options}
           height={height}
           singleLine={singleLine}
+          loading={fallback}
           {...props}
         />
       </Suspense>

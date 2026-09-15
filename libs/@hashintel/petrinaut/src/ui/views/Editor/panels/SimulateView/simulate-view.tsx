@@ -3,14 +3,12 @@ import { use } from "react";
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useOptimizationSource } from "../../../../../react/optimizations/use-optimization-source";
 import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
-import { OptimizationsView } from "./optimizations/optimizations-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
 
 import type { SegmentedControlItem } from "@hashintel/ds-components";
@@ -54,12 +52,6 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
     tooltipOptions: { position: "right" },
   },
   {
-    value: "optimizations",
-    iconName: "sliders",
-    tooltip: "Optimizations",
-    tooltipOptions: { position: "right" },
-  },
-  {
     value: "metrics",
     iconName: "chartBarSimple",
     tooltip: "Metrics",
@@ -71,24 +63,17 @@ const views = {
   experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
-  optimizations: OptimizationsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
 
 export const SimulateView = () => {
-  const optimization = useOptimizationSource();
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
   const visibleModeOptions = modeOptions.filter(
-    (option) =>
-      option.value !== "metrics" &&
-      (option.value !== "optimizations" || optimization !== null),
+    (option) => option.value !== "metrics",
   );
-  const visibleMode =
-    mode === "metrics" || (mode === "optimizations" && !optimization)
-      ? "experiments"
-      : mode;
+  const visibleMode = mode === "metrics" ? "experiments" : mode;
   const ActiveView = views[visibleMode];
 
   return (

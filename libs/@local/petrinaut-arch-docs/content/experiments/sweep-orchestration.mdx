@@ -1,6 +1,6 @@
 ---
 title: Sweep orchestration
-description: How a selection change becomes streamed frames, how the surface samples without starving the navigator, and how every computing batch reaches the activity list.
+description: How a selection change becomes streamed frames, how an optimizer navigates a sweep trial by trial, and how every computing batch reaches the activity list.
 sidebar_order: 25
 attachTo: react.experiments
 ---
@@ -11,7 +11,7 @@ into batches and folds their frames into a per-selection cache. The provider
 turns the session's publishes into experiment records and decides which
 compute backend each batch runs on.
 
-![One selection change, one surface chunk, and the batch list](@diagrams/sweep-orchestration.svg)
+![One selection change, one optimizer trial, and the batch list](@diagrams/sweep-orchestration.svg)
 
 ## The selection path
 
@@ -25,10 +25,12 @@ stay in rung order. Run ranges are disjoint and per-run draws and seeds are
 prefix-stable, which is what makes overlapping rungs sound.
 
 Each rung asks the provider to instantiate a batch. The provider builds an
-`ExperimentRequest` (per-run parameter draws travel as a typed-array plan;
-pinned per-run seeds as run records) and lets the backend selection choose
-between the CPU worker pool and the WebGPU backend the first time; later
-rungs reuse the chosen backend.
+`ExperimentRequest` (per-run parameter draws travel as a typed-array plan
+over the net parameters the sweep's axes can reach — a point selection as a
+constant plan, so every batch lays out the same per-run buffer and the GPU
+backend keeps one compiled setup across selections) and lets the backend
+selection choose between the CPU worker pool and the WebGPU backend the first
+time; later rungs reuse the chosen backend.
 
 Frames come back through the experiment handle's stores. The session merges
 the selection's cached frames with the live rungs' frames and publishes on a
@@ -37,48 +39,113 @@ a batch streams the record updates about ten times a second. The provider
 writes each publish into the record, which the drawer and its charts read
 from the experiments context.
 
-## The surface path
+## The optimizer path
 
-The surface samples its grid in quad-tree levels (corners first, then each
-level splits every region in two per axis), pulling level-aligned chunks from
-one queue with three lanes in flight. Every chunk goes through
-`sampleSurfaceCells`, which waits for the current selection to have streamed
-its first frames before dispatching: the navigator's point always wins the
-first compute.
-
-The session batches a chunk into one experiment when every cell of the chunk
-shares one initial marking (a cell's parameter values are compiled and the
-markings compared before batching), laying the cells out as per-run draws
-with the same pinned seeds the per-cell ladder would derive, so a cell's value
-does not depend on which chunk sampled it. Cells whose swept parameters shape
-the marking keep the per-cell path. CPU workers report per-run values as each
-shard completes, and the surface paints those partial cells before the chunk
-finishes.
-
-Surface batches use a CPU lane sized to the foreground: one worker while the
-navigator's ladder computes on the CPU pool, a third of the pool per lane once
-the ladder idles or runs on the GPU.
+A study starts with the experiment from the Create Experiment drawer
+(`useCreateOptimizedExperiment`: create → start → select, so the results
+drawer mounts with the study already in the optimizations context) and runs
+no batches of its own. The first trial relies on one contract of
+`createExperiment`: the sweep branch of the experiment's initialization
+awaits nothing before `startSweepSession`, so the session is registered by
+the time the promise resolves and the study's first `navigateSweep` finds it;
+the provider's test pins that no await is ever inserted before it. A study
+that cannot start removes the experiment again, before anything selects.
+Its trials go through `navigateSweep(experimentId, point, { runCap })`: the
+session adopts the point as its selection with a run cap, restarts its ladder
+there, and resolves the call once the point has folded that many runs (or is
+cached that deep already) with the point's per-metric values. It resolves
+null when another navigation superseded it or the sweep was disposed, and
+rejects with the batch's reason when a batch of the point fails or the sweep
+is gone; the evaluator lets that rejection fail the study. The cap keeps the ladder from pipelining a rung the next trial would abort; a
+plain `setSweepSelection` lifts it, so a point the user returns to refines to
+the run budget. The optimizations provider owns the evaluator that calls
+this ([react.optimizations.sweep-evaluator](layer:react.optimizations.sweep-evaluator));
+the experiments layer never learns who asked. A fresh sweep computes nothing
+until something selects (`startComputing: false`).
 
 ## The batch path
 
-Every batch the session starts, ladder rung or surface chunk, registers in
-the session's batch registry with its handle. Progress ticks refresh a
-snapshot at most every 100 ms and the provider mirrors it into
+Every publish of the session lists the rungs computing right now in its
+`batches` — oldest first, each with its id, its run count and its completed
+runs read from the rung's handle — and the provider stores that list as
 `record.sweepBatches`, which the activity list and the top-bar popover read.
-Both show the same progress rule: for a sweep, the selected combination's
+A session that stopped computing publishes an empty list. Both show the same progress rule: for a sweep, the selected combination's
 sampled runs over the run budget; otherwise simulated time over the
 experiment's max time.
 
+## Constraints through the sweep
+
+An experiment's constraints are lowered to HIR in the Create Experiment
+drawer (`create-experiment-drawer/constraints/`: the drafts and their
+transitions in `constraint-drafts.ts`, one LSP session per row in
+`use-constraint-lsp-session.ts`, the lowering and the GPU gate specs in
+`lower-constraint-drafts.ts`, the section in `constraints-section.tsx`) and
+stored on the record with the pass threshold as `constraintPolicy` and the
+scenario's parsed values as `scenarioParameterValues`. They are enforced in
+two places, both outside the study's own code:
+
+- A **parameter constraint** is judged by the sweep evaluator at the snapped
+  grid point, before `navigateSweep` is called
+  (`shared/parameter-constraints.ts` interprets the HIR with the net
+  defaults as `parameters` and the snapped values as `scenario`). An
+  infeasible draw is pruned as `Infeasible: <name>`, carries
+  `{ parameters, state: [], infeasible }`, and moves nothing: the sweep's
+  selection stays where it was.
+- A **state constraint** rides every request the experiments provider
+  builds for the sweep, from creation on, as one precompiled indicator
+  metric (`react/experiments/constraint-indicators.ts`): the body wrapped
+  as `cond ? 1 : 0`, `aggregateTime: "min"` over each run's frames and
+  `sampleRuns: "notErrored"`, under the id `constraint:<id>`. Those ids
+  never reach `record.metricSpecs`, so no tile, picker or surface option
+  shows them. A visited cell's mean of the indicator is `passed / total`
+  over the runs that did not error, and `sweepCellPassCount` turns it back
+  into the count the evaluator reports as `constraints.state`. Because
+  `toGpuMetricSpecs` refuses a time aggregation, a sweep with state
+  constraints runs on the CPU; the drawer's GPU gate carries a placeholder
+  `min` spec per drafted state row so the switch says so before creation.
+
+Downstream, `constraint-rates.ts` turns `trial.constraints` into the rates
+the Constraints card, the steps table and the objective strip's greyed
+infeasible steps read. A trial pruned as cancelled or "the sweep moved on"
+carries no `constraints` and counts in no rate.
+
+## The study in the experiment drawer
+
+`experimentResultsModel` (`experiments/experiment-results.tsx`) builds the
+shared `ResultsModel` the [results view](layer:ui.views.editor.results)
+renders. It finds the sweep's one study through `useSweepOptimizer`, which
+matches `OptimizationRecord.origin.experimentId`, and fills four of the
+model's optional members whenever `optimizer.study !== null`: the header's
+headline (`StudyHeader`: `describeStudyProgress` plus the convergence chip
+in a reserved cell), the Steps and Steps clear stat columns (`studyStats`,
+sized by their widest value from `requestedTrials`), the Constraints and
+Sensitivity analysis cards in the metric grid at `METRIC_PLOT_HEIGHT`
+(`experiment-results/`, wrapped in a fragment keyed on `study.id`), and the
+steps table under both columns; the Parameters card shows Stop in its header
+while the study drives. The Parameters card's footer lists the record's
+constraints (`experiment-results/constraints-fold.tsx`) whether or not a study
+exists.
+
+The gate is the study's existence, never its status or connection state.
+Because the study is created with the experiment, the drawer's shape is
+fixed by the experiment's kind at creation — every study slot present from
+the first frame for an Optimize-created sweep, none for a Sweep-created one
+— and never changes afterwards, across running, stopped and failed studies;
+row counts are properties of the experiment (one bar per constraint, one row
+per swept axis). The `experiment-results` and `view-experiment-drawer` tests
+pin this with `frameLayoutSignature` equality between running, stopped and
+failed states and between two renders of a sweep without a study.
+
 ## Where the pieces live
 
-- The session's private pieces (selection keys and range draws, cell
-  batching, the batch registry, the throttle) sit next to `sweep-session.ts`
-  in [react.experiments.sweep](layer:react.experiments.sweep).
-- The provider's backend lanes, the detached objective sampler used by the
-  optimization surface, experiment creation and record patching sit under
-  `provider/`.
+- The session's private pieces (selection keys and range draws) sit next to
+  `sweep-session.ts` in
+  [react.experiments.sweep](layer:react.experiments.sweep); the throttle and
+  the batch registry are `react/experiments/shared` helpers.
+- The provider's batch instantiator, experiment creation and record patching
+  sit under `provider/`.
 - Backends and the run plan contract are in
   [core.experiments](layer:core.experiments); the pooled worker factory in
   [core.simulation.monte-carlo.runtime](layer:core.simulation.monte-carlo.runtime).
-- The surface's walk and the shared surface shell are described in
+- The surface's field and the shared surface shell are described in
   [The sweep surface](doc:experiments/sweep-surface).

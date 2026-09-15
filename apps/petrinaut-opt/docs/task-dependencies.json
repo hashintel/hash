@@ -5,18 +5,33 @@
     "@local/petrinaut-python"
   ],
   "tasks": {
-    "codegen": [
-      "@local/petrinaut-python#codegen"
-    ],
-    "lint:ruff": [],
-    "lint:types": [
-      "@local/petrinaut-python#codegen"
-    ],
-    "start": [
-      "@local/petrinaut-python#codegen"
-    ],
-    "test:unit": [
-      "codegen"
-    ]
+    "codegen": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ]
+    },
+    "lint:ruff": {
+      "dependsOn": []
+    },
+    "lint:types": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "@local/petrinaut-python#codegen"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "test:unit": {
+      "dependsOn": [
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

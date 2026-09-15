@@ -4,14 +4,21 @@ import {
   getBezierPath,
   getSmoothStepPath,
   type Position,
+  useStoreApi,
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { useTransitionFrame } from "../../../canvas-frame-store";
 import { useFiringDelta } from "../../../hooks/use-firing-delta";
+import {
+  ARC_HALO_OVERHANG,
+  ARC_WHITE_OVERHANG,
+  arcHaloColor,
+} from "../../../styles/focus";
+import { arcFiringIsVisible } from "./firing-animation-visibility";
 
 import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
@@ -47,10 +54,29 @@ function useFiringAnimation(
   weight: number,
 ): void {
   const animationStateRef = useRef<AnimationState | null>(null);
+  // The viewport is read when a firing lands rather than subscribed to, so a
+  // pan or a zoom does not re-render every arc on the canvas.
+  const store = useStoreApi();
 
   useEffect(() => {
     // Only start a new animation when there's an actual firing (delta > 0)
     if (firingDelta === null || firingDelta <= 0 || pathRef.current === null) {
+      return;
+    }
+
+    // The box the drawn path occupies, in flow units: a curve can sweep well
+    // past its endpoints, so where it is drawn is what decides, whichever
+    // rendering made it.
+    const box = pathRef.current.getBBox();
+    if (
+      !arcFiringIsVisible(
+        store.getState(),
+        box.x,
+        box.y,
+        box.x + box.width,
+        box.y + box.height,
+      )
+    ) {
       return;
     }
 
@@ -105,7 +131,7 @@ function useFiringAnimation(
         animationStateRef.current = null;
       }
     };
-  }, [firingDelta, pathRef, weight]);
+  }, [firingDelta, pathRef, weight, store]);
 
   // Cancel animation on unmount
   useEffect(() => {
@@ -277,19 +303,16 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   data,
   style,
   markerEnd,
+  selected,
 }) => {
-  // Derive selected state from EditorContext
-  const { isSelected } = use(EditorContext);
   const { arcRendering } = use(UserSettingsContext);
-
-  // Check if this arc is selected by its ID
-  const selected = isSelected(id);
 
   const inhibitorMarkerId = `inhibitor-circle-${id}`;
   const readMarkerId = `read-dot-${id}`;
 
   // Track firing count delta for simulation visualization
-  const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
+  const frame = useTransitionFrame(data?.transitionId ?? "");
+  const firingDelta = useFiringDelta(frame?.firingCount ?? null);
 
   // Ref for the main arc path to animate stroke width
   const arcPathRef = useRef<SVGPathElement | null>(null);
@@ -326,9 +349,10 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             targetPosition,
           });
 
-  let strokeColor = style?.stroke ?? "#b1b1b7";
+  const strokeColor = style?.stroke ?? "#b1b1b7";
   const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
+  const haloColor = arcHaloColor(data?.focus ?? "none");
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];
   const markerEndOverride =
@@ -384,62 +408,95 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         </defs>
       )}
 
-      {/* Selection indicator: thick orange background stroke */}
-      {selected && (
-        <BaseEdge
-          id={`${id}-selection`}
-          path={arcPath}
-          style={selectionIndicatorStyle}
-        />
-      )}
+      {/*
+        Everything that draws the arc, grouped so the pane can fade an arc
+        outside the neighbourhood without fading the weight label below,
+        which stays readable.
+      */}
+      <g className="arc-strokes">
+        {/* Selection indicator: thick orange background stroke */}
+        {selected && (
+          <BaseEdge
+            id={`${id}-selection`}
+            path={arcPath}
+            style={selectionIndicatorStyle}
+          />
+        )}
 
-      {/* Animated overlay path for firing visualization (no marker). */}
-      <path
-        ref={arcPathRef}
-        d={arcPath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={BASE_STROKE_WIDTH}
-        strokeDasharray={strokeDasharray}
-        strokeLinecap={arcType === "read" ? "round" : undefined}
-        style={{ pointerEvents: "none" }}
-      />
-
-      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
-      <BaseEdge
-        id={id}
-        path={arcPath}
-        markerEnd={markerEndOverride}
-        style={
-          strokeDasharray
-            ? {
-                ...style,
-                strokeDasharray,
-                strokeLinecap: arcType === "read" ? "round" : undefined,
-                stroke: strokeColor,
-              }
-            : { ...style, stroke: strokeColor }
-        }
-      />
-
-      {/* Perpendicular tick marks crossing inhibitor arcs */}
-      {arcType === "inhibitor" && tickMarks.length > 0 && (
-        <g style={{ pointerEvents: "none" }}>
-          {tickMarks.map((tick, index) => (
-            <line
-              // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
-              key={index}
-              x1={tick.x1}
-              y1={tick.y1}
-              x2={tick.x2}
-              y2={tick.y2}
-              stroke={strokeColor}
-              strokeWidth={BASE_STROKE_WIDTH}
-              strokeLinecap="round"
+        {/* Focus casing: white around the arc's own stroke, the role's colour
+            around that, both drawn beneath it so the arc keeps its token type's
+            colour. Matches the bands a highlighted node wears. */}
+        {haloColor !== undefined && (
+          <>
+            <path
+              d={arcPath}
+              fill="none"
+              stroke={haloColor}
+              strokeWidth={BASE_STROKE_WIDTH + ARC_HALO_OVERHANG * 2}
+              strokeDasharray={strokeDasharray}
+              strokeLinecap={arcType === "read" ? "round" : "butt"}
+              style={{ pointerEvents: "none" }}
             />
-          ))}
-        </g>
-      )}
+            <path
+              d={arcPath}
+              fill="none"
+              stroke="white"
+              strokeWidth={BASE_STROKE_WIDTH + ARC_WHITE_OVERHANG * 2}
+              strokeDasharray={strokeDasharray}
+              strokeLinecap={arcType === "read" ? "round" : "butt"}
+              style={{ pointerEvents: "none" }}
+            />
+          </>
+        )}
+
+        {/* Animated overlay path for firing visualization (no marker). */}
+        <path
+          ref={arcPathRef}
+          d={arcPath}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={BASE_STROKE_WIDTH}
+          strokeDasharray={strokeDasharray}
+          strokeLinecap={arcType === "read" ? "round" : undefined}
+          style={{ pointerEvents: "none" }}
+        />
+
+        {/* Main edge with marker - using BaseEdge for proper interaction handling */}
+        <BaseEdge
+          id={id}
+          path={arcPath}
+          markerEnd={markerEndOverride}
+          style={
+            strokeDasharray
+              ? {
+                  ...style,
+                  strokeDasharray,
+                  strokeLinecap: arcType === "read" ? "round" : undefined,
+                  stroke: strokeColor,
+                }
+              : { ...style, stroke: strokeColor }
+          }
+        />
+
+        {/* Perpendicular tick marks crossing inhibitor arcs */}
+        {arcType === "inhibitor" && tickMarks.length > 0 && (
+          <g style={{ pointerEvents: "none" }}>
+            {tickMarks.map((tick, index) => (
+              <line
+                // eslint-disable-next-line react/no-array-index-key -- ticks are derived purely from path geometry and re-rendered as a whole
+                key={index}
+                x1={tick.x1}
+                y1={tick.y1}
+                x2={tick.x2}
+                y2={tick.y2}
+                stroke={strokeColor}
+                strokeWidth={BASE_STROKE_WIDTH}
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        )}
+      </g>
 
       {/* Labels container */}
       <g transform={`translate(${labelX}, ${labelY})`}>

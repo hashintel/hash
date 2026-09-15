@@ -1,0 +1,41 @@
+{
+  "package": "@hashintel/brunch-agent-plugin-claims",
+  "dependencies": [
+    "@hashintel/brunch-agent"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build",
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

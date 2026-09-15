@@ -5,13 +5,16 @@
  * care which backend produced them. Keeping that contract identical is what lets
  * the GPU path be a setting rather than a parallel UI.
  *
- * Supportability is resolved *before* the handle exists — eligibility, HIR
- * lowering, shader generation and the capacity probe all happen in `create...`,
- * which returns a reason instead of a handle when the net cannot run. A handle
- * that could fail on `start()` would leave the caller unable to fall back
- * cleanly, because by then the experiment is already registered and showing as
- * running.
+ * Supportability that can be decided statically — eligibility, HIR lowering,
+ * shader generation, a marking against declared capacities — is resolved
+ * *before* the handle exists: `create...` returns a reason instead of a handle
+ * when the net cannot run, so the caller can still fall back. What only a run
+ * can tell — the slab a derived-capacity place needs, a metric's window — is
+ * calibrated as the first phase of `start()`, so the probe's chunks stream to
+ * the charts like every other attempt's instead of arriving en bloc once the
+ * handle exists. A probe that concedes ends the run with its reason.
  */
+import { resolveNetParameterValues } from "../parameter-values";
 import {
   appendMetricFrames,
   createEmptyMetricsState,
@@ -23,21 +26,17 @@ import { requestGpuExperimentBackend } from "./backend";
 import { encodeInitialTokenWords } from "./compile-net-shader";
 import { placeCountCeiling } from "./eligibility";
 import { gpuBackendSetupKey } from "./gpu-backend-cache";
-import {
-  probeDerivedCapacities,
-  probeWindows,
-  rememberCalibration,
-  RUN_POLICY,
-  runUntilCalibrated,
-} from "./gpu-experiment-handle/calibration";
+import { rememberCalibration } from "./gpu-experiment-handle/calibration";
 import { createFrameMerger } from "./gpu-experiment-handle/frame-merge";
+import { metricFailure } from "./gpu-experiment-handle/metric-failure";
 import { deriveRunParameters } from "./gpu-experiment-handle/run-parameters";
-import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import {
-  anyEscapes,
-  calibrationKey,
-  planInitialWindows,
-} from "./metric-windows";
+  needsProbe,
+  runCalibratedExperiment,
+} from "./gpu-experiment-handle/run-phase";
+import { shareCalibration } from "./gpu-experiment-handle/shared-calibration";
+import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
+import { anyEscapes, calibrationKey } from "./metric-windows";
 import { GPU_PREVIEW_RUNS, runGpuExperiment } from "./runner";
 
 import type { AbortSignalLike } from "../environment";
@@ -60,7 +59,7 @@ import type {
   CalibrationSession,
   ExecuteAttempt,
 } from "./gpu-experiment-handle/calibration";
-import type { MetricWindow } from "./metric-windows";
+import type { MetricWindow, MetricWindowInput } from "./metric-windows";
 
 export type CreateGpuMonteCarloExperimentConfig = {
   sdcpn: SDCPN;
@@ -98,10 +97,10 @@ export type CreateGpuMonteCarloExperimentConfig = {
   /** Caps runs per tile below the device's limit. For tests and benchmarks. */
   maxRunsPerTile?: number;
   /**
-   * Abandons creation: checked after acquiring the backend and between the
-   * capacity probe's attempts, each of which is a GPU round-trip. Creation
-   * then throws an `AbortError`, which the selection walk rethrows rather
-   * than treating as a refusal that sends the experiment to the CPU.
+   * Abandons creation: checked once the backend is acquired, when creation
+   * throws an `AbortError`, which the selection walk rethrows rather than
+   * treating as a refusal that sends the experiment to the CPU. A handle
+   * already created stops at its next chunk instead.
    */
   signal?: AbortSignalLike;
   /**
@@ -171,7 +170,15 @@ const initialCount = (marking: InitialMarking[string] | undefined): number =>
 export async function createGpuMonteCarloExperiment(
   config: CreateGpuMonteCarloExperimentConfig,
 ): Promise<CreateGpuMonteCarloExperimentResult> {
-  const gpuMetrics = toGpuMetricSpecs(config.metricSpecs);
+  const gpuMetrics = toGpuMetricSpecs(config.metricSpecs, {
+    sdcpn: config.sdcpn,
+    extensions: config.extensions,
+    parameterValues: resolveNetParameterValues(
+      config.sdcpn.parameters,
+      config.parameterValues,
+      config.extensions?.parameters ?? true,
+    ),
+  });
   if (!gpuMetrics.ok) {
     return {
       supported: false,
@@ -212,7 +219,7 @@ export async function createGpuMonteCarloExperiment(
         gpuBackendSetupKey({
           sdcpn: config.sdcpn,
           extensions: config.extensions,
-          hirArtifacts: config.hirArtifacts,
+          artifactFingerprint: config.hirArtifacts.fingerprint,
           parameterValues: config.parameterValues,
           runParameterIds: runParameters.ids,
           metricIds,
@@ -262,7 +269,7 @@ export async function createGpuMonteCarloExperiment(
   let aborted = false;
   // A minimal `AbortSignalLike`: the runner only reads `aborted`, and building
   // a real AbortController would pull a DOM global into this package. The
-  // creation signal folds in so an abandoned probe stops at its next chunk.
+  // creation signal folds in so an abandoned run stops at its next chunk.
   const signal = {
     get aborted() {
       return aborted || creationAborted();
@@ -331,48 +338,25 @@ export async function createGpuMonteCarloExperiment(
     encodeInitialTokenWords(place, config.initialMarking[place.id]),
   );
 
-  // Frame 0 is the initial state, which the device never samples; the host
-  // knows it exactly (every run starts identical), so it is emitted here —
-  // matching the CPU simulator's observation of the initial marking before
-  // any step.
   const placeIndexById = new Map(
     backend.profile.places.map((place, index) => [place.id, index]),
   );
-  const initialHistogramFrames = gpuMetrics.metrics.map((metric) => {
-    const count = placeCounts[placeIndexById.get(metric.placeId) ?? -1] ?? 0;
-    return {
-      frameNumber: 0,
-      metricId: metric.id,
-      bins: [[count, config.runCount]] as [number, number][],
-      // An exact count: the cell of one integer.
-      binExtent: { below: 0.5, above: 0.5 },
-      sampleCount: config.runCount,
-    };
-  });
-  if (initialHistogramFrames.length > 0) {
-    metrics.set(
-      appendMetricFrames(
-        metrics.get(),
-        toGpuMetricFrames(
-          initialHistogramFrames,
-          config.metricSpecs,
-          config.dt,
-        ),
-      ),
-    );
-  }
   const frameMerger = createFrameMerger();
 
-  // What window planning knows per metric: the sampled place's initial
-  // count, and its hard ceiling when it has one (a ceiling makes the window
-  // exact by construction — no calibration needed). A derived probe slab is
-  // not a ceiling: its counts calibrate empirically.
-  const windowInputs = gpuMetrics.metrics.map((metric) => {
-    const placeIndex = placeIndexById.get(metric.placeId) ?? -1;
-    const place = backend.profile.places[placeIndex];
+  // What window planning knows per metric: whether its samples are whole
+  // numbers, and a hard ceiling when a sampled place declares one (a ceiling
+  // makes the window exact by construction — no calibration needed). A
+  // derived probe slab is not a ceiling: its counts calibrate empirically.
+  const windowInputs: MetricWindowInput[] = gpuMetrics.metrics.map((metric) => {
+    const place =
+      metric.sample.kind === "placeCount"
+        ? backend.profile.places[
+            placeIndexById.get(metric.sample.placeId) ?? -1
+          ]
+        : undefined;
     return {
-      initialCount: placeCounts[placeIndex] ?? 0,
-      countCeiling:
+      integer: metric.integer,
+      ceiling:
         place === undefined || place.capacitySource === "derived"
           ? null
           : placeCountCeiling(place),
@@ -398,7 +382,17 @@ export async function createGpuMonteCarloExperiment(
     placeTokenWords,
     metricIds,
   });
-  const cachedCalibration = backend.calibration.get(batchCalibrationKey);
+  const adoptCalibration = (): MetricWindow[] | null => {
+    const cached = backend.calibration.get(batchCalibrationKey);
+    if (cached === undefined) {
+      return null;
+    }
+    session.shader = cached.shader;
+    for (const [placeId, capacity] of cached.capacities) {
+      session.capacities.set(placeId, capacity);
+    }
+    return [...cached.windows];
+  };
   const storeCalibration = (windows: readonly MetricWindow[]) => {
     if (metricIds.length === 0 && session.capacities.size === 0) {
       return;
@@ -416,6 +410,7 @@ export async function createGpuMonteCarloExperiment(
     runCount: attemptRunCount,
     windows,
     preview,
+    probe,
   }) =>
     runGpuExperiment(backend.handle, shader, {
       runCount: attemptRunCount,
@@ -452,7 +447,9 @@ export async function createGpuMonteCarloExperiment(
           }),
       signal,
       onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
-        if (disposed) {
+        // A probe's runs are a prefix the full attempt runs again, so
+        // reporting them would show progress that then falls back to zero.
+        if (disposed || probe) {
           return;
         }
         // Overall position, monotone across tiles: finished tiles count as
@@ -476,94 +473,79 @@ export async function createGpuMonteCarloExperiment(
       },
     });
 
-  let calibratedWindows: MetricWindow[] | null = null;
-  if (cachedCalibration) {
-    session.shader = cachedCalibration.shader;
-    for (const [placeId, capacity] of cachedCalibration.capacities) {
-      session.capacities.set(placeId, capacity);
-    }
-    calibratedWindows = [...cachedCalibration.windows];
-  } else if (session.capacities.size > 0) {
-    const probed = await probeDerivedCapacities({
-      session,
-      runCount: config.runCount,
-      windowInputs,
-      placeCounts,
-      execute: executeAttempt,
-      stopped: creationAborted,
+  /** A non-finite metric sample the probe halted runs on, reported as the full run would. */
+  const metricFailureIn = (
+    metricErrors: readonly number[],
+    runCount: number,
+  ): string | null =>
+    metricFailure({
+      metricIds,
+      metricSpecs: config.metricSpecs,
+      metricErrors,
+      runCount,
     });
-    if (creationAborted()) {
-      disposed = true;
-      releaseBackend();
-      throw abortError();
-    }
-    if (!probed.ok) {
-      disposed = true;
-      releaseBackend({ evict: true });
-      return {
-        supported: false,
-        cause: "net-unsupported",
-        reason: probed.reason,
-      };
-    }
-    calibratedWindows = probed.windows;
-    storeCalibration(calibratedWindows);
-  }
 
   const run = async () => {
-    // Guessed windows (any sampled place without a ceiling) probe with a
-    // preview-sized prefix of the runs first, unless the capacity probe
-    // already calibrated them at creation.
-    let windows =
-      calibratedWindows ??
-      planInitialWindows(windowInputs, session.shader.histogramBins);
-    const guessedWindows = windowInputs.some(
-      (input) => input.countCeiling === null,
-    );
-    if (
-      calibratedWindows === null &&
-      guessedWindows &&
-      config.runCount > GPU_PREVIEW_RUNS &&
-      metricIds.length > 0 &&
-      !aborted
-    ) {
-      const probe = await probeWindows({
-        session,
-        windows,
-        execute: executeAttempt,
-      });
+    // The probes run here, after `start()`, so their chunks stream like
+    // every other attempt's: the first picture a batch shows is the probe's,
+    // overwritten progressively as the full attempt lands. A batch that
+    // starts while another on this marking still probes waits for that
+    // calibration rather than probing too; one that needs no probe has
+    // nothing to wait for and runs at once. A probe that stores nothing
+    // (failed, cancelled) wakes every waiter at once, so each re-reads the
+    // map after waiting: the first to wake claims, the rest wait on it.
+    let calibratedWindows = adoptCalibration();
+    let settle = () => {};
+    while (calibratedWindows === null && needsProbe(session, windowInputs)) {
+      const share = shareCalibration(backend.calibrating, batchCalibrationKey);
+      if (share.inFlight === undefined) {
+        settle = share.claim();
+        break;
+      }
+      await share.inFlight;
       if (isDisposed()) {
         return;
       }
-      if (!probe.ok) {
-        fail(probe.reason);
-        return;
-      }
-      if (probe.result.cancelled) {
-        finish("cancelled");
-        return;
-      }
-      windows = probe.windows;
-      storeCalibration(windows);
+      calibratedWindows = adoptCalibration();
     }
-
-    const calibrated = await runUntilCalibrated({
+    const calibrated = await runCalibratedExperiment({
       session,
-      runsFor: () => config.runCount,
-      windows,
+      calibratedWindows,
+      windowInputs,
+      placeCounts,
+      runCount: config.runCount,
       execute: executeAttempt,
-      policy: RUN_POLICY,
-      stopped: () => isDisposed() || aborted,
-    });
+      stopped: () => isDisposed() || signal.aborted,
+      remember: (windows) => {
+        storeCalibration(windows);
+        settle();
+      },
+      metricFailure: metricFailureIn,
+    }).finally(settle);
 
     if (isDisposed()) {
       return;
     }
-    if (!calibrated.ok) {
+    if (calibrated.kind === "stopped") {
+      finish("cancelled");
+      return;
+    }
+    if (calibrated.kind === "failed") {
       fail(calibrated.reason);
       return;
     }
     const { result } = calibrated;
+    // The CPU evaluator throws on the first non-finite value and the
+    // experiment errors; the device halts the run instead, so the same
+    // failure is reported once the attempt returns — ahead of an overflow
+    // the same attempt may carry, since the CPU would fail on the same sample.
+    const runFailure = result.cancelled
+      ? null
+      : metricFailureIn(result.metricErrors, config.runCount);
+    if (runFailure !== null) {
+      fail(runFailure);
+      return;
+    }
     if (result.overflowRuns > 0 && !result.cancelled) {
       fail(
         "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
@@ -589,11 +571,7 @@ export async function createGpuMonteCarloExperiment(
     metrics.set(
       appendMetricFrames(
         createEmptyMetricsState(),
-        toGpuMetricFrames(
-          [...initialHistogramFrames, ...result.frames],
-          config.metricSpecs,
-          config.dt,
-        ),
+        toGpuMetricFrames(result.frames, config.metricSpecs, config.dt),
       ),
     );
     progress.set({

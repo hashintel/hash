@@ -8,43 +8,64 @@
     "@local/petrinaut-optimizer-client"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "dev": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "fix:eslint": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/eslint#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "lint:eslint": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/eslint#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "lint:tsc": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/petrinaut-optimizer-client#build"
-    ],
-    "test:unit": [
-      "@hashintel/ds-components#build",
-      "@hashintel/petrinaut-core#build",
-      "@hashintel/refractive#build",
-      "@local/petrinaut-optimizer-client#build"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/petrinaut-optimizer-client#build"
+      ],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/petrinaut-optimizer-client#build"
+      ],
+      "cache": false,
+      "persistent": true
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-client#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/petrinaut-optimizer-client#build"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/ds-components#build",
+        "@hashintel/petrinaut-core#build",
+        "@hashintel/refractive#build",
+        "@local/petrinaut-optimizer-client#build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

@@ -34,7 +34,7 @@
   "scripts": {
     "build": "vite build",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
-    "linear:graph": "node --experimental-strip-types ../../scripts/linear-project-graph.ts",
+    "linear:graph": "node --experimental-strip-types src/linear-project-graph.ts",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "test:unit": "vitest run"

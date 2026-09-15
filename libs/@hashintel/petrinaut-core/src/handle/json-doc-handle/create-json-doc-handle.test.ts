@@ -68,6 +68,33 @@ describe("createJsonDocHandle", () => {
     expect(handle.doc()).toEqual(empty());
   });
 
+  it.each([undefined, null, 0, 3])(
+    "preserves capacity %s through canonical initialization and JSON reopening",
+    (capacity) => {
+      const initial: SDCPN = {
+        ...empty(),
+        places: [
+          {
+            id: "p1",
+            name: "Capacity",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 1,
+            y: 2,
+            ...(capacity === undefined ? {} : { capacity }),
+          },
+        ],
+      };
+      const handle = createJsonDocHandle({ initial });
+      expect(handle.doc()).toStrictEqual(initial);
+      // This is the serialization of our controlled canonical fixture, not external input.
+      const serialized = JSON.parse(JSON.stringify(handle.doc())) as SDCPN;
+      const reopened = createJsonDocHandle({ initial: serialized });
+      expect(reopened.doc()).toStrictEqual(initial);
+    },
+  );
+
   it("emits a change event with patches on mutation", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     const events: DocChangeEvent[] = [];
@@ -189,6 +216,29 @@ describe("createJsonDocHandle", () => {
 });
 
 describe("createPetrinaut", () => {
+  it("observes its handle only while a resource has subscribers", () => {
+    const sourceHandle = createJsonDocHandle({ initial: empty() });
+    const unsubscribe = vi.fn();
+    const subscribe = vi.fn(() => unsubscribe);
+    const handle: PetrinautDocHandle = {
+      ...sourceHandle,
+      subscribe,
+    };
+
+    const instance = createPetrinaut({ document: handle });
+    expect(subscribe).not.toHaveBeenCalled();
+
+    const stopReadingDefinition = instance.definition.subscribe(() => {});
+    expect(subscribe).toHaveBeenCalledOnce();
+    stopReadingDefinition();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+
+    const stopReadingPatches = instance.patches.subscribe(() => {});
+    expect(subscribe).toHaveBeenCalledTimes(2);
+    stopReadingPatches();
+    expect(unsubscribe).toHaveBeenCalledTimes(2);
+  });
+
   it("exposes the current definition through a ReadableStore", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     const instance = createPetrinaut({ document: handle });
@@ -297,17 +347,26 @@ describe("createPetrinaut", () => {
   it("exposes sanitized definitions from capability-restricted handles", async () => {
     const source = coloured();
     const subscribers = new Set<(event: DocChangeEvent) => void>();
+    const revisionId = createReadableStore("external-revision-1");
     let upstreamSubscriptions = 0;
     const handle: PetrinautDocHandle = {
       id: "external-doc",
+      revisionId,
       capabilities: { disabledExtensions: ["colors"] },
       state: createReadableStore("ready"),
       whenReady: () => Promise.resolve(),
       doc: () => source,
       change(fn) {
+        const previousRevisionId = revisionId.get();
         fn(source);
+        revisionId.set("external-revision-2");
         for (const subscriber of subscribers) {
-          subscriber({ next: source, source: "local" });
+          subscriber({
+            next: source,
+            previousRevisionId,
+            revisionId: revisionId.get(),
+            source: "local",
+          });
         }
       },
       subscribe(listener) {
@@ -321,7 +380,7 @@ describe("createPetrinaut", () => {
     };
     const instance = createPetrinaut({ document: handle });
 
-    expect(upstreamSubscriptions).toBe(2);
+    expect(upstreamSubscriptions).toBe(0);
     expect(instance.definition.get()).toMatchObject({
       types: [],
       differentialEquations: [],
@@ -369,11 +428,66 @@ describe("PetrinautDocHandle history", () => {
     expect(handle.history?.canRedo.get()).toBe(false);
     expect(handle.history?.entries.get()).toHaveLength(1);
     expect(handle.history?.currentIndex.get()).toBe(0);
+    expect(handle.history?.entries.get()[0]?.revisionId).toBe(
+      handle.revisionId.get(),
+    );
+  });
+
+  it("identifies every direct change and reports the produced revision", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      initialRevisionId: "seed-revision",
+    });
+    const events: DocChangeEvent[] = [];
+    handle.subscribe((event) => events.push(event));
+
+    handle.change(addType("c1"));
+    const changedRevisionId = handle.revisionId.get();
+
+    expect(changedRevisionId).not.toBe("seed-revision");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      previousRevisionId: "seed-revision",
+      revisionId: changedRevisionId,
+      source: "local",
+    });
+    expect(events[0]?.patches).not.toHaveLength(0);
+    expect(handle.history?.entries.get()[1]).toMatchObject({
+      revisionId: changedRevisionId,
+    });
+  });
+
+  it("undo and redo move between existing revision identities", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      initialRevisionId: "seed-revision",
+    });
+    const events: DocChangeEvent[] = [];
+    handle.subscribe((event) => events.push(event));
+    handle.change(addType("c1"));
+    const changedRevisionId = handle.revisionId.get();
+
+    handle.history?.undo();
+    expect(handle.revisionId.get()).toBe("seed-revision");
+    expect(events.at(-1)).toMatchObject({
+      previousRevisionId: changedRevisionId,
+      revisionId: "seed-revision",
+    });
+
+    handle.history?.redo();
+    expect(handle.revisionId.get()).toBe(changedRevisionId);
+    expect(events.at(-1)).toMatchObject({
+      previousRevisionId: "seed-revision",
+      revisionId: changedRevisionId,
+    });
   });
 
   it("is omitted when historyLimit is 0", () => {
     const handle = createJsonDocHandle({ initial: empty(), historyLimit: 0 });
+    const initialRevisionId = handle.revisionId.get();
     expect(handle.history).toBeUndefined();
+    handle.change(addType("c1"));
+    expect(handle.revisionId.get()).not.toBe(initialRevisionId);
   });
 
   it("undoes a single mutation", () => {

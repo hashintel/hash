@@ -1,0 +1,7 @@
+*.gz
+*.png
+*.log
+*.json
+*.sha256
+*.db
+!accounting/usage-ledger.json

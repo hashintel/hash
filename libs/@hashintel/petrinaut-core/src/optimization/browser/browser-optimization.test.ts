@@ -194,6 +194,7 @@ describe("createBrowserOptimization", () => {
       "petrinaut_optimizer_core/description.py",
       "petrinaut_optimizer_core/study.py",
       "petrinaut_optimizer_core/ask_tell.py",
+      "petrinaut_optimizer_core/importance.py",
       "petrinaut_optimizer_core/pyodide_entry.py",
     ]);
     expect(context.worker.sentOfType("start")).toHaveLength(0);
@@ -312,6 +313,123 @@ describe("createBrowserOptimization", () => {
       best: null,
     });
     expect(events[2]).toMatchObject({ type: "complete", prunedTrials: 1 });
+  });
+
+  it("carries the channel's constraint results on the trial event and forgets them once reported", async () => {
+    const constraints = {
+      parameters: [{ constraintId: "order", margin: 0.5 }],
+      state: [{ constraintId: "queue", runsPassed: 2, runsTotal: 3 }],
+    };
+    const context = setUp({
+      evaluateTrial: async (request) =>
+        request.trial === 0
+          ? { kind: "objective", objective: 1, constraints }
+          : {
+              kind: "pruned",
+              reason: "Infeasible: order",
+              constraints: {
+                parameters: [{ constraintId: "order", margin: -2 }],
+                state: [],
+                infeasible: "order",
+              },
+            },
+    });
+    const runId = await startRun(context);
+
+    for (const trial of [0, 1]) {
+      context.worker.emit({
+        type: "evaluate",
+        runId,
+        requestId: trial + 1,
+        trial,
+        suggestedValues: { rate: 0.5, count: 6, enabled: true },
+      });
+    }
+    await flush();
+    expect(
+      context.worker.sentOfType("evaluated").map(({ outcome }) => outcome),
+    ).toEqual([
+      { kind: "objective", objective: 1, constraints },
+      expect.objectContaining({ kind: "pruned", reason: "Infeasible: order" }),
+    ]);
+
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    context.worker.emit({
+      type: "trial",
+      runId,
+      event: {
+        ...completedTrial,
+        trial: 1,
+        objective: null,
+        state: "pruned",
+      },
+    });
+    context.worker.emit({
+      type: "trial",
+      runId,
+      event: { ...completedTrial, trial: 2 },
+    });
+    context.worker.emit({ type: "complete", runId, summary });
+
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId),
+    );
+    expect(events[1]).toMatchObject({ type: "trial", trial: 0, constraints });
+    expect(events[2]).toMatchObject({
+      type: "trial",
+      trial: 1,
+      state: "pruned",
+      constraints: { infeasible: "order", state: [] },
+    });
+    // A trial the channel reported nothing for carries no constraints.
+    expect(events[3]).toMatchObject({ type: "trial", trial: 2 });
+    expect(events[3]).not.toHaveProperty("constraints");
+  });
+
+  it("copies the worker's importances onto the trial and complete events, and finishes without them", async () => {
+    const importances = {
+      values: { rate: 0.7, count: 0.2, enabled: 0.1 },
+      completedTrials: 50,
+    };
+    const context = setUp();
+    const runId = await startRun(context);
+
+    context.worker.emit({ type: "trial", runId, event: completedTrial });
+    context.worker.emit({
+      type: "trial",
+      runId,
+      event: { ...completedTrial, trial: 1, importances },
+    });
+    context.worker.emit({
+      type: "complete",
+      runId,
+      summary: { ...summary, importances },
+    });
+
+    const events = await collectEvents(
+      context.capability.attachOptimizationRun(runId),
+    );
+    expect(events[1]).not.toHaveProperty("importances");
+    expect(events[2]).toMatchObject({ type: "trial", trial: 1, importances });
+    expect(events[3]).toMatchObject({ type: "complete", importances });
+
+    const plain = setUp();
+    const plainRun = await startRun(plain);
+    plain.worker.emit({
+      type: "trial",
+      runId: plainRun,
+      event: completedTrial,
+    });
+    plain.worker.emit({ type: "complete", runId: plainRun, summary });
+    const plainEvents = await collectEvents(
+      plain.capability.attachOptimizationRun(plainRun),
+    );
+    expect(plainEvents.map((event) => event.type)).toEqual([
+      "started",
+      "trial",
+      "complete",
+    ]);
+    expect(plainEvents[2]).not.toHaveProperty("importances");
   });
 
   it("cancels a running study through the worker and ends with the cancelled error code", async () => {

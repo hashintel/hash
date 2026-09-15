@@ -1,18 +1,23 @@
 /**
  * @layerRoot ui.adhoc-form
- * @role The inline Initial State + Parameters form compiling to a generated, never-persisted scenario
+ * @role The inline Initial State + Parameters form: the one scenario form, compiling to a generated scenario or persisting as a saved one
  *
  * The ad-hoc scenario form: define Initial State + Parameters inline and let
  * the caller compile them through `synthesizeAdHocScenario` (plain runs) or
- * `synthesizeAdHocOptimization` (optimization). The generated scenario is
- * never persisted; this component only edits `AdHocScenarioState`.
+ * `synthesizeAdHocOptimization` (optimization), or save them as a scenario
+ * (`initialState.type: "adhoc"`). The generated scenario is never persisted;
+ * this component only edits `AdHocScenarioState`.
  *
- * Three consumers share it: Quick Simulation and plain experiment creation
- * render it with `selection` "none"; optimization experiments render it
- * with "optimize", which grows an Optimize toggle on every value slot; the
- * scenario creation form renders it with "expose", which offers a
- * "Scenario Parameter" toggle on each top-level Variable — the saved
- * scenario exposes those Variables as its tunable parameters.
+ * It is the one scenario form, with three consumers. Quick Simulation
+ * renders it with `selection` "none"; experiment creation renders it with
+ * "optimize" when the in-browser optimizer can drive the sweep and "sweep"
+ * otherwise — either word grows an interval toggle (Min and Max) on every
+ * numeric value slot, and each selection becomes a swept parameter of the
+ * experiment; scenario creation and editing render it with "expose", which
+ * offers a "Scenario Parameter" toggle on each top-level Variable — the
+ * saved scenario exposes those Variables as its tunable parameters.
+ * Simulation Settings and the experiment drawer also reuse it with
+ * `mode="run"` to show a saved scenario for a run.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
@@ -34,6 +39,8 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
   adHocSlotKey,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   getAdHocDocumentUri,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
@@ -94,19 +101,11 @@ export interface AdHocScenarioFormProps {
    */
   mode?: AdHocFormMode;
   /**
-   * Whether the Variables section is offered. Embeddings that provide no
-   * scenario Variables (quick simulation's Simulation Settings) turn it
-   * off; an expression referencing `scenario.<name>` then fails as unknown,
-   * exactly as it should. The Parameters section hides itself the same way
-   * when the context carries no net parameters.
-   */
-  withVariables?: boolean;
-  /**
    * Custom arrangement: the host receives each group — already wired to the
    * form's contexts — and lays them out itself (e.g. Simulation Settings
    * places Variables + Parameters and Initial state in separate panel
-   * columns). The groups render without section chrome; a group the props
-   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * columns). The groups render without section chrome; the Parameters
+   * group is `null` when the context carries no net parameters. The
    * host's own chrome may render inside too — the wrapper only carries the
    * form's keyboard handling. Wrap each visual column of the layout in a
    * `FormLayoutColumn`: vertical arrows chain the column's groups, and
@@ -173,7 +172,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   mode = "author",
-  withVariables = true,
   renderLayout,
   className,
   sessionId: externalSessionId,
@@ -271,6 +269,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   };
 
+  // Both index the state once for the whole render: the slots beneath ask
+  // for one label each and every place block asks for its total, and doing
+  // that work per slot made a render quadratic in the net's size.
+  const labelFor = createAdHocTargetLabeler(state, context);
+  const placeTotal = createAdHocPlaceTotalResolver(state, context);
+
   const services: AdHocFormServices = {
     formState: state,
     dispatch,
@@ -279,6 +283,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     sessionId,
     uriFor: (slot: AdHocSlot) =>
       getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    labelFor,
+    placeTotal,
     errorFor: (slot: AdHocSlot) => {
       const key = adHocSlotKey(slot);
       const synthesisError = synthesisErrors.get(key);
@@ -308,13 +314,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   const variableRows =
     mode === "run" ? (
       <ScenarioParameterRows variables={state.variables} />
-    ) : withVariables ? (
+    ) : (
       <VariableRows
         scopeLabel="Top-level variables"
         placeId={null}
         variables={state.variables}
       />
-    ) : null;
+    );
 
   const placesList = (
     <div className={placesListStyle}>
@@ -374,14 +380,12 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           ) : (
             <FocusStack axis="vertical">
               <SectionList>
-                {variableRows ? (
-                  <NavigableSection
-                    title="Variables"
-                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                  >
-                    {variableRows}
-                  </NavigableSection>
-                ) : null}
+                <NavigableSection
+                  title="Variables"
+                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                >
+                  {variableRows}
+                </NavigableSection>
 
                 {parameterRows ? (
                   <NavigableSection

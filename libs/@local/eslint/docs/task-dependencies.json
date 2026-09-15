@@ -4,12 +4,21 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [],
-    "fix:eslint": [
-      "build"
-    ],
-    "lint:eslint": [
-      "build"
-    ]
+    "build": {
+      "dependsOn": []
+    },
+    "fix:eslint": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ]
+    }
   }
 }

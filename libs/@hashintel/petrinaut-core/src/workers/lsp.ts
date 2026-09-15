@@ -2,6 +2,7 @@ export { createLanguageServerWorker } from "../lsp/worker/create-language-server
 export type {
   AdHocSessionParams,
   ClientMessage,
+  ConstraintSessionParams,
   MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,

@@ -1,21 +1,19 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import {
-  createReadableStore,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
-  type DetachedObjectiveRunOutcome,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentRecord,
   type ExperimentsContextValue,
   isTerminalExperimentStatus,
+  type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import {
   EditorContext,
   initialEditorState,
@@ -25,10 +23,7 @@ import {
 } from "../../../../../../react/state/editor-context";
 
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
-import type {
-  MonteCarloUserDefinedMetricFrame,
-  MonteCarloWorkerProgress,
-} from "@hashintel/petrinaut-core";
+import type { Constraint, Scenario } from "@hashintel/petrinaut-core";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {
   createNewNet: () => {},
@@ -125,7 +120,91 @@ export function makeExperiment(
     parameterAxes: [],
     sweep: null,
     metricFrames: [],
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
+    scenario: null,
     ...overrides,
+  };
+}
+
+/** The scenario the sweep fixture's axes belong to: its two swept rates and nothing else. */
+export const sweepFixtureScenario: Scenario = {
+  id: "scenario__seasonal_flu",
+  name: "Seasonal Flu",
+  scenarioParameters: [
+    { identifier: "transmission_rate", type: "real", default: 0.3 },
+    { identifier: "recovery_days", type: "integer", default: 7 },
+  ],
+  parameterOverrides: {},
+  initialState: { type: "per_place", content: {} },
+};
+
+/**
+ * The synthetic objective every fake visit measures: a smooth bump over the
+ * sweep fixture's parameter values, so a story's contour fills in the way a
+ * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
+ * positions.
+ */
+export function syntheticSweepObjective(
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  return (
+    100 *
+      Math.exp(
+        -((transmissionRate - 0.35) ** 2) * 20 -
+          ((recoveryDays - 10) / 14) ** 2,
+      ) +
+    6 * Math.sin(transmissionRate * 9) +
+    recoveryDays / 4
+  );
+}
+
+/** The sweep fixture's axes, for turning a position into a value. */
+const SWEEP_FIXTURE_AXES = {
+  transmission_rate: { min: 0.1, max: 0.5, stepCount: 50 },
+  recovery_days: { min: 2, max: 20, stepCount: 18 },
+} as const;
+
+/** The points the sweep fixture has visited: a walk the navigator took. */
+export const SWEEP_FIXTURE_VISITS: readonly Readonly<Record<string, number>>[] =
+  [
+    { transmission_rate: 10, recovery_days: 3 },
+    { transmission_rate: 40, recovery_days: 15 },
+    { transmission_rate: 32, recovery_days: 8 },
+    { transmission_rate: 18, recovery_days: 12 },
+    { transmission_rate: 25, recovery_days: 6 },
+  ];
+
+/**
+ * A visited cell of the sweep fixture: the synthetic objective under the
+ * "infected" metric at a quantized position on the fixture's axes.
+ */
+export function syntheticVisitedCell(
+  position: Readonly<Record<string, number>>,
+  runsCompleted: number,
+): SweepVisitedCell {
+  const value = (
+    axis: keyof typeof SWEEP_FIXTURE_AXES,
+    fallback: number,
+  ): number => {
+    const { min, max, stepCount } = SWEEP_FIXTURE_AXES[axis];
+    const at = position[axis];
+    return at === undefined ? fallback : min + ((max - min) * at) / stepCount;
+  };
+  return {
+    position,
+    runsCompleted,
+    means: {
+      infected: Math.round(
+        syntheticSweepObjective(
+          value("transmission_rate", 0.3),
+          value("recovery_days", 8),
+        ),
+      ),
+    },
+    sampleCounts: { infected: runsCompleted },
   };
 }
 
@@ -191,14 +270,125 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         transmission_rate: { from: 25, to: 25 },
         recovery_days: { from: 6, to: 6 },
       },
+      selectionKey: "transmission_rate=25|recovery_days=6",
       runsCompleted: 25,
       runsSampled: 61,
       runTarget: 100,
       computing: true,
+      visited: SWEEP_FIXTURE_VISITS.map((position) =>
+        syntheticVisitedCell(
+          position,
+          position.transmission_rate === 25 ? 25 : 8,
+        ),
+      ),
     },
     metricFrames: frames,
     latestMetricFramesById: { infected: frames.at(-1)! },
+    scenario: sweepFixtureScenario,
   });
+}
+
+const constraintHirSpan = { start: 0, length: 0 };
+
+/**
+ * The sweep with one constraint of each kind, lowered as the language worker
+ * would lower them: the transmission rate capped below its interval's top,
+ * and the infected count held under 900 on every frame.
+ */
+export const sweepFixtureConstraints: Constraint[] = [
+  {
+    space: "parameters",
+    id: "transmission-cap",
+    name: "Parameter constraint 1",
+    code: "scenario.transmission_rate < 0.45",
+    hir: {
+      hirVersion: 1,
+      surface: "scenario-expression",
+      params: [],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<",
+        left: {
+          kind: "scenarioRef",
+          id: 1,
+          span: constraintHirSpan,
+          name: "transmission_rate",
+        },
+        right: {
+          kind: "numberLit",
+          id: 2,
+          span: constraintHirSpan,
+          value: 0.45,
+          raw: "0.45",
+        },
+      },
+    },
+  },
+  {
+    space: "state",
+    id: "infected-cap",
+    name: "State constraint 1",
+    code: "return state.places.Infected.count <= 900;",
+    hir: {
+      hirVersion: 1,
+      surface: "metric",
+      params: [{ name: "state", span: constraintHirSpan }],
+      span: constraintHirSpan,
+      body: {
+        kind: "binary",
+        id: 0,
+        span: constraintHirSpan,
+        op: "<=",
+        left: {
+          kind: "fieldAccess",
+          id: 1,
+          span: constraintHirSpan,
+          field: "count",
+          fieldSpan: constraintHirSpan,
+          target: {
+            kind: "fieldAccess",
+            id: 2,
+            span: constraintHirSpan,
+            field: "Infected",
+            fieldSpan: constraintHirSpan,
+            target: {
+              kind: "fieldAccess",
+              id: 3,
+              span: constraintHirSpan,
+              field: "places",
+              fieldSpan: constraintHirSpan,
+              target: {
+                kind: "localRef",
+                id: 4,
+                span: constraintHirSpan,
+                name: "state",
+              },
+            },
+          },
+        },
+        right: {
+          kind: "numberLit",
+          id: 5,
+          span: constraintHirSpan,
+          value: 900,
+          raw: "900",
+        },
+      },
+    },
+  },
+];
+
+/** The two-axis sweep carrying both fixture constraints at a 90% pass threshold. */
+export function makeConstrainedSweepExperiment(): ExperimentRecord {
+  return {
+    ...makeParameterSweepExperiment(),
+    scenarioParameterValues: { transmission_rate: 0.3, recovery_days: 7 },
+    constraints: sweepFixtureConstraints,
+    constraintPolicy: { alpha: 0.1 },
+  };
 }
 
 type StoryMetricFrame = ExperimentRecord["metricFrames"][number];
@@ -320,17 +510,12 @@ export const multipleExperiments: ExperimentRecord[] = [
   }),
 ];
 
-const getScenarioName = (scenarioId: string | null): string | null => {
-  if (!scenarioId) {
-    return null;
-  }
-
-  return (
-    sirModel.petriNetDefinition.scenarios?.find(
-      (scenario) => scenario.id === scenarioId,
-    )?.name ?? null
-  );
-};
+const getScenario = (scenarioId: string | null): Scenario | null =>
+  scenarioId
+    ? (sirModel.petriNetDefinition.scenarios?.find(
+        (scenario) => scenario.id === scenarioId,
+      ) ?? null)
+    : null;
 
 const createFakeExperiment = (
   input: CreateExperimentInput,
@@ -341,7 +526,7 @@ const createFakeExperiment = (
   name: input.name,
   createdAt: Date.now(),
   scenarioId: input.scenarioId,
-  scenarioName: getScenarioName(input.scenarioId),
+  scenarioName: getScenario(input.scenarioId)?.name ?? null,
   runCount: input.runCount,
   seed: input.seed,
   dt: input.dt,
@@ -357,132 +542,11 @@ const createFakeExperiment = (
   sweepBatches: [],
   parameterAxes: [],
   sweep: null,
+  scenarioParameterValues: {},
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
+  scenario: getScenario(input.scenarioId),
 });
-
-/**
- * The synthetic objective every fake sampler returns: a smooth bump over the
- * sweep fixture's parameter values, so a story's contour fills in the way a
- * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
- * positions.
- */
-export function syntheticSweepObjective(
-  transmissionRate: number,
-  recoveryDays: number,
-): number {
-  return (
-    100 *
-      Math.exp(
-        -((transmissionRate - 0.35) ** 2) * 20 -
-          ((recoveryDays - 10) / 14) ** 2,
-      ) +
-    6 * Math.sin(transmissionRate * 9) +
-    recoveryDays / 4
-  );
-}
-
-/**
- * A fake `sampleSurfaceCells`: one walk delay per chunk, then every cell's
- * synthetic objective under the "infected" metric. Positions are quantized
- * indices on the sweep fixture's axes.
- */
-export function makeFakeSurfaceSampler(
-  delayMs: number,
-): ExperimentsContextValue["sampleSurfaceCells"] {
-  return (_experimentId, positions) =>
-    new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(
-          positions.map((position) => ({
-            infected: Math.round(
-              syntheticSweepObjective(
-                0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4,
-                2 + (position.recovery_days ?? 0),
-              ),
-            ),
-          })),
-        );
-      }, delayMs);
-    });
-}
-
-/**
- * The fake of a streaming objective batch: ten frames of the synthetic bump
- * at the request's parameter values, one every 60 ms, then the result.
- */
-export const fakeRunDetachedObjective: ExperimentsActionsValue["runDetachedObjective"] =
-  (request) => {
-    const values = Object.values(request.scenarioParameterValues).filter(
-      (entry): entry is number => typeof entry === "number",
-    );
-    const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-    const frames = createReadableStore<
-      readonly MonteCarloUserDefinedMetricFrame[]
-    >([]);
-    const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
-    let cancelled = false;
-    const completion = new Promise<DetachedObjectiveRunOutcome>((resolve) => {
-      const totalTicks = 10;
-      let tick = 0;
-      const step = () => {
-        if (cancelled) {
-          resolve({ ok: false, cancelled: true, reason: "cancelled" });
-          return;
-        }
-        tick += 1;
-        const fraction = tick / totalTicks;
-        const time = request.maxTime * fraction;
-        frames.set([
-          ...frames.get(),
-          {
-            metricId: request.metric.id,
-            label: request.metric.label,
-            outputType: "distribution",
-            frameNumber: Math.round(time / request.dt),
-            time,
-            bins: [
-              [Math.round(objective * fraction * 100) / 100, request.runCount],
-            ],
-            value: null,
-            frameValue: null,
-            timeValue: null,
-            runSampleCount: request.runCount,
-            timeSampleCount: request.runCount,
-          },
-        ]);
-        progress.set({
-          activeRuns: tick < totalTicks ? request.runCount : 0,
-          advancedRuns: request.runCount,
-          allFinished: tick >= totalTicks,
-          completedRuns: tick < totalTicks ? 0 : request.runCount,
-          erroredRuns: 0,
-          frameNumber: Math.round(time / request.dt),
-          runCount: request.runCount,
-          time,
-        });
-        if (tick < totalTicks) {
-          setTimeout(step, 60);
-          return;
-        }
-        resolve({
-          ok: true,
-          runsCompleted: request.runCount,
-          metricFrames: frames.get(),
-          runResults: new Map(),
-          computeBackend: request.computeBackend,
-          computeBackendFallbackReason: null,
-        });
-      };
-      setTimeout(step, 60);
-    });
-    return {
-      frames,
-      progress,
-      completion,
-      cancel: () => {
-        cancelled = true;
-      },
-    };
-  };
 
 export function FakeExperimentsProvider({
   children,
@@ -497,12 +561,7 @@ export function FakeExperimentsProvider({
    * sampler to watch a surface fill in, or one that resolves null to show
    * the empty state.
    */
-  overrides?: Partial<
-    Pick<
-      ExperimentsContextValue,
-      "sampleSurfaceCells" | "sampleDetachedObjective" | "runDetachedObjective"
-    >
-  >;
+  overrides?: Partial<Pick<ExperimentsContextValue, "navigateSweep">>;
   /**
    * Simulates what the real sweep session does on a selection change:
    * frames clear immediately, then the new selection's distribution streams
@@ -533,6 +592,17 @@ export function FakeExperimentsProvider({
     },
     [],
   );
+
+  const isPointSelectionOf = (
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ): boolean =>
+    Object.values(selection).every((range) => range.from === range.to);
+  const pointOf = (
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ): Readonly<Record<string, number>> =>
+    Object.fromEntries(
+      Object.entries(selection).map(([axisId, range]) => [axisId, range.from]),
+    );
 
   const restream = (
     experimentId: string,
@@ -599,6 +669,17 @@ export function FakeExperimentsProvider({
               runsSampled: runs,
               runTarget: upTo < 46 ? 100 : null,
               computing: upTo < 46,
+              visited:
+                upTo < 46 || !isPointSelectionOf(selection)
+                  ? experiment.sweep.visited
+                  : [
+                      ...experiment.sweep.visited.filter(
+                        (entry) =>
+                          JSON.stringify(entry.position) !==
+                          JSON.stringify(pointOf(selection)),
+                      ),
+                      syntheticVisitedCell(pointOf(selection), runs),
+                    ],
             },
           };
         }),
@@ -611,6 +692,51 @@ export function FakeExperimentsProvider({
     restreamRef.current.timer = setTimeout(step, 900);
   };
 
+  /** What the real session does on a selection change, as the fake records it. */
+  const applySweepSelection = (
+    experimentId: string,
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ) => {
+    setExperiments((current) =>
+      current.map((experiment) =>
+        experiment.id === experimentId && experiment.sweep
+          ? restreamOnSelectionChange
+            ? {
+                ...experiment,
+                metricFrames: [],
+                latestMetricFramesById: {},
+                sweep: {
+                  ...experiment.sweep,
+                  selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
+                  runsCompleted: 0,
+                  runsSampled: 0,
+                  runTarget: 8,
+                  computing: true,
+                },
+              }
+            : {
+                ...experiment,
+                sweep: {
+                  ...experiment.sweep,
+                  selection,
+                  selectionKey: sweepSelectionKey(
+                    experiment.parameterAxes,
+                    selection,
+                  ),
+                },
+              }
+          : experiment,
+      ),
+    );
+    if (restreamOnSelectionChange) {
+      restream(experimentId, selection);
+    }
+  };
+
   // Built once: every callback closes over stable setters and refs, so the
   // actions context holds still across publishes the way the real one does.
   const [actions] = useState<ExperimentsActionsValue>(() => ({
@@ -618,7 +744,7 @@ export function FakeExperimentsProvider({
     createExperiment: (input) => {
       const experiment = createFakeExperiment(input);
       setExperiments((current) => [experiment, ...current]);
-      return Promise.resolve(experiment.id);
+      return Promise.resolve(experiment);
     },
     cancelExperiment: (experimentId) => {
       setExperiments((current) =>
@@ -634,67 +760,45 @@ export function FakeExperimentsProvider({
         current.filter((experiment) => experiment.id !== experimentId),
       );
     },
-    setSweepSelection: (experimentId, selection) => {
-      setExperiments((current) =>
-        current.map((experiment) =>
-          experiment.id === experimentId && experiment.sweep
-            ? restreamOnSelectionChange
-              ? {
-                  ...experiment,
-                  metricFrames: [],
-                  latestMetricFramesById: {},
-                  sweep: {
-                    ...experiment.sweep,
-                    selection,
-                    runsCompleted: 0,
-                    runsSampled: 0,
-                    runTarget: 8,
-                    computing: true,
-                  },
-                }
-              : { ...experiment, sweep: { ...experiment.sweep, selection } }
-            : experiment,
-        ),
-      );
-      if (restreamOnSelectionChange) {
-        restream(experimentId, selection);
-      }
-    },
-    sampleSurfaceCells: makeFakeSurfaceSampler(120),
-    sampleDetachedObjective: (request) => {
-      // The synthetic bump over the study's real parameter values, so the
-      // optimization surface story fills live.
-      const values = Object.values(request.scenarioParameterValues).filter(
-        (entry): entry is number => typeof entry === "number",
-      );
-      const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
-      const frame = {
-        metricId: request.metric.id,
-        label: request.metric.label,
-        outputType: "distribution" as const,
-        frameNumber: 45,
-        time: 45,
-        bins: [
-          [Math.round(objective * 100) / 100, request.runCount],
-        ] as (readonly [number, number])[],
-        value: null,
-        frameValue: null,
-        timeValue: null,
-        runSampleCount: request.runCount,
-        timeSampleCount: request.runCount,
-      };
-      return new Promise((resolve) => {
-        setTimeout(
-          () =>
-            resolve({
-              runsCompleted: request.runCount,
-              metricFrames: [frame],
-            }),
-          100,
+    setSweepSelection: applySweepSelection,
+    navigateSweep: (experimentId, selection, options) =>
+      new Promise((resolve) => {
+        applySweepSelection(experimentId, selection);
+        const position = Object.fromEntries(
+          Object.entries(selection).map(([axisId, range]) => [
+            axisId,
+            Math.round((range.from + range.to) / 2),
+          ]),
         );
-      });
-    },
-    runDetachedObjective: fakeRunDetachedObjective,
+        const cell = syntheticVisitedCell(position, options?.runCap ?? 100);
+        setTimeout(() => {
+          setExperiments((current) =>
+            current.map((experiment) =>
+              experiment.id === experimentId && experiment.sweep
+                ? {
+                    ...experiment,
+                    sweep: {
+                      ...experiment.sweep,
+                      runsCompleted: cell.runsCompleted,
+                      runsSampled: cell.runsCompleted,
+                      runTarget: null,
+                      computing: false,
+                      visited: [
+                        ...experiment.sweep.visited.filter(
+                          (entry) =>
+                            JSON.stringify(entry.position) !==
+                            JSON.stringify(cell.position),
+                        ),
+                        cell,
+                      ],
+                    },
+                  }
+                : experiment,
+            ),
+          );
+          resolve(cell);
+        }, 700);
+      }),
     ...overrides,
   }));
 
@@ -730,57 +834,50 @@ export function FakeEditorProvider({
   });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const value = useMemo<EditorContextValue>(
-    () => ({
-      ...initialEditorState,
-      globalMode: "simulate",
-      simulateViewMode,
-      navigateTo: () => {},
-      setGlobalMode: () => {},
-      setEditionMode: () => {},
-      setAddComponentMode: () => {},
-      setCursorMode: () => {},
-      setLeftSidebarOpen: () => {},
-      setLeftSidebarWidth: () => {},
-      setPropertiesPanelWidth: () => {},
-      setAiAssistantWidth: () => {},
-      setBottomPanelOpen: () => {},
-      toggleBottomPanel: () => {},
-      setBottomPanelHeight: () => {},
-      setActiveBottomPanelTab: () => {},
-      isSelected: () => false,
-      isSelectedConnection: () => false,
-      isNotSelectedConnection: () => false,
-      selectedConnections: new Map(),
-      setSelection: () => {},
-      beginSelectionGesture: () => {},
-      endSelectionGesture: () => {},
-      selectItem: () => {},
-      toggleItem: () => {},
-      clearSelection: () => {},
-      setHoveredItem: () => {},
-      clearHoveredItem: () => {},
-      isHovered: () => false,
-      isHoveredConnection: () => false,
-      isNotHoveredConnection: () => false,
-      setDraggingStateByNodeId: () => {},
-      updateDraggingStateByNodeId: () => {},
-      simulateDrawer,
-      setSimulateDrawer,
-      setAiAssistantOpen: () => {},
-      toggleAiAssistant: () => {},
-      resetDraggingState: () => {},
-      collapseAllPanels: () => {},
-      setTimelineChartType: () => {},
-      setTimelineView: () => {},
-      setHiddenTimelineSeriesIds: () => {},
-      setSimulateViewMode,
-      setSearchOpen: () => {},
-      triggerPanelAnimation: () => {},
-      searchInputRef,
-    }),
-    [simulateDrawer, simulateViewMode],
-  );
+  const value: EditorContextValue = {
+    ...initialEditorState,
+    globalMode: "simulate",
+    simulateViewMode,
+    navigateTo: () => {},
+    setGlobalMode: () => {},
+    setEditionMode: () => {},
+    setAddComponentMode: () => {},
+    setCursorMode: () => {},
+    setLeftSidebarOpen: () => {},
+    setLeftSidebarWidth: () => {},
+    setPropertiesPanelWidth: () => {},
+    setAiAssistantWidth: () => {},
+    setBottomPanelOpen: () => {},
+    toggleBottomPanel: () => {},
+    setBottomPanelHeight: () => {},
+    setActiveBottomPanelTab: () => {},
+    isSelected: () => false,
+    setSelection: () => {},
+    beginSelectionGesture: () => {},
+    endSelectionGesture: () => {},
+    selectItem: () => {},
+    toggleItem: () => {},
+    clearSelection: () => {},
+    setHoveredItem: () => {},
+    clearHoveredItem: () => {},
+    toggleVisualizerPin: () => {},
+    openPlaceVisualizer: () => {},
+    setDraggingStateByNodeId: () => {},
+    updateDraggingStateByNodeId: () => {},
+    simulateDrawer,
+    setSimulateDrawer,
+    setAiAssistantOpen: () => {},
+    toggleAiAssistant: () => {},
+    resetDraggingState: () => {},
+    collapseAllPanels: () => {},
+    setTimelineChartType: () => {},
+    setTimelineView: () => {},
+    setHiddenTimelineSeriesIds: () => {},
+    setSimulateViewMode,
+    setSearchOpen: () => {},
+    triggerPanelAnimation: () => {},
+    searchInputRef,
+  };
 
   return <EditorContext value={value}>{children}</EditorContext>;
 }

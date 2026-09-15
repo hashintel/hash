@@ -1,0 +1,8 @@
+(version 1)
+(allow default)
+(deny network*)
+; Chrome's isolated profile singleton is filesystem Unix-domain IPC, not IP egress.
+(allow network* (regex "^(/private)?/(tmp|var/folders/[^/]+/[^/]+/T)/com[.]google[.]Chrome[.][^/]+/SingletonSocket$"))
+(allow network-inbound (local ip "localhost:*"))
+(allow network-outbound (remote ip "localhost:*"))
+(allow network-bind (local ip "localhost:*"))

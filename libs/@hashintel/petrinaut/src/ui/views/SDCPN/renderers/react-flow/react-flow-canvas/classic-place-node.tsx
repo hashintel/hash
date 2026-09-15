@@ -1,13 +1,11 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
-import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { splitPascalCase } from "../../../../../lib/split-pascal-case";
+import { usePlaceTokenCount } from "../../../canvas-frame-store";
+import { nodeFocusStyle } from "../../../styles/focus";
 import { handleStyling } from "../../../styles/styling";
 import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
@@ -19,63 +17,25 @@ const containerStyle = css({
   height: "full",
 });
 
-const placeCircleStyle = cva({
-  base: {
-    paddingY: "4",
-    paddingX: "2",
-    borderRadius: "[50%]",
-    width: "full",
-    height: "full",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "3",
-    minWidth: "0",
-    border: "2px solid color-mix(in oklab, black, white 35%)",
-    fontSize: "[15px]",
-    boxSizing: "border-box",
-    position: "relative",
-    textAlign: "center",
-    lineHeight: "[1.3]",
-    cursor: "default",
-    transition: "[outline 0.2s ease]",
-    outline: "[0px solid rgba(75, 126, 156, 0)]",
-    _hover: {
-      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
-    },
-    _after: {
-      content: '""',
-      transition: "[all 0.1s ease]",
-      position: "absolute",
-      pointerEvents: "none",
-      borderRadius: "[inherit]",
-      inset: "[-2px]", // override to cover border, since parent uses box-sizing border-box
-    },
-  },
-  variants: {
-    selection: {
-      resource: {
-        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
-        _hover: {
-          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
-        },
-      },
-      reactflow: {
-        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
-      },
-      notSelectedConnection: {
-        borderColor: "neutral.s80",
-        _after: {
-          background: "[rgba(255, 255, 255, 0.5)]",
-        },
-      },
-      none: {},
-    },
-  },
-  defaultVariants: {
-    selection: "none",
-  },
+const placeCircleStyle = css({
+  paddingY: "4",
+  paddingX: "2",
+  borderRadius: "[50%]",
+  width: "full",
+  height: "full",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "3",
+  minWidth: "0",
+  border: "2px solid color-mix(in oklab, black, white 35%)",
+  fontSize: "[15px]",
+  boxSizing: "border-box",
+  position: "relative",
+  textAlign: "center",
+  lineHeight: "[1.3]",
+  cursor: "default",
 });
 
 const dynamicsIconStyle = css({
@@ -123,45 +83,26 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-    isHovered,
-  } = use(EditorContext);
-  const isSimulateMode = globalMode === "simulate";
-  const { initialMarking } = use(SimulationContext);
-  const { currentViewedFrame, totalFrames } = use(ExecutionFrameSourceContext);
+  // A frame re-renders this place only when its own count moves.
+  const tokenCount = usePlaceTokenCount(id);
 
-  // Show the visualizer on hover for places with a visualizer during simulation.
+  // Show the visualizer on hover for places that define one, and keep it up
+  // for as long as it is pinned. Before a run it draws the initial marking,
+  // so a net still being built is worth pointing at too.
   const showStateTooltip =
-    data.hasColorType && data.hasVisualizer && totalFrames > 0 && isHovered(id);
-
-  // Get token count from the currently viewed frame or initial marking
-  let tokenCount: number | null = null;
-  if (currentViewedFrame) {
-    tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
-  } else if (isSimulateMode) {
-    // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking[id];
-    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
-  }
+    data.hasColorType &&
+    data.hasVisualizer &&
+    // Dragging the place would carry the box along over the canvas it is
+    // being dropped on, and redraw the visualizer every frame of the drag.
+    !data.dragging &&
+    (data.hovered || data.visualizerPinned);
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints
   const label = splitPascalCase(data.label).join("\u200B");
 
-  // Determine selection state
-  const isInSelection = isSelected(id);
-  const selectionVariant = isInSelection
-    ? "resource"
-    : selected
-      ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
-        ? "notSelectedConnection"
-        : "none";
+  // React Flow marks a node selected as a drag-selection is drawn, before the
+  // change reaches the editor's own selection.
+  const focus = selected ? "focused" : data.focus;
 
   return (
     <div className={containerStyle}>
@@ -173,7 +114,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         style={handleStyling}
       />
       <div
-        className={placeCircleStyle({ selection: selectionVariant })}
+        className={`${placeCircleStyle} ${nodeFocusStyle({ focus })}`}
         style={{
           borderColor: placeBorderColor(data.typeColor),
           backgroundColor: placeFillColor(data.typeColor),

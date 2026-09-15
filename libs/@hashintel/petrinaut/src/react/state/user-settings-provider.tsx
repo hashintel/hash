@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import {
   defaultUserSettings,
+  defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
@@ -27,6 +28,21 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * Still present in blobs written before that.
    */
   computeBackend?: "cpu" | "webgpu";
+  /**
+   * Chose between the entities tree and a stack of lists in the left panel.
+   * The tree is the only rendering, so the key is dropped on the next write.
+   */
+  useEntitiesTreeView?: boolean;
+  /**
+   * Toggled the study drawer's locally computed objective surface, which
+   * went with the Optimizations tab. Dropped on the next write.
+   */
+  enableOptimizationSurface?: boolean;
+  /**
+   * Gated the scenario form while it was experimental. The form is the only
+   * scenario form, so the key is dropped on the next write.
+   */
+  enableAdHocScenarios?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -35,9 +51,13 @@ const loadSettings = (): UserSettings => {
     if (raw) {
       // Destructured rather than read through the spread, so the dead key is
       // dropped from storage on the next write instead of persisting forever.
-      const { computeBackend, ...parsed } = JSON.parse(
-        raw,
-      ) as PersistedUserSettings;
+      const {
+        computeBackend,
+        useEntitiesTreeView: _useEntitiesTreeView,
+        enableOptimizationSurface: _enableOptimizationSurface,
+        enableAdHocScenarios: _enableAdHocScenarios,
+        ...parsed
+      } = JSON.parse(raw) as PersistedUserSettings;
       return {
         ...defaultUserSettings,
         ...parsed,
@@ -51,7 +71,7 @@ const loadSettings = (): UserSettings => {
   return defaultUserSettings;
 };
 
-export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const [state, setState] = useState<UserSettings>(loadSettings);
@@ -94,16 +114,14 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, showMinimap: value })),
     setSnapToGrid: (value: boolean) =>
       setState((prev) => ({ ...prev, snapToGrid: value })),
+    setHighlightOnHover: (value: boolean) =>
+      setState((prev) => ({ ...prev, highlightOnHover: value })),
     setPartialSelection: (value: boolean) =>
       setState((prev) => ({ ...prev, partialSelection: value })),
-    setUseEntitiesTreeView: (value: boolean) =>
-      setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setEnableNotebookView: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNotebookView: value })),
-    setEnableAdHocScenarios: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableAdHocScenarios: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setWebGpuEnabled: (value: boolean) =>
@@ -112,8 +130,6 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
     setEnableParameterSweeps: (value: boolean) =>
       setState((prev) => ({ ...prev, enableParameterSweeps: value })),
-    setEnableOptimizationSurface: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();
@@ -129,6 +145,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     },
     setEnableInBrowserOptimization: (value: boolean) =>
       setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
+    setBrunchDemoMode: (value: boolean) =>
+      setState((prev) => ({ ...prev, brunchDemoMode: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
@@ -155,5 +173,21 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
 
   return (
     <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
+  );
+};
+
+/**
+ * Provides the persisted user settings. A host may mount it above
+ * `Petrinaut` to share the settings with its own components; the editor's
+ * own instance then reuses that ancestor, so one state owns the storage key.
+ */
+export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
+  const ancestor = use(UserSettingsContext);
+  return ancestor === defaultUserSettingsContextValue ? (
+    <OwnedUserSettingsProvider>{children}</OwnedUserSettingsProvider>
+  ) : (
+    children
   );
 };

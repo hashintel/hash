@@ -4,17 +4,33 @@
     "@local/petrinaut-arch-docs"
   ],
   "tasks": {
-    "build": [
-      "sync:bundle"
-    ],
-    "dev": [
-      "sync:bundle"
-    ],
-    "lint:tsc": [
-      "sync:bundle"
-    ],
-    "sync:bundle": [
-      "@local/petrinaut-arch-docs#doc:architecture"
-    ]
+    "build": {
+      "dependsOn": [
+        "sync:bundle"
+      ],
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": [
+        "sync:bundle"
+      ],
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "PORT"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "sync:bundle"
+      ],
+      "cache": false
+    },
+    "sync:bundle": {
+      "dependsOn": [
+        "@local/petrinaut-arch-docs#doc:architecture"
+      ],
+      "cache": false
+    }
   }
 }
