@@ -13,22 +13,21 @@ type HeadingSection = {
 
 export const SettingsHeading = ({
   section,
-  index,
   animated,
 }: {
   section: HeadingSection;
-  index: number;
   animated: boolean;
 }) => {
   const elementRef = useRef<HTMLDivElement>(null);
-  const previousIndexRef = useRef(index);
+  const sectionId = section.id;
+  const previousSectionRef = useRef(sectionId);
 
   useLayoutEffect(() => {
-    const previousIndex = previousIndexRef.current;
-    previousIndexRef.current = index;
+    const previousSection = previousSectionRef.current;
+    previousSectionRef.current = sectionId;
     const element = elementRef.current;
     if (
-      previousIndex === index ||
+      previousSection === sectionId ||
       !animated ||
       !element?.animate ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -48,7 +47,7 @@ export const SettingsHeading = ({
       { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
     );
     return () => animation.cancel();
-  }, [index, animated]);
+  }, [sectionId, animated]);
 
   return (
     <div className={css({ paddingRight: "7" })}>

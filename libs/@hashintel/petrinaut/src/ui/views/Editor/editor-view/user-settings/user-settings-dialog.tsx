@@ -374,8 +374,8 @@ export const UserSettingsDialog = ({
   const inBrowserOptimizationOffered =
     optimization !== null && isConnectedOptimization(optimization);
   const webGpuAvailable = isWebGpuAvailable();
-  const sectionIndex = sections.findIndex((item) => item.id === section);
-  const item = sections[sectionIndex] ?? sections[0];
+  const item =
+    sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
   const [width, setWidth] = useState(760);
   const { panelRef, handleProps, getResizeHandleProps, style } =
@@ -462,7 +462,6 @@ export const UserSettingsDialog = ({
                 heading={
                   <SettingsHeading
                     section={item}
-                    index={sectionIndex}
                     animated={settings.showAnimations}
                   />
                 }
@@ -593,16 +592,16 @@ export const UserSettingsDialog = ({
                           onChange={settings.setEnableParameterSweeps}
                         />
                       </SettingsGroup>
-                      <SettingsGroup title="Optimization">
-                        {inBrowserOptimizationOffered && (
+                      {inBrowserOptimizationOffered && (
+                        <SettingsGroup title="Optimization">
                           <SettingToggle
                             label="In-browser optimization"
                             description="Run studies in this browser and stream metrics as each step completes."
                             value={settings.enableInBrowserOptimization}
                             onChange={settings.setEnableInBrowserOptimization}
                           />
-                        )}
-                      </SettingsGroup>
+                        </SettingsGroup>
+                      )}
                     </>
                   )}
                   {item.id === "labs" && (

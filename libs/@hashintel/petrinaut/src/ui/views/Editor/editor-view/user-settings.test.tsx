@@ -17,11 +17,13 @@ import {
 
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
+import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
 import { defaultUserSettings } from "../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
+import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
 
 beforeEach(() => {
   localStorage.clear();
@@ -47,13 +49,16 @@ afterEach(() => {
 
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
+  optimization: PetrinautOptimizationSource | null = null,
 ) => {
   const registry = createCommandRegistry();
   const result = render(
     <CommandRegistryProvider registry={registry}>
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
-          <UserSettings />
+          <PetrinautOptimizationContext value={optimization}>
+            <UserSettings />
+          </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
     </CommandRegistryProvider>,
@@ -409,6 +414,27 @@ describe("user settings", () => {
 });
 
 describe("experimental simulation settings", () => {
+  it("hides the optimization group when the host has no in-browser optimizer", async () => {
+    renderSettings({
+      overlay: { type: "user-settings", section: "simulation" },
+    });
+    await screen.findByRole("heading", { name: "Simulation" });
+    expect(screen.queryByRole("region", { name: "Optimization" })).toBeNull();
+  });
+
+  it("offers optimization settings for a connected optimizer", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "simulation" } },
+      { kind: "connected", connect: vi.fn() },
+    );
+    expect(
+      await screen.findByRole("region", { name: "Optimization" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("checkbox", { name: "In-browser optimization" }),
+    ).toBeTruthy();
+  });
+
   it("keep parameter sweeps and in-browser optimization off by default", () => {
     expect(defaultUserSettings.enableParameterSweeps).toBe(false);
     expect(defaultUserSettings.enableInBrowserOptimization).toBe(false);

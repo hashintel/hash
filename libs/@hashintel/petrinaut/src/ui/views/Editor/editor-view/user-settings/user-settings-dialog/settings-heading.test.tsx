@@ -41,10 +41,10 @@ afterEach(() => {
 describe("settings heading transitions", () => {
   it("animates the title row from below in either direction, cancelling interrupted motion", () => {
     const { rerender, unmount } = render(
-      <SettingsHeading section={general} index={0} animated />,
+      <SettingsHeading section={general} animated />,
     );
     expect(animate).not.toHaveBeenCalled();
-    rerender(<SettingsHeading section={viewport} index={1} animated />);
+    rerender(<SettingsHeading section={viewport} animated />);
     expect(screen.getByRole("heading", { name: "Viewport" })).toBeTruthy();
     expect(animate.mock.contexts.at(-1)).toBe(
       screen.getByRole("heading").parentElement,
@@ -56,7 +56,7 @@ describe("settings heading transitions", () => {
       ],
       expect.objectContaining({ duration: 220 }),
     );
-    rerender(<SettingsHeading section={general} index={0} animated />);
+    rerender(<SettingsHeading section={general} animated />);
     expect(cancelAnimation).toHaveBeenCalledTimes(1);
     expect(animate.mock.contexts.at(-1)).toBe(
       screen.getByRole("heading").parentElement,
@@ -78,26 +78,18 @@ describe("settings heading transitions", () => {
       if (source === "system")
         vi.stubGlobal("matchMedia", () => ({ matches: true }));
       const { rerender } = render(
-        <SettingsHeading section={general} index={0} animated={animated} />,
+        <SettingsHeading section={general} animated={animated} />,
       );
-      rerender(
-        <SettingsHeading section={viewport} index={1} animated={animated} />,
-      );
+      rerender(<SettingsHeading section={viewport} animated={animated} />);
       expect(screen.getByRole("heading", { name: "Viewport" })).toBeTruthy();
       expect(animate).not.toHaveBeenCalled();
     },
   );
 
   it("renders only the latest heading during rapid direction changes", () => {
-    const { rerender } = render(
-      <SettingsHeading section={general} index={0} animated />,
-    );
-    for (const [section, index] of [
-      [viewport, 1],
-      [labs, 3],
-      [general, 0],
-    ] as const) {
-      rerender(<SettingsHeading section={section} index={index} animated />);
+    const { rerender } = render(<SettingsHeading section={general} animated />);
+    for (const section of [viewport, labs, general]) {
+      rerender(<SettingsHeading section={section} animated />);
       expect(screen.getAllByRole("heading")).toHaveLength(1);
       expect(screen.getByRole("heading").textContent).toBe(section.label);
       expect(screen.getByText(section.description)).toBeTruthy();
