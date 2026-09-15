@@ -12,7 +12,7 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
@@ -57,7 +57,7 @@ import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-proven
 
 import type {
   PetrinautAiAssistant,
-  PetrinautAiToolStateLabels,
+  PetrinautAiToolPresentationResolver,
 } from "../../../../petrinaut";
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
@@ -81,7 +81,8 @@ export type AiAssistantContentsProps = {
   onHostTabSelectedChange?: (selected: boolean) => void;
   primaryAttention?: boolean;
   primaryLabel?: string;
-  toolStateLabels?: PetrinautAiAssistant["toolStateLabels"];
+  resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
   composerFocusRequest?: number;
@@ -381,6 +382,17 @@ const userTextStyle = css({
   wordBreak: "break-word",
 });
 
+const workingStatusStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  alignSelf: "flex-start",
+  paddingX: "2",
+  color: "neutral.s80",
+  fontSize: "sm",
+  fontWeight: "medium",
+});
+
 const stoppedNoteStyle = css({
   alignSelf: "center",
   paddingY: "1",
@@ -532,20 +544,20 @@ const AiAssistantMessage = memo(
     message,
     experimentStates,
     onCancelExperiment,
-    toolStateLabels,
+    resolveToolPresentation,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
     experimentStates?: Record<string, AiExperimentState>;
     onCancelExperiment?: (toolCallId: string) => void;
-    toolStateLabels: PetrinautAiToolStateLabels;
+    resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(
       message,
       interactiveTools,
-      toolStateLabels,
+      resolveToolPresentation,
     );
     const hasVoiceOrigin =
       role === "user" && message.metadata?.source === "voice";
@@ -660,7 +672,8 @@ export const AiAssistantContents = ({
   voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
-  toolStateLabels,
+  resolveToolPresentation,
+  workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
   const aiTabId = `${panelId}-ai`;
@@ -668,7 +681,6 @@ export const AiAssistantContents = ({
   const [internalHostTabSelected, setInternalHostTabSelected] = useState(false);
   const hostTabSelected = controlledHostTabSelected ?? internalHostTabSelected;
   const showingHostTab = additionalTab !== undefined && hostTabSelected;
-  const resolvedToolStateLabels = toolStateLabels ?? {};
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
@@ -1107,7 +1119,7 @@ export const AiAssistantContents = ({
                 handlersRef={handlersRef}
                 experimentStates={experimentStates}
                 onCancelExperiment={onCancelExperiment}
-                toolStateLabels={resolvedToolStateLabels}
+                resolveToolPresentation={resolveToolPresentation}
               />
             ))}
             {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
@@ -1126,6 +1138,20 @@ export const AiAssistantContents = ({
               })}`}
             >
               {additionalTab.content}
+            </div>
+          )}
+
+          {isBusy && workingLabel && (
+            <div
+              className={`${workingStatusStyle} ${panelContentStyle({
+                visible: !isVoiceDockCollapsed,
+              })}`}
+              role="status"
+              aria-live="polite"
+              data-testid="ai-working-status"
+            >
+              <LoadingSpinner aria-hidden="true" size="xs" variant="bars" />
+              <span>{workingLabel}</span>
             </div>
           )}
 
