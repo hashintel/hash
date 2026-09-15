@@ -59,10 +59,10 @@ export interface Envelope {
 }
 
 /** A directory entry with a borrowed payload, or null for an absent section. */
-export interface Chunk {
+export interface Chunk<T extends ArrayBufferLike> {
   readonly start: U32;
   readonly end: U32;
-  readonly bytes: Uint8Array | null;
+  readonly bytes: Uint8Array<T> | null;
 }
 
 /** Returns a directory or prefix validation error. */
@@ -78,7 +78,7 @@ const invalidLayout = (detail: string): Result.Result<never, EnvelopeError> =>
  */
 export const decode = <T extends ArrayBufferLike>(decoder: Decoder<T>) =>
   Result.gen(function* decodeEnvelope(): Result.gen.Return<
-    readonly [envelope: Envelope, slots: readonly Chunk[]],
+    readonly [envelope: Envelope, slots: readonly Chunk<T>[]],
     EnvelopeError | DecoderError
   > {
     if (decoder.offset !== 0) {
@@ -124,7 +124,7 @@ export const decode = <T extends ArrayBufferLike>(decoder: Decoder<T>) =>
       );
     }
 
-    const chunks: Chunk[] = [];
+    const chunks: Chunk<T>[] = [];
 
     let nextStart = 16 + 8 * slots;
     for (let slot = 0; slot < slots; slot += 1) {

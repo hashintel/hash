@@ -19,3 +19,8 @@ export const is =
       typeof error === "function") &&
     "_tag" in error &&
     error._tag === tag;
+
+export const isNot =
+  <const Tag extends string>(tag: Tag) =>
+  <E>(error: E): error is Exclude<E, TaggedError<Tag, unknown>> =>
+    !is(tag)(error);

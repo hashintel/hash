@@ -246,23 +246,17 @@ export class Decoder<T extends ArrayBufferLike> {
   }
 
   nextString(length: number): Result.Result<string, DecoderError> {
-    return Result.andThen(this.nextUint8Array(length), (buffer) => {
-      try {
-        return Result.ok(
-          new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
-            buffer,
+    return Result.andThen(this.nextUint8Array(length), (buffer) =>
+      Result.catch(
+        () =>
+          Result.ok(
+            new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+              buffer,
+            ),
           ),
-        );
-      } catch (exception) {
-        return Result.err(
-          new DecoderError(
-            {
-              _tag: "invalid-string",
-            },
-            { cause: exception },
-          ),
-        );
-      }
-    });
+        (cause) =>
+          Result.err(new DecoderError({ _tag: "invalid-string" }, { cause })),
+      ),
+    );
   }
 }

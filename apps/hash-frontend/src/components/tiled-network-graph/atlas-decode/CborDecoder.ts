@@ -394,15 +394,16 @@ export class CborDecoder<T extends ArrayBufferLike> {
       );
     }
 
-    let text: string;
-    try {
-      text = this.#utf8.decode(bytes);
-    } catch (cause) {
-      return this.#fail({ _tag: "invalid-utf8" }, payload.value, { cause });
+    const text = Result.catch(
+      () => Result.ok(this.#utf8.decode(bytes)),
+      (cause) => this.#fail({ _tag: "invalid-utf8" }, payload.value, { cause }),
+    );
+    if (Result.isErr(text)) {
+      return Result.err(text.error);
     }
 
     return (
-      visitor.visitTextString?.(text) ??
+      visitor.visitTextString?.(text.value) ??
       this.#unexpected(visitor.expecting, "text-string", offset)
     );
   }
@@ -625,28 +626,31 @@ export class CborDecoder<T extends ArrayBufferLike> {
     }
 
     this.#state = "decoding";
-    try {
-      const result = this.#read(visitor, 0);
-      if (this.#error) {
-        return Result.err(this.#error);
-      }
+    return Result.catch(
+      () => {
+        try {
+          const result = this.#read(visitor, 0);
+          if (this.#error) {
+            return Result.err(this.#error);
+          }
 
-      if (Result.isErr(result)) {
-        return result;
-      }
+          if (Result.isErr(result)) {
+            return result;
+          }
 
-      if (this.#offset !== this.#buffer.byteLength) {
-        return this.#fail({
-          _tag: "trailing-data",
-          remaining: this.#buffer.byteLength - this.#offset,
-        });
-      }
+          if (this.#offset !== this.#buffer.byteLength) {
+            return this.#fail({
+              _tag: "trailing-data",
+              remaining: this.#buffer.byteLength - this.#offset,
+            });
+          }
 
-      return result;
-    } catch (cause) {
-      return this.#fail({ _tag: "exception" }, this.#offset, { cause });
-    } finally {
-      this.#state = "finished";
-    }
+          return result;
+        } finally {
+          this.#state = "finished";
+        }
+      },
+      (cause) => this.#fail({ _tag: "exception" }, this.#offset, { cause }),
+    );
   }
 }
