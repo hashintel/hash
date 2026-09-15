@@ -52,6 +52,8 @@ export interface VoiceTurnSnapshot {
   readonly microphoneLevel: number;
   readonly output: VoiceOutputState;
   readonly partialText: string;
+  readonly speakerMuted: boolean;
+  readonly speakerVolume: number;
 }
 
 export interface VoiceLatencyEvent {
@@ -75,6 +77,8 @@ interface RealtimeSession {
   disconnect(): Promise<void>;
   setInterruptionBySpeaking(enabled: boolean): void;
   setMicrophoneEnabled(enabled: boolean): void;
+  setSpeakerMuted(muted: boolean): void;
+  setSpeakerVolume(volume: number): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
@@ -140,6 +144,8 @@ const initialSnapshot: VoiceTurnSnapshot = {
   microphoneLevel: 0,
   output: "idle",
   partialText: "",
+  speakerMuted: false,
+  speakerVolume: 1,
 };
 
 export class VoiceTurnController {
@@ -254,6 +260,8 @@ export class VoiceTurnController {
     this.#activeSpeechOutputEnded = false;
     this.#activeSpeechResponseId = null;
     this.#activeSpeechResponseTerminal = false;
+    this.#session.setSpeakerMuted(false);
+    this.#session.setSpeakerVolume(1);
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -262,6 +270,8 @@ export class VoiceTurnController {
       input: "paused",
       output: "idle",
       partialText: "",
+      speakerMuted: false,
+      speakerVolume: 1,
     });
     try {
       const connectionEpoch = await this.#session.connect();
@@ -397,6 +407,17 @@ export class VoiceTurnController {
       this.#session.setMicrophoneEnabled(!muted);
     }
     this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
+  }
+
+  public setSpeakerMuted(muted: boolean): void {
+    this.#session.setSpeakerMuted(muted);
+    this.#update({ speakerMuted: muted });
+  }
+
+  public setSpeakerVolume(volume: number): void {
+    const clampedVolume = Math.min(1, Math.max(0, volume));
+    this.#session.setSpeakerVolume(clampedVolume);
+    this.#update({ speakerVolume: clampedVolume });
   }
 
   public async resume(): Promise<void> {

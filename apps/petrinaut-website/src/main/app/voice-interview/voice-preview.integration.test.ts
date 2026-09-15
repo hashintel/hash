@@ -253,9 +253,11 @@ describe("controlled voice preview", () => {
     } as unknown as MediaStream;
     const remoteAudio = {
       autoplay: false,
+      muted: false,
       pause: vi.fn(),
       play: vi.fn(async () => undefined),
       srcObject: null as MediaStream | null,
+      volume: 1,
     };
     const peer = {
       addTrack: vi.fn(),

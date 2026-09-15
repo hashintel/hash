@@ -58,6 +58,9 @@ export const LiveConversationControl = ({
 }: LiveControlsContext) => {
   const [consented, setConsented] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [microphoneMuted, setMicrophoneMutedState] = useState(false);
+  const [speakerMuted, setSpeakerMutedState] = useState(false);
+  const [speakerVolume, setSpeakerVolumeState] = useState(1);
   const [state, setState] = useState<LiveConversationState>({
     phase: "idle",
     message: null,
@@ -130,6 +133,19 @@ export const LiveConversationControl = ({
     setConsented(false);
     await closing;
   }, [setVoiceActive]);
+  const setMicrophoneMuted = useCallback((muted: boolean) => {
+    session.current?.setMicrophoneMuted(muted);
+    setMicrophoneMutedState(muted);
+  }, []);
+  const setSpeakerMuted = useCallback((muted: boolean) => {
+    session.current?.setSpeakerMuted(muted);
+    setSpeakerMutedState(muted);
+  }, []);
+  const setSpeakerVolume = useCallback((volume: number) => {
+    const clampedVolume = Math.min(1, Math.max(0, volume));
+    session.current?.setSpeakerVolume(clampedVolume);
+    setSpeakerVolumeState(clampedVolume);
+  }, []);
   useEffect(
     () =>
       subscribeToStopRequested?.(() => {
@@ -156,8 +172,17 @@ export const LiveConversationControl = ({
         retryPlayback: () => {
           void session.current?.retryPlayback();
         },
+        setMicrophoneMuted,
+        setSpeakerMuted,
+        setSpeakerVolume,
       }),
-    [end, registerVoiceModeSessionControls],
+    [
+      end,
+      registerVoiceModeSessionControls,
+      setMicrophoneMuted,
+      setSpeakerMuted,
+      setSpeakerVolume,
+    ],
   );
 
   useEffect(() => {
@@ -176,12 +201,18 @@ export const LiveConversationControl = ({
                     : !stopped &&
                         (status === "submitted" || status === "streaming")
                       ? "thinking"
-                      : "listening",
+                      : microphoneMuted
+                        ? "muted"
+                        : "listening",
             microphoneLevel:
-              phase === "error" ? 0 : (activity?.microphoneLevel ?? 0),
-            microphoneMuted: phase === "error",
+              phase === "error" || microphoneMuted
+                ? 0
+                : (activity?.microphoneLevel ?? 0),
+            microphoneMuted: phase === "error" || microphoneMuted,
             errorMessage: phase === "error" ? message : null,
             notice: playbackBlocked ? message : null,
+            speakerMuted,
+            speakerVolume,
             warningMessage,
             ...(playbackBlocked ? { canRetryPlayback: true } : {}),
           }
@@ -196,6 +227,9 @@ export const LiveConversationControl = ({
     activity,
     status,
     stopped,
+    microphoneMuted,
+    speakerMuted,
+    speakerVolume,
     warningMessage,
     reportVoiceSessionState,
   ]);
@@ -231,6 +265,9 @@ export const LiveConversationControl = ({
         if (!consented || phase === "stopping" || sessionActive.current) return;
         sessionActive.current = true;
         setConsented(false);
+        setMicrophoneMutedState(false);
+        setSpeakerMutedState(false);
+        setSpeakerVolumeState(1);
         setWarningMessage(null);
         setState({ phase: "connecting", message: null });
         const next = createLiveConversation(

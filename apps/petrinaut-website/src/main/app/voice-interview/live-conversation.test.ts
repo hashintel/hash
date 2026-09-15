@@ -16,9 +16,15 @@ const setup = () => {
       close: vi.fn(),
     });
   const channels = [createChannel(sent[0]), createChannel(sent[1])] as const;
-  const input = Object.assign(new EventTarget(), { stop: vi.fn() });
+  const input = Object.assign(new EventTarget(), {
+    enabled: true,
+    stop: vi.fn(),
+  });
   const outputs = [{ stop: vi.fn() }, { stop: vi.fn() }];
-  const stream = { getTracks: () => [input] };
+  const stream = {
+    getAudioTracks: () => [input],
+    getTracks: () => [input],
+  };
   const peers = channels.map((channel, index) =>
     Object.assign(new EventTarget(), {
       connectionState: "new",
@@ -44,6 +50,7 @@ const setup = () => {
     srcObject: null,
     muted: false,
     paused: false,
+    volume: 1,
     play: vi.fn(async () => undefined),
     pause: vi.fn(),
   };
@@ -416,6 +423,79 @@ test("starts Live and transcription WebRTC from one consented capture and connec
     phase: "connected",
     message: null,
   });
+});
+
+test("mutes the one shared capture without disturbing output or finalized input", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const remoteStream = { getTracks: () => [fixture.outputs[0]!] };
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0]!,
+      streams: [remoteStream],
+    }),
+  );
+
+  fixture.conversation.setMicrophoneMuted(true);
+
+  expect(fixture.input.enabled).toBe(false);
+  expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+  expect(fixture.peers[0]!.addTrack).toHaveBeenCalledWith(
+    fixture.input,
+    fixture.stream,
+  );
+  expect(fixture.peers[1]!.addTrack).toHaveBeenCalledWith(
+    fixture.input,
+    fixture.stream,
+  );
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.audio).toMatchObject({
+    muted: false,
+    paused: false,
+    srcObject: remoteStream,
+  });
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
+
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "started-before-mute",
+    previous_item_id: null,
+  });
+  const completion = {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "started-before-mute",
+    content_index: 0,
+    transcript: "Keep this finalized answer.",
+  };
+  fixture.emit(1, completion);
+  fixture.emit(1, completion);
+  expect(fixture.onFinalizedInput).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ text: "Keep this finalized answer." }),
+  );
+
+  fixture.conversation.setMicrophoneMuted(false);
+  expect(fixture.input.enabled).toBe(true);
+});
+
+test("keeps speaker mute and clamped volume local and independent", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const sentBefore = fixture.sent.map((events) => [...events]);
+
+  fixture.conversation.setSpeakerVolume(2);
+  fixture.conversation.setSpeakerMuted(true);
+  fixture.conversation.setSpeakerVolume(-0.5);
+
+  expect(fixture.audio.volume).toBe(0);
+  expect(fixture.audio.muted).toBe(true);
+  expect(fixture.input.enabled).toBe(true);
+  expect(fixture.sent).toEqual(sentBefore);
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+
+  fixture.conversation.setSpeakerVolume(0.35);
+  fixture.conversation.setSpeakerMuted(false);
+  expect(fixture.audio).toMatchObject({ muted: false, volume: 0.35 });
 });
 
 test("emits only completed transcripts in committed provider order and deduplicates identical events", async () => {
@@ -1048,6 +1128,8 @@ test("telemetry shows activity but silence and late samples never settle or revi
       streams: [fixture.stream],
     }),
   );
+  fixture.conversation.setSpeakerMuted(true);
+  fixture.conversation.setSpeakerVolume(0);
   await vi.advanceTimersByTimeAsync(100);
   expect(fixture.onState.mock.lastCall?.[0].activity).toEqual({
     microphoneLevel: 0.24,

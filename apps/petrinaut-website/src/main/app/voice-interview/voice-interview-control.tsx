@@ -451,6 +451,8 @@ const AvailableVoiceInterviewControl = ({
         },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        setSpeakerMuted: (muted) => store.controller.setSpeakerMuted(muted),
+        setSpeakerVolume: (volume) => store.controller.setSpeakerVolume(volume),
         takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],

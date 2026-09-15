@@ -23,6 +23,9 @@ import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 const liveConversationMocks = vi.hoisted(() => ({
+  setMicrophoneMuted: vi.fn(),
+  setSpeakerMuted: vi.fn(),
+  setSpeakerVolume: vi.fn(),
   stop: vi.fn(async () => {}),
 }));
 
@@ -33,6 +36,9 @@ vi.mock("./live-conversation", () => ({
     stop: liveConversationMocks.stop,
     appendCommentary: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
+    setMicrophoneMuted: liveConversationMocks.setMicrophoneMuted,
+    setSpeakerMuted: liveConversationMocks.setSpeakerMuted,
+    setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
   })),
 }));
 afterEach(() => {
@@ -204,6 +210,8 @@ test("reuses setup and reports failure to the host dock and notification surface
     phase: "listening",
     microphoneLevel: 0,
     microphoneMuted: false,
+    speakerMuted: false,
+    speakerVolume: 1,
     errorMessage: null,
     notice: null,
     warningMessage: null,
@@ -265,6 +273,8 @@ test("reuses setup and reports failure to the host dock and notification surface
     microphoneMuted: false,
     errorMessage: null,
     notice: playbackNotice,
+    speakerMuted: false,
+    speakerVolume: 1,
     warningMessage: null,
   });
   if (!props.registerVoiceModeSessionControls)
@@ -276,6 +286,9 @@ test("reuses setup and reports failure to the host dock and notification surface
     "end",
     "pause",
     "retryPlayback",
+    "setMicrophoneMuted",
+    "setSpeakerMuted",
+    "setSpeakerVolume",
   ]);
   controls.retryPlayback?.();
   const liveSession = vi.mocked(createLiveConversation).mock.results[0]!
@@ -293,8 +306,10 @@ test("reuses setup and reports failure to the host dock and notification surface
     phase: "error",
     errorMessage: connectionError,
     microphoneLevel: 0,
-    microphoneMuted: true,
+    microphoneMuted: false,
     notice: null,
+    speakerMuted: false,
+    speakerVolume: 1,
     warningMessage: null,
   });
   expect(screen.getByText(connectionError)).toBeTruthy();
@@ -304,6 +319,87 @@ test("reuses setup and reports failure to the host dock and notification surface
       .hasAttribute("disabled"),
   ).toBe(true);
   expect(createLiveConversation).toHaveBeenCalledOnce();
+});
+
+test("registers truthful microphone and speaker controls for the same Live session", async () => {
+  const props = context();
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} config={config} />,
+  );
+  await start();
+  const onState = vi.mocked(createLiveConversation).mock.lastCall![0];
+  act(() =>
+    onState({
+      phase: "connected",
+      message: null,
+      activity: { microphoneLevel: 0.42, outputActive: false },
+    }),
+  );
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
+
+  act(() => controls.setMicrophoneMuted?.(true));
+  expect(liveConversationMocks.setMicrophoneMuted).toHaveBeenCalledWith(true);
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      microphoneLevel: 0,
+      microphoneMuted: true,
+      phase: "muted",
+    }),
+  );
+
+  act(() =>
+    onState({
+      phase: "connected",
+      message: null,
+      activity: { microphoneLevel: 0.8, outputActive: true },
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      microphoneLevel: 0,
+      microphoneMuted: true,
+      phase: "speaking",
+    }),
+  );
+
+  act(() => controls.setSpeakerMuted?.(true));
+  act(() => controls.setSpeakerVolume?.(0));
+  expect(liveConversationMocks.setSpeakerMuted).toHaveBeenCalledWith(true);
+  expect(liveConversationMocks.setSpeakerVolume).toHaveBeenCalledWith(0);
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "speaking",
+      speakerMuted: true,
+      speakerVolume: 0,
+    }),
+  );
+
+  act(() =>
+    onState({
+      phase: "connected",
+      message: null,
+      activity: { microphoneLevel: 0.8, outputActive: false },
+    }),
+  );
+  rerender(
+    <VoiceInterviewControl {...props} config={config} status="streaming" />,
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      microphoneMuted: true,
+      phase: "thinking",
+      speakerMuted: true,
+      speakerVolume: 0,
+    }),
+  );
+
+  act(() => controls.setMicrophoneMuted?.(false));
+  expect(liveConversationMocks.setMicrophoneMuted).toHaveBeenLastCalledWith(
+    false,
+  );
 });
 
 test("does not show a successful prior session close on the next consent card", async () => {

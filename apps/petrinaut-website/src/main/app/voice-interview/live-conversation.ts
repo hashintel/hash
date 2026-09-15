@@ -65,6 +65,9 @@ export const createLiveConversation = (
   const emitted = new Set<string>();
   let microphone: MediaStream | undefined;
   let audio: HTMLAudioElement | undefined;
+  let microphoneMuted = false;
+  let speakerMuted = false;
+  let speakerVolume = 1;
   let started = false;
   let playbackBlocked = false;
   let playbackAttempt = 0;
@@ -114,6 +117,13 @@ export const createLiveConversation = (
     peers.forEach((peer) =>
       peer.getReceivers().forEach((receiver) => receiver.track.stop()),
     );
+  };
+
+  const applyMicrophoneMuted = () => {
+    if (!microphone) return;
+    for (const audioTrack of microphone.getAudioTracks()) {
+      audioTrack.enabled = !microphoneMuted;
+    }
   };
 
   const finish = (liveConfirmed: boolean) => {
@@ -252,10 +262,12 @@ export const createLiveConversation = (
     if (abort.signal.aborted) return;
     activityTimer = setTimeout(() => void sampleActivity(), 100);
     if (recoveryTimers.size > 0) return;
-    const playing = audio?.srcObject && !audio.paused && !audio.muted;
+    const playing = audio?.srcObject && !audio.paused;
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     const activity = {
-      microphoneLevel: Math.round(microphoneLevel * 100) / 100,
+      microphoneLevel: microphoneMuted
+        ? 0
+        : Math.round(microphoneLevel * 100) / 100,
       outputActive: Boolean(playing) && Date.now() - lastOutputActivity < 500,
     };
     if (
@@ -701,6 +713,8 @@ export const createLiveConversation = (
     try {
       audio = new Audio();
       audio.autoplay = true;
+      audio.muted = speakerMuted;
+      audio.volume = speakerVolume;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           autoGainControl: true,
@@ -713,6 +727,7 @@ export const createLiveConversation = (
         return;
       }
       microphone = stream;
+      applyMicrophoneMuted();
       stream.getTracks().forEach((track) =>
         track.addEventListener(
           "ended",
@@ -773,10 +788,28 @@ export const createLiveConversation = (
     return true;
   };
 
+  const setMicrophoneMuted = (muted: boolean): void => {
+    microphoneMuted = muted;
+    applyMicrophoneMuted();
+  };
+
+  const setSpeakerMuted = (muted: boolean): void => {
+    speakerMuted = muted;
+    if (audio) audio.muted = muted;
+  };
+
+  const setSpeakerVolume = (volume: number): void => {
+    speakerVolume = Math.min(1, Math.max(0, volume));
+    if (audio) audio.volume = speakerVolume;
+  };
+
   return {
     retryPlayback: playAudio,
     start,
     stop,
+    setMicrophoneMuted,
+    setSpeakerMuted,
+    setSpeakerVolume,
     openDelegations: openDelegations as ReadonlySet<string>,
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
