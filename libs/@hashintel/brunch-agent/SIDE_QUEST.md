@@ -55,7 +55,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-root = Path("/Users/lunelson/.herdr/worktrees/hash/alpha/apps/brunch-agent/.data-wipe-me/persona-runs/run-5uSidX/evidence")
+root = Path("apps/brunch-agent/.data-wipe-me/persona-runs/run-5uSidX/evidence")
 snapshot = json.loads((root / "snapshot.json").read_text())
 trace = json.loads((root / "trace.json").read_text())
 
