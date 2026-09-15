@@ -164,6 +164,20 @@ describe("canonical speech selection", () => {
     });
   });
 
+  test("keeps an unmarked question in full-response speech without enabling repeat", () => {
+    const text = "The batch is ready. Which operator confirms the batch next?";
+    const selection = selectCanonicalSpeech([
+      {
+        id: "assistant-unmarked-question",
+        role: "assistant",
+        parts: [{ type: "text", text, state: "done" }],
+      },
+    ]);
+
+    expect(selection.segments.map((segment) => segment.text)).toEqual([text]);
+    expect(selection.questionSegment).toBeUndefined();
+  });
+
   test.each([
     {
       name: "missing exact finalized prose",

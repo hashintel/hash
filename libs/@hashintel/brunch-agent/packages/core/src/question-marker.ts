@@ -1,6 +1,13 @@
 import * as v from "valibot";
 
-export const BRUNCH_QUESTION_TOOL_NAME = "brunch_mark_question";
+export const LEGACY_BRUNCH_QUESTION_TOOL_NAME = "brunch_mark_question";
+export const LEGACY_QUESTION_REPLAY_TOOL_NAME = "mark_question_for_replay";
+/** @deprecated Retained only for source compatibility with historical projections. */
+export const BRUNCH_QUESTION_TOOL_NAME = LEGACY_BRUNCH_QUESTION_TOOL_NAME;
+export const BRUNCH_QUESTION_TOOL_NAMES = [
+  LEGACY_BRUNCH_QUESTION_TOOL_NAME,
+  LEGACY_QUESTION_REPLAY_TOOL_NAME,
+] as const;
 export const BRUNCH_QUESTION_DATA_NAME = "brunch-question";
 
 const NonBlankStringSchema = v.pipe(

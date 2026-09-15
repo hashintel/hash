@@ -150,7 +150,6 @@ those remain with their definition owners.
 | `task` | Flue | Flue | substrate delegation |
 | `activate_skill` | Flue | Flue | skill activation |
 | `read_skill_resource` | Flue | Flue | skill resource read |
-| `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
 | `mutate_workpiece` | Brunch core | Brunch app | durable full-revision write with recorded delta |
 | `read_petrinaut_net` | Petrinaut Core | Petrinaut website | current document read |
 | `read_petrinaut_docs` | Petrinaut Core | Petrinaut website | user-guide read |

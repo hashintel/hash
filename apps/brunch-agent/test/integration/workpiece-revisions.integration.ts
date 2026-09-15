@@ -132,10 +132,8 @@ const probe = async () => {
 
     const mixed = [];
     for (const names of [
-      ["brunch_mark_question", "addType"],
       ["mutate_workpiece", "addType"],
-      ["brunch_mark_question", "mutate_workpiece", "addType"],
-      ["addType", "mutate_workpiece", "brunch_mark_question"],
+      ["addType", "mutate_workpiece"],
     ]) {
       const caseId = names.join("-");
       const typeInput = {

@@ -2,7 +2,6 @@ import {
   type AgentDispatchRequest,
   type CompactionConfig,
   defineTool,
-  useDataWriter,
   useModel,
   usePersistentState,
   useSkill,
@@ -12,13 +11,6 @@ import {
 import * as v from "valibot";
 
 import systemPrompt from "./prompts/SYSTEM.md?raw";
-import {
-  BRUNCH_QUESTION_DATA_NAME,
-  BRUNCH_QUESTION_TOOL_NAME,
-  BrunchQuestionDataSchema,
-  BrunchQuestionInputSchema,
-  type BrunchQuestionData,
-} from "./question-marker";
 import {
   ELICITATION_SKILL_NAME,
   elicitationSkill,
@@ -61,7 +53,7 @@ const _preparedWorkpieceDeliveryIsDispatchable = (
  * Mount the contributions owned by Brunch core and return its system prompt.
  *
  * Core contributes the always-on universal prompt, one `elicitation`
- * capability skill, the question marker, and durable workpiece revisions.
+ * capability skill and durable workpiece revisions.
  */
 export function useBrunchAgent(
   model: string,
@@ -73,10 +65,6 @@ export function useBrunchAgent(
 ): string {
   useModel(model, compaction === undefined ? undefined : { compaction });
   useSkill(elicitationSkill);
-  const writeQuestion = useDataWriter(BRUNCH_QUESTION_DATA_NAME, {
-    schema: BrunchQuestionDataSchema,
-  });
-  useTool(createBrunchQuestionMarkerTool(writeQuestion));
   const [revision, setRevision] = usePersistentState<WorkpieceRevision | null>(
     workpieceRevisionStateKey,
     null,
@@ -91,21 +79,6 @@ export function useBrunchAgent(
   consumeRevision?.(revision);
   return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
-
-export const createBrunchQuestionMarkerTool = (
-  writeQuestion: (question: BrunchQuestionData) => void,
-) =>
-  defineTool({
-    name: BRUNCH_QUESTION_TOOL_NAME,
-    description:
-      "Mark the exact text of a direct question for accessible replay. Call this immediately before including that exact question in ordinary assistant prose. This marker does not ask or answer the question itself.",
-    input: BrunchQuestionInputSchema,
-    output: v.object({ marked: v.literal(true) }),
-    run({ data, toolCallId }) {
-      writeQuestion({ question: data.question, toolCallId });
-      return { output: { marked: true as const } };
-    },
-  });
 
 /** Successful settlement carriage; optional Markdown admits retained pointer-only results. */
 export const updateWorkpieceOutputSchema = v.object({
