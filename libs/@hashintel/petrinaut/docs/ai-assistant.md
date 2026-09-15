@@ -35,7 +35,7 @@ Type in the message field and press **Enter** or choose the **Send message** but
 
 While a response is streaming you can:
 
-- Watch the model's text and reasoning appear live. The **Reasoning** block is collapsible; while it is streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
+- Watch the model's text and reasoning appear live. A reasoning block uses the provider's short generated heading as its title when available, falling back to **Reasoning** otherwise. It is collapsible; while streaming, it auto-opens, shows a shimmer effect, and (once attached timing information arrives) an elapsed timer.
 - Follow tool operations as they run. A spinner and **Preparing…** or **Running…** distinguish an unfinished operation from its completed or failed result; a collapsed group also shows its active status. Preparing is available only when the host streams tool arguments. Brunch currently publishes tool cards after argument validation, so a proposal may still be generating before its card appears. Interactive questions remain waiting for your answer rather than showing a running spinner.
 - Press **Stop AI response** (the send button turns into a stop icon) to halt the current response. A host with durable conversation execution can record that stop before Petrinaut cancels its local stream; without that host capability, Stop is local cancellation only. A Stop pressed while the assistant is reading or editing the net also withholds browser tools that have not started and the follow-up reply that would otherwise start automatically. Already-applied changes are not rolled back.
 - Type your next message in the composer -- it is queued for after the current response ends.
@@ -201,7 +201,7 @@ The delete button appears in the top right of the panel once the conversation co
 The assistant has tools for inspecting and modifying the current net. You'll see one card per tool call inline in the conversation. A failed tool card leads with its complete error instead of hiding it behind a hover tooltip:
 
 - **Read tools** (neutral, expandable) –– for checking the current net state and active Petrinaut extensions at any point, for compilation errors, and for reading the user guide.
-- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools group under a collapsible "N operations" header; that count includes operations that made no change.
+- **Applied mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive tools from one model step group under a collapsible "N operations" header; a continuation after a browser result starts a new group. The count includes operations that made no change.
 - **Not applied** (neutral, with a dash) -- a completed tool that explicitly reports no change shows its actual reason rather than a successful summary of the requested edit. This includes blocked, declined, unchanged, and host-refused mutations. Execution errors remain red and show the error.
 - **`setNetTitle`** -- renames the net when the host supplies title editing.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.

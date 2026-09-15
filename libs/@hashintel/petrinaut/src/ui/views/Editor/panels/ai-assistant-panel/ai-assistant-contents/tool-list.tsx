@@ -683,10 +683,8 @@ const ToolItem = ({
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
   const stateLabel = tool.stateLabel || undefined;
-  const progressLabel =
-    tool.state === "input-streaming" || tool.state === "input-available"
-      ? stateLabel
-      : undefined;
+  const inProgress =
+    tool.state === "input-streaming" || tool.state === "input-available";
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
@@ -704,7 +702,7 @@ const ToolItem = ({
         rel="noopener noreferrer"
         className={toolItemStyle({ tone: tool.tone, link: true })}
         data-tone={tool.tone}
-        aria-busy={progressLabel ? true : undefined}
+        aria-busy={inProgress ? true : undefined}
       >
         <span
           className={toolStatusStyle({
@@ -714,7 +712,7 @@ const ToolItem = ({
         >
           {complete ? (
             <Icon name="check" size="xs" />
-          ) : progressLabel ? (
+          ) : inProgress ? (
             <LoadingSpinner
               aria-hidden="true"
               className={toolProgressSpinnerStyle}
@@ -742,7 +740,7 @@ const ToolItem = ({
       className={toolItemStyle({ tone: tool.tone })}
       data-tone={tool.tone}
       disabled={!target && !expandable}
-      aria-busy={progressLabel ? true : undefined}
+      aria-busy={inProgress ? true : undefined}
       onClick={() => {
         if (target) {
           onSelectToolTarget?.(target);
@@ -761,7 +759,7 @@ const ToolItem = ({
           <Icon name="dash" size="xs" data-tool-result-icon="not-applied" />
         ) : complete ? (
           <Icon name="check" size="xs" data-tool-result-icon="complete" />
-        ) : progressLabel ? (
+        ) : inProgress ? (
           <LoadingSpinner
             aria-hidden="true"
             className={toolProgressSpinnerStyle}
@@ -850,7 +848,11 @@ export const AiAssistantToolList = ({
     (tools.some((tool) => tool.state === "output-error")
       ? tools.find((tool) => tool.state === "output-error")?.stateLabel
       : tools.find((tool) => tool.state === "output-available")?.stateLabel);
-  const groupProgressLabel = allComplete ? undefined : groupStateLabel;
+  const groupInProgress = tools.some(
+    (tool) =>
+      !tool.interactive &&
+      (tool.state === "input-streaming" || tool.state === "input-available"),
+  );
 
   if (tools.length === 0) {
     return null;
@@ -876,7 +878,7 @@ export const AiAssistantToolList = ({
       key={allComplete ? "complete" : "streaming"}
       className={toolListStyle({ kind: "group" })}
       defaultOpen={!allComplete}
-      aria-busy={groupProgressLabel ? true : undefined}
+      aria-busy={groupInProgress ? true : undefined}
     >
       <Collapsible.Trigger className={toolHeaderStyle}>
         <span className={toolHeaderIconStyle}>

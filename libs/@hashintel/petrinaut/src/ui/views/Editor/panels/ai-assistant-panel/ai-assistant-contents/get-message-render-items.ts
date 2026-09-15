@@ -51,6 +51,11 @@ export const getMessageRenderItems = (
   };
 
   message.parts.forEach((part, index) => {
+    if (part.type === "step-start") {
+      flushTools();
+      return;
+    }
+
     if (part.type === "text") {
       flushTools();
       items.push({

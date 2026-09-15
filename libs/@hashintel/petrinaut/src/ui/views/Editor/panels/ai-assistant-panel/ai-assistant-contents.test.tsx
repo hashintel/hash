@@ -2382,7 +2382,7 @@ describe("AiAssistantContents", () => {
           {
             type: "reasoning",
             state: "done",
-            text: "Understanding the requested model.",
+            text: "**Planning the net**\n\nUnderstanding the requested model.",
             providerMetadata: {
               petrinaut: { startedAt, finishedAt },
             },
@@ -2411,9 +2411,10 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Created")).not.toBeNull();
     expect(
       screen
-        .getByRole("button", { name: /Reasoning/u })
+        .getByRole("button", { name: /Planning the net/u })
         .getAttribute("aria-expanded"),
     ).toBe("false");
+    expect(screen.queryByText("Reasoning")).toBeNull();
     expect(screen.queryByTestId("reasoning-status")).toBeNull();
     expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
   });
@@ -2948,8 +2949,15 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByText("Preparing one")).not.toBeNull();
-    expect(screen.getByText("Running two")).not.toBeNull();
+    const preparingOne = screen.getByText("Preparing one").closest("button");
+    const runningTwo = screen.getByText("Running two").closest("button");
+    expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
+    expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
+    expect(
+      screen
+        .getByRole("button", { name: /^6 operations/u })
+        .parentElement?.getAttribute("aria-busy"),
+    ).toBe("true");
     expect(screen.getByText("Completed three")).not.toBeNull();
     expect(screen.getByText("Could not complete four")).not.toBeNull();
     expect(
@@ -3025,6 +3033,47 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /2 operations/u })
         .getAttribute("aria-expanded"),
     ).toBe("false");
+  });
+
+  test("keeps tool groups inside one provider step", () => {
+    const tool = (toolName: string, toolCallId: string) => ({
+      type: "dynamic-tool" as const,
+      toolName,
+      toolCallId,
+      state: "output-available" as const,
+      input: {},
+      output: { title: toolName },
+    });
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-steps",
+        role: "assistant",
+        parts: [
+          tool("read_workpiece", "first-read"),
+          tool("mutate_workpiece", "first-write"),
+          { type: "step-start" },
+          tool("read_petrinaut_net", "second-read"),
+          tool("mutate_petrinaut_net", "second-write"),
+        ],
+      },
+    ];
+
+    render(
+      <AiAssistantContents
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("button", { name: /2 operations/u }),
+    ).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /4 operations/u })).toBeNull();
   });
 
   test("keeps net definition checks separate from grouped changes", () => {
