@@ -5,15 +5,17 @@
 Live execution authority for
 [FE-1722](https://linear.app/hash/issue/FE-1722/improve-brunch-voice-controls).
 This branch is stacked on
-[`origin/kostandin/fe-1712-stabilize-gpt-live-full-duplex-voice-feedback` at
-`377be52823`](https://github.com/hashintel/hash/commit/377be52823a65fcb3100d7b09e2ca471c374001e),
-not `origin/main`. FE-1712's implementation and evidence are inherited from
-that pinned parent; its unfinished speech, acoustic and recovery obligations
-are not accepted or replaced here.
+[`origin/kostandin/fe-1664-land-voice-stack` at
+`023a26b96b`](https://github.com/hashintel/hash/commit/023a26b96b51169da0acdb188697e159d001bcc0),
+not `origin/main`. That FE-1664 squash base incorporates merged
+[FE-1712 PR #9704](https://github.com/hashintel/hash/pull/9704). FE-1712's
+implementation and evidence remain the protected behavior and evidence source
+inherited through that base; its unfinished speech, acoustic and recovery
+obligations are not accepted or replaced here.
 
 FE-1722 implementation exists on this branch through the shared-control,
-provider-control, documentation and lifecycle commits from `fb22f14950` through
-`6c9893e9a3`, together with the final-review corrections recorded beside this
+provider-control, documentation and lifecycle commits from `49ffd6836a` through
+`bdc699c923`, together with the final-review corrections recorded beside this
 refresh. The deterministic product proof below is established. Real
 microphone, speaker and headphone behavior remains unproven and owner-held;
 Kostandin owns that browser witness, and no microphone or provider session is
@@ -125,9 +127,9 @@ Verified 2026-09-15:
 
 - Network-denied
   `yarn workspace @hashintel/petrinaut test:unit --run`
-  over the three focused Voice files passed 152 tests.
+  over the three focused Voice files passed 160 tests after the rebase.
 - Network-denied `yarn workspace @apps/petrinaut-website test:unit` over the
-  eight focused unit files passed 347 tests; the ninth
+  eight focused unit files passed 349 tests after the rebase; the ninth
   `voice-preview.integration.test.ts` file passed 5 tests under the same
   network denial.
 - `build`, `lint:tsc` and `lint:eslint` passed independently for

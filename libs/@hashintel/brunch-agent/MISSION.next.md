@@ -3,10 +3,13 @@
 > Future sequence and decision register only; not execution authority. [`MISSION.md`](MISSION.md) owns live scope and progress. Successor drafts become executable only after an owner-authorized cut; archives and git history retain prior contracts.
 
 On this stacked voice branch, `MISSION.md` owns FE-1722. Its pinned parent is
-[FE-1712 at `377be52823`](https://github.com/hashintel/hash/blob/377be52823a65fcb3100d7b09e2ca471c374001e/libs/%40hashintel/brunch-agent/MISSION.md);
-that parent's unfinished speech, acoustic and recovery obligations remain open
-under their existing owners. The inherited Mission 7c map and its mission-section
-references below belong to the
+[FE-1664 at `023a26b96b`](https://github.com/hashintel/hash/blob/023a26b96b51169da0acdb188697e159d001bcc0/libs/%40hashintel/brunch-agent/MISSION.md),
+the squash base incorporating merged
+[FE-1712 PR #9704](https://github.com/hashintel/hash/pull/9704). FE-1712's
+protected behavior and evidence are inherited through that base; its unfinished
+speech, acoustic and recovery obligations remain open under their existing
+owners. The inherited Mission 7c map and its mission-section references below
+belong to the
 [upstream contract](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md)
 on #9667, not to a second execution authority here. The stack does not close that
 mission or grant its paid-run permissions to voice work.
@@ -15,10 +18,10 @@ mission or grant its paid-run permissions to voice work.
 
 FE-1712 selected explicit capture preferences, semantic transcription turn detection
 and owner-held speech/acoustic comparisons as specified in its
-[pinned mission](https://github.com/hashintel/hash/blob/377be52823a65fcb3100d7b09e2ca471c374001e/libs/%40hashintel/brunch-agent/MISSION.md).
+[inherited FE-1664 squash base](https://github.com/hashintel/hash/blob/023a26b96b51169da0acdb188697e159d001bcc0/libs/%40hashintel/brunch-agent/MISSION.md).
 FE-1722 preserves that behavior and those unfinished obligations while changing
 only the controls admitted by its live mission. The complete
-[FE-1664 contract](https://github.com/hashintel/hash/blob/9499b9287bd69b751ebcdd61b0c6bf2586bc191e/libs/%40hashintel/brunch-agent/MISSION.md)
+[FE-1664 contract](https://github.com/hashintel/hash/blob/023a26b96b51169da0acdb188697e159d001bcc0/libs/%40hashintel/brunch-agent/MISSION.md)
 is retained at the branch's pinned parent, not archived as accepted or replaced
 on that branch. Its input/delivery contracts, first no-tool exchange, later
 operation/correction/Stop and independent-tab provenance/withheld-work witnesses
@@ -252,7 +255,7 @@ Immediate switching from a review or gap report into renewed elicitation remains
 ### Voice after the live transport cut
 
 The inherited FE-1664 integration is governed by the
-[FE-1712 mission at this branch's pinned parent](https://github.com/hashintel/hash/blob/377be52823a65fcb3100d7b09e2ca471c374001e/libs/%40hashintel/brunch-agent/MISSION.md).
+[FE-1712 behavior and evidence inherited through this branch's FE-1664 pinned parent](https://github.com/hashintel/hash/blob/023a26b96b51169da0acdb188697e159d001bcc0/libs/%40hashintel/brunch-agent/MISSION.md).
 Native Live delivery and canonical transcription do not waive the recovery
 obligation below or establish live provider compatibility. Historical waiver and
 attribution rationale remains in the
