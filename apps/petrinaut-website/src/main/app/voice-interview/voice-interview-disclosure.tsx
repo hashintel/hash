@@ -204,3 +204,59 @@ export const VoiceInterviewDisclosure = ({
     </section>
   );
 };
+
+export const VoiceInterviewRetry = ({
+  message,
+  onExit,
+  onRetry,
+  retryDisabled = false,
+}: {
+  readonly message: string;
+  readonly onExit: () => void;
+  readonly onRetry: () => void;
+  readonly retryDisabled?: boolean;
+}) => {
+  const retryRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    retryRef.current?.focus();
+  }, []);
+
+  return (
+    <section
+      aria-label="Voice mode retry"
+      className={disclosureFrameStyle}
+      ref={retryRef}
+      tabIndex={-1}
+    >
+      <div className={disclosureCardStyle}>
+        <div className={disclosureHeaderStyle}>
+          <span className={disclosureIconStyle}>
+            <VoiceModeIcon />
+          </span>
+          <div className={disclosureTitleStyle}>
+            <strong className={disclosureHeadingStyle}>
+              Restart voice conversation
+            </strong>
+          </div>
+        </div>
+        <p aria-live="polite" className={disclosureCopyStyle}>
+          {message}
+        </p>
+        <div className={disclosureActionsStyle}>
+          <Button
+            disabled={retryDisabled}
+            onClick={onRetry}
+            size="xs"
+            tone="brand"
+            type="button"
+          >
+            Retry voice
+          </Button>
+          <Button onClick={onExit} size="xs" type="button" variant="subtle">
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};

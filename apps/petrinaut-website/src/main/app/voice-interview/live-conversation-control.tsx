@@ -12,7 +12,10 @@ import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
-import { VoiceInterviewDisclosure } from "./voice-interview-disclosure";
+import {
+  VoiceInterviewDisclosure,
+  VoiceInterviewRetry,
+} from "./voice-interview-disclosure";
 
 import type { VoiceInterviewControl } from "./voice-interview-control";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
@@ -65,6 +68,9 @@ export const LiveConversationControl = ({
   const [microphoneMuted, setMicrophoneMutedState] = useState(false);
   const [speakerMuted, setSpeakerMutedState] = useState(false);
   const [speakerVolume, setSpeakerVolumeState] = useState(1);
+  const [disclosureAcknowledged, setDisclosureAcknowledged] = useState(
+    isDisclosureAcknowledged,
+  );
   const [state, setState] = useState<LiveConversationState>({
     phase: "idle",
     message: null,
@@ -139,7 +145,7 @@ export const LiveConversationControl = ({
     setConsented(false);
     await closing;
   }, [setVoiceActive]);
-  const start = useCallback(() => {
+  const tryStartLiveConversation = useCallback(() => {
     if (phase === "stopping" || sessionActive.current) return false;
     sessionActive.current = true;
     setConsented(false);
@@ -215,9 +221,18 @@ export const LiveConversationControl = ({
       return;
     }
     if (handledVoiceSelection.current) return;
+    if (!disclosureAcknowledged) {
+      handledVoiceSelection.current = true;
+      return;
+    }
     // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes persisted disclosure state with the Live session
-    handledVoiceSelection.current = isDisclosureAcknowledged() ? start() : true;
-  }, [inputMode, isAiAssistantOpen, isDisclosureAcknowledged, start]);
+    handledVoiceSelection.current = tryStartLiveConversation();
+  }, [
+    disclosureAcknowledged,
+    inputMode,
+    isAiAssistantOpen,
+    tryStartLiveConversation,
+  ]);
   const setMicrophoneMuted = useCallback((muted: boolean) => {
     if (!sessionActive.current || !session.current) return;
     session.current.setMicrophoneMuted(muted);
@@ -343,6 +358,26 @@ export const LiveConversationControl = ({
 
   if (inputMode !== "voice" || phase === "connecting" || phase === "connected")
     return null;
+  const exitVoiceMode = () => {
+    void end();
+    setInputMode("text");
+  };
+  if (disclosureAcknowledged) {
+    const retryMessage =
+      phase === "error"
+        ? (state.message ?? "The voice connection was unavailable.")
+        : phase === "stopping"
+          ? "Finishing the previous voice session."
+          : "Start a new Live voice session.";
+    return (
+      <VoiceInterviewRetry
+        message={retryMessage}
+        onExit={exitVoiceMode}
+        onRetry={tryStartLiveConversation}
+        retryDisabled={phase === "stopping"}
+      />
+    );
+  }
   return (
     <VoiceInterviewDisclosure
       experimental
@@ -353,12 +388,10 @@ export const LiveConversationControl = ({
       onStart={() => {
         if (!consented) return;
         acknowledgeDisclosure();
-        start();
+        setDisclosureAcknowledged(true);
+        tryStartLiveConversation();
       }}
-      onExit={() => {
-        void end();
-        setInputMode("text");
-      }}
+      onExit={exitVoiceMode}
     />
   );
 };

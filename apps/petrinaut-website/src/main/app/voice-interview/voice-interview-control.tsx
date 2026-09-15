@@ -137,6 +137,8 @@ export interface OpenAIVoiceConfig {
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
   "petrinaut:voice-interview-disclosure:v1";
+export const LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
+  "petrinaut:live-voice-interview-disclosure:v1";
 const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
 
 const getVoiceInterviewDisclosureStorage = (): Storage | null => {
@@ -180,7 +182,8 @@ export const saveInterruptionBySpeakingPreference = (
   }
 };
 
-export const isVoiceInterviewDisclosureAcknowledged = (
+const isDisclosureAcknowledged = (
+  storageKey: string,
   storage: Pick<
     Storage,
     "getItem"
@@ -188,29 +191,49 @@ export const isVoiceInterviewDisclosureAcknowledged = (
 ): boolean => {
   try {
     return (
-      storage?.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY) ===
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
+      storage?.getItem(storageKey) === VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
     );
   } catch {
     return false;
   }
 };
 
-export const acknowledgeVoiceInterviewDisclosure = (
+export const isVoiceInterviewDisclosureAcknowledged = (
+  storage?: Pick<Storage, "getItem"> | null,
+): boolean =>
+  isDisclosureAcknowledged(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
+
+const isLiveVoiceInterviewDisclosureAcknowledged = (
+  storage?: Pick<Storage, "getItem"> | null,
+): boolean =>
+  isDisclosureAcknowledged(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    storage,
+  );
+
+const acknowledgeDisclosure = (
+  storageKey: string,
   storage: Pick<
     Storage,
     "setItem"
   > | null = getVoiceInterviewDisclosureStorage(),
 ): void => {
   try {
-    storage?.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED,
-    );
+    storage?.setItem(storageKey, VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED);
   } catch {
     // Storage is optional; the disclosure will appear again next time.
   }
 };
+
+export const acknowledgeVoiceInterviewDisclosure = (
+  storage?: Pick<Storage, "setItem"> | null,
+): void =>
+  acknowledgeDisclosure(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
+
+const acknowledgeLiveVoiceInterviewDisclosure = (
+  storage?: Pick<Storage, "setItem"> | null,
+): void =>
+  acknowledgeDisclosure(LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY, storage);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -600,9 +623,9 @@ const PinnedVoiceInterviewControl = ({
     return (
       <LiveConversationControl
         {...context}
-        acknowledgeDisclosure={acknowledgeVoiceInterviewDisclosure}
+        acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
-        isDisclosureAcknowledged={isVoiceInterviewDisclosureAcknowledged}
+        isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
         registerVoiceModeSessionControls={
           context.registerVoiceModeSessionControls
         }
