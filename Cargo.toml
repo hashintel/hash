@@ -47,6 +47,7 @@ members = [
     "libs/darwin-kperf/sys",
     "libs/error-stack",
     "libs/error-stack/macros",
+    "libs/problematic/rust",
     "tests/graph/benches",
     "tests/graph/integration",
     "tests/graph/test-data/rust",
@@ -106,6 +107,7 @@ hashql-hir.path                     = "libs/@local/hashql/hir"
 hashql-macros.path                  = "libs/@local/hashql/macros"
 hashql-mir.path                     = "libs/@local/hashql/mir"
 hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
+problematic.path                    = "libs/problematic/rust"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
