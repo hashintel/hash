@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Give place-property checkboxes consistent sizing, spacing, and accessible names.
+Polish properties panels with clickable checkbox labels, compact navigation buttons, consistent fields, and clearer section controls and dividers.
