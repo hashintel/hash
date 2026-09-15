@@ -452,6 +452,20 @@ describe("experimental simulation settings", () => {
   });
 });
 
+describe("Status views setting", () => {
+  it("is off by default", () => {
+    expect(defaultUserSettings.enableStatusViews).toBe(false);
+  });
+
+  it("offers a Status views row under Labs", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
+
+    expect(
+      await screen.findByRole("checkbox", { name: "Status views" }),
+    ).toBeTruthy();
+  });
+});
+
 describe("WebGPU setting", () => {
   it("is off by default", () => {
     // The GPU path is a restricted subset engine with a different random

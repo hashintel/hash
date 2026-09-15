@@ -27,7 +27,8 @@ import type { SelectionItem } from "@hashintel/petrinaut-core";
 export type PetrinautSimulateResource =
   | { type: "scenario"; id: string }
   | { type: "metric"; id: string }
-  | { type: "experiment"; id: string };
+  | { type: "experiment"; id: string }
+  | { type: "status-view"; id: string };
 
 export type PetrinautSettingsSection =
   | "general"
@@ -41,6 +42,7 @@ export type PetrinautNavigationOverlay =
   | { type: "create-scenario" }
   | { type: "create-metric" }
   | { type: "create-experiment" }
+  | { type: "create-status-view" }
   | null;
 
 /**
@@ -312,6 +314,8 @@ const simulateResourceTypeToView = (
       return "metrics";
     case "experiment":
       return "experiments";
+    case "status-view":
+      return "status-views";
   }
 };
 
@@ -344,11 +348,14 @@ export const simulateDrawerToNavigationResource = (
       return { type: "metric", id: drawer.metricId };
     case "view-experiment":
       return { type: "experiment", id: drawer.experimentId };
+    case "view-status-view":
+      return { type: "status-view", id: drawer.statusViewId };
     // A create drawer opens above whatever record is already open, the way
     // `simulateDrawerToNavigationOverlay` keeps the overlay behind it.
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
+    case "create-status-view":
       return current.simulateResource;
     // `closed` means whichever drawer is on top. Closing a create overlay
     // reveals the record it was layered over; closing that record's own
@@ -368,11 +375,13 @@ export const simulateDrawerToNavigationOverlay = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
+    case "create-status-view":
       return { type: drawer.type };
     case "closed":
     case "view-scenario":
     case "view-metric":
     case "view-experiment":
+    case "view-status-view":
       return current?.type.startsWith("create-") ? null : current;
   }
 };
@@ -385,6 +394,7 @@ export const navigationResourceToSimulateDrawer = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
+    case "create-status-view":
       return { type: overlay.type };
     case "viewport-settings":
     case "user-settings":
@@ -398,6 +408,8 @@ export const navigationResourceToSimulateDrawer = (
       return { type: "view-metric", metricId: resource.id };
     case "experiment":
       return { type: "view-experiment", experimentId: resource.id };
+    case "status-view":
+      return { type: "view-status-view", statusViewId: resource.id };
     case undefined:
       return { type: "closed" };
   }

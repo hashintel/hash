@@ -7,9 +7,11 @@ import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
+import { StatusViewsView } from "./status-views/status-views-view";
 
 import type { SegmentedControlItem } from "@hashintel/ds-components";
 import type { ComponentType } from "react";
@@ -57,12 +59,19 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
     tooltip: "Metrics",
     tooltipOptions: { position: "right" },
   },
+  {
+    value: "status-views",
+    iconName: "squareCheck",
+    tooltip: "Status views",
+    tooltipOptions: { position: "right" },
+  },
 ];
 
 const views = {
   experiments: ExperimentsView,
   scenarios: ScenariosView,
   metrics: MetricsView,
+  "status-views": StatusViewsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
@@ -70,10 +79,17 @@ const views = {
 export const SimulateView = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
+  const { enableStatusViews } = use(UserSettingsContext);
   const visibleModeOptions = modeOptions.filter(
-    (option) => option.value !== "metrics",
+    (option) =>
+      option.value !== "metrics" &&
+      (option.value !== "status-views" || enableStatusViews),
   );
-  const visibleMode = mode === "metrics" ? "experiments" : mode;
+  // A stored mode whose tab is not offered falls back to Experiments.
+  const visibleMode =
+    mode === "metrics" || (mode === "status-views" && !enableStatusViews)
+      ? "experiments"
+      : mode;
   const ActiveView = views[visibleMode];
 
   return (

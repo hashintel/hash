@@ -5,7 +5,11 @@
 
 import { use, useState } from "react";
 
-import { type MenuItem } from "@hashintel/ds-components";
+import {
+  SegmentedControl,
+  type MenuItem,
+  type SegmentedControlItem,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
@@ -13,23 +17,15 @@ import {
   type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  cafeQueue,
-  deploymentPipelineSDCPN,
-  dronePatrol,
-  probabilisticSatellitesSDCPN,
-  productionMachines,
-  sirModel,
-  supplyChainWithDisruption,
-  supplyChainProfit,
-  vaccinationCampaign,
-} from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { formatShortcutKeys } from "../../../react/commands/format-shortcut";
 import { usePetrinautNavigation } from "../../../react/navigation";
-import { EditorContext } from "../../../react/state/editor-context";
+import {
+  EditorContext,
+  type CanvasViewMode,
+} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -47,6 +43,7 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { KanbanView } from "../Kanban/kanban-view";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -59,6 +56,7 @@ import {
   shouldShowBrunchCreateNew,
 } from "./editor-view/create-new-net-menu";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { loadExampleMenuItem } from "./editor-view/load-example-menu";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -129,6 +127,19 @@ const openSubmenuStyle = css({
   },
 });
 
+const canvasViewToggleStyle = css({
+  position: "absolute",
+  top: "[12px]",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  zIndex: "[5]",
+});
+
+const canvasViewToggleItems: SegmentedControlItem<CanvasViewMode>[] = [
+  { value: "canvas", iconName: "diagramNodes", tooltip: "Net canvas" },
+  { value: "kanban", iconName: "squareCheck", tooltip: "Kanban board" },
+];
+
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -178,6 +189,8 @@ export const EditorView = ({
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
+    canvasViewMode,
+    setCanvasViewMode,
     editionMode,
     setEditionMode,
     cursorMode,
@@ -203,6 +216,7 @@ export const EditorView = ({
     brunchDemoMode,
     enableNotebookView,
     enableExperimentalIconPack,
+    enableStatusViews,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
@@ -421,84 +435,13 @@ export const EditorView = ({
         ]),
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "load-example",
-            text: "Load example",
-            subItems: [
-              {
-                id: "load-example-sir-model",
-                text: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-cafe-queue",
-                text: "Café Queue",
-                onClick: () => {
-                  createNewNet(cafeQueue);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-drone-patrol",
-                text: "Drone Patrol",
-                onClick: () => {
-                  createNewNet(dronePatrol);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-deployment-pipeline",
-                text: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-profit",
-                text: "Supply Chain Profit",
-                onClick: () => {
-                  createNewNet(supplyChainProfit);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-vaccination-campaign",
-                text: "Vaccination Campaign",
-                onClick: () => {
-                  createNewNet(vaccinationCampaign);
-                  clearSelection();
-                },
-              },
-            ],
-          },
+          loadExampleMenuItem({
+            enableStatusViews,
+            onLoadExample: (example) => {
+              createNewNet(example);
+              clearSelection();
+            },
+          }),
         ]
       : []),
     {
@@ -523,6 +466,9 @@ export const EditorView = ({
       },
     },
   ];
+
+  const showKanbanToggle =
+    enableStatusViews && (petriNetDefinition.statusViews ?? []).length > 0;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -592,8 +538,27 @@ export const EditorView = ({
               {/* Properties Panel - Right Side */}
               <PropertiesPanel />
 
-              {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization, or the Kanban projection of a status
+                  view over the same frame source. A net without status views,
+                  or with the Status views setting off, always shows the
+                  canvas: the toggle is hidden then, so a stored "kanban"
+                  preference would otherwise be inescapable. */}
+              {showKanbanToggle && canvasViewMode === "kanban" ? (
+                <KanbanView />
+              ) : (
+                <SDCPNView viewportActions={viewportActions} />
+              )}
+
+              {showKanbanToggle && (
+                <div className={canvasViewToggleStyle}>
+                  <SegmentedControl
+                    value={canvasViewMode}
+                    items={canvasViewToggleItems}
+                    onChange={setCanvasViewMode}
+                    size="sm"
+                  />
+                </div>
+              )}
 
               {showEmptyAiHero && (
                 <AiCtaModal

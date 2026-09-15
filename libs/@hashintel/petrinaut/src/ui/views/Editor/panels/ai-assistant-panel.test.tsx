@@ -153,6 +153,7 @@ const editorContextValue: EditorContextValue = {
   toggleAiAssistant: () => {},
   searchInputRef: { current: null },
   triggerPanelAnimation: () => {},
+  setCanvasViewMode: () => {},
 };
 
 const streamChunks = (

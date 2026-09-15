@@ -621,6 +621,13 @@ export const UserSettingsDialog = ({
                             onChange={settings.setEnableNetComponents}
                           />
                         )}
+                        <SettingToggle
+                          label="Status views"
+                          experimental
+                          description="Derive per-instance statuses from the net: a Status views tab in the Simulate panel, an identity picker on token type attributes, a Kanban board toggle above the canvas, and a status changes column in Actual mode's Events tab."
+                          value={settings.enableStatusViews}
+                          onChange={settings.setEnableStatusViews}
+                        />
                       </SettingsGroup>
                       <SettingsGroup title="Developer tools">
                         <SettingToggle

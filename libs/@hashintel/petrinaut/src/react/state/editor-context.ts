@@ -31,7 +31,19 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+/**
+ * How the canvas area renders net state: the Petri-net canvas itself, or the
+ * Kanban projection of a status view. A canvas-level toggle rather than an
+ * `EditorGlobalMode`: Kanban inspects net state during a running simulation
+ * or actual stream, so the mode selector keeps its current entries.
+ */
+export type CanvasViewMode = "canvas" | "kanban";
+
+export type SimulateViewMode =
+  | "scenarios"
+  | "metrics"
+  | "experiments"
+  | "status-views";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -40,7 +52,9 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
+  | { type: "create-experiment" }
+  | { type: "view-status-view"; statusViewId: string }
+  | { type: "create-status-view" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
@@ -87,6 +101,7 @@ export type EditorState = {
   aiAssistantPlacement: "docked" | "floating";
   isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
+  canvasViewMode: CanvasViewMode;
   componentSubnetId: string | null;
   selection: SelectionMap;
   /** Whether any items are currently selected. */
@@ -151,6 +166,7 @@ export type EditorActions = {
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
+  setCanvasViewMode: (mode: CanvasViewMode) => void;
   setAddComponentMode: (subnetId: string) => void;
   /** Check whether a given ID is in the current selection. */
   isSelected: (id: string) => boolean;
@@ -206,6 +222,7 @@ export const initialEditorState: EditorState = {
   aiAssistantPlacement: "docked",
   isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
+  canvasViewMode: "canvas",
   componentSubnetId: null,
   selection: new Map(),
   hasSelection: false,
@@ -240,6 +257,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
   setActiveBottomPanelTab: () => {},
+  setCanvasViewMode: () => {},
   setAddComponentMode: () => {},
   isSelected: () => false,
   setSelection: () => {},

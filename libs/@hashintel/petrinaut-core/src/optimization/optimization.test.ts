@@ -28,6 +28,8 @@ const definition = {
   componentInstances: [],
   scenarios: [scenario],
   metrics: [{ id: "profit", name: "Profit", code: "return 1;" }],
+  identities: [],
+  statusViews: [],
 };
 
 const validManifest = {

@@ -390,6 +390,7 @@ export const hirSurfaceKindSchema = z
     "metric",
     "scenario-expression",
     "scenario-code",
+    "status-condition",
   ])
   .meta({ id: "HirSurfaceKind" });
 
