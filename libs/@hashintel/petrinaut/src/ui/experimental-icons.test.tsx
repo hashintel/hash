@@ -284,6 +284,48 @@ describe("experimental icon motion", () => {
     expect(animate).toHaveBeenCalledTimes(count);
   });
 
+  it.each(["clockRotateLeft", "cube"] as const)(
+    "keeps the explicit %s action loop running during hover and focus",
+    (name) => {
+      const requestFrame = vi.fn(() => 1);
+      const cancelFrame = vi.fn();
+      vi.stubGlobal("requestAnimationFrame", requestFrame);
+      vi.stubGlobal("cancelAnimationFrame", cancelFrame);
+      const { rerender } = render(
+        <button type="button">
+          <ExperimentalIcon name={name} effect="action" active />
+        </button>,
+      );
+      const animationCount = animate.mock.calls.length;
+      const frameCount = requestFrame.mock.calls.length;
+      expect(animationCount + frameCount).toBeGreaterThan(0);
+      const button = screen.getByRole("button");
+      fireEvent.pointerEnter(button);
+      fireEvent.focus(button);
+      fireEvent.pointerLeave(button);
+      fireEvent.blur(button);
+      expect(cancel).not.toHaveBeenCalled();
+      expect(cancelFrame).not.toHaveBeenCalled();
+      expect(animate).toHaveBeenCalledTimes(animationCount);
+      expect(requestFrame).toHaveBeenCalledTimes(frameCount);
+
+      rerender(
+        <button type="button">
+          <ExperimentalIcon name={name} effect="action" active={false} />
+        </button>,
+      );
+      expect(
+        cancel.mock.calls.length + cancelFrame.mock.calls.length,
+      ).toBeGreaterThan(0);
+      animate.mockClear();
+      requestFrame.mockClear();
+      fireEvent.pointerEnter(button);
+      expect(
+        animate.mock.calls.length + requestFrame.mock.calls.length,
+      ).toBeGreaterThan(0);
+    },
+  );
+
   it("draws the frame and corner badge in order for both variants", () => {
     const { rerender, container } = render(
       <AddPlaceIcon

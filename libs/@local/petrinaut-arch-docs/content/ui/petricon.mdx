@@ -60,13 +60,15 @@ Hints use small displacements and settle quickly. Generic hints transition in
 up to 160 milliseconds; detail sequences run for up to 480 milliseconds. The
 flask's liquid starts flat, waves once on hover, and returns flat while still
 hovered. Parameter knobs scrub in opposite directions and return to their
-initial values. Continuous motion is reserved for an explicitly active effect
-or a loading indicator.
+initial values. The running-person icon runs in place while hovered or
+keyboard-focused and jumps on click; leaving the control stops its gait.
+Other continuous motion requires an explicitly active effect or loading icon.
 
 Automatic click feedback lasts up to 420 milliseconds and uses the same details
 as the hint. A containing control supplies the event; the icon never performs
 the control's action. An explicit effect suppresses automatic click playback
-so a React trigger cannot play the response twice. `interaction="none"` opts out.
+so a React trigger cannot play the response twice. Authored hover actions do not
+interrupt an explicitly active action loop. `interaction="none"` opts out.
 History has a balanced circular frame, a return arrow, and hands that rewind.
 The frame stays in place while its arrow and hands give a brief backward gesture.
 

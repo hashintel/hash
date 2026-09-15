@@ -130,6 +130,9 @@ export const useIconEffects = ({
   const effectKey = (
     typeof effect === "string" ? [effect] : (effect ?? [])
   ).join(",");
+  const hoverEnabled =
+    authoredHover &&
+    !(active === true && effectKey.split(",").includes("action"));
 
   useLayoutEffect(() => {
     const targets =
@@ -170,7 +173,7 @@ export const useIconEffects = ({
       );
     };
     const enter = () => {
-      if (!authoredHover || isIconControlDisabled(control)) return;
+      if (!hoverEnabled || isIconControlDisabled(control)) return;
       if (cube) {
         cancelInteraction.current();
         const angle = Number(cube.getAttribute("data-cube-angle") ?? 35);
@@ -190,7 +193,7 @@ export const useIconEffects = ({
         );
     };
     const leave = () => {
-      if (!cube || !authoredHover) return;
+      if (!cube || !hoverEnabled) return;
       cancelInteraction.current();
       const angle = Number(cube.getAttribute("data-cube-angle") ?? 35);
       cancelInteraction.current = animateCube(
@@ -213,7 +216,7 @@ export const useIconEffects = ({
       control.removeEventListener("focus", enter);
       control.removeEventListener("blur", leave);
     };
-  }, [allowed, authoredHover, interactive, effectKey, name, duration]);
+  }, [allowed, hoverEnabled, interactive, effectKey, name, duration]);
 
   useEffect(() => {
     const triggered = previousTrigger.current !== trigger;

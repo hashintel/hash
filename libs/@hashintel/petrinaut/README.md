@@ -131,8 +131,9 @@ design-system names to replacements and can also be passed to the design-system
 `IconProvider` as its `icons` prop. Every current design-system icon has a
 replacement, including icons rendered internally by shared controls. Partial
 packs passed to `IconProvider` still fall back to the default artwork.
-Checkboxes use the pack's check and dash. Its `loadingSpinner` override uses
-`LoadingIcon`, whose rotation follows the same motion preferences as other icons.
+Checkbox marks and shared loading indicators keep their default artwork,
+independent of the icon pack. The standalone `LoadingIcon` follows Petricon's
+motion preferences.
 
 ### Effects and transitions
 
@@ -182,6 +183,10 @@ hints apply inside buttons, links, tabs, segmented controls, checkboxes, and hig
 icons stay still. Set `hover="none"` to disable an icon's hint. Disabled controls
 and reduced-motion preferences suppress hover motion.
 
+`<PersonRunningIcon />` runs in place while its control is hovered or has keyboard
+focus. Clicking makes it jump and land without interrupting the gait. Leaving
+the control or moving keyboard focus away stops the run.
+
 `<ShapesIcon selected={isEditing} />` moves each shape independently on hover:
 the triangle turns right, the square and diamond tilt, and the circle nudges up.
 Selection settles the shapes into a different arrangement, with a right-facing
@@ -220,7 +225,8 @@ validation counts, so it animates when issues appear or are fixed.
 
 With `trigger`, a one-off effect plays when that string or number changes; it does
 not play on mount. Without a trigger it plays on mount and when the effect or
-artwork changes. `active={true}` loops; `active={false}` stops. New effects cancel
+artwork changes. `active={true}` loops; `active={false}` stops. Authored hover
+actions do not interrupt an explicitly active action loop. New effects cancel
 interrupted ones, and unmounting releases their animations.
 
 `duration` is the complete cycle in milliseconds, including layer staggering. It

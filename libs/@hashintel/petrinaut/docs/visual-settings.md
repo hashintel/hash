@@ -15,7 +15,7 @@ custom icons for entities, playback, zoom, and navigation. The pack includes the
 sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
 buttons, settings gears, editing actions, diagnostics, simulation and data views,
 and assistant and voice controls, including icons inside shared menus and forms.
-Checkbox marks and loading indicators also use the pack.
+Checkbox marks and loading indicators keep their default appearance.
 The change applies immediately, and turning it off
 restores the default icons.
 
