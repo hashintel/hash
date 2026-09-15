@@ -5,16 +5,17 @@
 Live capture and transcription turn-boundary mission for
 [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback).
 Publication base: restacked FE-1664 at
-[1d34240db9](https://github.com/hashintel/hash/commit/1d34240db9c2605187abe9c6442d51326d16e5da),
+[6d188da42f](https://github.com/hashintel/hash/commit/6d188da42f86b2d6ef3d211ec55058685185e8c7),
 not `origin/main`. The original comparison revision is
 [3cf4ca6b1f](https://github.com/hashintel/hash/commit/3cf4ca6b1f75f78cb2e086463517c02affd6ce54);
 the previous publication base was
 [006cbced7f](https://github.com/hashintel/hash/commit/006cbced7f10263f8b5f3cc305ee1ca6b722b9ce).
 Only this child's commits were rebased; FE-1664 and its PR are not modified by
-this mission. In both restacks the sole conflicts were this mission and its website
-pointer; the parent's newer consent and Thinking dock contracts are preserved below,
-without expanding the capture-only cut. The parent's removal of the dock notice
-prop and of the inherited `PR_DESCRIPTION.md` draft is inherited unchanged.
+this mission. The latest restack applied cleanly; earlier restacks only conflicted
+in this mission and its website pointer. The parent's consent, Thinking dock and
+separation of temporary status notices from durable Voice warnings are preserved
+without expanding the capture-only cut. The inherited `PR_DESCRIPTION.md` draft
+remains removed.
 The separate authority commit is
 [466034cfe1](https://github.com/hashintel/hash/commit/466034cfe138e4f1f7befdcde3d16cd9f6037905).
 The capture-only implementation is prepared: its assertion failed before the

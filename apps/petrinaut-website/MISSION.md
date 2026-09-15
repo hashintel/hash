@@ -15,7 +15,7 @@ The sole mission specifies bounded headless probe allocations and their results;
 natural human turn boundaries still require the owner witness. No new publication authority.
 
 The publication base is restacked FE-1664 at
-[1d34240db9](https://github.com/hashintel/hash/commit/1d34240db9c2605187abe9c6442d51326d16e5da).
+[6d188da42f](https://github.com/hashintel/hash/commit/6d188da42f86b2d6ef3d211ec55058685185e8c7).
 Its integration contract and earlier standalone comparisons are retained in the
 [future spine](../../libs/@hashintel/brunch-agent/MISSION.next.md#voice-feedback-follow-up).
 The parent has removed its superseded `PR_DESCRIPTION.md` draft; its PR body on
