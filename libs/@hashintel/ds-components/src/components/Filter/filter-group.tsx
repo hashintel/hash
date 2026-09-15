@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -9,7 +9,13 @@ import {
   clearFiltersButton,
   styles,
 } from "./filter-group.recipe";
-import { focusWithoutRing } from "./filter-util";
+import {
+  attachAbandonmentController,
+  FilterGroupAbandonmentContext,
+  focusWithoutRing,
+  type AbandonableChip,
+  type FilterGroupAbandonment,
+} from "./filter-util";
 
 import type { DistributedOmit } from "type-fest";
 
@@ -76,14 +82,17 @@ const firstSegmentOf = (chip: HTMLElement) =>
 /**
  * Lays out a collection of `Filter` chips — and any interleaved controls
  * (buttons, dropdowns, ...) — as a wrapping flex row. The children manage
- * their own state; the group's one behaviour is moving focus into any chip
- * added after mount. Without this, closing the add-filter menu restores
- * focus to its trigger, which strands keyboard users on the button and —
- * for `dismissAbandoned` chips — counts as focusing outside the fresh chip,
- * starting its abandonment countdown the moment it appears. Chips already
- * present on the group's first render are treated as restored state and not
- * focused — a consumer that mounts the group together with its first chip
- * should pass that chip `autoFocus` instead.
+ * their own state; the group adds two behaviours.
+ *
+ * First, it moves focus into any chip added after mount: without this,
+ * closing the add-filter menu restores focus to its trigger, which strands
+ * keyboard users on the button. Chips already present on the group's first
+ * render are treated as restored state and not focused — a consumer that
+ * mounts the group together with its first chip should pass that chip
+ * `autoFocus` instead.
+ *
+ * Second, with `dismissAbandoned`, chips left with an incomplete draft when
+ * the user leaves the group fade out and remove themselves — see the prop.
  *
  * `FilterGroup.AddFilter` and `FilterGroup.ClearFilters` are pre-styled
  * buttons for the group's two standard actions; wiring them up (and any
@@ -92,13 +101,52 @@ const firstSegmentOf = (chip: HTMLElement) =>
 const FilterGroupRoot = ({
   className,
   children,
+  dismissAbandoned = false,
 }: {
   className?: string;
   children?: React.ReactNode;
+  /**
+   * Auto-dismiss abandoned chips: once the user focuses or clicks outside
+   * the group while any member chip's draft is incomplete — no operator
+   * chosen, or any input empty, even if a value was committed before — wait
+   * 1s, fade those chips out over another 2s, then remove them via their
+   * `removeable.onRemove`. Any interaction back inside the group — its
+   * chips (including their portaled dropdowns), its buttons — rescues them.
+   * Complete chips, disabled or non-removeable ones, and chips whose
+   * selected operator takes no input are never dismissed.
+   */
+  dismissAbandoned?: boolean;
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   // Chip properties present on the previous render; null until first observed.
   const seenPropertiesRef = useRef<ReadonlySet<string> | null>(null);
+  // Member chips' abandonment handles; each re-checks its own eligibility
+  // when the countdown fades or fires, so registration is unconditional.
+  const chipsRef = useRef(new Set<AbandonableChip>());
+  const [fading, setFading] = useState(false);
+
+  const registerChip = useCallback((chip: AbandonableChip) => {
+    chipsRef.current.add(chip);
+    return () => {
+      chipsRef.current.delete(chip);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dismissAbandoned) {
+      return;
+    }
+    return attachAbandonmentController({
+      getRoot: () => rootRef.current,
+      getChips: () => chipsRef.current,
+      onFadingChange: setFading,
+    });
+  }, [dismissAbandoned]);
+
+  const abandonment = useMemo<FilterGroupAbandonment | null>(
+    () => (dismissAbandoned ? { fading, register: registerChip } : null),
+    [dismissAbandoned, fading, registerChip],
+  );
 
   useEffect(() => {
     const root = rootRef.current;
@@ -141,16 +189,19 @@ const FilterGroupRoot = ({
   });
 
   return (
-    // data-part marks the interaction scope a member chip's abandoned-removal
-    // defers to (see createAbandonmentController).
-    <div
-      role="group"
-      data-part="filter-group"
-      ref={rootRef}
-      className={cx(styles, className)}
-    >
-      {children}
-    </div>
+    <FilterGroupAbandonmentContext.Provider value={abandonment}>
+      {/* data-part marks the chip-removal animation scope: a chip inside a
+          FilterGroup collapses its width before unmounting so the row closes
+          up smoothly (see shouldAnimateChipRemoval). */}
+      <div
+        role="group"
+        data-part="filter-group"
+        ref={rootRef}
+        className={cx(styles, className)}
+      >
+        {children}
+      </div>
+    </FilterGroupAbandonmentContext.Provider>
   );
 };
 

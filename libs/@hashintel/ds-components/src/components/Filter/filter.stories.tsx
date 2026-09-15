@@ -533,7 +533,7 @@ const groupContainerStyle: React.CSSProperties = {
 const GroupDemo = ({
   dismissAbandoned = false,
 }: {
-  /** Passed through to each chip's `removeable` config. */
+  /** Passed through to the FilterGroup. */
   dismissAbandoned?: boolean;
 }) => {
   const [filters, setFilters] = useState<GroupEntry[]>([
@@ -586,7 +586,7 @@ const GroupDemo = ({
 
   return (
     <div style={groupContainerStyle}>
-      <FilterGroup>
+      <FilterGroup dismissAbandoned={dismissAbandoned}>
         {filters.map((filter) =>
           filter.operators === "select" ? (
             <Filter<SelectValues>
@@ -607,10 +607,7 @@ const GroupDemo = ({
                   ),
                 );
               }}
-              removeable={{
-                onRemove: () => removeFilter(filter.id),
-                dismissAbandoned,
-              }}
+              removeable={{ onRemove: () => removeFilter(filter.id) }}
             />
           ) : (
             <Filter<KitchenSinkValues>
@@ -631,10 +628,7 @@ const GroupDemo = ({
                   ),
                 );
               }}
-              removeable={{
-                onRemove: () => removeFilter(filter.id),
-                dismissAbandoned,
-              }}
+              removeable={{ onRemove: () => removeFilter(filter.id) }}
             />
           ),
         )}
@@ -658,12 +652,13 @@ export const Group: Story = () => (
       <FilterGroup.AddFilter renderAs="filterIcon" onClick={noop} />
     </div>
     <span style={stateLabelStyle}>
-      dismissAbandoned: every chip below sets `removeable.dismissAbandoned`.
-      Leave a chip incomplete — no operator, or any input empty (including
-      emptying an input of one of the pre-filled chips) — then click or focus
-      elsewhere: after 1s it fades out over 2s and removes itself. Interacting
-      with it — including its dropdowns — rescues it. Complete chips and
-      input-less ones (&quot;is true&quot;) are never dismissed.
+      dismissAbandoned: the group below sets `dismissAbandoned`. Leave a chip
+      incomplete — no operator, or any input empty (including emptying an input
+      of one of the pre-filled chips) — then click or focus outside the group:
+      after 1s every incomplete chip fades out over 2s and removes itself.
+      Interacting with anything in the group — any chip and its dropdowns, the
+      buttons — rescues them. Complete chips and input-less ones (&quot;is
+      true&quot;) are never dismissed.
     </span>
     <GroupDemo dismissAbandoned />
   </div>

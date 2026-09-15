@@ -1,3 +1,5 @@
+import { createContext } from "react";
+
 import { type ItemOrGroup } from "../../util/SelectableList/selectable-list";
 
 import type { IconName } from "../Icon/icon";
@@ -328,25 +330,21 @@ export const focusWithoutRing = (
   target.focus();
 };
 
-// ── Abandoned-chip dismissal (removeable.dismissAbandoned) ──────────────────
+// ── Abandoned-chip dismissal (FilterGroup's `dismissAbandoned`) ──────────────
 
-/** How long an abandoned chip sits untouched before its fade-out begins. */
+/** How long the group sits untouched before abandoned chips start fading. */
 export const ABANDONED_GRACE_MS = 1000;
-/** How long the abandoned fade-out runs before onRemove fires. */
+/** How long the abandoned fade-out runs before the chips are removed. */
 export const ABANDONED_FADE_MS = 2000;
 
-/** How often a held removal re-checks whether the interaction has ended. */
-const ABANDONED_HOLD_RECHECK_MS = 250;
 /** How long a chip's width-collapse removal runs before onRemove fires. */
 export const CHIP_COLLAPSE_MS = 200;
 
-/** Inline style applied to the chip root while the abandoned fade runs. */
+/** Inline style applied to an abandoned chip's root while the fade runs. */
 export const abandonedFadeStyle: CSSProperties = {
   opacity: 0,
   transition: `opacity ${ABANDONED_FADE_MS}ms ease-out`,
 };
-
-export type AbandonmentPhase = "idle" | "fading" | "held" | "collapsing";
 
 /**
  * Whether removing this chip should animate: inside a FilterGroup, removal
@@ -362,8 +360,8 @@ export const shouldAnimateChipRemoval = (root: HTMLElement | null): boolean =>
  * Kick off the chip's width collapse: pin the measured width, then
  * transition it to zero over {@link CHIP_COLLAPSE_MS}. Inline styles (not
  * the React style prop) so the measure→transition sequence is not at the
- * mercy of commit timing; pair with {@link clearChipCollapseStyles} if the
- * chip survives (a rescue) rather than unmounting.
+ * mercy of commit timing; a collapse always ends in the chip unmounting, so
+ * the styles are never undone.
  */
 export const startChipCollapse = (root: HTMLElement): void => {
   const { style } = root;
@@ -376,17 +374,9 @@ export const startChipCollapse = (root: HTMLElement): void => {
   style.width = "0px";
 };
 
-export const clearChipCollapseStyles = (root: HTMLElement): void => {
-  const { style } = root;
-  style.removeProperty("width");
-  style.removeProperty("min-width");
-  style.removeProperty("overflow");
-  style.removeProperty("transition");
-};
-
 /**
- * Whether the chip currently counts as abandonable: its draft is incomplete
- * — no operator chosen, or at least one input empty — and rescuable. The
+ * Whether the chip currently counts as abandonable: it is removeable and its
+ * draft is incomplete — no operator chosen, or at least one input empty. The
  * committed value is deliberately not consulted: emptying an input of a
  * previously committed chip makes it abandonable again. An operator without
  * inputs has nothing left to fill in, so it is never "abandoned" (its commit
@@ -394,18 +384,18 @@ export const clearChipCollapseStyles = (root: HTMLElement): void => {
  * with, so it is never dismissed out from under the user either.
  */
 export const isAbandonable = ({
-  dismissAbandoned,
+  removeable,
   disabled,
   draftComplete,
   selectedOperator,
 }: {
-  dismissAbandoned: boolean;
+  removeable: boolean;
   disabled: boolean;
   /** Operator selected and every input slot filled (see isDraftComplete). */
   draftComplete: boolean;
   selectedOperator: LooseOperator | undefined;
 }): boolean =>
-  dismissAbandoned &&
+  removeable &&
   !disabled &&
   !draftComplete &&
   !(
@@ -413,263 +403,141 @@ export const isAbandonable = ({
     inputConfigsOf(selectedOperator).length === 0
   );
 
-export interface AbandonmentController {
+/** A member chip's registration handle with its dismissing FilterGroup. */
+export interface AbandonableChip {
+  /** Whether the chip currently counts as abandoned (see {@link isAbandonable}). */
+  isAbandonable: () => boolean;
   /**
-   * Re-decide arming from the current facts: cancels when the chip is
-   * ineligible, a dropdown is open, or focus sits inside; otherwise starts
-   * the grace timer (an already-running countdown keeps its timing), or —
-   * once the fade has completed — retries the held removal.
+   * Remove the chip (width collapse, then `removeable.onRemove`). Called on
+   * every registered chip when the group's fade completes; a chip that is no
+   * longer abandonable — e.g. completed mid-fade by an external value commit
+   * — ignores it.
    */
-  evaluate: () => void;
-  /** Clear the timers and undo any in-progress fade or held removal. */
-  cancel: () => void;
-  /** Install the document listeners; returns cleanup that also clears timers. */
-  attach: () => () => void;
+  dismiss: () => void;
 }
 
 /**
- * Drives the abandoned-chip countdown: once the user focuses or clicks
- * outside the chip while it is eligible, waits {@link ABANDONED_GRACE_MS},
- * fades via `onPhaseChange("fading")`, and after {@link ABANDONED_FADE_MS}
- * removes the chip via `onDismiss`. Dropdowns render in portals, so their
- * interactions land outside the root; while `hasOpenDropdown()` reports one
- * open, no event counts as "outside" — the dropdown's own close hook should
- * call `evaluate` (deferred) afterwards.
- *
- * Removal itself waits for a quiet moment: removing the chip reflows the row,
- * which would shift — or, by unmounting a trigger, close — any open popup the
- * user is interacting with. So while a sibling control's overlay is open
- * within the chip's own scope (its enclosing FilterGroup, or its parent when
- * standalone), or the pointer rests over that scope, the fully faded chip is
- * *held* (`onPhaseChange("held")`): a faint inert placeholder keeping its
- * space (see the `abandonedGhost` recipe class). The dismissal itself
- * collapses the chip's width over {@link CHIP_COLLAPSE_MS}
- * (`onPhaseChange("collapsing")`) before `onDismiss`, so the row closes up
- * smoothly — inside a FilterGroup; a standalone chip (nothing to reflow) is
- * removed instantly (see {@link shouldAnimateChipRemoval}).
+ * What a `FilterGroup` with `dismissAbandoned` provides to its member chips:
+ * the shared fade phase — each abandonable chip renders
+ * {@link abandonedFadeStyle} while `fading` is set — and registration for
+ * the final dismissal call. `null` (the default) for standalone chips and
+ * non-dismissing groups, which skip all abandonment work.
  */
-export const createAbandonmentController = ({
-  isEligible,
-  hasOpenDropdown,
+export interface FilterGroupAbandonment {
+  fading: boolean;
+  register: (chip: AbandonableChip) => () => void;
+}
+
+export const FilterGroupAbandonmentContext =
+  createContext<FilterGroupAbandonment | null>(null);
+
+/**
+ * Drives a FilterGroup's abandoned-chip countdown: once the user focuses or
+ * clicks outside the group while a member chip is abandonable, waits
+ * {@link ABANDONED_GRACE_MS}, fades via `onFadingChange(true)`, and after
+ * {@link ABANDONED_FADE_MS} dismisses every registered chip. Each chip
+ * re-checks its own eligibility for both the fade and the dismissal, so one
+ * rescued mid-countdown (e.g. by an external value commit) is spared without
+ * notifying the controller. Any pointer or focus interaction back inside the
+ * group cancels the countdown and undoes an in-progress fade; because
+ * dismissal only ever fires with the user outside the group, it can never
+ * disturb an interaction — no held/deferred removal is needed.
+ *
+ * "Inside" is decided against the group root after the triggering event's
+ * fallout settles (a deferred tick): the chips' dropdowns render in portals,
+ * so their interactions land outside the root DOM-wise, but while one is
+ * open its trigger inside the root is flagged via
+ * `data-state="open"`/`aria-expanded="true"` — an open overlay therefore
+ * counts as inside, as does focus resting anywhere in the root.
+ *
+ * Installs the document listeners on call; returns cleanup that also cancels.
+ */
+export const attachAbandonmentController = ({
   getRoot,
-  onPhaseChange,
-  onDismiss,
+  getChips,
+  onFadingChange,
 }: {
-  /** Whether the chip is currently abandonable (see {@link isAbandonable}). */
-  isEligible: () => boolean;
-  /** Whether any of the chip's (portaled) dropdowns is open. */
-  hasOpenDropdown: () => boolean;
   getRoot: () => HTMLElement | null;
-  onPhaseChange: (phase: AbandonmentPhase) => void;
-  onDismiss: () => void;
-}): AbandonmentController => {
-  const timers: {
-    grace: number | null;
-    fade: number | null;
-    collapse: number | null;
-  } = {
-    grace: null,
-    fade: null,
-    collapse: null,
-  };
-  let held = false;
-  let holdRecheck: number | null = null;
-  // Assigned below — the hold teardown needs a stable listener handle first.
-  // Deferred so the overlay/focus fallout of the triggering event settles.
-  let finalize: () => void = () => {};
-  const deferredFinalize = () => {
-    window.setTimeout(() => finalize(), 0);
+  getChips: () => Iterable<AbandonableChip>;
+  onFadingChange: (fading: boolean) => void;
+}): (() => void) => {
+  let graceTimer: number | null = null;
+  let fadeTimer: number | null = null;
+
+  const cancel = () => {
+    if (graceTimer !== null) {
+      window.clearTimeout(graceTimer);
+      graceTimer = null;
+    }
+    if (fadeTimer !== null) {
+      window.clearTimeout(fadeTimer);
+      fadeTimer = null;
+    }
+    onFadingChange(false);
   };
 
-  const clearTimers = () => {
-    if (timers.grace !== null) {
-      window.clearTimeout(timers.grace);
-      timers.grace = null;
-    }
-    if (timers.fade !== null) {
-      window.clearTimeout(timers.fade);
-      timers.fade = null;
-    }
-    if (timers.collapse !== null) {
-      window.clearTimeout(timers.collapse);
-      timers.collapse = null;
-    }
-  };
-  // The collapse animates inline width styles the controller owns (React's
-  // style prop never sets them, so they survive re-renders); a cancel mid-way
-  // must undo them for the rescued chip to lay out normally again.
-  const clearCollapseStyles = () => {
+  const isInside = () => {
     const root = getRoot();
-    if (root) {
-      clearChipCollapseStyles(root);
-    }
-  };
-  const stopHold = () => {
-    held = false;
-    if (holdRecheck !== null) {
-      window.clearInterval(holdRecheck);
-      holdRecheck = null;
-    }
-    document.removeEventListener("pointerup", deferredFinalize, true);
-    document.removeEventListener("keyup", deferredFinalize, true);
-  };
-  const cancel = () => {
-    clearTimers();
-    stopHold();
-    clearCollapseStyles();
-    onPhaseChange("idle");
-  };
-  const focusIsInside = () => {
-    const active = document.activeElement;
-    return !!active && !!getRoot()?.contains(active);
-  };
-  /**
-   * The DOM scope whose interactions removal defers to: the chip's enclosing
-   * FilterGroup when it sits in one, otherwise its immediate parent.
-   */
-  const interactionScope = (): HTMLElement | null => {
-    const root = getRoot();
-    return (
-      root?.closest<HTMLElement>("[data-part=filter-group]") ??
-      root?.parentElement ??
-      null
-    );
-  };
-  /**
-   * Whether removing the chip now would disturb an interaction in progress
-   * within its own scope: a sibling control's overlay is open (the portaled
-   * content lives outside the scope, but the owning trigger stays inside it,
-   * flagged open via data-state/aria-expanded), or the pointer rests over the
-   * scope (removal would reflow the row under the cursor).
-   */
-  const removalBlocked = () => {
-    if (hasOpenDropdown()) {
+    if (!root) {
+      // Not mounted: nothing can be dismissed, so treat as inside (cancels).
       return true;
     }
-    const scope = interactionScope();
-    if (!scope) {
-      return false;
-    }
+    const active = document.activeElement;
     return (
-      scope.matches(":hover") ||
-      scope.querySelector('[data-state="open"], [aria-expanded="true"]') !==
-        null
+      (!!active && root.contains(active)) ||
+      root.querySelector('[data-state="open"], [aria-expanded="true"]') !== null
     );
   };
-
-  /**
-   * A dismissed chip leaves by collapsing its width (inside a FilterGroup —
-   * see {@link shouldAnimateChipRemoval}), so the row closes up smoothly
-   * rather than snapping.
-   */
-  const collapseThenDismiss = () => {
-    const root = getRoot();
-    if (!root || !shouldAnimateChipRemoval(root)) {
-      onDismiss();
-      return;
-    }
-    onPhaseChange("collapsing");
-    startChipCollapse(root);
-    timers.collapse = window.setTimeout(() => {
-      timers.collapse = null;
-      clearCollapseStyles();
-      onDismiss();
-    }, CHIP_COLLAPSE_MS);
-  };
-
-  finalize = () => {
-    // Rescued while held (e.g. an external value commit): stand down fully.
-    if (!isEligible()) {
-      cancel();
-      return;
-    }
-    if (timers.collapse !== null) {
-      return;
-    }
-    if (removalBlocked()) {
-      if (!held) {
-        held = true;
-        onPhaseChange("held");
-        // Overlays close and hovers end without any single reliable event, so
-        // poll cheaply while held, with pointer/key activity as fast paths.
-        holdRecheck = window.setInterval(
-          deferredFinalize,
-          ABANDONED_HOLD_RECHECK_MS,
-        );
-        document.addEventListener("pointerup", deferredFinalize, true);
-        document.addEventListener("keyup", deferredFinalize, true);
+  const anyAbandonable = () => {
+    for (const chip of getChips()) {
+      if (chip.isAbandonable()) {
+        return true;
       }
-      return;
     }
-    stopHold();
-    collapseThenDismiss();
+    return false;
   };
 
   const evaluate = () => {
-    if (!isEligible() || hasOpenDropdown() || focusIsInside()) {
+    if (isInside() || !anyAbandonable()) {
       cancel();
       return;
     }
-    if (held) {
-      finalize();
+    // Already counting down: keep the original timing.
+    if (graceTimer !== null || fadeTimer !== null) {
       return;
     }
-    // Already counting down (fading or collapsing): keep the original timing.
-    if (
-      timers.grace !== null ||
-      timers.fade !== null ||
-      timers.collapse !== null
-    ) {
-      return;
-    }
-    timers.grace = window.setTimeout(() => {
-      timers.grace = null;
-      onPhaseChange("fading");
-      timers.fade = window.setTimeout(() => {
-        timers.fade = null;
-        finalize();
+    graceTimer = window.setTimeout(() => {
+      graceTimer = null;
+      onFadingChange(true);
+      fadeTimer = window.setTimeout(() => {
+        fadeTimer = null;
+        for (const chip of getChips()) {
+          chip.dismiss();
+        }
+        onFadingChange(false);
       }, ABANDONED_FADE_MS);
     }, ABANDONED_GRACE_MS);
   };
-  // Deferred so focus (and dropdown open state) settles before deciding.
+  // Deferred so the event's fallout (focus moving, a dropdown closing on an
+  // outside click) settles before deciding.
   const scheduleEvaluate = () => {
     window.setTimeout(evaluate, 0);
   };
 
-  const onPointerDown = (event: PointerEvent) => {
-    const target = event.target instanceof Node ? event.target : null;
-    if (hasOpenDropdown()) {
-      scheduleEvaluate();
-      return;
-    }
-    if (target && getRoot()?.contains(target)) {
-      cancel();
-      return;
-    }
-    scheduleEvaluate();
-  };
-  const onFocusIn = (event: FocusEvent) => {
+  const onInteraction = (event: Event) => {
     const target = event.target instanceof Node ? event.target : null;
     if (target && getRoot()?.contains(target)) {
       cancel();
       return;
     }
-    if (hasOpenDropdown()) {
-      return;
-    }
     scheduleEvaluate();
-  };
-  const attach = () => {
-    document.addEventListener("pointerdown", onPointerDown, true);
-    document.addEventListener("focusin", onFocusIn, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown, true);
-      document.removeEventListener("focusin", onFocusIn, true);
-      clearTimers();
-      stopHold();
-      clearCollapseStyles();
-    };
   };
 
-  return { evaluate, cancel, attach };
+  document.addEventListener("pointerdown", onInteraction, true);
+  document.addEventListener("focusin", onInteraction, true);
+  return () => {
+    document.removeEventListener("pointerdown", onInteraction, true);
+    document.removeEventListener("focusin", onInteraction, true);
+    cancel();
+  };
 };
