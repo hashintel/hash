@@ -30,14 +30,14 @@ const handleStyle = cva({
           position: "absolute",
           pointerEvents: "none",
           boxSizing: "border-box",
-          width: "[calc(15px + 31px)]",
-          height: "[calc(15px + 31px)]",
+          width: "[calc(15px + 49px)]",
+          height: "[calc(15px + 49px)]",
           borderStyle: "solid",
           borderColor: "[currentColor]",
           borderWidth: "[5px 0 0 5px]",
           borderRadius: "[15px 0 0 0]",
           maskImage:
-            "[linear-gradient(to right, #000 15px, transparent calc(15px + 31px)), linear-gradient(to bottom, #000 15px, transparent calc(15px + 31px))]",
+            "[linear-gradient(to right, #000 15px, transparent calc(15px + 49px)), linear-gradient(to bottom, #000 15px, transparent calc(15px + 49px))]",
           maskComposite: "intersect",
         },
       },
@@ -48,24 +48,32 @@ const handleStyle = cva({
         right: "[12px]",
         height: `[${RESIZE_HANDLE_SIZE}px]`,
         cursor: "ns-resize",
+        maskImage:
+          "[linear-gradient(to right, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
       },
       bottom: {
         left: "[12px]",
         right: "[12px]",
         height: `[${RESIZE_HANDLE_SIZE}px]`,
         cursor: "ns-resize",
+        maskImage:
+          "[linear-gradient(to right, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
       },
       left: {
         top: "[12px]",
         bottom: "[12px]",
         width: `[${RESIZE_HANDLE_SIZE}px]`,
         cursor: "ew-resize",
+        maskImage:
+          "[linear-gradient(to bottom, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
       },
       right: {
         top: "[12px]",
         bottom: "[12px]",
         width: `[${RESIZE_HANDLE_SIZE}px]`,
         cursor: "ew-resize",
+        maskImage:
+          "[linear-gradient(to bottom, transparent, #000 49px, #000 calc(100% - 49px), transparent)]",
       },
       "top-left": {
         width: "[15px]",
