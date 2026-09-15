@@ -70,6 +70,7 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
+import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
 
@@ -587,56 +588,61 @@ const EditorViewContent = ({
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
         <Stack direction="row" className={rowContainerStyle}>
-          {effectiveMode === "simulate" ? (
-            <SimulateView />
-          ) : effectiveMode === "notebook" ? (
-            <NotebookView key={petriNetId ?? "no-net"} />
-          ) : (
-            <Box className={canvasContainerStyle}>
-              {/* Left Sidebar - Tools and content panels */}
-              <LeftSideBar />
+          <SimulationWorkspace>
+            {effectiveMode === "simulate" ? (
+              <SimulateView />
+            ) : effectiveMode === "notebook" ? (
+              <NotebookView key={petriNetId ?? "no-net"} />
+            ) : (
+              <Box className={canvasContainerStyle}>
+                {/* Left Sidebar - Tools and content panels */}
+                <LeftSideBar />
 
-              {/* Properties Panel - Right Side */}
-              {!codeReplacesCanvas && <PropertiesPanel />}
+                {/* Properties Panel - Right Side */}
+                {!codeReplacesCanvas && <PropertiesPanel />}
 
-              {/* SDCPN Visualization */}
-              {!codeReplacesCanvas && (
-                <SDCPNView viewportActions={viewportActions} />
-              )}
+                {/* SDCPN Visualization */}
+                {!codeReplacesCanvas && (
+                  <SDCPNView viewportActions={viewportActions} />
+                )}
 
-              {showEmptyAiHero && (
-                <AiCtaModal
-                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                  onDismiss={() => setIsAiCtaDismissed(true)}
-                  onStartVoiceMode={() => {
-                    setPendingAiInteractionMode("voice");
-                    setAiAssistantOpen(true);
-                  }}
-                  onSubmit={(message) => {
-                    setPendingAiAssistantMessage(message);
-                    setPendingAiInteractionMode("text");
-                    setAiAssistantOpen(true);
-                  }}
-                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+                {showEmptyAiHero && (
+                  <AiCtaModal
+                    bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                    onDismiss={() => setIsAiCtaDismissed(true)}
+                    onStartVoiceMode={() => {
+                      setPendingAiInteractionMode("voice");
+                      setAiAssistantOpen(true);
+                    }}
+                    onSubmit={(message) => {
+                      setPendingAiAssistantMessage(message);
+                      setPendingAiInteractionMode("text");
+                      setAiAssistantOpen(true);
+                    }}
+                    voiceModeAvailable={
+                      aiAssistant.renderVoiceMode !== undefined
+                    }
+                  />
+                )}
+
+                <CodeWorkspacePanel />
+                {/* Bottom Panel */}
+                {!codeReplacesCanvas && <BottomPanel />}
+              </Box>
+            )}
+            {!codeReplacesCanvas &&
+              (effectiveMode === "edit" || effectiveMode === "actual") && (
+                <BottomBar
+                  mode={effectiveMode}
+                  editionMode={editionMode}
+                  onEditionModeChange={setEditionMode}
+                  cursorMode={cursorMode}
+                  onCursorModeChange={setCursorMode}
+                  hasAiAssistant={aiAssistant !== undefined}
                 />
               )}
-
-              <CodeWorkspacePanel />
-              {/* Bottom Panel */}
-              {!codeReplacesCanvas && <BottomPanel />}
-            </Box>
-          )}
-          {!codeReplacesCanvas &&
-            (effectiveMode === "edit" || effectiveMode === "actual") && (
-              <BottomBar
-                mode={effectiveMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
-            )}
+            <SimulationCreationDrawer />
+          </SimulationWorkspace>
           {aiAssistant && (
             <AiAssistantPanel
               /** Reset state (e.g. initial messages) when the active net changes */
@@ -656,8 +662,6 @@ const EditorViewContent = ({
           )}
         </Stack>
       </VoiceSessionProvider>
-
-      <SimulationCreationDrawer />
     </ExperimentalIconProvider>
   );
 };

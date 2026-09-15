@@ -8,6 +8,7 @@ import {
 } from "../../../../../../react/experiments/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
+import { SimulationPanel } from "../shared/simulation-panel";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
@@ -156,6 +157,25 @@ export const ExperimentsView = () => {
         onClose={closeViewDrawer}
         experiment={selectedExperiment ?? undefined}
       />
+      {selectedExperimentId !== null && selectedExperiment === null && (
+        <SimulationPanel
+          title="Experiment unavailable"
+          onClose={closeViewDrawer}
+        >
+          <SimulationPanel.Header />
+          <SimulationPanel.Body>
+            This experiment is not available in this session. Close this view
+            and create an experiment to run it again.
+          </SimulationPanel.Body>
+          <SimulationPanel.Footer
+            actions={
+              <Button size="sm" onClick={closeViewDrawer}>
+                Close
+              </Button>
+            }
+          />
+        </SimulationPanel>
+      )}
     </SimulateSubviewFrame>
   );
 };

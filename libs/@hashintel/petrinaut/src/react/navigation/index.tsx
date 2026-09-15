@@ -54,6 +54,8 @@ export type PetrinautNavigationState = {
   mode: EditorGlobalMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
+  /** Omission uses the panel presentation, including in existing host controllers. */
+  simulatePresentation?: "panel" | "fullscreen";
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
@@ -76,6 +78,7 @@ export type PetrinautNavigationAction =
   | "mode"
   | "simulation-view"
   | "simulation-resource"
+  | "simulation-presentation"
   | "scenario"
   | "subnet"
   | "selection"
@@ -174,6 +177,8 @@ export const petrinautNavigationStatesMatch = (
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&
+  (left.simulatePresentation ?? "panel") ===
+    (right.simulatePresentation ?? "panel") &&
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
@@ -192,6 +197,13 @@ const resolveNavigationUpdate = (
 
   return {
     ...updated,
+    simulatePresentation:
+      updated.simulateResource?.type === "scenario" ||
+      updated.simulateResource?.type === "experiment" ||
+      updated.overlay?.type === "create-experiment" ||
+      updated.overlay?.type === "create-scenario"
+        ? updated.simulatePresentation
+        : undefined,
     selection: canonicalizeSelection(updated.selection),
   };
 };

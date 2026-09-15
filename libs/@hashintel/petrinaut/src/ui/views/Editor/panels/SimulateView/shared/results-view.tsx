@@ -1,6 +1,6 @@
 /**
  * @layerRoot ui.views.editor.results
- * @role The one results surface the experiment drawer renders from a view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame, with the study's headline, columns, cards and steps filled in once a sweep has one
+ * @role The one results surface the experiment panel renders from a view-model: the header stats, the parameter card, the surface, the metric cards and the footer in the shared frame, with the study's headline, columns, cards and steps filled in once a sweep has one
  *
  * The view renders a `ResultsModel` and nothing else: it reads no record and
  * no provider. The adapter that builds the model lives beside the record it
@@ -61,18 +61,18 @@ const ResultsStats = ({ header }: { header: ResultsHeader }) => (
 
 export const ResultsView = ({
   model,
-  drawer,
+  panel,
 }: {
   model: ResultsModel;
-  /** Given, the view renders inside a ds `Drawer`; otherwise it fills its section. */
-  drawer?: DrawerFrameProps["drawer"];
+  /** Given, the view renders in the workspace panel; otherwise it fills its section. */
+  panel?: DrawerFrameProps["panel"];
 }) => {
   const { header, bands, surface, metrics, after, footer, footerSecondary } =
     model;
 
   return (
     <DrawerFrame
-      drawer={drawer}
+      panel={panel}
       title={header.title}
       headline={header.headline}
       stats={<ResultsStats header={header} />}

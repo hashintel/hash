@@ -284,7 +284,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     expect(
-      screen.getByRole("dialog", {
+      screen.getByRole("region", {
         name: "SIR transmission sweep · Seasonal Flu · 100 runs",
       }),
     ).toBeTruthy();

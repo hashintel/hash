@@ -562,3 +562,47 @@ describe("Petrinaut navigation", () => {
     });
   });
 });
+
+test.each([null, { type: "metric", id: "metric-a" }] as const)(
+  "clears fullscreen when leaving a panel for %j",
+  (resource) => {
+    const Probe = () => {
+      const { state, navigate } = usePetrinautNavigation();
+      return (
+        <>
+          <output aria-label="Presentation">
+            {state.simulatePresentation ?? "panel"}
+          </output>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                { simulateResource: resource },
+                { cause: "user", action: "simulation-resource" },
+              )
+            }
+          >
+            Leave panel
+          </button>
+        </>
+      );
+    };
+    const view = render(
+      <PetrinautNavigationProvider
+        initialState={{
+          mode: "simulate",
+          simulateResource: { type: "experiment", id: "experiment-a" },
+          simulatePresentation: "fullscreen",
+        }}
+      >
+        <Probe />
+      </PetrinautNavigationProvider>,
+    );
+    expect(screen.getByLabelText("Presentation").textContent).toBe(
+      "fullscreen",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Leave panel" }));
+    expect(screen.getByLabelText("Presentation").textContent).toBe("panel");
+    view.unmount();
+  },
+);

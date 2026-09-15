@@ -1,10 +1,8 @@
 /**
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
- * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run
- * or a record inside the open document rather than a place in the app.
+ * The URL carries the selected scenario, subnet, focused item, editor mode,
+ * Simulate section, open record, overlay and panel presentation.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is
@@ -83,8 +81,22 @@ export const sharedSearchToNavigationState = (
   scenarioId: scenarioFromSearch(search),
   subnetId: search.subnet ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
-  mode: search.mode ?? baseline.mode,
-  simulateView: search.view ?? baseline.simulateView,
+  mode:
+    search.mode ??
+    (search.resourceType && search.resourceId ? "simulate" : baseline.mode),
+  simulateView:
+    search.resourceType && search.resourceId
+      ? search.resourceType === "scenario"
+        ? "scenarios"
+        : search.resourceType === "experiment"
+          ? "experiments"
+          : "metrics"
+      : (search.view ?? baseline.simulateView),
+  simulateResource:
+    search.resourceType && search.resourceId
+      ? { type: search.resourceType, id: search.resourceId }
+      : baseline.simulateResource,
+  simulatePresentation: search.presentation ?? baseline.simulatePresentation,
   overlay:
     search.overlay === undefined
       ? baseline.overlay
@@ -98,7 +110,18 @@ export const navigationStateToSharedSearch = (
   const mode = modeToSearch(state.mode);
   const view = simulateViewToSearch(state.simulateView);
   const overlay = overlayToSearch(state.overlay);
+  const canExpand =
+    state.simulateResource?.type === "scenario" ||
+    state.simulateResource?.type === "experiment" ||
+    overlay === "create-scenario" ||
+    overlay === "create-experiment";
   return {
+    resourceType: state.simulateResource?.type,
+    resourceId: state.simulateResource?.id,
+    presentation:
+      canExpand && state.simulatePresentation === "fullscreen"
+        ? "fullscreen"
+        : undefined,
     scenario: scenarioToSearch(state.scenarioId),
     subnet: state.subnetId ?? undefined,
     // Omitted at the baseline, so an untouched page keeps a clean URL and the
@@ -146,6 +169,9 @@ export const applyPreviewNavigationUpdate = (
   view: search.view,
   overlay: search.overlay,
   settings: search.settings,
+  resourceType: search.resourceType,
+  resourceId: search.resourceId,
+  presentation: search.presentation,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),

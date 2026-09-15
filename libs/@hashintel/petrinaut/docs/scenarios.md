@@ -28,14 +28,18 @@ You will need scenarios when you want to:
 ## Creating a scenario
 
 1. Switch to **Simulate** mode and open the **Scenarios** tab.
-2. Click **Create**. The Create Scenario drawer opens.
+2. Click **Create**. The Create Scenario panel opens.
 3. Fill in **Scenario name** (required, unique among scenarios) and an optional description.
 4. Add **Variables** -- one per value you want to drive from a single number, written `scenario.<name>` in every expression below. Turn **Scenario Parameter** on to expose a Variable as a tunable parameter of the saved scenario: it needs a snake_case name, a constant expression as its default, and a value between 0 and 1 for a ratio.
 5. Fill in **Parameters** -- an expression per net-level parameter whose default you want to override; the `default` tag marks the untouched ones.
 6. Configure **Initial state** -- a count expression per untyped place, rows of cells per typed place (a Dynamic row builds many tokens from one count). See [Ad-hoc Scenarios](ad-hoc-scenarios.md#the-form) for the form itself.
 7. Click **Create**. It is disabled while the name or any value has an error -- hover it to read the first.
 
-The view drawer opens from the Scenarios list, which works like the other Simulate-mode lists: the first click selects a row, and a click on the selected row (or Enter) opens it. The list is a single Tab stop whose rows the arrow keys walk. The drawer shows the same form populated with the existing values, with **Close** and **Save** buttons.
+The view panel opens from the Scenarios list, which works like the other Simulate-mode lists: the first click selects a row, and a click on the selected row (or Enter) opens it. The list is a single Tab stop whose rows the arrow keys walk. The panel shows the same form populated with the existing values, with **Close** and **Save** buttons.
+
+## Panel and fullscreen views
+
+Scenario creation and editing open in a [panel beside the main view](simulation-panels.md). Expand it to fullscreen for more space; your unsaved edits stay in place.
 
 ## Expression language
 
@@ -53,7 +57,7 @@ The subset is strict about booleans and equality: conditions and `&&`/`||` take 
 
 ## Scenarios stored as code
 
-Net files, the AI assistant and earlier versions of Petrinaut may store a scenario's initial state per place (one expression or one token spreadsheet per place) or as a single code block. Both run unchanged, and both preview as computed rows in Simulation Settings and the experiment drawer. Editing opens each in the form: a per-place scenario opens converted -- its parameters as exposed Variables, its expressions and rows as the form's blocks -- and saving stores it in the form's format; a code scenario opens with its name, description, Variables and Parameters editable and its code shown read-only in the Initial state slot -- edit its values here, change the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count). A code scenario stores no form entries, only its scenario parameters: every Variable must be marked **Scenario Parameter** (the form refuses to save one that is not), and each is kept as its computed default. The code is a function body that returns an object keyed by **place name** -- a number for an untyped place (rounded, clamped to `>= 0`), an array of token objects for a typed one -- with `parameters`, `scenario` and `range` in scope; a key that is not a place name is a compile error, so a typo'd name fails the scenario instead of being silently ignored:
+Net files, the AI assistant and earlier versions of Petrinaut may store a scenario's initial state per place (one expression or one token spreadsheet per place) or as a single code block. Both run unchanged, and both preview as computed rows in Simulation Settings and the experiment panel. Editing opens each in the form: a per-place scenario opens converted -- its parameters as exposed Variables, its expressions and rows as the form's blocks -- and saving stores it in the form's format; a code scenario opens with its name, description, Variables and Parameters editable and its code shown read-only in the Initial state slot -- edit its values here, change the code from the AI assistant or the net file, or recreate the scenario from the form (a Dynamic row builds many tokens from one count). A code scenario stores no form entries, only its scenario parameters: every Variable must be marked **Scenario Parameter** (the form refuses to save one that is not), and each is kept as its computed default. The code is a function body that returns an object keyed by **place name** -- a number for an untyped place (rounded, clamped to `>= 0`), an array of token objects for a typed one -- with `parameters`, `scenario` and `range` in scope; a key that is not a place name is a compile error, so a typo'd name fails the scenario instead of being silently ignored:
 
 ```ts
 return {
