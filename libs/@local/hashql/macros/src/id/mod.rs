@@ -1,7 +1,10 @@
 mod attr;
 pub(crate) mod common;
 mod r#enum;
+mod generics;
 mod r#struct;
+#[cfg(test)]
+mod tests;
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -13,8 +16,8 @@ use crate::emit_error;
 mod grammar {
     #![expect(clippy::result_large_err)]
     use unsynn::{
-        Assign, Bang, BraceGroupContaining, CommaDelimitedVec, DotDot, DotDotEq, Ident,
-        ParenthesisGroupContaining, TokenTree, unsynn,
+        Assign, Bang, BraceGroupContaining, CommaDelimitedVec, DotDot, DotDotEq, Gt, Ident, Lt,
+        ParenthesisGroupContaining, TokenTree, TrailingDelimiter, unsynn,
     };
 
     use crate::grammar::{
@@ -122,6 +125,12 @@ mod grammar {
             pub bounds: Option<StructBounds>
         }
 
+        pub(super) struct TypeParameters {
+            pub _lt: Lt,
+            pub names: CommaDelimitedVec<Ident, TrailingDelimiter::Optional, 1>,
+            pub _gt: Gt,
+        }
+
         /// A complete struct definition for `define_id!`.
         pub(super) struct ParsedStruct {
             pub attributes: Vec<Attribute<AttributeBody>>,
@@ -130,6 +139,7 @@ mod grammar {
             pub _struct: KStruct,
 
             pub name: Ident,
+            pub parameters: Option<TypeParameters>,
 
             pub body: ParenthesisGroupContaining<StructBody>
         }
