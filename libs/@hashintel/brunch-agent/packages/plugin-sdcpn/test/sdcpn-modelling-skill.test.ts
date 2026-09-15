@@ -55,22 +55,22 @@ describe("the authored sdcpn-modelling skill directory", () => {
     expect(construction).toContain("read_petrinaut_net");
   });
 
-  test("reuses authoritative settlement carriage and limits settled locator reads to immediate construction", () => {
+  test("reuses settlement carriage and limits settled locator reads to spans the settlement did not return", () => {
     const instructions = sdcpnModellingSkill.instructions;
     const construction = readSkillFile("references/pn-construction.md");
 
     expect(instructions).toContain(
-      "submitted Markdown with its returned `revisionId` and `sha256` as authoritative",
+      "returned `revisionId`, `sha256` and `evidence[]` locators as authoritative",
     );
-    expect(instructions).toContain(
-      "Only when immediate construction needs settled-revision spans",
-    );
-    expect(construction).toContain(
-      "Only when immediate construction needs settled-revision spans",
-    );
-    expect(construction).toContain(
-      "`includeContent: false`, `includeSources: false`, and `locateTexts`",
-    );
+    for (const text of [instructions, construction]) {
+      expect(text).toContain("evidence by literal text");
+      expect(text).toContain(
+        "Only when a basis needs a span that output did not return",
+      );
+      expect(text).not.toMatch(
+        /includeSources|candidate Markdown|unsettled candidate|useful stretch/u,
+      );
+    }
     expect(construction).not.toContain(
       "obtain the settled revision/hash and relevant passage spans",
     );

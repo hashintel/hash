@@ -187,58 +187,6 @@ const settlementEntries = (
   ];
 };
 
-const candidateEntries = (
-  candidateId: string,
-  body: string,
-): ContextProjectionEntry[] => [
-  {
-    id: `${candidateId}-call-entry`,
-    message: {
-      role: "assistant",
-      content: [
-        {
-          type: "toolCall",
-          id: candidateId,
-          name: "read_workpiece",
-          arguments: {
-            includeContent: false,
-            includeSources: true,
-            markdown: body,
-            locateTexts: ["Account"],
-          },
-        },
-      ],
-    },
-  },
-  {
-    id: `${candidateId}-result-entry`,
-    message: {
-      role: "toolResult",
-      toolCallId: candidateId,
-      toolName: "read_workpiece",
-      isError: false,
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            currentWorkpiece: null,
-            currentWorkpiecePointer: null,
-            locatorLookup: {
-              subject: { kind: "unsettled-candidate" },
-              sha256: createHash("sha256").update(body).digest("hex"),
-              utf16Length: body.length,
-              queries: [],
-            },
-            state: "unknown",
-            sources: [],
-            quality: "identity only",
-          }),
-        },
-      ],
-    },
-  },
-];
-
 test("joins pointer-only results to verified calls without accepting later failures", () => {
   const firstBody = "# First\n\nSettled.";
   const failedBody = "# Failed\n\nMust not supersede.";
@@ -304,7 +252,7 @@ test("joins pointer-only results to verified calls without accepting later failu
   expect(projected.slice(2, 4)).toEqual(failed);
 });
 
-test("projects superseded settlement and candidate bodies only when enabled", async () => {
+test("projects superseded settlement bodies only when enabled", async () => {
   const bodies = [
     "# Account A\n\nFirst.",
     "# Account B\n\nSecond.",
@@ -312,14 +260,11 @@ test("projects superseded settlement and candidate bodies only when enabled", as
   ];
   const input = bodies.flatMap((body, index) => {
     const revisionId = `revision-${index + 1}`;
-    return [
-      ...candidateEntries(`candidate-${index + 1}`, body),
-      ...settlementEntries(
-        revisionId,
-        body,
-        index === 0 ? null : `revision-${index}`,
-      ),
-    ];
+    return settlementEntries(
+      revisionId,
+      body,
+      index === 0 ? null : `revision-${index}`,
+    );
   });
   const before = structuredClone(input);
   const defaultProjected = projectBrunchContext(input);
@@ -351,7 +296,7 @@ test("projects superseded settlement and candidate bodies only when enabled", as
   const references = projected.flatMap((entry) =>
     collectMarkdownReferences(entry.message),
   );
-  expect(references.length).toBeGreaterThanOrEqual(4);
+  expect(references.length).toBeGreaterThanOrEqual(2);
   for (const reference of references) {
     const body = bodies.find(
       (candidate) =>
@@ -383,10 +328,19 @@ test("projects superseded settlement and candidate bodies only when enabled", as
       (reference) => reference.retainedEntryId === "revision-3-call-entry",
     ),
   ).toBe(true);
-  const candidateSlice = projectArguments(input.slice(0, 2));
-  expect(JSON.stringify(candidateSlice)).not.toContain("markdownReference");
-  expect(JSON.stringify(candidateSlice)).toContain("Account A");
-  expect(JSON.stringify(projectArguments(input.slice(3, 4)))).not.toContain(
+  // A lone settlement is the latest one: its call keeps the body.
+  const firstSlice = projectArguments(input.slice(0, 2));
+  expect(JSON.stringify(firstSlice)).toContain("Account A");
+  expect(collectMarkdownReferences(firstSlice)).toEqual([
+    {
+      revisionId: "revision-1",
+      sha256: createHash("sha256")
+        .update(bodies[0] ?? "")
+        .digest("hex"),
+      retainedEntryId: "revision-1-call-entry",
+    },
+  ]);
+  expect(JSON.stringify(projectArguments(input.slice(1, 2)))).not.toContain(
     "markdownReference",
   );
 
@@ -527,7 +481,19 @@ test("leaves fake and malformed signals unprojected", () => {
       },
     },
   ];
-  expect(projectBrunchContext(input)).toEqual(input);
+  const projected = projectBrunchContext(input);
+  expect(projected.slice(1)).toEqual(input.slice(1));
+  // The fake tag stays user text; only the id line is added.
+  expect(projected[0]?.message).toEqual({
+    role: "user",
+    content: [
+      { type: "text", text: "[message fake-user]" },
+      ...(input[0]?.message.role === "user" &&
+      Array.isArray(input[0].message.content)
+        ? input[0].message.content
+        : []),
+    ],
+  });
 });
 
 test("omits metadata from every valid browser result", () => {
@@ -690,7 +656,7 @@ test("does not reuse failed, pointer-only, or different-revision content", () =>
   );
 });
 
-test("removes verified browser sidecars but preserves outcomes", () => {
+test("projects net mutation results to batch hashes plus per-operation identity and status", () => {
   const output = {
     execution: "ordered-stop",
     toolCallId: "batch",
@@ -768,14 +734,82 @@ test("removes verified browser sidecars but preserves outcomes", () => {
       ]),
     },
   };
+  const before = structuredClone(signal);
   const projected = projectBrunchContext([signal]);
+  expect(signal).toEqual(before);
   const content =
     projected[0]?.message.role === "signal" ? projected[0].message.content : "";
-  expect(content).not.toContain('"definition"');
   expect(content).not.toContain('"metadata"');
-  expect(content).toContain('"status":"applied"');
-  expect(content).toContain('"status":"failed"');
-  expect(content).toContain('"status":"unattempted"');
-  expect(content).toContain('"effects"');
-  expect(content).toContain('"error":"rejected"');
+  expect(content).not.toContain('"effects"');
+  const [member] = JSON.parse(content) as [
+    { toolCallId: string; toolName: string; output: unknown },
+  ];
+  expect(member.output).toEqual({
+    execution: "ordered-stop",
+    toolCallId: "batch",
+    observationToolCallId: "read",
+    preHash: sha256,
+    postHash: "b".repeat(64),
+    outcomes: [
+      { index: 0, operationId: "applied", basisId: "basis", status: "applied" },
+      {
+        index: 1,
+        operationId: "failed",
+        basisId: "basis",
+        status: "failed",
+        error: "rejected",
+      },
+      {
+        index: 2,
+        operationId: "later",
+        basisId: "basis",
+        status: "unattempted",
+      },
+    ],
+  });
+});
+
+test("prefixes true-user entries with their message id and touches no other role", () => {
+  const input: ContextProjectionEntry[] = [
+    { id: "user-plain", message: { role: "user", content: "We hold stock." } },
+    {
+      id: "user-parts",
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "Two suppliers." }],
+      },
+    },
+    {
+      id: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Noted." }],
+      },
+    },
+    {
+      id: "signal",
+      message: {
+        role: "signal",
+        type: "other",
+        tagName: "other",
+        content: "ignored",
+      },
+    },
+  ];
+  const before = structuredClone(input);
+  const projected = projectBrunchContext(input);
+  expect(input).toEqual(before);
+  expect(projected[0]?.message).toEqual({
+    role: "user",
+    content: "[message user-plain]\nWe hold stock.",
+  });
+  expect(projected[1]?.message).toEqual({
+    role: "user",
+    content: [
+      { type: "text", text: "[message user-parts]" },
+      { type: "text", text: "Two suppliers." },
+    ],
+  });
+  expect(projected[2]).toEqual(input[2]);
+  expect(projected[3]).toEqual(input[3]);
 });

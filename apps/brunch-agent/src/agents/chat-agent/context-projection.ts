@@ -228,7 +228,6 @@ const projectReadResult = (
 
 const compactToolCallArguments = (
   entry: ContextProjectionEntry,
-  entryIndex: number,
   authorities: readonly SettlementAuthority[],
   latestAuthority: SettlementAuthority | undefined,
   retainedEntryIds: ReadonlyMap<string, string>,
@@ -237,33 +236,19 @@ const compactToolCallArguments = (
   const content = entry.message.content.map((part) => {
     if (
       part.type !== "toolCall" ||
+      part.name !== "mutate_workpiece" ||
       !isRecord(part.arguments) ||
       typeof part.arguments.markdown !== "string"
     )
       return part;
     const markdown = part.arguments.markdown;
-    const authority =
-      part.name === "mutate_workpiece"
-        ? authorities.find(
-            (candidate) =>
-              candidate.callEntryId === entry.id &&
-              candidate.toolCallId === part.id,
-          )
-        : part.name === "read_workpiece"
-          ? authorities
-              .filter(
-                (candidate) =>
-                  candidate.sha256 === sha256(markdown) &&
-                  candidate.callEntryIndex > entryIndex,
-              )
-              .toSorted(
-                (left, right) => left.callEntryIndex - right.callEntryIndex,
-              )[0]
-          : undefined;
+    const authority = authorities.find(
+      (candidate) =>
+        candidate.callEntryId === entry.id && candidate.toolCallId === part.id,
+    );
     const shouldCompact =
       authority !== undefined &&
-      (part.name === "read_workpiece" ||
-        authority.toolCallId !== latestAuthority?.toolCallId);
+      authority.toolCallId !== latestAuthority?.toolCallId;
     if (!shouldCompact) return part;
     const { markdown: _markdown, ...argumentsWithoutMarkdown } = part.arguments;
     return {
@@ -283,6 +268,50 @@ const compactToolCallArguments = (
   return {
     ...entry,
     message: { ...entry.message, content },
+  };
+};
+
+/**
+ * The model cites conversation sources by Flue message id, so each true-user
+ * entry carries its own id as a leading line. Signals are rendered as user
+ * messages only after projection, so they never receive one.
+ */
+const prefixUserMessageId = (
+  entry: ContextProjectionEntry,
+): ContextProjectionEntry => {
+  const message = entry.message;
+  if (message.role !== "user") return entry;
+  const idLine = `[message ${entry.id}]`;
+  return {
+    ...entry,
+    message:
+      typeof message.content === "string"
+        ? { ...message, content: `${idLine}\n${message.content}` }
+        : {
+            ...message,
+            content: [{ type: "text", text: idLine }, ...message.content],
+          },
+  };
+};
+
+/**
+ * The model needs the batch hashes and each operation's identity and status;
+ * effects and per-operation hashes restate what the canonical record keeps.
+ */
+const projectNetMutationOutput = (output: unknown): unknown => {
+  if (!isRecord(output) || !Array.isArray(output.outcomes)) return output;
+  return {
+    ...output,
+    outcomes: output.outcomes.map((outcome: unknown) => {
+      if (!isRecord(outcome)) return outcome;
+      const {
+        effects: _outcomeEffects,
+        preHash: _preHash,
+        postHash: _postHash,
+        ...identity
+      } = outcome;
+      return identity;
+    }),
   };
 };
 
@@ -306,7 +335,11 @@ const compactClientToolSignal = (
   const projected = raw.flatMap((member) => {
     if (!isClientToolResult(member)) return [];
     const { metadata: _metadata, ...result } = member;
-    return [result];
+    return [
+      result.toolName === "mutate_petrinaut_net"
+        ? { ...result, output: projectNetMutationOutput(result.output) }
+        : result,
+    ];
   });
   return {
     ...entry,
@@ -360,10 +393,10 @@ export const createBrunchContextProjection = (
     }
 
     return entries.map((entry, entryIndex) => {
+      if (entry.message.role === "user") return prefixUserMessageId(entry);
       const withProjectedArguments = projectArguments
         ? compactToolCallArguments(
             entry,
-            entryIndex,
             settlements,
             latestSettlement,
             retainedEntryIds,
