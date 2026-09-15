@@ -1,3 +1,8 @@
+//! Certificates for the postings file's format.
+//!
+//! The tests pin the header's wire layout byte by byte, the region geometry over a hand-computed
+//! fixture, the writer-to-reader round trip of all nine regions, the open's refusals - including
+//! every way a bit set frame can contradict the header - and the writer's own preconditions.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -55,16 +60,21 @@ fn scratch(name: &str) -> PathBuf {
 /// membership: runs `0:{0} 1:{1} 2:{1} 3:{0} 5:{1} 9:{0}` with the other positions empty, so the
 /// direct ids are `[0, 1, 1, 0, 1, 0]` (`M = 6`).
 const POINTS: u64 = 10;
+/// The fixture's list fenceposts, one per type plus the closing post.
 const LIST_POSTS: [usize; 4] = [0, 3, 3, 3];
+/// The fixture's parent-edge fenceposts, one per type plus the closing post.
 const PARENT_POSTS: [usize; 4] = [0, 0, 0, 2];
+/// The fixture's direct-map fenceposts, one per position plus the closing post.
 const DIRECT_POSTS: [usize; 11] = [0, 1, 2, 3, 4, 4, 5, 5, 5, 5, 6];
 
+/// Builds dense-membership flags with only type 1 stored densely.
 fn fixture_flags() -> Box<DenseBitSlice<OntologyRowId>> {
     let mut flags = DenseBitSlice::new_empty(3);
     flags.insert(OntologyRowId::new(1));
     flags
 }
 
+/// Builds the dense set for type 1 from positions 1, 2, and 5.
 fn fixture_dense() -> Box<DenseBitSliceArray<BasePosition>> {
     let mut sets = DenseBitSliceArray::new_empty(10, 1);
     sets[0].insert(BasePosition::from_u32(1));
@@ -73,33 +83,40 @@ fn fixture_dense() -> Box<DenseBitSliceArray<BasePosition>> {
     sets
 }
 
+/// Type 0's membership positions, the only list run the fixture holds.
 fn fixture_list_entries() -> [BasePosition; 3] {
     [0, 3, 9].map(BasePosition::from_u32)
 }
 
+/// Type 2's parent edges, the only parent run the fixture holds.
 fn fixture_parent_ids() -> [OntologyRowId; 2] {
     [0, 1].map(OntologyRowId::new)
 }
 
+/// Returns the transposed memberships in ascending position order.
 fn fixture_direct_ids() -> [OntologyRowId; 6] {
     [0, 1, 1, 0, 1, 0].map(OntologyRowId::new)
 }
 
+/// Per-type membership runs over the base positions.
 fn fixture_lists() -> Runs<OntologyRowId, BasePosition> {
     Runs::from_parts(le_posts(&LIST_POSTS), fixture_list_entries().to_vec())
         .expect("the fixture posts satisfy the fencepost law")
 }
 
+/// Per-type parent-edge runs, the edges the closure derives from.
 fn fixture_parents() -> Runs<OntologyRowId, OntologyRowId> {
     Runs::from_parts(le_posts(&PARENT_POSTS), fixture_parent_ids().to_vec())
         .expect("the fixture posts satisfy the fencepost law")
 }
 
+/// Per-position direct-type runs: the same membership read the other way round.
 fn fixture_direct() -> Runs<BasePosition, OntologyRowId> {
     Runs::from_parts(le_posts(&DIRECT_POSTS), fixture_direct_ids().to_vec())
         .expect("the fixture posts satisfy the fencepost law")
 }
 
+/// The whole fixture written out as a postings file's bytes.
 fn fixture_bytes() -> Vec<u8> {
     let flags = fixture_flags();
     let dense_sets = fixture_dense();
@@ -121,6 +138,9 @@ fn fixture_bytes() -> Vec<u8> {
     bytes
 }
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 1, this
+/// machine's information, and the six region counts as little-endian `u64`s. A wrong magic and an
+/// unsupported version both fail the parse at the byte level.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(3, 10, 3, 1, 2, 6));
@@ -150,6 +170,10 @@ fn header_wire_layout() {
         .expect_err("an unsupported version should not parse");
 }
 
+/// The header's derived geometry - fencepost counts, dense-region length, each region's offset and
+/// the expected file length - matches the figures computed by hand for three types over ten
+/// points, and a count whose arithmetic overflows `u64` reports no expected length, because it
+/// matches no real file.
 #[test]
 fn region_geometry() {
     // The geometry of three types over ten points - a 16-byte flags frame, two four-post regions,
@@ -245,6 +269,8 @@ fn written_regions_reopen_verbatim() {
     assert_eq!(file.direct_ids(), fixture_direct_ids());
 }
 
+/// A file over no types and no points is valid geometry: it writes, reopens, and hands out empty
+/// entry regions with the single closing fencepost each run column still requires.
 #[test]
 fn empty_domain_reopens() {
     let path = scratch("empty.post");
@@ -425,6 +451,8 @@ fn writer_rejects_mismatched_post_regions() {
     );
 }
 
+/// A writer handed a flags set over a different domain than the type count panics rather than
+/// sealing a file the open's flags-domain check would refuse.
 #[test]
 #[should_panic(expected = "the flags set covers the type domain")]
 fn writer_rejects_missized_flags() {
@@ -433,6 +461,8 @@ fn writer_rejects_missized_flags() {
     let _: std::io::Result<()> = write_regions(empty_regions(&flags), &mut sink);
 }
 
+/// A writer handed a dense set whose type carries no flag bit panics rather than sealing a file
+/// in which the flag population and the dense set count disagree.
 #[test]
 #[should_panic(expected = "the flags set marks one type per dense set")]
 fn writer_rejects_unflagged_dense_sets() {
@@ -448,6 +478,8 @@ fn writer_rejects_unflagged_dense_sets() {
     );
 }
 
+/// A writer handed a dense set over a different point domain than the file's panics rather than
+/// sealing a file whose dense frames the open would refuse.
 #[test]
 #[should_panic(expected = "every dense set covers the point domain")]
 fn writer_rejects_missized_dense_sets() {

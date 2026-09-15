@@ -56,17 +56,16 @@ impl Error for OpenCoordinatesError {
 
 /// The staged coordinate column, mapped, proven finite, and addressed by the corpus row domain.
 ///
-/// The value is the fit's coordinates: it owns the mapping and dereferences to the proven point
-/// field, while the repository binding it holds is what the seal publishes. Finiteness is proven
-/// once at the open, so every consumer downstream reads a [`FinitePointField`] and re-proves
-/// nothing.
+/// The value is the fit's coordinates: it owns the mapping, while the repository binding it holds
+/// is what the seal publishes. Finiteness is proven once at the open, and every consumer
+/// downstream reads a [`FinitePointField`] and re-proves nothing.
 pub(super) struct Coordinates {
     /// The staged column's typed repository binding.
     pub binding: Binding<artifact::Coordinates>,
     /// The mapped point slice, validated as finite at construction.
     ///
     /// The pointee lives inside the mapping owned by `_file`, whose address is stable under moves
-    /// of this handle, so the pointer stays valid for exactly as long as the handle lives.
+    /// of this handle. The pointer therefore stays valid for exactly as long as the handle lives.
     points: NonNull<[Vec2]>,
     /// The mapping. Held for its lifetime alone: every read goes through `points`.
     _file: ArrayFile,
@@ -75,8 +74,8 @@ pub(super) struct Coordinates {
 impl Coordinates {
     /// Maps the staged coordinate column back under its typed binding and proves it finite.
     ///
-    /// The binding is the one the staging boundary returned for the column's write, so the
-    /// mapped view carries the same identity the seal publishes.
+    /// The binding is the one the staging boundary returned for the column's write, and the
+    /// mapped view therefore carries the same identity the seal publishes.
     ///
     /// # Errors
     ///
@@ -103,8 +102,8 @@ impl Coordinates {
 }
 
 // SAFETY: the mapping is read-only for the handle's whole life, `points` points into memory
-// owned by `_file` within the same value, and no interior mutability exists, so moving the handle
-// or sharing it across threads leaves every read valid.
+// owned by `_file` within the same value, and no interior mutability exists. Moving the handle or
+// sharing it across threads therefore leaves every read valid.
 unsafe impl Send for Coordinates {}
 // SAFETY: shared access only ever reads the immutable mapping. See the `Send` proof above.
 unsafe impl Sync for Coordinates {}
@@ -115,7 +114,7 @@ impl Deref for Coordinates {
     fn deref(&self) -> &Self::Target {
         // SAFETY: `points` was derived from the mapping owned by `self._file` at construction, the
         // mapping is immutable and lives as long as `self`, and the returned borrow is tied to
-        // `&self`, so the pointee is valid and unaliased by writes for the borrow's life.
+        // `&self`. The pointee is therefore valid and unaliased by writes for the borrow's life.
         let points = unsafe { &*self.points.as_ptr() };
         // Finiteness was proven over these exact bytes at the open, and the mapping is immutable.
         FinitePointField::new_unchecked(IdSlice::from_raw(points))

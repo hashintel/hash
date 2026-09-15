@@ -1,29 +1,30 @@
 //! The quadtree build, which cuts the base delivery order into tiles.
 //!
-//! [`QuadTree::build`] derives the quad file's regions from the finished lod columns. The tree
-//! holds one node for every tile the bucket-cut schedule delivers something new into. Each node
-//! carries its own-bucket run of the base order. A node also records the point count of its subtree
-//! and the set of direct types under it.
+//! [`QuadTree::build`] derives nodes and direct-type sets from finished [`Lod`] columns. A node
+//! records the run first delivered at its cut, the population of its whole cell, and every direct
+//! type in that cell. Population and type sets include points delivered at shallower cuts.
 //!
-//! The root always exists and covers the wire frame. A deeper cell gets a node exactly when it
-//! contains a point the parent tile's cut did not deliver, a point whose bucket is at least the
-//! cell's own cut `z + span_log2`. The cascade shapes the tree in two ways:
+//! Let m be [`LodConfig::span`], z a tile's depth, and b a point's bucket. The root always exists.
+//! A deeper cell gets a node exactly when it contains a point with b ≥ z + m, beyond its parent's
+//! cut. A node may have an empty own-bucket run while retaining descendants that deliver later
+//! buckets.
 //!
-//! - Chains self-terminate. A point alone in its depth-`d` cell is that cell's best-ranked
-//!   occupant, so the first-occupant cascade assigns it a bucket no deeper than the first depth
-//!   where it stands alone. Isolated points never force node chains.
-//! - Runs partition the base order. A point with bucket `b` beyond the root's cut shows up in
-//!   exactly one node's run - its cell at depth `b - span_log2`, which exists because the point
-//!   itself witnesses the rule - and the root's run carries buckets `0..=span_log2` whole and
-//!   contiguous, because the base order is bucket-major. The tile pyramid therefore delivers every
-//!   point exactly once.
+//! # Partition and termination
 //!
-//! The recursion needs no depth cap. The cascade assigns no bucket beyond `max_tile_depth +
-//! span_log2`, so leaves at the deepest tile zoom fall out by construction.
+//! Bucket-major order makes buckets 0 through m one contiguous root run. Every point with b > m
+//! belongs to exactly one cell at depth b − m, and that point requires its cell's node to exist.
+//! That node's run selects bucket b. Therefore the node runs partition the base order and deliver
+//! every point exactly once.
 //!
-//! The partition-point searches of `file/morton`'s `run` query narrow each node's run (first code
-//! at or above the cell's minimum key, first beyond its maximum), so the builder and the served
-//! lookups can never disagree about a run's extent.
+//! The cascade assigns a point no later than the first grid where it stands alone. Such a point
+//! needs no descendant node once the tile cut reaches its bucket. More generally, every bucket is
+//! at or below [`LodConfig::deepest`]. At the maximum tile depth, no point remains beyond the cut,
+//! and recursion terminates without a separate depth cap.
+//!
+//! Each Morton cell is one inclusive key interval. Within a sorted bucket, the first code at or
+//! above the cell's minimum and the first code beyond its maximum delimit that cell's run. Both the
+//! builder and [`MortonFile::run`](crate::file::morton::read::MortonFile::run) use these boundaries
+//! over the same codes. Their run extents agree.
 
 use alloc::collections::BTreeSet;
 use core::ops::Range;
@@ -44,7 +45,7 @@ use crate::{
     morton::{Depth, MortonCell, MortonKey},
 };
 
-/// Building the quadtree failed.
+/// A schedule, column, or encoding limit that prevents quadtree construction.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum QuadError {
     /// The configuration names a schedule no 64-bit key resolves.
@@ -52,12 +53,10 @@ pub(crate) enum QuadError {
     /// The type column covers a different row count than the lod columns.
     Columns { rows: usize },
     /// The lod columns hold points in a bucket beyond the configuration's deepest grid.
-    ///
-    /// The lod ran under a different configuration.
     Bucket { bucket: u8 },
     /// A direct type names an ontology row beyond the `u32` ordinals the quad file stores.
     TypeOrdinal { row: NodeRowId, id: u64 },
-    /// The tree needs more nodes than `u32` indexes address.
+    /// A node index would reach or exceed the absent-child sentinel.
     Nodes,
 }
 
@@ -91,11 +90,20 @@ impl core::fmt::Display for QuadError {
 
 impl core::error::Error for QuadError {}
 
-/// The quad file's regions for one generation, in writable form.
+/// A quadtree's node table and per-node direct-type sets.
 ///
-/// Node 0 is the root; records are in depth-first pre-order with children in Morton child order, so
-/// every child index points deeper in the table. [`measurements`](Self::measurements) reads the
-/// finished tree and yields the numbers that belong in the generation's metadata document.
+/// [`Self::build`] places the root at index zero and records nodes in depth-first pre-order, with
+/// children in Morton order. Every child index points farther into the table.
+///
+/// # Memory usage
+///
+/// Each node retains its cell's complete direct-type set. A type present along a depth-h branch can
+/// repeat in all h + 1 node sets.
+///
+/// # Panics
+///
+/// Writing panics if the node count is at least [`Node::NO_CHILD`], if `sets` covers a different
+/// node count, or if a child index lies outside the table or does not follow its parent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct QuadTree {
     /// The node table in depth-first pre-order.
@@ -109,21 +117,23 @@ pub(crate) struct QuadTree {
 impl QuadTree {
     /// Builds the quadtree over the finished lod columns.
     ///
-    /// `types` holds each row's direct types in **row** order, exactly as the dataset streams them
-    /// (ascending, deduplicated). The builder gathers them into base order through the lod's
-    /// permutation.
+    /// `types` holds each row's direct types in row order. Each node receives the sorted,
+    /// deduplicated union for its whole cell. `lod` must retain the permutation, fencepost, and
+    /// sorted-code invariants of [`Lod::build`].
     ///
-    /// `config` must be the configuration the lod ran under. A mismatch surfaces as
-    /// [`QuadError::Bucket`] when the lod's cascade ran deeper than the configuration allows, and
-    /// nothing else here detects it.
+    /// `config` must be the configuration the lod ran under. A bucket beyond the supplied deepest
+    /// grid produces [`QuadError::Bucket`]. Other valid configuration mismatches can change the
+    /// tree without an error.
     ///
     /// # Errors
     ///
-    /// Returns [`QuadError::Schedule`] when the configuration exceeds the key width,
-    /// [`QuadError::Columns`] when the type column disagrees with the lod columns,
-    /// [`QuadError::Bucket`] when the lod holds points beyond the configuration's deepest grid,
-    /// [`QuadError::TypeOrdinal`] when a direct type escapes the file's `u32` ordinals, and
-    /// [`QuadError::Nodes`] when the tree escapes `u32` node indexes.
+    /// Returns a [`QuadError`] for an invalid schedule, incompatible columns, or a row or node
+    /// index beyond its encoding.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the lod's row permutation or fenceposts address elements outside their
+    /// corresponding columns.
     #[tracing::instrument(skip_all)]
     pub(crate) fn build(
         lod: &Lod,
@@ -143,8 +153,7 @@ impl QuadTree {
             }
         }
 
-        // Gather the type column into base order once, so the recursion
-        // touches each position's types without indirection.
+        // gathering once removes row indirection from the recursive type unions
         let position_types = lod
             .row_of_position
             .iter()
@@ -198,14 +207,6 @@ impl WriteAs<crate::file::salt::artifact::Quad> for QuadTree {}
 impl WriteInto for QuadTree {
     type Error = io::Error;
 
-    /// Writes the tree as a quad file.
-    ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the underlying writer fails.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -235,9 +236,10 @@ pub(crate) struct QuadMeasurements {
     pub type_entries: u64,
 }
 
-/// The positions of each bucket's codes inside the cell under construction, one range per bucket.
+/// Per-bucket ranges of codes inside the cell under construction.
 type BucketRanges = [Range<BasePosition>; SEGMENTS];
 
+/// An in-progress quad tree in depth-first pre-order, with one type set per node.
 struct Builder<'lod> {
     /// The code column in base order, segment-sorted.
     codes: &'lod IdSlice<BasePosition, MortonKey>,
@@ -260,7 +262,17 @@ struct Builder<'lod> {
 impl Builder<'_> {
     /// Builds the node for `cell` over the bucket `ranges` narrowed to it.
     ///
-    /// Returns the node's table index.
+    /// Returns the node's table index. `ranges` must delimit this cell within each sorted bucket,
+    /// and the cell's cut must not exceed `self.deepest`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QuadError::Nodes`] if the next node index cannot fit below [`Node::NO_CHILD`].
+    ///
+    /// # Panics
+    ///
+    /// Panics for ranges outside the code or type columns, a population exceeding `u32`, or a cell
+    /// whose cut exceeds `self.deepest`.
     fn node(&mut self, cell: MortonCell, ranges: &BucketRanges) -> Result<u32, QuadError> {
         let Ok(index) = u32::try_from(self.nodes.len()) else {
             return Err(QuadError::Nodes);
@@ -269,7 +281,7 @@ impl Builder<'_> {
             return Err(QuadError::Nodes);
         }
 
-        // Reserve the pre-order slot before the children claim theirs.
+        // reserve the parent's pre-order slot before appending its descendants
         self.nodes.push(Node::new([None; 4], 0, 0, 0));
         self.sets.push(Vec::new());
         self.depth = self.depth.max(cell.depth());
@@ -284,8 +296,7 @@ impl Builder<'_> {
         let mut children = [None; 4];
         let mut set = BTreeSet::new();
         if self.exhausted(cut, ranges) {
-            // This tile's cut delivers every point in the cell. The cell is a leaf, and all of its
-            // points feed the type set directly.
+            // the leaf has no child sets to union: gather every point in its cell
             for range in ranges {
                 self.gather(&mut set, range.clone());
             }
@@ -297,8 +308,8 @@ impl Builder<'_> {
             for (quadrant, child_cell) in cells.into_iter().enumerate() {
                 let child_ranges = self.narrow(ranges, child_cell);
                 if self.exhausted(cut, &child_ranges) {
-                    // This quadrant needs no node, so its points contribute their types here, at
-                    // the deepest node containing them.
+                    // this quadrant's points contribute directly at the deepest node containing
+                    // them
                     for range in &child_ranges {
                         self.gather(&mut set, range.clone());
                     }
@@ -323,8 +334,12 @@ impl Builder<'_> {
 
     /// Returns the own-bucket run.
     ///
-    /// Bucket `z + span_log2` for a tile at zoom `z`, buckets `0..=span_log2` whole for the root -
-    /// a single contiguous range because the base order is bucket-major.
+    /// Selects bucket `z + span_log2` at depth `z`, or all buckets `0..=span_log2` for the root.
+    /// Bucket-major order makes the root's whole segments contiguous.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `depth + self.span_log2` exceeds [`Depth::MAX`].
     fn run(&self, depth: Depth, ranges: &BucketRanges) -> Range<BasePosition> {
         if depth == Depth::MIN {
             let cut = usize::from(self.span_log2);
@@ -344,7 +359,11 @@ impl Builder<'_> {
 
     /// Returns whether `ranges` holds no point in a bucket beyond `cut`.
     ///
-    /// Nothing below this tile's zoom delivers anything new.
+    /// `cut` must be at or below `self.deepest`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `cut` exceeds `self.deepest`.
     fn exhausted(&self, cut: u8, ranges: &BucketRanges) -> bool {
         ranges[usize::from(cut) + 1..=usize::from(self.deepest.get())]
             .iter()
@@ -353,13 +372,17 @@ impl Builder<'_> {
 
     /// Narrows every bucket's range to the codes inside `cell`.
     ///
-    /// By the partition-point searches of `file/morton`'s `run` query. A partition point over the
-    /// range's sub-slice is an offset into the range, which the range's own start rebases into a
-    /// base position.
+    /// Each range must delimit sorted codes. The result uses base positions rather than offsets
+    /// within a range.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a range lies outside `self.codes`.
     fn narrow(&self, ranges: &BucketRanges, cell: MortonCell) -> BucketRanges {
         core::array::from_fn(|bucket| {
             let range = &ranges[bucket];
             let slice = &self.codes[range.clone()];
+            // partition points are relative to `slice`: add the enclosing range's base position
             let start = range
                 .start
                 .plus(slice.partition_point(|&code| code < cell.min_key()));
@@ -370,7 +393,11 @@ impl Builder<'_> {
         })
     }
 
-    /// Feeds the types of every position in `range` into `set`.
+    /// Adds the direct types of every position in `range` to `set`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `range` addresses a position outside `self.position_types`.
     fn gather(&self, set: &mut BTreeSet<u32>, range: Range<BasePosition>) {
         for position in range {
             set.extend(self.position_types[position].iter().copied());

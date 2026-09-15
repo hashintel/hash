@@ -27,7 +27,7 @@ use crate::dataset::TemporalAxes;
 
 /// The field separator inside a stable hash's input, keeping the hashed tuple unambiguous.
 ///
-/// Travels as a bound parameter, so the statement text carries no quoted literal.
+/// Travels as a bound parameter. The statement text carries no quoted literal.
 const FIELD_SEPARATOR: &str = "|";
 
 /// The direct-type marker of a source whose edition lists no direct types.
@@ -39,9 +39,8 @@ const NO_DIRECT_TYPE: &str = "";
 /// The columns of the example pipeline's CTEs.
 ///
 /// The pipeline's stages annotate one logical row: `links` carries the instance identity,
-/// `raw_examples` adds the endpoints and their labels, and the scoring stages add frequencies
-/// and ranks. One vocabulary serves every stage, so a stage alias can cite exactly the pipeline's
-/// columns.
+/// `raw_examples` adds the endpoints and their labels, and the scoring stages add frequencies and
+/// ranks. One vocabulary serves every stage. A stage alias can cite exactly the pipeline's columns.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Example {
     /// The relation's 1-based position in the type table.
@@ -272,11 +271,18 @@ fn instances(axes: Axes) -> SelectStatement {
         .build()
 }
 
-/// The endpoint aliases `raw_examples` resolves one edge's target through.
+/// The edge row `raw_examples` resolves an example's left endpoint through, as its target.
+///
+/// The edge table is joined once per endpoint and the edition cache once per resolved endpoint.
+/// Each of those two tables therefore occurs twice in the statement, and each occurrence needs a
+/// name of its own to be referred to.
 const LEFT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "left_edge");
+/// The edge row `raw_examples` reads an example's right endpoint from.
 const RIGHT_EDGE: Aliased<EntityEdge> = Aliased::of(Table::EntityEdge, "right_edge");
+/// The cached edition of the left endpoint, which carries its display labels.
 const SOURCE_CACHE: Aliased<EntityEditionCache> =
     Aliased::of(Table::EntityEditionCache, "source_cache");
+/// The cached edition of the right endpoint, which carries its display labels.
 const TARGET_CACHE: Aliased<EntityEditionCache> =
     Aliased::of(Table::EntityEditionCache, "target_cache");
 
@@ -290,8 +296,8 @@ fn raw_example_outputs(
     field_separator: Placeholder,
     no_direct_type: Placeholder,
 ) -> Vec<SelectExpression> {
-    // The base ids of the source's direct types lead its closure array, `direct_types` many, so
-    // the slice's first element is the representative type, and NULL when the edition lists none.
+    // The base ids of the source's direct types lead its closure array, `direct_types` many. The
+    // slice's first element is the representative type, and NULL when the edition lists none.
     let direct_type = Expression::ArrayElement {
         expr: Box::new(Expression::ArraySlice {
             expr: Box::new(SOURCE_CACHE.column(&EntityEditionCache::BaseUrls)),
@@ -549,8 +555,8 @@ fn scored_examples() -> SelectStatement {
 
 /// Builds the `stratified_examples` table: one row per endpoint pair, ranked per subgroup.
 fn stratified_examples() -> SelectStatement {
-    // ln(1 + <the frequency>): a frequency counts at least the row it annotates, so the sum
-    // stays integral and its logarithm equals the fractional form's.
+    // ln(1 + <the frequency>): a frequency counts at least the row it annotates. The sum stays
+    // integral and its logarithm equals the fractional form's.
     let log_frequency = |column: Example| {
         Expression::from(Function::Ln(Box::new(
             Expression::from(Constant::U32(1)).add(SCORED_EXAMPLES.column(&column)),
@@ -792,6 +798,11 @@ fn pool_bound(count: usize, factor: usize) -> i64 {
 }
 
 /// Applies one example row to its relation's facts.
+///
+/// # Errors
+///
+/// Returns the store's error when a selected column does not read back at the type the decode
+/// asks for.
 fn apply_row(
     row: &Row,
     columns: &ExampleColumns,
@@ -840,6 +851,11 @@ fn apply_row(
 /// row survives per endpoint pair, frequencies count each endpoint's occurrences among the
 /// relation's instances before that dedup, and pooling bounds transfer per source-direct-type
 /// subgroup first, then per relation, in a deterministic hash order.
+///
+/// # Errors
+///
+/// Returns the store's error when it rejects the read, then when a row does not decode. `facts`
+/// keeps whatever earlier rows already contributed.
 pub(super) async fn example_rows(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -879,10 +895,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn statement_text() {
         let axes = TemporalAxes::now();

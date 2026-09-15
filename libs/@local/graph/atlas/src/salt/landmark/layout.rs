@@ -1,34 +1,48 @@
 //! Semantic-graph layout by UMAP's negative-sampling update rule.
 //!
-//! [`layout_landmarks`] places one 2D point per graph row. Sampled edges pull their endpoints
-//! together and uniformly drawn vertices push the sampled endpoint away, each step the gradient of
-//! its own pair energy under the [`AffinityCurve`]. The expected update is a field with no scalar
-//! objective behind it (negatives move the anchor only); its expected per-pair repulsion is vertex
-//! degree times the negative rate over the vertex count, so the layout reproduces the graph's
-//! near-binary neighbourhood structure (the scaffold the skeleton stages consume) and the fuzzy
-//! weights act through the edge schedule rather than as calibrated similarity targets.
+//! [`layout_landmarks`] places one 2D point per graph row using [`AffinityCurve`]'s clipped and
+//! regularized pair kernels. Attraction moves both endpoints. Negative sampling moves only the
+//! anchor, leaving the sampled vertex unchanged. Fuzzy edge weights determine sampling frequency
+//! rather than calibrated low-dimensional similarity targets. In general these updates neither
+//! descend one scalar objective for the whole graph nor guarantee recovery of its neighbourhoods.
 //!
-//! Sampling follows the edge weights. An edge is first due one full period of `maximum_weight /
-//! weight` epochs in, so the strongest edge applies every epoch after the first and weaker edges
-//! proportionally less often. An edge never due within the epoch budget drops out up front. Every
-//! sampled edge additionally repels [`negative_sample_rate`](LayoutOptions::negative_sample_rate)
-//! uniformly drawn vertices, and the learning rate decays linearly toward zero across the epoch
-//! budget (the final epoch steps at `initial / epochs`).
+//! # Schedule
 //!
-//! Due edges apply in [`Vec2x4T`] batches of four. Gradients within one batch evaluate at the
-//! batch's entry coordinates, and the four negative-sample gradients of one chunk accumulate
-//! against one anchor position, which gives mini-batch semantics rather than strictly sequential
-//! updates.
+//! For a stored edge of weight w > 0, let P = wₘₐₓ / w be its period. It is first due at P and
+//! subsequently advances by P on each visit. With E epochs numbered 0 through E − 1, periods
+//! greater than E − 1 drop out before optimization. The strongest edges have P = 1 and apply once
+//! per epoch after epoch zero. An epoch budget of one returns the initialization even when the
+//! graph has edges.
 //!
-//! Points start on a jittered circle of diameter ten, an extent that puts the per-axis [gradient
-//! clip](AffinityCurve::GRADIENT_CLIP) at 0.40 of the initial span. Every draw comes from the
-//! caller-seeded generator, so a rerun over an equal graph, curve, options, and seed reproduces the
-//! layout exactly. Rows without edges keep their initial placement: no attraction schedules them,
-//! and repulsion moves only the sampled endpoint.
+//! Each due directed edge draws r = [`negative_sample_rate`](LayoutOptions::negative_sample_rate)
+//! vertices uniformly with replacement. If dᵢ(e) scheduled edges have anchor i in epoch e and the
+//! graph has N vertices, the expected number of draws from i to any fixed j is r · dᵢ(e) / N.
+//! Different anchor frequencies can produce unequal opposite repulsive updates. This is the
+//! sampling model, not a symmetric cross-entropy gradient. Every draw remains in the schedule,
+//! including self draws, whose coincident-pair gradient is zero.
 //!
-//! The optimizer is serial by design: each gradient step reads coordinates the previous step wrote,
-//! and the bit-reproducible layout is the property the serial order buys. Parallelism belongs to
-//! the stages around it, not inside the epoch loop.
+//! The learning rate is η(e) = η₀ · (1 − e / E). In real arithmetic the final epoch uses η₀ / E.
+//! Periods, due times and learning rates use `f32`, with rounded division and repeated period
+//! additions. Large epoch counts can lose integer precision and alter that ideal schedule.
+//!
+//! Due edges apply in [`Vec2x4T`] batches of four. Their gradients use the batch's entry
+//! coordinates, and updates for shared vertices accumulate. Negative draws likewise apply in chunks
+//! of four against one anchor position, followed by a scalar remainder. Changing this batch
+//! structure changes the numerical method.
+//!
+//! # Initialization and reproducibility
+//!
+//! Vertex i starts at angle 2π · i / N with radius 5 · (1 + 0.01 · Uᵢ).
+//!
+//! Uᵢ is uniform in `[0, 1)` before floating-point rounding. The base diameter is ten, placing the
+//! per-axis [gradient clip](AffinityCurve::GRADIENT_CLIP) of four at 0.40 of that base span before
+//! learning-rate scaling. Rows with no scheduled edge keep their initial placement because negative
+//! sampling never moves its target.
+//!
+//! Serial batch order fixes which coordinates each update reads. Equal graphs, curves, options and
+//! random streams repeat the layout with the same floating-point behavior. Different targets or
+//! kernels can change rounded results. The schedule and clipping provide no general convergence
+//! guarantee.
 
 use core::{
     array, error::Error, f32::consts::TAU, fmt, iter::Step, num::NonZero, simd::num::SimdFloat as _,
@@ -43,9 +57,16 @@ use crate::{
     salt::semantic::SemanticGraphView,
 };
 
+// The defaults are the UMAP reference defaults, carried as unvalidated starting points. The
+// release evaluation's layout criteria (trustworthiness, landmark rank correlation) revise them
+// from evidence.
+/// The default epoch budget.
 const DEFAULT_EPOCHS: NonZero<u32> = const { NonZero::new(500).unwrap() };
+/// The default learning rate at epoch zero.
 const DEFAULT_INITIAL_LEARNING_RATE: Positive = positive!(1.0);
+/// The default weight of repulsive updates.
 const DEFAULT_REPULSION_STRENGTH: NonNegative = non_negative!(1.0);
+/// The default number of vertices repelled per sampled edge.
 const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwrap() };
 
 /// Schedule settings for one layout, valid by construction.
@@ -55,13 +76,13 @@ const DEFAULT_NEGATIVE_SAMPLE_RATE: NonZero<u32> = const { NonZero::new(5).unwra
 // evidence.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct LayoutOptions {
-    /// Optimization epochs.
+    /// Optimization epochs, 500 by default.
     pub epochs: NonZero<u32> = DEFAULT_EPOCHS,
-    /// Learning rate at epoch zero, decaying linearly toward zero across the epoch budget.
+    /// Initial learning rate, 1.0 by default, decaying across the epoch budget.
     pub initial_learning_rate: Positive = DEFAULT_INITIAL_LEARNING_RATE,
-    /// Weight of repulsive updates. Zero disables repulsion.
+    /// Weight of repulsive updates, 1.0 by default. Zero disables repulsion.
     pub repulsion_strength: NonNegative = DEFAULT_REPULSION_STRENGTH,
-    /// Vertices repelled per sampled edge.
+    /// Uniform vertex draws per sampled edge, 5 by default.
     pub negative_sample_rate: NonZero<u32> = DEFAULT_NEGATIVE_SAMPLE_RATE,
 }
 
@@ -84,15 +105,21 @@ impl fmt::Display for EdgelessGraphError {
 impl Error for EdgelessGraphError {}
 
 hashql_core::id::newtype! {
+    /// The index of one directed edge in the layout's edge schedule.
     #[id(derive(Step), const)]
     struct LandmarkEdgeId(u32)
 }
 
 /// Lays out one point per graph row, in row order.
 ///
-/// `graph` is the attraction structure - for the landmark skeleton, the quotient over the landmark
-/// domain, indexed by ordinal - and `curve` the fitted low-dimensional kernel
-/// ([`AffinityCurve::fit`]). `rng` drives the initial placement and the negative draws.
+/// `graph` supplies the weighted attraction structure, and `curve` supplies the low-dimensional
+/// kernels ([`AffinityCurve::fit`]). `rng` drives initialization and negative draws. The schedule
+/// uses the graph's stored edge order.
+///
+/// # Panics
+///
+/// This panics when the retained schedule exceeds its `u32` edge-id domain or a raw CSR pointer
+/// lies outside the graph's stored entries.
 ///
 /// # Errors
 ///
@@ -127,19 +154,14 @@ where
 
 /// Radius of the initial circle.
 ///
-/// The resulting diameter of ten puts the per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP)
-/// at 0.40 of the initial extent.
-// Pinning the radius and the clip fixes one ratio: how far a single sample can move a point
-// relative to the layout's extent. A knob on one side changes that ratio with nothing to signal the
-// change. If the frame ever moves, both move together. The clip is the UMAP reference constant,
-// whose frame spans twenty (ratio 0.20), and ten carries no recorded derivation, so the 0.40 here
-// is an unvalidated starting point that the release evaluation's layout criteria revise from
-// evidence.
+/// The base diameter of ten gives a per-axis [`GRADIENT_CLIP`](AffinityCurve::GRADIENT_CLIP) ratio
+/// of 4/10 = 0.40 before jitter and learning-rate scaling.
+// the radius is an unvalidated starting point. Assess changes together with the clip-to-span ratio
+// using trustworthiness and landmark rank correlation.
 const INITIAL_RADIUS: f32 = 5.0;
 /// Relative radial jitter of the initial circle, breaking the regular polygon's symmetry.
-// Pinned, not configurable: any small positive value serves; the only
-// distinguishable settings are zero (restores the symmetric saddle)
-// and large (distorts the circle for nothing).
+// one-percent radial variation breaks exact regular-polygon symmetry before rounding. Assess its
+// scale through the layout quality measurements.
 const RADIAL_JITTER: f32 = 0.01;
 
 /// Places every vertex on the jittered initial circle, by vertex order.
@@ -179,8 +201,13 @@ where
 {
     /// Extracts the edges due at least once within the epoch budget.
     ///
-    /// Returns [`None`] when the graph stores no edges. Weights are finite in `(0, 1]` by the
-    /// graph's invariants, so the schedule re-validates nothing.
+    /// Returns [`None`] only when the graph stores no edges. A nonempty graph can yield an empty
+    /// schedule if no edge is due within the budget.
+    ///
+    /// # Panics
+    ///
+    /// This panics when a raw CSR pointer lies outside the stored entries or the retained edge
+    /// count exceeds `E`'s id domain.
     #[expect(
         clippy::cast_precision_loss,
         reason = "the matrix's u32 column index type bounds the square row domain, and epoch \
@@ -298,7 +325,7 @@ where
 
     /// Applies the symmetric attraction update of four edges.
     ///
-    /// Edges sharing a vertex within one batch see the batch's entry coordinates; their updates
+    /// Edges sharing a vertex within one batch see the batch's entry coordinates. Their updates
     /// accumulate.
     fn attract_x4(&mut self, edges: [E; 4], learning_rate: f32) {
         let heads = edges.map(|edge| self.schedule.heads[edge]);
@@ -331,8 +358,8 @@ where
     /// Repels the anchor from `negative_sample_rate` drawn vertices.
     ///
     /// Draws apply in chunks of four against the anchor's position at chunk entry, with a scalar
-    /// remainder. A draw of the anchor itself is a coincident pair and contributes no gradient, so
-    /// the loop keeps every draw.
+    /// remainder. Every draw remains in the schedule, including a draw of the anchor itself, whose
+    /// coincident-pair gradient is zero.
     fn repel(&mut self, anchor: N, learning_rate: f32) {
         let mut remaining = self.options.negative_sample_rate.get();
 

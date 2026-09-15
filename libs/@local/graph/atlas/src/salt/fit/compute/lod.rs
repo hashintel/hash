@@ -28,11 +28,15 @@ use crate::{
 
 /// The delivery stage failed and staged no column.
 ///
-/// One variant per way the stage refuses, so a delivery failure attributes to this stage by
-/// construction.
+/// One variant per way the stage refuses. A delivery failure therefore attributes to this stage
+/// by construction.
 #[derive(Debug)]
 pub(crate) enum DeliveryError {
-    /// The corpus exceeds the `u32` wire position encoding.
+    /// The rank inputs refused their columns.
+    ///
+    /// The corpus exceeds the `u32` wire position encoding, or the importance, priority and
+    /// identity columns disagree on length. The second case is a pipeline defect: all three
+    /// columns derive from one corpus.
     WireEncoding { rows: u64 },
     /// The level-of-detail derivation rejected its input.
     Lod(LodError),
@@ -97,9 +101,9 @@ impl Error for DeliveryError {
 
 /// The level-of-detail stage, bound to the values it derives from.
 ///
-/// [`run`](Self::run) derives the delivery structure and [`Delivery::stage`] persists it, so the
-/// computation and its artifacts separate: the stage consumes proven values, and only the staging
-/// step touches the generation.
+/// [`run`](Self::run) derives the delivery structure and [`Delivery::stage`] persists it. The
+/// computation and its artifacts therefore separate: the stage consumes proven values, and only
+/// the staging step touches the generation.
 pub(super) struct LevelOfDetail<'fit, I> {
     /// The canonical coordinates, proven finite at their readback.
     coordinates: &'fit FinitePointField<NodeRowId>,
@@ -156,12 +160,10 @@ where
             RankingConfig::IncidentDegree => DegreeImportance::new(self.adjacency).derive(rows),
         };
 
-        // The priority column is the rank inputs' product-override
-        // lane: a product-side boost (a pinned or promoted entity)
-        // will feed it the day one exists. Until then every row
-        // carries the neutral 0 and the column stays present, so the
-        // rank contract and the wire shape do not change when the
-        // signal arrives.
+        // The priority column is the rank inputs' product-override lane for a product-side boost (a
+        // pinned or promoted entity). No such signal exists, and every row carries the neutral 0.
+        // The column is present regardless, and the rank contract and the wire shape therefore do
+        // not depend on whether a boost signal exists.
         let priority = IdVec::from_domain(0.0_f32, &importance);
         let inputs = RankInputs::new(&importance, &priority, self.ids.ids()).ok_or_else(|| {
             DeliveryError::WireEncoding {
@@ -265,20 +267,32 @@ impl Delivery {
 
 /// The staged level-of-detail files of one fit, each binding typed by its artifact.
 pub(super) struct LodArtifacts {
+    /// The Morton code column in base delivery order.
     pub morton: Binding<artifact::Morton>,
+    /// The quadtree topology.
     pub quad: Binding<artifact::Quad>,
+    /// The type postings over the base delivery order.
     pub postings: Binding<artifact::Postings>,
+    /// The wire coordinate column in base delivery order.
     pub wire_coordinates: Binding<artifact::WireCoordinates>,
+    /// Each base position's importance rank.
     pub rank_of_position: Binding<artifact::RankOfPosition>,
+    /// Each rank's base position.
     pub position_of_rank: Binding<artifact::PositionOfRank>,
+    /// Each node row's base position.
     pub position_of_row: Binding<artifact::PositionOfRow>,
+    /// Each base position's node row.
     pub row_of_position: Binding<artifact::RowOfPosition>,
 }
 
 /// The staged delivery structure, pairing the typed artifact set with every evidence section.
 pub(super) struct StagedDelivery {
+    /// The staged files, each binding typed by its artifact.
     pub files: LodArtifacts,
+    /// The delivery-order readings.
     pub evidence: LodMeasurements,
+    /// The quadtree readings.
     pub quad: QuadMeasurements,
+    /// The postings readings.
     pub postings: PostingsMeasurements,
 }

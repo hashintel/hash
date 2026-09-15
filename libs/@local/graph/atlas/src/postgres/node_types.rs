@@ -116,6 +116,11 @@ pub(crate) fn node_type_statement<'params>(
 }
 
 /// Converts a column of SQL ordinals into ontology row references.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Ordinal`] carrying the first ordinal that is not a `u64`, which
+/// is a negative value, since the signed column is the only width mismatch a store can deliver.
 pub(crate) fn ontology_rows(
     ordinals: Vec<i64>,
 ) -> Result<SmallVec<OntologyRowId, 2>, PostgresDatasetError> {
@@ -130,6 +135,16 @@ pub(crate) fn ontology_rows(
 }
 
 /// Decodes one direct-type row.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`]: [`Query`] when a selected column does not read back at the
+/// type the decode asks for, then [`Ordinal`] when the ordinal column carries a value that is not
+/// a row reference. An edition with no direct types does not fail here, because the statement
+/// coalesces its absent row to the empty ordinal array.
+///
+/// [`Query`]: PostgresDatasetError::Query
+/// [`Ordinal`]: PostgresDatasetError::Ordinal
 pub(crate) fn decode_node_types(
     row: &Row,
     columns: &NodeTypeColumns,
@@ -166,10 +181,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn statement_text() {
         let axes = TemporalAxes::now();

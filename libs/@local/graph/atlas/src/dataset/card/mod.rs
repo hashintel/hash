@@ -15,7 +15,8 @@
 //! passes run in this fixed order:
 //!
 //! 1. drop example slots round-robin from the largest groups;
-//! 2. remove ancestor and endpoint-type description detail;
+//! 2. strip the removable detail from ancestor, endpoint-type, source-type and target-type
+//!    descriptions;
 //! 3. drop whole example groups while preserving one example;
 //! 4. above the hard budget only, drop examples and then ancestors.
 //!

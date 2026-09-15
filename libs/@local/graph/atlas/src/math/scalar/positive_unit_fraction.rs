@@ -11,8 +11,8 @@ use super::{UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
 
 /// Validates a positive-unit-fraction literal at compile time.
 ///
-/// The expansion is a `const` block over [`PositiveUnitFraction::new`], so a literal outside the
-/// domain fails the build instead of a test run. Runtime values keep the checked constructor.
+/// A literal outside the domain fails the build. Use [`PositiveUnitFraction::new`] to check runtime
+/// values.
 macro_rules! positive_unit_fraction {
     ($value:expr) => {
         const {
@@ -25,18 +25,20 @@ pub(crate) use positive_unit_fraction;
 
 /// A finite fraction in `(0, 1]`, valid by construction.
 ///
-/// The half-open sibling of [`UnitFraction`], for factors whose lower endpoint alone degenerates:
-/// a factor of zero silences whatever mass it scales, while a factor of one leaves it whole and
-/// keeps its effect. The exclusion rides in the type, so dividing by the fraction needs no zero
-/// check at the use site, and a product with the fraction vanishes only when the other operand
-/// does.
+/// The half-open sibling of [`UnitFraction`], for factors that may preserve a magnitude but
+/// must be greater than zero. Dividing by the fraction needs no zero-divisor check. A product
+/// of positive operands is positive in exact arithmetic, but it can underflow to zero in
+/// floating-point arithmetic.
 ///
-/// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value, so
-/// fractions sort and key ordered maps with no NaN case.
+/// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{PositiveUnitFraction};
+///
 /// let share = PositiveUnitFraction::new(0.25).expect("0.25 lies inside (0, 1]");
 /// assert_eq!(share.get(), 0.25);
 ///
@@ -68,15 +70,13 @@ impl PositiveUnitFraction {
 
     /// Returns whether `value`'s exact bits are a stored fraction.
     ///
-    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: the domain
-    /// holds no zero of either sign and accepted values store bit for bit, so the bits are
-    /// valid exactly when [`new`](Self::new) accepts the value.
+    /// For validating persisted bytes, this accepts exactly the values accepted by
+    /// [`new`](Self::new). The domain excludes both zeros and preserves accepted values bit for
+    /// bit.
     #[inline]
     #[must_use]
     pub const fn is_canonical(value: f64) -> bool {
         match Self::new(value) {
-            // Compare against what construction stored, so the check follows any future
-            // normalization.
             Some(accepted) => accepted.0.to_bits() == value.to_bits(),
             None => false,
         }
@@ -94,8 +94,7 @@ impl PositiveUnitFraction {
             value > 0.0 && value <= 1.0,
             "the caller promised a value inside (0, 1]",
         );
-        // No normalization: the promised domain contains no zero of either sign, so a kept
-        // promise is already canonical.
+        // excluding both zeros makes in-domain values canonical without normalization
         Self(value)
     }
 
@@ -110,7 +109,7 @@ impl PositiveUnitFraction {
 const impl PartialEq for PositiveUnitFraction {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -135,7 +134,7 @@ const impl Ord for PositiveUnitFraction {
 const impl PartialEq<UnitFraction> for PositiveUnitFraction {
     #[inline]
     fn eq(&self, other: &UnitFraction) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // both domains use the same unique representation for each shared value
         self.get().to_bits() == other.get().to_bits()
     }
 }
@@ -151,7 +150,7 @@ const impl PartialOrd<UnitFraction> for PositiveUnitFraction {
 impl Hash for PositiveUnitFraction {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // canonical bits: equal fractions share one bit pattern, so `Hash` agrees with `Eq`
+        // hashing the unique representation agrees with numeric equality
         state.write_u64(self.0.to_bits());
     }
 }
@@ -163,14 +162,12 @@ impl fmt::Display for PositiveUnitFraction {
 }
 
 impl serde::Serialize for PositiveUnitFraction {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for PositiveUnitFraction {
-    /// Deserializes a plain number, refusing values outside the half-open unit interval.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f64::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {

@@ -1,8 +1,8 @@
 //! Generation compatibility and artifact integrity, checked before any extraction.
 //!
-//! A replay attributes the whole gap between two generations' readings to later arrivals, so
-//! the pair must differ in nothing else it can refuse on. Both placements come from the trained
-//! projector. Both fits ran under one embedding contract and one configuration, the seed
+//! A replay attributes the whole gap between two generations' readings to later arrivals. The
+//! pair must therefore differ in nothing else it can refuse on. Both placements come from the
+//! trained projector. Both fits ran under one embedding contract and one configuration, the seed
 //! included. The artifact bytes must also be the bytes the metadata documents bound, because
 //! the report's evidence identity is the generation pair's identity.
 
@@ -41,10 +41,12 @@ impl<'doc> GenerationContract<'doc> {
 /// A generation pair admitted for replay.
 ///
 /// Construction is the admission: the contracts agree and every bound artifact hashes to its
-/// metadata record. Everything downstream reaches the generations through this value, so an
-/// unadmitted pair cannot be extracted.
+/// metadata record. Everything downstream reaches the generations through this value, and an
+/// unadmitted pair therefore cannot be extracted.
 pub(super) struct VerifiedPair<'run> {
+    /// The earlier generation `G0`.
     earlier: &'run Generation,
+    /// The later generation `G1`.
     later: &'run Generation,
 }
 
@@ -187,6 +189,7 @@ mod tests {
         },
     };
 
+    /// A generation id whose 64 hex digits spell `ordinal`.
     fn generation(ordinal: u8) -> GenerationId {
         format!("{ordinal:064x}")
             .parse()
@@ -207,12 +210,16 @@ mod tests {
         }
     }
 
+    /// The SHA-256 digest of `seed`, standing in for a recorded file hash or embedder fingerprint.
     fn digest(seed: &str) -> Sha256Digest {
         let mut hasher = Sha256::new();
         hasher.update(seed.as_bytes());
         hasher.finalize()
     }
 
+    /// Builds a reproducibility record with the config at `config_seed`.
+    ///
+    /// The embedder fingerprint derives from `embedder`, and the record names no prior.
     fn reproducibility(config_seed: u64, embedder: &str) -> Reproducibility {
         Reproducibility {
             config: config(config_seed),
@@ -221,6 +228,10 @@ mod tests {
         }
     }
 
+    /// A baseline-placed earlier generation fails with `NotProjectorPlaced` naming it.
+    ///
+    /// A pair whose earlier generation was baseline-placed fails with `NotProjectorPlaced` naming
+    /// it.
     #[test]
     fn contract_placement() {
         let shared = reproducibility(7, "embedder");
@@ -247,6 +258,7 @@ mod tests {
         ));
     }
 
+    /// A pair whose embedder fingerprints differ fails with `EmbedderMismatch`.
     #[test]
     fn contract_embedder() {
         let earlier = reproducibility(7, "embedder");
@@ -268,10 +280,11 @@ mod tests {
         assert!(matches!(result, Err(ReplayError::EmbedderMismatch { .. })));
     }
 
+    /// A pair differing only in the config seed fails with `ConfigMismatch`.
     #[test]
     fn contract_config() {
-        // The seed is part of the complete configuration echo, so a pair
-        // differing only there refuses.
+        // The seed is part of the complete configuration echo, and a pair
+        // differing only there therefore refuses.
         let earlier = reproducibility(7, "embedder");
         let later = reproducibility(8, "embedder");
         let result = Pair {
@@ -291,9 +304,13 @@ mod tests {
         assert!(matches!(result, Err(ReplayError::ConfigMismatch { .. })));
     }
 
+    /// Accepts a pair differing only in the prior lineage, which the contract excludes.
+    ///
+    /// A pair differing only in the prior lineage agrees, since the prior is outside the compared
+    /// contract.
     #[test]
     fn contract_pass() {
-        // The prior lineage lawfully differs, so it is deliberately outside
+        // The prior lineage lawfully differs and is deliberately outside
         // the compared contract.
         let earlier = reproducibility(7, "embedder");
         let mut later = reproducibility(7, "embedder");
@@ -328,10 +345,14 @@ mod tests {
         dir
     }
 
+    /// Builds a [`FileName`] from a plain literal.
     fn file_name(name: &str) -> FileName {
         FileName::new(name.to_owned()).expect("the fixture name is a plain file name")
     }
 
+    /// Writes `bytes` to `name` under `directory` and records its digest.
+    ///
+    /// The return value is the repository entry recording the digest.
     fn bound_file(directory: &Utf8PathBuf, name: &str, bytes: &[u8]) -> RepositoryFile {
         fs::write(directory.join(name), bytes).expect("the fixture file is writable");
         let mut hasher = Sha256::new();
@@ -342,6 +363,7 @@ mod tests {
         }
     }
 
+    /// Artifacts whose bytes match their recorded digests verify.
     #[test]
     fn integrity_verified() {
         let directory = scratch("integrity-verified");
@@ -354,6 +376,10 @@ mod tests {
             .expect("intact bytes match the recorded digests");
     }
 
+    /// A rewritten artifact fails with `ArtifactIntegrity` naming the role and observed digest.
+    ///
+    /// An artifact rewritten after recording fails with `ArtifactIntegrity` naming the role and
+    /// carrying the observed digest.
     #[test]
     fn integrity_tampered() {
         let directory = scratch("integrity-tampered");
@@ -381,6 +407,7 @@ mod tests {
         ));
     }
 
+    /// A recorded artifact missing from the directory fails with `ReadArtifact` naming the role.
     #[test]
     fn integrity_unreadable() {
         let directory = scratch("integrity-unreadable");

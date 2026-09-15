@@ -74,15 +74,18 @@ use crate::{
 
 /// Corpus rows of the publish fixture.
 ///
-/// Row 3 carries row 0's representation and row 5 carries row 2's, so the quotient collapses
-/// six corpus rows onto four distinct rows.
+/// Row 3 carries row 0's representation and row 5 carries row 2's: the quotient collapses six
+/// corpus rows onto four distinct rows.
 const ROWS: usize = 6;
+/// Distinct row count of the publish fixture after the quotient.
 const DISTINCT: usize = 4;
+/// Component count of the publish fixture's corpus storage.
 const CORPUS_CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
 
 /// The reviewed relation type of the attraction fixture.
 const RELATION: u64 = 7;
 
+/// A fresh per-process scratch directory named `name` under the system temp dir.
 fn scratch_dir(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -202,8 +205,8 @@ fn corpus_indexes() -> RelationIndexes<NodeRowId, EdgeRowId> {
 
 /// Stages the corpus-domain attraction file, as the relation stage leaves it.
 ///
-/// The paired-movement readout replays over the published index, so the ladder-walking
-/// publish reads this file back.
+/// The paired-movement readout replays over the published index: the ladder-walking publish
+/// reads this file back.
 fn stage_attraction(staging: &StagedGeneration) {
     let relations = corpus_indexes();
     staging
@@ -213,10 +216,10 @@ fn stage_attraction(staging: &StagedGeneration) {
         .expect("the attraction index should stage");
 }
 
-/// The skinny projector fixture.
+/// Builds the skinny projector fixture's options.
 ///
 /// The representation width stays the pipeline's contract while the hidden architecture
-/// shrinks, so a forward pass costs a fraction of the `ratified()` model's.
+/// shrinks: a forward pass costs a fraction of the `ratified()` model's.
 fn skinny_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.architecture = Architecture {
@@ -246,15 +249,16 @@ fn skinny_options() -> ProjectorOptions {
     options
 }
 
-/// The widest duplicate-cluster spread the staged column may show, in units in the last
-/// place.
+/// The widest duplicate-cluster spread the staged column may show.
+///
+/// The spread counts units in the last place of the stored coordinates.
 ///
 /// Byte-identical representations project to one coordinate mathematically. The column,
 /// however, computes in `forward_rows`-bounded slices that put rows 5 and 2 into dispatches
 /// of different shapes, whose kernels the GPU backend's autotune selects independently.
 /// Under a loaded device the selections can disagree, and two reduction
 /// orders for one value differ in the last bit (observed at exactly one ulp under the full
-/// parallel suite). Within one dispatch shape the selection is cached per process, so the
+/// parallel suite). Within one dispatch shape the selection is cached per process, and the
 /// projection-identity assertions stay bit-exact. The tolerance keeps headroom over the
 /// observed single-ulp motion while still refusing value-scale divergence: a duplicate
 /// placed anywhere else in the plane is millions of ulps away.
@@ -269,8 +273,10 @@ fn ulp_key(value: f32) -> i64 {
     }
 }
 
-/// Reads the staged canonical column and asserts each duplicate cluster shares one
-/// coordinate, up to [`DUPLICATE_ULPS`].
+/// Reads the staged canonical column and asserts its duplicate clusters coincide.
+///
+/// Reads the staged canonical column and asserts each duplicate cluster shares one coordinate, up
+/// to [`DUPLICATE_ULPS`].
 fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
     let column = ArrayFile::open(staging.path_of(&artifact::Coordinates::NAME))
         .expect("the column should map");
@@ -292,8 +298,10 @@ fn staged_column(staging: &StagedGeneration) -> Vec<Vec2> {
     placed.to_vec()
 }
 
-/// Asserts the staged column is the staged checkpoint's canonical-step projection under the
-/// recorded alignment, bit for bit: checkpoint, evidence, and column describe one field.
+/// Asserts the staged column equals the checkpoint's aligned canonical projection bit for bit.
+///
+/// The column is the staged checkpoint's canonical-step projection under the recorded alignment:
+/// checkpoint, evidence, and column describe one field.
 #[track_caller]
 fn assert_column_is_aligned_projection(
     staging: &StagedGeneration,
@@ -347,8 +355,7 @@ fn tick_fractions() -> [RefreshFraction; 2] {
 
 /// Asserts every step's per-type shares add up to its total within accumulation rounding.
 ///
-/// The shares run their own chains, so the agreement is a relative tolerance, not bit
-/// equality.
+/// The shares run their own chains: the agreement is a relative tolerance, not bit equality.
 #[track_caller]
 fn assert_per_type_additivity(ladder: &LadderEvidence) {
     for step in &ladder.steps {
@@ -359,9 +366,9 @@ fn assert_per_type_additivity(ladder: &LadderEvidence) {
             (sum - total).abs() <= 1e-12 * total.max(1.0),
             "per-type shares {sum} should add up to the step total {total}",
         );
-        // The fixture's one group holds fewer edges than the ratified cap, so its clip is
-        // one and the capped estimand echoes the total bit-exactly: with a single group the
-        // share's chain is the total's, and a fused multiply by one onto zero is exact.
+        // The fixture's one group holds fewer edges than the ratified cap: its clip is one, and
+        // the capped estimand echoes the total bit-exactly, because with a single group the
+        // share's chain is the total's and a fused multiply by one onto zero is exact.
         assert_eq!(
             step.capped_relation_loss,
             Some(step.relation_loss),
@@ -430,6 +437,7 @@ fn loss_regression_final_odd_transition() {
     assert_eq!(regression.relative, Some(d_positive!(1.0)));
 }
 
+/// A rise from a zero loss reports its delta with no relative rise.
 #[test]
 fn loss_regression_zero_predecessor() {
     let conditions = [non_negative!(0.0), non_negative!(1.0)];
@@ -648,6 +656,7 @@ fn reproducibility() -> Reproducibility {
     }
 }
 
+/// Builds the publish fixture configuration.
 fn fit_config() -> FitConfig {
     FitConfig {
         seed: 11,
@@ -752,9 +761,8 @@ fn publish_vacuous_baseline() {
         "a vacuous boundary persists no calibration body, absent rather than zero"
     );
 
-    // The staged column is the model's own zero-step projection, bit
-    // for bit, and byte-identical representations share one
-    // coordinate up to the last-bit motion `staged_column` prices.
+    // The persisted coordinates match the fresh zero-step projection bit for bit. Separately,
+    // `staged_column` checks duplicate representations within `DUPLICATE_ULPS`.
     let placed = staged_column(&context.staging);
     let projected = refresh::forward(
         &model.valid(),
@@ -776,6 +784,11 @@ fn publish_vacuous_baseline() {
     );
 }
 
+/// Publishes a two-step proximal run and checks its recorded placement artifacts.
+///
+/// Publishing a two-step run under proximal force records a measured boundary with its calibration
+/// body, a two-step ladder with the canonical step last at `1.0` and the baseline at the identity
+/// alignment, per-type additivity, and a column equal to the aligned canonical projection.
 #[test]
 #[expect(
     clippy::significant_drop_tightening,

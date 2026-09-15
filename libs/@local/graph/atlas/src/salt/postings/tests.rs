@@ -27,6 +27,11 @@ use crate::{
     runs::Runs,
 };
 
+/// Creates a fresh per-process scratch directory under the system temp directory.
+///
+/// # Panics
+///
+/// This panics when the temporary path is not UTF-8 or the directory cannot be created.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -39,10 +44,12 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
+/// Converts a literal row number into an ontology id.
 fn id(row: u64) -> OntologyRowId {
     OntologyRowId::new(row)
 }
 
+/// Builds a per-row type column from literal ontology row numbers.
 fn types<R: Id>(lists: &[&[u64]]) -> IdVec<R, SmallVec<OntologyRowId, 2>> {
     lists
         .iter()
@@ -51,6 +58,10 @@ fn types<R: Id>(lists: &[&[u64]]) -> IdVec<R, SmallVec<OntologyRowId, 2>> {
 }
 
 /// Builds the dense set over `domain` positions admitting exactly `members`.
+///
+/// # Panics
+///
+/// This panics when a member lies outside `domain`.
 fn dense_set(domain: usize, members: &[u32]) -> Box<DenseBitSlice<BasePosition>> {
     let mut set = DenseBitSlice::new_empty(domain);
     for &member in members {
@@ -64,31 +75,46 @@ fn le_posts<I: Id>(raw: &[u64]) -> IdVec<I, U64<LE>> {
     IdVec::from_raw(raw.iter().copied().map(U64::new).collect())
 }
 
-/// Builds a lawful run structure for a fixture's regions.
+/// Builds a validated run structure for a fixture's regions.
+///
+/// # Panics
+///
+/// This panics when the fenceposts violate the [`Runs`] contract.
 fn runs<I: Id, T>(posts: &[u64], items: Vec<T>) -> Runs<I, T> {
     Runs::from_parts(le_posts(posts), items).expect("the fixture posts satisfy the fencepost law")
 }
 
-/// The hand fixture has eight rows over four types, gathered through a permutation.
+/// The gather permutation for an eight-row fixture over four types.
 ///
-/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{0} 7:{0}`;
-/// `row_of_position = [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0
-/// `[1, 2, 3, 4, 6]`, type 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parents: `1 <- 0`,
-/// `2 <- 0`, `3 <- {1, 2}`.
+/// Row-order direct types: `0:{0} 1:{0,2} 2:{1} 3:{2} 4:{0} 5:{1,2} 6:{0} 7:{0}`. `row_of_position
+/// = [3, 1, 4, 0, 6, 2, 7, 5]`. Member positions per type, hand-derived: type 0 `[1, 2, 3, 4, 6]`,
+/// type 1 `[5, 7]`, type 2 `[0, 1, 7]`, type 3 `[]`. Parent-to-child edges: 0 → 1, 0 → 2, {1, 2} →
+/// 3.
 ///
-/// The split follows the size comparison alone: over eight points a dense set costs 16 bytes, so
-/// five members (20 list bytes) go dense and three (12) stay a list. Type 0 is the fixture's dense
-/// type. Every other type stays a list.
+/// Over eight points a dense set costs 16 bytes. Type 0's five members cost 20 list bytes and
+/// select the dense representation. The remaining lists use eight bytes for type 1, twelve for type
+/// 2, and zero for type 3.
 const ROW_OF_POSITION: [u32; 8] = [3, 1, 4, 0, 6, 2, 7, 5];
 
+/// Builds the eight-row fixture type column.
+///
+/// Type 0 occurs on five rows, type 1 on two, type 2 on three, and type 3 on none.
 fn fixture_types() -> IdVec<NodeRowId, SmallVec<OntologyRowId, 2>> {
     types(&[&[0], &[0, 2], &[1], &[2], &[0], &[1, 2], &[0], &[0]])
 }
 
+/// Builds the fixture parent lists.
+///
+/// Type 0 is the root, types 1 and 2 descend from it, and type 3 descends from both.
 fn fixture_parents() -> IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> {
     types(&[&[], &[0], &[0], &[1, 2]])
 }
 
+/// Writes `postings` to `name` under `dir` and reopens it as a validated mapped archive.
+///
+/// # Panics
+///
+/// This panics when the file cannot be written or reopened, or when artifact validation fails.
 fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive {
     let path = dir.join(name);
     let mut file = fs::File::create(&path).expect("the fixture file should create");
@@ -101,7 +127,7 @@ fn mapped(dir: &Utf8PathBuf, name: &str, postings: &Postings) -> PostingsArchive
         .expect("the fixture postings should validate")
 }
 
-/// The member-position count, over both encodings.
+/// Counts member positions over either encoding.
 fn count(membership: &Membership<'_>) -> u64 {
     match membership {
         Membership::List(positions) => positions.len() as u64,
@@ -109,6 +135,7 @@ fn count(membership: &Membership<'_>) -> u64 {
     }
 }
 
+/// Collects member positions inside `range` in ascending order over either encoding.
 fn collect(membership: &Membership<'_>, range: core::ops::Range<u32>) -> Vec<u32> {
     let range = BasePosition::from_u32(range.start)..BasePosition::from_u32(range.end);
     membership
@@ -274,12 +301,9 @@ fn dense_iteration_crosses_word_boundaries() {
     assert_eq!(collect(&membership, 65..80), [79]);
 }
 
-/// A membership whose list costs exactly the dense frame stays a list.
-///
-/// Over five points a dense frame costs 16 bytes and so do four list members, so type 0 sits
-/// exactly on the boundary the size comparison draws. The ruled tie keeps it a list, which reads
-/// without bit decoding, while type 1's five members cost 20 list bytes and tip dense. A drift
-/// from strict to inclusive comparison flips type 0 dense and fails both assertions.
+// over five points a dense frame costs 16 bytes, equal to four list members. Type 0 is exactly at
+// that boundary and keeps the list representation, which reads without bit decoding. Type 1's five
+// members cost 20 list bytes and select the dense representation.
 #[test]
 fn equal_cost_membership_stays_a_list() {
     let dir = scratch("tie");
@@ -324,12 +348,10 @@ fn evidence_counts_the_split() {
     assert_eq!(evidence.direct_entries, 10);
 }
 
-/// An eighty-point corpus drives a dense frame across the word boundary through the whole file.
-///
-/// Type 0's eight members straddle position 64, so its frame holds two words and the path from
-/// build through write to open exercises the multi-word header geometry, stride arithmetic, and
-/// tail policing that the single-word fixtures never reach. Type 1 stays a two-member list whose
-/// entries cross the same boundary.
+// eighty points require two data words and one header word: 24 dense bytes. Type 0's eight members
+// cost 32 list bytes and select a dense frame, including positions on both sides of 64. Type 1's
+// two members cost eight list bytes and cross the same boundary. The final data word has 48 unused
+// bits, which a single-word eight-point fixture never exercises at this stride.
 #[test]
 fn multi_word_dense_sets_roundtrip_through_the_file() {
     const MEMBERS: [u32; 8] = [0, 1, 62, 63, 64, 65, 78, 79];
@@ -415,8 +437,6 @@ fn build_rejects_out_of_domain_rows() {
     );
 }
 
-/// The gather asserts the dataset's ascent contract, so a defective stream fails the build
-/// instead of publishing a file the next open refuses.
 #[test]
 #[should_panic(expected = "a row's direct types ascend strictly")]
 fn unsorted_direct_types_are_a_producer_bug() {
@@ -427,7 +447,6 @@ fn unsorted_direct_types_are_a_producer_bug() {
     );
 }
 
-/// The parent regions assert the same contract for the type graph's stream.
 #[test]
 #[should_panic(expected = "a type's direct parents ascend strictly")]
 fn unsorted_parents_are_a_producer_bug() {
@@ -467,7 +486,11 @@ fn empty_domains_roundtrip() {
     assert_matches!(membership, Membership::List(&[]));
 }
 
-/// Writes lawful regions and returns the error their opening surfaces.
+/// Writes regions with an artifact violation and returns the archive's rejection.
+///
+/// # Panics
+///
+/// This panics when file writing or opening fails, or when the archive accepts the regions.
 fn open_invalid(path: impl AsRef<camino::Utf8Path>, regions: Regions<'_>) -> InvalidPostingsFile {
     let path = path.as_ref();
     let mut file = fs::File::create(path).expect("the fixture file should create");
@@ -478,12 +501,15 @@ fn open_invalid(path: impl AsRef<camino::Utf8Path>, regions: Regions<'_>) -> Inv
         .expect_err("the contract violation must surface")
 }
 
-/// The helper writes lawful regions and overwrites one byte of the persisted file before returning
-/// the error surfaced during reopening.
+/// Overwrites one serialized byte and returns the archive's rejection.
 ///
-/// The writer's fencepost columns arrive as validated [`Runs`], so a file with a broken fencepost
-/// region can no longer be written; corrupting the bytes on disk is the remaining road to one,
-/// and it is exactly the corruption class the open checks guard against.
+/// The writer accepts validated [`Runs`]. Altering serialized bytes constructs invalid fenceposts
+/// that this typed input cannot express.
+///
+/// # Panics
+///
+/// This panics when writing or opening the file fails, when `offset` lies outside the serialized
+/// bytes, or when the archive accepts the altered regions.
 fn open_corrupted(
     path: impl AsRef<camino::Utf8Path>,
     regions: Regions<'_>,
@@ -507,8 +533,8 @@ fn open_rejects_membership_violations() {
         values.iter().copied().map(BasePosition::from_u32).collect()
     };
 
-    // List posts not anchored at zero, then non-monotone. The writer's fencepost columns arrive
-    // as validated run structures, so these files exist only through byte corruption.
+    // invalid starts and non-monotone posts require byte corruption: the writer accepts only
+    // validated run structures.
     let flags = DenseBitSlice::new_empty(1);
     assert_eq!(
         open_corrupted(
@@ -780,8 +806,7 @@ fn closure_expands_the_fixture_graph() {
 fn closure_rejects_parent_cycles() {
     let dir = scratch("cycle");
 
-    // Types 0 and 1 parent each other. Type 2 stands free and
-    // settles, so exactly two types stay entangled.
+    // exactly types 0 and 1 form the cycle. Type 2 has no parent or child.
     let postings = Postings::build(
         &types(&[&[0]]),
         IdSlice::from_raw(&[0].map(NodeRowId::from_u32)),
@@ -794,19 +819,12 @@ fn closure_rejects_parent_cycles() {
     assert_eq!(error.entangled, 2);
 }
 
-/// The icon memo resolves the nearest icon-bearing ancestor, exactly where a request-time cache
-/// went wrong.
-///
-/// The graph is the counterexample that killed the cross-position icon cache: parents `1 <- 3`,
-/// `3 <- {4, 5}`, `{2, 5} <- 0`, icons on 0 and 4. A walk from direct types `{1, 2}` finds 0's
-/// icon after visiting 3, so a cache keyed by visited types would poison 3 with 0's icon - yet
-/// 3's own nearest icon is 4's at depth one. The memo resolves each type over the whole graph,
-/// so 3 reads 4.
+/// Each type resolves its own nearest icon regardless of other types' traversal paths.
 #[test]
 fn icon_memo_resolves_the_nearest_ancestor_icon() {
     let dir = scratch("icon-memo");
 
-    // Types 6 and 7 chain icon-free, so their cones record no source.
+    // types 6 and 7 form a separate icon-free chain.
     let postings = Postings::build(
         &types(&[&[1, 2], &[3]]),
         IdSlice::from_raw(&[0, 1].map(NodeRowId::from_u32)),
@@ -821,7 +839,6 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
     assert_eq!(closure.icon_source(id(0)), source(id(0), 0));
     assert_eq!(closure.icon_source(id(1)), source(id(4), 2));
     assert_eq!(closure.icon_source(id(2)), source(id(0), 1));
-    // The cell the request-time cache poisoned: 3's nearest icon is 4's, not 0's.
     assert_eq!(closure.icon_source(id(3)), source(id(4), 1));
     assert_eq!(closure.icon_source(id(4)), source(id(4), 0));
     assert_eq!(closure.icon_source(id(5)), source(id(0), 1));
@@ -833,10 +850,9 @@ fn icon_memo_resolves_the_nearest_ancestor_icon() {
 
 /// Depth beats run order, and run order breaks equal-depth ties.
 ///
-/// Type 3's earlier parent resolves deeper (0 through 1, depth two) than its later parent (2's
-/// own icon, depth one), so the shallower source wins over the run order. Type 4's parents both
-/// resolve at depth one, so the earlier parent in the run - ascending rows, the artifact
-/// contract - decides.
+/// Type 3 resolves to icon 2 at depth one despite its later parent position: the earlier parent 1
+/// reaches icon 0 at depth two. Type 4 reaches both icons at depth one and selects the earlier
+/// parent in the ascending run, row 0.
 #[test]
 fn icon_memo_ties_resolve_by_depth_then_run_order() {
     let dir = scratch("icon-ties");
@@ -869,7 +885,13 @@ fn icon_memo_ties_resolve_by_depth_then_run_order() {
     );
 }
 
-/// Reference resolution: recurse over the raw parent lists with the memo's tie rule.
+/// Resolves the nearest icon recursively over raw parent lists with the memo's tie rule.
+///
+/// `parents` must be acyclic, with every parent reference inside its row domain.
+///
+/// # Panics
+///
+/// This panics when an inspected row lies outside `parents`.
 fn reference_icon_source(
     parents: &IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>>,
     icons: &BTreeSet<u64>,
@@ -899,10 +921,10 @@ fn reference_icon_source(
 
 /// The icon memo agrees with direct recursive resolution over random downward graphs.
 ///
-/// Each type's parents draw from strictly smaller rows, so every graph is acyclic and every
-/// parent run ascends by construction. The reference resolves each type recursively over the raw
-/// lists with the same tie rule, so agreement pins the memo's topological pass and its archive
-/// plumbing against an order-free restatement.
+/// Strictly decreasing row ids cannot form a cycle. Every parent reference selects a smaller row
+/// from a sorted set, making every generated graph acyclic and every parent run ascending. The
+/// recursive reference uses raw lists with the same tie rule, independently of the memo's
+/// topological order.
 #[property_test]
 fn icon_memo_matches_recursive_resolution(
     #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..12, 0..4), 1..12)]
@@ -932,8 +954,8 @@ fn icon_memo_matches_recursive_resolution(
 
     let dir = scratch(&format!("icon-prop-{}", uuid::Uuid::now_v7()));
     let mapped = mapped(&dir, "icon-prop.post", &postings);
-    // The mapping keeps the unlinked file's bytes alive, so failing
-    // assertions cannot strand scratch files.
+    // on POSIX, the mapping retains access after unlink. Removing the directory before assertions
+    // prevents a failed assertion from retaining scratch files.
     fs::remove_dir_all(&dir).expect("the scratch directory is removable");
 
     let closure = ClosureMap::new(&mapped, icons.iter().copied().map(OntologyRowId::new))
@@ -949,7 +971,11 @@ fn icon_memo_matches_recursive_resolution(
     }
 }
 
-/// Reference membership: does `position`'s row carry `type_row` directly?
+/// Tests whether `position`'s row carries `type_row` directly.
+///
+/// # Panics
+///
+/// This panics when `position` lies outside the permutation or its row lies outside `types`.
 fn reference_contains(
     types: &[SmallVec<OntologyRowId, 2>],
     row_of_position: &[u32],
@@ -963,9 +989,9 @@ fn reference_contains(
 
 /// Built postings roundtrip through the file and agree with the row-order reference.
 ///
-/// Agreement holds at every (type, position) pair. The size comparison picks each type's
-/// representation from the drawn counts, so both representations recur across cases. Corpora
-/// reach past one word of positions, so multi-word dense frames recur too.
+/// Agreement holds at every (type, position) pair. Random member counts exercise both
+/// representations under the byte-size comparison. Corpora extend past 64 positions to include
+/// multi-word dense frames.
 #[property_test]
 fn built_postings_uphold_the_membership_contract(
     #[strategy = proptest::collection::vec(proptest::collection::btree_set(0_u64..5, 0..3), 0..100)]
@@ -982,8 +1008,7 @@ fn built_postings_uphold_the_membership_contract(
     // A deterministic permutation other than the identity: reversal.
     let row_of_position: Vec<u32> = (0..points).rev().collect();
 
-    // Parents point strictly downward, so the graph is acyclic by
-    // construction: a type's parent is its predecessor for odd rows.
+    // odd types have their even predecessor as parent. These disjoint one-edge chains are acyclic.
     let parents: IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> = (0..domain as u64)
         .map(|type_row| {
             if type_row & 1 == 1 {
@@ -1012,14 +1037,14 @@ fn built_postings_uphold_the_membership_contract(
     let mapped =
         PostingsArchive::new(PostingsFile::open(&path).expect("the fixture file should open"))
             .expect("built postings always validate");
-    // The mapping keeps the unlinked file's bytes alive, so failing
-    // assertions cannot strand scratch files.
+    // on POSIX, the mapping retains access after unlink. Removing the directory before assertions
+    // prevents a failed assertion from retaining scratch files.
     fs::remove_dir_all(&dir).expect("the scratch directory is removable");
 
     prop_assert_eq!(mapped.points(), rows.len() as u64);
 
-    // The direct map restates each position's row types verbatim: the forward direction of the
-    // one relation the membership inverts, so agreement with the same reference pins both.
+    // check both directions against the same row-order relation: direct types here and per-type
+    // membership below.
     for position in 0..points {
         let expected: Vec<OntologyRowId> = rows.as_raw()
             [row_of_position[position as usize] as usize]

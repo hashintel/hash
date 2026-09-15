@@ -5,15 +5,22 @@
 //! delivery first. The decision between them is per-tile selection time as the zoom deepens, and
 //! this target produces exactly that curve.
 //!
-//! Before the timed groups, one report prints the full sweep of both variants across mask shape
-//! (independent rows hidden versus whole spatial blocks), visible fraction, and zoom along the
-//! fixture's densest descent path, with scan counts, per-tile medians, and the independent
-//! variant's re-delivery census (the crowding the chained variant exists to remove). The timed
-//! groups then pin the decision points: both variants at the root and at the deepest zoom under the
-//! adversarial mask.
+//! Before the timed group, the calibration reports print, served-engine tables first. Each report
+//! compares fill rules or delivery engines over the fixture's densest descent path or an audit tile
+//! set, printing counts, ratios, and median-of-five wall times rather than Criterion statistics.
+//! The per-scope tables rebuild the corpus at a quarter, one, and four times the configured scale.
+//! The last report is the sweep of both walk variants across mask shape (independent rows hidden
+//! versus whole spatial blocks), visible fraction, and zoom along the descent path, with scan
+//! counts, per-tile medians, and the independent variant's re-delivery census (the crowding the
+//! chained variant exists to remove). The timed group then pins the decision points at the root
+//! and at the deepest zoom under the adversarial mask: both walk variants, the coverage rules, the
+//! rank and refined rules, and the recommended budget over the scanning and served engines.
 //!
-//! The corpus defaults to 300,000 points so a sweep stays in seconds; set `ATLAS_BACKFILL_POINTS`
-//! for other scales. Wall time depends on the host: compare numbers within one machine, not across.
+//! The corpus defaults to 300,000 points so a sweep stays in seconds. `ATLAS_BACKFILL_POINTS` sets
+//! other scales. `ATLAS_SCOPE_CASCADE_ONLY` narrows the run to the per-scope cascade-build table.
+//! `ATLAS_DENSITY_CLOSURE_ONLY` runs the density-closure reports, which no other run prints, with
+//! their interleaved cost table added when `ATLAS_DENSITY_CLOSURE_TIMED` is also set. Wall time
+//! depends on the host: compare numbers within one machine, not across.
 #![expect(
     clippy::print_stdout,
     clippy::float_arithmetic,
@@ -52,7 +59,10 @@ const REPETITIONS: usize = 5;
 /// The median sample's index once the five sort.
 const MEDIAN: usize = 2;
 
-/// The visible fractions every table sweeps.
+/// The visible fractions the broad tables sweep.
+///
+/// A narrower table names its own subset, and [`sweep`] runs fractions of its own, down to one
+/// percent.
 const FRACTIONS: [f64; 5] = [1.0, 0.75, 0.5, 0.25, 0.05];
 
 /// The mask shapes every table sweeps: independent rows, then whole spatial blocks.
@@ -122,6 +132,11 @@ fn remask(bench: &mut WalkBench, clustered: bool, visible: f64) {
     }
 }
 
+/// Returns the corpus scale: `ATLAS_BACKFILL_POINTS`, or [`DEFAULT_POINTS`].
+///
+/// # Panics
+///
+/// This panics when `ATLAS_BACKFILL_POINTS` is set to a value that is not a point count.
 fn points() -> usize {
     std::env::var("ATLAS_BACKFILL_POINTS").map_or(DEFAULT_POINTS, |value| {
         value
@@ -214,7 +229,11 @@ impl CrossCheck {
     }
 }
 
-/// Widens a count for signed comparison.
+/// Converts a count for signed comparison.
+///
+/// # Panics
+///
+/// Panics if `value` is at least 2⁶³ on a target whose `usize` can represent it.
 fn count(value: usize) -> i64 {
     i64::try_from(value).expect("corpus counts fit i64")
 }
@@ -346,6 +365,10 @@ const RULES: [FillRule; 4] = [
 ];
 
 /// Returns the cell at one tile coordinate.
+///
+/// # Panics
+///
+/// This panics when `z` exceeds the key width or `(x, y)` lies off the zoom's grid.
 const fn cell_of(z: u8, x: u32, y: u32) -> MortonCell {
     MortonCell::new(
         Depth::new(z).expect("tile zooms lie within the key width"),
@@ -421,7 +444,10 @@ fn density(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     }
 }
 
-/// Prints per-tile selection cost: the chained variant against the coverage variant.
+/// Prints per-tile selection cost for four deliveries of one tile.
+///
+/// The chained walk and today's unmasked rule deliver the same points by two code paths. The
+/// coverage rule and the cell repair come after them.
 fn selection_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!(
         "\nper-tile selection cost, median of {REPETITIONS}: {} points",
@@ -567,6 +593,9 @@ fn density_summary(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
 }
 
 /// Prints the saturation census: how often each rule's chain runs short.
+///
+/// `zero cov` counts the opposite tiles, where the chain has already delivered more points than the
+/// tile's cut holds covered cells and the coverage target is nothing.
 fn saturation(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
     println!(
         "\nsaturation census over {} tiles: chains ending below their target",
@@ -663,6 +692,12 @@ fn pyramid_profile(bench: &mut WalkBench) {
 }
 
 /// Prints pyramid construction cost and footprint across corpus scales and mask shapes.
+///
+/// The visible cascade's own build time stands beside them.
+///
+/// # Panics
+///
+/// Panics if a scale is zero or exceeds [`WalkBench::build`]'s row domain.
 fn pyramid_cost(scales: &[usize]) {
     println!("\npyramid construction, median of {REPETITIONS}");
     println!(
@@ -723,6 +758,15 @@ fn pyramid_cost(scales: &[usize]) {
 }
 
 /// Prints target query cost over a built pyramid.
+///
+/// `query ns` times one count query against the tile's cut. `chain ns` projects a chain's cost by
+/// multiplying that time by the `z + 1` levels its targets read. Only path entries at zooms
+/// divisible by six contribute rows.
+///
+/// # Panics
+///
+/// Panics if the schedule's deepest cut exceeds the key width, or if an evaluated tile is off its
+/// grid, beyond the schedule's maximum zoom or at a cut beyond the key width.
 fn query_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     /// Queries per timed batch.
     const BATCH: usize = 10_000;
@@ -805,7 +849,7 @@ struct Tally {
     dots: usize,
     /// Points the tiles deliver themselves.
     delivered: usize,
-    /// Tiles whose own delivery passes the budget.
+    /// Tiles whose own delivery passes [`BUDGET`], whatever budget the rule itself carries.
     over: usize,
     /// Refinement levels summed over the tiles.
     refined: usize,
@@ -937,8 +981,12 @@ fn dot_count(rules: &[FillRule], rows: &[(bool, f64, Vec<Tally>)], tiles: usize)
 
 /// Prints the noninterference census: delivered rows over two corpora sharing one visible view.
 ///
-/// Corpus B is the masked fixture. Corpus A contains the same visible rows and nothing else. A rule
+/// Corpus A is the masked fixture. Corpus B contains the same visible rows and nothing else. A rule
 /// whose delivery is a function of the visible view alone delivers equal rows over both.
+///
+/// # Panics
+///
+/// This panics when the two corpora's visible columns differ in length.
 fn noninterference(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[FillRule]) {
     println!(
         "\nnoninterference: delivered row identities, masked corpus against visible-only corpus, \
@@ -1219,10 +1267,14 @@ fn served_identity(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fil
 
 /// Prints the noninterference census over the served engine.
 ///
-/// The generation derives from the visible entries alone and cascades over them alone, so a served
-/// delivery must agree row for row across the two corpora exactly as the scanning form does. A row
+/// The generation derives from the visible entries alone and cascades over them alone. A served
+/// delivery must agree row for row across the two corpora, exactly as the scanning form does. A row
 /// with a nonzero `differ` under a hidden-independent rule means the artifact reintroduced a
 /// dependence on the hidden rows.
+///
+/// # Panics
+///
+/// This panics when the two corpora's generations differ in length.
 fn served_noninterference(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[FillRule]) {
     println!(
         "\nnoninterference, served engine: masked corpus against visible-only corpus, {} tiles \
@@ -1282,8 +1334,13 @@ fn served_noninterference(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules
 /// Prints the served engine's cells-falsely-empty tally against the independent ground truth.
 ///
 /// `empty` counts cut cells holding a visible point that the served cumulative delivery does not
-/// occupy, and `truth gaps` counts tiles where the served delivery's own cell set differs from
+/// occupy, and `truth gaps` counts tiles where that cumulative delivery's cell set differs from
 /// [`WalkBench::occupied_cells`], which reads the corpus and the mask alone.
+///
+/// # Panics
+///
+/// Panics if a rule is outside the rank-representative family, or if a requested tile lies off its
+/// grid, beyond the schedule's maximum zoom or at a cut beyond the key width.
 fn served_density(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[FillRule]) {
     println!(
         "\nserved delivery against the independent cell ground truth, {} tiles per row",
@@ -1345,8 +1402,9 @@ fn served_density(bench: &mut WalkBench, tiles: &[(u8, u32, u32)], rules: &[Fill
 
 /// Prints the ladder over both engines at the recommended budget.
 ///
-/// `k` and `deepened` describe the grid each engine resolved; equal columns mean the served form
-/// resolved the same grid tile for tile, and the unmasked rows carry today's own ladder.
+/// `k` and `deepened` describe the grid each engine resolved. Equal columns mean the served form
+/// resolved the same grid tile for tile, and the `today` columns carry today's own ladder beside
+/// them.
 fn served_ladder(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!("\nthe ladder over both engines, budget {}", BUDGET / 4);
     println!(
@@ -1405,7 +1463,9 @@ fn served_ladder(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     }
 }
 
-/// Prints per-tile selection cost over both engines, as ratios to today's chained walk.
+/// Prints per-tile selection cost over both engines.
+///
+/// The costs appear as ratios to today's chained walk and to each other.
 fn served_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!(
         "\nper-tile selection cost over both engines, median of {REPETITIONS}: {} points",
@@ -1489,11 +1549,17 @@ fn served_cost(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     }
 }
 
-/// Prints where a served delivery's own cost goes.
+/// Prints the components of a served delivery's own cost.
 ///
 /// `coarse` delivers at the cut depth alone, `whole` adds the refinement search, `morton` adds the
 /// partial refinement without a population order, and `pop` adds the population index searches.
-/// `read` times one bare prefix read of the tile's own cut grid, without the chain.
+/// `read` times one bare prefix read of the tile's own cut grid, without the chain. Only path
+/// entries at zooms divisible by six contribute rows.
+///
+/// # Panics
+///
+/// Panics if an evaluated tile lies off its grid, beyond the schedule's maximum zoom or at a cut
+/// beyond the key width.
 fn served_breakdown(bench: &mut WalkBench, path: &[(u8, u32, u32)]) {
     println!(
         "\nserved cost by component, median of {REPETITIONS}: {} points",
@@ -1596,14 +1662,23 @@ enum ScopeConstruction {
 
 /// Interleaved build medians and paired ratios for one scope.
 struct ScopeBuildTimes {
+    /// The separated build's median microseconds.
     separated: f64,
+    /// The merged construction's median microseconds.
     merged: f64,
+    /// The filtered construction's median microseconds.
     filtered: f64,
+    /// The indexed construction's median microseconds.
     indexed: f64,
+    /// The radix construction's median microseconds.
     radix: f64,
+    /// The median of adjacent merged-to-separated ratios.
     merged_ratio: f64,
+    /// The median of adjacent filtered-to-separated ratios.
     filtered_ratio: f64,
+    /// The median of adjacent indexed-to-separated ratios.
     indexed_ratio: f64,
+    /// The median of adjacent radix-to-separated ratios.
     radix_ratio: f64,
 }
 
@@ -1632,7 +1707,9 @@ fn scope_construction_micros(bench: &WalkBench, construction: ScopeConstruction)
     })
 }
 
-/// Returns the median of a nonempty fixed-size sample.
+/// Returns the middle of a nonempty fixed-size sample once sorted.
+///
+/// At even `N` this is the upper of the two middle values.
 ///
 /// # Panics
 ///
@@ -1658,6 +1735,7 @@ fn record_sample<const N: usize>(samples: &mut [f64; N], index: usize, value: f6
 
 /// Measures every construction adjacent to its own separated-build baseline.
 fn interleaved_scope_builds(bench: &WalkBench) -> ScopeBuildTimes {
+    /// The constructions in rotation order.
     const CONSTRUCTIONS: [ScopeConstruction; 4] = [
         ScopeConstruction::Merged,
         ScopeConstruction::Filtered,
@@ -1732,6 +1810,11 @@ fn interleaved_scope_builds(bench: &WalkBench) -> ScopeBuildTimes {
 }
 
 /// Prints per-scope cascade build cost for the five exact constructions.
+///
+/// # Panics
+///
+/// This panics when a merged, filtered, indexed, or radix artifact differs from the separated
+/// build's, or when masking moved a bucket deeper.
 fn scope_cascade_cost(scales: &[usize]) {
     println!("\nper-scope masked cascade build, median of {REPETITIONS}");
     println!(
@@ -1801,7 +1884,7 @@ fn scope_cascade_cost(scales: &[usize]) {
 
 /// Prints the space, build, and serve trade across every artifact form.
 ///
-/// `b/row` is bytes per visible row. The scanning form serves out of the Morton column; the served
+/// `b/row` is bytes per visible row. The scanning form serves out of the Morton column. The served
 /// form serves out of a generation, whose shared layout drops the key column and reads keys through
 /// the corpus base column instead. The position column alone is the leanest form that answers
 /// populations, and the re-cascade is the artifact the equivalence proof names.
@@ -2211,6 +2294,10 @@ const fn density_rule_name(rule: DensityRule) -> &'static str {
 }
 
 /// Delivers the whole rendered world at one zoom under one rule.
+///
+/// # Panics
+///
+/// This panics when two tiles of the zoom deliver the same position.
 fn world_delivery(
     bench: &WalkBench,
     rule: DensityRule,
@@ -2253,6 +2340,15 @@ fn world_delivery(
 }
 
 /// Counts delivered positions in equal-area windows.
+///
+/// Allocates one count for every cell of the grid at `depth`. The grid's shift and allocation size
+/// must be representable, and positions must convert losslessly to [`usize`].
+///
+/// # Panics
+///
+/// Panics if a converted position lies outside `codes`, a window index does not fit the count
+/// vector, or the vector's capacity overflows. With overflow checking enabled, a grid shift at or
+/// above [`usize::BITS`] also panics.
 fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: Depth) -> Vec<usize> {
     let mut counts = vec![0_usize; 1_usize << (2 * u32::from(depth.get()))];
     for &position in positions {
@@ -2268,6 +2364,16 @@ fn delivered_window_counts(codes: &[u64], positions: &[u32], depth: Depth) -> Ve
 }
 
 /// Counts occupied cells of one truth grid in equal-area windows.
+///
+/// Allocates one count for every cell of the grid at `window_depth`. The grid's shift and
+/// allocation size must be representable.
+///
+/// # Panics
+///
+/// Panics if `window_depth` exceeds `occupied_depth`, a window index does not fit the count vector,
+/// or the vector's capacity overflows. With overflow checking enabled, a vector-length shift at or
+/// above [`usize::BITS`] panics. Shifting an occupied cell by 64 also panics in that mode, which
+/// occurs at occupied depth 32 and window depth zero when a cell is visited.
 fn occupied_window_counts(
     bench: &WalkBench,
     occupied_depth: Depth,
@@ -2286,6 +2392,13 @@ fn occupied_window_counts(
 }
 
 /// Returns one window's Morton index.
+///
+/// `x` and `y` must lie on the grid at `depth`.
+///
+/// # Panics
+///
+/// Panics if the Morton prefix does not fit [`usize`]. With overflow checking enabled, depth zero
+/// also panics: shifting a coordinate by 32 exceeds its [`u32`] shift range.
 fn window_index(depth: Depth, x: u32, y: u32) -> usize {
     let shift = 32 - u32::from(depth.get());
     usize::try_from(MortonKey::new(x << shift, y << shift).prefix(depth))
@@ -2310,6 +2423,22 @@ struct DensityFit {
 }
 
 /// Fits one shown distribution to one public occupancy grid.
+///
+/// The windows are the cells of `window_depth`, which is at least `render_zoom`, and each rendered
+/// tile spans `2^(window_depth - render_zoom)` windows per side. A rendered tile boundary's
+/// contrast is the normalized difference of the sampling ratios on its two sides,
+/// `|a - b| / (a + b)`. A boundary touching a window with no occupied cells contributes no
+/// sample at all, and two zero ratios, whose denominator vanishes, count as zero contrast.
+///
+/// Both slices must cover the complete window grid in Morton-prefix order. Their positive totals
+/// must fit [`usize`].
+///
+/// # Panics
+///
+/// Panics if the slice lengths differ, a computed total is zero, or a boundary comparison indexes a
+/// missing window. Index conversion also has [`window_index`]'s panic conditions. With overflow
+/// checking enabled, overflow in the count sums, depth arithmetic or percentile-index arithmetic
+/// panics.
 fn density_fit(
     shown: &[usize],
     occupied: &[usize],
@@ -2398,6 +2527,16 @@ fn density_fit(
 }
 
 /// Finds the public occupancy grid whose spatial distribution best fits the shown dots.
+///
+/// `shown` supplies the complete window grid required by [`density_fit`]. The window depth must not
+/// exceed the first searched grid, [`WalkBench::uniform_grid_depth`] at `render_zoom` with no
+/// additional depth.
+///
+/// # Panics
+///
+/// Panics if `render_zoom` lies outside the bench's schedule or the window grid is finer than the
+/// first searched grid. It also propagates the grid-counting and comparison panics documented by
+/// [`occupied_window_counts`] and [`density_fit`].
 fn best_density_fit(
     bench: &WalkBench,
     shown: &[usize],
@@ -2426,7 +2565,16 @@ fn best_density_fit(
     best.expect("the public-grid search checks seven depths")
 }
 
-/// Counts adjacent R4 tiles whose whole-grid depth differs and tiles with a mixed grid.
+/// Counts the boundaries between adjacent R4 tiles whose whole-grid depth differs.
+///
+/// Returns those boundaries, the boundaries compared, and the tiles holding a mixed grid. The grid
+/// arithmetic requires `z < 16` and a tile count representable by [`usize`].
+///
+/// # Panics
+///
+/// Panics if a grid count or index does not fit [`usize`], or if the zoom exceeds the schedule's
+/// maximum or gives a cut beyond the key width. With overflow checking enabled, `z >= 16` panics in
+/// the [`u32`] side or area arithmetic.
 fn budget_grid_seams(
     bench: &WalkBench,
     z: u8,
@@ -2472,7 +2620,7 @@ fn budget_grid_seams(
     (different, edges, mixed)
 }
 
-/// One rule's density audit over the rendered zooms.
+/// One rule's density audit over the audited zooms.
 #[derive(Debug)]
 struct RuleDensityAudit {
     /// The worst fit any audited zoom produced.
@@ -2491,10 +2639,12 @@ struct RuleDensityAudit {
     grid_edges: usize,
 }
 
-/// Audits one rule's fit to the best public grid at every rendered zoom.
+/// Audits one rule's fit to the best public grid at zooms 0 through 3.
+///
+/// The audit renders the whole world of each of those zooms tile by tile.
 ///
 /// The coarse and uniform rules are also held to their own grid's density metric: each renders what
-/// its public grid occupies, so the total variation against that grid is zero.
+/// its public grid occupies, and the total variation against that grid is zero.
 ///
 /// # Panics
 ///
@@ -2576,7 +2726,13 @@ fn rule_density_audit(
 }
 
 /// Prints the best public-grid fit and boundary seam contrast for every rule.
+///
+/// # Panics
+///
+/// This panics when today's rule or the per-tile budget refinement fits its best public grid
+/// exactly in every sweep cell, which would leave the metric separating nothing.
 fn proportional_density(bench: &mut WalkBench) {
+    /// The rules in table order.
     const RULES: [DensityRule; 5] = [
         DensityRule::Today,
         DensityRule::Floor,
@@ -2684,6 +2840,11 @@ struct UniformDensityCounts {
 }
 
 /// Counts the dots each public-grid law delivers over `tiles`.
+///
+/// # Panics
+///
+/// This panics when `bench.span()` is zero, because the staircase law divides each tile's zoom by
+/// the span.
 fn uniform_density_counts_of(
     bench: &WalkBench,
     tiles: &[(u8, u32, u32)],
@@ -2771,6 +2932,11 @@ fn uniform_density_counts_of(
 }
 
 /// Prints dot counts and the public uniform grid's geometric response bound.
+///
+/// # Panics
+///
+/// This panics when the coverage-rank and cut-only public grid counts differ, or when the terminal
+/// public grid omits visible rows.
 fn uniform_density_counts(bench: &mut WalkBench, tiles: &[(u8, u32, u32)]) {
     println!("\nuniform public-grid dot count over {} tiles", tiles.len());
     println!(
@@ -2895,6 +3061,7 @@ struct PairTimes {
 
 /// Measures a candidate adjacent to a fresh baseline with alternating arm order.
 fn paired_micros(mut baseline: impl FnMut(), mut candidate: impl FnMut()) -> PairTimes {
+    /// Calls averaged into one timed sample.
     const CALLS_PER_SAMPLE: usize = 100;
 
     let mut baselines = [0.0_f64; REPETITIONS];
@@ -3070,6 +3237,10 @@ fn reports(bench: &mut WalkBench, path: &[(u8, u32, u32)], tiles: &[(u8, u32, u3
     sweep(bench, path);
 }
 
+/// Runs the calibration reports and then the timed group.
+///
+/// `ATLAS_SCOPE_CASCADE_ONLY` narrows the run to the per-scope cascade-build table, and
+/// `ATLAS_DENSITY_CLOSURE_ONLY` to the density-closure reports, which a default run omits.
 fn benches(criterion: &mut Criterion) {
     if std::env::var_os("ATLAS_SCOPE_CASCADE_ONLY").is_some() {
         scope_cascade_cost(&[points() / 4, points(), points() * 4]);
@@ -3090,8 +3261,9 @@ fn benches(criterion: &mut Criterion) {
     timings(criterion, &mut bench, (deep_z, deep_x, deep_y));
 }
 
-/// Times the decision points: the rules at the root and at the deepest zoom under the adversarial
-/// mask.
+/// Times the decision points.
+///
+/// The rules run at the root and at the deepest zoom under the adversarial mask.
 fn timings(criterion: &mut Criterion, bench: &mut WalkBench, deep: (u8, u32, u32)) {
     let (deep_z, deep_x, deep_y) = deep;
     // The decision points are both variants at the root and at the deepest zoom, under the

@@ -1,7 +1,8 @@
 //! The operator commands that fit a generation.
 //!
 //! The `hash-graph atlas` subcommand is one entry point. [`FitArgs`] and [`FitCommand`] run one
-//! production generation over the live store.
+//! production generation over the live store. `ServeArgs` and `ServeCommand` construct the
+//! read-API router (`crate::api`) and generation maintenance that the graph binary retains.
 //!
 //! The standalone `hash-graph-atlas` binary is the other entry point, and the `cli` feature gates
 //! its shell. Its command line carries the fit command over its own store flags ([`PostgresArgs`])
@@ -26,7 +27,7 @@
 //! [`PostgresArgs::connect`] dials the shell's own flags field by field, [`connect`] dials a
 //! rendered connection string.
 //!
-//! The run entry points the fit command drives live with the runner; this module re-exports their
+//! The fit command drives the run entry points live with the runner. This module re-exports their
 //! vocabulary ([`Options`], [`Placement`], [`ClassifierSource`], [`Summary`], [`RunError`]) as the
 //! crate's operator API.
 //!
@@ -76,6 +77,11 @@ pub struct RootArgs {
     )]
     root: GenerationRoot,
 
+    /// The device this invocation's tensor work runs on.
+    ///
+    /// A command that computes no tensors reads the root without it, as the quality report does.
+    /// Defaults to [`PinnedDevice::host`], the platform's default family at ordinal 0, when
+    /// neither the flag nor `HASH_GRAPH_ATLAS_DEVICE` names one.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_DEVICE",
@@ -85,6 +91,11 @@ pub struct RootArgs {
 }
 
 /// Parses a generation-root argument: opens the root, creating the directory when absent.
+///
+/// # Errors
+///
+/// Returns an [`io::Error`] when the directory cannot be created or opened, which clap renders
+/// as the flag's refusal.
 fn parse_root(value: &str) -> io::Result<GenerationRoot> {
     GenerationRoot::new(value)
 }

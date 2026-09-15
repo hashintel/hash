@@ -1,3 +1,8 @@
+//! Certificates for the quad file's format.
+//!
+//! The tests pin the header's and node's wire layouts byte by byte, the type-set structural
+//! rules, the region geometry, the writer-to-reader round trip, and every structural rule the
+//! open enforces - with a property test holding the round trip over arbitrary trees.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -55,10 +60,12 @@ fn fixture_nodes() -> Vec<Node> {
     ]
 }
 
+/// The direct-type set of each fixture node, in node order.
 fn fixture_sets() -> TypeSets {
     TypeSets::from_sets(&[vec![1, 2, 5, 7], vec![1, 5], vec![1, 2, 7], vec![2]])
 }
 
+/// The fixture tree and its type sets, written out as a quad file's bytes.
 fn fixture_bytes() -> Vec<u8> {
     let mut bytes = Vec::new();
     write_regions(&fixture_nodes(), &fixture_sets(), &mut bytes)
@@ -66,6 +73,9 @@ fn fixture_bytes() -> Vec<u8> {
     bytes
 }
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 2, this
+/// machine's information, the node count and type-id entry count as little-endian `u64`s, and zero
+/// padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(4, 10));
@@ -107,6 +117,9 @@ fn header_parse_pins_identity() {
         .expect_err("an unsupported version should not parse");
 }
 
+/// A node occupies 32 bytes in the order the format fixes - four child indexes, run start, run
+/// length, subtree points - with an absent child stored as the `u32` sentinel. The accessors
+/// read back the children, the run as a range, the point count, and leafness from those bytes.
 #[test]
 fn node_wire_layout() {
     let node = Node::new([Some(1), Some(2), None, Some(4)], 0x2A, 256, 1000);
@@ -153,12 +166,17 @@ fn type_sets_reject_unsorted_sets() {
     drop(TypeSets::from_sets(&[vec![2, 1]]));
 }
 
+/// A repeated id in one set panics at construction too: the order rule is strict, so equal
+/// neighbours are as malformed as descending ones.
 #[test]
 #[should_panic(expected = "type set must ascend strictly")]
 fn type_sets_reject_duplicate_ids() {
     drop(TypeSets::from_sets(&[vec![3, 3]]));
 }
 
+/// The header's region offsets and expected file length agree with the geometry computed by hand,
+/// an empty tree still places its anchoring fencepost region, and counts whose arithmetic
+/// overflows `u64` report no expected length because they match no real file.
 #[test]
 fn region_geometry() {
     // A 128-byte table for four nodes pads to one page, and the five posts pad to a second page.
@@ -283,6 +301,9 @@ fn open_rejects_foreign_and_torn_bytes() {
     assert_matches!(QuadFile::open(&torn), Err(OpenQuadError::Length { .. }));
 }
 
+/// The open validates the structural rules a traversal then relies on, and names the offender:
+/// fenceposts that decrease or fail to close at the header's entry count report their index, and a
+/// child index that points at its own node or past the table reports the node and the child slot.
 #[test]
 fn open_rejects_malformed_posts_and_children() {
     // The fixture's posts region starts at 8192. Post 1 raised beyond
@@ -342,8 +363,6 @@ fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
 }
 
 /// Every valid table and set cover roundtrips verbatim.
-///
-/// The mapped locate agrees with the in-memory reference walk.
 #[property_test]
 fn written_tables_roundtrip(
     // Children generated strictly deeper, so construction preserves the pre-order rule. The format

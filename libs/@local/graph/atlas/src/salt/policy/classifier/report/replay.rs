@@ -1,17 +1,17 @@
 //! Reconstruction of a frozen classifier corpus from staged annotation artifacts.
 //!
-//! The lab instruments (the fold probe, the classifier report) re-run classifier machinery over the
-//! exact bytes a production fit consumed. The staged `annotation-corpus.json` document replays
+//! The diagnostic tools (the fold probe, the classifier report) re-run classifier machinery over
+//! the exact bytes a production fit consumed. The staged `annotation-corpus.json` document replays
 //! through the production assembly under the generation's echoed assembly configuration. The
 //! embedder answers every card text from the staged embedding table by text hash and refuses new
 //! embeddings. Reconstruction requires that serializing the reassembled table reproduce the staged
-//! array files byte-for-byte under SHA-256 equality, which proves the replayed inputs are the bytes
-//! the production fit consumed.
+//! array files' SHA-256 digests, which establishes, under the digest's collision resistance, that
+//! the replayed inputs are the bytes the production fit consumed.
 //!
 //! The artifacts come from a published generation ([`Frozen::load`]) or from a directory of
 //! supplied artifact files ([`Frozen::from_supplied`]). The supplied form exists for a fit that
 //! cannot publish. A failing fit stages no generation for probing, but its input artifacts exist on
-//! disk, and the table certification holds either way; only a published generation records a
+//! disk, and the table certification holds either way. Only a published generation records a
 //! document digest for the replay to check.
 //!
 //! Failures panic with the failing step's error. A replay has no recovery path, and the error is
@@ -45,10 +45,12 @@ use crate::{
 
 /// A card embedder answering from a staged embedding table by text hash.
 ///
-/// The fingerprint is the staged table's, so reassembly reproduces the table identity; a text
+/// The fingerprint is the staged table's, and reassembly reproduces the table identity. A text
 /// absent from the table panics, because the frozen corpus admits no new embeddings.
 struct TableEmbedder {
+    /// The staged table's embedding contract.
     fingerprint: EmbedderFingerprint,
+    /// Each staged row's embedding under its card text's digest.
     rows: std::collections::HashMap<Sha256Digest, BoxedVecN<CANONICAL_DIMENSIONS>>,
 }
 
@@ -88,6 +90,11 @@ impl CardEmbedder for TableEmbedder {
         self.fingerprint
     }
 
+    /// Looks up every text's embedding by its SHA-256 digest.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a text's digest is absent from the staged table.
     fn embed<'text>(
         &self,
         texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,
@@ -110,26 +117,37 @@ impl CardEmbedder for TableEmbedder {
 
 /// The document, staged table, and echoed configuration of one frozen generation.
 pub(crate) struct Frozen {
+    /// The validated corpus document with its exact wire bytes.
     supplied: SuppliedAnnotations,
+    /// The embedder answering from the staged table.
     embedder: TableEmbedder,
-    /// The manifest-recorded corpus document digest; a supplied-artifact corpus has no manifest
-    /// and records none.
+    /// The manifest-recorded corpus document digest.
+    ///
+    /// A supplied-artifact corpus has no manifest and records none.
     staged_document_digest: Option<Sha256Digest>,
+    /// The digest of the loaded document bytes.
     document_digest: Sha256Digest,
+    /// The staged embedding array's digest, which the reassembled table must reproduce.
     staged_embeddings_digest: Sha256Digest,
+    /// The staged hash column's digest, which the reassembled table must reproduce.
     staged_hashes_digest: Sha256Digest,
-    /// The staged classifier artifact's recorded identity; a supplied-artifact corpus stages no
-    /// classifier and carries none.
+    /// The staged classifier artifact's recorded identity.
+    ///
+    /// A supplied-artifact corpus stages no classifier and carries none.
     staged_classifier_digest: Option<Sha256Digest>,
-    /// The generation's echoed assembly configuration; the replay binds it, never the compiled
-    /// defaults.
+    /// The generation's echoed assembly configuration.
+    ///
+    /// The replay binds it, never the compiled defaults.
     assembly: AssemblyConfig,
+    /// The generation's echoed classifier fit configuration.
     fit: FitConfig,
 }
 
 impl Frozen {
-    /// The staged classifier artifact's recorded identity; [`None`] for supplied artifacts, which
-    /// stage no classifier.
+    /// Returns the staged classifier artifact's recorded identity.
+    ///
+    /// [`None`] for artifacts loaded through [`Self::from_supplied`], which come with no published
+    /// generation and record no classifier.
     pub(crate) const fn staged_classifier_digest(&self) -> Option<Sha256Digest> {
         self.staged_classifier_digest
     }
@@ -193,11 +211,12 @@ impl Frozen {
     ///
     /// `directory` holds the three artifact files under their staged names:
     /// `annotation-corpus.json`, `annotation-embeddings.arr`, and `annotation-hashes.arr`. Supplied
-    /// artifacts carry no configuration echo, so the assembly and fit configurations are the
-    /// compiled deployment defaults; [`reconstruct`](Self::reconstruct) still certifies the
-    /// reassembled table against the supplied bytes, so a default assembly that diverges from the
-    /// one that produced the artifacts fails the byte certification instead of probing a different
-    /// corpus.
+    /// artifacts carry no configuration echo, and the assembly and fit configurations are
+    /// therefore the compiled deployment defaults. [`reconstruct`](Self::reconstruct) still
+    /// certifies the reassembled table against the supplied bytes, which pins the rendered card
+    /// texts and their embeddings. The group budget, the one assembly setting, leaves those bytes
+    /// unchanged: a default that differs from the producing fit's changes the validation groups
+    /// without failing the certification.
     ///
     /// # Panics
     ///
@@ -219,9 +238,9 @@ impl Frozen {
             std::fs::read(hashes_path.as_std_path()).expect("the supplied hash column reads"),
         );
 
-        // Supplied artifacts name no embedder, so the fingerprint derives from the supplied table's
-        // own digest and labels the reassembled table's identity without entering the certified
-        // bytes.
+        // Supplied artifacts name no embedder. The fingerprint therefore derives from the supplied
+        // table's own digest and labels the reassembled table's identity without entering the
+        // certified bytes.
         let embedder = TableEmbedder::load(
             EmbedderFingerprint::new(embeddings_digest),
             &hashes_path,
@@ -303,7 +322,7 @@ pub(crate) struct Reconstructed {
 impl Reconstructed {
     /// The trained prefix of the embedding table.
     ///
-    /// The trained rows lead the table, so the prefix keeps the corpus's card-row identities; the
+    /// The trained rows lead the table, and the prefix keeps the corpus's card-row identities. The
     /// pin claims that domain over the table's domain-neutral rows.
     pub(crate) fn trained_embeddings(
         &self,
@@ -324,6 +343,7 @@ impl Reconstructed {
 
 #[cfg(test)]
 mod tests {
+
     use std::fs;
 
     use camino::Utf8PathBuf;
@@ -338,11 +358,14 @@ mod tests {
         salt::embedding::EmbedderFingerprint,
     };
 
+    /// The record hash the fixture card and vote carry.
     const DIGEST: &str = "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b";
+    /// The versioned HASH type URL of the fixture card.
     const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
 
-    /// Composes a minimal contract-conforming corpus document: one hash card carrying one
-    /// geometry vote.
+    /// Composes a minimal contract-conforming corpus document.
+    ///
+    /// One hash card carrying one geometry vote.
     fn document() -> String {
         json!({
             "cards": [{
@@ -412,14 +435,16 @@ mod tests {
         dir
     }
 
+    /// Reads the three artifact files under their staged names and binds the supplied digests.
+    ///
     /// The constructor reads the three artifact files under exactly the staged names its
     /// documentation promises, and binds the supplied bytes' digests as the staged identities.
     #[test]
     fn from_supplied_reads_the_staged_artifact_names() {
         let dir = scratch("staged-names");
 
-        // The literals spell the constructor's documented human contract; the constructor joins
-        // the pinned artifact names, so either side drifting fails this witness.
+        // The literals spell the constructor's documented human contract, and the constructor
+        // joins the pinned artifact names. Either side drifting therefore fails this witness.
         let document = document();
         fs::write(dir.join("annotation-corpus.json"), &document)
             .expect("the corpus document should write");
@@ -450,8 +475,8 @@ mod tests {
 
         let frozen = Frozen::from_supplied(&dir);
 
-        // A supplied corpus records no manifest digest, so the recorded-digest check has no
-        // second opinion to forge.
+        // A supplied corpus records no manifest digest, and the recorded-digest check therefore
+        // has no second opinion to forge.
         assert_eq!(frozen.document_digest, Sha256Digest::of(&document));
         assert!(frozen.staged_document_digest.is_none());
 

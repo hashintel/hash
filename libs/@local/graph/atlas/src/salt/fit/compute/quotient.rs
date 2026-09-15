@@ -42,7 +42,7 @@ hashql_core::id::newtype! {
 
 /// The byte-exact quotient of a representation matrix, holding both row domains of one fit.
 ///
-/// The quotient owns the two row maps and keeps the corpus matrix it was built over; where
+/// The quotient owns the two row maps and keeps the corpus matrix it was built over. Where
 /// copies exist it also owns the materialized distinct matrix. It is therefore the one value that
 /// answers every domain question of a fit: [`corpus`](Self::corpus) is the publication domain,
 /// [`training`](Self::training) the training domain, and [`class_of`](Self::class_of) and
@@ -65,9 +65,9 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// Quotients the corpus by byte equality of its rows and materializes the training matrix.
     ///
     /// Every corpus row maps to a distinct row, and every distinct row names its first corpus
-    /// row. Distinct rows ascend with their first occurrence, so gathering the first rows from
-    /// the corpus preserves stream order. Row equality is raw byte equality of the representation
-    /// vectors: the key distinguishes every representable bit pattern.
+    /// row. Distinct rows ascend with their first occurrence, and gathering the first rows from
+    /// the corpus therefore preserves stream order. Row equality is raw byte equality of the
+    /// representation vectors: the key distinguishes every representable bit pattern.
     ///
     /// The distinct matrix materializes under `scratch` exactly when copies exist, gathering each
     /// distinct row's bytes from its first corpus occurrence. An identity quotient writes nothing,
@@ -80,10 +80,11 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// # Panics
     ///
     /// A corpus row count exceeding the store's `u32` row domain panics here: every published
-    /// column and the neighbour table's packed columns address rows as `u32`, so a wider corpus
-    /// refuses before any stage spends time on it. The call also panics when the matrix it just
-    /// wrote does not map back as aligned `f32` rows, which is a defect of the writer rather
-    /// than of the input.
+    /// column and the neighbour table's packed columns address rows as `u32`, and a wider corpus
+    /// therefore refuses before any stage spends time on it. The call also panics when the matrix
+    /// it just wrote does not open and map back as aligned `f32` rows. A shape mismatch there is a
+    /// defect of the writer, while the open can also fail on the scratch file system after a
+    /// complete write.
     #[tracing::instrument(name = "quotient-build", skip_all)]
     pub(super) fn build(
         corpus: &'corpus IdSlice<NodeRowId, AlignedVecN<N>>,
@@ -134,17 +135,17 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
         })
     }
 
-    /// Number of corpus rows.
+    /// Returns the number of corpus rows.
     pub(super) const fn len(&self) -> usize {
         self.classes.len()
     }
 
-    /// Number of distinct representation rows.
+    /// Returns the number of distinct representation rows.
     pub(super) const fn distinct_len(&self) -> usize {
         self.representatives.len()
     }
 
-    /// Whether every corpus row is already distinct.
+    /// Returns whether every corpus row is already distinct.
     ///
     /// An identity quotient lets a fit skip the distinct detour entirely: the corpus and the
     /// distinct domain are the same rows in the same order.
@@ -152,16 +153,16 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
         self.representatives.len() == self.classes.len()
     }
 
-    /// The corpus matrix the quotient was built over: the publication row domain.
+    /// Returns the corpus matrix the quotient was built over, the publication row domain.
     pub(super) const fn corpus(&self) -> &'corpus IdSlice<NodeRowId, AlignedVecN<N>> {
         self.corpus
     }
 
-    /// The training matrix of every distinct representation row, in first-occurrence order.
+    /// Returns the training matrix of every distinct representation row, in first-occurrence order.
     ///
     /// Where copies exist this is the materialized distinct matrix. Under the identity quotient
-    /// it is the corpus matrix reborrowed under the distinct key, because the two domains are
-    /// then the same rows in the same order, so no second mapping and no copy exists.
+    /// it is the corpus matrix reborrowed under the distinct key: the two domains are then the
+    /// same rows in the same order, and no second mapping and no copy exists.
     pub(super) const fn training(&self) -> &IdSlice<DistinctRowId, AlignedVecN<N>> {
         match &self.materialized {
             Some(matrix) => matrix,
@@ -179,20 +180,20 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
         self.representatives[distinct]
     }
 
-    /// The distinct class of every corpus row, in corpus order.
+    /// Returns the distinct class of every corpus row, in corpus order.
     pub(super) const fn classes(&self) -> &IdSlice<NodeRowId, DistinctRowId> {
         &self.classes
     }
 
-    /// The representative of every distinct class, strictly ascending.
+    /// Returns the representative of every distinct class, strictly ascending.
     pub(super) const fn representatives(&self) -> &IdSlice<DistinctRowId, NodeRowId> {
         &self.representatives
     }
 
     /// Gathers a corpus frame at the representatives: the training domain's own frame.
     ///
-    /// Identical representations project identically, so the gathered frame is the distinct
-    /// rows' own coordinates rather than a sample of them.
+    /// Identical representations project identically, and the gathered frame is therefore the
+    /// distinct rows' own coordinates rather than a sample of them.
     pub(super) fn training_frame(
         &self,
         frame: &FinitePointField<NodeRowId>,
@@ -203,12 +204,13 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// Expands a distinct-domain neighbour table onto the corpus row domain.
     ///
     /// Every corpus row takes its representative's neighbour list, each neighbour named by its own
-    /// first corpus row. The gather preserves every table invariant: `representatives` ascends
-    /// strictly, so row entries stay strictly ascending, and no entry names its own row - a
+    /// first corpus row. The gather preserves every table invariant. `representatives` ascends
+    /// strictly, and row entries therefore stay strictly ascending. No entry names its own row: a
     /// distinct list excludes its own index, and expanded entries name first rows only.
     ///
-    /// Under the identity quotient the two domains are the same rows in the same order, so the
-    /// table is already the corpus's own and no expansion materializes: the call returns `None`.
+    /// Under the identity quotient the two domains are the same rows in the same order. The
+    /// table is then already the corpus's own and no expansion materializes: the call returns
+    /// `None`.
     pub(super) fn expand_neighbours(
         &self,
         table: &KnnView<'_, DistinctRowId>,
@@ -267,7 +269,8 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
     /// render one asserted link as many edge rows, and the trainer weighs the assertion once
     /// rather than per copy. Instances whose endpoints collapse onto one distinct row pass
     /// through, and the index build drops and counts them as self-references. The collapse
-    /// orders totally before deduplicating, so the result is a function of the instance set.
+    /// orders totally before deduplicating, and the result is therefore a function of the
+    /// instance set.
     pub(super) fn collapse_instances(
         &self,
         instances: &[RelationInstance<NodeRowId, EdgeRowId>],
@@ -340,6 +343,11 @@ mod tests {
     }
 
     impl Matrix {
+        /// Copies `rows` into the head of the aligned storage.
+        ///
+        /// # Panics
+        ///
+        /// Panics when `rows` exceeds the fixture capacity.
         fn new(rows: &[[f32; WIDTH]]) -> Self {
             let mut storage = BoxedVecN::zero();
             let (chunks, _) = storage.as_array_mut().as_chunks_mut::<WIDTH>();
@@ -353,6 +361,7 @@ mod tests {
             }
         }
 
+        /// The resident rows as an aligned row-indexed slice.
         fn view(&self) -> &hashql_core::id::IdSlice<NodeRowId, AlignedVecN<WIDTH>> {
             hashql_core::id::IdSlice::from_raw(
                 AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * WIDTH])
@@ -361,6 +370,7 @@ mod tests {
         }
     }
 
+    /// A row whose every component is `fill`.
     fn row(fill: f32) -> [f32; WIDTH] {
         [fill; WIDTH]
     }
@@ -395,6 +405,10 @@ mod tests {
         )
     }
 
+    /// Builds the identity quotient from a matrix of distinct rows.
+    ///
+    /// A matrix of distinct rows builds the identity quotient: the training matrix reborrows the
+    /// corpus, the maps are identities and no neighbour expansion materializes.
     #[test]
     fn identity_quotient() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(3.0)]);
@@ -413,7 +427,7 @@ mod tests {
         assert_eq!(classes, [0, 1, 2]);
         assert_eq!(representatives, [0, 1, 2]);
 
-        // Under the identity quotient the distinct table is already the corpus's own, so no
+        // Under the identity quotient the distinct table is already the corpus's own, and no
         // expansion materializes.
         let table_matrix = KnnMatrix::try_new(
             (3, 3),
@@ -454,10 +468,11 @@ mod tests {
         }
     }
 
+    /// `0.0` and `-0.0` fall into different classes, since the quotient keys on bytes.
     #[test]
     fn byte_exact_equality() {
-        // 0.0 and -0.0 compare equal as floats and differ as bytes; the
-        // quotient keys on bytes.
+        // 0.0 and -0.0 compare equal as floats and differ as bytes, and
+        // the quotient keys on bytes.
         let mut negative = row(0.0);
         negative[0] = -0.0;
         let matrix = Matrix::new(&[row(0.0), negative, row(0.0)]);
@@ -471,6 +486,7 @@ mod tests {
         assert_eq!(representatives, [0, 1]);
     }
 
+    /// Representatives are the first rows of their classes, in ascending order.
     #[test]
     fn representatives_ascending() {
         let matrix = Matrix::new(&[row(5.0), row(5.0), row(4.0), row(4.0), row(6.0)]);
@@ -484,6 +500,10 @@ mod tests {
         assert!(ascending, "distinct rows follow first occurrence order");
     }
 
+    /// Expands a distinct-domain kNN table onto every copy of a representative.
+    ///
+    /// Expanding a distinct-domain kNN table gives every copy its representative's list, with
+    /// neighbours naming first rows.
     #[test]
     fn expand_names_representatives() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
@@ -520,6 +540,11 @@ mod tests {
         assert_eq!(lists, [(1, 0.5), (0, 0.5), (1, 0.5), (1, 0.25), (0, 0.5)],);
     }
 
+    /// Collapses instances onto the distinct domain and keeps the strongest reading per triple.
+    ///
+    /// Collapsing instances onto the distinct domain keeps the strongest reading per
+    /// `(relation, source, target)`, breaking equal confidence by the lower edge row, and keeps
+    /// distinct relations apart.
     #[test]
     fn collapse_strongest_per_triple() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0), row(2.0)]);
@@ -575,6 +600,7 @@ mod tests {
         );
     }
 
+    /// The training matrix's row `i` is byte-equal to the corpus row `representatives[i]`.
     #[test]
     fn materialize_gathers_representatives() {
         let matrix = Matrix::new(&[row(1.0), row(2.0), row(1.0), row(3.0)]);

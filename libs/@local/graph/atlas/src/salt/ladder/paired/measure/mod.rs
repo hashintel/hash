@@ -1,11 +1,8 @@
-//! The whole readout of one generation, from salt to evidence body.
+//! Draw selection, movement measurement and assembly of paired evidence.
 //!
-//! [`measure`] is the C2 evidence writer's core. It derives the draw salt and takes the census
-//! over the attraction index's regions, then reads every drawn subject between the aligned
-//! step frames and assembles the persisted evidence body. It is a pure function of its inputs, so
-//! the acceptance fixtures drive the exact production path over constructed index regions and
-//! frames, injected failures included, while the fit's writer wraps it around the staged
-//! artifacts.
+//! [`measure`] derives the salt, takes the attraction-index census and reads the selected subjects
+//! between aligned frames. Per-subject work runs in parallel, while collected readings retain draw
+//! order for the serial aggregation.
 
 #[cfg(test)]
 mod tests;
@@ -35,16 +32,24 @@ use crate::{
 
 /// Measures the paired-movement readout of one generation.
 ///
-/// `groups` and `edges` are the attraction index's regions in file order, and `zero` and
-/// `canonical` are the ladder's aligned step frames. The zero frame's row count is the corpus
-/// row domain the census walks, and the fit's writer asserts it against the staged index. The
-/// salt derives under the initial rule identity from the same `snapshot` and `reproducibility`
-/// values the seal serializes, so the draw replays from the published document's input
-/// sections alone.
+/// `groups` and `edges` must satisfy the attraction-index contract and use the same row identities
+/// as `zero` and `canonical`. Both frames must already share the baseline basis. The census uses
+/// `zero.len()` as its row domain. The metadata supplies the salt preimage but is not checked
+/// against the regions or frames.
 ///
-/// A census or movement refusal lands as [`MovementOutcome::Failed`] beside the completed draw
-/// counts, and an empty pair domain as [`MovementOutcome::Vacuous`]. Every readout resolution
-/// is an evidence body, so the readout never blocks publication.
+/// A census refusal returns [`MovementOutcome::Failed`] with zero draw counts. A frame-length
+/// refusal preserves the completed draw counts in a failed outcome. An empty pair domain returns
+/// [`MovementOutcome::Vacuous`] before checking the canonical frame's length. These outcomes carry
+/// no publication veto, while salt-encoding failure remains a returned error.
+///
+/// # Complexity
+///
+/// Beyond [`Draw::over`], this builds indexes for both N-row frames and the sampled endpoints. It
+/// reads every sampled pair and control, then queries and sorts all Q nonparticipants' anchor
+/// distances to define strata. This full candidate sweep costs O(Q) retained distances and O(Q log
+/// Q) sorting work even for a small control sample. Distance ties can make individual tree queries
+/// require full-domain sorting. Per-worker scratch is additional to the indexes and collected
+/// readings.
 ///
 /// # Errors
 ///
@@ -104,10 +109,10 @@ pub(crate) fn measure(
         }
     };
 
-    // The reading sweeps are parallel over read-only frames and trees. Each worker allocates
-    // its readouts in a scratch arena and resets it between readings, so a reading bump-allocates
-    // into warm memory and frees in bulk. Collection preserves draw order, so the readings are
-    // the serial loop's, whatever the schedule.
+    // Indexed parallel collection preserves the draw's order. Each reading depends only on its
+    // subject and the shared frames and trees. Therefore the serial aggregate receives the same
+    // ordered readings independently of the worker schedule. Arena reset reclaims each worker's
+    // result buffers between readings.
     let pairs: Vec<_> = draw
         .pairs()
         .par_iter()
@@ -118,8 +123,8 @@ pub(crate) fn measure(
         })
         .collect();
 
-    // The anchor index holds the drawn pairs' endpoints at their zero-step positions. A gather
-    // from the proven zero field stays proven.
+    // the nonempty draw supplies at least one in-domain endpoint. Gathering those zero-step
+    // positions preserves finiteness for the anchor index.
     let anchor_rows = draw.anchors();
     let anchor_frame = zero.gather(IdSlice::<AnchorRowId, _>::from_raw(&anchor_rows));
     let anchor_tree = KdTree::build(&anchor_frame);
@@ -134,9 +139,8 @@ pub(crate) fn measure(
         })
         .collect();
 
-    // The collateral strata boundaries stand on the full candidate population, so the sweep
-    // reads every nonparticipant row's anchor distance through the same readout as the drawn
-    // controls' readings.
+    // define boundaries from every control candidate's proximity to the sampled anchors. Sorting
+    // later makes the parallel collection order irrelevant.
     let participants = participants(rows, edges);
     let mut candidates: Vec<_> = (0..rows)
         .into_par_iter()

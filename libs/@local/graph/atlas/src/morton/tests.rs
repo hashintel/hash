@@ -2,6 +2,7 @@ use proptest::{prop_assert, prop_assert_eq, prop_assert_ne, property_test};
 
 use super::{Depth, MortonCell, MortonKey};
 
+/// Borrowed and copied decoding admit exactly the constructor's zoom domain.
 #[test]
 fn curve_start_matches_the_hand_table() {
     // The Z-order curve over the 4 x 4 grid, keys 0..16 by hand:
@@ -31,6 +32,8 @@ fn curve_start_matches_the_hand_table() {
     }
 }
 
+/// Saturated axes interleave to the all-ones key, and a single saturated axis to its alternating
+/// bit mask.
 #[test]
 fn extremes_interleave_exactly() {
     assert_eq!(MortonKey::new(0, 0).to_bits(), 0);
@@ -39,6 +42,7 @@ fn extremes_interleave_exactly() {
     assert_eq!(MortonKey::new(0, u32::MAX).to_bits(), 0xAAAA_AAAA_AAAA_AAAA);
 }
 
+/// `Depth::try_new` admits exactly `0..=32`, mapping the ends to `MIN` and `MAX`.
 #[test]
 fn depth_admits_the_documented_domain() {
     assert_eq!(Depth::new(0), Some(Depth::MIN));
@@ -71,6 +75,8 @@ fn full_depth_cell_is_one_key() {
     );
 }
 
+/// `MortonCell::new` admits coordinates below `2^depth` on each axis and refuses the first
+/// coordinate at or beyond it.
 #[test]
 fn cell_addresses_reject_coordinates_outside_the_grid() {
     let depth = Depth::new(3).expect("3 subdivisions lie below the maximum of 32");
@@ -80,6 +86,8 @@ fn cell_addresses_reject_coordinates_outside_the_grid() {
     assert_eq!(MortonCell::new(depth, 0, 8), None);
 }
 
+/// A key's prefix at depth `d` is its leading `2d` interleaved bits: empty at depth zero and the
+/// whole key at maximum depth.
 #[test]
 fn prefixes_index_the_depth_grid_in_key_order() {
     // Cell (x = 2, y = 3) of the depth-2 grid: axis bits sit at the
@@ -99,7 +107,7 @@ fn shared_depth_counts_the_agreed_bit_pairs() {
     assert_eq!(key.shared_depth(key), Depth::MAX);
     // y's top bit differs: the keys part at the first subdivision.
     assert_eq!(key.shared_depth(MortonKey::new(0, 1 << 31)).get(), 0);
-    // x's second bit differs: one agreed bit pair, so one shared subdivision.
+    // x's second bit differs: one agreed bit pair and one shared subdivision.
     assert_eq!(key.shared_depth(MortonKey::new(1 << 30, 0)).get(), 1);
 }
 

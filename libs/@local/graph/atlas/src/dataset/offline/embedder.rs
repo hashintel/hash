@@ -1,10 +1,10 @@
 //! A [`CardEmbedder`] serving the embeddings a dump already holds.
 //!
 //! An offline fit has no provider to call, and it does not need one: the dump's card-embedding
-//! stream carries every vector the dump command minted, keyed by card-text hash and stamped with
-//! the minting contract's fingerprint. [`OfflineEmbedder`] serves lookups into that stream, so
-//! the fit's embedding path runs unchanged and a text the dump never embedded is a typed refusal
-//! rather than a network call.
+//! stream carries every vector the dump command produced, keyed by card-text hash and stamped
+//! with the fingerprint of the embedding contract behind them. [`OfflineEmbedder`] serves lookups
+//! into that stream. The fit's embedding path runs unchanged, and a text the dump never embedded
+//! is a typed refusal rather than a network call.
 
 use std::collections::HashMap;
 
@@ -23,9 +23,9 @@ use crate::{
 
 /// A requested card text is not in the dump.
 ///
-/// The dump embedded the card texts its own render produced, so this error means the offline
-/// fit renders a text the dump command never saw. Differing annotation flags are the usual
-/// cause. Take a new dump with flags matching the fit's.
+/// The dump embedded the card texts its own render produced, and the lookup found no embedding for
+/// the hash the fit asked about. Differing annotation flags are one cause. Take a new dump with
+/// flags matching the fit's.
 #[derive(Debug)]
 pub(crate) struct MissingCardText {
     /// The hash of the text the dump does not hold.
@@ -49,8 +49,8 @@ impl core::error::Error for MissingCardText {}
 ///
 /// The embedder borrows the [`OfflineDataset`]'s archived records and owns only an index from
 /// card-text hash to record position, built once at construction. Its fingerprint is the
-/// manifest's, the contract that minted every vector in the stream, so the fit's reuse and
-/// metadata paths see the dump command's provider identity unchanged.
+/// manifest's, the contract that produced every vector in the stream. The fit's reuse and metadata
+/// paths see the dump command's provider identity unchanged.
 #[derive(Debug)]
 pub(crate) struct OfflineEmbedder<'dump> {
     fingerprint: EmbedderFingerprint,
@@ -66,8 +66,8 @@ impl OfflineDataset {
     /// # Errors
     ///
     /// Returns [`OfflineDatasetError::Archive`] when the stream's archived root refuses
-    /// validation, which the open already performed, so reaching it means the file changed
-    /// beneath the mapping after acceptance.
+    /// validation. This repeats the check [`open`](Self::open) ran over the same bytes, which
+    /// the mapping requires to hold still for the dataset's lifetime.
     pub(crate) fn embedder(&self) -> Result<OfflineEmbedder<'_>, OfflineDatasetError> {
         let records = root::<rkyv::Archived<Vec<CardEmbeddingRecord>>>(&self.card_embeddings)
             .map_err(|source| OfflineDatasetError::Archive {
@@ -99,9 +99,9 @@ impl CardEmbedder for OfflineEmbedder<'_> {
 
     /// Serves every text's embedding out of the dump, in input order.
     ///
-    /// Each text hashes to its archived record and the vector copies out of the mapped file, so
-    /// the whole workload resolves without leaving the process. The first text the dump does
-    /// not hold fails the workload with [`MissingCardText`] naming its hash.
+    /// Each text hashes to its archived record and the vector copies out of the mapped file. The
+    /// whole workload resolves without leaving the process. The first text the dump does not hold
+    /// fails the workload with [`MissingCardText`] naming its hash.
     fn embed<'text>(
         &self,
         texts: impl IntoIterator<Item = &'text str, IntoIter: Send> + Send,

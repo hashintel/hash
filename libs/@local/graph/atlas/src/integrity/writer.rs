@@ -160,6 +160,7 @@ where
     }
 }
 
+/// Certificates for the accumulator adapters.
 #[cfg(test)]
 mod tests {
     use core::{pin::Pin, task};
@@ -186,6 +187,7 @@ mod tests {
     }
 
     impl ShortWriter {
+        /// A writer that has taken nothing yet and accepts `limit` bytes a call.
         fn new(limit: usize) -> Self {
             Self {
                 accepted: Vec::new(),
@@ -193,6 +195,7 @@ mod tests {
             }
         }
 
+        /// Records the prefix of `buf` this writer accepts and returns its length.
         fn take(&mut self, buf: &[u8]) -> usize {
             let accepted = buf.len().min(self.limit);
             self.accepted.extend_from_slice(&buf[..accepted]);
@@ -301,6 +304,8 @@ mod tests {
         assert_eq!(writer.accumulator.0, b"abcde");
     }
 
+    /// The same short-write accounting holds asynchronously: the accumulated stream equals what
+    /// the writer accepted across the retried polls, and equals the whole input at the end.
     #[tokio::test]
     async fn async_write_short() {
         let mut writer = Writer {

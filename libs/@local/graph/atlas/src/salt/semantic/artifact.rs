@@ -1,9 +1,9 @@
-//! The semantic graph's published form as one sparse matrix file and its mapped reader.
+//! Semantic graph publication and mapped access to fixed attraction weights.
 //!
-//! A [`SemanticGraph`] publishes as one [`crate::file::sprs`] file holding its
-//! [`SemanticMatrix`](super::SemanticMatrix) verbatim. [`SemanticGraphArchive`] reopens the file
-//! over a whole-file mapping and validates the graph invariants once, so training and release
-//! evaluation read the same weights from the page cache without holding them on the heap.
+//! A [`SemanticGraph`] with zero-based row pointers publishes as one [`crate::file::sprs`] file
+//! preserving its [`SemanticMatrix`](super::SemanticMatrix) entries. [`SemanticGraphArchive`]
+//! validates the graph invariants over the mapped matrix. Reopening the same artifact fixes the
+//! semantic weights without copying the matrix regions to heap allocations.
 #![cfg_attr(
     not(test),
     expect(
@@ -39,12 +39,14 @@ where
 
     /// Writes the graph as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the matrix's first row pointer is nonzero. [`SemanticGraph::new`] accepts
+    /// such matrices, but the sparse-file writer requires zero-based pointers.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -53,8 +55,8 @@ where
 
         write_matrix(&self.matrix(), &mut writer).map_err(|error| match error {
             WriteSprsError::Io(error) => error,
-            // A validated graph is row-compressed, unsliced, and at
-            // least 2 x 2, so no non-IO write failure exists for it.
+            // validation establishes nonzero dimensions. Zero-based pointers are an additional
+            // writer requirement, established by SemanticGraph::build but not SemanticGraph::new.
             error @ (WriteSprsError::Sliced | WriteSprsError::ZeroDimension { .. }) => {
                 unreachable!("a validated graph is writable: {error}")
             }
@@ -66,7 +68,7 @@ where
 
 impl<N> WriteAs<artifact::Semantic> for SemanticGraph<N> where N: Id {}
 
-/// An opened sparse matrix file does not hold a valid semantic graph.
+/// Failure to interpret a sparse matrix file as a semantic graph.
 #[derive(Debug)]
 pub(crate) enum InvalidSemanticFile {
     /// The file does not hold the graph's matrix layout.
@@ -106,10 +108,11 @@ impl Error for InvalidSemanticFile {
 
 /// A published semantic graph opened over its mapped file.
 ///
-/// Construction checks the graph invariants once, so an open graph only serves valid views; the
-/// matrix regions stay in the page cache under memory pressure and off the heap. Each
-/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
-/// so stages call it once and hold the view.
+/// Construction checks the graph invariants once. Each [`Self::view`] rechecks the sparse structure
+/// through [`SprsFile::matrix`] and borrows the mapped entries. Retain a view across repeated reads
+/// to avoid repeating that structural scan.
+///
+/// Validated views require the backing file to remain immutable for the mapping's lifetime.
 #[derive(Debug)]
 pub(crate) struct SemanticGraphArchive<N> {
     file: SprsFile,
@@ -124,8 +127,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the graph's matrix layout or the matrix
-    /// violates a [`SemanticGraph`] invariant.
+    /// Returns [`InvalidSemanticFile`] when the file cannot provide a matrix satisfying the graph's
+    /// layout and invariants.
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidSemanticFile> {
         let matrix = file.matrix().map_err(InvalidSemanticFile::Matrix)?;
         validate(matrix)?;
@@ -136,7 +139,11 @@ where
         })
     }
 
-    /// Borrows the validated graph.
+    /// Borrows the validated graph after rechecking its sparse structure.
+    ///
+    /// # Complexity
+    ///
+    /// This takes O(n + m) work for `n` rows and `m` stored entries.
     #[must_use]
     pub(crate) fn view(&self) -> SemanticGraphView<'_, N> {
         let matrix = self

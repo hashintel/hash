@@ -36,11 +36,16 @@ use crate::{
     },
 };
 
+/// Creates the seed-42 generator shared by deterministic fixtures.
 fn rng() -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(42)
 }
 
 /// Runs the task in a dedicated rayon pool of `threads` workers.
+///
+/// # Panics
+///
+/// This panics when the pool cannot create its workers.
 fn in_pool<T: Send>(threads: usize, task: impl FnOnce() -> T + Send) -> T {
     ThreadPoolBuilder::new()
         .num_threads(threads)
@@ -49,6 +54,7 @@ fn in_pool<T: Send>(threads: usize, task: impl FnOnce() -> T + Send) -> T {
         .install(task)
 }
 
+/// Creates a unit-weight, non-prior candidate at `row` with zero-valued axes.
 fn candidate(row: u64) -> LandmarkCandidate<NodeRowId> {
     LandmarkCandidate {
         row: NodeRowId::new(row),
@@ -58,10 +64,16 @@ fn candidate(row: u64) -> LandmarkCandidate<NodeRowId> {
     }
 }
 
+/// Creates unit-weight candidates at every row in `0..count`.
 fn candidates(count: u64) -> Vec<LandmarkCandidate<NodeRowId>> {
     (0..count).map(candidate).collect()
 }
 
+/// Sets `maximum` as the landmark capacity, retaining the remaining defaults.
+///
+/// # Panics
+///
+/// This panics when `maximum` is zero.
 fn options(maximum: u32) -> SelectionOptions {
     SelectionOptions {
         maximum_count: NonZero::new(maximum).expect("test capacities are nonzero"),
@@ -69,7 +81,11 @@ fn options(maximum: u32) -> SelectionOptions {
     }
 }
 
-/// Calls [`select_landmarks`] over plain fixture slices.
+/// Selects landmarks from plain fixture slices.
+///
+/// # Errors
+///
+/// Returns [`SelectionError`] when [`select_landmarks`] rejects the fixture.
 fn select<R: Rng + SeedableRng>(
     candidates: &[LandmarkCandidate<NodeRowId>],
     minimums: &[SubgroupMinimum],
@@ -281,10 +297,8 @@ fn selection_rejects_unsatisfiable_minimums() {
 
 #[test]
 fn selection_counts_rows_toward_every_minimum_they_satisfy() {
-    // Rows 0..4 carry both marked axes, so the same three rows can
-    // satisfy both three-row minimums at once; a capacity of three
-    // suffices. Counting the overlap per minimum would demand six rows
-    // and fail with MinimumExceedsCapacity.
+    // rows 0..4 carry both marked axes. Selecting any three satisfies both three-row minimums in a
+    // capacity of three.
     let mut candidates = candidates(50);
     for candidate in &mut candidates[..4] {
         candidate.axes[SubgroupDimension::Language] = 7;
@@ -347,11 +361,15 @@ fn selection_is_invariant_across_thread_counts() {
 }
 
 /// A brute-force cosine backend over resident rows.
+///
+/// Id searches panic when the row is absent, or when `limit` is [`usize::MAX`] and overflow checks
+/// are enabled.
 struct ExactIndex {
     rows: Vec<(NodeRowId, BoxedVecN<PROJECTOR_DIMENSIONS>)>,
 }
 
 impl ExactIndex {
+    /// Creates an empty fixture index.
     fn new() -> Self {
         Self { rows: Vec::new() }
     }
@@ -432,7 +450,7 @@ impl NearestNeighboursIndex<NodeRowId> for ExactIndex {
     }
 }
 
-/// A fixture of six rows in three well-separated directions.
+/// Creates six normalized rows in three separated directions.
 ///
 /// Rows 0 and 1 point one way, 2 and 3 another, 4 and 5 a third.
 fn clustered_embeddings() -> Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> {
@@ -463,6 +481,11 @@ struct Matrix {
 }
 
 impl Matrix {
+    /// Copies `rows` into the head of the aligned storage.
+    ///
+    /// # Panics
+    ///
+    /// Panics when more than eight rows are given, the fixture's capacity.
     fn new(rows: &[BoxedVecN<PROJECTOR_DIMENSIONS>]) -> Self {
         let mut storage = BoxedVecN::zero();
         let (chunks, _) = storage
@@ -478,6 +501,7 @@ impl Matrix {
         }
     }
 
+    /// Borrows the initialized rows as an aligned row-indexed slice.
     fn view(&self) -> &IdSlice<NodeRowId, AlignedVecN<PROJECTOR_DIMENSIONS>> {
         IdSlice::from_raw(
             AlignedVecN::from_slice(&self.storage.as_array()[..self.rows * PROJECTOR_DIMENSIONS])
@@ -486,6 +510,11 @@ impl Matrix {
     }
 }
 
+/// Selects exactly `rows` by setting capacity to the candidate count.
+///
+/// # Panics
+///
+/// This panics when `rows` is empty, not strictly ascending, or longer than the `u32` capacity.
 fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection<NodeRowId> {
     let candidates: Vec<LandmarkCandidate<NodeRowId>> =
         rows.iter().map(|&row| candidate(row)).collect();
@@ -493,7 +522,7 @@ fn selection_of(rows: &[u64]) -> super::select::LandmarkSelection<NodeRowId> {
     select(&candidates, &[], options(capacity), rng()).expect("selecting every candidate succeeds")
 }
 
-/// Ordinals from bare positions, for fixtures.
+/// Converts literal positions into landmark ordinals.
 fn ordinals(positions: &[u32]) -> Box<[LandmarkOrdinal]> {
     positions
         .iter()
@@ -536,12 +565,21 @@ fn assignment_rejects_landmarks_outside_the_corpus() {
     );
 }
 
-/// An assignment straight from ordinals, for quotient fixtures.
+/// Builds a fixture assignment from literal ordinals.
+///
+/// # Panics
+///
+/// This panics when an ordinal lies outside `landmarks`.
 fn assignment_of(positions: &[u32], landmarks: usize) -> LandmarkAssignment<NodeRowId> {
     LandmarkAssignment::from_ordinals(IdSlice::from_boxed_slice(ordinals(positions)), landmarks)
 }
 
-/// A semantic graph over `count` rows from undirected weighted edges.
+/// Builds a semantic graph over `count` rows from undirected weighted edges.
+///
+/// # Panics
+///
+/// This panics for an out-of-domain endpoint, repeated edge, self edge, a weight outside finite (0,
+/// 1], or fewer than two rows.
 fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph<NodeRowId> {
     let mut rows: Vec<Vec<(u32, f32)>> = vec![Vec::new(); count];
     for &(left, right, weight) in edges {
@@ -564,7 +602,7 @@ fn semantic_from_edges(count: usize, edges: &[(u32, u32, f32)]) -> SemanticGraph
     SemanticGraph::new(matrix).expect("the fixture satisfies the graph invariants")
 }
 
-/// A corpus semantic graph over six rows.
+/// Builds a six-row graph with strong clusters and weaker inter-cluster edges.
 ///
 /// Edges within clusters have weight 1.0, one bridge edge (1, 2) has weight 0.5, and one weaker
 /// bridge (3, 4) has weight 0.25.
@@ -590,9 +628,9 @@ fn quotient_contracts_cross_landmark_edges() {
         .quotient(&graph.view(), QuotientOptions { .. })
         .expect("the fixture quotient has edges");
 
-    // The directed inflows are L0 <- 0.5 (edge 1-2), L1 <- 0.5 + 0.25, and L2 <- 0.25. Every row
-    // max-normalizes, then pairs combine by the probabilistic union: (L0, L1) = 1 + 1 - 1 = 1.0 and
-    // (L1, L2) = 0.5 + 1 - 0.5 = 1.0.
+    // cross-landmark flows are F(0, 1) = F(1, 0) = 0.5 and F(1, 2) = F(2, 1) = 0.25. Row maxima are
+    // 0.5, 0.5 and 0.25. The union gives q(0, 1) = 1 + 1 − 1 · 1 = 1 and q(1, 2) = 0.5 + 1 − 0.5 ·
+    // 1 = 1.
     let view = quotient.view();
     assert_eq!(view.rows(), 3);
     let row0: Vec<(u64, f64)> = view
@@ -631,9 +669,8 @@ fn quotient_keeps_only_the_strongest_neighbours() {
         )
         .expect("the fixture quotient has edges");
 
-    // L0 keeps only L1; L2 and L3 keep their single inflow (normalized
-    // to 1.0 within their own rows), so their edges to L0 survive from
-    // the other direction.
+    // L0 keeps only L1 before mirroring. L2 and L3 each normalize their single flow to 1.0,
+    // preserving the remaining edges to L0 from the other direction.
     assert!(
         quotient
             .view()
@@ -704,11 +741,21 @@ fn quotient_is_invariant_across_thread_counts() {
     );
 }
 
+/// Fits the fixture affinity curve at spread `1.0` and floor `0.1`.
+///
+/// # Panics
+///
+/// This panics if fitting the fixed reference parameters fails.
 fn curve() -> AffinityCurve {
     AffinityCurve::fit(positive!(1.0), positive!(0.1))
         .expect("the reference inputs are well-conditioned")
 }
 
+/// Sets `epochs` as the layout budget, retaining the remaining defaults.
+///
+/// # Panics
+///
+/// This panics when `epochs` is zero.
 fn layout_options(epochs: u32) -> LayoutOptions {
     LayoutOptions {
         epochs: NonZero::new(epochs).expect("test epoch budgets are nonzero"),
@@ -736,7 +783,7 @@ fn layout_is_deterministic_under_a_seed() {
     assert_ne!(first, third, "a different seed draws a different layout");
 }
 
-/// Two 3-cliques with no edge between them.
+/// Builds two disjoint 3-cliques.
 fn clique_pair() -> SemanticGraph<NodeRowId> {
     semantic_from_edges(
         6,
@@ -754,7 +801,11 @@ fn clique_pair() -> SemanticGraph<NodeRowId> {
 /// The clique-pair vertex groups.
 const CLIQUES: [&[usize]; 2] = [&[0, 1, 2], &[3, 4, 5]];
 
-/// Longest pairwise distance inside either clique.
+/// Finds the longest pairwise distance inside either fixture clique.
+///
+/// # Panics
+///
+/// This panics when `coordinates` has fewer than six rows.
 fn widest_within<N>(coordinates: &IdSlice<N, Vec2>) -> f32
 where
     N: Id,
@@ -774,7 +825,11 @@ where
     widest
 }
 
-/// Shortest distance between the two cliques.
+/// Finds the shortest distance across the fixture cliques.
+///
+/// # Panics
+///
+/// This panics when `coordinates` has fewer than six rows.
 fn narrowest_across<N>(coordinates: &IdSlice<N, Vec2>) -> f32
 where
     N: Id,
@@ -817,8 +872,7 @@ fn layout_separates_clusters() {
 
 #[test]
 fn repulsion_widens_the_gap_between_disconnected_components() {
-    // Same graph, same seed, one knob: with repulsion off the cliques only contract in place, so
-    // the gap the default schedule opens must exceed the unrepelled one.
+    // equal graph, seed and epoch budget isolate the effect of repulsion in this fixture.
     let graph = clique_pair();
     let repelled = layout_landmarks(&graph.view(), curve(), layout_options(200), rng())
         .expect("the fixture graph lays out");
@@ -844,9 +898,9 @@ fn repulsion_widens_the_gap_between_disconnected_components() {
 
 #[test]
 fn layout_drops_edges_weaker_than_the_epoch_budget() {
-    // The (2, 3) weight needs a hundred epochs between samples, beyond the fifty-epoch budget. The
-    // schedule never samples the pair, so it gets no attraction and keeps its initial separation
-    // while the full-weight pair gathers.
+    // edge (2, 3) has period 1/0.01 ≈ 100, beyond the last deadline 49. Neither endpoint has
+    // another edge. They never anchor an update, and negative draws move only the anchor,
+    // preserving this pair's initialization.
     let graph = semantic_from_edges(4, &[(0, 1, 1.0), (2, 3, 0.01)]);
 
     let coordinates = layout_landmarks(&graph.view(), curve(), layout_options(50), rng())
@@ -871,9 +925,9 @@ fn layout_leaves_edgeless_rows_on_the_initial_circle() {
         .expect("the fixture graph lays out");
     assert_eq!(coordinates.len(), 4);
 
-    // The initial circle has radius 5 with up to 1% radial jitter; no
-    // force acts on an edgeless row, so it stays in that annulus (the
-    // bounds carry rounding slop from the trigonometric placement).
+    // initial radii lie between 5 and 5 · 1.01 = 5.05 before rounding. Edgeless rows never anchor
+    // updates, and repulsion moves only the anchor. The assertion includes rounding tolerance for
+    // trigonometric placement.
     for &isolated in &[2_usize, 3] {
         let radius = coordinates[NodeRowId::from_usize(isolated)].length();
         assert!(
@@ -882,8 +936,7 @@ fn layout_leaves_edgeless_rows_on_the_initial_circle() {
         );
     }
 
-    // The connected pair starts half a circle apart (distance ~10) and
-    // attraction draws it in.
+    // rows 0 and 1 start a quarter turn apart: base separation 5√2 ≈ 7.07 before jitter.
     assert!(
         coordinates[NodeRowId::new(0)].distance(coordinates[NodeRowId::new(1)]) < 2.0,
         "the connected pair gathers",
@@ -899,7 +952,11 @@ fn layout_rejects_an_edgeless_graph() {
     );
 }
 
-/// A per-test scratch file path under the system temp directory.
+/// Creates the fixture directory and returns a per-test scratch path.
+///
+/// # Panics
+///
+/// This panics when the directory cannot be created.
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-landmark-skeleton-{}",
@@ -909,9 +966,11 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-/// A skeleton from real stage outputs over the clustered fixture.
+/// Builds a skeleton and its assignment and coordinates from the clustered fixture.
 ///
-/// The tuple also includes the stage outputs that produced the skeleton.
+/// # Panics
+///
+/// This panics when fixture selection, assignment, contraction or layout fails.
 fn fixture_skeleton() -> (
     LandmarkSkeleton<NodeRowId>,
     LandmarkAssignment<NodeRowId>,
@@ -969,8 +1028,9 @@ fn mapped_skeleton_rejects_violated_invariants() {
         .write_into(&mut bytes)
         .expect("writing into a vector cannot fail");
 
-    // The fixture's geometry has rows at 4096, assignment at 8192, and coordinates at 12288, with
-    // each region padded to one 4096 unit.
+    // after the 4,096-byte header, three u64 selected rows occupy 24 bytes padded to 4,096. Six u32
+    // assignments occupy another 24 bytes padded to 4,096. Coordinates start at 12,288 and occupy
+    // 24 final, unpadded bytes.
     let open = |name: &str, bytes: &[u8]| {
         let path = scratch(name);
         fs::write(&path, bytes).expect("the scratch file is writable");

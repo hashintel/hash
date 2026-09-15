@@ -1,9 +1,9 @@
 //! The row streams, as the node and edge statements with their decoders.
 //!
-//! Each statement builder returns a [`BoundStatement`], which carries the SQL beside the bind
-//! list in placeholder order and the output column indices its select list assigned. The decoder
-//! beside each builder consumes those indices, so the select list and the decode sites cannot
-//! disagree about positions.
+//! Each statement builder returns a [`BoundStatement`], which carries the SQL beside the bind list
+//! in placeholder order and the output column indices its select list assigned. The decoder beside
+//! each builder consumes those indices. The select list and the decode sites cannot disagree about
+//! positions.
 
 use alloc::borrow::Cow;
 
@@ -47,6 +47,7 @@ fn ordinals_or_empty() -> Expression {
         })
 }
 
+/// The output columns of the node stream.
 pub(super) struct NodeColumns {
     /// The web the entity belongs to.
     pub web_id: usize,
@@ -172,6 +173,15 @@ pub(super) fn node_statement<'params>(
 }
 
 /// Decodes one node row.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`]: [`Query`] when a selected column does not read back at the
+/// type the decode asks for, the projector prefix's width included, then [`Ordinal`] when the
+/// ordinal column carries a value that is not a row reference.
+///
+/// [`Query`]: PostgresDatasetError::Query
+/// [`Ordinal`]: PostgresDatasetError::Ordinal
 pub(super) fn decode_node(
     row: &Row,
     columns: &NodeColumns,
@@ -415,10 +425,8 @@ mod tests {
 
     /// The rendered node statement, pinned as the text the store receives.
     ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: the final ordering is the scope row, which is what makes
-    /// stream position the row id.
+    /// Hold a changed snapshot to the statement's own contract: the final ordering is the scope
+    /// row, which is what makes stream position the row id.
     #[test]
     fn node_statement_text() {
         let axes = TemporalAxes::now();
@@ -429,10 +437,8 @@ mod tests {
 
     /// The rendered edge statement, pinned as the text the store receives.
     ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: the final ordering is link identity, the total order the
-    /// payload stream shares.
+    /// Hold a changed snapshot to the statement's own contract: the final ordering is link
+    /// identity, the total order the payload stream shares.
     #[test]
     fn edge_statement_text() {
         let axes = TemporalAxes::now();
@@ -441,8 +447,10 @@ mod tests {
         insta::assert_snapshot!(edge_statement(&axes, &types).sql);
     }
 
-    /// The legend streams order exactly as their positional partners, which is the whole
-    /// agreement that lets a payload row annotate the stream row at the same position.
+    /// The legend streams order exactly as their positional partners.
+    ///
+    /// That ordering is the whole agreement that lets a payload row annotate the stream row at the
+    /// same position.
     #[test]
     fn legend_streams_share_their_partners_ordering() {
         #![expect(clippy::string_slice)]

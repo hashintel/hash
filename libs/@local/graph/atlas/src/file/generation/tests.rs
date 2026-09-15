@@ -1,3 +1,4 @@
+//! Filesystem cases for generation publication, activation, opening and removal.
 #![expect(
     clippy::significant_drop_tightening,
     reason = "fixture stagings deliberately live to the end of their tests"
@@ -41,6 +42,11 @@ use crate::{
     },
 };
 
+/// Removes any existing test directory and returns its path.
+///
+/// # Panics
+///
+/// Panics if the temporary directory is not UTF-8 or removing an existing test directory fails.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -58,6 +64,11 @@ fn digest(seed: &str) -> Sha256Digest {
     hasher.finalize()
 }
 
+/// Validates a fixture file name.
+///
+/// # Panics
+///
+/// Panics if `name` is not a plain file name.
 fn name(name: &str) -> FileName {
     FileName::new(name.to_owned()).expect("the fixture name is a plain file name")
 }
@@ -209,7 +220,7 @@ fn evidence() -> Evidence {
     }
 }
 
-/// Restores the write permission a seal dropped, so a test can tamper with published bytes.
+/// Restores write permission for tampering with published bytes.
 fn make_writable(path: &camino::Utf8Path) {
     let mut permissions = fs::metadata(path)
         .expect("a published file should stat")
@@ -240,8 +251,6 @@ fn sealed_generation_is_complete_and_verifiable() {
     let staging = root.stage().expect("the staging should create");
     stage_all(&staging, &repository);
     let published = staging.seal(&repository).expect("the staging should seal");
-    // The generation is where the root says it is: the seal writes to the root's own
-    // generation path, so the directory is derived rather than stored.
     let published_path = root.generation_path(published.id());
 
     // Every manifest file is present with its staged bytes.
@@ -251,8 +260,6 @@ fn sealed_generation_is_complete_and_verifiable() {
         assert_eq!(bytes, entry.name.as_str().as_bytes());
     }
 
-    // The directory name is the SHA-256 of the metadata document, so the
-    // identity is recomputable from the published bytes alone.
     let document = fs::read(published_path.join(METADATA_FILE)).expect("the document should read");
     let mut hasher = Sha256::new();
     hasher.update(&document);
@@ -274,9 +281,6 @@ fn sealed_files_refuse_rewriting() {
     let published = staging.seal(&repository).expect("the staging should seal");
     let published_path = root.generation_path(published.id());
 
-    // Every published file, the metadata document included, is read-only and
-    // refuses a write handle: the permission drop turns a rewriting accident
-    // into an OS error.
     let mut names: Vec<String> = repository
         .files
         .files()
@@ -329,6 +333,9 @@ fn seal_rejects_a_manifest_the_staging_disagrees_with() {
     );
 }
 
+/// Sealing the same repository twice refuses the second attempt and names the generation already
+/// published - the document's digest is the identity, so identical content is the same
+/// generation rather than a new one.
 #[test]
 fn identical_document_publishes_once() {
     let root = GenerationRoot::new(scratch("identical")).expect("the root should open");
@@ -484,8 +491,7 @@ fn open_rejects_missing_tampered_and_foreign_documents() {
 fn open_reports_a_retired_version_before_interpreting_the_body() {
     let root = GenerationRoot::new(scratch("open-version")).expect("the root should open");
 
-    // Serialized by this crate, so the keys arrive in the order the version check
-    // depends on.
+    // Serializing the repository preserves the field order required by version checking.
     let document = serde_json::to_string(&repository()).expect("the repository should serialize");
     assert!(document.contains(r#""version":2"#));
     assert!(document.contains(r#""reproducibility""#));
@@ -501,8 +507,7 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
     // A body that no longer satisfies the current schema.
     let broken = document.replace(r#""reproducibility""#, r#""reproducibilty""#);
 
-    // A retired version reports the version rather than the body, so the error
-    // tells the operator of a superseded generation to refit.
+    // A retired version takes precedence over an invalid body.
     let retired = broken.replace(r#""version":2"#, r#""version":1"#);
     let error = root
         .open(publish(&retired))
@@ -514,8 +519,7 @@ fn open_reports_a_retired_version_before_interpreting_the_body() {
         "the version decides the diagnosis: {error}",
     );
 
-    // The same body under the accepted version fails on the body, so the
-    // assertion above rests on the order and not on a document that parses.
+    // An accepted version exposes the same body's schema error.
     let error = root
         .open(publish(&broken))
         .expect_err("an invalid body is rejected");

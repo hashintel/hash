@@ -1,3 +1,5 @@
+//! Certificates for the sparse matrix file's format.
+
 use core::assert_matches;
 
 use sprs::CsMatI;
@@ -9,11 +11,13 @@ use super::{
     write::{WriteSprsError, write_matrix},
 };
 
+/// A two-dimensional shape, the only rank a sparse matrix file records.
 fn matrix_shape(rows: u64, columns: u64) -> ArrayShape {
     ArrayShape::new(&[Dim::new(rows), Dim::new(columns)])
         .expect("two dimensions fit the maximum shape rank")
 }
 
+/// A 3x3 CSR header over `f32` values with `nnz` stored entries.
 fn fixture_header(nnz: u64) -> FileHeader {
     FileHeader::new(
         ValueTag::F32,
@@ -36,6 +40,8 @@ fn fixture() -> CsMatI<f32, u32, u64> {
     )
 }
 
+/// Each region offset and the expected file length follow the layout equations, with every region
+/// padded to a page boundary and the value region ending the file unpadded.
 #[test]
 fn regions_follow_the_layout_equations() {
     // 4 x 4, 8 entries: 40 pointer bytes and 32 index bytes each pad
@@ -56,8 +62,8 @@ fn regions_follow_the_layout_equations() {
 
 #[test]
 fn compressed_dimension_spans_the_pointers() {
-    // 2 x 1023: row-compressed needs 3 pointers, column-compressed
-    // 1024 - exactly two pages of u64 pointers.
+    // A CSR file has rows + 1 pointers, and a CSC file has columns + 1. For this 2 x 1023
+    // shape, those counts are 3 and 1024. The 1024 u64 pointers occupy exactly two pages.
     let csr = FileHeader::new(
         ValueTag::F32,
         4,
@@ -82,6 +88,8 @@ fn compressed_dimension_spans_the_pointers() {
     assert_eq!(csc.indices_offset(), Some(4096 + 8192));
 }
 
+/// Narrower pointer and index types shrink their regions: the byte counts follow the recorded
+/// element widths, and a region that fills less than a page still pads to one.
 #[test]
 fn narrow_elements_shrink_the_regions() {
     // 1023 rows of u16 pointers make 2048 pointer bytes, exactly half a page, which still pads to
@@ -482,6 +490,8 @@ fn structure_only_matrix_reopens_with_conjured_units() {
 mod miri {
     use crate::file::sprs::SprsValue;
 
+    /// The unit value view materializes the requested number of elements from an empty byte
+    /// region, which is the case whose pointer construction Miri is here to check.
     #[test]
     fn unit_values_conjure_from_no_bytes() {
         let units = <() as SprsValue>::view_region(&[], 7)

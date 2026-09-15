@@ -1,3 +1,5 @@
+//! The card's head block holds the relation name, description, aliases and inverse.
+
 use alloc::{
     alloc::{Allocator, Global},
     borrow::Cow,
@@ -8,9 +10,13 @@ use super::phrase::Phrase;
 
 /// The untruncatable head of every card.
 pub(crate) struct Prelude<'text, A: Allocator = Global> {
+    /// The relation's name.
     pub relation: Cow<'text, str>,
+    /// The relation's description.
     pub description: Option<Cow<'text, str>>,
+    /// The relation's alternative names.
     pub aliases: Vec<Cow<'text, str>, A>,
+    /// The inverse relation.
     pub inverse: Option<Phrase<'text>>,
 }
 

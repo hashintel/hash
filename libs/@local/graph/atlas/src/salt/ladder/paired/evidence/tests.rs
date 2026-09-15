@@ -1,9 +1,7 @@
 //! Evidence aggregation and wire-shape expectations.
 //!
-//! The quantile oracle restates the cumulative quantile rule directly, and the aggregate pins
-//! derive by hand from exact decimal literals. The serialized equalities pin each outcome
-//! kind's whole wire shape, so a drifted field name or a defaulted absence fails against an
-//! independent statement of the contract.
+//! A cumulative-count oracle checks quantiles. Hand-derived binary-representable fixtures check
+//! aggregate values, and complete serialized values check each outcome's wire shape.
 
 #![expect(
     clippy::float_cmp,
@@ -36,8 +34,14 @@ use crate::{
 
 #[test]
 fn nearest_rank_quantiles_restate_the_cumulative_rule() {
-    // The oracle restates the definition directly: walk the ascending readings and take
-    // the first whose cumulative unit count reaches the fraction of the population.
+    /// Computes the nearest-rank quantile by definition.
+    ///
+    /// Walks the ascending readings and returns the first whose cumulative unit count reaches
+    /// `fraction` of the population.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `readings` is empty or no cumulative count reaches `fraction` of the population.
     fn oracle(readings: &[f64], fraction: f64) -> f64 {
         let mut sorted = readings.to_vec();
         sorted.sort_unstable_by(f64::total_cmp);
@@ -109,9 +113,10 @@ fn pair_aggregates_pin_exact_decimal_literals() {
 
     let aggregates = PairAggregates::over(&readings);
 
-    // Δd = [-0.5, 0.25, -1.5, 0.0] sorts to [-1.5, -0.5, 0.0, 0.25]. Over four readings the
-    // one-based nearest ranks are ⌈0.2⌉ = 1, ⌈1⌉ = 1, ⌈2⌉ = 2, ⌈3⌉ = 3, and ⌈3.8⌉ = 4. Every
-    // literal is exact in f64, so the serial fold gives (-0.5 + 0.25 - 1.5 + 0.0) / 4 exactly.
+    // Δd = [−0.5, 0.25, −1.5, 0.0] sorts to [−1.5, −0.5, 0.0, 0.25]. Over four readings the
+    // one-based nearest ranks are ⌈0.2⌉ = 1, ⌈1⌉ = 1, ⌈2⌉ = 2, ⌈3⌉ = 3 and ⌈3.8⌉ = 4. The Δd
+    // readings and every partial sum are exactly representable in f64. Their serial mean is (−0.5 +
+    // 0.25 − 1.5 + 0.0) / 4 = −0.4375.
     assert_eq!(aggregates.count, 4);
     assert_eq!(aggregates.distance.q05, d_finite!(-1.5));
     assert_eq!(aggregates.distance.q25, d_finite!(-1.5));
@@ -133,8 +138,9 @@ fn pair_aggregates_pin_exact_decimal_literals() {
 
 #[test]
 fn the_mean_folds_serially_in_draw_order() {
-    // 2^54 absorbs a unit exactly, so the fold order decides the sum. Draw order absorbs the
-    // first unit and keeps the second, while an ascending fold would absorb both and read zero.
+    // At magnitude 2⁵⁴, adding one rounds back to the same value. Draw order loses the first unit,
+    // cancels the large values and retains the final unit, giving mean 0.25. An ascending fold
+    // loses both units and gives zero.
     let big = 18_014_398_509_481_984.0_f64;
     assert_eq!(big, (2.0_f64).powi(54), "the literal is 2^54");
 
@@ -168,9 +174,8 @@ fn pair_first_quantiles_defeat_aggregate_subtraction() {
 
     let aggregates = PairAggregates::over(&readings);
 
-    // Δd = [-9, 10, -18] has median -9. The step medians are 20 and 12, whose difference -8
-    // is a reading no pair produced, so an implementation that subtracts persisted step
-    // aggregates cannot reproduce the family.
+    // Δd = [−9, 10, −18] has median −9. The step medians are 20 and 12, whose difference is −8.
+    // Therefore subtracting the step medians cannot reproduce the pair-difference median.
     let zero_median =
         MovementAggregate::over(&[d_finite!(10.0), d_finite!(20.0), d_finite!(30.0)]).q50;
     let canonical_median =

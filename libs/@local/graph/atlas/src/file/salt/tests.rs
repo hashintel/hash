@@ -1,3 +1,5 @@
+//! Certificates for the SALT repository's document.
+
 use core::num::NonZero;
 
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -52,16 +54,19 @@ use crate::{
     },
 };
 
+/// Derives a reproducible fixture digest from `seed`.
 fn digest(seed: &str) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(seed.as_bytes());
     hasher.finalize()
 }
 
+/// A binding for artifact `A` whose digest comes from `seed` rather than from real bytes.
 fn binding<A: Artifact>(seed: &str) -> Binding<A> {
     Binding::new(digest(seed))
 }
 
+/// Builds projector options with a short test schedule.
 fn placement() -> PlacementOptions {
     let mut options = ProjectorOptions::ratified();
     options.schedule = TrainingSchedule::new(
@@ -84,6 +89,7 @@ fn placement() -> PlacementOptions {
     PlacementOptions::Projector(options)
 }
 
+/// A fit configuration exercising the non-default corners: a policy override and a fixed seed.
 fn config() -> FitConfig {
     FitConfig {
         seed: 0x5A17_F17D,
@@ -107,6 +113,7 @@ fn config() -> FitConfig {
     }
 }
 
+/// Every artifact slot bound, including the optional ones, each to the digest of its own name.
 fn files() -> SaltFiles {
     SaltFiles {
         representations: binding("representations.arr"),
@@ -141,6 +148,7 @@ fn files() -> SaltFiles {
     }
 }
 
+/// Builds the manifest fixture from its bound artifact roles and evidence.
 fn repository() -> SaltRepository {
     SaltRepository {
         version: RepositoryVersion::V2,
@@ -172,6 +180,7 @@ fn repository() -> SaltRepository {
     }
 }
 
+/// Builds level-of-detail readings with one middle bucket and the final bucket occupied.
 fn lod_measurements() -> LodMeasurements {
     LodMeasurements {
         world: Bounds2::new(Vec2::new(-4.0, -2.0), Vec2::new(8.0, 6.0))
@@ -188,6 +197,7 @@ fn lod_measurements() -> LodMeasurements {
     }
 }
 
+/// A fitted classifier's evidence, the variant that carries every nested block.
 fn classifier_evidence() -> ClassifierEvidence {
     ClassifierEvidence::Fitted {
         corpus: digest("annotation-corpus.json"),
@@ -285,6 +295,7 @@ fn calibration() -> ProximalCalibrationEvidence {
     }
 }
 
+/// The evidence block a sealed generation carries, at corpus-sized readings.
 fn evidence() -> Evidence {
     Evidence {
         cards: CardEmbeddingStats {
@@ -512,6 +523,10 @@ fn absent_verdicts_role_round_trips_as_explicit_null() {
     assert_eq!(decoded, repository);
 }
 
+/// A baseline generation stays internally consistent on the wire: the unbound projector role
+/// writes as an explicit null and the placement as `landmark-baseline`, and the document - role,
+/// placement, configuration and evidence all agreeing that no projector ran - reads back
+/// unchanged.
 #[test]
 fn baseline_generation_records_projector_absence_as_explicit_null() {
     let mut repository = repository();
@@ -535,6 +550,8 @@ fn baseline_generation_records_projector_absence_as_explicit_null() {
     assert_eq!(decoded, repository);
 }
 
+/// Relation evidence without the multi-typed edge histogram refuses to decode, and the error names
+/// the missing key rather than reporting the record as malformed.
 #[test]
 fn a_document_without_the_multi_typed_edge_histogram_refuses() {
     let mut document: serde_json::Value =
@@ -817,8 +834,6 @@ fn tampered_configuration_echo_refuses_to_deserialize() {
             "/metadata/reproducibility/config/placement/projector/schedule/boundary",
             serde_json::json!(100),
         ),
-        // The semantic coefficient anchors the budget and must exceed
-        // zero.
         (
             "/metadata/reproducibility/config/placement/projector/coefficients",
             serde_json::json!([0.0, 1.0, 1.0, 1.0, 0.0, 1.0]),
@@ -1053,6 +1068,9 @@ fn a_decoded_document_carries_only_in_domain_readings() {
     }
 }
 
+/// A version 2 document written before the proximal calibration and the per-type losses existed
+/// decodes with the calibration absent and the loss list empty, rather than refusing or reading
+/// either as a measured zero.
 #[test]
 fn an_old_document_without_the_optional_keys_decodes_as_absent() {
     // Decode-from-old means a published-shape repository-version-2 document written before a
@@ -1093,9 +1111,6 @@ fn an_old_document_without_the_optional_keys_decodes_as_absent() {
 
 #[test]
 fn a_missing_required_sibling_refuses_and_names_the_field() {
-    // The control proves the optional keys' own absence rule decodes the old document rather
-    // than record-wide permissiveness. Removing an undefaulted required sibling must refuse,
-    // naming the field.
     let repository = repository();
     let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
 
@@ -1115,6 +1130,9 @@ fn a_missing_required_sibling_refuses_and_names_the_field() {
     );
 }
 
+/// A ladder written before the paired-movement readout existed decodes with the readout absent,
+/// not as a vacuous or failed body: nothing measured it, which is a different record from a
+/// measurement that found nothing.
 #[test]
 fn an_old_ladder_without_the_paired_movement_key_decodes_as_absent() {
     // A published-shape repository-version-2 ladder written before the readout existed
@@ -1148,9 +1166,6 @@ fn an_old_ladder_without_the_paired_movement_key_decodes_as_absent() {
 
 #[test]
 fn a_ladder_missing_a_required_sibling_refuses_and_names_the_field() {
-    // The control for the ladder record: removing an undefaulted required sibling refuses,
-    // so the readout key's decode rests on its own absence rule rather than record-wide
-    // permissiveness.
     let repository = repository();
     let mut json = serde_json::to_value(&repository).expect("the repository should serialize");
 

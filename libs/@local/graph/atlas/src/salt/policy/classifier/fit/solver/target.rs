@@ -9,7 +9,7 @@
 //! by approximation. A common shift of the class logits provably moves no loss.
 //!
 //! Construction reports the raw sum and the largest normalization adjustment `max_c |u_c − t_c/s|`
-//! alongside the target, so preparation can aggregate the raw sum range and `maximum_adjustment` as
+//! alongside the target, and preparation aggregates the raw sum range and `maximum_adjustment` as
 //! evidence of how much canonicalization actually moved the data.
 
 use core::num::NonZeroU32;
@@ -38,7 +38,7 @@ pub(super) struct Canonicalization {
 /// A soft target over the geometry classes with an exact unit sum.
 ///
 /// Stores the leading normalized components and derives the reference component `u_ref = 1 − Σ_c
-/// u_c` on demand, so it can never disagree with the stored components.
+/// u_c` on demand, and it can never disagree with the stored components.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ClosedTarget {
     /// The stored leading components, one per class ahead of the reference.

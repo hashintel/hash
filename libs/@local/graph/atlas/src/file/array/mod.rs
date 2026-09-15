@@ -76,8 +76,10 @@ pub(crate) use self::{
 use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -340,7 +342,7 @@ impl ArrayShape {
 
     /// Returns the number of elements.
     ///
-    /// The empty shape has zero elements; a shape whose product overflows `u64` returns `None` and
+    /// The empty shape has zero elements. A shape whose product overflows `u64` returns `None` and
     /// matches no real file.
     #[must_use]
     pub(crate) fn element_count(&self) -> Option<u64> {

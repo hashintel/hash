@@ -10,7 +10,7 @@ pub(crate) const POINTS: [Vec2; 4] = [
     Vec2::new(4.0, 8.0),
 ];
 
-/// Points for deterministic apply/`apply_x4` agreement sweeps.
+/// Points for scalar and batch transform comparisons.
 ///
 /// Spans magnitudes well below and above 1.0, negative coordinates, mixed signs, and zero.
 pub(crate) const SWEEP_POINTS: [Vec2; 12] = [
@@ -28,7 +28,7 @@ pub(crate) const SWEEP_POINTS: [Vec2; 12] = [
     Vec2::new(-99999.0, 0.0),
 ];
 
-/// Translation offsets for deterministic apply/`apply_x4` agreement sweeps.
+/// Translation offsets for scalar and batch transform comparisons.
 ///
 /// Spans zero, small fractional offsets, mixed-sign offsets, and offsets large enough to move a
 /// result across a magnitude decade.
@@ -43,8 +43,12 @@ pub(crate) const SWEEP_TRANSLATIONS: [Vec2; 6] = [
 
 /// Asserts two vectors agree up to a magnitude-scaled tolerance.
 ///
-/// The tolerance is a few dozen ulps of the expected value, which absorbs the rounding of
-/// trigonometry, FMA contraction, and inverse round trips without accepting real errors.
+/// Each component permits an absolute error below 32 · `f32::EPSILON` · max(|expected|, 1). The
+/// floor allows an absolute error near zero rather than an ULP bound at the result's magnitude.
+///
+/// # Panics
+///
+/// Panics if either component's error is outside the tolerance or is NaN.
 #[track_caller]
 pub(crate) fn assert_vec2_close(actual: Vec2, expected: Vec2) {
     let tolerance = |reference: f32| 32.0 * f32::EPSILON * reference.abs().max(1.0);

@@ -11,30 +11,33 @@
 //!
 //! Each `ρ₀` is the median 2D distance from a row to its nearest semantic neighbours - the same
 //! reading as the live [`LocalScales`](super::LocalScales), taken once, over a neighbour index
-//! set that freezes with the value. The set matters as much as the number: the per-row band
-//! bounds every row's displacement from the boundary field, a median is 1-Lipschitz in the
-//! uniform norm of its inputs, so the frozen `ρ₀` mis-states the live local scale by at most
-//! twice the band - entry by entry, over the same index set. Re-selecting neighbours at
-//! comparison time would compare medians over different sets and void the bound, so
-//! [`FrozenRuler::live_scales`] reads the live field over the frozen sets and consumes no
-//! neighbour table.
+//! set that freezes with the value. The set matters as much as the number. The per-row band
+//! bounds every row's displacement from the boundary field, and a median is 1-Lipschitz in the
+//! uniform norm of its inputs. Therefore the frozen `ρ₀` mis-states the live local scale by at
+//! most twice the band - entry by entry, over the same index set. Re-selecting neighbours at
+//! comparison time would compare medians over different sets and void the bound.
+//! [`FrozenRuler::live_scales`] therefore reads the live field over the frozen sets and consumes
+//! no neighbour table.
 //!
 //! `ε = ε_rel · s_ref` shifts coincident rows (`ρ₀ = 0`) off zero. The factored form is unit
-//! covariance: `σ₀` must be homogeneous of degree one in world units, so the declared number
-//! `ε_rel` is dimensionless and the units come from `s_ref`, the RMS spread of the boundary field
-//! about its centroid - strictly positive on any publishable map, and indifferent to the
+//! covariance: `σ₀` must be homogeneous of degree one in world units. The declared number `ε_rel`
+//! is dimensionless, and `ε` takes its world units from `s_ref`, the RMS spread of the boundary
+//! field about its centroid - strictly positive on any publishable map, and indifferent to the
 //! duplicate stratum that zeroes the median of `ρ₀`. The declared `ε_rel` must sit inside a
-//! two-sided dimensionless window: at least `κ_ε · β_proj` when the replicate band exists, so the
-//! duplicate stratum's response to band-legal movement stays bounded by `2/κ_ε` instead of
-//! growing as `1/ε`; at most the declared quantile of the positive `ρ₀` over `s_ref`, so the
-//! regularizer stays small against the corpus's own local-scale distribution. An empty window
-//! says replicate noise is not small against that distribution, and no ruler regularization is
-//! honest there - the freeze refuses rather than squeezes.
+//! two-sided dimensionless window. The lower bound, `κ_ε · β_proj`, binds when the replicate band
+//! exists: it keeps the duplicate stratum's response to band-legal movement bounded by `2/κ_ε`
+//! instead of growing as `1/ε`. The upper bound is the declared quantile of the positive `ρ₀`
+//! over `s_ref`: it keeps the regularizer small against the corpus's own local-scale
+//! distribution. An empty window says replicate noise is not small against that distribution,
+//! and no ruler regularization is honest there - the freeze refuses rather than squeezes.
 //!
 //! Every freeze-time failure is one refusal class, [`InvalidRuler`]: a reference that cannot
 //! exist, an undeclared or out-of-window `ε_rel`, a degenerate spread, and a value-domain
-//! violation all mean the estimand's denominator does not exist, so no training starts. None of
-//! them changes behaviour - there is no degraded mode.
+//! violation all mean the estimand's denominator does not exist. The reference and declaration
+//! checks are coordinate-free and refuse at session admission, before the opening segment. The
+//! measured checks run at the phase boundary `K`, after the opening segment has trained, and
+//! their refusal ends the run before the target phase starts. None of them changes behaviour -
+//! there is no degraded mode.
 
 #[cfg(test)]
 mod tests;
@@ -64,24 +67,29 @@ use crate::{
 /// half and the representation checks alone.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RulerFloor {
-    /// `κ_ε`: the dimensionless sensitivity constant. The duplicate stratum's response to
-    /// band-legal zero-field movement is bounded by `2/κ_ε`, so this constant prices how much
-    /// coincident-stratum sensitivity the objective tolerates. Its value is an open owner
-    /// decision. Its role in the lower test is not.
+    /// `κ_ε`: the dimensionless sensitivity constant.
+    ///
+    /// The duplicate stratum's response to band-legal zero-field movement is bounded by `2/κ_ε`.
+    /// This constant prices how much coincident-stratum sensitivity the objective tolerates. Its
+    /// value remains an open choice. Its role in the lower test is fixed.
     pub kappa_epsilon: Positive,
-    /// `β_proj`: the dimensionless per-row projection radius, the band constraint's size in
-    /// units of `s_ref`.
+    /// `β_proj`: the dimensionless per-row projection radius.
+    ///
+    /// The band constraint's size in units of `s_ref`.
     pub projection_band: Positive,
 }
 
 /// The declared constants a ruler freeze validates.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RulerParameters {
-    /// `ε_rel`: the dimensionless regularizer. Its value is an open owner decision inside the
-    /// window. The window itself is fixed.
+    /// `ε_rel`: the dimensionless regularizer.
+    ///
+    /// Its value is an open choice inside the window. The window itself is fixed.
     pub epsilon_rel: Positive,
-    /// The declared quantile defining the window's upper bound: `q⁺(ρ₀)` is the smallest
-    /// positive local scale with at least this share of the positive scales at or below it.
+    /// The declared quantile defining the window's upper bound.
+    ///
+    /// `q⁺(ρ₀)` is the smallest positive local scale with at least this share of the positive
+    /// scales at or below it.
     pub scale_quantile: PositiveUnitFraction,
     /// The window's lower half, present when the band artifact exists.
     pub floor: Option<RulerFloor>,
@@ -92,13 +100,16 @@ pub(crate) struct RulerParameters {
 pub(crate) struct FrozenRuler<N> {
     /// `ρ₀` per row: the median 2D distance to the frozen neighbour set on the boundary field.
     scales: Box<IdSlice<N, NonNegative>>,
-    /// `ρ₀ + ε` per row, precomputed at the freeze so the per-pair read is one product and one
-    /// root. In the typed domain by the two representation checks: at least `ε`, and finite
-    /// under the largest scale. The add happens once here instead of once per pair, with the
-    /// same f32 arithmetic, so the precomputation is value-identical.
+    /// `ρ₀ + ε` per row, precomputed at the freeze.
+    ///
+    /// The per-pair read is then one product and one root. In the typed domain by the two
+    /// representation checks: at least `ε`, and finite under the largest scale. The add happens
+    /// once here instead of once per pair, with the same f32 arithmetic, and the precomputation
+    /// is value-identical.
     shifted: Box<IdSlice<N, Positive>>,
-    /// The frozen neighbour index sets hold one row of slots per node row, each set in
-    /// ascending stored-distance order with ties in row order.
+    /// The frozen neighbour index sets, one row of slots per node row.
+    ///
+    /// Each set is in ascending stored-distance order with ties in row order.
     neighbours: IdMatrix<N, NeighbourSlot, N>,
     /// `s_ref`: the boundary field's RMS spread about its centroid.
     reference_spread: Positive,
@@ -117,16 +128,18 @@ where
     /// The checks run in declaration order: local scales and their index sets over the
     /// zero-condition field, the reference spread, the window's upper bound from the positive
     /// scales, window emptiness and membership, then the two representation checks on the
-    /// absolute epsilon. The first failed check is the refusal. Rows measure in parallel, and
-    /// every reduction is bit-deterministic under any thread schedule: the results are declared
-    /// constants persisted with the generation, so a replay must reproduce them exactly.
+    /// absolute `ε`. The first failed check is the refusal. Rows measure in parallel, and
+    /// every reduction is bit-deterministic under any thread schedule. The results are declared
+    /// constants persisted with the generation, and a replay must reproduce them exactly.
     ///
     /// # Errors
     ///
     /// Returns [`InvalidRuler`] carrying the first failed check: a non-finite scale reading, a
     /// spread outside the positive f32 domain, no positive scale to read the window's upper
-    /// bound from, an empty window, an out-of-window `ε_rel`, or an epsilon whose coincident or
-    /// densest pair product leaves the value domain.
+    /// bound from, an empty window, an out-of-window `ε_rel`, or an `ε` failing a representation
+    /// check (the product `ε_rel · s_ref` underflowing the working precision, the rounded `ε`'s
+    /// exact square below the domain's minimum, or the largest ε-shifted scale's widened square at
+    /// or above the `f32` maximum).
     ///
     /// The field covers the table's rows and the table stores at least one neighbour per row -
     /// wiring contracts checked in debug builds, since both artifacts come from one generation.
@@ -171,7 +184,7 @@ where
 
         // The spread reduction is bit-deterministic under any thread schedule (the field's
         // contract): the narrowed value becomes a declared constant persisted with the
-        // generation, so a replay must reproduce it exactly. Finite with no scan: the boundary
+        // generation, and a replay must reproduce it exactly. Finite with no scan: the boundary
         // forward refuses a diverged frame before any freeze sees it.
         let spread = zero_field.rms_spread();
         let reference_spread =
@@ -202,12 +215,14 @@ where
             });
         }
 
-        // The representation checks keep every stored reading representable. The narrowed ε
-        // must itself be an f32 value: an ε_rel small against s_ref underflows it to zero, and
-        // the refusal then carries the exact double product, the reading no working precision
-        // holds. The floor comparison requires the coincident pair's exact product ε² at or
-        // above the domain's minimum, so every pair denominator stays inside the validated
-        // window rather than at its subnormal edge.
+        // The representation checks declare the window every stored reading lies in. The product
+        // ε_rel · s_ref first rounds into the working f32 value ε: an ε_rel small against s_ref
+        // underflows it to zero, and the refusal then carries the exact double product, the
+        // reading no working precision holds. The floor comparison then squares the rounded ε
+        // exactly in double and requires that square, the coincident pair's product, at or above
+        // the domain's minimum positive value. It is an admission bound on that exact square,
+        // stricter than f32 rounding, which rounds some refused squares up to the smallest
+        // subnormal rather than to zero.
         let Some(epsilon) = parameters.epsilon_rel.checked_mul(reference_spread) else {
             return Err(InvalidRuler::RepresentationFloor {
                 epsilon_abs: parameters.epsilon_rel.mul_wide(reference_spread),
@@ -225,12 +240,14 @@ where
             .map(|&(scale, _)| scale)
             .max()
             .expect("the table validation guarantees at least two rows");
-        // The exact double sum of two working-precision values stays finite, at most 2¹²⁹, so
-        // the check compares its square against the f32 maximum rather than the sum itself. A
-        // sum whose square clears that bound sits near 2⁶⁴, far under where f32 overflows, so
-        // the narrowed runtime sum cannot overflow once the check passes.
+        // The widened double sum of two working-precision values stays finite, at most 2¹²⁹, and
+        // need not be exact (1 + 2⁻⁷⁴ rounds to 1). The check compares its square against the f32
+        // maximum and refuses at equality. A sum whose square passes sits below 2⁶⁴, far under
+        // where f32 overflows, and the narrowed runtime sum cannot overflow once the check
+        // passes. The bound declares the window and does not say that a refused pair's geometric
+        // mean would overflow.
         let shifted_exact = DNonNegative::from(largest) + DPositive::from(epsilon);
-        // Total: the exact double sum of two working-precision values is at most 2¹²⁹. Its
+        // Total: the widened double sum of two working-precision values is at most 2¹²⁹. Its
         // square is at most 2²⁵⁸, far inside the `f64` range.
         if DPositive::new_unchecked(shifted_exact.get() * shifted_exact.get())
             >= DPositive::from(Positive::MAX)
@@ -247,8 +264,8 @@ where
             neighbours.extend_from_slice(&set[..set_len]);
         }
 
-        // Every scale is at most the checked largest, and rounding is monotone, so the typed
-        // add cannot leave the domain.
+        // Every scale is at most the checked largest, and rounding is monotone. The typed add
+        // therefore cannot leave the domain.
         let shifted: IdVec<_, _> = scales.iter().map(|&scale| scale + epsilon).collect();
 
         Ok(Self {
@@ -263,10 +280,11 @@ where
 
     /// Returns the pair's denominator `σ₀ = √((ρ₀(source)+ε)(ρ₀(target)+ε))`.
     ///
-    /// The reads hit the precomputed ε-shifted scales, so one call is two loads, a product, and
-    /// a root, and the geometric mean is total on its own: the widened product is exact, and
-    /// the mean of two representable positives is representable. The freeze-time window checks
-    /// bound where inside the domain the reading can land.
+    /// One call is two loads of the precomputed ε-shifted scales, a product, and a root. The
+    /// geometric mean is total on its own: the widened product of two `f32` values is exact in
+    /// `f64`, and the mean of two finite positives rounds within their range (the mean of `1` and
+    /// `2` is `√2`, rounded). The freeze-time window checks bound where inside the domain the
+    /// reading can lie.
     ///
     /// # Panics
     ///
@@ -279,15 +297,17 @@ where
 
     /// Measures the live field's local scales over the frozen neighbour sets.
     ///
-    /// This is the staleness comparison's reading: the band bounds every row's displacement from
+    /// This is the staleness comparison's reading. The band bounds every row's displacement from
     /// the boundary field, each frozen set is fixed, and a median is 1-Lipschitz in the uniform
-    /// norm of its inputs, so `|live − frozen| ≤ 2·band` holds row by row - over the frozen sets
-    /// and only there. Rows are independent and computed in parallel.
+    /// norm of its inputs. Therefore `|live − frozen| ≤ 2·band` holds row by row - over the frozen
+    /// sets and only there. Rows are independent and computed in parallel.
     ///
     /// # Errors
     ///
-    /// Returns [`NonFiniteScale`] naming the smallest affected row when a live distance
-    /// overflows the finite range (pre-divergence coordinates).
+    /// Returns [`NonFiniteScale`] naming the smallest row whose selected median is non-finite: a
+    /// live distance's `f32` square or sum overflowed to `+∞` between finite coordinates, and the
+    /// escaped distances reached the median. Overflowed distances sorted past the median leave a
+    /// row's scale finite.
     ///
     /// The coordinates cover the frozen row count - a wiring contract checked in debug builds,
     /// since the field and the ruler come from one run.
@@ -470,7 +490,7 @@ where
 ///
 /// The reading is the smallest positive scale with at least a `scale_quantile` share of the
 /// positive scales at or below it: rank `⌈q·m⌉` of the ascending positive scales. The sort runs
-/// in parallel. Equal scales are interchangeable, so instability changes nothing.
+/// in parallel. Equal scales are interchangeable, and sort instability changes nothing.
 fn positive_quantile(
     scales: impl Iterator<Item = NonNegative>,
     parameters: RulerParameters,

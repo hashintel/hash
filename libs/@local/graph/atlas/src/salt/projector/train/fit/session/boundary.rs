@@ -18,9 +18,10 @@ use crate::{
     },
 };
 
-/// What one phase boundary produces - the composed relation energy and the boundary evidence,
-/// with the measured zero-condition frame on a non-vacuous run, for the target freeze to
-/// consume against the identical coordinates.
+/// What one phase boundary produces.
+///
+/// The composed relation energy and the boundary evidence, with the measured zero-condition frame
+/// on a non-vacuous run, for the target freeze to consume against the identical coordinates.
 pub(super) type BoundaryOutcome<N> = (
     Option<RelationEnergy>,
     BoundaryEvidence,
@@ -36,7 +37,7 @@ where
     ///
     /// Measures the reviewed-Proximal `z` population over the forwarded frame and composes the
     /// relation energy. The caller owns the frame's forward - the boundary shares one frame
-    /// between this freeze and the target objective's - and its vacuous early-out, so this path
+    /// between this freeze and the target objective's - and its vacuous early-out, and this path
     /// always has force to measure.
     pub(super) fn freeze_radius(
         &self,
@@ -55,7 +56,7 @@ where
         let (frozen, radius) = match calibration.radius() {
             Some(radius) => (radius, FrozenRadius::Measured { radius }),
             // The entry check admits this run only with reviewed coverage. Reaching here means
-            // the two mass walks disagree, so this returns an error rather than composing from
+            // the two mass walks disagree, and this returns an error rather than composing from
             // nothing.
             None => return Err(TrainError::MissingProximalReviews),
         };

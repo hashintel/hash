@@ -1,12 +1,12 @@
 //! A [`Dataset`] over the live HASH graph store, with every cross-statement agreement typed.
 //!
-//! [`PostgresDataset::new`] opens one read-only repeatable-read transaction under Postgres
-//! snapshot isolation, and every stream the trait serves queries through it, so the nodes, the
-//! links, the type table, and the cards all describe one committed state even though they are
-//! separate queries issued at separate times. The [`TemporalAxes`] select which graph that state
-//! describes. The queries admit only the editions whose transaction time and decision time
-//! contain the axes, so axes in the past read the graph as it stood then, and the axes a fit
-//! records make its input addressable after the fact.
+//! [`PostgresDataset::new`] opens one read-only repeatable-read transaction under Postgres snapshot
+//! isolation, and every stream the trait serves queries through it. The nodes, the links, the type
+//! table, and the cards all describe one committed state even though they are separate queries
+//! issued at separate times. The [`TemporalAxes`] select which graph that state describes. The
+//! queries admit only the editions whose transaction time and decision time contain the axes, so
+//! axes in the past read the graph as it stood then, and the axes a fit records make its input
+//! addressable after the fact.
 //!
 //! The statements themselves live in [`crate::postgres`] and run here under its frozen-snapshot
 //! regime: the transaction is what turns the fragment-level numbering agreement documented at
@@ -14,10 +14,10 @@
 //!
 //! # Row identity
 //!
-//! Node row ids are positions: [`corpus::scope`] numbers the corpus, and under the frozen
-//! snapshot every statement that attaches the fragment re-derives the identical numbering, so
-//! an endpoint row id densified by [`corpus::links`] in one query execution names the node the
-//! node stream delivered in another.
+//! Node row ids are positions: [`corpus::scope`] numbers the corpus, and under the frozen snapshot
+//! every statement that attaches the fragment re-derives the identical numbering. An endpoint row
+//! id densified by [`corpus::links`] in one query execution names the node the node stream
+//! delivered in another.
 //!
 //! Delivery order rides the same contract. The node stream orders by the scope row, and the link
 //! stream orders by link identity - already a total order, since the store admits exactly one
@@ -59,7 +59,7 @@ use crate::{
 ///
 /// The dataset's scope is every non-draft, non-archived, non-link entity that holds a
 /// whole-entity embedding and is current at the dataset's [`TemporalAxes`], plus every link
-/// whose endpoints both fall inside that scope; link entities render as edges only, never as
+/// whose endpoints both fall inside that scope. Link entities render as edges only, never as
 /// points. Prefix truncation, l2 normalization, and endpoint densification all happen inside the
 /// store's queries. The connection transfers dense rows and normalized prefixes only.
 pub(crate) struct PostgresDataset<'client> {
@@ -110,10 +110,15 @@ impl<'client> PostgresDataset<'client> {
     /// Every type reachable from the corpus at any inheritance depth, in ordinal (uuid byte)
     /// order.
     ///
-    /// The table bootstraps on first use by any stream and stays cached for the dataset's
-    /// lifetime; the frozen transaction guarantees every later query observes the types the
-    /// bootstrap saw. The store materializes closures, so all-depth rows are exactly the
-    /// closure.
+    /// The table bootstraps on first use by any stream and stays cached for the dataset's lifetime.
+    /// The frozen transaction guarantees every later query observes the types the bootstrap saw.
+    /// The store materializes closures. All-depth rows are exactly the closure.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresDatasetError::Query`] when the store rejects the bootstrap read or an
+    /// `ontology_id` value does not decode as a [`Uuid`]. A failed bootstrap leaves the cell
+    /// uninitialized. The next stream to ask runs the query again.
     async fn type_table(&self) -> Result<&[Uuid], PostgresDatasetError> {
         self.type_table
             .get_or_try_init(async || {
@@ -309,14 +314,13 @@ impl Dataset for PostgresDataset<'_> {
 
     /// Opens the stream of canonical relation cards, in ontology row order.
     ///
-    /// Each card renders the store facts observed at the dataset's temporal axes. The facts are
-    /// the type's prose and ancestor chain, the source types constraining it as a link, and
-    /// pooled live link instances as examples. A type that nothing constrains and nothing
-    /// instantiates as a link - every non-link entity type - renders prose and ancestry alone.
-    /// All facts arrive in one pass over the store before the first card renders, so the
-    /// per-card cost is rendering alone. [`cards`](Self::cards) controls example selection and
-    /// the token budgets, and the rendered bytes are deterministic in the dataset and those
-    /// parameters.
+    /// Each card renders the store facts observed at the dataset's temporal axes. The facts are the
+    /// type's prose and ancestor chain, the source types constraining it as a link, and pooled live
+    /// link instances as examples. A type that nothing constrains and nothing instantiates as a
+    /// link - every non-link entity type - renders prose and ancestry alone. All facts arrive in
+    /// one pass over the store before the first card renders. The per-card cost is rendering alone.
+    /// [`cards`](Self::cards) controls example selection and the token budgets, and the rendered
+    /// bytes are deterministic in the dataset and those parameters.
     ///
     /// Items carry [`io::ErrorKind::InvalidData`] when a type's stored constraints violate the
     /// card contract, and `io::Error::other` when a query fails, the tokenizer rejects a
@@ -402,10 +406,10 @@ impl Dataset for PostgresDataset<'_> {
     /// Opens the stream of ontology-type display icons, in row order.
     ///
     /// A type's icon is the first icon among its closed schema's `allOf` entries ordered by
-    /// inheritance depth, with the array position breaking depth ties, so a type without an own
-    /// icon inherits its nearest ancestor's and the selection is deterministic. A type whose
-    /// chain carries no icon delivers the empty icon. The rows follow the type table's ordinal
-    /// order, so positions agree with [`ontology`](Dataset::ontology).
+    /// inheritance depth, with the array position breaking depth ties. A type without an own icon
+    /// inherits its nearest ancestor's and the selection is deterministic. A type whose chain
+    /// carries no icon delivers the empty icon. The rows follow the type table's ordinal order, so
+    /// positions agree with [`ontology`](Dataset::ontology).
     fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_> {
         async move {
             let types = self.type_table().await?;

@@ -1,7 +1,7 @@
 //! Training-step machinery for the conditioned projector.
 //!
-//! One training step draws a minibatch over the built artifacts and projects its rows at the step's
-//! relation-lens step. The step then evaluates the composite objective against the detached
+//! One training step draws a minibatch over the built artifacts and projects its rows at the
+//! training step's lens step. The step then evaluates the composite objective against the detached
 //! coordinates and measures the relation forces per node for the budget diagnostics. Its return
 //! value is one backward-ready scalar whose gradient carries exactly the combined per-node field
 //! through the shared model parameters.
@@ -20,14 +20,14 @@
 //!
 //! - Semantic attraction scales by `W / m` (total positive edge weight over drawn pairs), the
 //!   unbiased estimator of the full weighted attraction.
-//! - Ordinary repulsion scales by `W / m` as well, so the ordinary coefficient over the semantic
-//!   one reads directly as the repulsion-to-attraction balance.
+//! - Ordinary repulsion scales by `W / m` as well: the ordinary coefficient over the semantic one
+//!   reads directly as the repulsion-to-attraction balance.
 //! - Hard-negative repulsion scales by `N / m` (corpus rows over drawn query rows), the unbiased
 //!   estimator of the pooled mined-frame total.
 //! - Relation attraction scales by `G / g` (total relation groups over drawn groups), the unbiased
 //!   estimator of the capped relation objective. That objective is the specified per-type clipped
 //!   total over the same force-mass population the boundary calibration measures its radius over.
-//!   Changing the per-type factor re-derives both surfaces together, so they move in lockstep by
+//!   Changing the per-type factor re-derives both surfaces together: they move in lockstep by
 //!   contract.
 //! - Support terms scale by their pool size over the drawn count.
 //! - The target objective divides each drawn unit by its full first-order inclusion probability

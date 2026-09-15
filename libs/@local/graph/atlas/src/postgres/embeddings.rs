@@ -1,13 +1,14 @@
-//! The embedding lookups over requested identities.
+//! Batched whole-entity embedding queries with full-width and projector projections.
 //!
-//! One builder produces both statements, so the request join and the answer shape are a single
-//! definition and the projection is the only difference between them. The canonical lookup
-//! executes on the dataset's frozen-snapshot transaction and answers the stored whole-entity
-//! embedding at full width. The projector lookup executes on its caller's own connection at
-//! serving time and answers the embedding's
-//! l2-normalized projector prefix, bit-identical to the representation row a fit reads for the
-//! same stored embedding. Result identity keys each answer, and the caller counts the answers
-//! against its requests.
+//! Use [`canonical_embedding_statement`] for stored vectors at full width, or
+//! [`projector_embedding_statement`] for the normalized prefix used as a dataset representation.
+//!
+//! Pass equal-length UUID arrays, pairing each web ID with the entity UUID at the same position.
+//! Each result includes that identity. Match results by identity rather than result position: the
+//! query has no ordering guarantee and omits identities without a whole-entity embedding.
+//!
+//! The lookup selects by entity identity, independently of edition selection. Visibility follows
+//! the connection or transaction executing the statement.
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, Expression, SelectList, SelectStatement, SimpleSelect, Table,
@@ -26,17 +27,20 @@ use crate::{
     math::BoxedVecN,
 };
 
-/// The output columns of one embedding lookup.
+/// Column positions for decoding an embedding query's identity and vector.
 pub(crate) struct EmbeddingLookupColumns {
-    /// The web the entity belongs to.
+    /// Position of the web ID.
     pub web_id: usize,
-    /// The entity's identity within its web.
+    /// Position of the entity UUID within that web.
     pub entity_uuid: usize,
-    /// The requested projection of the whole-entity embedding.
+    /// Position of the projected embedding.
     pub embedding: usize,
 }
 
-/// Builds an embedding lookup over the requested identities, with the caller's projection.
+/// Selects whole-entity embeddings with a configurable vector projection.
+///
+/// `web_ids` and `entity_uuids` bind as UUID arrays paired by position. `projection` selects the
+/// vector expression while the identity columns and whole-entity filter remain fixed.
 ///
 /// # SQL
 ///
@@ -98,11 +102,10 @@ fn embedding_lookup<'params>(
     BoundStatement::new(&statement, binder, columns)
 }
 
-/// Builds the canonical-embedding lookup over the requested identities.
+/// Selects the stored full-width embedding for each requested entity.
 ///
-/// The statement delivers the full-width embedding for every requested identity the store
-/// holds a whole-entity embedding for. The caller counts the answers against its requests. A
-/// missing row is an identity whose whole-entity embedding the store does not hold.
+/// The query returns every matching whole-entity embedding unchanged. The UUID arrays must pair web
+/// IDs and entity UUIDs by position. Decode results with [`decode_canonical_embedding`].
 pub(crate) fn canonical_embedding_statement<'params>(
     web_ids: &'params (impl ToSql + Sync),
     entity_uuids: &'params (impl ToSql + Sync),
@@ -112,12 +115,14 @@ pub(crate) fn canonical_embedding_statement<'params>(
     })
 }
 
-/// Builds the projector-input lookup over the requested identities.
+/// Selects each requested entity's embedding prefix for projection.
 ///
-/// The request shape is the canonical lookup's. The output is the embedding's l2-normalized
-/// projector prefix through the node stream's own expression, so the connection carries
-/// unit-norm prefixes and nothing wider, and an answer is bit-identical to the representation
-/// row a fit reads for the same stored embedding.
+/// [`normalized_prefix`] selects the leading [`PROJECTOR_DIMENSIONS`] components and applies
+/// pgvector's L2 normalization in the database. For the same stored embedding, the result is
+/// bit-identical to its dataset representation.
+///
+/// The UUID arrays must pair web IDs and entity UUIDs by position. Decode results with
+/// [`decode_projector_embedding`].
 pub(crate) fn projector_embedding_statement<'params>(
     web_ids: &'params (impl ToSql + Sync),
     entity_uuids: &'params (impl ToSql + Sync),
@@ -125,7 +130,12 @@ pub(crate) fn projector_embedding_statement<'params>(
     embedding_lookup(web_ids, entity_uuids, normalized_prefix)
 }
 
-/// Decodes one canonical-embedding row.
+/// Reads an entity identity and full-width vector from a query result.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] if a selected column is missing or cannot decode,
+/// including a vector with a width other than [`CANONICAL_DIMENSIONS`].
 pub(crate) fn decode_canonical_embedding(
     row: &Row,
     columns: &EmbeddingLookupColumns,
@@ -143,7 +153,12 @@ pub(crate) fn decode_canonical_embedding(
     ))
 }
 
-/// Decodes one projector-input row.
+/// Reads an entity identity and projector-input vector from a query result.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] if a selected column is missing or cannot decode,
+/// including a vector with a width other than [`PROJECTOR_DIMENSIONS`].
 pub(crate) fn decode_projector_embedding(
     row: &Row,
     columns: &EmbeddingLookupColumns,
@@ -170,7 +185,6 @@ mod tests {
         projector_embedding_statement,
     };
 
-    /// Both lookups cite exactly the parameters they bind.
     #[test]
     fn statements_cite_their_whole_bind_list() {
         let web_ids = vec![Uuid::nil()];
@@ -183,10 +197,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered canonical lookup, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn canonical_statement_text() {
         let web_ids = vec![Uuid::nil()];
@@ -195,12 +205,6 @@ mod tests {
         insta::assert_snapshot!(canonical_embedding_statement(&web_ids, &entity_uuids).sql);
     }
 
-    /// The rendered projector lookup, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: the projection is the node stream's own normalized-prefix
-    /// expression, so an answer stays bit-identical to the representation row a fit reads.
     #[test]
     fn projector_statement_text() {
         let web_ids = vec![Uuid::nil()];

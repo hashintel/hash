@@ -74,10 +74,9 @@ impl Error for OpenArrayError {
 
 /// An array file mapped read-only into memory.
 ///
-/// Opening parses the header and checks the format's single structural rule, so an open file always
+/// Opening parses the header and checks the format's single structural rule. An open file always
 /// describes its own data exactly. Views borrow the data straight from the whole-file mapping,
-/// which starts 4096-byte aligned: aligned for every scalar and SIMD width, so typed views over it
-/// never fail for alignment.
+/// which starts 4096-byte aligned, and typed views over it never fail for alignment.
 #[derive(Debug)]
 pub(crate) struct ArrayFile {
     map: HeaderMap<FileHeader>,
@@ -88,7 +87,7 @@ impl ArrayFile {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenArrayError::Header`] when the header page cannot be read,
+    /// Returns [`OpenArrayError::Header`] when the header page fails to read,
     /// [`OpenArrayError::Length`] when the file length contradicts the header's shape, and
     /// [`OpenArrayError::ForeignArchitecture`] when the other byte order wrote the file's native
     /// elements.
@@ -128,8 +127,13 @@ impl ArrayFile {
     /// Views the data as one typed column: the read form of a [`SizedColumn`] write.
     ///
     /// The element type stamps the variant and the trailing row shape at the write, and this
-    /// view exists exactly when the file carries that stamp, so both directions read one law and
-    /// a view under the wrong element type cannot exist. The empty shape is the zero-row column.
+    /// view exists exactly when the file carries that stamp. Both directions read one law, and a
+    /// view under the wrong element type cannot exist. The empty shape is the zero-row column.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidColumnError::Variant`] when the file records another element variant, and
+    /// [`InvalidColumnError::Shape`] when its row shape is not `T`'s trailing shape.
     ///
     /// [`SizedColumn`]: super::SizedColumn
     #[must_use]
@@ -154,7 +158,7 @@ impl ArrayFile {
 
     /// Views the data as `N`-component SIMD-aligned vectors.
     ///
-    /// The view exists exactly when the file holds `f32` elements shaped `[T, N]`; the returned
+    /// The view exists exactly when the file holds `f32` elements shaped `[T, N]`. The returned
     /// slice holds the `T` rows in order. A zero-element file is zero vectors of every dimension,
     /// since its shape records no row width.
     #[must_use]
@@ -175,7 +179,7 @@ impl ArrayFile {
 
     /// Views the data as 2D points in row order.
     ///
-    /// The view exists exactly when the file holds `f32` elements shaped `[T, 2]`; the returned
+    /// The view exists exactly when the file holds `f32` elements shaped `[T, 2]`. The returned
     /// slice holds the `T` points in order. A zero-element file is zero points, since its shape
     /// records no row width.
     #[must_use]
@@ -208,10 +212,10 @@ impl ArrayFile {
 
     /// Views the data as little-endian `u64` pairs in row order.
     ///
-    /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`;
-    /// the returned slice holds the `T` pairs in order. A zero-element file is zero pairs, since
-    /// its shape records no row width. The element type carries the byte order, so the view is
-    /// exact on every architecture.
+    /// The view exists exactly when the file holds little-endian `u64` elements shaped `[T, 2]`,
+    /// and the returned slice holds the `T` pairs in order. A zero-element file is zero pairs,
+    /// since its shape records no row width. The element type carries the byte order, and the
+    /// view is exact on every architecture.
     #[must_use]
     pub(crate) fn u64_le_pairs(&self) -> Option<&[[U64<LE>; 2]]> {
         if self.header().variant() != ArrayVariant::U64Le {
@@ -229,7 +233,7 @@ impl ArrayFile {
 
     /// Views the data as SHA-256 digests in row order.
     ///
-    /// The view exists exactly when the file holds `u8` elements shaped `[T, 32]`; the returned
+    /// The view exists exactly when the file holds `u8` elements shaped `[T, 32]`. The returned
     /// slice holds the `T` digests in order. A zero-element file is zero digests, since its shape
     /// records no row width.
     #[must_use]

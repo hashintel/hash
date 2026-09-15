@@ -8,10 +8,10 @@
 //! it accesses its first row, a visit per row it examines, and a completion once it has seen
 //! every row.
 //!
-//! The increment rules live here as methods rather than at call sites, so a joint pass can never
-//! forget that it serves one objective request and one gradient request with a single traversal,
-//! and a preparation row visit can never reach the preparation counters without also charging the
-//! global row-visit count.
+//! Keeping the increment rules here as methods rather than at call sites means a joint pass can
+//! never forget that it serves one objective request and one gradient request with a single
+//! traversal, and a preparation row visit can never reach the preparation counters without also
+//! charging the global row-visit count.
 
 /// Logical and physical work counters of one fit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -89,7 +89,7 @@ impl WorkCounters {
 
     /// Charges a joint request: one objective and one gradient request.
     ///
-    /// The first row access charges the pass and its traversal on their own, so a request rejected
+    /// The first row access charges the pass and its traversal on their own, and a request rejected
     /// before any row access (a non-finite input) still counts as requested work.
     pub(super) const fn request_joint(&mut self) {
         self.objective_requests += 1;

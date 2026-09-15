@@ -31,11 +31,19 @@ use crate::{
     reason = "the flags are independent operator switches"
 )]
 pub struct FitArgs {
-    /// The run seed; equal seeds replay every draw, the admission probe's included.
+    /// The run seed.
+    ///
+    /// Every draw in the run derives from it, the admission probe's included. A second run
+    /// repeats a draw when it also presents the same inputs to the same backend and consumes the
+    /// stream in the same order.
+    ///
+    /// Defaults to `0` when neither the flag nor `HASH_GRAPH_ATLAS_SEED` supplies one.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
     seed: u64,
 
     /// The landmark capacity.
+    ///
+    /// Defaults to `4096`.
     #[arg(long, default_value = "4096")]
     landmarks: NonZero<u32>,
 
@@ -44,10 +52,14 @@ pub struct FitArgs {
     fresh: bool,
 
     /// Sampled anchor rows of the admission probe.
+    ///
+    /// Defaults to `1024`.
     #[arg(long, default_value = "1024")]
     anchors: NonZero<usize>,
 
     /// Sampled comparison rows of the admission probe.
+    ///
+    /// Defaults to `4096`.
     #[arg(long, default_value = "4096")]
     comparisons: NonZero<usize>,
 
@@ -107,7 +119,9 @@ pub struct FitArgs {
     #[arg(long)]
     nn_descent: bool,
 
-    /// Where the admission report JSON lands.
+    /// Destination of the admission report JSON.
+    ///
+    /// Defaults to `admission-report.json` in the working directory.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 }
@@ -275,8 +289,12 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: producing the embedding provider, the
-    /// run itself, or writing the admission report.
+    /// Returns [`FitError`] on embedding-provider preparation, fitting or report-write failure.
+    ///
+    /// # Panics
+    ///
+    /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
+    /// CPU below the compiled baseline, on the conditions it documents.
     ///
     /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
     /// [`connect`]: super::connect

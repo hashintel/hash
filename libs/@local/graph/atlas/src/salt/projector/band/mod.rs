@@ -1,5 +1,7 @@
-//! The per-row band projection enforces family (ii)'s constitutive constraint and keeps the
-//! record that makes its non-binding claim evidence.
+//! The per-row band projection over the zero field.
+//!
+//! It enforces the estimand's constitutive constraint on the zero field and keeps the record that
+//! makes its non-binding claim evidence.
 //!
 //! The estimand is declared subject to `‖x₀(n) − x₀^ref(n)‖ ≤ band` for every node row `n` -
 //! each row of the live zero-condition field may move at most `band` world units from its
@@ -8,15 +10,16 @@
 //! global. Per row rather than in RMS because an RMS ball leaves a fixed-cardinality attack set
 //! per-row room that grows as `√N` with the corpus. The bound is enforced by
 //! projection rather than penalized: at every enforcement point a row past the radius moves
-//! back to the ball around its own reference position, so the field the loss reads never exists
-//! outside the constraint. The radius is the same-frame reconstruction `band = β · s_ref(Z_K)` -
-//! `β` is the stage's declared dimensionless value (the target's `β_proj`, or a calibration
-//! cohort's `β_cal`, assigned by the schedule, not by this module) and `s_ref` is the boundary
-//! field's own RMS spread, so nothing but a dimensionless number ever crosses generations.
+//! back to the ball around its own reference position, and the field the loss reads therefore
+//! never exists outside the constraint. The radius is the same-frame reconstruction `band = β ·
+//! s_ref(Z_K)` - `β` is the stage's declared dimensionless value (the target's `β_proj`, or a
+//! calibration cohort's `β_cal`, assigned by the schedule, not by this module) and `s_ref` is the
+//! boundary field's own RMS spread, and nothing but a dimensionless number ever crosses
+//! generations.
 //!
 //! The whole-field application is the only witness of what it censored in the constitutive
-//! field, so that enforcing operation maintains the run's [`EnforcementRecord`] as it applies
-//! and is the record's one writer. The record accumulates the clipped row-application count
+//! field. That enforcing operation therefore maintains the run's [`EnforcementRecord`] as it
+//! applies and is the record's one writer. The record accumulates the clipped row-application count
 //! (whose positivity is the `ever_clipped` bit - a clip is exactly a moved row, so within the
 //! record the bit and the count cannot disagree), the maximum pre-projection overshoot of the
 //! enforced radius in units of `s_ref`, and each row's running maximum normalized displacement
@@ -30,7 +33,7 @@
 //! The constraint also binds row values read through another realization of the same field.
 //! [`BandProjection::project`] applies the identical clip law to one such value and records
 //! nothing. On a backend whose kernels vary with the execution shape, two realizations of one
-//! row can read different bytes, so a value near the radius can clip in the per-row form while
+//! row can read different bytes, and a value near the radius can clip in the per-row form while
 //! the recorded field reads unclipped. That disagreement is the design: the record describes
 //! the constitutive field alone. In a run whose objective reads a second realization, a clean
 //! `ever_clipped` therefore does not certify that the objective ran unconstrained. The per-row
@@ -40,9 +43,8 @@
 //!
 //! The record's honesty rests on the arithmetic. A clipped row is placed at `band − margin`
 //! rather than exactly at the radius, with `margin` sized at the freeze to dominate every
-//! narrowing
-//! error of the stored f32 coordinates - that makes the projection idempotent in the stored
-//! precision, so a parked row re-reads strictly inside and cannot re-clip on the next
+//! narrowing error of the stored f32 coordinates. That makes the projection idempotent in the
+//! stored precision: a parked row re-reads strictly inside and cannot re-clip on the next
 //! application to inflate the record by rounding alone. A freeze whose margin would consume the
 //! radius refuses, since at that magnitude the stored precision cannot represent the
 //! constraint's own boundary. And a non-finite row refuses before any byte moves: divergence
@@ -85,36 +87,39 @@ const MARGIN_SCALE: DPositive = d_positive!(1.0 / 4_194_304.0);
 /// The landing margin's absolute floor, `2⁻¹⁴⁰`.
 ///
 /// Subnormal f32 components carry an absolute narrowing error up to `2⁻¹⁵⁰` regardless of the
-/// extent, so an extent-scaled margin alone underestimates the error of a map whose coordinates
-/// sit near the bottom of the f32 range. The floor keeps the idempotence argument valid there.
+/// extent. An extent-scaled margin alone therefore underestimates the error of a map whose
+/// coordinates sit near the bottom of the f32 range, and the floor keeps the idempotence argument
+/// valid there.
 const MARGIN_FLOOR: DPositive = d_positive!(7.174_648_137_343_064e-43);
 
 /// The headroom the radius must keep over the landing margin: `margin · 1024 ≤ band`.
 ///
-/// A clipped row lands within one `1024`th of the radius, so the landing stays a projection
+/// A clipped row lands within one `1024`th of the radius, and the landing stays a projection
 /// onto the boundary rather than a shrink toward the centre. Without the headroom the stored
 /// f32 coordinates cannot express the constraint's boundary around the snapshot, and the
 /// freeze refuses.
 const MARGIN_HEADROOM: DPositive = d_positive!(1024.0);
 
-/// The frozen constraint holds the projection centre `x₀^ref` beside its reconstructed radius.
+/// The frozen constraint, pairing the projection centre `x₀^ref` with its reconstructed radius.
 ///
 /// The state is minimal: one radius and one margin. Every derived reading - the widened
 /// radius, its exact square, the landing radius, the widened spread - is an accessor over
-/// them, so no cached projection of the radius can disagree with its source.
+/// them, and no cached projection of the radius can disagree with its source.
 #[derive(Debug, PartialEq)]
 pub(crate) struct BandProjection<N> {
     /// The boundary snapshot's zero field, each row's projection centre.
     centre: Box<FinitePointField<N>>,
     /// `β`: the stage's declared dimensionless radius.
     dimensionless_radius: Positive,
-    /// `s_ref(Z_K)`: the boundary field's RMS spread, the frame's unit carrier and the
-    /// normalizer of every record reading.
+    /// `s_ref(Z_K)`: the boundary field's RMS spread.
+    ///
+    /// The frame's unit carrier and the normalizer of every record reading.
     reference_spread: Positive,
     /// `band = β · s_ref` in the working precision: the enforced radius.
     radius: Positive,
-    /// The landing margin, sized at the freeze to dominate every narrowing error of the
-    /// stored f32 coordinates.
+    /// The landing margin.
+    ///
+    /// Sized at the freeze to dominate every narrowing error of the stored f32 coordinates.
     margin: DPositive,
 }
 
@@ -147,7 +152,7 @@ where
             "the boundary snapshot should cover at least one row"
         );
 
-        // The narrowed f32 product is the enforced radius; the refusal carries the exact
+        // The narrowed f32 product is the enforced radius. The refusal carries the exact
         // widened value.
         let radius = dimensionless_radius.checked_mul(reference_spread);
         let radius_exact = dimensionless_radius.mul_wide(reference_spread);
@@ -190,15 +195,17 @@ where
         DPositive::from(self.radius)
     }
 
-    /// Returns the radius's f64 square, exact because an f32 significand squares within 53
-    /// bits. The clip predicate compares squared displacements against it.
+    /// Returns the radius's f64 square, exact because an f32 significand squares within 53 bits.
+    ///
+    /// The clip predicate compares squared displacements against it.
     #[inline]
     const fn radius_squared(&self) -> DPositive {
         self.radius.square_wide()
     }
 
-    /// Returns the reference spread widened to f64, exactly. Every normalized reading divides
-    /// by it.
+    /// Returns the reference spread widened to f64, exactly.
+    ///
+    /// Every normalized reading divides by it.
     #[inline]
     const fn spread_wide(&self) -> DPositive {
         // Positive with no check: the exact widening of a positive f32 stays positive.
@@ -207,12 +214,12 @@ where
 
     /// Returns `band − margin`, where a clipped row lands.
     ///
-    /// The landing sits one narrowing allowance inside the radius, so a clipped row re-reads
-    /// strictly inside and the projection is idempotent in the stored precision.
+    /// The landing sits one narrowing allowance inside the radius. A clipped row therefore
+    /// re-reads strictly inside, and the projection is idempotent in the stored precision.
     #[inline]
     const fn landing_radius(&self) -> DPositive {
         // Positive with no check: the freeze's headroom keeps the margin at or below a
-        // 1024th of the radius, so the landing keeps at least 1023/1024 of it.
+        // 1024th of the radius, and the landing keeps at least 1023/1024 of it.
         DPositive::new_unchecked(self.radius_wide() - self.margin)
     }
 
@@ -230,10 +237,11 @@ where
     ///
     /// Every row's pre-projection displacement updates its running maximum first, then a row
     /// whose displacement exceeds the radius moves to the landing radius along its own
-    /// direction from the centre. Untouched rows keep their exact bytes, so an unclipped
+    /// direction from the centre. Untouched rows keep their exact bytes, and an unclipped
     /// application leaves the field bit-identical - the coincidence the non-binding claim
     /// reads. Rows enforce in parallel over fixed chunks, and the partial reductions combine by
-    /// integer sum and maximum, so the result is bit-deterministic under any thread schedule.
+    /// integer sum and maximum. The result is therefore bit-deterministic under any thread
+    /// schedule.
     ///
     /// The field and the record share the centre's row domain, and enforcement points arrive
     /// in step order - wiring contracts checked in debug builds, since all three come from one
@@ -291,8 +299,9 @@ where
         &self.centre
     }
 
-    /// Consumes the projection into its centre, without a copy, for the evidence record that
-    /// outlives the constraint.
+    /// Consumes the projection into its centre, without a copy.
+    ///
+    /// For the evidence record that outlives the constraint.
     #[must_use]
     pub(crate) fn into_centre(self) -> Box<FinitePointField<N>> {
         self.centre
@@ -392,15 +401,15 @@ where
     ///
     /// The floor sits two margins inside the radius. A clipped row lands one margin inside, at
     /// the landing radius, and re-reads within one narrowing allowance of it, and the margin
-    /// dominates that allowance by construction, so every clipped-in-place row's squared
-    /// displacement stays at or above this floor. The saturation reading that consumes it
-    /// therefore counts every row the projection is actively holding, together with unclipped
+    /// dominates that allowance by construction. Every clipped-in-place row's squared
+    /// displacement therefore stays at or above this floor, and the saturation reading that
+    /// consumes it counts every row the projection is actively holding, together with unclipped
     /// rows within two margins of the boundary.
     #[inline]
     #[must_use]
     pub(crate) fn saturation_floor_squared(&self) -> DPositive {
         // Positive with no check: the freeze's headroom keeps the margin at or below a 1024th
-        // of the radius, so the floor keeps at least 1022/1024 of it and stays positive.
+        // of the radius, and the floor keeps at least 1022/1024 of it and stays positive.
         let floor = (self.landing_radius() - self.margin).get();
 
         // Total: the floor is at most the f32-born radius and at least 1022/1024 of a radius

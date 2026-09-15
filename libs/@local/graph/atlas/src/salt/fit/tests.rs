@@ -86,9 +86,12 @@ use crate::{
     },
 };
 
+/// Row count of the fixture corpus.
 const NODES: usize = 48;
+/// Landmark capacity the fixture selection runs at.
 const LANDMARKS: u32 = 8;
 
+/// A fresh per-process scratch directory under the system temp dir, cleared if it already exists.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -100,7 +103,9 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A unit-norm pseudo-random representation for node `row`.
+/// A unit-norm pseudo-random representation drawn from `rng`.
+///
+/// Every component is uniform on `[-0.5, 0.5)`. Double-precision arithmetic normalizes the vector.
 fn representation(rng: &mut Xoshiro256PlusPlus) -> BoxedVecN<PROJECTOR_DIMENSIONS> {
     let mut components = [0.0_f32; PROJECTOR_DIMENSIONS];
     for component in &mut components {
@@ -124,15 +129,17 @@ fn representation(rng: &mut Xoshiro256PlusPlus) -> BoxedVecN<PROJECTOR_DIMENSION
     BoxedVecN::new(&VecN::new(components))
 }
 
+/// The two-edge fixture dataset with no edge confidences.
 fn dataset() -> MemoryDataset {
     dataset_with_edge_confidences([(None, None, None); 2])
 }
 
 /// The base corpus with both edges' `(link, source, target)` confidence readings supplied.
 ///
-/// [`dataset`] is the unscored form the other fit tests share. The readings are a parameter so a
-/// corpus that violates the confidence contract differs from the clean one in nothing else.
-/// Every row carries display text, so the staged identity artifacts persist real payloads.
+/// [`dataset`] is the unscored form the other fit tests share. Taking the readings as a parameter
+/// lets a corpus that violates the confidence contract differ from the clean one in nothing else.
+/// Every row carries display text, and the staged identity artifacts therefore persist real
+/// payloads.
 fn dataset_with_edge_confidences(
     readings: [(
         Option<UnitFraction>,
@@ -288,10 +295,10 @@ fn classifier_fit_echo_round_trips_every_knob() {
 /// The fixture inserts `relative_cg_residual_tolerance`, `maximum_cg_iterations`,
 /// `maximum_consecutive_rejections`, `maximum_hvp_requests`, `maximum_objective_requests`,
 /// `maximum_gradient_requests` and `maximum_row_traversals` verbatim into an otherwise-default
-/// solver echo, so the decode pins unknown-field tolerance for the current record shape. The
-/// decoder ignores an unknown solver field instead of rejecting the record. The first two retired
-/// with the inner CG recurrence, the third with the rejection budget radius underflow always
-/// preceded, and the last four with the work budgets the iteration structure already bounds.
+/// solver echo. The decode pins unknown-field tolerance for the current record shape: the decoder
+/// ignores an unknown solver field instead of rejecting the record. None of the seven names a
+/// field of the current [`SolverConfig`], whose loop has no inner CG recurrence, no
+/// consecutive-rejection budget, and no work limit besides the outer-iteration cap.
 #[test]
 fn config_echo_decodes_the_retired_solver_knobs() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -358,12 +365,7 @@ fn config_echo_requires_every_setting() {
     }
 }
 
-/// The budget echoes as its floor object, and the retired clamp's bare array still decodes.
-///
-/// The bare four-constant array `[positive, total, floor, epsilon]` is the exact shape every
-/// generation published under the enforcing clamp carries. The fixture pins the ratified constants
-/// verbatim, so this decode is the standing witness that those manifests parse under the current
-/// binary. The decode keeps the floor and discards the retired clamp coefficients.
+/// Preserves a non-default diagnostic floor in the projector configuration.
 #[test]
 fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -410,6 +412,7 @@ fn config_echo_validates_the_group_budget() {
     assert!(error.to_string().contains("fraction in (0, 1]"));
 }
 
+/// Builds a landmark-baseline configuration that skips projector training.
 fn config() -> FitConfig {
     FitConfig {
         seed: 7,
@@ -428,12 +431,14 @@ fn config() -> FitConfig {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus.
+/// Fits a deterministic classifier from a synthetic corpus.
 ///
-/// The supplied model input of every fixture fit.
+/// The supplied model input of every fixture fit except the annotation-corpus fit, which fits its
+/// own.
 fn fixture_classifier() -> Classifier {
     const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
+    // The pattern length 13 is coprime to `CANONICAL_DIMENSIONS`: the cycle enters each of the four
+    // rows at a different phase, and no two corpus rows repeat.
     const PATTERN: [f32; 13] = [
         -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
     ];
@@ -491,7 +496,8 @@ fn fixture_input() -> ClassifierInput {
 
 /// Asserts the complete-generation fixture's snapshot counts and its multiplicity histogram.
 ///
-/// The dataset streamed two single-typed edges, so the histogram is a single k = 1 entry.
+/// The dataset streamed two single-typed edges: the histogram is the single entry `[2]`, the edge
+/// count at multiplicity one.
 #[track_caller]
 fn assert_complete_generation_snapshot(repository: &SaltRepository) {
     assert_eq!(repository.metadata.snapshot.nodes, NODES as u64);
@@ -550,9 +556,9 @@ async fn fit_publishes_a_complete_generation() {
         serde_json::from_slice(&document).expect("the document should deserialize");
     assert_digests_match(&published_path, &repository);
 
-    // The call supplied no verdicts, so the manifest records the absence.
+    // With no verdicts supplied, the manifest records the absence.
     assert!(repository.files.reviewed_verdicts.is_none());
-    // The call supplied the classifier, so the manifest records the source digest and stages no
+    // With the classifier supplied, the manifest records its source digest and stages no
     // annotation artifacts.
     assert!(repository.files.annotation_corpus.is_none());
     assert!(repository.files.annotation_embeddings.is_none());
@@ -577,7 +583,7 @@ async fn fit_publishes_a_complete_generation() {
     assert!(repository.metadata.reproducibility.prior.is_none());
     assert_eq!(repository.metadata.placement, Placement::LandmarkBaseline);
 
-    // The recorded evidence passed - a published generation implies it.
+    // A published generation implies the recorded evidence passed.
     assert!(repository.metadata.evidence.norm.passes());
     assert_eq!(
         repository.metadata.evidence.recall.admission(),
@@ -614,6 +620,8 @@ async fn fit_publishes_a_complete_generation() {
     );
 }
 
+/// Asserts every baseline coordinate is bit-equal to its landmark's layout coordinate.
+///
 /// Asserts every row's baseline coordinate is bit-equal to its assigned landmark's layout
 /// coordinate in the published skeleton.
 #[track_caller]
@@ -710,8 +718,10 @@ fn assert_identities_translate(published: &Utf8Path) {
 /// Asserts the published postings against the fixture by hand.
 ///
 /// Every position carries its row's direct type, only the link type names a parent, and the
-/// evidence records the representation split - at 48 points the dense threshold is one member and a
-/// dense run costs two words, so both node types go dense and the empty link type stays a list.
+/// evidence records the representation split. At 48 points a dense set costs two words (the header
+/// and one word of bits, 16 bytes) against four bytes per list member, and a type goes dense from
+/// five members up: both node types (24 members each) go dense and the empty link type stays a
+/// list.
 #[track_caller]
 fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) {
     let postings = PostingsArchive::new(
@@ -825,6 +835,11 @@ async fn policy_artifacts_publish_and_read_back() {
     );
 }
 
+/// Checks the published LOD columns: permutations, Morton order, wire range and metadata.
+///
+/// The published LOD columns hold mutually inverse total permutations, a Morton column covering
+/// every row, wire coordinates inside `[-1, 1]` that keep landmark-coincident rows coincident, and
+/// metadata recording the histogram and the incident-degree ranking origin.
 #[tokio::test]
 async fn lod_columns_publish_in_base_order() {
     let root = GenerationRoot::new(scratch("lod")).expect("the root should open");
@@ -918,6 +933,10 @@ async fn lod_columns_publish_in_base_order() {
     assert_eq!(repository.metadata.ranking, RankingOrigin::IncidentDegree);
 }
 
+/// Publishes a supplied reviewed-verdicts document byte for byte under its hash.
+///
+/// A supplied reviewed-verdicts document publishes byte for byte under its manifest entry, bound to
+/// the supplied file's hash, and still parses through the trainer's reader.
 #[tokio::test]
 async fn supplied_verdicts_publish_verbatim() {
     let root = GenerationRoot::new(scratch("verdicts")).expect("the root should open");
@@ -1261,10 +1280,12 @@ async fn prior_generation_seeds_reuse_and_retention() {
     assert_eq!(repository.metadata.evidence.cards.embedded, 0);
 
     // Equal corpus, seed, and config draw equal selection priorities,
-    // and retention prefers prior landmarks among equal candidates:
-    // the selection reproduces and every selected row is a retained
-    // one. The skeleton is then bit-identical, which the recorded
-    // digests certify.
+    // and the second selection picks the same rows: the retention
+    // phase reserves `ceil(capacity · retained_fraction)` seats (2 of
+    // the 8) for prior landmarks, and the rows filling them would win
+    // the free fill by priority regardless. Every selected row is
+    // therefore a retained one, and the skeleton is bit-identical,
+    // which the recorded digests certify.
     assert_eq!(repository.metadata.evidence.landmarks.retained, LANDMARKS);
     assert_eq!(
         repository.files.landmarks,
@@ -1276,6 +1297,10 @@ async fn prior_generation_seeds_reuse_and_retention() {
     );
 }
 
+/// Publishes a human override's exact distribution as the selected and attraction mix.
+///
+/// A human override for the fixture's link type publishes its exact distribution as both the
+/// selected and attraction mix at applicability one, and the metadata echoes the config verbatim.
 #[tokio::test]
 async fn override_supersedes_the_classifier() {
     let root = GenerationRoot::new(scratch("override")).expect("the root should open");
@@ -1321,8 +1346,8 @@ async fn override_supersedes_the_classifier() {
         .expect("the link type resolves");
 
     // The override's distribution is the selected one, asserted with
-    // applicability 1, so the attraction mix passes it through
-    // unchanged.
+    // applicability 1: the attraction mix `a · p + (1 - a) · Overlay`
+    // passes it through unchanged.
     assert_eq!(policy.selected.coincident.to_bits(), 0.25_f64.to_bits());
     assert_eq!(policy.selected.proximal.to_bits(), 0.5_f64.to_bits());
     assert_eq!(policy.attraction.coincident.to_bits(), 0.25_f64.to_bits());
@@ -1374,14 +1399,19 @@ async fn equal_seeds_publish_equal_generations() {
     .await
     .expect("the second fit should publish");
 
-    // The generation id digests the metadata document, which in turn digests every artifact, so
-    // equal ids certify byte-equal generations. The converse follows from the wired stage set,
-    // whose every member is deterministic by construction. The pipeline promises no such contract
-    // of its own. Determinism is best effort, and a stage under the training carve-out rescopes
-    // this assertion to the deterministic artifacts.
+    // The generation id is the digest of the metadata document, and the document records every
+    // artifact's digest: equal ids certify byte-equal generations. Equal generations follow from
+    // equal inputs here because every stage the baseline configuration wires is deterministic by
+    // construction. The pipeline promises no such contract of its own: the trainer's backend need
+    // not accumulate gradients deterministically (`projector::train::fit`), and a configuration
+    // that trains a projector narrows this assertion to the artifacts outside that carve-out.
     assert_eq!(first.id(), second.id());
 }
 
+/// A zero-norm node fails the norm check and leaves the root empty.
+///
+/// A corpus with one zero-norm node fails the norm check, and the failed fit leaves the root empty
+/// with no transient state.
 #[tokio::test]
 async fn defective_corpus_publishes_nothing() {
     let path = scratch("defective");
@@ -1456,13 +1486,13 @@ fn minimal_schedule() -> TrainingSchedule {
     .expect("the fixture schedule is valid")
 }
 
-/// The projector fixture's training run.
+/// Builds the projector fixture's training options.
 ///
 /// Short enough for a test, long enough that the boundary and every step run. The hidden
-/// architecture shrinks while the representation width keeps the pipeline's contract, so a
-/// forward or training step costs a fraction of the ratified model's; the publish boundary's own
-/// certificates (`compute::projector::tests`) pin the bit-exact publish contracts, and these
-/// fixtures certify the fit's composition.
+/// architecture shrinks while the representation width keeps the pipeline's contract, and a
+/// forward or training step therefore costs a fraction of the ratified model's. The publish
+/// boundary's own certificates (`compute::projector::tests`) pin the bit-exact publish contracts,
+/// and these fixtures certify the fit's composition.
 fn projector_options() -> ProjectorOptions {
     let mut options = ProjectorOptions::ratified();
     options.architecture = Architecture {
@@ -1501,9 +1531,9 @@ fn projector_options() -> ProjectorOptions {
 
 /// A reviewed-Proximal verdict covering the fixture link row.
 ///
-/// The versioned URL names ontology id 2 in the memory corpus's own id space (`memory://2/`), so
-/// the resolution reaches the link row carrying the Proximal force and the boundary measures its
-/// radius from reviewed pairs.
+/// The versioned URL names ontology id 2 in the memory corpus's own id space (`memory://2/`). The
+/// resolution therefore reaches the link row carrying the Proximal force, and the boundary
+/// measures its radius from reviewed pairs.
 fn proximal_link_verdicts() -> SuppliedVerdicts {
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
@@ -1514,6 +1544,10 @@ fn proximal_link_verdicts() -> SuppliedVerdicts {
     SuppliedVerdicts::from_bytes(document.as_bytes()).expect("the fixture document admits")
 }
 
+/// Defaults a bare config to the projector placement under `ratified()` options.
+///
+/// A bare config defaults to the projector placement under `ratified()` options, whose schedule
+/// runs 20,000 steps with the boundary at 5,000.
 #[test]
 fn default_placement_is_the_trained_projector() {
     // The conditioned projector is the pipeline's architecture; a bare
@@ -1544,10 +1578,11 @@ async fn forceless_projector_publishes_the_baseline_step() {
     let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
     let dataset = dataset();
 
-    // An Overlay override strips the fixture's link type of force. The boundary then freezes
-    // nothing, the lens provably never trains, and the run skips the ladder whole.
-    // The zero force makes the run vacuous by construction (`admit` sees no force at all), so the
-    // schedule trains nothing and one step certifies the same orchestration a longer run would.
+    // An Overlay override strips the fixture's link type of force. `admit` then finds no force at
+    // all and the run is vacuous by construction, with no frozen radius and no relation term. The
+    // run skips the ladder whole, and the one scheduled step trains with the relation term absent
+    // and every other configured family drawn and evaluated (semantic pairs, ordinary and hard
+    // repulsion, landmark anchors): it certifies the same orchestration a longer run would.
     let mut options = projector_options();
     options.schedule = minimal_schedule();
     let config = FitConfig {
@@ -1622,8 +1657,8 @@ async fn forceless_projector_publishes_the_baseline_step() {
 /// The recorded salt re-derives from the document's own input sections, the draw counts replay
 /// over the published attraction index, and the measured body's strata census the whole
 /// candidate pool. The trained fixture holds 48 rows and the two full-force edges (0, 1) and
-/// (2, 3), so the pair domain censuses 2 oriented pairs and both draw, while the 44 rows
-/// outside the edges form the control pool and `m = n = 2` controls draw from it.
+/// (2, 3). The pair domain censuses 2 oriented pairs and both draw. The 44 rows outside the edges
+/// form the control pool, from which `m = n = 2` controls draw.
 #[track_caller]
 fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
     let paired = repository
@@ -1703,8 +1738,8 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
     let dataset = dataset();
 
     // A Proximal override gives the link type full force, and the reviewed verdict names the
-    // link row in the corpus's own id space, so the boundary measures its radius from the
-    // reviewed pairs.
+    // link row in the corpus's own id space: the boundary measures its radius from the reviewed
+    // pairs.
     let options = projector_options();
     let verdicts = proximal_link_verdicts();
     let config = FitConfig {
@@ -1765,8 +1800,8 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
     assert_eq!(ladder.canonical.get().to_bits(), 1.0_f32.to_bits());
     assert_eq!(ladder.canonical_index, ladder.steps.len() - 1);
 
-    // The baseline step is its own frame; every recorded loss is a
-    // real measurement.
+    // The baseline step is its own frame: the identity alignment and
+    // zero movement against the baseline.
     assert_eq!(ladder.steps[0].alignment, Similarity::IDENTITY);
     assert_eq!(
         ladder.steps[0].baseline_movement.get().to_bits(),
@@ -1776,8 +1811,8 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
     let canonical = &ladder.steps[ladder.canonical_index];
     assert!(canonical.adjacent_movement > d_non_negative!(0.0));
 
-    // The paired-movement readout lands beside the steps, and its salt and draw replay from
-    // the published document alone.
+    // The ladder evidence holds the paired-movement readout beside the steps, and its salt and
+    // draw replay from the published document alone.
     assert_paired_replay(&published_path, &repository);
 
     // The publish boundary's certificates (`compute::projector::tests`) pin the column's
@@ -1922,7 +1957,7 @@ fn assert_cluster_shares_one_point(
 ///
 /// Every published artifact covers the row domain, and every published neighbour and selected
 /// landmark is a representation's first row. The rows of one duplicate cluster share one neighbour
-/// list, one landmark ordinal, and one published coordinate bit for bit, so the distinct-domain
+/// list, one landmark ordinal, and one published coordinate bit for bit: the distinct-domain
 /// training evidence and the full-domain column describe one field.
 #[tokio::test]
 async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
@@ -1932,9 +1967,10 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     // The Proximal override gives the link type full force and the
     // reviewed verdict freezes a measured boundary radius: the whole
     // trained path runs over the quotient's distinct domain. The
-    // byte-identical reviewed pairs measure a small Proximal quantile,
-    // so this corpus wants a Coincident radius below that measurement,
-    // the same ordering the composed energy demands of production.
+    // byte-identical reviewed pairs measure a small Proximal radius,
+    // and `RelationLens::energy` composes no energy unless the
+    // Coincident radius lies strictly below it. The lens therefore
+    // takes a 0.01 Coincident radius in place of the fixture's 0.5.
     let verdicts = proximal_link_verdicts();
     let mut options = projector_options();
     options.lens = RelationLens::new(
@@ -2035,9 +2071,9 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
 
 /// The vacuous placement unblocks a Proximal corpus lacking reviewed coverage.
 ///
-/// A corpus whose relations carry Proximal force refuses to train without reviewed coverage - and
-/// the vacuous placement is exactly what unblocks it: the same configuration trains and publishes
-/// with the relation evidence withheld.
+/// A corpus whose relations carry Proximal force refuses to train without reviewed coverage. The
+/// vacuous placement unblocks it: the same configuration trains and publishes with the relation
+/// evidence withheld from the trainer.
 #[tokio::test]
 async fn vacuous_placement_trains_without_reviews() {
     let dataset = dataset();
@@ -2085,9 +2121,9 @@ async fn vacuous_placement_trains_without_reviews() {
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
     let mut options = projector_options();
     options.vacuous = true;
-    // The vacuous flag empties the attraction index before admission, so
-    // the run is vacuous by construction regardless of the schedule: one
-    // step certifies the same orchestration a longer run would.
+    // The vacuous flag hands the trainer an empty attraction index, and
+    // admission finds no force regardless of the schedule: one step
+    // certifies the same orchestration a longer run would.
     options.schedule = minimal_schedule();
     let vacuous_config = FitConfig {
         placement: PlacementOptions::Projector(options),
@@ -2115,7 +2151,7 @@ async fn vacuous_placement_trains_without_reviews() {
         serde_json::from_slice(&document).expect("the document should deserialize");
 
     // The placement trained, no radius froze, and the untrained lens
-    // publishes the baseline step directly - no ladder to measure.
+    // publishes the baseline step directly: there is no ladder to measure.
     assert_eq!(repository.metadata.placement, Placement::Projector);
     let evidence = repository
         .metadata
@@ -2162,12 +2198,12 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = dataset();
 
-    // 0.3 names no step of the schedule, so the configuration
-    // contradicts itself and the fit must refuse to publish. The
-    // membership is decidable from the options alone, so the refusal
-    // lands before a single training step: the run's cost is the
-    // stages ahead of the placement. The reviewed verdict keeps the
-    // canonical mismatch as the configuration's only defect.
+    // 0.3 names no step of the schedule: the configuration contradicts
+    // itself and the fit must refuse to publish. The membership is
+    // decidable from the options alone, and the refusal precedes the
+    // first training step: the run's cost is the stages ahead of the
+    // placement. The reviewed verdict keeps the canonical mismatch as
+    // the configuration's only defect.
     let mut options = projector_options();
     options.ladder.canonical = non_negative!(0.3);
     let verdicts = proximal_link_verdicts();
@@ -2331,10 +2367,6 @@ fn assert_adjacency_reads_back(published: &Utf8Path) {
     );
 }
 
-/// Asserts the published attraction index against the [`relation_dataset`] readings.
-///
-/// Relation 2 retains three instances and relation 3 retains one, since the self-loop reading
-/// carries no force and the drain discards it. The overridden weights and confidence provenance
 /// Reads a typed id column into the fixture tests' `u32` vocabulary.
 fn column_ids<I, T>(file: &ArrayFile) -> Vec<u32>
 where
@@ -2352,7 +2384,11 @@ where
         .collect()
 }
 
-/// stay intact.
+/// Asserts the published attraction index against the [`relation_dataset`] readings.
+///
+/// Relation 2 retains three instances and relation 3 retains one: the self-loop reading carries no
+/// force and the index build drops it. The overridden weights and confidence provenance stay
+/// intact.
 #[track_caller]
 fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRowId>) {
     assert_eq!(attraction.rows(), NODES as u64);
@@ -2367,8 +2403,8 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRo
     assert_eq!(membership.edges().len(), 1);
 
     // The group weights are the overridden distribution: the Proximal
-    // weight is p*_P = 1 · 0.5, and the Coincident weight vanishes
-    // under the default kappa_C = 0.
+    // weight is p*_P = 1 · 0.5, and the Coincident weight κ_C · p*_C
+    // vanishes under the default κ_C = 0.
     let weights = employment.weights();
     assert_eq!(weights.proximal.to_bits(), 0.5_f32.to_bits());
     assert_eq!(weights.coincident.to_bits(), 0.0_f32.to_bits());
@@ -2392,6 +2428,12 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRo
     assert_eq!(neutral.confidence.scored(), Scored::EMPTY);
 }
 
+/// Publishes a relation dataset under exact overrides and checks the relation artifacts.
+///
+/// A relation dataset under exact human overrides publishes the endpoint column in row order,
+/// readable adjacency, attraction and protection indexes, a quadtree carrying direct types,
+/// translating ontology identities, and metadata counting four retained edges, one dropped
+/// self-reference, an exact retained mass of `1.25` and the multi-typed edge histogram `[3, 1]`.
 #[tokio::test]
 async fn edge_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("edge-artifacts")).expect("the root should open");
@@ -2399,8 +2441,8 @@ async fn edge_artifacts_publish_and_read_back() {
     let classifier = fixture_input();
 
     // Human overrides pin both relations to an exact distribution
-    // (applicability 1), so every attraction weight and force mass
-    // below is a hand-computable power of two instead of a classifier
+    // (applicability 1): every attraction weight and force mass below
+    // is a hand-computable power of two instead of a classifier
     // prediction.
     let mut config = config();
     config.policy.overrides = [2, 3]
@@ -2443,8 +2485,8 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_adjacency_reads_back(&published_path);
 
     // The delivery ranking runs on incident degree by default: node
-    // row 3 (three incident slots) outranks every other row, so it
-    // holds base rank 0 regardless of the seed.
+    // row 3 (three incident slots) outranks every other row and holds
+    // base rank 0 regardless of the seed.
     let position_of_rank = ArrayFile::open(published_path.join("position-of-rank.arr"))
         .expect("the rank column should map");
     let row_of_position = ArrayFile::open(published_path.join("row-of-position.arr"))
@@ -2501,10 +2543,10 @@ async fn edge_artifacts_publish_and_read_back() {
     assert_eq!(repository.metadata.evidence.policy.relations, 2);
     assert_eq!(repository.metadata.evidence.policy.overridden, 2);
 
-    // Each retained instance weighs c · s+ · s with s+ = 0.5 and the reading share s =
-    // 1/multiplicity. By hand, the scored single-typed edge gives 0.5 · 0.5, the two-typed edge's
-    // readings give two 1.0 · 0.5 · 0.5, and the unscored single-typed edge gives 1.0 · 0.5, which
-    // totals 1.25. Every factor is a power of two, so the sum is exact.
+    // Each retained instance weighs `c · s · s+` with the force scale s+ = 0.5 and the reading
+    // share s = 1/multiplicity. By hand, the scored single-typed edge gives 0.5 · 0.5, the
+    // two-typed edge's readings give two 1.0 · 0.5 · 0.5, and the unscored single-typed edge gives
+    // 1.0 · 0.5, which totals 1.25. Every factor is a power of two and the sum is exact.
     let relations = &repository.metadata.evidence.relations;
     assert_eq!(relations.retained_edges, 4);
     assert_eq!(relations.pruned_edges, 0);
@@ -2554,6 +2596,10 @@ fn store_identity(url: &str) -> ArchivedOntologyTypeUuid {
     ArchivedOntologyTypeUuid::from_url(&url)
 }
 
+/// Resolves store-identity verdicts against held versions when the version matches exactly.
+///
+/// Against a column of store-identity versions, only the verdict reviewed at an exact held version
+/// resolves. A foreign-store verdict and one at another version of a held base URL stay unresolved.
 #[test]
 fn store_identity_verdicts_resolve_by_reviewed_version() {
     // The staged column holds the generation's own type versions.
@@ -2568,8 +2614,8 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
 
     // The fixture supplies one verdict from a foreign store, one reviewed at a version the column
     // does not hold, and one reviewed at a version it does. Only the exact reviewed version
-    // resolves, because versions are immutable and distinct, so a verdict for another version of
-    // the same base URL is evidence about a different card.
+    // resolves: versions are immutable and distinct, and a verdict for another version of the same
+    // base URL is evidence about a different card.
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
         r#""type_verdicts":["#,
@@ -2594,6 +2640,10 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
     assert_eq!(resolution.resolved[0].placement, PlacementClass::Proximal);
 }
 
+/// Resolves a `memory://` verdict against a plain-number identity column.
+///
+/// Against a plain-number identity column, a store-identity verdict stays unresolved while a
+/// `memory://` verdict resolves to the row its authority names with its placement class.
 #[test]
 fn plain_number_corpus_resolves_the_memory_scheme() {
     // A plain-number column derives ids from the memory scheme alone:

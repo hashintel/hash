@@ -1,5 +1,3 @@
-//! Generation-run errors.
-
 use core::{error::Error, fmt};
 
 use crate::{
@@ -7,18 +5,19 @@ use crate::{
     salt::{fit::FitError, quality::error::QualityRunError},
 };
 
-/// The run could not reach a verdict.
+/// Failure to complete a generation run.
 ///
-/// Variants after the fit carry the published generation's identity: the artifacts are complete on
-/// disk, and the remedy - reopening, re-probing, or correcting and re-running - starts from that
-/// id.
+/// Errors after a successful fit carry the published generation's identity for diagnosis or a
+/// repeated probe. An activation failure can follow a passing quality verdict.
 #[derive(Debug)]
 pub(crate) enum RunnerError<D, E> {
     /// The run could not read the current-generation pointer.
     Current(CurrentError),
     /// The run could not open the active generation as the prior.
     Prior(OpenError),
-    /// The fit could not publish, so nothing is on disk.
+    /// The fit did not return a successful publication.
+    ///
+    /// A publication error after the directory rename can leave a generation on disk.
     Fit(FitError<D, E>),
     /// The run could not reopen the published generation.
     Reopen { id: GenerationId, source: OpenError },
@@ -27,7 +26,9 @@ pub(crate) enum RunnerError<D, E> {
         id: GenerationId,
         source: QualityRunError<D>,
     },
-    /// The run could not activate the admitted generation.
+    /// Activation of the admitted generation did not complete successfully.
+    ///
+    /// An error after the pointer rename can leave the generation selected.
     Activate {
         id: GenerationId,
         source: ActivateError,

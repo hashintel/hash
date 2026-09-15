@@ -3,7 +3,7 @@
 //! Every relation type in scope resolves to a distribution over the [`GeometryClass`]es, which
 //! downstream stages turn into attraction, protection, and admission decisions. The open-world
 //! [`classifier`] supplies the distribution for relation types without a higher-precedence explicit
-//! policy record; [`precedence`] resolves the winning source per relation into the certified policy
+//! policy record. [`precedence`] resolves the winning source per relation into the certified policy
 //! table.
 //!
 //! The classes describe geometric behaviour, never semantic valence: opposition, contradiction, and
@@ -79,8 +79,8 @@ impl GeometryClass {
         clippy::cast_possible_truncation,
         reason = "the variant count is far below `u8::MAX`"
     )]
-    // SAFETY: the discriminants are the dense range `0..COUNT`, so every transmuted index is a
-    // declared `repr(u8)` variant.
+    // SAFETY: the discriminants are the dense range `0..COUNT`. Every transmuted index is
+    // therefore a declared `repr(u8)` variant.
     pub(crate) const VARIANTS: [Self; Self::COUNT] = core::array::from_fn(const |index| unsafe {
         core::mem::transmute::<u8, Self>(index as u8)
     });
@@ -142,12 +142,14 @@ impl Posterior {
     /// Computes the temperature-scaled softmax of class logits.
     ///
     /// The logits shift by their maximum before the temperature division, then pass through the
-    /// max-shifted [`DVecN::softmax`], so finite logits and a positive finite temperature always
-    /// produce a valid distribution: components in the unit interval that sum to one. The order
-    /// matters. Dividing first can overflow one quotient to `+∞`, and a single infinite
+    /// max-shifted [`DVecN::softmax`]. Finite logits and a positive finite temperature therefore
+    /// always produce a valid distribution: components in the unit interval that sum to one. The
+    /// order matters. Dividing first can overflow one quotient to `+∞`, and a single infinite
     /// component then poisons the whole shifted vector with `∞ - ∞`. Shifting first is free,
     /// since softmax is shift-invariant. It also closes the overflow path: a pre-shifted logit
-    /// is never positive, so its quotient by any positive temperature never reaches `+∞`.
+    /// is never positive, and its quotient by any positive temperature therefore never reaches
+    /// `+∞`. A quotient can reach `−∞` under a small enough temperature. Its exponential is
+    /// then zero and the result is still a valid distribution.
     #[must_use]
     pub(crate) fn softmax(logits: [f64; GeometryClass::COUNT], temperature: f64) -> Self {
         let max = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
@@ -176,11 +178,11 @@ impl Posterior {
 
 /// The Coincident and Proximal components of a relation class distribution.
 ///
-/// Overlay, the third class, carries no geometric weight, so the two stored components are the
+/// Overlay, the third class, carries no geometric weight, and the two stored components are the
 /// distribution's entire geometric content. Each component lies in `0.0..=1.0`.
-// The fields carry their own construction invariants, so the byte-level constructor is the
-// validating try-cast derive: a candidate is a distribution pair exactly when both fields
-// hold stored fractions.
+// The fields carry their own construction invariants, and the byte-level constructor is therefore
+// the validating try-cast derive. A candidate is a distribution pair exactly when both fields hold
+// stored fractions.
 #[derive(
     Debug,
     Copy,
@@ -221,7 +223,8 @@ impl ClassProbabilities {
 /// - Attraction weights come from the effective attraction distribution.
 /// - Protection masses come from the selected distribution and applicability.
 /// - The attraction group receives the strength multiplier unchanged.
-// This type has no construction invariant of its own, so the derives admit byte-level construction.
+// This type has no construction invariant of its own, and the derives therefore admit byte-level
+// construction.
 // The `repr(C)` layout is the policy file's pinned wire row, checked field for field where the
 // artifact casts, and the try-cast derive validates every domain-typed field's bits at that cast.
 #[derive(
@@ -250,14 +253,14 @@ pub(crate) struct RelationPolicy {
     pub applicability: UnitFraction,
     /// The frozen strength multiplier `h`, exactly 1 while the strength head is off.
     pub strength: NonNegative,
-    /// Layout filler pinning the tail padding; writers emit zero, readers ignore.
+    /// Layout filler pinning the tail padding. Writers emit zero, and readers ignore it.
     pub _pad: [u8; 4],
 }
 
 /// The certified policy table, strictly ascending by relation row.
 ///
-/// [`resolve`] mints the table sorted with duplicate relations refused, so the order is a
-/// construction fact. The checked door certifies tables assembled anywhere else.
+/// [`resolve`] creates the table sorted with duplicate relations refused, and the order is a
+/// construction fact. The checked constructor certifies tables assembled anywhere else.
 #[derive(Debug)]
 pub(crate) struct CertifiedPolicies(Vec<RelationPolicy>);
 

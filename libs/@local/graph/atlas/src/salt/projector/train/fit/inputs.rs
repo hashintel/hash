@@ -43,7 +43,7 @@ pub(crate) struct TrainerInputs<'run, N, E> {
     pub verdicts: &'run [ResolvedVerdict],
     /// The target objective's whole configuration, absent on a released-configuration run.
     ///
-    /// The declared constants and the borrowed draws travel as one value, so a lone half is
+    /// The declared constants and the borrowed draws travel as one value, and a lone half is
     /// unrepresentable. The reference replicate is a present configuration at zero activation,
     /// never an absent one.
     pub target: Option<TargetInputs<'run, N>>,

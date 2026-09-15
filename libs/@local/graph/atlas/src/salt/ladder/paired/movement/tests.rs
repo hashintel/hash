@@ -1,8 +1,7 @@
 //! Movement readout expectations.
 //!
-//! The oracle restates one pair reading from full scans over both frames: k-sets by sort, the
-//! union domain, then the counting rule, so the tree-backed readout is checked against a plain
-//! statement of the same tie semantics.
+//! The oracle constructs both neighbour sets by full sort, forms their union and counts rows ahead
+//! of the partner. Its row tie-break supplies an independent comparison for tree-based selection.
 
 use alloc::collections::BTreeSet;
 use core::{iter, num::NonZero};
@@ -21,7 +20,7 @@ use crate::{
     salt::ladder::paired::fixtures::frame,
 };
 
-/// A seeded frame on a coarse integer lattice, so exact distance ties are common.
+/// Generates a seeded integer-lattice frame with frequent exact distance ties.
 fn lattice_frame(seed: u64, rows: usize) -> Vec<Vec2> {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(seed);
     iter::repeat_with(|| {
@@ -34,7 +33,14 @@ fn lattice_frame(seed: u64, rows: usize) -> Vec<Vec2> {
     .collect()
 }
 
-/// Restates one pair reading from full scans: k-sets by sort, union, then the counting rule.
+/// Measures one pair using full-scan neighbour sets and union-domain ranks.
+///
+/// Fixture frames must have fewer than 2³² rows.
+///
+/// # Panics
+///
+/// Panics when `source`, `partner` or a union row is outside a compared frame, or the rank cannot
+/// fit `u32`.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "test frames stay far below u32::MAX rows, so row conversions are exact"
@@ -141,8 +147,8 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
     .expect("the frames are finite and equal");
     let scratch = Scratch::new();
 
-    // Row 1 orders before the tied partner 2, so it counts against partner 2 and not the
-    // other way round.
+    // row 1 breaks the distance tie ahead of partner 2. Reversing the partners excludes that
+    // contribution.
     assert_eq!(
         movement.pair(NodeRowId::new(0), NodeRowId::new(2), &scratch),
         PairMovement {
@@ -165,10 +171,10 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
 
 #[test]
 fn a_partner_outside_one_step_ranks_over_the_union_domain() {
-    // At the zero step the k = 2 set of row 0 is {1, 2}, and at the canonical step it is
-    // {4, 3}. Partner 4 enters only the canonical set and partner 1 only the zero set, and each
-    // rank at the partner's absent step needs a union row its own k-set does not carry, so a
-    // single-step candidate domain reads 3 where the union reads 4.
+    // At k = 2, row 0's neighbour sets are {1, 2} at zero and {4, 3} at canonical. Partner 4's
+    // zero-step rank needs row 3, and partner 1's canonical-step rank needs row 2. Each extra row
+    // belongs only to the other step's set. Therefore the union reads rank 4 where a single-step
+    // domain would read 3.
     let zero = [
         Vec2::new(0.0, 0.0),
         Vec2::new(1.0, 0.0),

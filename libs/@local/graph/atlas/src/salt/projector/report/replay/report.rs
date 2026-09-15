@@ -241,10 +241,10 @@ pub(crate) struct NeighbourhoodBlock {
 /// One neighbourhood size's diagnostic readings over the entity draw, deduplicated in place.
 ///
 /// The diagnostic restricts the entity estimand's own sampled universe to one member per
-/// byte-exact representation class, so it isolates how much duplication inside that very draw
-/// moved the entity readings. It estimates no population. The deduplicated universe is smaller
-/// than the entity universe, so readings at one `k` sit on a different normalizer than the
-/// entity rows beside them. Its membership follows the entity draw.
+/// byte-exact representation class, and it therefore isolates how much duplication inside that
+/// very draw moved the entity readings. It estimates no population. The deduplicated universe is
+/// smaller than the entity universe, and readings at one `k` therefore use a different normalizer
+/// than the entity rows beside them. Its membership follows the entity draw.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DedupBlock {
     /// The neighbourhood size the block reads at.
@@ -338,11 +338,12 @@ pub(crate) struct IncidentEdgeSummary {
 /// One replay's complete evidence record.
 ///
 /// The report identifies its data and design, from both generations and their temporal axes to
-/// the seed and every requested size, so a serialized report re-reads without the configuration
-/// that produced it. The entity estimand samples rows, and a duplicated representation weighs
-/// by its multiplicity. The class estimand samples byte-exact representation classes with equal
-/// weight, read at deterministic representatives. Each estimand answers its own question, and
-/// readings at one `k` compare within one estimand before across estimands.
+/// the seed and every requested size. A serialized report therefore re-reads without the
+/// configuration that produced it. The entity estimand samples rows, and a duplicated
+/// representation weighs by its multiplicity. The class estimand samples byte-exact
+/// representation classes with equal weight, read at deterministic representatives. Each
+/// estimand answers its own question, and readings at one `k` compare within one estimand before
+/// across estimands.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ReplayReport {
     /// The earlier generation `G0`, whose published projector placed the queries.

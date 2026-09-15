@@ -67,9 +67,9 @@ const fn nibble(byte: u8) -> (u8, u8) {
 /// A fixed-width byte string with a canonical lowercase hexadecimal text form.
 ///
 /// Every fixed-width integrity value (digests, signatures, public keys) is a newtype over this: the
-/// text, JSON, and [`fmt::Debug`] forms are `2 · N` lowercase hexadecimal characters, and parsing
-/// is the strict inverse. A string that parses is the unique encoding of its value, so text
-/// round-trips are byte-identical.
+/// text, JSON, and [`fmt::Debug`] forms are `2 · N` lowercase hexadecimal characters. Parsing is
+/// the strict inverse. Text round-trips are byte-identical. Every `N`-byte pattern is a valid
+/// value. Equality compares the bytes without a constant-time guarantee.
 #[derive(
     Copy,
     Clone,
@@ -195,6 +195,7 @@ impl<'de, const N: usize> serde::Deserialize<'de> for HexBytes<N> {
     where
         D: serde::Deserializer<'de>,
     {
+        /// A canonical hexadecimal string decoder for [`HexBytes`].
         struct HexVisitor<const N: usize>;
 
         impl<const N: usize> serde::de::Visitor<'_> for HexVisitor<N> {
@@ -229,12 +230,18 @@ impl<const N: usize> schemars::JsonSchema for HexBytes<N> {
     }
 }
 
+/// Certificates for the canonical hexadecimal encoding.
+///
+/// One test fixes what the encoding accepts and the forms it prints. The other fixes what it
+/// refuses, with the offset and byte the error reports.
 #[cfg(test)]
 mod tests {
     use core::assert_matches;
 
     use super::{HexBytes, ParseHexError};
 
+    /// Canonical text parses to the bytes it names, and prints back as the same text in both the
+    /// display and debug forms - the debug form quoted.
     #[test]
     fn round_trip() {
         let value: HexBytes<4> = "00ff10ab"

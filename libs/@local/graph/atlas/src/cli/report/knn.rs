@@ -1,7 +1,7 @@
 //! The backend sweep and the NN-Descent audit over neighbour constructions.
 //!
-//! Each command reads the root's active generation and prints its readings. The grid arguments
-//! default to the settings the deployment pinned, so an invocation without flags re-derives the
+//! Each command reads the root's active generation and returns its readings. The grid arguments
+//! default to the settings the deployment pinned. An invocation without flags re-derives the
 //! calibration evidence rather than an arbitrary sample of it.
 
 use clap::Args;
@@ -20,12 +20,17 @@ pub(crate) struct BackendArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 
-    /// Fit seeds whose build and sample streams the sweep replays. A repeated seed measures build
-    /// nondeterminism.
+    /// Fit seeds whose build and sample streams the sweep replays.
+    ///
+    /// A repeated seed measures build nondeterminism.
+    ///
+    /// Defaults to [`backend::DEFAULT_SEEDS`], the pinned calibration grid.
     #[arg(long = "seed", value_delimiter = ',', default_values_t = backend::DEFAULT_SEEDS.to_vec())]
     seeds: Vec<u64>,
 
     /// `ef_construction` values; one index build per (seed, value).
+    ///
+    /// Defaults to [`backend::DEFAULT_CONSTRUCTIONS`].
     #[arg(
         long = "ef-construction",
         value_delimiter = ',',
@@ -34,6 +39,8 @@ pub(crate) struct BackendArgs {
     constructions: Vec<usize>,
 
     /// `ef_search` values, swept per built index.
+    ///
+    /// Defaults to [`backend::DEFAULT_SEARCHES`].
     #[arg(
         long = "ef-search",
         value_delimiter = ',',
@@ -67,12 +74,17 @@ pub(crate) struct DescentArgs {
     #[command(flatten)]
     root: crate::cli::RootArgs,
 
-    /// Fit seeds whose `knn-link` streams the audit replays. A repeated seed measures construction
-    /// nondeterminism.
+    /// Fit seeds whose `knn-link` streams the audit replays.
+    ///
+    /// A repeated seed measures construction nondeterminism.
+    ///
+    /// Defaults to [`descent::DEFAULT_SEEDS`], the pinned calibration grid.
     #[arg(long = "seed", value_delimiter = ',', default_values_t = descent::DEFAULT_SEEDS.to_vec())]
     seeds: Vec<u64>,
 
     /// Candidate caps the construction runs at.
+    ///
+    /// Defaults to [`descent::DEFAULT_CANDIDATES`].
     #[arg(
         long = "candidates",
         value_delimiter = ',',

@@ -1,10 +1,10 @@
 //! Writes the resolved policy table to one policy file and reads it back through a mapping.
 //!
 //! The certified table publishes as one [`crate::file::policy`] file in the strictly ascending
-//! relation order its type carries. [`PolicyTableArchive`]
-//! reopens the file over a whole-file mapping and validates the table invariants once. An open
-//! table then serves its rows as a borrowed [`RelationPolicy`] slice. The domain type's `repr(C)`
-//! layout is the file's pinned wire row, so reads decode nothing.
+//! relation order its type carries. [`PolicyTableArchive`] reopens the file over a whole-file
+//! mapping and validates the table invariants once. An open table then serves its rows as a
+//! borrowed [`RelationPolicy`] slice. The domain type's `repr(C)` layout is the file's pinned wire
+//! row, and reads therefore decode nothing.
 #![cfg_attr(
     not(test),
     expect(
@@ -110,8 +110,8 @@ impl WriteAs<artifact::Policy> for CertifiedPolicies {}
 /// A published policy table opened over its mapped file.
 ///
 /// Construction checks the table invariants once (relations strictly ascending, every value in its
-/// domain), so an open table only serves valid policies and consumers re-validate nothing. The rows
-/// stay in the page cache under memory pressure and off the heap.
+/// domain). An open table therefore only serves valid policies, and consumers re-validate nothing.
+/// The rows stay in the page cache under memory pressure and off the heap.
 #[derive(Debug)]
 pub(crate) struct PolicyTableArchive {
     file: PolicyFile,
@@ -136,8 +136,8 @@ impl PolicyTableArchive {
             });
         }
 
-        // The domain types carry every value bound in their bit validity, so the typed
-        // try-cast is the whole domain check.
+        // The domain types carry every value bound in their bit validity, and the typed
+        // try-cast is therefore the whole domain check.
         if let Some(index) = rows
             .iter()
             .position(|row| RelationPolicy::try_read_from_bytes(row.as_bytes()).is_err())

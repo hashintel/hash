@@ -17,6 +17,8 @@ pub(crate) struct ClumpArgs {
     table: Utf8PathBuf,
 
     /// Candidate distance thresholds, in the order the report lists them.
+    ///
+    /// Defaults to [`DEFAULT_EPSILONS`], the published calibration grid.
     #[arg(long = "epsilon", value_delimiter = ',', default_values_t = DEFAULT_EPSILONS.to_vec())]
     epsilons: Vec<f32>,
 }

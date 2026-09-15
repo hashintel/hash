@@ -1,9 +1,9 @@
 //! Byte accounting at the allocator boundary.
 //!
-//! [`MemoryUsageAllocator`] wraps an allocator and counts the live bytes allocated through it,
-//! so a resident-size reading comes from the allocations themselves rather than from a
-//! hand-maintained estimate beside them. [`MemoryUsage`] is the reader's half: a cheap handle
-//! onto the same counter, held by whoever prices the memory without holding the allocator.
+//! [`MemoryUsageAllocator`] tallies the layout sizes requested through an allocator. Counting
+//! allocation requests avoids a separate hand-maintained size estimate for those allocations. The
+//! tally is a request-side figure and not a resident-size measurement. [`MemoryUsage`] is a cheap
+//! reading handle to the same counter for code that does not hold the allocator.
 
 use core::{
     alloc::{self, Allocator},
@@ -14,25 +14,50 @@ use std::alloc::Global;
 
 use ::alloc::sync::Arc;
 
-/// A reading handle onto one allocator's live-byte counter.
+/// A reading handle onto one allocator's byte tally.
 ///
-/// Clones share the counter, so every handle reads the same total.
+/// Clones observe the same counter.
 #[derive(Debug, Clone)]
 pub(crate) struct MemoryUsage(Arc<Atomic<usize>>);
 
 impl MemoryUsage {
-    /// Reads the live bytes currently allocated through the counter's allocator.
+    /// Reads the running tally of requested bytes.
+    ///
+    /// The figure follows the requested layout sizes, including successful resizes and the sizes
+    /// named when blocks are released. It counts requested bytes rather than the wrapped
+    /// allocator's excess capacity or the process's resident pages. When no allocator operation is
+    /// in progress and you have synchronized earlier operations with this read,
+    /// [`MemoryUsageAllocator`]'s accounting conditions make it the total requested size of its
+    /// live counted allocations.
+    ///
+    /// A relaxed load returns a snapshot that may already be stale when used. It imposes no
+    /// ordering on the allocations it counts.
     pub(crate) fn get(&self) -> usize {
         self.0.load(atomic::Ordering::Relaxed)
     }
 }
 
-/// An allocator that counts the live bytes allocated through it.
+/// An allocator that tallies the layout sizes requested through it.
 ///
-/// Every allocation adds its requested layout size and every deallocation subtracts it, so the
-/// counter reads the bytes currently held. The count covers requested layout sizes alone. An
-/// allocator's own padding or over-allocation stays invisible. Clones share one counter, so a
-/// collection may clone its allocator freely and the total stays one number.
+/// [`Allocator::allocate`] and [`Allocator::allocate_zeroed`] add `layout.size()`, a grow adds
+/// the difference between the two requested sizes, a shrink subtracts that difference, and
+/// [`Allocator::deallocate`] subtracts the size of the layout it is handed. Every figure is a
+/// size a caller supplied. The wrapped allocator's own padding, its over-allocation above the
+/// requested size, and the pages the system has actually committed are all invisible here.
+///
+/// Once all allocator operations have completed, interpreting the total as the requested size of
+/// live counted allocations requires consistent layout accounting. Each deallocation and each old
+/// layout supplied for resizing must name that block's last requested size. Every allocation
+/// intended for the total must also pass through this allocator or one of its clones. Bytes
+/// obtained elsewhere are never counted.
+///
+/// The tally records the supplied sizes even when a later fitting layout names more bytes than the
+/// allocation requested. A resize then adjusts from that supplied old size. Deallocation subtracts
+/// the supplied size and wraps the unsigned counter if that subtraction underflows. These
+/// accounting conditions do not limit the wrapped allocator's excess capacity, which the tally
+/// still excludes.
+///
+/// All clones share one counter.
 #[derive(Debug, Clone)]
 pub(crate) struct MemoryUsageAllocator<A: Allocator = Global> {
     allocator: A,
@@ -61,11 +86,11 @@ impl MemoryUsageAllocator {
     }
 }
 
-// SAFETY: every method forwards to the wrapped allocator and returns its blocks unchanged, so
-// currently-allocated pointers, layout fit, and block validity are exactly the wrapped
-// allocator's. Clones share the wrapped allocator's clone semantics and one counter, so blocks
-// allocated through one clone deallocate through another exactly when the wrapped allocator
-// permits it. The counter only observes layouts and never touches the blocks.
+// SAFETY: every method forwards to the wrapped allocator and returns its blocks unchanged.
+// Currently-allocated pointers, layout fit, and block validity are exactly the wrapped allocator's.
+// Clones share the wrapped allocator's clone semantics and one counter, so blocks allocated through
+// one clone deallocate through another exactly when the wrapped allocator permits it. The counter
+// only observes layouts and never touches the blocks.
 unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
     fn allocate_zeroed(
         &self,
@@ -85,9 +110,9 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
         old_layout: alloc::Layout,
         new_layout: alloc::Layout,
     ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: every block this allocator returns comes from the wrapped allocator
-        // unchanged, so the caller's obligations - `ptr` denotes a current allocation of it,
-        // and the layouts fit it - transfer verbatim.
+        // SAFETY: The caller guarantees that `ptr` is currently allocated, `old_layout` fits it and
+        // `new_layout` is at least as large. This allocator returns the wrapped allocator's blocks
+        // unchanged. The same preconditions therefore hold for its `grow` call.
         let new_ptr = unsafe { self.allocator.grow(ptr, old_layout, new_layout)? };
 
         self.memory_usage.fetch_add(
@@ -104,8 +129,8 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
         old_layout: alloc::Layout,
         new_layout: alloc::Layout,
     ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: every block this allocator returns comes from the wrapped allocator
-        // unchanged, so the caller's obligations transfer verbatim.
+        // SAFETY: every block this allocator returns comes from the wrapped allocator unchanged.
+        // The caller's obligations transfer verbatim.
         let new_ptr = unsafe { self.allocator.grow_zeroed(ptr, old_layout, new_layout)? };
 
         self.memory_usage.fetch_add(
@@ -122,8 +147,8 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
         old_layout: alloc::Layout,
         new_layout: alloc::Layout,
     ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
-        // SAFETY: every block this allocator returns comes from the wrapped allocator
-        // unchanged, so the caller's obligations transfer verbatim.
+        // SAFETY: every block this allocator returns comes from the wrapped allocator unchanged.
+        // The caller's obligations transfer verbatim.
         let new_ptr = unsafe { self.allocator.shrink(ptr, old_layout, new_layout)? };
         self.memory_usage.fetch_sub(
             old_layout.size().abs_diff(new_layout.size()),
@@ -145,8 +170,8 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
         self.memory_usage
             .fetch_sub(layout.size(), atomic::Ordering::Relaxed);
 
-        // SAFETY: every block this allocator returns comes from the wrapped allocator
-        // unchanged, so the caller's obligations transfer verbatim.
+        // SAFETY: every block this allocator returns comes from the wrapped allocator unchanged.
+        // The caller's obligations transfer verbatim.
         unsafe {
             self.allocator.deallocate(ptr, layout);
         }
@@ -155,11 +180,6 @@ unsafe impl<A: Allocator> Allocator for MemoryUsageAllocator<A> {
 
 #[cfg(test)]
 mod tests {
-    /// The tests the `miri` nextest profile selects.
-    ///
-    /// Each test here drives the counting allocator through allocation, growth, shrinking and
-    /// release, and reads the byte counter it maintains. The profile selects by module path, so
-    /// moving a test in or out of this module is the whole edit.
     mod miri {
         use core::alloc::{Allocator as _, Layout};
 

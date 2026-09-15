@@ -1,3 +1,9 @@
+//! Certificates for the identity file's format.
+//!
+//! The tests pin the header's wire layout byte by byte, the geometry equations that place every
+//! region on a page boundary, the key kinds' declared widths, and the writer-to-reader round trip
+//! of all four regions - including payload interning - alongside the open's refusals and the
+//! writer's own preconditions.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -22,6 +28,9 @@ use crate::{
     identity::{NodeRowId, OntologyRowId},
 };
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 3, this
+/// machine's information, the row domain and key kind discriminants, the row count and both
+/// region sizes as little-endian `u64`s, and zero padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(Kind::Nodes, KeyKind::U64Le, 7, 100, 50));
@@ -73,6 +82,9 @@ fn geometry_pads_every_region_to_page_boundaries() {
     assert_eq!(overflow.expected_file_len(), None);
 }
 
+/// Each key kind's declared width is its key type's size in bytes, and a key type's pinned kind
+/// is the one whose width matches it - which is what lets a key region read back as a slice of
+/// that type.
 #[test]
 fn key_kinds_declare_their_types_width() {
     assert_eq!(KeyKind::OntologyTypeUuid.width(), 16);
@@ -93,14 +105,18 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
-// Eight-byte keys in row order; ascending key-byte order is rows 2, 0, 1.
+/// The fixture's keys.
+///
+/// Eight-byte keys in row order. Ascending key-byte order is rows 2, 0, 1.
 const KEYS: [MemoryNodeId; 3] = [
     MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 1, 0, 0, 0, 0])),
     MemoryNodeId::new(u64::from_le_bytes([9, 0, 0, 2, 0, 0, 0, 0])),
     MemoryNodeId::new(u64::from_le_bytes([3, 7, 7, 7, 0, 0, 0, 0])),
 ];
 
-// Rows 0 and 2 carry equal payload bytes, so interning gives them one span.
+/// The fixture's payload texts.
+///
+/// Rows 0 and 2 contain equal payload bytes. Interning gives them one span.
 const PAYLOADS: [&str; 3] = ["beta", "alpha", "beta"];
 
 /// Owns `text` as a legend representing ontology row 0.
@@ -108,6 +124,7 @@ fn legend(text: &str) -> OwnedLegend {
     OwnedLegend::new(OntologyRowId::new(0), Label::new(text))
 }
 
+/// The keys and payloads above, written out as an identity file's bytes.
 fn fixture_bytes() -> Vec<u8> {
     let payloads = PAYLOADS.map(legend);
     let mut bytes = Vec::new();
@@ -262,6 +279,8 @@ fn open_rejects_foreign_and_torn_bytes() {
     );
 }
 
+/// A writer handed fewer payloads than keys panics rather than sealing a file whose span table
+/// does not cover its rows.
 #[test]
 #[should_panic(expected = "one payload per key")]
 fn writer_rejects_disagreeing_columns() {
@@ -275,6 +294,8 @@ fn writer_rejects_disagreeing_columns() {
     );
 }
 
+/// A writer handed the same key twice panics rather than sealing a file whose index could only
+/// resolve one of the two rows.
 #[test]
 #[should_panic(expected = "two rows carry one key")]
 fn writer_rejects_duplicate_keys() {

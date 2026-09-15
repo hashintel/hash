@@ -1,8 +1,8 @@
 //! Certificates for the frozen ruler.
 //!
-//! Exact-arithmetic fixtures pin the freeze's readings. Medians, quantiles, and the reference
-//! spread are exactly representable, so the asserted constants are exact contracts rather than
-//! tolerances.
+//! Exact-arithmetic fixtures pin the freeze's readings. Every asserted median, quantile, spread
+//! and denominator is exactly representable, and the asserted constants are therefore exact
+//! contracts rather than tolerances.
 
 #![expect(
     clippy::float_cmp,
@@ -29,8 +29,9 @@ fn frame(points: &[Vec2]) -> &FinitePointField<NodeRowId> {
     FinitePointField::new_unchecked(IdSlice::from_raw(points))
 }
 
-/// A neighbour table from per-row `(column, stored distance)` lists in ascending column
-/// order. Every row lists the same count, and stored distances live in the cosine range.
+/// A neighbour table from per-row `(column, stored distance)` lists in ascending column order.
+///
+/// Every row lists the same count, and stored distances lie in the cosine range.
 fn table(rows: usize, entries: impl Fn(usize) -> Vec<(usize, f32)>) -> Knn<NodeRowId> {
     let mut indptr = vec![0_u64];
     let mut columns = Vec::new();
@@ -62,6 +63,12 @@ fn twin_table(rows: usize) -> Knn<NodeRowId> {
     })
 }
 
+/// Builds ruler parameters without a floor.
+///
+/// # Panics
+///
+/// Panics when `epsilon_rel` is not finite and positive, or `quantile` is not finite and in `(0,
+/// 1]`.
 fn params(epsilon_rel: f32, quantile: f64) -> RulerParameters {
     RulerParameters {
         epsilon_rel: Positive::new(epsilon_rel).expect("test epsilon is positive"),
@@ -71,6 +78,11 @@ fn params(epsilon_rel: f32, quantile: f64) -> RulerParameters {
     }
 }
 
+/// Adds a ruler floor to `parameters`.
+///
+/// # Panics
+///
+/// Panics when `kappa_epsilon` or `projection_band` is not finite and positive.
 fn with_floor(
     mut parameters: RulerParameters,
     kappa_epsilon: f32,
@@ -83,6 +95,8 @@ fn with_floor(
     parameters
 }
 
+/// Freezes exact declared constants for rows at distance two.
+///
 /// Rows at distance two read `ρ₀ = 2` each, `s_ref = 1`, and a window ceiling of `2` - every
 /// declared constant is exact.
 #[test]
@@ -115,10 +129,11 @@ fn freezes_scales_sets_and_constants_from_the_boundary_field() {
     );
 }
 
-/// Seventeen rows make row 0's table sixteen entries wide, one more than the set uses. Row 1
-/// carries the largest stored distance, so the frozen set is rows 2..=16 and the frozen
-/// median over 2D distances `{2..16}` is 9. The live reading then follows the frozen set:
-/// moving row 5 far away re-reads over the same indices and shifts the median to 10.
+/// Seventeen rows make row 0's table sixteen entries wide, one more than the set uses.
+///
+/// Row 1 carries the largest stored distance. The frozen set is therefore rows 2..=16, and the
+/// frozen median over their 2D distances `{2..=16}` is 9. The live reading then follows the frozen
+/// set: moving row 5 far away re-reads over the same indices and shifts the median to 10.
 #[test]
 fn live_scales_read_the_frozen_sets_not_a_reselection() {
     let rows = 17;
@@ -155,8 +170,10 @@ fn live_scales_read_the_frozen_sets_not_a_reselection() {
     assert_eq!(scales[NodeRowId::new(0)].get(), 10.0);
 }
 
-/// Per-row displacements of at most one band move every frozen-set median by at most twice
-/// the band: the staleness bound the frozen index sets exist to keep.
+/// Bounds every frozen-set median's move by twice the band under one-band displacements.
+///
+/// Per-row displacements of at most one band move every frozen-set median by at most twice the
+/// band: the staleness bound the frozen index sets exist to keep.
 #[test]
 fn staleness_stays_within_twice_the_band() {
     let rows = 17;
@@ -282,8 +299,10 @@ fn an_empty_window_refuses_before_membership() {
     );
 }
 
-/// Coincident twin pairs at two distinct locations give positive spread with every scale
-/// zero, so no upper bound exists to read.
+/// Refuses coincident twin pairs with positive spread and every scale zero.
+///
+/// Coincident twin pairs at two distinct locations give positive spread with every scale zero: no
+/// upper bound exists to read.
 #[test]
 fn an_all_coincident_corpus_has_no_upper_bound_to_read() {
     let coordinates = [
@@ -319,8 +338,10 @@ fn zero_spread_refuses_before_the_window() {
     );
 }
 
-/// A window-legal epsilon can still square below the value domain: `ε = 2⁻⁸¹` passes the
-/// window (ceiling 2) and refuses at the representation floor.
+/// Refuses a window-legal `ε = 2⁻⁸¹` at the representation floor.
+///
+/// A window-legal epsilon can still square below the value domain: `ε = 2⁻⁸¹` passes the window
+/// (ceiling 2) and refuses at the representation floor.
 #[test]
 fn a_subrepresentable_epsilon_refuses() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(2.0_f32.powi(-60), 0.0)];
@@ -339,9 +360,11 @@ fn a_subrepresentable_epsilon_refuses() {
     );
 }
 
-/// The densest pair's shifted product must stay finite: every reading here is finite -
-/// `ρ₀ = 3·2⁶²`, `ε = 3·2⁶¹` - and the shifted square `(9·2⁶¹)² = 81·2¹²²` reaches past
-/// `f32`, so the freeze refuses before any pair could overflow at runtime.
+/// Refuses a largest shifted scale whose square reaches past `f32` while every reading is finite.
+///
+/// The largest shifted scale must square inside `f32`: every reading here is finite (`ρ₀ = 3·2⁶²`,
+/// `ε = 3·2⁶¹`), and the shifted square `(9·2⁶¹)² = 81·2¹²²` reaches past `f32`. The freeze
+/// therefore refuses before any pair denominator could overflow at runtime.
 #[test]
 fn an_overflowing_shifted_scale_refuses() {
     let coordinates = [Vec2::new(0.0, 0.0), Vec2::new(3.0 * 2.0_f32.powi(62), 0.0)];
@@ -356,9 +379,11 @@ fn an_overflowing_shifted_scale_refuses() {
     );
 }
 
-/// The window's ceiling moves with the declared order statistic: positives `{2, 2, 4, 4}`
-/// read 2 at the median and 4 at the upper quartile, so one `ε_rel` sits outside the first
-/// window and inside the second.
+/// Moves the window's ceiling with the declared order statistic.
+///
+/// The window's ceiling moves with the declared order statistic: positives `{2, 2, 4, 4}` read 2 at
+/// the median and 4 at the upper quartile. One `ε_rel` therefore lies outside the first window and
+/// inside the second.
 #[test]
 fn the_ceiling_follows_the_declared_quantile() {
     let coordinates = [
@@ -379,8 +404,10 @@ fn the_ceiling_follows_the_declared_quantile() {
     .expect("the upper quartile raises the ceiling past the declared epsilon");
 }
 
-/// Zero scales stay out of the quantile's distribution. A fixture of coincident rows beside
-/// one separated pair leaves `q⁺ = 2` rather than zero, which admits a modest `ε_rel`.
+/// Zero scales stay out of the quantile's distribution.
+///
+/// A fixture of coincident rows beside one separated pair leaves `q⁺ = 2` rather than zero, which
+/// admits a modest `ε_rel`.
 #[test]
 fn the_quantile_reads_positive_scales_alone() {
     let coordinates = [

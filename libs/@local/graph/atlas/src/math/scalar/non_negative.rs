@@ -10,8 +10,7 @@ use super::{DNonNegative, Finite, Positive, raw_interop, unsafe_impl_try_from_by
 
 /// Validates a non-negative literal at compile time.
 ///
-/// The expansion is a `const` block over [`NonNegative::new`], so a literal outside the domain
-/// fails the build instead of a test run. Runtime values keep the checked constructor.
+/// A literal outside the domain fails the build. Use [`NonNegative::new`] to check runtime values.
 macro_rules! non_negative {
     ($value:expr) => {
         const {
@@ -23,17 +22,20 @@ pub(crate) use non_negative;
 
 /// A finite, non-negative `f32`, valid by construction.
 ///
-/// The shared definition of the finite-and-non-negative check. Zero passes, so the type carries
-/// magnitudes and weights that may legitimately switch a term off.
+/// Admitting zero allows magnitudes and weights that switch a term off.
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow numeric value,
 /// with `-0.0` and `+0.0` the same value: construction canonicalizes the sign of zero. Values
 /// sort and key ordered maps like the numbers they hold, with no NaN case, and
 /// [`to_bits`](Self::to_bits) is an identity: one bit pattern per value.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{NonNegative};
+///
 /// assert_eq!(NonNegative::new(0.0).expect("zero is admitted").get(), 0.0);
 /// assert_eq!(NonNegative::new(-0.5), None);
 /// assert_eq!(NonNegative::new(f32::INFINITY), None);
@@ -87,8 +89,8 @@ impl NonNegative {
 
     /// Returns the square of a raw scalar.
     ///
-    /// A square is never negative and never NaN for non-NaN arguments. Overflow escapes to `+∞`
-    /// and asserts in debug builds, mirroring integer `+`.
+    /// The rounded square must be finite. For a finite argument it is non-negative, but a
+    /// sufficiently large magnitude can overflow.
     #[inline]
     #[must_use]
     pub(crate) const fn square(value: f32) -> Self {
@@ -98,6 +100,11 @@ impl NonNegative {
         Self(squared)
     }
 
+    /// Widens to double precision, exactly.
+    ///
+    /// Every finite `f32` is exactly representable as `f64`. Widening preserves non-negativity and
+    /// maps the canonical `+0.0` to `+0.0`. Therefore the widened value is the same real number
+    /// with no rounding and no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn widen(self) -> DNonNegative {
@@ -106,9 +113,10 @@ impl NonNegative {
 
     /// Squares into double precision, exactly and totally.
     ///
-    /// A 24-bit significand squares within 53 bits, so the widened square carries no rounding.
-    /// A doubled `f32` exponent sits far inside the `f64` range, so the square never leaves
-    /// the domain. The square of zero is zero.
+    /// Squaring a 24-bit significand needs at most 48 bits, within `f64`'s 53-bit precision. Every
+    /// nonzero finite `f32` square lies in [2⁻²⁹⁸, 2²⁵⁶), inside the normal `f64` range. Widening
+    /// before multiplication therefore gives an exact square that never leaves the domain. The
+    /// square of zero is zero.
     #[inline]
     #[must_use]
     pub(crate) const fn square_wide(self) -> DNonNegative {
@@ -117,10 +125,9 @@ impl NonNegative {
 
     /// Divides into double precision, totally.
     ///
-    /// The quotient of an `f32`-born non-negative by an `f32`-born positive is never NaN and
-    /// never negative, and its exponent stays hundreds of shells inside the `f64` range in
-    /// both directions, so the quotient never leaves the domain. Zero divides to exactly zero.
-    /// One rounding.
+    /// Positive finite `f32` values lie in [2⁻¹⁴⁹, 2¹²⁸). Their positive quotients lie between
+    /// 2⁻²⁷⁷ and 2²⁷⁷, inside the normal `f64` range. Widening before division therefore gives
+    /// a finite non-negative result with one rounding. A zero numerator gives exactly zero.
     #[inline]
     #[must_use]
     pub(crate) const fn div_wide(self, rhs: Positive) -> DNonNegative {
@@ -129,8 +136,7 @@ impl NonNegative {
 
     /// Narrows to the strictly positive domain.
     ///
-    /// Returns [`None`] exactly at zero, so an `if let` on the result is the zero guard and the
-    /// positivity witness in one move.
+    /// Returns [`None`] exactly at zero.
     #[inline]
     #[must_use]
     pub(crate) const fn positive(self) -> Option<Positive> {
@@ -146,8 +152,8 @@ impl NonNegative {
 
     /// Returns the canonical bit pattern.
     ///
-    /// Construction canonicalizes the sign of zero, so equal values share one bit pattern and
-    /// the bits identify the value exactly: fit for reproducibility records and bit-exact pins.
+    /// Equal values share one bit pattern, including the canonical `+0.0`. These bits identify the
+    /// value exactly.
     #[inline]
     #[must_use]
     pub(crate) const fn to_bits(self) -> u32 {
@@ -161,14 +167,9 @@ impl NonNegative {
         self.0.is_normal()
     }
 
-    /// Returns whether the value stayed in domain.
+    /// Returns whether the stored reading is finite.
     ///
-    /// Construction admits only finite values and arithmetic escapes to `+∞` on overflow, so a
-    /// non-finite reading is exactly an escaped one.
-    ///
-    /// The one caller shape is a validation point that rejects escaped readings before acting on
-    /// a computed value. Anywhere else the query re-checks what construction already proved, and
-    /// the check itself is the defect.
+    /// Detects a non-finite result after arithmetic whose range requirements were not met.
     #[inline]
     #[must_use]
     pub(crate) const fn is_finite(self) -> bool {
@@ -200,8 +201,7 @@ impl NonNegative {
 
     /// Clamps from below by a positive floor.
     ///
-    /// The larger of a non-negative value and a positive floor is at least the floor, so the
-    /// result carries the stricter domain with no re-validation.
+    /// The result is at least the positive finite floor and remains finite, with no re-validation.
     #[inline]
     #[must_use]
     pub(crate) const fn at_least(self, floor: Positive) -> Positive {
@@ -210,11 +210,10 @@ impl NonNegative {
 
     /// Subtracts, saturating at zero.
     ///
-    /// The truncated difference `max(self - rhs, 0)`, mirroring the integer `saturating_sub`: a
-    /// difference below the domain floor returns zero. The magnitude of a difference of two
-    /// finite values of one sign never exceeds the larger operand, so the subtraction cannot
-    /// overflow and the result needs no re-validation. For the signed difference, `-` outputs
-    /// [`Finite`].
+    /// Returns the truncated difference `max(self - rhs, 0)`. The magnitude of a difference of two
+    /// finite values of one sign never exceeds the larger operand. The subtraction cannot overflow,
+    /// and clamping negative differences to zero keeps the result in the domain without
+    /// re-validation. For the signed difference, `-` outputs [`Finite`].
     #[inline]
     #[must_use]
     pub(crate) fn saturating_sub(self, rhs: Self) -> Self {
@@ -240,13 +239,15 @@ impl NonNegative {
     /// argument, the infinities included. Once `exp` underflows, the asymptotes are exact
     /// (`sigmoid(200.0)` is `1.0` and `sigmoid(-200.0)` is `0.0`), and
     /// `sigmoid(-value) == 1 - sigmoid(value)` holds up to rounding. The logistic function is
-    /// the first derivative of [`softplus`](super::softplus). A NaN argument asserts in debug
-    /// builds and passes through in release, the way the arithmetic operators treat their
-    /// invalid inhabitants.
+    /// the first derivative of [`softplus`](super::softplus). The argument must not be NaN.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{NonNegative};
+    ///
     /// // At zero the two branches agree exactly: 1 / (1 + 1).
     /// assert_eq!(NonNegative::sigmoid(0.0), 0.5);
     /// // A naive `exp(200.0)` overflows. The stable form saturates.
@@ -271,13 +272,16 @@ impl NonNegative {
     ///
     /// The penalty is `value²/2` up to the threshold and continues along the tangent line
     /// `threshold · (value - threshold/2)` above it. Both branches meet at `threshold²/2` with
-    /// matching first derivative `threshold`, so the penalty is continuous with a continuous
-    /// first derivative. An evaluation that overflows the `f32` range saturates at
-    /// [`f32::MAX`], the same resolution [`sigmoid`](Self::sigmoid) applies at its asymptote.
+    /// matching first derivative `threshold` in exact arithmetic. The floating-point evaluation
+    /// rounds these expressions and saturates an overflow at [`f32::MAX`].
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{NonNegative, Positive};
+    ///
     /// let threshold = Positive::new(1.0).expect("1.0 is positive");
     ///
     /// // Quadratic regime: 0.5 · 0.5 · 0.5.
@@ -298,11 +302,15 @@ impl NonNegative {
             threshold.mul_add(-0.5, self.0) * threshold
         };
 
-        // Finite operands overflow only to +∞ and produce no NaN, so the clamp re-enters the
-        // domain.
+        // Both branches produce a nonnegative penalty with no NaN. Overflow can only produce +∞,
+        // which the clamp maps to `f32::MAX`. The clamped penalty is in the domain.
         Self::new_unchecked(penalty.min(f32::MAX))
     }
 
+    /// Returns the square root.
+    ///
+    /// The root of a non-negative value is non-negative, with no re-validation. The root of
+    /// zero is zero.
     #[inline]
     #[must_use]
     pub(crate) fn sqrt(self) -> Self {
@@ -311,11 +319,10 @@ impl NonNegative {
         Self(self.0.sqrt())
     }
 
-    /// Raises to a real power.
+    /// Raises to a real power with deferred validation.
     ///
-    /// Never NaN over the domain: a negative base is unrepresentable, and `0⁰` is one. Overflow,
-    /// and a zero base under a negative exponent, escape to `+∞` and assert in debug builds,
-    /// mirroring integer `+`.
+    /// Overflow and zero raised to a negative exponent produce infinity in the [`Derivation`]. Zero
+    /// raised to zero is one. Underflow to zero remains nonnegative.
     #[inline]
     #[must_use]
     pub(crate) fn powf(self, exponent: f32) -> Self {
@@ -327,8 +334,8 @@ impl NonNegative {
 
     /// Returns the reciprocal.
     ///
-    /// Never NaN and never negative over the domain. A zero reading escapes to `+∞` and asserts
-    /// in debug builds, mirroring integer `+`. An escaped `+∞` collapses back to `+0.0`.
+    /// The rounded reciprocal must be finite. Zero and sufficiently small positive operands
+    /// produce positive infinity. For other in-domain values the result is positive.
     #[inline]
     #[must_use]
     pub(crate) const fn inverse(self) -> Self {
@@ -374,7 +381,7 @@ const impl Default for NonNegative {
 const impl PartialEq for NonNegative {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per value, so bit equality is numeric equality
+        // a unique bit pattern per value makes bit equality agree with numeric equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -400,7 +407,7 @@ const impl Ord for NonNegative {
 impl Hash for NonNegative {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // canonical bits: equal values share one bit pattern, so `Hash` agrees with `Eq`
+        // hashing the canonical representation agrees with numeric equality
         state.write_u32(self.0.to_bits());
     }
 }
@@ -418,7 +425,6 @@ impl fmt::Display for NonNegative {
 }
 
 const impl From<Positive> for NonNegative {
-    /// Widens into the enclosing domain: every positive value is non-negative.
     #[inline]
     fn from(value: Positive) -> Self {
         Self(value.get())
@@ -430,10 +436,8 @@ const impl core::ops::Add for NonNegative {
 
     /// Adds.
     ///
-    /// A sum of non-negatives is never NaN and never `-0.0`. Overflow escapes to `+∞` - a
-    /// wrong reading rather than a soundness break, since no unsafe code trusts the domain and
-    /// a persisted value re-validates at construction - and asserts in debug builds, mirroring
-    /// integer `+`.
+    /// The rounded sum must remain finite. A sum of in-domain values is never NaN or `-0.0`,
+    /// but it can overflow to positive infinity.
     #[inline]
     fn add(self, rhs: Self) -> Self {
         let sum = self.0 + rhs.0;
@@ -455,9 +459,8 @@ const impl core::ops::Add<Positive> for NonNegative {
 
     /// Adds a positive step into the positive domain.
     ///
-    /// The sum is positive - rounding is monotone, so it never rounds below the positive
-    /// operand - and never NaN. Overflow escapes to `+∞` and asserts in debug builds,
-    /// mirroring integer `+`.
+    /// The rounded sum must remain finite. Monotone rounding keeps it at least as large as the
+    /// positive operand, but does not prevent overflow.
     #[inline]
     fn add(self, rhs: Positive) -> Positive {
         let sum = self.0 + rhs.get();
@@ -472,10 +475,9 @@ const impl core::ops::Sub for NonNegative {
 
     /// Subtracts, into the finite domain.
     ///
-    /// The difference of two non-negative finite values is finite, with no re-validation: its
-    /// magnitude never exceeds the larger operand, so the subtraction cannot overflow. Equal
-    /// operands give `+0.0`. For the difference clamped back into this domain,
-    /// [`saturating_sub`](Self::saturating_sub) subtracts without leaving it.
+    /// The magnitude of a difference of two non-negative finite values never exceeds the larger
+    /// operand. The subtraction cannot overflow and needs no re-validation. Equal operands give
+    /// `+0.0`. Use [`saturating_sub`](Self::saturating_sub) to clamp negative differences to zero.
     #[inline]
     fn sub(self, rhs: Self) -> Finite {
         Finite::new_unchecked(self.0 - rhs.0)
@@ -487,9 +489,8 @@ const impl core::ops::Mul<Finite> for NonNegative {
 
     /// Multiplies by a finite signed value, leaving the domain.
     ///
-    /// The product follows the finite operand's sign and can overflow, so the result is a raw
-    /// float and the caller re-enters a domain at whichever boundary proves the bound. A NaN
-    /// cannot arise: both operands are finite.
+    /// The raw product follows the finite operand's sign and can overflow. A NaN cannot arise: both
+    /// operands are finite.
     #[inline]
     fn mul(self, rhs: Finite) -> f32 {
         self.0 * rhs.get()
@@ -497,7 +498,6 @@ const impl core::ops::Mul<Finite> for NonNegative {
 }
 
 const impl From<NonNegative> for f64 {
-    /// Widens into double precision, exactly.
     #[inline]
     fn from(value: NonNegative) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -508,10 +508,6 @@ const impl From<NonNegative> for f64 {
 const impl core::ops::Add<NonNegative> for f32 {
     type Output = f32;
 
-    /// Adds a non-negative offset to a raw `f32`.
-    ///
-    /// The raw operand is arbitrary, so the sum can leave any bounded domain and returns a raw
-    /// float.
     #[inline]
     fn add(self, rhs: NonNegative) -> f32 {
         self + rhs.0
@@ -523,7 +519,6 @@ impl proptest::arbitrary::Arbitrary for NonNegative {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, zero and subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -534,14 +529,12 @@ impl proptest::arbitrary::Arbitrary for NonNegative {
 }
 
 impl serde::Serialize for NonNegative {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for NonNegative {
-    /// Deserializes a plain number, refusing values outside the finite non-negative range.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f32::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {

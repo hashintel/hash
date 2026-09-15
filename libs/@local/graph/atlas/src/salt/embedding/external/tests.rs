@@ -24,6 +24,7 @@ use crate::{
     salt::embedding::CardEmbedder as _,
 };
 
+/// Declares the OpenAI model and float encoding named by the fixtures.
 fn contract() -> EmbeddingContract<'static> {
     EmbeddingContract {
         provider: "openai",
@@ -33,7 +34,7 @@ fn contract() -> EmbeddingContract<'static> {
     }
 }
 
-/// A deterministic vector for one text: component 0 is the text length.
+/// Builds a zero vector with the text's byte length in component zero.
 #[expect(
     clippy::cast_precision_loss,
     reason = "fixture texts are a handful of bytes, exactly representable in f32"
@@ -44,13 +45,22 @@ fn vector_for(text: &str) -> Vec<f32> {
     components
 }
 
-/// Generates deterministically via [`vector_for`] and records requests.
+/// A deterministic fixture generator with a request log.
+///
+/// # Panics
+///
+/// Recording or reading requests panics if the fixture mutex is poisoned.
 #[derive(Default)]
 struct RecordingGenerator {
     requests: Mutex<Vec<Vec<String>>>,
 }
 
 impl RecordingGenerator {
+    /// Returns the recorded text batches in request order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fixture mutex is poisoned.
     fn requests(&self) -> Vec<Vec<String>> {
         self.requests
             .lock()
@@ -76,13 +86,22 @@ impl EmbeddingGenerator for RecordingGenerator {
     }
 }
 
-/// An observer recording every request the provider reports, shared with its clones.
+/// A shared observer log of completed embedding batches.
+///
+/// # Panics
+///
+/// Recording or reading batches panics if the fixture mutex is poisoned.
 #[derive(Debug, Default, Clone)]
 struct RecordingProgress {
     batches: Arc<Mutex<Vec<Batch>>>,
 }
 
 impl RecordingProgress {
+    /// Returns the completed-batch reports in report order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fixture mutex is poisoned.
     fn batches(&self) -> Vec<Batch> {
         self.batches
             .lock()
@@ -92,7 +111,6 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The fixture watches embedding batches, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -107,7 +125,7 @@ impl Progress for RecordingProgress {
     }
 }
 
-/// Returns vectors of a wrong width.
+/// A fixture generator returning 512-component vectors.
 struct NarrowGenerator;
 
 impl EmbeddingGenerator for NarrowGenerator {
@@ -122,7 +140,7 @@ impl EmbeddingGenerator for NarrowGenerator {
     }
 }
 
-/// Fails every request.
+/// A fixture generator returning a rate-limit error for every request.
 struct FailingGenerator;
 
 impl EmbeddingGenerator for FailingGenerator {
@@ -134,7 +152,7 @@ impl EmbeddingGenerator for FailingGenerator {
     }
 }
 
-/// Answers every request with no vectors at all.
+/// A fixture generator returning an empty vector collection.
 struct SilentGenerator;
 
 impl EmbeddingGenerator for SilentGenerator {
@@ -165,8 +183,7 @@ fn fingerprints_commit_to_every_contract_field() {
 
 #[test]
 fn fingerprints_distinguish_field_boundaries() {
-    // Both contracts concatenate to the same bytes; the length prefixes
-    // must keep them apart.
+    // the raw field concatenations are equal. Length prefixes distinguish their boundaries.
     let mut left = contract();
     left.provider = "ab";
     left.endpoint = "c";
@@ -242,9 +259,6 @@ async fn every_completed_request_reports_its_position_in_the_workload() {
         .await
         .expect("the fixture generator should embed every text");
 
-    // The provider issues three requests for the five texts. Each report
-    // counts the texts behind it against the workload the caller handed
-    // the provider, and the last report closes on the full workload.
     assert_eq!(
         progress.batches(),
         [
@@ -270,17 +284,14 @@ async fn a_failed_request_reports_nothing() {
         .await
         .expect_err("the fixture generator fails every request");
 
-    // A report is a completion, so a workload that never completes one
-    // leaves the operator's counter where it was.
     assert_eq!(progress.batches(), []);
 }
 
 #[tokio::test]
 async fn splits_requests_at_the_token_ceiling() {
     let generator = RecordingGenerator::default();
-    // Each fixture word counts one cl100k token in at most four bytes, so
-    // the exact count is the binding accounting and a ceiling of two
-    // tokens admits two words per request.
+    // each word counts one cl100k token in at most four bytes. At limit two, both accountings admit
+    // two words and the token count excludes a third.
     let provider = ExternalEmbeddingProvider::new(
         generator,
         &contract(),
@@ -308,9 +319,7 @@ async fn splits_requests_at_the_token_ceiling() {
 
 #[tokio::test]
 async fn splits_requests_at_the_byte_estimate_ceiling() {
-    // A word whose byte estimate exceeds its exact count, so the
-    // provider's admission gate binds the request size rather than the
-    // tokenizer.
+    // this word's byte estimate exceeds its tokenizer count.
     let word = " information";
     let tokens = Cl100kTokenizer
         .count_tokens(word)
@@ -322,9 +331,8 @@ async fn splits_requests_at_the_byte_estimate_ceiling() {
     );
 
     let generator = RecordingGenerator::default();
-    // The ceiling is six estimated tokens per request. Two twelve-byte
-    // words fit (⌈24 / 4⌉ = 6) and a third crosses. The exact count
-    // alone would admit all five in one request.
+    // two twelve-byte words meet the limit six: ⌈24 / 4⌉ = 6. A third exceeds it. Each word is one
+    // token, allowing all five under the tokenizer count alone.
     let provider = ExternalEmbeddingProvider::new(
         generator,
         &contract(),
@@ -384,9 +392,8 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
         NoProgress,
     );
 
-    // The text carries two exact tokens in twenty-four bytes. The
-    // tokenizer allows it, and the gate's estimate (⌈24 / 4⌉ = 6) puts
-    // it above the ceiling.
+    // the text has two tokens in twenty-four bytes. The byte estimate ⌈24 / 4⌉ = 6 exceeds limit
+    // three.
     let result = provider.embed([" information information"]).await;
 
     assert_matches!(
@@ -467,10 +474,6 @@ async fn a_preflight_spends_one_request_on_one_text() {
         .expect("the fixture generator should answer the preflight");
 
     assert_eq!(provider.generator.requests(), [[PREFLIGHT_TEXT]]);
-    // The preflight is not the workload, so it moves no counter and the
-    // operator's embedding bar still starts at the first card. Today the
-    // impl block carries no `Progress` bound at all; this assertion is
-    // what fails if one is ever added for a report from here.
     assert_eq!(progress.batches(), []);
 }
 
@@ -523,8 +526,6 @@ async fn a_preflight_refuses_an_answer_of_the_wrong_length() {
 
     let result = provider.preflight().await;
 
-    // One text is one vector. The provider refuses any other count
-    // rather than indexing into the response.
     assert_matches!(
         result,
         Err(ExternalEmbeddingError::BatchCount {

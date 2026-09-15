@@ -2,8 +2,8 @@
 //!
 //! One inner solve computes the Newton step of the local quadratic model at the accepted point,
 //! exactly and at conditioning-independent cost. The data Hessian has rank at most `2n` for `n`
-//! corpus rows, far below the parameter dimension, so the coefficient block solves through the
-//! Woodbury identity in row space and the two intercepts through a Schur complement:
+//! corpus rows, far below the parameter dimension. The coefficient block therefore solves through
+//! the Woodbury identity in row space and the two intercepts through a Schur complement:
 //!
 //! ```text
 //! A₁₁ = (λ/S)·(I + ŨŨᵀ),  ũ_{i,k} = √(wᵢ/λ)·(Lᵢ[:,k] ⊗ x̄ᵢ),  LᵢLᵢᵀ = Cᵢ
@@ -74,33 +74,33 @@ pub(super) struct NewtonOutcome {
 }
 
 impl NewtonOutcome {
-    /// The returned step `p` in scaled coordinates.
+    /// Returns the step `p` in scaled coordinates.
     pub(super) const fn step(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         &self.step
     }
 
-    /// The matching product `Hζ·p` returned with the step.
+    /// Returns the matching product `Hζ·p` returned with the step.
     pub(super) const fn hessian_step(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {
         &self.hessian_step
     }
 
-    /// Whether the outcome carries a validated boundary crossing.
+    /// Returns whether the outcome carries a validated boundary crossing.
     pub(super) const fn is_boundary(&self) -> bool {
         !matches!(self.tag, NewtonTag::NewtonInterior)
     }
 
-    /// The terminating tag of the outcome.
+    /// Returns the terminating tag of the outcome.
     pub(super) const fn tag(&self) -> NewtonTag {
         self.tag
     }
 
-    /// The relative Newton residual, where the solve priced the Newton product.
+    /// Returns the relative Newton residual, where the solve priced the Newton product.
     pub(super) const fn residual(&self) -> Option<DNonNegative> {
         self.residual
     }
 }
 
-/// The typed non-finite failure of one Newton stage.
+/// Names the typed non-finite failure of one Newton stage.
 const fn non_finite(stage: NewtonStage) -> SolverFailure {
     SolverFailure::NonFiniteNewton { stage }
 }
@@ -111,7 +111,7 @@ type RowFactor = [f64; 3];
 /// The coefficient rows of one structured solver vector.
 type CoefficientRows = [BoxedDVecN<CANONICAL_DIMENSIONS>; CONTRAST_ROWS];
 
-/// Zeroed coefficient rows.
+/// Returns zeroed coefficient rows.
 fn zero_rows() -> CoefficientRows {
     core::array::from_fn(|_index| BoxedDVecN::zero())
 }
@@ -119,8 +119,8 @@ fn zero_rows() -> CoefficientRows {
 /// Factors a `2×2` PSD block in packed lower-triangle order, zeroing a rank-dropped column.
 ///
 /// A non-positive leading entry zeroes the first column - the fate of a saturated row whose
-/// probabilities sit at a vertex - and a non-positive trailing pivot zeroes the second, so every
-/// PSD block factors and `L·Lᵀ` reproduces the block exactly on its numerical rank.
+/// probabilities lie at a vertex - and a non-positive trailing pivot zeroes the second. Every PSD
+/// block therefore factors, and `L·Lᵀ` reproduces the block exactly on its numerical rank.
 pub(super) fn factor_block(c11: f64, c21: f64, c22: f64) -> RowFactor {
     if c11 <= 0.0 {
         let l22 = if c22 > 0.0 { c22.sqrt() } else { 0.0 };
@@ -134,7 +134,7 @@ pub(super) fn factor_block(c11: f64, c21: f64, c22: f64) -> RowFactor {
     [l11, l21, l22]
 }
 
-/// The dot of packed factor columns `L̃ᵢ[:,k]·L̃ⱼ[:,l]`.
+/// Computes the dot of packed factor columns `L̃ᵢ[:,k]·L̃ⱼ[:,l]`.
 #[expect(
     clippy::min_ident_chars,
     reason = "k and l are the factor-column indices of the written algebra"
@@ -228,7 +228,7 @@ pub(super) fn newton_step(
         factors.push(factor_block(scaled[0], scaled[1], scaled[2]));
     }
 
-    // Capacitance C = I + ŨᵀŨ, lower triangle only; block (i, j) reads Kᵢⱼ once per entry.
+    // Capacitance C = I + ŨᵀŨ, lower triangle only. Block (i, j) reads Kᵢⱼ once per entry.
     let order = 2 * rows;
     let mut capacitance = DSquareMatrix::zeroed(order);
     for i in 0..rows {
@@ -258,7 +258,7 @@ pub(super) fn newton_step(
 
     control.counters.record_factorization();
     let factor = capacitance.cholesky().map_err(|error| match error {
-        // A non-finite pivot is the fate of a non-finite assembled entry; a finite non-positive
+        // A non-finite pivot is the fate of a non-finite assembled entry. A finite non-positive
         // pivot rejects the factorization itself.
         DCholeskyError::NonFinitePivot { .. } => non_finite(NewtonStage::Capacitance),
         DCholeskyError::NonPositivePivot { .. } => non_finite(NewtonStage::Factor),
@@ -434,7 +434,7 @@ pub(super) fn newton_step(
         return steepest_crossing(gradient, &hessian_gradient, control.radius);
     }
 
-    // The dogleg leg from the interior Cauchy point toward the Newton point; the Newton
+    // The dogleg leg from the interior Cauchy point toward the Newton point. The Newton
     // product prices here and carries the recorded residual.
     let hessian_newton = priced_product(problem, point, &step, control, NewtonStage::NewtonPoint)?;
     let residual = newton_residual(&hessian_newton, gradient);
@@ -463,10 +463,12 @@ pub(super) fn newton_step(
     })
 }
 
-/// The structured coefficient dot `Σ_slot left[slot]·right[slot]`, folded in contrast order.
+/// Computes the structured coefficient dot, folded in contrast order.
 ///
-/// The fold is data-dependent with no finiteness theorem, so the sum rides as an unclaimed
-/// derivation to each consumer's own finish.
+/// The dot is `Σ_slot left[slot]·right[slot]`.
+///
+/// The fold is data-dependent with no finiteness theorem, and the sum returns as an unclaimed
+/// derivation for each consumer's own finish.
 fn pair_dot(left: &CoefficientRows, right: &CoefficientRows) -> Derivation<DFinite> {
     let mut sum = Derivation::ZERO;
 
@@ -495,7 +497,8 @@ fn solve_intercepts(
     let rhs = rhs.map(Derivation::into_raw);
 
     let l11 = s11.sqrt();
-    // With finite entries the second pivot is finite or -∞, so the ordering test is total.
+    // With finite entries the second pivot is finite or -∞, and the ordering test is therefore
+    // total.
     let l21 = s21 / l11;
     let pivot = l21.mul_add(-l21, s22);
     if pivot <= 0.0 {
@@ -511,7 +514,12 @@ fn solve_intercepts(
     Some([s0, s1])
 }
 
-/// One oracle Hessian-vector product, counted and checked finite.
+/// Prices one oracle Hessian-vector product, counted and checked finite.
+///
+/// # Errors
+///
+/// Returns [`SolverFailure::NonFiniteNewton`] at `stage` when the oracle refuses the request (a
+/// non-finite point or direction) or when the product it returns is not finite.
 fn priced_product(
     problem: &ScaledProblem<'_>,
     point: &ContrastVector,
@@ -526,7 +534,7 @@ fn priced_product(
         .ok_or(SolverFailure::NonFiniteNewton { stage })
 }
 
-/// The relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of a priced Newton product.
+/// Computes the relative Newton residual `‖Hζ·p_N + gζ‖/‖gζ‖` of a priced Newton product.
 fn newton_residual(
     hessian_newton: &AlignedDVecN<SOLVER_DIMENSIONS>,
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
@@ -537,7 +545,7 @@ fn newton_residual(
     defect_norm.checked_div(gradient_norm)
 }
 
-/// The steepest-descent crossing onto the trust boundary, from the origin along `−g`.
+/// Constructs the steepest-descent crossing onto the trust boundary, from the origin along `−g`.
 fn steepest_crossing(
     gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,
     hessian_gradient: &AlignedDVecN<SOLVER_DIMENSIONS>,

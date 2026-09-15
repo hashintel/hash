@@ -1,25 +1,25 @@
-//! Table-based `exp` for `f32` lanes: 16-entry hi/lo table of `2^(j/16)`, degree-3 tail,
-//! hi/lo-corrected reconstruction.
+//! Table-based exponential approximation for single-precision SIMD lanes.
 //!
 //! An alternative to the polynomial [`exp_f32`](super::sleef::exp_f32) with the same edge-case
 //! contract, measured against it under the `math_kernels` benchmark target.
 //!
 //! # Design
 //!
-//! Reduction: `n = round(x · 16/ln 2)`, split as `n = 16q + j`, so `e^x = 2^q · 2^(j/16) · e^r`
-//! with `|r| ≤ ln(2)/32 ≈ 0.0217`. The table stores each entry `T = 2^(j/16)` as an f32 pair
-//! `(T_hi, T_lo)` with `T_lo = round(T - T_hi)`, and the kernel reconstructs the product `T · e^r`
-//! as
+//! For finite x in the unclamped interval [−104, 100], choose integer n near x · 16/ln 2 and split
+//! n = 16q + j with 0 ≤ j < 16. The identity eˣ = 2ᑫ · 2^(j/16) · eʳ uses residual r = x − n ·
+//! ln(2)/16. Ideal nearest-integer selection bounds |r| by ln(2)/32 ≈ 0.0217. The implementation
+//! rounds the selection and residual in `f32`.
 //!
-//! ```text
-//! T_hi + fma(T_hi, expm1(r), T_lo)
-//! ```
+//! For table value T = 2^(j/16), define Tₕ = round₃₂(T) and Tₗ = round₃₂(T − Tₕ), where round₃₂
+//! rounds to nearest `f32`, ties to even. A cubic polynomial approximates eʳ − 1. Reconstruction
+//! approximates T · eʳ with Tₕ + fma(Tₕ, expm1(r), Tₗ), using the table's rounded high and low
+//! parts.
 //!
-//! which keeps the table's rounding error out of the result. The only half-ulp-scale rounding
-//! left is the final add. Error budget: 0.5 (final add) + 0.078 (tail fit, measured in exact
-//! arithmetic) + ≈0.03 (small-scale roundings + reduction residual). The Cody-Waite split keeps
-//! `n · LN2_16_HI` exact for `n < 4096` (12-bit significand times `|n| ≤ 2402`), and both
-//! [`scale_by_pow2_f32`] multiplies stay exact powers of two as in `exp_f32`.
+//! The low part corrects the high part's table-rounding error before the final addition.
+//! The recorded design budget assigns 0.5 ULP to that addition, 0.078 ULP to the tail fit in
+//! exact arithmetic, and about 0.03 ULP to the smaller rounding terms and reduction residual.
+//! This budget concerns the unscaled reconstruction. Subnormal results can round again during
+//! [`scale_by_pow2_f32`]. The tests measure the complete result against `f64` libm.
 //!
 //! # Lookup portability
 //!
@@ -36,15 +36,19 @@ use std::simd::StdFloat as _;
 
 use super::sleef::scale_by_pow2_f32;
 
-/// `16 / ln(2)` (= 23.083120346069336).
+/// The rounded reduction multiplier 16/ln(2), equal to 23.083120346069336.
 const INVLN2_16: f32 = f32::from_bits(0x41B8_AA3B);
 
-/// `ln(2)/16` with the low 12 mantissa bits zeroed: a 12-bit significand, so `n · LN2_16_HI` is
-/// exact for `|n| < 4096` (the reduction produces `|n| ≤ 2402`).
+/// The coarse part of `ln(2)/16`, with twelve low significand bits cleared.
+// A product is exact when its significand and exponent fit the destination. This constant retains
+// at most twelve bits in its significand, and the unclamped reduction integer satisfies |n| ≤ 2402,
+// at most twelve bits. Therefore their product fits f32 exactly. The low-part FMA still rounds the
+// residual.
 const LN2_16_HI: f32 = {
     let base = core::f32::consts::LN_2 / 16.; // exact: power-of-two divide
     f32::from_bits(base.to_bits() & !0xFFF)
 };
+/// The rounded low part of ln(2)/16 after subtracting [`LN2_16_HI`].
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the cast is the derivation's rounding step: the remainder is correctly rounded into \
@@ -52,12 +56,16 @@ const LN2_16_HI: f32 = {
 )]
 const LN2_16_LO: f32 = (core::f64::consts::LN_2 / 16. - (LN2_16_HI as f64)) as f32;
 
-/// Degree-3 tail of `e^r - 1 = r + r^2 (C2 + C3 r)` over `|r| ≤ ln(2)/32`; near-minimax fit
-/// (Chebyshev projection, coefficients rounded jointly), 0.078 ulp intrinsic error.
+/// The quadratic coefficient in the cubic approximation of eʳ − 1.
+///
+/// The tail r + r²(C₂ + C₃r) approximates eʳ − 1 on |r| ≤ ln(2)/32. The jointly rounded
+/// Chebyshev-fit coefficients have a recorded intrinsic-error budget of 0.078 ULP. The module's
+/// reconstruction budget accounts for separate rounding terms.
 const C2: f32 = f32::from_bits(0x3F00_00A4); // 0.5000097751617432
+/// Cubic coefficient of the degree-3 tail, fitted jointly with [`C2`].
 const C3: f32 = f32::from_bits(0x3E2A_AB2E); // 0.1666686236858368
 
-/// `2^(j/16)` rounded to f32.
+/// The high parts Tₕ of the table split defined in the module model.
 const EXP16_HI: [f32; 16] = [
     f32::from_bits(0x3F80_0000), // 1.0
     f32::from_bits(0x3F85_AAC3), // 1.0442737340927124
@@ -77,7 +85,7 @@ const EXP16_HI: [f32; 16] = [
     f32::from_bits(0x3FF5_257D), // 1.9152065515518188
 ];
 
-/// `round(2^(j/16) - EXP16_HI[j])`: the sub-half-ulp remainder of each entry.
+/// The low parts Tₗ of the table split defined in the module model.
 const EXP16_LO: [f32; 16] = [
     f32::from_bits(0x0000_0000), //  0.0
     f32::from_bits(0x334F_9891), //  4.8334701574503924e-8
@@ -112,9 +120,9 @@ fn tbl4_lookup(table: &[f32; 16], index: Simd<u32, 4>) -> Simd<f32, 4> {
     let byte_index =
         (index << Simd::splat(2)) * Simd::splat(0x0101_0101) + Simd::splat(0x0302_0100);
 
-    // SAFETY: NEON is mandatory on aarch64; the table is 64 contiguous, initialized bytes, which
-    // is exactly what `vld1q_u8_x4` reads (no alignment requirement). LLVM hoists the table load
-    // out of loops.
+    // SAFETY: These intrinsics require NEON, and `vld1q_u8_x4` accepts 64 readable bytes at any
+    // alignment. This function's cfg requires NEON enabled, and the shared table borrow keeps those
+    // initialized bytes readable. Therefore the load and NEON operations are safe.
     unsafe {
         let entries = vld1q_u8_x4(table.as_ptr().cast());
         let indices = vreinterpretq_u8_u32(uint32x4_t::from(byte_index));
@@ -122,7 +130,12 @@ fn tbl4_lookup(table: &[f32; 16], index: Simd<u32, 4>) -> Simd<f32, 4> {
     }
 }
 
-/// Shared tail: polynomial, hi/lo reconstruction, scaling, clamps.
+/// Reconstructs the scaled exponential and applies the final range masks.
+///
+/// `reduced`, `quotient` and the table pair must come from the module's range reduction of
+/// `values`. Exceptional and out-of-range lanes may produce intermediate values outside the scaling
+/// helper's numerical contract. The final masks set values below −104 to zero and above 100 to
+/// infinity. NaN lanes propagate through the polynomial arithmetic.
 #[inline]
 fn finish<const N: usize>(
     values: Simd<f32, N>,
@@ -145,10 +158,9 @@ fn finish<const N: usize>(
         .select(Simd::splat(f32::INFINITY), result)
 }
 
-/// Table-based counterpart of [`exp_f32`](super::sleef::exp_f32), portable form.
+/// Evaluates lanes with portable gather lookups.
 ///
-/// Semantically identical on every target; lookup speed is target-dependent (see the module
-/// docs). Prefer the `exp_f32x4_table` form on aarch64.
+/// Use [`exp_f32x4`] or [`exp_f32x8`] for fixed lane counts to select NEON lookups where enabled.
 #[inline]
 pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
     let nearest = (values * Simd::splat(INVLN2_16)).round_ties_even();
@@ -240,21 +252,23 @@ mod tests {
         }
     }
 
-    // The stride is odd, so consecutive samples differ in exponent/mantissa phase. Full-bit-range
-    // iteration covers negative inputs, subnormals, both zeros, both infinities, and NaN payloads
-    // without listing them.
+    // the odd stride samples different exponent and significand bit patterns across both signs.
+    // It omits some special encodings, which `exp_f32_specials` supplies directly.
+    /// The sampling stride through the `u32` bit space.
     const F32_STRIDE: usize = 641;
 
     /// Allowed kernel-to-reference distance in representation steps.
     ///
-    /// The kernel's 1.0-ulp accuracy tier plus half a step for the reference's own
-    /// correctly-rounded narrowing, rounded up to whole steps.
+    /// The budget is ⌈1.0 + 0.5⌉ = 2, adding a nominal half-step narrowing allowance to the design
+    /// tier. The libm reference is itself approximate. This encoding-distance check can also accept
+    /// adjacent finite/infinite or infinite/NaN encodings.
     const U10_F32_TOLERANCE: u64 = 2;
 
-    /// Position of a value in the ordered sequence of representable `f32`s.
+    /// Maps a single-precision encoding to a signed representation-step index.
     ///
-    /// Adjacent representable values differ by one across the whole line, including zeros,
-    /// subnormals, and infinities, so one distance bound holds without per-class cases.
+    /// Adjacent distinct non-NaN values differ by one, including the subnormal and infinity
+    /// boundaries. Both zeros map to zero. NaN encodings have indices beyond the corresponding
+    /// infinity, without numerical-distance semantics.
     fn ordered_f32(value: f32) -> i64 {
         let bits = value.to_bits();
         if bits & 0x8000_0000 == 0 {
@@ -266,10 +280,8 @@ mod tests {
 
     /// Strided samples of the full input bit range track scalar libm inside the step tolerance.
     ///
-    /// The agreement tests in this module compare entry points that share every constant and
-    /// every reconstruction step, so drift in that shared arithmetic moves all of them
-    /// identically and only an external reference can pin it. `ulp_sweep.rs` holds the
-    /// exhaustive `#[ignore]` form of this check.
+    /// Compares the generic table kernel with a wider-precision libm reference. Entry-point
+    /// agreement alone cannot check the arithmetic shared by all lookup implementations.
     #[test]
     #[expect(
         clippy::cast_possible_truncation,
@@ -306,11 +318,6 @@ mod tests {
         }
     }
 
-    /// Edge-case results are exact.
-    ///
-    /// The contract matches [`exp_f32`](super::super::sleef::exp_f32). Zero yields exactly one
-    /// and negative infinity exactly zero. An infinity lane stays infinite and a NaN lane stays
-    /// NaN. The assertions compare bit patterns, so a merely-close value fails.
     #[test]
     fn edge_cases_are_exact() {
         let output = exp_f32::<4>(Simd::from_array([
@@ -327,8 +334,8 @@ mod tests {
 
     /// Every named entry point agrees with the generic kernel bit for bit.
     ///
-    /// On aarch64 the entry points are the TBL4 forms, elsewhere the passthrough fallbacks, so
-    /// the sweep pins the agreement on every target this module compiles for.
+    /// Little-endian aarch64 with NEON enabled uses TBL4. Other configurations use portable gather
+    /// lookups.
     #[test]
     fn entry_points_agree_with_the_generic_kernel() {
         let mut lanes = [0.0_f32; 8];

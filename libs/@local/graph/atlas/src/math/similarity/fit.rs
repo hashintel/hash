@@ -1,7 +1,20 @@
-//! Weighted Procrustes fitting of a similarity to point correspondences.
+//! Weighted Procrustes alignment from point-pair moments.
 //!
-//! The closed-form solve consumes seven raw weighted moments that accumulate in one fused pass,
-//! four pairs at a time, serially or across rayon workers.
+//! For points pᵢ, qᵢ ∈ ℝ² and weights wᵢ ≥ 0, the model minimizes E(a, θ, t) = Σᵢ wᵢ‖aRθpᵢ + t −
+//! qᵢ‖² over scale a > 0, rotation angle θ and translation t ∈ ℝ². Let W = Σᵢ wᵢ > 0, p̄ = Σᵢ wᵢpᵢ /
+//! W and q̄ = Σᵢ wᵢqᵢ / W. Centring gives uᵢ = pᵢ − p̄ and vᵢ = qᵢ − q̄, with moments V = Σᵢ wᵢ‖uᵢ‖²,
+//! D = Σᵢ wᵢ⟨uᵢ, vᵢ⟩ and H = Σᵢ wᵢ(uᵢₓvᵢᵧ − uᵢᵧvᵢₓ).
+//!
+//! The best translation is t = q̄ − aRθp̄. After substitution, the scale-and-angle terms are a²V −
+//! 2a(D cos θ + H sin θ). For V > 0 and C = √(D² + H²) > 0, the minimizing coefficients are a =
+//! C/V, cos θ = D/C and sin θ = H/C. Raw moments recover the centred quantities in one pass,
+//! avoiding a second read of the inputs.
+//!
+//! Accumulation and centring use `f64`, followed by narrowing to `f32` coefficients. Subtracting
+//! raw moments can lose small variances or covariances, especially with large offsets or uneven
+//! weights. The computed solution and its rejection tests are approximations to this
+//! real-arithmetic model. Parallel reduction changes the grouping and can change both coefficients
+//! and acceptance.
 
 use core::{
     num::NonZero,
@@ -30,20 +43,37 @@ impl Similarity {
     /// large enough that per-task overhead disappears against the fold.
     pub(crate) const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
 
-    /// Fits the weighted orientation-preserving Procrustes alignment of paired points.
+    /// Estimates the weighted Procrustes alignment of paired points.
     ///
-    /// The result is the similarity minimizing the weighted squared error `sum(weights[i] *
-    /// |apply(source[i]) - target[i]|^2)` in closed form. The weighted covariance between the centred point sets determines the rotation and scale, and the translation recovers the target centroid from the transformed source centroid. The fold takes four pairs at a time on SIMD lanes and the trailing `len % 4` pairs one at a time, accumulating every sum in double precision before the result narrows to the working `f32` coefficients. Zero-weight pairs leave the fit unchanged. For large inputs, [`fit_par`](Self::fit_par) runs the same accumulation across rayon workers.
+    /// The weighted covariance determines rotation and scale, and the translation maps the source
+    /// centroid to the target centroid, following the [Procrustes
+    /// model](crate::math::similarity::fit). The fold accumulates four pairs at a time in `f64`
+    /// SIMD lanes, then handles the trailing pairs individually. The fitted coefficients narrow to
+    /// `f32`. Use [`fit_par`](Self::fit_par) for parallel accumulation.
     ///
-    /// Returns [`None`] when the slice lengths differ, the caller passes fewer than two pairs, any
-    /// coordinate or weight is not finite, any weight is negative, the total weight is not a normal
-    /// positive number, the weighted source points are coincident, the pairs do not determine an
-    /// orientation (the covariance cancels exactly), or the resulting coefficients leave the `f32`
-    /// range that [`new`](Self::new) accepts.
+    /// A finite zero-weight pair contributes zero to the mathematical objective, but its
+    /// coordinates are still validated. Adding or removing such pairs can change the fold's
+    /// grouping and rounding. Raw-moment cancellation can also make a nondegenerate fit fail or
+    /// degrade its accuracy.
     ///
-    /// # Examples
+    /// Returns [`None`] for unequal slice lengths or fewer than two pairs. The accumulated data is
+    /// rejected if any coordinate or weight is non-finite or any weight is negative. The computed
+    /// total weight, source variance and covariance magnitude must be normal, with positive source
+    /// variance. Finally, all fitted coefficients must narrow to finite `f32` values and satisfy
+    /// [`new`](Self::new), including its rotation norm tolerance. These numerical tests do not
+    /// certify the exact rank or conditioning of the input.
+    ///
+    /// # Complexity
+    ///
+    /// O(n) time and constant additional storage for n pairs.
+    ///
+    /// # Example
+    ///
+    /// This example is ignored because [`Similarity`] is crate-private.
     ///
     /// ```ignore
+    /// use crate::math::{Similarity, Rotation, Vec2, positive};
+    ///
     /// let expected =
     ///     Similarity::new(positive!(2.0), Rotation::from_cos_sin(0.0, 1.0), Vec2::new(1.0, -2.0))
     ///         .expect("scale 2.0 is normal and positive");
@@ -71,14 +101,13 @@ impl Similarity {
 
     /// Fits the weighted Procrustes alignment of large inputs in parallel.
     ///
-    /// The contract is identical to [`fit`](Self::fit), so the same inputs yield [`Some`] and
-    /// [`None`] in the same cases. This splits the slices into chunks whose moments accumulate on
-    /// rayon workers and combine at the end. Floating-point addition rounds per operation, so the
-    /// chunked reduction can differ from [`fit`](Self::fit)'s serial fold by a few units in the
-    /// last place.
+    /// This uses [`fit`](Self::fit)'s model, input checks and coefficient-range checks. Chunked
+    /// accumulation changes floating-point grouping and may change whether the computed moments
+    /// pass validation. No fixed ULP bound relates the parallel result to the serial fit, and
+    /// results are not promised to be bit-reproducible across parallel reductions.
     ///
-    /// The fold is memory-bound, so parallelism pays off from about a hundred thousand pairs. Below
-    /// that, [`fit`](Self::fit) is faster.
+    /// Parallel work is O(n) for n pairs. Benchmark the serial and parallel forms on the intended
+    /// input sizes and hardware before choosing a crossover.
     ///
     /// Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs. Use
     /// [`fit_par_with`](Self::fit_par_with) to choose the pairs per chunk.
@@ -90,10 +119,10 @@ impl Similarity {
 
     /// Fits the weighted Procrustes alignment in parallel with a caller-chosen chunk size.
     ///
-    /// The contract is identical to [`fit`](Self::fit). Each rayon work item accumulates the
-    /// moments of `chunk` pairs. Smaller chunks balance better across uneven core loads, larger
-    /// chunks amortize task overhead. [`fit_par`](Self::fit_par) uses
-    /// [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
+    /// This has [`fit_par`](Self::fit_par)'s model and numerical limits. Each work item accumulates
+    /// at most `chunk` pairs. Smaller chunks offer more scheduling units, while larger chunks
+    /// reduce the number of moment merges. Chunk size can affect both rounding and acceptance.
+    /// [`fit_par`](Self::fit_par) uses [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK).
     #[must_use]
     pub(crate) fn fit_par_with(
         source: &[Vec2],
@@ -122,18 +151,23 @@ impl Similarity {
 
     /// Fits the unweighted Procrustes alignment of paired fields.
     ///
-    /// Equivalent to [`fit`](Self::fit) with every weight `1.0`, without materializing a weight
-    /// slice. The fields carry the finiteness proof, so the uniform moments accumulate with no
-    /// validity scan, and aligning corpus-scale fields costs no allocation.
+    /// This uses [`fit`](Self::fit)'s unit-weight model without materializing a weight slice.
+    /// [`FinitePointField`] establishes coordinate finiteness. The fold takes O(n) time and
+    /// constant additional storage, with no heap allocation.
     ///
-    /// Returns [`None`] when the field lengths differ, the caller passes fewer than two pairs,
-    /// the source points are coincident, the pairs do not determine an orientation (the
-    /// covariance cancels exactly), or the resulting coefficients leave the `f32` range that
-    /// [`new`](Self::new) accepts.
+    /// Returns [`None`] for unequal field lengths or fewer than two pairs, or when the computed
+    /// moments or narrowed coefficients fail [`fit`](Self::fit)'s numerical checks. Arithmetic
+    /// grouping can differ from the weighted implementation even with unit weights.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This example is ignored because the fitting API is crate-private and test-only.
     ///
     /// ```ignore
+    /// use hashql_core::id::IdSlice;
+    /// use crate::math::{FinitePointField, Similarity, Rotation, Vec2, positive};
+    /// # hashql_core::id::newtype! { struct RowId(u32) }
+    ///
     /// let expected =
     ///     Similarity::new(positive!(0.5), Rotation::from_cos_sin(1.0, 0.0), Vec2::new(3.0, 1.0))
     ///         .expect("scale 0.5 is normal and positive");
@@ -166,9 +200,11 @@ impl Similarity {
 
     /// Fits the unweighted Procrustes alignment of large fields in parallel.
     ///
-    /// The contract is [`fit_par`](Self::fit_par)'s with unit weights: the chunked reduction
-    /// carries the same units-in-the-last-place caveat and the same break-even near a hundred
-    /// thousand pairs. Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs.
+    /// This uses [`fit_par`](Self::fit_par)'s model and numerical checks with unit weights.
+    /// [`FinitePointField`] establishes coordinate finiteness, and no weight slice is allocated.
+    /// Returns [`None`] for unequal lengths, fewer than two pairs or failed moment/coefficient
+    /// checks. Work splits into chunks of [`PARALLEL_CHUNK`](Self::PARALLEL_CHUNK) pairs, with the
+    /// same grouping-dependent rounding and acceptance as the weighted parallel form.
     #[inline]
     #[must_use]
     pub(crate) fn fit_uniform_par<I: Id>(
@@ -189,39 +225,37 @@ impl Similarity {
     }
 }
 
-/// Validity and weighted raw moments of a run of point pairs, accumulated in double precision.
+/// Input validity and `f64` raw moments for a Procrustes solve.
 ///
-/// One pass over the pairs gathers everything the closed-form Procrustes solve needs;
-/// [`combine`](Self::combine) merges the moments of two runs, which makes the accumulation
-/// chunkable across SIMD lanes and rayon workers. Both [`Similarity::fit`] and
-/// [`Similarity::fit_par`] feed the same [`solve`](Self::solve).
+/// One pass gathers the weighted point sums, source norm and source-target products.
+/// [`combine`](Self::combine) adds partial moments for chunked accumulation. [`solve`](Self::solve)
+/// centres them and computes the coefficients.
 #[derive(Debug, Copy, Clone)]
 struct FitSums {
     /// Whether every coordinate is finite and every weight finite and non-negative.
     ///
-    /// The weighted pass scans for it; the uniform pass holds it by construction over its
-    /// proven-finite fields.
+    /// Uniform accumulation requires finite points and uses unit weights.
     valid: bool,
-    /// The total weight `sum(w)`.
+    /// The total weight Σᵢ wᵢ.
     weight: f64,
-    /// The weighted source sum `sum(w · source)`.
+    /// The weighted source sum Σᵢ wᵢpᵢ.
     source: DVec2,
-    /// The weighted target sum `sum(w · target)`.
+    /// The weighted target sum Σᵢ wᵢqᵢ.
     target: DVec2,
-    /// The weighted product moment `sum(w · dot(source, target))`.
+    /// The weighted dot-product moment Σᵢ wᵢ⟨pᵢ, qᵢ⟩.
     dot: f64,
-    /// The weighted product moment `sum(w · perp_dot(source, target))`.
+    /// The weighted signed-area moment Σᵢ wᵢ(pᵢₓqᵢᵧ − pᵢᵧqᵢₓ).
     perp_dot: f64,
-    /// The weighted source moment `sum(w · |source|^2)`.
+    /// The weighted squared-source-norm moment Σᵢ wᵢ‖pᵢ‖².
     source_norm: f64,
 }
 
 impl FitSums {
     /// Accumulates the weighted raw moments of the paired slices.
     ///
-    /// The slices carry equal lengths, which the `fit` entry points check once before accumulating.
-    /// The fold takes four pairs at a time on double-precision lanes, and the trailing `len % 4`
-    /// pairs one at a time.
+    /// The slices must have equal lengths. The fold handles four pairs at a time on
+    /// double-precision lanes, then the trailing `len % 4` pairs individually. Invalid coordinates
+    /// or weights set [`valid`](Self::valid) to false.
     fn from_slices(source: &[Vec2], target: &[Vec2], weights: &[f32]) -> Self {
         let (source_batches, source_rest) = source.as_chunks::<4>();
         let (target_batches, target_rest) = target.as_chunks::<4>();
@@ -247,11 +281,11 @@ impl FitSums {
             valid &= (source.to_simd().is_finite() & target.to_simd().is_finite())
                 & (weight.is_finite() & weight.simd_ge(Simd::splat(0.0))).resize(true);
 
-            // `f32` values widen exactly, and each product of two widened
-            // values fits in `f64`'s 53-bit significand, so the batch
-            // products and the fused axis accumulations below are exact;
-            // only the running additions round. That exactness is what
-            // keeps the centred-moment cancellation in `solve` accurate.
+            // Finite f32 values widen exactly. Products of two such values need at most 48
+            // significand bits and fit f64's exponent range. Dot products and squared norms add two
+            // products and can round. Weighting those results introduces another product, and every
+            // running accumulation can round. Double precision reduces these errors but does not
+            // prevent cancellation during centring.
             let weight: Simd<f64, 4> = weight.cast();
             let source = DVec2x4T::from(Vec2x4T::from(source));
             let target = DVec2x4T::from(Vec2x4T::from(target));
@@ -301,11 +335,9 @@ impl FitSums {
 
     /// Accumulates the raw moments of the paired slices under uniform unit weights.
     ///
-    /// The slices carry equal lengths; the `fit_uniform` entry points check this once before
-    /// accumulating. They also arrive from proven-finite fields, so the pass runs no validity
-    /// scan and `valid` holds by construction. The total weight is the exact pair count, and
-    /// every weighted moment degenerates to its plain sum, so the pass reads two slices instead
-    /// of three.
+    /// Both slices must have equal lengths and finite coordinates. Unit weights remove the weight
+    /// reads and multiplications. The total weight is the pair count converted to `f64`, which can
+    /// round above 2⁵³.
     #[expect(
         clippy::cast_precision_loss,
         reason = "pair counts remain exactly representable in f64 far beyond any corpus"
@@ -325,8 +357,8 @@ impl FitSums {
         let mut perp_sum = Simd::splat(0.0_f64);
         let mut norm_sum = Simd::splat(0.0_f64);
         for (source, target) in source_batches.iter().zip(target_batches) {
-            // Widening is exact and each product of two widened values fits in `f64`'s 53-bit
-            // significand, exactly as in the weighted pass. Only the running additions round.
+            // Finite f32 products are exact in f64. The within-pair dot/norm sums and the running
+            // additions can still round.
             let source = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*source)));
             let target = DVec2x4T::from(Vec2x4T::from(Vec2x4::from(*target)));
 
@@ -363,8 +395,8 @@ impl FitSums {
 
     /// Merges the moments of two runs of pairs.
     ///
-    /// Floating-point addition rounds per operation, so combining chunked sums can differ from one
-    /// serial fold over the concatenated runs by units in the last place.
+    /// The validity flags are conjoined and each moment is added in `f64`. Grouping changes
+    /// rounding, which the centring subtraction can amplify.
     const fn combine(self, other: Self) -> Self {
         Self {
             valid: self.valid && other.valid,
@@ -379,10 +411,9 @@ impl FitSums {
 
     /// Solves the closed-form Procrustes alignment from the accumulated moments.
     ///
-    /// Returns [`None`] under exactly the data-dependent rejection cases documented on
-    /// [`Similarity::fit`]: an invalid coordinate or weight, a non-normal total weight,
-    /// weight-coincident source points, an exactly cancelling covariance, or coefficients leaving
-    /// the range [`Similarity::new`] accepts.
+    /// Returns [`None`] when the accumulated validity flag, computed moments or narrowed
+    /// coefficients fail the numerical checks described by [`Similarity::fit`]. Pair-count and
+    /// slice-length checks belong to the fitting entry points.
     fn solve(self) -> Option<Similarity> {
         if !self.valid || !self.weight.is_normal() {
             return None;
@@ -391,27 +422,29 @@ impl FitSums {
         let source_centroid = self.source / self.weight;
         let target_centroid = self.target / self.weight;
 
-        // Centered moments follow from the raw ones by the parallel-axis
-        // identity. With `W = sum(w)`, `ms = sum(w s)`, `mt = sum(w t)`,
-        // and centroids `cs = ms / W`, `ct = mt / W`, expanding each
-        // centred product leaves cross terms that all collapse into one
-        // correction because `sum(w (s - cs)) = 0`:
-        //   sum(w dot(s - cs, t - ct))  = sum(w dot(s, t))  - dot(ms, mt) / W
-        //   sum(w perp(s - cs, t - ct)) = sum(w perp(s, t)) - perp(ms, mt) / W
-        //   sum(w |s - cs|^2)           = sum(w |s|^2)      - |ms|^2 / W
-        // This fuses centring into the single accumulation pass shared
-        // by the serial and parallel fits.
+        // In real arithmetic, weighted centred deviations sum to zero. With mₚ = Σᵢ wᵢpᵢ and m_q =
+        // Σᵢ wᵢqᵢ, expanding each centred product leaves one correction:
+        //
+        // D = Σᵢ wᵢ⟨pᵢ, qᵢ⟩ − ⟨mₚ, m_q⟩ / W.
+        //
+        // H = Σᵢ wᵢ(pᵢₓqᵢᵧ − pᵢᵧqᵢₓ) − (mₚₓm_qᵧ − mₚᵧm_qₓ) / W.
+        //
+        // V = Σᵢ wᵢ‖pᵢ‖² − ‖mₚ‖² / W.
+        //
+        // Therefore raw moments suffice for the centred solve without a second input pass. The
+        // implemented subtraction uses rounded moments and can lose small differences.
         let dot = self.dot - self.source.dot(self.target).into_raw() / self.weight;
         let perp_dot = self.perp_dot - self.source.perp_dot(self.target).into_raw() / self.weight;
         let variance = self.source_norm - self.source.norm_squared().into_raw() / self.weight;
 
-        // Coincident (up to weight) source points give no scale. The identity's cancellation can
-        // round a mathematically zero variance below zero, which the sign check rejects together
-        // with the non-normal cases.
+        // Positive source variance determines the scale denominator. Cancellation can give a
+        // nonpositive computed value for distinct weighted points, or a positive value for a
+        // mathematically zero variance. This tests the computed denominator, not exact
+        // nondegeneracy.
         if !variance.is_normal() || variance <= 0.0 {
             return None;
         }
-        // An exactly cancelling covariance gives no orientation.
+        // a nonzero covariance magnitude determines orientation in the real-arithmetic model
         let covariance = dot.hypot(perp_dot);
         if !covariance.is_normal() {
             return None;

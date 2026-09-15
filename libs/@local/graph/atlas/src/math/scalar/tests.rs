@@ -17,6 +17,8 @@ use crate::math::{
     },
 };
 
+/// `UnitFraction::new` accepts `0`, `1` and interior values and refuses negatives, values above
+/// one, NaN and both infinities.
 #[test]
 fn unit_fraction_accepts_exactly_the_closed_interval() {
     assert_eq!(UnitFraction::new(0.0), Some(UnitFraction::ZERO));
@@ -263,6 +265,8 @@ fn unit_fraction_hashes_follow_numeric_value() {
     assert_ne!(hash_of(quarter), hash_of(half));
 }
 
+/// `softplus(50)` is exactly `50`, `softplus(-50)` is positive but below `1e-20`, and
+/// `softplus(-200)` is exactly zero once `exp` underflows `f32`.
 #[test]
 fn softplus_approaches_asymptotes() {
     // ln_1p(exp(-50)) is far below f32 ε at 50, so the positive
@@ -275,6 +279,7 @@ fn softplus_approaches_asymptotes() {
     assert_eq!(softplus(-200.0), 0.0);
 }
 
+/// `softplus(x) - softplus(-x) = x` within `1e-5` across negative, zero and positive inputs.
 #[test]
 fn softplus_satisfies_shift_identity() {
     // softplus(x) - softplus(-x) == x: the ln_1p terms share |x| and cancel.
@@ -284,6 +289,8 @@ fn softplus_satisfies_shift_identity() {
     }
 }
 
+/// The stable `softplus` agrees with the textbook `ln(1 + exp(x))` within `1e-5` on moderate
+/// inputs.
 #[test]
 #[expect(
     clippy::imprecise_flops,
@@ -297,6 +304,7 @@ fn softplus_matches_naive_on_small_values() {
     }
 }
 
+/// `sigmoid(0)` is exactly `0.5`, and at `±200` the asymptotes `1` and `0` are exact.
 #[test]
 fn sigmoid_matches_hand_computed_values() {
     // At zero the two branches agree exactly: 1 / (1 + 1).
@@ -306,6 +314,8 @@ fn sigmoid_matches_hand_computed_values() {
     assert_eq!(NonNegative::sigmoid(-200.0), 0.0);
 }
 
+/// `sigmoid(-20)` stays positive and within a relative `1e-6` of `exp(-20)`, where the complement
+/// form would round to zero.
 #[test]
 fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
     // The complement form `1 - 1/(1 + exp(-|x|))` rounds to zero once exp(-|x|) drops below f32 ε.
@@ -316,6 +326,8 @@ fn sigmoid_keeps_relative_precision_on_the_negative_tail() {
     assert!((tail - expected).abs() <= 1e-6 * expected, "tail {tail}");
 }
 
+/// `huber` is `0.5 · v²` below the threshold, `0.5 · t²` at it and `t · (v - 0.5 t)` above it, on
+/// exactly representable inputs.
 #[test]
 fn huber_matches_hand_computed_regimes() {
     // Quadratic regime: 0.5 · value^2, over exactly-representable inputs.
@@ -352,6 +364,8 @@ fn huber_is_continuous_at_the_threshold() {
     assert!((above.get() - below.get()) < 1e-3);
 }
 
+/// `huber` at `1e20` against a `1e20` threshold clamps to `f32::MAX` instead of overflowing to
+/// infinity.
 #[test]
 fn huber_saturates_instead_of_overflowing() {
     // In the quadratic regime the square of 10²⁰ overflows the `f32` range. The reading clamps
@@ -362,12 +376,14 @@ fn huber_saturates_instead_of_overflowing() {
     );
 }
 
+/// `narrow_f32` returns powers of two unchanged.
 #[test]
 fn narrowing_round_trips_powers_of_two() {
     assert_eq!(narrow_f32(0.25), Some(0.25_f32));
     assert_eq!(narrow_f32(-1024.0), Some(-1024.0_f32));
 }
 
+/// `narrow_f32(0.1)` rounds to the nearest `f32`, the value the `0.1_f32` literal denotes.
 #[test]
 fn narrow_f32_rounds_where_exact_rejects() {
     // 0.1 has no exact binary representation at either width; narrowing
@@ -375,6 +391,7 @@ fn narrow_f32_rounds_where_exact_rejects() {
     assert_eq!(narrow_f32(0.1), Some(0.1_f32));
 }
 
+/// `narrow_f32` returns `None` for values beyond the `f32` range, infinity and NaN.
 #[test]
 fn narrowing_rejects_overflow_and_nan() {
     assert_eq!(narrow_f32(1e300), None);
@@ -382,6 +399,7 @@ fn narrowing_rejects_overflow_and_nan() {
     assert!(narrow_f32(f64::NAN).is_none());
 }
 
+/// `narrow_f32(-0.0)` keeps the sign bit.
 #[test]
 fn narrowing_preserves_negative_zero() {
     let rounded = narrow_f32(-0.0).expect("negative zero is finite");
@@ -825,6 +843,9 @@ fn greater_than_one_requires_actual_growth() {
     assert_eq!(GreaterThanOne::new(f64::NAN), None);
 }
 
+/// Deserialising refuses exactly what the constructors refuse (`0` for the positive unit fraction,
+/// negatives, values above one) and admits the closed endpoints, and serializing writes the plain
+/// number.
 #[test]
 fn serde_doors_validate_the_domain() {
     // A published record's wire form reads through `Deserialize`, so the door refuses
@@ -866,6 +887,7 @@ mod miri {
         OpenUnitFraction, Positive, PositiveUnitFraction, UnitFraction,
     };
 
+    /// `NonNegative` reads canonical positive bytes and refuses `-0.0`, negatives and NaN.
     #[test]
     fn non_negative_try_from_bytes() {
         assert_eq!(
@@ -881,6 +903,7 @@ mod miri {
         NonNegative::try_read_from_bytes(&f32::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `DNonNegative` reads canonical positive bytes and refuses `-0.0` and NaN.
     #[test]
     fn d_non_negative_try_from_bytes() {
         assert_eq!(
@@ -894,6 +917,7 @@ mod miri {
         DNonNegative::try_read_from_bytes(&f64::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `Positive` reads canonical positive bytes and refuses zero and NaN.
     #[test]
     fn positive_try_from_bytes() {
         assert_eq!(
@@ -906,6 +930,7 @@ mod miri {
         Positive::try_read_from_bytes(&f32::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `DPositive` reads canonical positive bytes and refuses zero and NaN.
     #[test]
     fn d_positive_try_from_bytes() {
         assert_eq!(
@@ -918,6 +943,7 @@ mod miri {
         DPositive::try_read_from_bytes(&f64::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `Finite` reads finite bytes of either sign and refuses NaN and infinity.
     #[test]
     fn finite_try_from_bytes() {
         assert_eq!(
@@ -930,6 +956,7 @@ mod miri {
         Finite::try_read_from_bytes(&f32::INFINITY.to_ne_bytes()).expect_err("infinity is refused");
     }
 
+    /// `DFinite` reads finite bytes of either sign and refuses NaN and infinity.
     #[test]
     fn d_finite_try_from_bytes() {
         assert_eq!(
@@ -943,6 +970,7 @@ mod miri {
             .expect_err("infinity is refused");
     }
 
+    /// `GreaterThanOne` reads `2.0` and refuses exactly one and NaN.
     #[test]
     fn greater_than_one_try_from_bytes() {
         assert_eq!(
@@ -956,6 +984,7 @@ mod miri {
         GreaterThanOne::try_read_from_bytes(&f64::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `Log2` reads a byte below the shift width and refuses `64` and `255`.
     #[test]
     fn log2_try_from_bytes() {
         assert_eq!(
@@ -968,6 +997,7 @@ mod miri {
         Log2::try_read_from_bytes(&[255_u8]).expect_err("255 is far past the shift width");
     }
 
+    /// `UnitFraction` reads canonical interior bytes and refuses `-0.0`, values above one and NaN.
     #[test]
     fn unit_fraction_try_from_bytes() {
         assert_eq!(
@@ -982,6 +1012,8 @@ mod miri {
         UnitFraction::try_read_from_bytes(&f64::NAN.to_ne_bytes()).expect_err("NaN is refused");
     }
 
+    /// `PositiveUnitFraction` reads the closed endpoint `1.0` and refuses zero, values above one
+    /// and NaN.
     #[test]
     fn positive_unit_fraction_try_from_bytes() {
         assert_eq!(

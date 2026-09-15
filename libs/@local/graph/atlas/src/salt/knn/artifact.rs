@@ -1,9 +1,9 @@
 //! The k-NN table's published form: one sparse matrix file and its mapped reader.
 //!
-//! A [`Knn`] table publishes as one [`crate::file::sprs`] file holding its
-//! [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`KnnArchive`] reopens the file over a
-//! whole-file mapping and validates the table invariants once, so later pipeline stages read the
-//! table without holding it on the heap.
+//! A [`Knn`] table with a zero initial row pointer publishes as one [`crate::file::sprs`] file
+//! holding its [`KnnMatrix`](super::table::KnnMatrix) verbatim. [`KnnArchive`] reopens the file
+//! over a whole-file mapping and validates the table invariants. Views borrow the mapped matrix
+//! regions without a heap copy.
 
 use core::{error::Error, fmt, marker::PhantomData};
 use std::io;
@@ -30,12 +30,14 @@ where
 
     /// Writes the table as a sparse matrix file.
     ///
-    /// Returns the SHA-256 of the written bytes: the identity the repository records for the
-    /// published file.
-    ///
     /// # Errors
     ///
     /// Returns an error when the underlying writer fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the matrix's first row pointer is nonzero. [`Knn::new`] accepts such
+    /// matrices, but the sparse-file writer requires an initial zero.
     fn write_into(&self, write: impl io::Write) -> io::Result<Sha256Digest> {
         let mut writer = Writer {
             accumulator: Sha256::new(),
@@ -43,8 +45,8 @@ where
         };
         write_matrix(&self.matrix(), &mut writer).map_err(|error| match error {
             WriteSprsError::Io(error) => error,
-            // A validated table is row-compressed, unsliced, and at
-            // least 2 x 2, so no non-IO write failure exists for it.
+            // validation establishes row-compressed storage and nonzero dimensions. The writer also
+            // requires an initial zero pointer, which Knn::new does not establish.
             error @ (WriteSprsError::Sliced | WriteSprsError::ZeroDimension { .. }) => {
                 unreachable!("a validated table is writable: {error}")
             }
@@ -93,10 +95,9 @@ impl Error for InvalidKnnFile {
 
 /// A published k-NN table opened over its mapped file.
 ///
-/// Construction checks the table invariants once, so an open table only serves valid views; the
-/// matrix regions stay in the page cache under memory pressure and off the heap. Each
-/// [`view`](Self::view) re-checks the compressed-row structure ([`SprsFile::matrix`]'s contract),
-/// so stages call it once and hold the view.
+/// Construction checks the table's domain and neighbour invariants. Each [`view`](Self::view)
+/// re-checks the compressed-row structure and value bit patterns under [`SprsFile::matrix`]'s
+/// contract. Reuse that borrowed view for repeated row access.
 #[derive(Debug)]
 pub(crate) struct KnnArchive<N> {
     file: SprsFile,
@@ -111,8 +112,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the file does not hold the table's matrix layout or the matrix
-    /// violates a [`Knn`] invariant.
+    /// Returns [`InvalidKnnFile`] for an incompatible matrix layout or a violated [`Knn`]
+    /// invariant.
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidKnnFile> {
         let matrix = file.matrix().map_err(InvalidKnnFile::Matrix)?;
         validate(matrix)?;
@@ -123,7 +124,12 @@ where
         })
     }
 
-    /// Borrows the validated table.
+    /// Borrows the table after rechecking its sparse structure and value bit patterns.
+    ///
+    /// # Complexity
+    ///
+    /// Each call takes O(rows + entries) time to validate the mapped regions. Reuse the resulting
+    /// view within an operation.
     #[must_use]
     pub(crate) fn view(&self) -> KnnView<'_, N> {
         let matrix = self

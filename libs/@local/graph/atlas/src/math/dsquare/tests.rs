@@ -9,15 +9,25 @@
 
 use super::{DCholeskyError, DSquareMatrix};
 
-/// A deterministic integer pattern in `[−5, 5]`.
+/// Returns a deterministic integer pattern in [−5, 5].
+///
+/// # Panics
+///
+/// Panics if `row * 31 + column * 17 + 5` overflows when overflow checks are enabled.
 fn pattern(row: usize, column: usize) -> f64 {
     ((row * 31 + column * 17 + 5) % 11) as f64 - 5.0
 }
 
-/// The exact entry `A[i][j] = Σ_k G[k][i]·G[k][j] + [i = j]·order` of `A = GᵀG + order·I`.
+/// Computes an entry of the fixture A = `GᵀG` + order · I.
 ///
-/// Every term is a small integer, so the sums stay far below 2⁵³ and the fixture is exactly
-/// reproducible. `GᵀG` is positive-semidefinite, so `λ_min ≥ order` and `λ_max ≤ trace(A)`.
+/// With G[k][i] given by [`pattern`], A[i][j] = Σₖ G[k][i] · G[k][j] + [i = j] · order. Products
+/// have magnitude at most 25. For the small orders used here, 26 · order < 2⁵³ bounds every
+/// intermediate integer, making the entry exact. For positive order, `GᵀG` is positive-semidefinite
+/// and gives λₘᵢₙ ≥ order and λₘₐₓ ≤ trace(A).
+///
+/// # Panics
+///
+/// Panics on index arithmetic overflow in [`pattern`] when overflow checks are enabled.
 fn fixture_entry(order: usize, row: usize, column: usize) -> f64 {
     let products: f64 = (0..order)
         .map(|index| pattern(index, row) * pattern(index, column))
@@ -30,7 +40,12 @@ fn fixture_entry(order: usize, row: usize, column: usize) -> f64 {
     }
 }
 
-/// The fixture `A = GᵀG + order·I`, written into the lower triangle only.
+/// Writes the fixture A = `GᵀG` + order · I into a matrix's lower triangle.
+///
+/// # Panics
+///
+/// Panics if [`DSquareMatrix::zeroed`] cannot represent the layout or [`fixture_entry`] overflows
+/// its index arithmetic.
 fn spd_fixture(order: usize) -> DSquareMatrix {
     let mut matrix = DSquareMatrix::zeroed(order);
     for row in 0..order {
@@ -42,9 +57,11 @@ fn spd_fixture(order: usize) -> DSquareMatrix {
     matrix
 }
 
-/// The orders the certificates cover: 1, 2, a padded stride (7), whole lanes (8), and four lanes
-/// with a tail (33). Block-boundary crossings are [`block_height_invariance`]'s subject, which
-/// drives the block height directly.
+/// Matrix orders covering minimal, padded-stride and whole-lane geometries.
+///
+/// Orders 7 and 33 require row padding. Order 8 occupies one full eight-lane group, while 33 has
+/// four groups and a one-component tail. [`miri::block_height_invariance`] varies the block height
+/// separately.
 const ORDERS: [usize; 5] = [1, 2, 7, 8, 33];
 
 #[test]
@@ -54,9 +71,10 @@ fn factor_times_its_transpose_recovers_the_lower_triangle() {
             .cholesky()
             .expect("the fixture is positive-definite");
 
-        // In IEEE arithmetic the factor satisfies A − L·Lᵀ = ΔA with
-        // |ΔA[i][j]| ≤ c·(order + 1)·ε·‖Lᵢ‖·‖Lⱼ‖, and ‖Lᵢ‖² = A[i][i], so the largest diagonal
-        // entry bounds every ‖Lᵢ‖·‖Lⱼ‖. Margin 8 absorbs the constant c.
+        // Cholesky reconstruction error scales with reduction length and products of row norms. For
+        // an exact factor, ‖Lᵢ‖² = A[i][i], making the largest diagonal a natural input scale. The
+        // test allows 8 · (order + 1) · ε times that scale for factorization and reconstruction
+        // rounding.
         let max_diagonal = (0..order)
             .map(|index| fixture_entry(order, index, index))
             .fold(0.0_f64, f64::max);
@@ -197,11 +215,11 @@ fn the_strict_upper_triangle_never_reaches_the_factor() {
     }
 }
 
-/// A 2 × 2 factorization whose every intermediate is exact.
+/// Checks the printed rows of an exactly factored 2 × 2 matrix.
 ///
-/// `A = [[4, 2], [2, 5]]` factors as `L = [[2, 0], [1, 2]]`: `√4`, `2/2`, and `√(5 − 1)` all
-/// land on representable integers. The `Debug` forms print the matrix's rows and the factor's
-/// lower triangle.
+/// A = [[4, 2], [2, 5]] factors as L = [[2, 0], [1, 2]]: √4, 2/2 and √(5 − 1) are all representable
+/// integers. The [`Debug`](core::fmt::Debug) forms print the matrix's rows and the factor's lower
+/// triangle.
 #[test]
 fn exact_factor_reports_its_order_and_debug_forms() {
     let mut matrix = DSquareMatrix::zeroed(2);
@@ -214,18 +232,11 @@ fn exact_factor_reports_its_order_and_debug_forms() {
     assert_eq!(format!("{factor:?}"), "[[2.0], [1.0, 2.0]]");
 }
 
-/// The derived block height splits a production-scale order into more than one block.
 #[test]
 fn block_rows_for_production_order() {
     assert!(super::block_rows_for(super::stride_for(200)).get() < 200);
 }
 
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here drives the dense square matrix through its row storage. That covers the
-/// alignment and offsets of the rows, the dot reductions, factor and solve, and the return of the
-/// buffer to its allocator on drop. The profile selects by module path, so moving a test in or out
-/// of this module is the whole edit.
 mod miri {
     use core::simd::f64x8;
 
@@ -247,10 +258,9 @@ mod miri {
             let mut solution: Vec<f64> = (0..order).map(|index| pattern(index, 3)).collect();
             factor.solve_in_place(&mut solution);
 
-            // Factor-and-substitute is backward stable: (A + ΔA)·x̂ = b with
-            // |ΔA[i][j]| ≤ c·order·ε·(max diagonal), so each residual component obeys
-            // |A·x̂ − b|ᵢ ≤ c·order·ε·(max diagonal)·Σⱼ|x̂ⱼ|. The residual recomputation below rounds
-            // at the same order. Margin 8 absorbs both constants.
+            // If (A + ΔA)·x̂ = b, then |A·x̂ − b|ᵢ ≤ Σⱼ |ΔA[i][j]| · |x̂ⱼ|. The test uses 8 · order ·
+            // ε · max diagonal as its entrywise error allowance and multiplies by Σⱼ |x̂ⱼ|. This
+            // scales the residual tolerance with both input magnitude and the computed solution.
             let max_diagonal = (0..order)
                 .map(|index| fixture_entry(order, index, index))
                 .fold(0.0_f64, f64::max);
@@ -270,12 +280,10 @@ mod miri {
         }
     }
 
-    /// The factor's bytes are identical at every block height.
+    /// Compares selected block heights against a single-block factorization.
     ///
-    /// Heights below the order make the panel pass cross block boundaries, and the derived height
-    /// at this order is the single-block path, so the sweep compares every crossing shape
-    /// against the unblocked reference. The order is small enough for Miri to interpret the
-    /// crossings.
+    /// The derived height at order 13 uses one block. Heights 1, 2, 3, 5 and 8 require panel
+    /// updates across block boundaries while retaining the arithmetic order within each entry.
     #[test]
     fn block_height_invariance() {
         const ORDER: usize = 13;
@@ -306,9 +314,8 @@ mod miri {
 
     #[test]
     fn both_dots_reduce_equal_inputs_to_identical_bits() {
-        // The operands come from two aligned matrix rows; the shifted copy hands the plain-slice
-        // dot a start the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and
-        // whole lanes.
+        // the shifted copy supplies a slice without the matrix row's alignment guarantee. Prefix
+        // lengths cover the empty, partial-lane and whole-lane paths.
         const ORDER: usize = 40;
         let mut storage = DSquareMatrix::zeroed(ORDER);
         for column in 0..ORDER {
@@ -339,10 +346,8 @@ mod miri {
 
     #[test]
     fn the_row_dot_and_dvecn_dot_reduce_equal_bytes_to_identical_bits() {
-        // The module doc ties the prefix dots to the fold shape of `DVecN::dot`; the test above and
-        // dvecn's aligned-reduction test guard each family internally, and this pins the families
-        // to each other. Length 29 makes three eight-lane folds - the interleave visits
-        // both accumulators, unevenly - and a five-component scalar tail.
+        // length 29 makes three eight-lane groups and a five-component tail. The interleaved fold
+        // updates accumulator zero twice and accumulator one once.
         const LENGTH: usize = 29;
         let mut storage = DSquareMatrix::zeroed(LENGTH);
         for column in 0..LENGTH {
@@ -435,7 +440,6 @@ mod miri {
         factor.solve_in_place(&mut []);
     }
 
-    /// Dropping a matrix returns its buffer to the allocator that provided it.
     #[test]
     fn matrix_drop_returns_the_buffer_to_its_allocator() {
         let alloc = CountingAllocator::new();
@@ -447,7 +451,6 @@ mod miri {
         assert_eq!(alloc.deallocations(), 1);
     }
 
-    /// The factorization moves the buffer, and dropping the factor returns it exactly once.
     #[test]
     fn factor_drop_returns_the_moved_buffer_to_its_allocator() {
         let alloc = CountingAllocator::new();

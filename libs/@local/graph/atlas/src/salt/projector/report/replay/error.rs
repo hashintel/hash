@@ -17,8 +17,8 @@ use crate::{
 pub(crate) enum ReplayError {
     /// A generation's coordinates were not placed by the trained projector.
     ///
-    /// A landmark-baseline generation publishes coordinates the projector never produced, so a
-    /// replay over it would attribute the baseline's behaviour to the projector.
+    /// A landmark-baseline generation publishes coordinates the projector never produced, and a
+    /// replay over it would therefore attribute the baseline's behaviour to the projector.
     NotProjectorPlaced {
         /// The generation whose placement disqualifies it.
         generation: GenerationId,
@@ -27,8 +27,8 @@ pub(crate) enum ReplayError {
     },
     /// The generations record different embedding contracts.
     ///
-    /// Representations produced under different contracts are not one input space, so a
-    /// cross-generation distance would compare incommensurable coordinates.
+    /// Representations produced under different contracts are not one input space, and a
+    /// cross-generation distance would therefore compare incommensurable coordinates.
     EmbedderMismatch {
         /// The generation named as earlier.
         earlier: GenerationId,
@@ -65,7 +65,7 @@ pub(crate) enum ReplayError {
         /// The read failure.
         source: io::Error,
     },
-    /// A generation records no temporal axes, so no transaction-time order can hold.
+    /// A generation records no temporal axes, and no transaction-time order can hold over it.
     UnrecordedTemporalAxes {
         /// The generation without recorded axes.
         generation: GenerationId,
@@ -193,7 +193,7 @@ pub(crate) enum ReplayError {
     /// A design's observation load exceeds the rank kernels' integer carriers.
     ///
     /// The worst-case rank penalties over this many observations would overflow the metric
-    /// aggregate's accumulation or readback arithmetic, so construction refuses the design
+    /// aggregate's accumulation or readback arithmetic. Construction therefore refuses the design
     /// before anything accumulates.
     AggregateCapacityExceeded {
         /// The comparison universe whose worst-case penalties overflow.

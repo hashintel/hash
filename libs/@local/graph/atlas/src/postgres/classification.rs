@@ -1,9 +1,9 @@
 //! The node-versus-link classification over requested identities, under the serving-time regime.
 //!
-//! The statement executes on its caller's own connection at axes taken at the call, so a
-//! verdict describes the store as it stands rather than as any fit observed it.
-//! [`Classification`] states the type law the verdict applies. Result identity keys each
-//! answer, and the caller counts the answers against its requests.
+//! The statement executes on its caller's own connection at axes taken at the call. A verdict
+//! describes the store as it stands rather than as any fit observed it. [`Classification`] states
+//! the type law the verdict applies. Result identity keys each answer, and the caller counts the
+//! answers against its requests.
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, CommonTableExpression, Expression, FromItem, Placeholder,
@@ -41,10 +41,10 @@ pub(crate) struct ClassificationColumns {
 
 /// The node-versus-link verdict for one resolved identity.
 ///
-/// The verdict applies the type law that also draws the corpus's node scope. An entity is a
-/// link exactly when its type closure reaches the link entity type, whatever edges it holds.
-/// Endpoints are entity identities, never resolved against any generation's rows, so the
-/// verdict holds for entities no generation has fitted.
+/// The verdict applies the type law that also draws the corpus's node scope. An entity is a link
+/// exactly when its type closure reaches the link entity type, whatever edges it holds. Endpoints
+/// are entity identities, never resolved against any generation's rows. The verdict holds for
+/// entities no generation has fitted.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Classification {
     /// A non-link entity.
@@ -60,11 +60,11 @@ pub(crate) enum Classification {
 
 /// Builds the classification lookup over the requested identities.
 ///
-/// The statement decides the node-versus-link split for every requested identity that resolves
-/// at the bound axes, and delivers a link's outgoing attachment endpoints in the same row. The
-/// endpoint joins are outer, so a link with an absent or incomplete attachment pair still
-/// answers, with its missing endpoints SQL NULL. The caller counts the answers against its
-/// requests. A missing row is an identity that is draft-only, archived, or absent at the axes.
+/// The statement decides the node-versus-link split for every requested identity that resolves at
+/// the bound axes, and delivers a link's outgoing attachment endpoints in the same row. The
+/// endpoint joins are outer. A link with an absent or incomplete attachment pair still answers,
+/// with its missing endpoints SQL NULL. The caller counts the answers against its requests. A
+/// missing row is an identity that is draft-only, archived, or absent at the axes.
 ///
 /// # SQL
 ///
@@ -163,12 +163,18 @@ pub(crate) fn classification_statement<'params>(
 }
 
 /// Decodes one classification row.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] when a selected column does not read back at the type
+/// the decode asks for. An endpoint half that is null is not a failure: the two halves are null
+/// together, and the pair collapses to no endpoint.
 pub(crate) fn decode_classification(
     row: &Row,
     columns: &ClassificationColumns,
 ) -> Result<(ArchivedEntityId, Classification), PostgresDatasetError> {
-    // Both columns of an endpoint come from one joined edge row, so they are null together and
-    // `zip` collapses exactly the no-edge case.
+    // Both columns of an endpoint come from one joined edge row. They are null together and `zip`
+    // collapses exactly the no-edge case.
     let endpoint = |web_id: usize, entity_uuid: usize| {
         let web_id: Option<Uuid> = row.try_get(web_id)?;
         let entity_uuid: Option<Uuid> = row.try_get(entity_uuid)?;
@@ -221,12 +227,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: both attachment edges join outer, so a link with an absent
-    /// or incomplete attachment pair still answers.
     #[test]
     fn statement_text() {
         let axes = TemporalAxes::now();

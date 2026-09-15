@@ -20,7 +20,7 @@
 //! the sorted training distances,
 //!
 //! ```text
-//! distance = √(mean(((e - mean) · inverse_scale)^2))
+//! distance = √(mean(((e - mean) · inverse_scale)²))
 //! applicability = 1 - lower_bound(training_distances, distance) / N.
 //! ```
 //!
@@ -29,10 +29,10 @@
 //! classifier's.
 //!
 //! [`fit()`] trains the model from a weighted soft-label corpus. Raw and calibrated posteriors stay
-//! separate in [`Prediction`], so a caller cannot apply calibration twice.
+//! separate in [`Prediction`], and a caller cannot apply calibration twice.
 //!
-//! Inputs are `f32` data widened to `f64` at the arithmetic seams ([`AlignedVecN::dot_wide`]);
-//! parameters and outputs live in `f64`.
+//! Inputs are `f32` data widened to `f64` at the arithmetic boundaries ([`AlignedVecN::dot_wide`]).
+//! Parameters and outputs live in `f64`.
 
 use core::{
     error::Error,
@@ -79,7 +79,7 @@ impl Error for PredictError {}
 
 /// The standardization the applicability distance measures under.
 ///
-/// `inverse_scales` components are positive; [`fit()`] and validated artifact reads are the
+/// `inverse_scales` components are positive. [`fit()`] and validated artifact reads are the
 /// construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Standardization {
@@ -88,10 +88,11 @@ pub(crate) struct Standardization {
 }
 
 impl Standardization {
-    /// Standardized diagonal-Mahalanobis distance of an embedding from the training distribution.
+    /// Computes an embedding's standardized distance from the training distribution.
     ///
-    /// Computes `√(mean(((e - mean) · inverse_scale)^2))`, accumulated in double precision over
-    /// two independent chains. Returns [`None`] when the reduction is not finite.
+    /// The distance is the diagonal Mahalanobis distance `√(mean(((e - mean) · inverse_scale)²))`,
+    /// accumulated in double precision over two independent chains. Returns [`None`] when the
+    /// reduction is not finite.
     fn distance(&self, embedding: &AlignedVecN<CANONICAL_DIMENSIONS>) -> Option<DNonNegative> {
         let (embedding, embedding_rest) = embedding.lanes();
         let (mean, mean_rest) = self.mean.lanes();
@@ -143,7 +144,7 @@ pub(crate) struct Prediction {
 
 /// The fitted policy classifier.
 ///
-/// Coefficient rows follow class order. All parameters are finite and the temperature is positive;
+/// Coefficient rows follow class order. All parameters are finite and the temperature is positive.
 /// [`fit()`] and validated artifact reads are the construction sites.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Classifier {
@@ -193,8 +194,8 @@ impl Classifier {
             .distances
             .partition_point(|training| *training < distance);
 
-        // `partition_point` keeps the insertion index at or below the length, so the ratio is a
-        // fraction by construction and only an empty distribution refuses.
+        // `partition_point` keeps the insertion index at or below the length. The ratio is
+        // therefore a fraction by construction, and only an empty distribution refuses.
         let applicability =
             UnitFraction::ratio(insertion as u64, self.applicability.distances.len() as u64)
                 .expect("a fitted classifier holds a nonempty training distance distribution")
