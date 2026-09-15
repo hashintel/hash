@@ -29,6 +29,10 @@ import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { HorizontalTabsHeader } from "../../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
+import {
+  ExperimentCard,
+  type AiExperimentState,
+} from "./ai-assistant-contents/experiment-card";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -66,6 +70,8 @@ export type AiAssistantContentsProps = {
   composerControl?: ReactNode;
   composerFocusRequest?: number;
   error?: Error;
+  experimentStates?: Record<string, AiExperimentState>;
+  onCancelExperiment?: (toolCallId: string) => void;
   input: string;
   inputMode?: PetrinautAiInputMode;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
@@ -453,10 +459,14 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
+    experimentStates,
+    onCancelExperiment,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
+    experimentStates?: Record<string, AiExperimentState>;
+    onCancelExperiment?: (toolCallId: string) => void;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(message, interactiveTools);
@@ -496,6 +506,15 @@ const AiAssistantMessage = memo(
                   part={item.part}
                 />
               );
+            case "experiment":
+              return (
+                <ExperimentCard
+                  key={item.key}
+                  part={item.part}
+                  state={experimentStates?.[item.part.toolCallId]}
+                  onCancel={onCancelExperiment}
+                />
+              );
             case "tools":
               return (
                 <AiAssistantToolList
@@ -529,6 +548,8 @@ AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
   additionalTab,
+  experimentStates,
+  onCancelExperiment,
   clearMessagesDisabled = false,
   composerControl,
   composerFocusRequest = 0,
@@ -914,6 +935,8 @@ export const AiAssistantContents = ({
               key={message.id}
               message={message}
               handlersRef={handlersRef}
+              experimentStates={experimentStates}
+              onCancelExperiment={onCancelExperiment}
             />
           ))}
           {stopped && !error && !messages.at(-1)?.metadata?.stopped && (

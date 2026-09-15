@@ -56,7 +56,9 @@ describe("formatDiagnosticsForAi", () => {
         definition,
         diagnosticsByUri: new Map(),
       }),
-    ).toBe("No errors or warnings found in net function code.");
+    ).toBe(
+      "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
+    );
   });
 
   test("formats transition and differential-equation diagnostics", () => {

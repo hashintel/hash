@@ -202,6 +202,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   createPetrinautAiWritableCallbacks,
+  createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -234,6 +235,15 @@ export type {
   PetrinautAiTools,
   PetrinautDocName,
 } from "./ai";
+
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
+} from "./experiments";
 
 // --- Simulation ---
 export {

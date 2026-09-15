@@ -389,6 +389,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
           experimentId: sweep.experimentId,
           axes: sweep.axes,
           metricId: sweep.metricId,
+          refineOnSettle: sweep.refineOnSettle,
           navigateSweep: (experimentId, selection, navigateOptions) =>
             experimentsActionsRef.current.navigateSweep(
               experimentId,

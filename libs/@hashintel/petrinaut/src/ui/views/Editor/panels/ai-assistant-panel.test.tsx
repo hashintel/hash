@@ -16,6 +16,9 @@ import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   createJsonDocHandle,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
   createPetrinaut,
   getLatestNetDefinitionToolName,
   setNetTitleToolName,
@@ -26,6 +29,7 @@ import {
   type ErrorTracker,
   ErrorTrackerContext,
 } from "../../../../react/error-tracker-context";
+import { ExperimentHostContext } from "../../../../react/experiment-host/context";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -237,6 +241,7 @@ const renderTestPanel = ({
     total: 0,
     errorCount: 0,
   }),
+  experimentHost,
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
@@ -248,6 +253,7 @@ const renderTestPanel = ({
   strictMode?: boolean;
   titleEditable?: boolean;
   requestDiagnostics?: LanguageClientContextValue["requestDiagnostics"];
+  experimentHost?: PetrinautExperimentHost;
 }) => {
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
@@ -277,20 +283,29 @@ const renderTestPanel = ({
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <ErrorTrackerContext.Provider value={errorTracker}>
-        <NotificationsProvider>
-          <EditorContext.Provider value={nextEditorContext}>
-            <SDCPNContext.Provider value={sdcpnContext}>
-              <AiAssistantPanel
-                aiAssistant={nextAiAssistant}
-                initialInteractionMode={nextInitialInteractionMode}
-                initialMessage={nextInitialMessage}
-                onInitialInteractionModeConsumed={
-                  onInitialInteractionModeConsumed
-                }
-              />
-            </SDCPNContext.Provider>
-          </EditorContext.Provider>
-        </NotificationsProvider>
+        <ExperimentHostContext
+          value={
+            experimentHost ?? {
+              runExperiment: () =>
+                Promise.reject(new Error("Experiment host unavailable")),
+            }
+          }
+        >
+          <NotificationsProvider>
+            <EditorContext.Provider value={nextEditorContext}>
+              <SDCPNContext.Provider value={sdcpnContext}>
+                <AiAssistantPanel
+                  aiAssistant={nextAiAssistant}
+                  initialInteractionMode={nextInitialInteractionMode}
+                  initialMessage={nextInitialMessage}
+                  onInitialInteractionModeConsumed={
+                    onInitialInteractionModeConsumed
+                  }
+                />
+              </SDCPNContext.Provider>
+            </EditorContext.Provider>
+          </NotificationsProvider>
+        </ExperimentHostContext>
       </ErrorTrackerContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
@@ -5366,5 +5381,309 @@ describe("AiAssistantPanel host interactive tools", () => {
     } finally {
       instance.dispose();
     }
+  });
+});
+
+describe("AI experiment requests", () => {
+  const request: PetrinautExperimentRequest = {
+    name: "Chat experiment",
+    scenarioId: "scenario-1",
+    scenarioParameterValues: {},
+    runCount: 8,
+    seed: 42,
+    dt: 0.1,
+    maxTime: 10,
+    metricIds: ["metric-1"],
+    execution: { mode: "simulate" },
+  };
+  const result: PetrinautExperimentResult = {
+    status: "complete",
+    experimentId: "experiment-1",
+    name: request.name,
+    runsCompleted: 8,
+    metrics: [{ id: "metric-1", label: "Count", value: 12 }],
+  };
+  const createTransport = () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    sendMessages.mockImplementationOnce(async () =>
+      streamChunks([
+        { type: "start-step" },
+        {
+          type: "tool-input-available",
+          toolCallId: "experiment-call",
+          toolName: "createExperiment",
+          input: request,
+        },
+        { type: "finish-step" },
+        { type: "finish", finishReason: "tool-calls" },
+      ]),
+    );
+    sendMessages.mockImplementation(async () =>
+      streamChunks(textChunks("done", "Result received")),
+    );
+    return {
+      transport: { reconnectToStream: async () => null, sendMessages },
+      sendMessages,
+    };
+  };
+
+  test("shows progress and sends exactly one captured result after completion", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (input, options) => {
+        options?.onProgress?.({
+          experimentId: "experiment-1",
+          name: input.name,
+          phase: "running",
+          runsCompleted: 3,
+          runsTarget: 8,
+        });
+        return completion.promise;
+      },
+    );
+    const { transport, sendMessages } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run an experiment",
+      experimentHost: { runExperiment: createExperiment },
+    });
+
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("3 of 8 runs")).not.toBeNull(),
+    );
+    expect(sendMessages).toHaveBeenCalledTimes(1);
+    await act(async () => completion.resolve(result));
+    await screen.findByText("Result received");
+    expect(within(card).getByText("Finished")).not.toBeNull();
+    expect(within(card).getByText("Count")).not.toBeNull();
+    expect(within(card).getByText("12")).not.toBeNull();
+    expect(sendMessages).toHaveBeenCalledTimes(2);
+    expect(
+      sendMessages.mock.calls[1]?.[0].messages.flatMap(
+        (message) => message.parts,
+      ),
+    ).toContainEqual(
+      expect.objectContaining({
+        type: "tool-createExperiment",
+        output: result,
+      }),
+    );
+  });
+
+  test("cancels browser computation through the experiment card", async () => {
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (input, options) =>
+        new Promise((resolve) => {
+          options?.onProgress?.({
+            experimentId: "experiment-1",
+            name: input.name,
+            phase: "running",
+            runsCompleted: 0,
+            runsTarget: 8,
+          });
+          options?.signal?.addEventListener("abort", () =>
+            resolve({
+              ...result,
+              status: "cancelled",
+              runsCompleted: 0,
+              metrics: [],
+            }),
+          );
+        }),
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run an experiment",
+      experimentHost: { runExperiment: createExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    expect(createExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+
+  test("shows observed experiment requests without claiming local execution", async () => {
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>();
+    const { transport, sendMessages } = createTransport();
+    renderTestPanel({
+      aiAssistant: {
+        transport,
+        followMessages: { canReplace: () => true },
+        messages: [
+          {
+            id: "observed-experiment",
+            role: "assistant",
+            parts: [
+              {
+                type: "tool-createExperiment",
+                toolCallId: "observed-call",
+                state: "input-available",
+                input: request,
+              },
+            ],
+          },
+        ],
+      },
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await act(async () => {});
+    expect(within(card).getByText("Not running")).not.toBeNull();
+    expect(within(card).queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect(card.getAttribute("aria-busy")).toBe("false");
+    expect(runExperiment).not.toHaveBeenCalled();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
+  test("allows cancellation during validation before the host reports progress", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      (_input, options) => {
+        options?.signal?.addEventListener("abort", () =>
+          completion.resolve({
+            ...result,
+            status: "cancelled",
+            experimentId: null,
+            runsCompleted: 0,
+            metrics: [],
+          }),
+        );
+        return completion.promise;
+      },
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run",
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("Validating")).not.toBeNull(),
+    );
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    expect(runExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+
+  test("clears active experiment indicators if the host rejects", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const { transport } = createTransport();
+    renderTestPanel({
+      aiAssistant: { transport },
+      initialMessage: "Run",
+      experimentHost: { runExperiment },
+    });
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Chat experiment",
+    });
+    await waitFor(() =>
+      expect(within(card).getByText("Validating")).not.toBeNull(),
+    );
+    await act(async () => completion.reject(new Error("Host failed")));
+    await waitFor(() => expect(card.getAttribute("aria-busy")).toBe("false"));
+    expect(within(card).queryByRole("button", { name: "Cancel" })).toBeNull();
+  });
+
+  test("ignores a late experiment from a replaced conversation with the same tool ID", async () => {
+    const previous = Promise.withResolvers<PetrinautExperimentResult>();
+    const current = Promise.withResolvers<PetrinautExperimentResult>();
+    const createExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>();
+    createExperiment.mockImplementationOnce(() => previous.promise);
+    createExperiment.mockImplementationOnce((input, options) => {
+      options?.onProgress?.({
+        experimentId: "experiment-2",
+        name: input.name,
+        phase: "running",
+        runsCompleted: 3,
+        runsTarget: 8,
+      });
+      options?.signal?.addEventListener("abort", () =>
+        current.resolve({
+          ...result,
+          experimentId: "experiment-2",
+          name: input.name,
+          status: "cancelled",
+          runsCompleted: 3,
+          metrics: [],
+        }),
+      );
+      return current.promise;
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(async () =>
+      streamChunks(textChunks("result", "Result received")),
+    );
+    const config = (conversationId: string): PetrinautAiAssistant => ({
+      conversationId,
+      transport: { reconnectToStream: async () => null, sendMessages },
+      messages: [
+        {
+          id: `${conversationId}-request`,
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-createExperiment",
+              toolCallId: "reused-experiment-call",
+              state: "input-available",
+              input: { ...request, name: conversationId },
+            },
+          ],
+        },
+      ],
+    });
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: config("Previous experiment"),
+      experimentHost: { runExperiment: createExperiment },
+    });
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    rerenderPanel(config("Current experiment"));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledTimes(2));
+    expect(createExperiment.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    const card = await screen.findByRole("region", {
+      name: "Experiment: Current experiment",
+    });
+
+    await act(async () => {
+      createExperiment.mock.calls[0]?.[1]?.onProgress?.({
+        experimentId: "experiment-1",
+        name: "Previous experiment",
+        phase: "running",
+        runsCompleted: 7,
+        runsTarget: 8,
+      });
+      previous.resolve({ ...result, name: "Previous experiment" });
+      await previous.promise;
+    });
+    expect(within(card).getByText("3 of 8 runs")).not.toBeNull();
+    expect(within(card).queryByText("Finished")).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Experiment: Previous experiment" }),
+    ).toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    fireEvent.click(within(card).getByRole("button", { name: "Cancel" }));
+    expect(createExperiment.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
+    await waitFor(() =>
+      expect(within(card).getByText("Cancelled")).not.toBeNull(),
+    );
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledOnce());
   });
 });

@@ -301,7 +301,7 @@ try {
       save("compilation", result);
       assert.equal(
         result.output,
-        "No errors or warnings found in net function code.",
+        "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
       );
       return text("Native creation and canonical check completed.");
     }),
@@ -504,7 +504,8 @@ try {
     requests: contexts.length,
     applied: records.length,
     schemaClasses: observedNodeMutationNames,
-    compilation: "No errors or warnings found in net function code.",
+    compilation:
+      "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.",
     scope:
       "Same-session synthetic creation/correction only; reopen assertion follows.",
   });
