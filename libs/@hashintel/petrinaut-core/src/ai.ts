@@ -9,7 +9,7 @@ import {
   type AiCommandActionName,
 } from "./command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
-import { petrinautExperimentRequestSchema } from "./experiments";
+import { petrinautExperimentRequestSchema } from "./experiments/host";
 import { typedKeys } from "./lib/typed-entries";
 
 import type { Petrinaut } from "./instance";
