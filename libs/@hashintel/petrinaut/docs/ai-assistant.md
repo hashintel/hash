@@ -15,7 +15,7 @@ The assistant stays available across **Edit**, **Simulate**, **Actual**, and **N
 
 ### Docking and floating
 
-The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. The sidebar slides in at its full width while the canvas makes room. Closing it returns that space to the canvas.
+The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. Its left divider and resize highlight span the full panel height. The sidebar slides in at its full width while the canvas makes room. Closing it returns that space to the canvas.
 
 The bottom toolbar stays centered on the editor when the docked assistant opens, moving only as far as needed to avoid overlapping the panels.
 

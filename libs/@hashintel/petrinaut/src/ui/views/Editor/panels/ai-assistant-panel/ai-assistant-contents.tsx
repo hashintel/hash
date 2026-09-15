@@ -189,7 +189,7 @@ const cardStyle = cva({
     height: "full",
     overflow: "hidden",
     backgroundColor: "neutral.s00",
-    borderLeft: "[1px solid {colors.neutral.bd.subtle}]",
+    borderLeft: "[1px solid {colors.neutral.s40}]",
     borderRadius: "[0]",
     '&[data-animating="true"]': {
       transition:
@@ -957,7 +957,7 @@ export const AiAssistantContents = ({
           >
             <ResizeHandle
               edge="left"
-              appearance="line"
+              appearance="hidden"
               size={assistantWidth}
               onResize={setAssistantWidth}
               minSize={320}
