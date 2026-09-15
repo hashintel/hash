@@ -1,4 +1,5 @@
 //! Publication and acquisition cases against real S3 object storage.
+#![expect(clippy::significant_drop_tightening, reason = "test cases")]
 
 use alloc::collections::BTreeSet;
 use core::assert_matches;

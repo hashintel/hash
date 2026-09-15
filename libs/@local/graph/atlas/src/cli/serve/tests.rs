@@ -1,4 +1,5 @@
 //! Request-layer ordering and background-task selection for the serving command.
+#![expect(clippy::significant_drop_tightening, reason = "test cases")]
 
 use alloc::{rc::Rc, sync::Arc};
 use core::{
