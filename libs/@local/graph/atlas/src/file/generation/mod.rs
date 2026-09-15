@@ -201,7 +201,7 @@ impl GenerationRoot {
     ///
     /// Returns an error when locking the root fails, this root has not published the generation, or
     /// replacing the pointer fails.
-    #[tracing::instrument(skip_all, err, fields(generation = %id))]
+    #[tracing::instrument(skip_all, fields(generation = %id), err)]
     pub(crate) fn activate(&self, id: GenerationId) -> Result<(), ActivateError> {
         let _lock = self.lock()?;
         if !self.generation_path(id).is_dir() {
@@ -226,7 +226,7 @@ impl GenerationRoot {
     /// # Complexity
     ///
     /// Reads every artifact in full while excluding other root mutations.
-    #[tracing::instrument(skip_all, err, fields(generation = %id))]
+    #[tracing::instrument(skip_all, fields(generation = %id))]
     pub(crate) fn activate_verified(&self, id: GenerationId) -> Result<(), ActivateError> {
         let _lock = self.lock()?;
         match fs::metadata(self.generation_path(id)) {
