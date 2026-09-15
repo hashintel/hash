@@ -50,6 +50,17 @@ export const FullExamplePage = ({
   const handle = getReadonlyExampleHandle(example);
   const navigation = useSharedSearchNavigation(search, onSearchChange);
 
+  const forkLocalCopy = () => {
+    try {
+      onFork();
+      setForkError(null);
+    } catch {
+      setForkError(
+        "Your browser couldn't save a copy. Free up browser storage and try again.",
+      );
+    }
+  };
+
   useEffect(() => {
     const previousTitle = document.title;
     document.title = `${example.catalog.title} · Petrinaut`;
@@ -97,22 +108,10 @@ export const FullExamplePage = ({
         navigation={navigation}
         presentationProfile="review"
         readonly
+        readOnlyAction={{ label: "Make a local copy", onClick: forkLocalCopy }}
         slots={{
           topBarEnd: (
-            <Button
-              size="xs"
-              variant="subtle"
-              onClick={() => {
-                try {
-                  onFork();
-                  setForkError(null);
-                } catch {
-                  setForkError(
-                    "Your browser couldn't save a copy. Free up browser storage and try again.",
-                  );
-                }
-              }}
-            >
+            <Button size="xs" variant="subtle" onClick={forkLocalCopy}>
               Make a local copy
             </Button>
           ),
