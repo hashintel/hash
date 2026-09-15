@@ -589,7 +589,7 @@ export const MultipleVoiceIssues: Story = {
         phase: "error",
         errorMessage:
           "Voice connection interrupted. Check your connection before reconnecting.",
-        notice:
+        warningMessage:
           "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
       })}
     />
@@ -605,7 +605,7 @@ export const CollapsedVoiceIssues: Story = {
         phase: "error",
         errorMessage:
           "Voice connection interrupted. Check your connection before reconnecting.",
-        notice:
+        warningMessage:
           "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
       })}
     />
