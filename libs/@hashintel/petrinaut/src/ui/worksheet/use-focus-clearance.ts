@@ -72,6 +72,9 @@ export function nudgeIntoClearance(
   target: HTMLElement,
   margin: number = FOCUS_CLEARANCE_PX,
 ): void {
+  if (target.closest('[data-focus-clearance="none"]')) {
+    return;
+  }
   let rect = target.getBoundingClientRect();
   for (
     let node = target.parentElement;

@@ -22,8 +22,12 @@ import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
+  FormSectionHeader,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { OverlayScrollArea } from "../../../../../components/overlay-scroll-area";
 import { Section } from "../../../../../components/section";
+import { StackedSections } from "../../../../../components/stacked-sections";
+import { scenarioExpressions } from "../../../../shared/scenario-expressions";
 import { scenarioRunInputs } from "./experiment-scenario-inputs";
 
 import type { ExperimentParameterInput } from "../../../../../../react/experiments/parameter-grid";
@@ -40,41 +44,17 @@ const emptyMessageStyle = css({
   color: "neutral.s80",
 });
 
-const groupTitleStyle = css({
-  fontSize: "xs",
-  fontWeight: "semibold",
-  textTransform: "uppercase",
-  letterSpacing: "wide",
-  color: "neutral.s80",
-});
+const groupStyle = css({ display: "contents" });
 
-const groupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1.5",
-});
-
-// The computed state is a preview, not part of the form: a net with many
-// places (or a coloured place with many token rows) would otherwise push
-// Metrics and the drawer's own footer out of view. Parameters and initial
-// state share one bounded region and scroll together, tinted so the preview
-// reads as a panel the form writes into rather than more form. The left
-// padding covers the 20px the place headers hang their chevron into, plus a
-// gutter, so the hang is not clipped by the region's own overflow.
 const computedStatePreviewStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
   maxHeight: "[320px]",
-  overflowY: "auto",
-  backgroundColor: "neutral.s20",
+  backgroundColor: "neutral.s00",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
   borderRadius: "md",
-  paddingY: "2",
-  paddingRight: "2",
-  paddingLeft: "[28px]",
 });
 
 const noticeStyle = css({
@@ -286,7 +266,13 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
       context={context}
       selection={selection}
       mode="run"
-      renderLayout={({ variables, parameters, places }) => (
+      expressionFor={scenarioExpressions(scenario, context)}
+      renderLayout={({
+        variables,
+        parameters,
+        places,
+        placesVisibilityControl,
+      }) => (
         <FormLayoutColumn>
           {exposesParameters ? (
             variables
@@ -307,18 +293,25 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
               <div className={noticeStyle}>{computed.notice}</div>
             )}
             {computed?.ready ? (
-              <div className={computedStatePreviewStyle}>
-                <div className={groupStyle}>
-                  <div className={groupTitleStyle}>Parameters</div>
-                  {parameters ?? (
-                    <div className={emptyMessageStyle}>No parameters</div>
-                  )}
-                </div>
-                <div className={groupStyle}>
-                  <div className={groupTitleStyle}>Initial state</div>
-                  {places}
-                </div>
-              </div>
+              <OverlayScrollArea
+                className={computedStatePreviewStyle}
+                viewportClassName={css({ padding: "3" })}
+              >
+                <StackedSections>
+                  <div className={groupStyle}>
+                    <FormSectionHeader title="Parameters" />
+                    {parameters ?? (
+                      <div className={emptyMessageStyle}>No parameters</div>
+                    )}
+                  </div>
+                  <div className={groupStyle}>
+                    <FormSectionHeader title="Initial state" spaceBefore>
+                      {placesVisibilityControl}
+                    </FormSectionHeader>
+                    {places}
+                  </div>
+                </StackedSections>
+              </OverlayScrollArea>
             ) : null}
           </Section>
         </FormLayoutColumn>
