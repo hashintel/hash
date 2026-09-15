@@ -16,10 +16,13 @@ The command uses the app's normal development configuration: `apps/brunch-agent/
 ```sh
 yarn brunch:persona --case inventory-purchasing \
   --brunch-model openai/gpt-5.6-sol --brunch-thinking low \
-  --persona-model anthropic/claude-sonnet-4-6 --persona-thinking medium
+  --persona-model anthropic/claude-sonnet-4-6 --persona-thinking medium \
+  --persona-verbosity terse --persona-disclosure reticent
 ```
 
-`--help` lists every flag. Each role requires its selected provider's API key: `OPENAI_API_KEY` for OpenAI and `ANTHROPIC_API_KEY` for Anthropic. The defaults therefore require both; an all-OpenAI run does not require Anthropic credentials. The launcher transfers the selected persona credential privately to its Pi pane. Paid runs still require owner authorization under the current [mission](../../../../../libs/@hashintel/brunch-agent/MISSION.md) and [execution safety](../../../../../libs/@hashintel/brunch-agent/evaluations/README.md#execution-safety); the existence of this command grants none.
+`--persona-verbosity` accepts `terse`, `default`, or `expansive`; `--persona-disclosure` accepts `reticent`, `default`, or `forthcoming`. Each non-default setting overrides only that axis in the situation pack. The default leaves the pack's axis unchanged. Verbosity controls answer length and response effort; disclosure controls how readily relevant knowledge is volunteered. Neither changes the person's other traits, reveals private material, merges the actor with the elicitor, or asks the actor to help the interview succeed. Reticence is not hostility, feigned ignorance, or permission to withhold a directly requested answer.
+
+`--help` lists every flag and exact literal. Each role requires its selected provider's API key: `OPENAI_API_KEY` for OpenAI and `ANTHROPIC_API_KEY` for Anthropic. The defaults therefore require both; an all-OpenAI run does not require Anthropic credentials. The launcher transfers the selected persona credential privately to its Pi pane. Paid runs still require owner authorization under the current [mission](../../../../../libs/@hashintel/brunch-agent/MISSION.md) and [execution safety](../../../../../libs/@hashintel/brunch-agent/evaluations/README.md#execution-safety); the existence of this command grants none.
 
 **Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. Pi uses its native provider. There are no request reservations, budget/unknown-usage refusals, or `--budget-usd` / `--accept-unknown` flags. Usage remains observational in the native records below; missing usage is not zero cost. There is no fixed turn-count limit. Use Ctrl-C to stop the run.
 
@@ -30,7 +33,7 @@ yarn brunch:persona --case inventory-purchasing \
 - `situation-pack.md`: private actor background, including the person, operational knowledge and interaction posture.
 - `opening-message.md`: public first utterance. The launcher sends the text below the first standalone `---` separator, or the entire file if there is no separator. Put any private operator preamble above that separator.
 
-Other files, including reference nets and answer keys, are not loaded. Keep them evaluator-side. An optional `--objective "…"` sets a private run objective without editing the pack; otherwise the actor pursues the person's goal through interview, model review, why questions and a correction, stopping when satisfied or blocked. For a smaller probe, name one incident and its desired outcome rather than requesting exhaustive pack acquisition.
+Other files, including reference nets and answer keys, are not loaded. Keep them evaluator-side. An optional `--objective "…"` sets a private fresh-run objective without editing the pack; otherwise the actor pursues the person's goal through interview, model review, why questions and a correction, stopping when satisfied or blocked. The flag is fresh-run-only: its value is neither retained in `run.json` nor reapplied by the launcher on resume. For a smaller probe, name one incident and its desired outcome rather than requesting exhaustive pack acquisition.
 
 ```sh
 yarn brunch:persona --case ./path/to/context-pack --objective "Resolve the delayed delivery incident and review the resulting model."
@@ -78,7 +81,7 @@ A failed or indeterminate bridge turn stops the persona without replay. Cancella
 
 ### Resume the original run
 
-Use `yarn brunch:persona --resume <absolute-run-directory>` with the original `BRUNCH_PANEL_PORT` and an unused `BRUNCH_CHAT_PORT`. The launcher prints the absolute run path; relative paths resolve from the invoking directory. Resume reuses the saved Chrome profile, database and exact Pi session; it does not replay the opening or import a snapshot. Fresh-run options are rejected. Old accounting fields and ledgers are preserved as historical evidence but neither read nor changed to permit continuation.
+Use `yarn brunch:persona --resume <absolute-run-directory>` with the original `BRUNCH_PANEL_PORT` and an unused `BRUNCH_CHAT_PORT`. The launcher prints the absolute run path; relative paths resolve from the invoking directory. Resume reuses the saved Chrome profile, database, exact Pi session, and effective verbosity/disclosure settings; it does not replay the opening or import a snapshot. Fresh-run options, including `--objective` and fresh axis flags, are rejected rather than replacing retained settings. The launcher neither retains nor reapplies an objective on resume. Legacy runs without axis fields resume with both axes at `default`. Old accounting fields and ledgers are preserved as historical evidence but neither read nor changed to permit continuation.
 
 The panel opens first and the launcher waits for recording readiness **before starting backend recovery or Pi**. Until Enter, the conversation/workpiece may be unavailable because the backend is stopped. After Enter, Flue settles the prior admitted submission; the launcher checks it against Pi's last utterance and refuses mismatches or unanswered browser calls. Pi receives a private reconciliation notice, then authors its next ordinary utterance from the original history. The interrupted utterance is never resent. Missing original stores or ambiguous Pi sessions require operator investigation, not a new identity or automatic replay.
 
@@ -86,7 +89,7 @@ The panel opens first and the launcher waits for recording readiness **before st
 
 Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-runs/`:
 
-- `run.json`: case/configuration paths, effective Brunch and persona model/effort settings, private socket path and owned process/pane identifiers; no credentials. Resume of older Sonnet-only runs still reads the legacy `model` field.
+- `run.json`: case/configuration paths, effective Brunch and persona model/effort settings, effective `personaVerbosity` and `personaDisclosure`, private socket path and owned process/pane identifiers; no credentials. Resume of older Sonnet-only runs still reads the legacy `model` field, and runs without persona axis fields use `default` for both.
 - `configuration-preflight.json`: request-free Brunch configuration checks. The launcher separately checks Pi's isolated configuration before startup.
 - `conversation.db` and adjacent capture files: this run's original local conversation/workpiece stores, retained for original-session reopening. Flue's canonical `assistant_message_completed` records retain provider usage and cost estimates in the conversation stream tables; the projected `evidence/snapshot.json` omits that usage.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.

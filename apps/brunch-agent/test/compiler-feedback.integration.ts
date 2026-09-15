@@ -335,9 +335,10 @@ try {
   );
   await composer.press("Enter");
   try {
-    const runningDiagnostics = page
-      .getByRole("button")
-      .filter({ hasText: /read_petrinaut_diagnostics.*Running…/su });
+    const runningDiagnostics = page.getByRole("button", {
+      name: "Checking model diagnostics",
+      exact: true,
+    });
     await runningDiagnostics.waitFor({ timeout: 30_000 });
     assert.equal(await runningDiagnostics.getAttribute("aria-busy"), "true");
     await page.screenshot({ path: join(output, "tool-running.png") });

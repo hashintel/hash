@@ -26,7 +26,6 @@ import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
-  type Petrinaut,
   type PetrinautAiMutationToolName,
   readPetrinautDocToolInputSchema,
   readPetrinautDocToolName,
@@ -81,6 +80,7 @@ import type {
   PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
+import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
 export type {
@@ -464,25 +464,37 @@ export const addMappedToolOutput = async ({
 
 const applyPetrinautAiCommand = async ({
   aiToolCall,
-  instance,
+  applyAutoLayoutAndFrame,
 }: {
   aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
-  instance: Petrinaut;
+  applyAutoLayoutAndFrame: () => Promise<{
+    commitCount: number;
+    frameStatus: FrameSceneResult;
+  }>;
 }): Promise<AiToolOutput> => {
   // Exhaustive switch over AiCommandActionName — extending the AI command
   // surface will surface a TypeScript error here until the new case is added.
   switch (aiToolCall.toolName) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case "applyAutoLayout": {
-      const { commitCount } = await instance.commands.applyAutoLayout();
+      const { commitCount } = await applyAutoLayoutAndFrame();
       return toPetrinautAiToolOutput(summarizeApplyAutoLayout({ commitCount }));
+    }
+    default: {
+      const unhandledToolName: never = aiToolCall.toolName;
+      return unhandledToolName;
     }
   }
 };
 
 interface AiAssistantPanelProps {
   aiAssistant: PetrinautAiAssistant;
+  applyAutoLayoutAndFrame?: () => Promise<{
+    commitCount: number;
+    frameStatus: FrameSceneResult;
+  }>;
   focusRequest?: number;
+  frameSceneAfterRender?: () => Promise<FrameSceneResult>;
   initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   offerStartPosture?: boolean;
@@ -492,7 +504,9 @@ interface AiAssistantPanelProps {
 
 const ConversationAiAssistantPanel = ({
   aiAssistant,
+  applyAutoLayoutAndFrame,
   focusRequest = 0,
+  frameSceneAfterRender,
   initialInteractionMode,
   initialMessage,
   offerStartPosture = false,
@@ -912,6 +926,10 @@ const ConversationAiAssistantPanel = ({
               commands: instance.commands,
               handle: instance.handle,
               readDiagnosticsContext,
+              viewport: {
+                frameSceneAfterRender: () =>
+                  frameSceneAfterRender?.() ?? Promise.resolve("no-renderer"),
+              },
               toolCallId: toolCall.toolCallId,
               signal: abortController.signal,
             }),
@@ -1125,7 +1143,12 @@ const ConversationAiAssistantPanel = ({
 
       const output = await applyPetrinautAiCommand({
         aiToolCall,
-        instance,
+        applyAutoLayoutAndFrame:
+          applyAutoLayoutAndFrame ??
+          (async () => {
+            const { commitCount } = await instance.commands.applyAutoLayout();
+            return { commitCount, frameStatus: "no-renderer" };
+          }),
       });
       await addAutomaticToolOutput({
         tool: toolName,
@@ -1389,6 +1412,84 @@ const ConversationAiAssistantPanel = ({
       : continuationPending && chatStatus === "ready"
         ? "submitted"
         : chatStatus;
+  const [hostTabSelected, setHostTabSelected] = useState(false);
+  const [hostAttentionCount, setHostAttentionCount] = useState(0);
+  const [primaryAttention, setPrimaryAttention] = useState(false);
+  const [attentionAnnouncement, setAttentionAnnouncement] = useState("");
+  const seenHostActivityRef = useRef<Set<string> | undefined>(undefined);
+  const conversationWasBusyRef = useRef(false);
+  const hostActivityIdentities = aiAssistant.additionalTab?.activityIdentities;
+
+  useEffect(() => {
+    if (hostActivityIdentities === undefined) {
+      return;
+    }
+    const currentIdentities = new Set(
+      hostActivityIdentities.map(
+        (identity) => `${typeof identity}:${String(identity)}`,
+      ),
+    );
+    const previousIdentities = seenHostActivityRef.current;
+    if (previousIdentities === undefined) {
+      seenHostActivityRef.current = currentIdentities;
+      return;
+    }
+
+    let additions = 0;
+    for (const identity of currentIdentities) {
+      if (!previousIdentities.has(identity)) {
+        additions += 1;
+        previousIdentities.add(identity);
+      }
+    }
+    if (additions === 0 || (isAiAssistantOpen && hostTabSelected)) {
+      return;
+    }
+    const nextAttentionCount = hostAttentionCount + additions;
+    setHostAttentionCount(nextAttentionCount);
+    setAttentionAnnouncement(
+      `${nextAttentionCount} unseen ${aiAssistant.additionalTab?.label ?? "tab"} update${nextAttentionCount === 1 ? "" : "s"}`,
+    );
+  }, [
+    aiAssistant.additionalTab?.label,
+    hostActivityIdentities,
+    hostAttentionCount,
+    hostTabSelected,
+    isAiAssistantOpen,
+  ]);
+
+  useEffect(() => {
+    if (isAiAssistantOpen && hostTabSelected) {
+      setHostAttentionCount(0);
+    }
+    if (isAiAssistantOpen && !hostTabSelected) {
+      setPrimaryAttention(false);
+    }
+  }, [hostTabSelected, isAiAssistantOpen]);
+
+  useEffect(() => {
+    const isBusy = status === "submitted" || status === "streaming";
+    if (
+      conversationWasBusyRef.current &&
+      !isBusy &&
+      isAiAssistantOpen &&
+      hostTabSelected
+    ) {
+      setPrimaryAttention(true);
+      setAttentionAnnouncement(
+        `${aiAssistant.primaryLabel ?? "AI"} needs your attention`,
+      );
+    }
+    conversationWasBusyRef.current = isBusy;
+  }, [aiAssistant.primaryLabel, hostTabSelected, isAiAssistantOpen, status]);
+
+  useEffect(() => {
+    if (attentionAnnouncement.length === 0) {
+      return;
+    }
+    const timeout = setTimeout(() => setAttentionAnnouncement(""), 0);
+    return () => clearTimeout(timeout);
+  }, [attentionAnnouncement]);
 
   useEffect(() => {
     if (aiAssistant.followMessages !== undefined) {
@@ -2103,6 +2204,7 @@ const ConversationAiAssistantPanel = ({
   return (
     <AiAssistantContents
       additionalTab={aiAssistant.additionalTab}
+      attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
@@ -2115,6 +2217,8 @@ const ConversationAiAssistantPanel = ({
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
+      hostAttentionCount={hostAttentionCount}
+      hostTabSelected={hostTabSelected}
       messages={messages}
       onClearMessages={() => {
         abortAutomaticTools();
@@ -2204,7 +2308,9 @@ const ConversationAiAssistantPanel = ({
           return;
         }
 
-        void instance.commands.applyAutoLayout().then((result) => {
+        void (
+          applyAutoLayoutAndFrame?.() ?? instance.commands.applyAutoLayout()
+        ).then((result) => {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
@@ -2214,6 +2320,7 @@ const ConversationAiAssistantPanel = ({
           });
         });
       }}
+      onHostTabSelectedChange={setHostTabSelected}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
           navigateTo,
@@ -2233,12 +2340,15 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
+      primaryAttention={primaryAttention}
+      primaryLabel={aiAssistant.primaryLabel}
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
       voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+      toolStateLabels={aiAssistant.toolStateLabels}
     />
   );
 };

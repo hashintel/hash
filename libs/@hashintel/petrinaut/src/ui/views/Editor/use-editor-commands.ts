@@ -7,7 +7,18 @@ import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
-const useEditorCommands = (onToggleAiAssistant?: () => void): void => {
+/**
+ * The editor's palette commands. A no-op unless the host mounted a
+ * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
+ * the keyboard handler still binds the keys.
+ */
+const useEditorCommands = ({
+  applyAutoLayoutAndFrame,
+  onToggleAiAssistant,
+}: {
+  applyAutoLayoutAndFrame?: () => Promise<unknown>;
+  onToggleAiAssistant?: () => void;
+}): void => {
   const {
     setCursorMode,
     setEditionMode,
@@ -129,7 +140,7 @@ const useEditorCommands = (onToggleAiAssistant?: () => void): void => {
       label: "Auto-layout the net",
       category: "Net",
       keywords: ["arrange", "tidy", "layout"],
-      run: () => void applyAutoLayout(),
+      run: () => void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout()),
     },
     { when: canEditNet },
   );
@@ -164,8 +175,9 @@ const useEditorCommands = (onToggleAiAssistant?: () => void): void => {
  * re-render this leaf and not the `EditorView` tree.
  */
 export const EditorCommands: React.FC<{
+  applyAutoLayoutAndFrame?: () => Promise<unknown>;
   onToggleAiAssistant?: () => void;
-}> = ({ onToggleAiAssistant }) => {
-  useEditorCommands(onToggleAiAssistant);
+}> = ({ applyAutoLayoutAndFrame, onToggleAiAssistant }) => {
+  useEditorCommands({ applyAutoLayoutAndFrame, onToggleAiAssistant });
   return null;
 };

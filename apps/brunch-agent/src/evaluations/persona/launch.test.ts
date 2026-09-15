@@ -20,9 +20,15 @@ import {
   paneIdFrom,
   personaArguments,
   personaEnvironment,
+  personaSettingsRecord,
   readPersonaCase,
+  recordingReadySummary,
   responds,
 } from "./launch.ts";
+import {
+  axisSettingsFromRun,
+  resolvePersonaAxisSettings,
+} from "./launch/axis-settings.ts";
 import { readPersonaResume } from "./launch/resume.ts";
 import {
   resolvePersonaRoleSettings,
@@ -178,7 +184,10 @@ test.each([false, true])(
               runId: "TEST-old",
             },
           }
-        : {}),
+        : {
+            personaVerbosity: "expansive",
+            personaDisclosure: "forthcoming",
+          }),
     };
     try {
       await Promise.all([
@@ -234,6 +243,12 @@ test.each([false, true])(
       expect(resumed.config.personaModel).toBe("anthropic/claude-sonnet-4-6");
       expect(resumed.config.brunchThinking).toBe("medium");
       expect(resumed.config.personaThinking).toBe("medium");
+      expect(resumed.config.personaVerbosity).toBe(
+        legacy ? "default" : "expansive",
+      );
+      expect(resumed.config.personaDisclosure).toBe(
+        legacy ? "default" : "forthcoming",
+      );
       expect(await readFile(join(run, "usage-ledger.json"), "utf8")).toBe(
         "TEST unknown historical usage; not a valid ledger",
       );
@@ -296,6 +311,7 @@ test("launches a fresh restricted persona using input files, not prior session o
   const args = personaArguments(
     "/tmp/TEST-persona",
     resolvePersonaRoleSettings(),
+    resolvePersonaAxisSettings(),
     "/tmp/TEST-socket",
   );
   expect(args).toContain(PERSONA_DEFAULT_PERSONA_MODEL);
@@ -320,6 +336,7 @@ test("resumes an exact Pi session without replaying the opening input", () => {
   const args = personaArguments(
     "/tmp/TEST-persona",
     resolvePersonaRoleSettings(),
+    resolvePersonaAxisSettings(),
     "/tmp/TEST-new-socket",
     "/tmp/TEST-persona/pi/sessions/original.jsonl",
   );
@@ -406,7 +423,12 @@ test("persona defaults are independently configured mixed providers at low effor
     personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
     personaThinking: PERSONA_DEFAULT_PERSONA_THINKING,
   });
-  const args = personaArguments("/tmp/TEST-persona", roles, "/tmp/TEST-socket");
+  const args = personaArguments(
+    "/tmp/TEST-persona",
+    roles,
+    resolvePersonaAxisSettings(),
+    "/tmp/TEST-socket",
+  );
   expect(
     args.slice(args.indexOf("--model"), args.indexOf("--model") + 4),
   ).toEqual([
@@ -423,7 +445,12 @@ test("persona thinking can be raised to medium without changing Brunch", () => {
   expect(roles.brunchThinking).toBe("low");
   expect(roles.personaThinking).toBe("medium");
   expect(
-    personaArguments("/tmp/TEST-persona", roles, "/tmp/TEST-socket"),
+    personaArguments(
+      "/tmp/TEST-persona",
+      roles,
+      resolvePersonaAxisSettings(),
+      "/tmp/TEST-socket",
+    ),
   ).toContain("medium");
 });
 
@@ -446,5 +473,168 @@ test("retains mixed role settings from run metadata", () => {
     brunchThinking: "low",
     personaModel: "anthropic/claude-sonnet-4-6",
     personaThinking: "medium",
+  });
+});
+
+test("persona axes accept only their exact literals and default independently", () => {
+  expect(resolvePersonaAxisSettings()).toEqual({
+    personaVerbosity: "default",
+    personaDisclosure: "default",
+  });
+  expect(
+    resolvePersonaAxisSettings({
+      personaVerbosity: "terse",
+      personaDisclosure: "forthcoming",
+    }),
+  ).toEqual({
+    personaVerbosity: "terse",
+    personaDisclosure: "forthcoming",
+  });
+  expect(() =>
+    resolvePersonaAxisSettings({ personaVerbosity: "brief" }),
+  ).toThrow(
+    "Unsupported persona verbosity brief; expected terse|default|expansive",
+  );
+  expect(() =>
+    resolvePersonaAxisSettings({ personaDisclosure: "open" }),
+  ).toThrow(
+    "Unsupported persona disclosure open; expected reticent|default|forthcoming",
+  );
+});
+
+test("legacy runs default missing axes while retained runs preserve effective axes", () => {
+  expect(axisSettingsFromRun({})).toEqual({
+    personaVerbosity: "default",
+    personaDisclosure: "default",
+  });
+  expect(
+    axisSettingsFromRun({
+      personaVerbosity: "expansive",
+      personaDisclosure: "reticent",
+    }),
+  ).toEqual({
+    personaVerbosity: "expansive",
+    personaDisclosure: "reticent",
+  });
+  expect(() => axisSettingsFromRun({ personaVerbosity: "TERSE" })).toThrow(
+    /Unsupported persona verbosity TERSE/,
+  );
+});
+
+test("fresh run metadata retains effective role and persona axis settings", () => {
+  expect(
+    personaSettingsRecord(
+      resolvePersonaRoleSettings({ personaThinking: "medium" }),
+      resolvePersonaAxisSettings({
+        personaVerbosity: "expansive",
+        personaDisclosure: "forthcoming",
+      }),
+    ),
+  ).toEqual({
+    brunchModel: PERSONA_DEFAULT_BRUNCH_MODEL,
+    brunchThinking: PERSONA_DEFAULT_BRUNCH_THINKING,
+    personaModel: PERSONA_DEFAULT_PERSONA_MODEL,
+    personaThinking: "medium",
+    personaVerbosity: "expansive",
+    personaDisclosure: "forthcoming",
+  });
+});
+
+test("non-default persona axes append their committed prompt paths in stable order", () => {
+  const args = personaArguments(
+    "/tmp/TEST-persona",
+    resolvePersonaRoleSettings(),
+    resolvePersonaAxisSettings({
+      personaVerbosity: "expansive",
+      personaDisclosure: "reticent",
+    }),
+    "/tmp/TEST-socket",
+  );
+  const prompts = args.flatMap((argument, index) =>
+    argument === "--append-system-prompt" ? [args[index + 1]] : [],
+  );
+  expect(prompts).toHaveLength(3);
+  expect(prompts[0]).toMatch(/brunch-persona-testing\/SYSTEM\.md$/);
+  expect(prompts[1]).toMatch(
+    /brunch-persona-testing\/axes\/verbosity-expansive\.md$/,
+  );
+  expect(prompts[2]).toMatch(
+    /brunch-persona-testing\/axes\/disclosure-reticent\.md$/,
+  );
+});
+
+test("default persona axes add no override prompts and preserve isolation flags", () => {
+  const args = personaArguments(
+    "/tmp/TEST-persona",
+    resolvePersonaRoleSettings(),
+    resolvePersonaAxisSettings(),
+    "/tmp/TEST-socket",
+  );
+  expect(
+    args.filter((argument) => argument === "--append-system-prompt"),
+  ).toHaveLength(1);
+  expect(args).toEqual(
+    expect.arrayContaining([
+      "--no-context-files",
+      "--no-builtin-tools",
+      "--no-extensions",
+      "--no-skills",
+      "--no-prompt-templates",
+    ]),
+  );
+});
+
+test("recording-ready summary reports retained effective persona axes", () => {
+  expect(
+    recordingReadySummary({
+      title: "TEST window",
+      url: "http://127.0.0.1:4915/",
+      browserProfile: "/tmp/TEST-profile",
+      roles: resolvePersonaRoleSettings(),
+      axes: resolvePersonaAxisSettings({
+        personaVerbosity: "terse",
+        personaDisclosure: "forthcoming",
+      }),
+      resume: true,
+    }),
+  ).toContain("Persona axes: verbosity terse; disclosure forthcoming");
+});
+
+test("help documents exact axis literals and retained resume behavior", async () => {
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    [
+      "--experimental-strip-types",
+      fileURLToPath(new URL("./launch.ts", import.meta.url)),
+      "--help",
+    ],
+    { env: process.env },
+  );
+  expect(stdout).toContain("--persona-verbosity terse|default|expansive");
+  expect(stdout).toContain("--persona-disclosure reticent|default|forthcoming");
+  expect(stdout).toContain("retained effective persona axes");
+  expect(stdout).toContain(
+    "--objective is fresh-run-only and is neither retained nor reapplied",
+  );
+});
+
+test("resume rejects a fresh axis before reading the retained run", async () => {
+  await expect(
+    promisify(execFile)(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        fileURLToPath(new URL("./launch.ts", import.meta.url)),
+        "--resume",
+        "/path/that/does/not/exist",
+        "--persona-verbosity",
+        "terse",
+      ],
+      { env: process.env },
+    ),
+  ).rejects.toMatchObject({
+    stderr: expect.stringContaining(
+      "--resume cannot be combined with fresh-run options",
+    ) as unknown,
   });
 });

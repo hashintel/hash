@@ -15,6 +15,7 @@ import { useContainerSize } from "./hooks/util/use-container-size";
 import { useCanvasScene } from "./use-canvas-scene";
 
 import type { ViewportAction } from "../../types/viewport-action";
+import type { CanvasController } from "./canvas-renderer";
 
 const containerSizeSettleMs = 100;
 
@@ -23,6 +24,8 @@ const canvasContainerStyle = css({
   height: "[100%]",
   position: "relative",
 });
+
+const ignoreControllerChange = (_controller: CanvasController | null) => {};
 
 /**
  * SDCPNView builds the renderer-agnostic scene for the active net and hands
@@ -33,8 +36,9 @@ const canvasContainerStyle = css({
  * transitions and the renderer centers on the new net.
  */
 export const SDCPNView: React.FC<{
+  onControllerChange?: (controller: CanvasController | null) => void;
   viewportActions?: ViewportAction[];
-}> = ({ viewportActions }) => {
+}> = ({ onControllerChange = ignoreControllerChange, viewportActions }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
   const containerSize = useContainerSize(
     canvasContainer,
@@ -51,6 +55,7 @@ export const SDCPNView: React.FC<{
           <Renderer
             scene={scene}
             containerSize={containerSize}
+            registerController={onControllerChange}
             viewportActions={viewportActions}
           />
         </CanvasFrameStoreProvider>

@@ -21,6 +21,7 @@ import {
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { VoiceInputProvenance } from "./voice-input-provenance";
 
+import type { PetrinautAiToolStateLabels } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
@@ -36,9 +37,11 @@ export type ToolRenderItem = {
   id: string;
   state: string;
   summary: AiToolSummary;
+  hasConfiguredTitle: boolean;
   tone: ToolTone;
   toolName: string;
   notApplied: boolean;
+  stateLabel: string;
   /** True only for the persisted spoken answer to this exact tool call. */
   voiceOrigin: boolean;
   /** Server-reported error message for tools whose state is `output-error`. */
@@ -49,6 +52,20 @@ export type ToolRenderItem = {
     input: unknown;
     submittedOutput?: unknown;
   };
+};
+
+type DefaultToolStateLabels = {
+  readonly inputStreaming: string;
+  readonly inputAvailable: string;
+  readonly outputAvailable: string;
+  readonly outputError: string;
+};
+
+export const defaultPetrinautAiToolStateLabels: DefaultToolStateLabels = {
+  inputStreaming: "Preparing…",
+  inputAvailable: "Running…",
+  outputAvailable: "",
+  outputError: "",
 };
 
 export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
@@ -495,14 +512,47 @@ export const toToolRenderItem = (
   message: PetrinautAiMessage,
   part: RenderableToolPart,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
+  toolStateLabels: PetrinautAiToolStateLabels = {},
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const toolName = getToolName(part);
-  const summary =
+  const defaultSummary: AiToolSummary =
     state === "input-streaming"
       ? { title: toolName }
       : getToolSummaryFromPart(part);
   const notApplied = isNotAppliedResult(part);
+  const configuredLabels = toolStateLabels[toolName];
+  const configuredTitle =
+    configuredLabels === undefined || notApplied
+      ? undefined
+      : state === "output-error"
+        ? configuredLabels.error
+        : state === "output-available"
+          ? configuredLabels.success
+          : configuredLabels.pending;
+  const outputTitle =
+    state === "output-available" &&
+    typeof part.output === "object" &&
+    part.output !== null &&
+    "title" in part.output &&
+    typeof part.output.title === "string"
+      ? part.output.title
+      : undefined;
+  const errorText =
+    state === "output-error" && typeof part.errorText === "string"
+      ? part.errorText
+      : undefined;
+  const summary =
+    configuredTitle === undefined
+      ? defaultSummary
+      : {
+          ...defaultSummary,
+          title: configuredTitle,
+          detail:
+            state === "output-error"
+              ? errorText
+              : (outputTitle ?? defaultSummary.detail),
+        };
 
   const interactiveDefinition = hasInteractiveToolInput(state)
     ? getInteractiveTool(toolName, part.input, interactiveTools)
@@ -522,19 +572,27 @@ export const toToolRenderItem = (
         : `${message.id}-${part.type}`,
     state,
     summary,
+    hasConfiguredTitle: configuredTitle !== undefined,
     tone: getToolTone({ state, summary, toolName, notApplied }),
     toolName,
     notApplied,
+    stateLabel:
+      configuredTitle !== undefined
+        ? ""
+        : state === "input-streaming"
+          ? defaultPetrinautAiToolStateLabels.inputStreaming
+          : state === "input-available"
+            ? defaultPetrinautAiToolStateLabels.inputAvailable
+            : state === "output-error"
+              ? defaultPetrinautAiToolStateLabels.outputError
+              : defaultPetrinautAiToolStateLabels.outputAvailable,
     voiceOrigin:
       state === "output-available" &&
       typeof part.toolCallId === "string" &&
       message.metadata?.source === "voice" &&
       (message.metadata.voiceToolCallIds?.includes(part.toolCallId) === true ||
         message.metadata.toolCallId === part.toolCallId),
-    errorText:
-      state === "output-error" && typeof part.errorText === "string"
-        ? part.errorText
-        : undefined,
+    errorText,
     interactive,
   };
 };
@@ -624,19 +682,19 @@ const ToolItem = ({
 
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
+  const stateLabel = tool.stateLabel || undefined;
   const progressLabel =
-    tool.state === "input-streaming"
-      ? "Preparing…"
-      : tool.state === "input-available"
-        ? "Running…"
-        : undefined;
+    tool.state === "input-streaming" || tool.state === "input-available"
+      ? stateLabel
+      : undefined;
   const target = tool.summary.target;
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
   const expandable = children.length > 0;
-  const title = errored
-    ? (tool.errorText ?? "Tool failed")
-    : tool.summary.title;
+  const title =
+    errored && !tool.hasConfiguredTitle
+      ? (tool.errorText ?? "Tool failed")
+      : tool.summary.title;
 
   if (href && !errored) {
     return (
@@ -672,9 +730,7 @@ const ToolItem = ({
               {tool.summary.detail}
             </span>
           )}
-          {progressLabel && (
-            <span className={toolDetailStyle}>{progressLabel}</span>
-          )}
+          {stateLabel && <span className={toolDetailStyle}>{stateLabel}</span>}
         </span>
       </a>
     );
@@ -716,7 +772,7 @@ const ToolItem = ({
       </span>
       <span className={toolTextStyle}>
         <span>{title}</span>
-        {errored ? (
+        {errored && !tool.hasConfiguredTitle ? (
           <span className={toolDetailStyle} data-testid="tool-detail">
             {tool.toolName}
           </span>
@@ -725,9 +781,7 @@ const ToolItem = ({
             {tool.summary.detail}
           </span>
         ) : null}
-        {progressLabel && (
-          <span className={toolDetailStyle}>{progressLabel}</span>
-        )}
+        {stateLabel && <span className={toolDetailStyle}>{stateLabel}</span>}
       </span>
       {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
     </button>
@@ -788,15 +842,15 @@ export const AiAssistantToolList = ({
     (tool) =>
       tool.state === "output-available" || tool.state === "output-error",
   );
-  const groupProgressLabel = tools.some(
-    (tool) => !tool.interactive && tool.state === "input-available",
-  )
-    ? "Running…"
-    : tools.some(
-          (tool) => !tool.interactive && tool.state === "input-streaming",
-        )
-      ? "Preparing…"
-      : undefined;
+  const groupStateLabel =
+    tools.find((tool) => !tool.interactive && tool.state === "input-available")
+      ?.stateLabel ??
+    tools.find((tool) => !tool.interactive && tool.state === "input-streaming")
+      ?.stateLabel ??
+    (tools.some((tool) => tool.state === "output-error")
+      ? tools.find((tool) => tool.state === "output-error")?.stateLabel
+      : tools.find((tool) => tool.state === "output-available")?.stateLabel);
+  const groupProgressLabel = allComplete ? undefined : groupStateLabel;
 
   if (tools.length === 0) {
     return null;
@@ -830,7 +884,7 @@ export const AiAssistantToolList = ({
         </span>
         <span style={{ flex: 1 }}>
           {tools.length} operations
-          {groupProgressLabel ? ` · ${groupProgressLabel}` : ""}
+          {groupStateLabel ? ` · ${groupStateLabel}` : ""}
         </span>
         <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>

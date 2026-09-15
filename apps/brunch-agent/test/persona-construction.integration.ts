@@ -292,9 +292,7 @@ try {
     }
     await reachedRead.promise;
     if (index === 1) {
-      await page
-        .getByRole("button", { name: "2 operations", exact: true })
-        .click();
+      await page.getByRole("button", { name: /^2 operations/u }).click();
       await expect(
         page.getByText("mutate_workpiece", { exact: true }),
       ).toBeVisible();
@@ -304,7 +302,7 @@ try {
       });
     }
     // Switch during the client continuation, not merely between turns.
-    await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+    await page.getByRole("tab", { name: /^Ledger/u }).click();
     continueRead.resolve();
     const result = await pending;
     assert.equal(
@@ -315,9 +313,10 @@ try {
       result.details.submissionIds.length >= 3,
       "Must wait across read and mutation continuations",
     );
-    await expect(
-      page.getByRole("tab", { name: "Workpiece", exact: true }),
-    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("tab", { name: /^Ledger/u })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
       markdown,
     );
@@ -359,7 +358,7 @@ try {
     await page.screenshot({ path: join(output, `stage-${index}.png`) });
   }
   await page.screenshot({ path: join(output, "workpiece.png") });
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   await page.screenshot({ path: join(output, "conversation.png") });
   const before = fixture.deliveries.length;
   const net = await page.evaluate(() =>
@@ -412,11 +411,11 @@ try {
   assert(stale?.type === "dynamic-tool");
   assert.equal(stale.state, "output-error");
   assert.match(stale.errorText, /baseRevisionId/);
-  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+  await page.getByRole("tab", { name: /^Ledger/u }).click();
   await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
     "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
   );
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   finishBarrier = Promise.withResolvers<void>();
   faux.setResponses([
     fauxAssistantMessage(
@@ -507,11 +506,11 @@ try {
     await page.evaluate(() => localStorage.getItem("petrinaut-sdcpn")),
     net,
   );
-  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+  await page.getByRole("tab", { name: /^Ledger/u }).click();
   await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
     "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
   );
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   faux.setResponses([
     call("read_petrinaut_net", {}, "resumed-read"),
     text("Resumed against the existing two-stage model."),

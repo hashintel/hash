@@ -84,10 +84,19 @@ const layoutNetTool: PetrinautAiAutomaticTool = {
   toolName: layoutPetrinautNetToolName,
   inputSchema: aiCommandActionInputSchemas.applyAutoLayout,
   outputSchema: passthrough,
-  execute: async ({ input, commands }) => {
+  execute: async ({ input, commands, viewport }) => {
     const { askUserFirst } =
       aiCommandActionInputSchemas.applyAutoLayout.parse(input);
     const { commitCount } = await commands.applyAutoLayout();
+    const frameStatus = await viewport.frameSceneAfterRender();
+    const detail = [
+      askUserFirst
+        ? "Applied without confirmation: this host has no inline prompt for layout."
+        : undefined,
+      `Viewport frame: ${frameStatus}.`,
+    ]
+      .filter((item): item is string => item !== undefined)
+      .join(" ");
     return {
       applied: true,
       commitCount,
@@ -95,12 +104,7 @@ const layoutNetTool: PetrinautAiAutomaticTool = {
         commitCount === 0
           ? "Auto-layout had no effect"
           : `Auto-laid out ${commitCount} node${commitCount === 1 ? "" : "s"}`,
-      ...(askUserFirst
-        ? {
-            detail:
-              "Applied without confirmation: this host has no inline prompt for layout.",
-          }
-        : {}),
+      detail,
     };
   },
 };

@@ -50,6 +50,7 @@ import {
   Petrinaut,
   type PetrinautAiMessage,
   type PetrinautAiStopResult,
+  type PetrinautAiToolStateLabels,
   type PetrinautAiVoiceMode,
   type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
@@ -92,6 +93,7 @@ import {
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import {
@@ -133,6 +135,49 @@ const DEMO_CAPABILITIES = {
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
+
+const brunchToolStateLabels = {
+  mutate_workpiece: {
+    pending: "Updating ledger",
+    success: "Updated ledger",
+    error: "Could not update ledger",
+  },
+  read_workpiece: {
+    pending: "Reading ledger",
+    success: "Read ledger",
+    error: "Could not read ledger",
+  },
+  query_workpiece: {
+    pending: "Checking recorded basis",
+    success: "Checked recorded basis",
+    error: "Could not check recorded basis",
+  },
+  read_petrinaut_docs: {
+    pending: "Reading Petrinaut guidance",
+    success: "Read Petrinaut guidance",
+    error: "Could not read Petrinaut guidance",
+  },
+  read_petrinaut_net: {
+    pending: "Reading current model",
+    success: "Read current model",
+    error: "Could not read current model",
+  },
+  read_petrinaut_diagnostics: {
+    pending: "Checking model diagnostics",
+    success: "Checked model diagnostics",
+    error: "Could not check model diagnostics",
+  },
+  layout_petrinaut_net: {
+    pending: "Laying out model",
+    success: "Laid out model",
+    error: "Could not lay out model",
+  },
+  mutate_petrinaut_net: {
+    pending: "Updating model",
+    success: "Updated model",
+    error: "Could not update model",
+  },
+} satisfies PetrinautAiToolStateLabels;
 
 export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
@@ -885,11 +930,23 @@ export const LocalStorageDemoApp = ({
     mutationRecorder,
   ]);
 
-  const aiAssistant = useMemo(
-    () => ({
+  const aiAssistant = useMemo(() => {
+    const activityIdentities =
+      rootArcBrowser && flueHistory.ready
+        ? flueHistory.phase === "absent"
+          ? []
+          : flueHistory.snapshot === undefined
+            ? undefined
+            : foldBrunchWorkpieceHistory(
+                flueHistory.snapshot.messages,
+                rootArcBrowser.binding,
+              ).activityIdentities
+        : undefined;
+    return {
       additionalTab: rootArcBrowser
         ? {
-            label: "Workpiece",
+            label: "Ledger",
+            activityIdentities,
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
@@ -902,6 +959,12 @@ export const LocalStorageDemoApp = ({
             ),
           }
         : undefined,
+      ...(brunchSelected
+        ? {
+            primaryLabel: "Chat",
+            toolStateLabels: brunchToolStateLabels,
+          }
+        : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
       // Brunch's own tool names wrap canonical Petrinaut operations here, in
@@ -985,30 +1048,32 @@ export const LocalStorageDemoApp = ({
             renderVoiceMode: brunchVoiceMode,
           }
         : {}),
-    }),
-    [
-      aiMessagesByNetId,
-      brunchVoiceMode,
-      batchedConstructionSelected,
-      constructionSelected,
-      observedLiveHash,
-      productConstructionSelected,
-      rootArcBrowser,
-      conversationTracker,
-      conversationId,
-      currentNetId,
-      currentNetTitle,
-      flueClientPromise,
-      flueHistory.messages,
-      flueHistory.snapshot,
-      petrinautAiChatTransport,
-      reportBrunchFailure,
-      mutationRecorder,
-      setAiMessagesByNetId,
-      currentDocument,
-      source.repository,
-    ],
-  );
+    };
+  }, [
+    aiMessagesByNetId,
+    brunchSelected,
+    brunchVoiceMode,
+    batchedConstructionSelected,
+    constructionSelected,
+    observedLiveHash,
+    productConstructionSelected,
+    rootArcBrowser,
+    conversationTracker,
+    conversationId,
+    currentNetId,
+    currentNetTitle,
+    flueClientPromise,
+    flueHistory.messages,
+    flueHistory.phase,
+    flueHistory.ready,
+    flueHistory.snapshot,
+    petrinautAiChatTransport,
+    reportBrunchFailure,
+    mutationRecorder,
+    setAiMessagesByNetId,
+    currentDocument,
+    source.repository,
+  ]);
 
   if (source.repository.status.state === "unavailable") {
     return (

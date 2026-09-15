@@ -14,7 +14,10 @@ import { brunchPetrinautDynamicToolNames } from "./brunch-client-tools";
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { observeBrowserDefinition } from "./mutation-record";
 
-import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiAutomaticToolExecuteParams,
+  PetrinautAiViewportFrameResult,
+} from "@hashintel/petrinaut/ui";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
@@ -74,12 +77,17 @@ const paramsFor = (
   instance: ReturnType<typeof createPetrinaut>,
   input: unknown,
   readDiagnosticsContext = async () => "No current TypeScript diagnostics.",
+  frameSceneAfterRender: () => Promise<PetrinautAiViewportFrameResult> = async () =>
+    "framed",
 ): PetrinautAiAutomaticToolExecuteParams => ({
   input,
   mutations: instance.mutations,
   commands: instance.commands,
   handle: instance.handle,
   readDiagnosticsContext,
+  viewport: {
+    frameSceneAfterRender,
+  },
   toolCallId: "call-1",
   signal: new AbortController().signal,
 });
@@ -169,16 +177,36 @@ describe("Brunch-named Petrinaut tools", () => {
     expect(output.applied).toBe(true);
     expect(output.commitCount).toBeGreaterThan(0);
     expect(output.detail).toMatch(/without confirmation/u);
+    expect(output.detail).toContain("Viewport frame: framed.");
     expect(
       instance.definition.get().transitions[0]?.x !== 0 ||
         instance.definition.get().transitions[0]?.y !== 0,
     ).toBe(true);
   });
 
+  test("reports a bounded frame timeout with the canonical timed-out result", async () => {
+    const instance = instanceFor(twoNodeNet);
+    const tools = createBrunchPetrinautTools({ readTitle: () => "Net" });
+    const output = (await toolNamed(tools, "layout_petrinaut_net").execute(
+      paramsFor(
+        instance,
+        { askUserFirst: false },
+        undefined,
+        async () => "timed-out",
+      ),
+    )) as { detail?: string };
+
+    expect(output.detail).toBe("Viewport frame: timed-out.");
+  });
+
   test("returns a document-changing result only after the host settles its revision", async () => {
     const instance = instanceFor(twoNodeNet);
     const settled = Promise.withResolvers<void>();
-    const settleDocumentRevision = vi.fn(() => settled.promise);
+    const order: string[] = [];
+    const settleDocumentRevision = vi.fn(() => {
+      order.push("settle");
+      return settled.promise;
+    });
     const tools = createBrunchPetrinautTools({
       readTitle: () => "Net",
       settleDocumentRevision,
@@ -188,7 +216,10 @@ describe("Brunch-named Petrinaut tools", () => {
     let output: unknown;
     const run = Promise.resolve(
       toolNamed(tools, "layout_petrinaut_net").execute(
-        paramsFor(instance, { askUserFirst: false }),
+        paramsFor(instance, { askUserFirst: false }, undefined, async () => {
+          order.push("frame");
+          return "framed";
+        }),
       ),
     ).then((value) => {
       output = value;
@@ -199,6 +230,7 @@ describe("Brunch-named Petrinaut tools", () => {
       ),
     );
     expect(instance.handle.revisionId.get()).not.toBe(revisionBefore);
+    expect(order).toEqual(["frame", "settle"]);
     await Promise.resolve();
     expect(output).toBeUndefined();
     settled.resolve();

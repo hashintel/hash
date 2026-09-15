@@ -14,6 +14,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../../../conversation/identity.ts";
+import { axisSettingsFromRun } from "./axis-settings.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 
 import type { PersonaBrowserSession } from "../browser-turn.ts";
@@ -32,10 +33,13 @@ const runSchema = v.pipe(
     brunchThinking: v.optional(text),
     personaModel: v.optional(text),
     personaThinking: v.optional(text),
+    personaVerbosity: v.optional(text),
+    personaDisclosure: v.optional(text),
   }),
   v.transform((config) => ({
     ...config,
     ...roleSettingsFromRun(config),
+    ...axisSettingsFromRun(config),
   })),
 );
 const sessionSchema = v.object({

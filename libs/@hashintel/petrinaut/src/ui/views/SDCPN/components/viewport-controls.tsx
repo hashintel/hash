@@ -93,7 +93,7 @@ export const ViewportControls: React.FC<{
         tooltipOptions={{ position: "left" }}
         iconName="collapse"
         className={chromeBackground}
-        onClick={fitView}
+        onClick={() => void fitView()}
       />
       {presentation.showViewportSettings && (
         <>
