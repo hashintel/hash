@@ -85,15 +85,15 @@ describe("importanceRows", () => {
   const input = makeOptimizationInput(optimizedBindingSets.logScale);
   const { trials } = makeTrials(input, 30);
 
-  it("lists the rows in binding order and scales the bars to the largest share above the floor", () => {
+  it("ranks the rows by share and scales the bars to the largest share above the floor", () => {
     const view = importanceRows(
       makeOptimizationRecord({
         input: { ...input, study: { ...input.study, trials: 60 } },
         trials,
         importance: {
           values: {
-            production_rate: 0.5,
-            selling_price: 0.3,
+            production_rate: 0.3,
+            selling_price: 0.5,
             marketing_spend: 0.2,
           },
           completedTrials: 54,
@@ -102,8 +102,8 @@ describe("importanceRows", () => {
     );
 
     expect(view.rows.map((row) => row.identifier)).toEqual([
-      "production_rate",
       "selling_price",
+      "production_rate",
       "marketing_spend",
     ]);
     expect(view.rows.every((row) => row.correlation !== null)).toBe(true);
@@ -132,8 +132,8 @@ describe("importanceRows", () => {
     );
 
     expect(view.rows.map((row) => row.identifier)).toEqual([
-      "production_rate",
       "selling_price",
+      "production_rate",
       "marketing_spend",
     ]);
     expect(view).toMatchObject({
@@ -142,6 +142,24 @@ describe("importanceRows", () => {
       belowFloor: true,
       barScale: 1,
     });
+  });
+
+  it("keeps tied shares in binding order and puts missing estimates last", () => {
+    const view = importanceRows(
+      makeOptimizationRecord({
+        input,
+        trials,
+        importance: {
+          values: { selling_price: 0, marketing_spend: 0 },
+          completedTrials: 50,
+        },
+      }),
+    );
+    expect(view.rows.map((row) => row.identifier)).toEqual([
+      "selling_price",
+      "marketing_spend",
+      "production_rate",
+    ]);
   });
 
   it("reads the record's completed count while no estimate arrived, keeping binding order and the correlations", () => {
