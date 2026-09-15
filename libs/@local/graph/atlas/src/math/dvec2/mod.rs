@@ -153,14 +153,16 @@ impl DVec2 {
 
     /// Narrows both components with round-to-nearest, allowing non-finite results.
     ///
-    /// A component beyond the finite `f32` range overflows to `±∞` rather than refusing. A
-    /// caller that must reject an out-of-range component calls [`narrow`](Self::narrow) instead,
-    /// which returns [`None`] on exactly that case.
-    #[inline]
+    /// # Warning
+    ///
+    /// Precision is lost when a component is not exactly representable in `f32`. Finite components
+    /// may round to infinity, and NaN remains NaN. Use [`Self::narrow`] to reject non-finite
+    /// outputs.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "the rounding cast is the operation itself"
     )]
+    #[inline]
     #[must_use]
     pub const fn narrow_lossy(self) -> Vec2 {
         Vec2::new(self.x() as f32, self.y() as f32)
@@ -304,13 +306,13 @@ impl DVec2x4T {
     /// Returns the four `x` components as SIMD lanes.
     ///
     /// Lane `i` holds the `x` component of vector `i`.
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::cast_ptr_alignment,
         reason = "the pointer derives from `&Self` with 64-byte alignment, which satisfies \
                   `Simd<f64, 4>`'s alignment at offset 0"
     )]
+    #[inline]
+    #[must_use]
     pub const fn xs(&self) -> &Simd<f64, 4> {
         let this = &raw const *self;
         let this = this.cast::<f64>();
@@ -326,13 +328,13 @@ impl DVec2x4T {
     /// Returns the four `y` components as SIMD lanes.
     ///
     /// Lane `i` holds the `y` component of vector `i`.
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::cast_ptr_alignment,
         reason = "the pointer derives from `&Self` with 64-byte alignment, which satisfies \
                   `Simd<f64, 4>`'s alignment at the 32-byte `y` group offset"
     )]
+    #[inline]
+    #[must_use]
     pub const fn ys(&self) -> &Simd<f64, 4> {
         let this = &raw const *self;
         let this = this.cast::<f64>();
@@ -350,12 +352,12 @@ impl DVec2x4T {
     /// The first group holds the `x` components, the second the `y` components. Lane `i` of each
     /// corresponds to vector `i`. This is the inverse of [`from_lanes`](Self::from_lanes) and the
     /// by-value counterpart of [`xs`](Self::xs) and [`ys`](Self::ys).
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::tuple_array_conversions,
         reason = "the suggested `From` conversion is not const-callable"
     )]
+    #[inline]
+    #[must_use]
     pub const fn into_lanes(self) -> (Simd<f64, 4>, Simd<f64, 4>) {
         // SAFETY: This transmute relies on each SIMD vector having its array's element layout
         // without padding. Self contains initialized x then y groups in repr(C) storage, and
@@ -442,15 +444,15 @@ impl DVec2x4T {
     ///
     /// With lane `i` of `factor` scaling both components of vector `i`.
     ///
-    /// This is the weighted-moment accumulation step. On targets with native FMA each component
-    /// fuses, and for components widened from `f32` scaled by a widened weight the products are
-    /// exact, so the fused and separate forms agree bit for bit.
-    #[inline]
-    #[must_use]
+    /// Each component uses a fused multiply-add with one rounding. When the component and factor
+    /// are widened finite `f32` values, their product is exact in `f64`, leaving only the addition
+    /// to the accumulator to round.
     #[expect(
         clippy::similar_names,
         reason = "the lane groups pair by axis: each `xs` binding has its `ys` sibling"
     )]
+    #[inline]
+    #[must_use]
     pub fn mul_add(self, factor: Simd<f64, 4>, accumulator: Self) -> Self {
         let (xs, ys) = self.into_lanes();
         let (acc_xs, acc_ys) = accumulator.into_lanes();

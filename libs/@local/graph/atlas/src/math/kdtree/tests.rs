@@ -14,7 +14,7 @@ use rand::{RngExt as _, SeedableRng as _};
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{BUCKET_ROWS, KdNeighbour, KdTree};
-use crate::math::{DNonNegative, FinitePointField, Vec2};
+use crate::math::{DNonNegative, FinitePointField, Vec2, nz};
 
 hashql_core::id::newtype! {
     /// A row identity in a test frame.
@@ -152,7 +152,7 @@ fn a_fully_co_located_frame_orders_by_row_alone() {
     let points = vec![Vec2::new(2.5, -3.5); BUCKET_ROWS + 8];
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(RowId::new(11), NonZero::new(7).expect("seven is nonzero"));
+    let neighbours = tree.nearest(RowId::new(11), nz!(7));
 
     let expected: Vec<KdNeighbour<RowId>> = (0..7)
         .map(|row| KdNeighbour {
@@ -189,10 +189,7 @@ fn k_at_least_the_frame_returns_every_other_row() {
     let points = scattered(11, 33);
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(
-        RowId::new(0),
-        NonZero::new(100).expect("a hundred is nonzero"),
-    );
+    let neighbours = tree.nearest(RowId::new(0), nz!(100));
 
     assert_eq!(neighbours.len(), 32);
     let mut rows: Vec<RowId> = neighbours.iter().map(|neighbour| neighbour.row).collect();
@@ -206,10 +203,7 @@ fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
     points[17] = points[3];
     let tree = KdTree::build(frame(&points));
 
-    let neighbours = tree.nearest(
-        RowId::new(3),
-        NonZero::new(19).expect("nineteen is nonzero"),
-    );
+    let neighbours = tree.nearest(RowId::new(3), nz!(19));
 
     assert!(
         neighbours
@@ -229,7 +223,7 @@ fn the_query_row_is_never_a_readout_while_its_co_located_rows_are() {
 fn a_scratch_arena_serves_readouts_across_resets() {
     let points = scattered(17, 120);
     let tree = KdTree::build(frame(&points));
-    let k = NonZero::new(9).expect("nine is nonzero");
+    let k = nz!(9);
 
     let mut scratch = Scratch::new();
     let first = tree.nearest_in(RowId::new(0), k, &scratch);
@@ -247,7 +241,7 @@ fn a_query_for_a_row_outside_the_frame_panics() {
     let points = scattered(23, 5);
     let tree = KdTree::build(frame(&points));
 
-    let _readout = tree.nearest(RowId::new(5), NonZero::new(1).expect("one is nonzero"));
+    let _readout = tree.nearest(RowId::new(5), nz!(1));
 }
 
 #[test]
@@ -285,7 +279,7 @@ fn a_point_query_excludes_no_row() {
     ];
     let frame = frame(&points);
     let tree = KdTree::build(frame);
-    let k = NonZero::new(2).expect("two is nonzero");
+    let k = nz!(2);
 
     let neighbours = tree.nearest(RowId::new(1), k);
     assert!(
@@ -308,10 +302,7 @@ fn a_point_query_excludes_no_row() {
 fn an_empty_frame_builds_and_a_point_readout_returns_nothing() {
     let tree = KdTree::build(frame(&[]));
 
-    let readout = tree.nearest_point(
-        Vec2::new(0.0, 0.0),
-        NonZero::new(3).expect("three is nonzero"),
-    );
+    let readout = tree.nearest_point(Vec2::new(0.0, 0.0), nz!(3));
     assert!(readout.is_empty());
 }
 
@@ -321,8 +312,5 @@ fn a_non_finite_query_point_panics() {
     let points = scattered(37, 8);
     let tree = KdTree::build(frame(&points));
 
-    let _readout = tree.nearest_point(
-        Vec2::new(f32::NAN, 0.0),
-        NonZero::new(1).expect("one is nonzero"),
-    );
+    let _readout = tree.nearest_point(Vec2::new(f32::NAN, 0.0), nz!(1));
 }

@@ -360,11 +360,9 @@ impl TargetEstimator {
                 .evaluate(unit.ruler, canonical_distance, zero_distance);
             let (value, slope) = self.penalty.evaluate(f64::from(evaluation.violation));
 
-            // The unit's estimator mass w(e)/(W·π(e)), raw in flight. The divisor is a `DPositive`
-            // product through the unchecked constructor, which rejects a product rounded to zero
-            // only under debug assertions. A build without them divides by that zero. The
-            // quotient's claim waits for the folds' finish.
-            let mass = unit.weight.get() / (denominator * unit.inclusion);
+            // the estimator mass is w(e)/(W·π(e)). A denominator rounded to zero can produce an
+            // infinite or NaN mass. Validation belongs to the accumulated readings below.
+            let mass = (Derivation::from(unit.weight) / (denominator * unit.inclusion)).into_raw();
             estimand = Derivation::<DFinite>::raw(mass)
                 .mul_add(Derivation::<DFinite>::raw(value), estimand);
 

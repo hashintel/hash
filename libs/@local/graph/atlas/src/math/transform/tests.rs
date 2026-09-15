@@ -1,7 +1,6 @@
 #![expect(
     clippy::float_cmp,
-    reason = "the exact fit fixtures produce exactly representable readings, so the asserted \
-              constants are exact contracts"
+    reason = "exact comparisons test the exactly representable results of the exact-fit fixtures"
 )]
 
 use hashql_core::id::IdSlice;

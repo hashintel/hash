@@ -48,7 +48,7 @@
     clippy::integer_division_remainder_used,
     clippy::significant_drop_tightening,
     reason = "benchmark fixtures compute deterministic floating-point inputs, and Criterion owns \
-              group drops; the crate-level expectations in lib.rs do not extend to bench targets"
+              group drops. The crate-level expectations in lib.rs do not extend to bench targets"
 )]
 
 use core::{hint::black_box, time::Duration};
@@ -327,7 +327,8 @@ fn hardware_counter(event: &str) -> Criterion<darwin_kperf_criterion::HardwareCo
 
     Criterion::default()
         .with_measurement(
-            counter.expect("hardware counters require root on Apple Silicon (run under sudo)"),
+            counter
+                .expect("hardware counter initialization, configuration, and start must succeed"),
         )
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(1))

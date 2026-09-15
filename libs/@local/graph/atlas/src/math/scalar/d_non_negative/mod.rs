@@ -6,17 +6,22 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::{
     DFinite, DPositive, NonNegative, OpenUnitFraction, Positive, PositiveUnitFraction,
     UnitFraction, raw_interop, unsafe_impl_try_from_bytes,
 };
 use crate::math::derivation::Derivation;
 
+#[cfg(test)]
+mod tests;
+
 /// Validates a non-negative double-precision literal at compile time.
 ///
-/// The expansion is a `const` block over [`DNonNegative::new`], so a literal outside the domain
-/// fails the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
+/// A `const` block validates the literal with [`DNonNegative::new`] during compilation. A literal
+/// outside the domain fails the build. Runtime values use the checked constructor.
 macro_rules! d_non_negative {
     ($value:expr) => {
         const {
@@ -25,7 +30,6 @@ macro_rules! d_non_negative {
         }
     };
 }
-#[cfg(test)]
 pub(crate) use d_non_negative;
 
 /// A finite, non-negative `f64`, valid by construction.
@@ -241,9 +245,8 @@ impl DNonNegative {
     /// Overflow and zero raised to a negative exponent produce infinity in the [`Derivation`]. Zero
     /// raised to zero is one. Underflow to zero remains nonnegative.
     #[inline]
-    #[must_use]
-    pub(crate) fn powf(self, exponent: f64) -> Self {
-        Self::new_unchecked(self.0.powf(exponent))
+    pub(crate) fn powf(self, exponent: DFinite) -> Derivation<Self> {
+        Derivation::raw(self.0.powf(exponent.get()))
     }
 }
 
@@ -518,20 +521,6 @@ const impl PartialOrd<DPositive> for DNonNegative {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for DNonNegative {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (0.0..=f64::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for DNonNegative {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -613,3 +602,15 @@ const impl core::ops::Mul<DNonNegative> for OpenUnitFraction {
 
 raw_interop!(DNonNegative[f64]);
 unsafe_impl_try_from_bytes!(DNonNegative[f64]);
+
+#[cfg(test)]
+impl Arbitrary for DNonNegative {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f64::POSITIVE | num::f64::NORMAL | num::f64::SUBNORMAL | num::f64::ZERO)
+            .prop_map(Self)
+    }
+}

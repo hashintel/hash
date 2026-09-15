@@ -31,6 +31,7 @@ use super::Similarity;
 use crate::math::{
     FinitePointField, Positive,
     dvec2::{DVec2, DVec2x4T},
+    nz,
     rotation::Rotation,
     scalar::narrow_f32,
     vec2::{Vec2, Vec2x4, Vec2x4T},
@@ -39,9 +40,9 @@ use crate::math::{
 impl Similarity {
     /// Pairs per rayon work item in [`fit_par`](Self::fit_par).
     ///
-    /// 4096 pairs read 80 KiB across the three input slices, small enough to stay cache-warm while
-    /// large enough that per-task overhead disappears against the fold.
-    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = NonZero::new(4096).expect("4096 is not zero");
+    /// A full chunk reads 80 KiB of point and weight data: 4096 pairs at two 8-byte points and one
+    /// 4-byte weight per pair. [`fit_par_with`](Self::fit_par_with) accepts a different chunk size.
+    pub(crate) const PARALLEL_CHUNK: NonZero<usize> = nz!(4096);
 
     /// Estimates the weighted Procrustes alignment of paired points.
     ///
@@ -340,7 +341,7 @@ impl FitSums {
     /// round above 2⁵³.
     #[expect(
         clippy::cast_precision_loss,
-        reason = "pair counts remain exactly representable in f64 far beyond any corpus"
+        reason = "deliberately convert the pair count for double-precision arithmetic"
     )]
     fn from_slices_uniform(source: &[Vec2], target: &[Vec2]) -> Self {
         debug_assert!(

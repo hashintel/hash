@@ -6,7 +6,16 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DNonNegative, Finite, Positive, raw_interop, unsafe_impl_try_from_bytes};
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
+use super::{
+    DNonNegative, Finite, Positive, UnitFraction, raw_interop, unsafe_impl_try_from_bytes,
+};
+use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a non-negative literal at compile time.
 ///
@@ -324,12 +333,8 @@ impl NonNegative {
     /// Overflow and zero raised to a negative exponent produce infinity in the [`Derivation`]. Zero
     /// raised to zero is one. Underflow to zero remains nonnegative.
     #[inline]
-    #[must_use]
-    pub(crate) fn powf(self, exponent: f32) -> Self {
-        let raised = self.0.powf(exponent);
-        debug_assert!(raised.is_finite(), "the power left the domain");
-
-        Self(raised)
+    pub(crate) fn powf(self, exponent: Finite) -> Derivation<Self> {
+        Derivation::raw(self.0.powf(exponent.get()))
     }
 
     /// Returns the reciprocal.
@@ -484,6 +489,57 @@ const impl core::ops::Sub for NonNegative {
     }
 }
 
+const impl core::ops::Mul for NonNegative {
+    type Output = Derivation<Self>;
+
+    /// Multiplies with deferred validation of overflow.
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 * rhs.0)
+    }
+}
+
+const impl core::ops::Mul<Positive> for NonNegative {
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn mul(self, rhs: Positive) -> Self::Output {
+        Derivation::raw(self.0 * rhs.get())
+    }
+}
+
+const impl core::ops::Mul<UnitFraction> for NonNegative {
+    type Output = Self;
+
+    #[inline]
+    fn mul(self, rhs: UnitFraction) -> Self::Output {
+        // A fraction in [0, 1] cannot increase the magnitude of a nonnegative finite value. The
+        // product remains finite and nonnegative without a check, with canonical +0.0 for a zero
+        // product.
+        Self(self.0 * rhs.as_f32())
+    }
+}
+
+const impl core::ops::Div<Positive> for NonNegative {
+    type Output = Derivation<Self>;
+
+    /// Divides by a nonzero divisor with deferred validation of overflow.
+    #[inline]
+    fn div(self, rhs: Positive) -> Self::Output {
+        Derivation::raw(self.0 / rhs.get())
+    }
+}
+
+const impl core::ops::Div for NonNegative {
+    type Output = Derivation<Self>;
+
+    /// Divides with deferred validation of zero division and overflow.
+    #[inline]
+    fn div(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 / rhs.0)
+    }
+}
+
 const impl core::ops::Mul<Finite> for NonNegative {
     type Output = f32;
 
@@ -514,20 +570,6 @@ const impl core::ops::Add<NonNegative> for f32 {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for NonNegative {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (0.0..=f32::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for NonNegative {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
@@ -548,3 +590,15 @@ impl<'de> serde::Deserialize<'de> for NonNegative {
 
 raw_interop!(NonNegative[f32]);
 unsafe_impl_try_from_bytes!(NonNegative[f32]);
+
+#[cfg(test)]
+impl Arbitrary for NonNegative {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::POSITIVE | num::f32::NORMAL | num::f32::SUBNORMAL | num::f32::ZERO)
+            .prop_map(Self)
+    }
+}

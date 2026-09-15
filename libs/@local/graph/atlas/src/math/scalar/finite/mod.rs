@@ -22,11 +22,17 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::{
     DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, narrow_f32, raw_interop,
     unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a finite literal at compile time.
 ///
@@ -183,27 +189,34 @@ const impl From<Finite> for f64 {
     }
 }
 
-const impl core::ops::Div<Positive> for Finite {
-    type Output = f32;
+const impl core::ops::Neg for Finite {
+    type Output = Self;
 
-    /// Divides by a nonzero divisor with deferred validation of overflow.
     #[inline]
-    fn div(self, rhs: Positive) -> f32 {
-        self.0 / rhs.get()
+    fn neg(self) -> Self {
+        Self(-self.0)
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for Finite {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+const impl<T> core::ops::Mul<T> for Finite
+where
+    T: [const] Into<Finite>,
+{
+    type Output = Derivation<Self>;
 
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
+    #[inline]
+    fn mul(self, rhs: T) -> Self::Output {
+        Derivation::raw(self.0 * rhs.into().0)
+    }
+}
 
-        (-f32::MAX..=f32::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
+const impl core::ops::Div<Positive> for Finite {
+    type Output = Derivation<Self>;
+
+    /// Divides by a nonzero divisor with deferred validation of overflow.
+    #[inline]
+    fn div(self, rhs: Positive) -> Self::Output {
+        Derivation::raw(self.0 / rhs.get())
     }
 }
 
@@ -543,20 +556,6 @@ const impl PartialOrd<OpenUnitFraction> for DFinite {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for DFinite {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (-f64::MAX..=f64::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for DFinite {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -574,3 +573,35 @@ impl<'de> serde::Deserialize<'de> for DFinite {
 
 raw_interop!(Finite[f32], DFinite[f64]);
 unsafe_impl_try_from_bytes!(Finite[f32], DFinite[f64]);
+
+#[cfg(test)]
+impl Arbitrary for Finite {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::POSITIVE
+            | num::f32::NEGATIVE
+            | num::f32::NORMAL
+            | num::f32::SUBNORMAL
+            | num::f32::ZERO)
+            .prop_map(Self)
+    }
+}
+
+#[cfg(test)]
+impl Arbitrary for DFinite {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f64::POSITIVE
+            | num::f64::NEGATIVE
+            | num::f64::NORMAL
+            | num::f64::SUBNORMAL
+            | num::f64::ZERO)
+            .prop_map(Self)
+    }
+}
