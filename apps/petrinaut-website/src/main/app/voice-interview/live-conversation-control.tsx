@@ -316,6 +316,9 @@ export const LiveConversationControl = ({
             );
           },
         );
+        next.setMicrophoneMuted(false);
+        next.setSpeakerMuted(false);
+        next.setSpeakerVolume(1);
         bridge.current = new LiveBrunchBridge({
           submit: (input) => latest.current.submit(input),
           appendCommentary: next.appendCommentary,

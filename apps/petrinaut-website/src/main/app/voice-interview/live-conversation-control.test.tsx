@@ -306,7 +306,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     phase: "error",
     errorMessage: connectionError,
     microphoneLevel: 0,
-    microphoneMuted: false,
+    microphoneMuted: true,
     notice: null,
     speakerMuted: false,
     speakerVolume: 1,
@@ -399,6 +399,62 @@ test("registers truthful microphone and speaker controls for the same Live sessi
   act(() => controls.setMicrophoneMuted?.(false));
   expect(liveConversationMocks.setMicrophoneMuted).toHaveBeenLastCalledWith(
     false,
+  );
+});
+
+test("resets and applies audio defaults when a Live session restarts", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const firstOnState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+  act(() => firstOnState({ phase: "connected", message: null }));
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
+
+  act(() => controls.setMicrophoneMuted?.(true));
+  act(() => controls.setSpeakerMuted?.(true));
+  act(() => controls.setSpeakerVolume?.(0.25));
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      microphoneMuted: true,
+      speakerMuted: true,
+      speakerVolume: 0.25,
+    }),
+  );
+  await act(() => controls.end());
+  act(() =>
+    firstOnState({
+      phase: "ended",
+      message: "Microphone and playback stopped.",
+    }),
+  );
+  liveConversationMocks.setMicrophoneMuted.mockClear();
+  liveConversationMocks.setSpeakerMuted.mockClear();
+  liveConversationMocks.setSpeakerVolume.mockClear();
+
+  await start();
+
+  expect(createLiveConversation).toHaveBeenCalledTimes(2);
+  expect(
+    liveConversationMocks.setMicrophoneMuted,
+  ).toHaveBeenCalledExactlyOnceWith(false);
+  expect(liveConversationMocks.setSpeakerMuted).toHaveBeenCalledExactlyOnceWith(
+    false,
+  );
+  expect(
+    liveConversationMocks.setSpeakerVolume,
+  ).toHaveBeenCalledExactlyOnceWith(1);
+  const secondOnState = vi.mocked(createLiveConversation).mock.calls[1]![0];
+  act(() => secondOnState({ phase: "connected", message: null }));
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      microphoneMuted: false,
+      phase: "listening",
+      speakerMuted: false,
+      speakerVolume: 1,
+    }),
   );
 });
 

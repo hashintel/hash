@@ -7,7 +7,15 @@ beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
 });
 
-const setup = () => {
+const setup = ({
+  audioMuted = false,
+  audioVolume = 1,
+  inputEnabled = true,
+}: {
+  readonly audioMuted?: boolean;
+  readonly audioVolume?: number;
+  readonly inputEnabled?: boolean;
+} = {}) => {
   const sent = [[], []] as [string[], string[]];
   const createChannel = (events: string[]) =>
     Object.assign(new EventTarget(), {
@@ -17,7 +25,7 @@ const setup = () => {
     });
   const channels = [createChannel(sent[0]), createChannel(sent[1])] as const;
   const input = Object.assign(new EventTarget(), {
-    enabled: true,
+    enabled: inputEnabled,
     stop: vi.fn(),
   });
   const outputs = [{ stop: vi.fn() }, { stop: vi.fn() }];
@@ -48,9 +56,9 @@ const setup = () => {
   const audio = {
     autoplay: false,
     srcObject: null,
-    muted: false,
+    muted: audioMuted,
     paused: false,
-    volume: 1,
+    volume: audioVolume,
     play: vi.fn(async () => undefined),
     pause: vi.fn(),
   };
@@ -423,6 +431,32 @@ test("starts Live and transcription WebRTC from one consented capture and connec
     phase: "connected",
     message: null,
   });
+});
+
+test("applies cached settings and fresh defaults to newly created Live media", async () => {
+  const cached = setup({
+    audioMuted: false,
+    audioVolume: 0.8,
+    inputEnabled: true,
+  });
+  cached.conversation.setMicrophoneMuted(true);
+  cached.conversation.setSpeakerMuted(true);
+  cached.conversation.setSpeakerVolume(0.3);
+
+  await connect(cached);
+
+  expect(cached.input.enabled).toBe(false);
+  expect(cached.audio).toMatchObject({ muted: true, volume: 0.3 });
+
+  const fresh = setup({
+    audioMuted: true,
+    audioVolume: 0.2,
+    inputEnabled: false,
+  });
+  await connect(fresh);
+
+  expect(fresh.input.enabled).toBe(true);
+  expect(fresh.audio).toMatchObject({ muted: false, volume: 1 });
 });
 
 test("mutes the one shared capture without disturbing output or finalized input", async () => {
@@ -844,6 +878,22 @@ test("Stop synchronously silences playback and capture, closes both transports, 
   expect(fixture.onState.mock.lastCall?.[0].message).toBe(
     "Microphone and playback stopped. Live confirmed session closure.",
   );
+});
+
+test("late speaker settings cannot undo teardown silence", async () => {
+  const fixture = setup();
+  await connect(fixture);
+
+  const stopped = fixture.conversation.stop();
+  expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
+
+  fixture.conversation.setSpeakerMuted(false);
+  fixture.conversation.setSpeakerVolume(0.2);
+
+  expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
+  expect(fixture.audio.pause).toHaveBeenCalledOnce();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
 });
 
 test("a failure on either media connection stops both and remote audio remains native and unbuffered", async () => {

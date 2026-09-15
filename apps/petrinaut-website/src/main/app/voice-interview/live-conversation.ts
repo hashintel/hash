@@ -794,11 +794,13 @@ export const createLiveConversation = (
   };
 
   const setSpeakerMuted = (muted: boolean): void => {
+    if (stopping || finished) return;
     speakerMuted = muted;
     if (audio) audio.muted = muted;
   };
 
   const setSpeakerVolume = (volume: number): void => {
+    if (stopping || finished) return;
     speakerVolume = Math.min(1, Math.max(0, volume));
     if (audio) audio.volume = speakerVolume;
   };
