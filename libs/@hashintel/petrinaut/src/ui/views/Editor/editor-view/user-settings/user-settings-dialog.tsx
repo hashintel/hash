@@ -2,13 +2,13 @@ import { Tabs } from "@ark-ui/react/tabs";
 import {
   use,
   useId,
-  useLayoutEffect,
   useRef,
+  useState,
   type AriaAttributes,
   type ReactNode,
 } from "react";
 
-import { Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
+import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
 import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
@@ -19,20 +19,24 @@ import { UserSettingsContext } from "../../../../../react/state/user-settings-co
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
+import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { useFloatingPanel } from "../../shared/use-floating-panel";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
+import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
 import type { PetrinautSettingsSection } from "../../../../../react/navigation";
 import type { IconName } from "@hashintel/ds-components";
 
 const settingsDialogStyles = {
-  maxWidth: "[760px]",
+  position: "fixed",
+  userSelect: "none",
   "&": {
     padding: "0",
-    overflow: "hidden",
+    overflow: "visible",
     border: "[1px solid {colors.neutral.s50}]",
   },
   '[data-overlay-stack-root]:has(&) > [data-part="backdrop"]': {
-    background: "[rgba(0, 0, 0, 0.2)]",
+    background: "[transparent]",
   },
 } as const;
 const settingsDialogStyle = css(settingsDialogStyles);
@@ -70,9 +74,21 @@ const sections = [
 }[];
 
 const layoutStyle = css({
+  position: "relative",
+  _before: {
+    content: '""',
+    position: "absolute",
+    top: "0",
+    insetInline: "0",
+    height: "3",
+    cursor: "grab",
+    touchAction: "none",
+  },
   display: "grid",
   gridTemplateColumns: "[160px minmax(0, 1fr)]",
-  height: "[min(480px, calc(100dvh - 40px))]",
+  height: "full",
+  overflow: "hidden",
+  borderRadius: "[inherit]",
   minHeight: "0",
   "@media (max-width: 600px)": {
     gridTemplateColumns: "[124px minmax(0, 1fr)]",
@@ -80,6 +96,7 @@ const layoutStyle = css({
 });
 
 const sidebarStyle = css({
+  userSelect: "none",
   gridArea: "[1 / 1]",
   display: "flex",
   flexDirection: "column",
@@ -92,6 +109,7 @@ const sidebarStyle = css({
 });
 
 const tabStyle = css({
+  userSelect: "none",
   display: "flex",
   alignItems: "center",
   gap: "2.5",
@@ -119,19 +137,6 @@ const tabStyle = css({
   },
   "@media (max-width: 600px)": { paddingX: "2", gap: "2", fontSize: "xs" },
   "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-});
-
-const panelStyle = css({
-  gridArea: "[1 / 2]",
-  minWidth: "0",
-  minHeight: "0",
-  overflowY: "auto",
-  overscrollBehavior: "contain",
-  scrollbarGutter: "stable",
-  padding: "5",
-  outline: "none",
-  "&[hidden]": { display: "none" },
-  "@media (max-width: 600px)": { padding: "3" },
 });
 
 const descriptionStyle = css({
@@ -169,7 +174,9 @@ const rowStyle = css({
   },
 });
 const labelStyle = css({
-  display: "block",
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.fg.heading",
@@ -193,11 +200,13 @@ const SettingsGroup = ({
 const SettingRow = ({
   label,
   description,
+  experimental,
   wideControl,
   children,
 }: {
   label: string;
   description: string;
+  experimental?: boolean;
   wideControl?: boolean;
   children: (aria: AriaAttributes) => ReactNode;
 }) => {
@@ -250,16 +259,28 @@ const SettingRow = ({
       }}
     >
       <div>
-        <span id={`${id}-label`} className={labelStyle}>
-          {label}
-        </span>
+        <div className={labelStyle}>
+          <span id={`${id}-label`}>{label}</span>
+          {experimental && (
+            <div
+              id={`${id}-experimental`}
+              className={css({ display: "flex", flexShrink: "0" })}
+            >
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </div>
+          )}
+        </div>
         <p id={`${id}-description`} className={descriptionStyle}>
           {description}
         </p>
       </div>
       {children({
         "aria-labelledby": `${id}-label`,
-        "aria-describedby": `${id}-description`,
+        "aria-describedby": experimental
+          ? `${id}-experimental ${id}-description`
+          : `${id}-description`,
       })}
     </div>
   );
@@ -268,17 +289,23 @@ const SettingRow = ({
 const SettingToggle = ({
   label,
   description,
+  experimental,
   value,
   onChange,
   disabled,
 }: {
   label: string;
   description: string;
+  experimental?: boolean;
   value: boolean;
   onChange: (value: boolean) => void;
   disabled?: boolean;
 }) => (
-  <SettingRow label={label} description={description}>
+  <SettingRow
+    label={label}
+    description={description}
+    experimental={experimental}
+  >
     {(aria) => (
       <Toggle
         {...aria}
@@ -349,24 +376,21 @@ export const UserSettingsDialog = ({
   const webGpuAvailable = isWebGpuAvailable();
   const sectionIndex = sections.findIndex((item) => item.id === section);
   const item = sections[sectionIndex] ?? sections[0];
-  const panelRef = useRef<HTMLDivElement>(null);
-  const positionRef = useRef({ x: 0, y: 0 });
-  const dragRef = useRef<{
-    pointerId: number;
-    clientX: number;
-    clientY: number;
-    x: number;
-    y: number;
-    bounds: DOMRect;
-    dialog: HTMLElement;
-  } | null>(null);
-
-  useLayoutEffect(() => {
-    if (panelRef.current) panelRef.current.scrollTop = 0;
-  }, [section]);
+  const headingRef = useRef<HTMLElement>(null);
+  const [width, setWidth] = useState(760);
+  const { panelRef, handleProps, getResizeHandleProps, style } =
+    useFloatingPanel<HTMLDivElement>({
+      width,
+      onWidthChange: setWidth,
+      initialHeight: 480,
+      initialPosition: "center",
+      limits: { minWidth: 520, maxWidth: Infinity, gap: 20 },
+    });
 
   return (
     <Dialog
+      ref={panelRef}
+      style={style}
       size="lg"
       aria-label="User settings"
       className={settingsDialogStyle}
@@ -390,10 +414,17 @@ export const UserSettingsDialog = ({
       <Dialog.Body
         withPadding={false}
         className={css({
-          overflow: "hidden",
-          "&": { border: "[0]", borderRadius: "[inherit]" },
+          "&": {
+            overflow: "visible",
+            border: "[0]",
+            borderRadius: "[inherit]",
+          },
         })}
       >
+        <FloatingResizeHandles
+          label="User settings"
+          getHandleProps={getResizeHandleProps}
+        />
         <Tabs.Root
           value={section}
           orientation="vertical"
@@ -404,80 +435,38 @@ export const UserSettingsDialog = ({
             if (selected) onSectionChange(selected.id);
           }}
           className={layoutStyle}
+          {...handleProps}
+          onKeyDown={undefined}
+          onPointerDown={(event) => {
+            if (
+              event.button !== 0 ||
+              !headingRef.current ||
+              event.clientY >
+                headingRef.current.getBoundingClientRect().bottom ||
+              (event.target instanceof Element &&
+                event.target.closest(
+                  "button, input, select, textarea, a, [role='tab'], [role='combobox']",
+                ))
+            )
+              return;
+            handleProps.onPointerDown(event);
+          }}
         >
           <FocusRoot>
             <FocusStack axis="horizontal" contain>
               <SettingsTabs />
-              <Tabs.Content
-                ref={panelRef}
-                value={section}
-                hidden={false}
-                className={panelStyle}
-              >
-                <div
-                  className={css({
-                    cursor: "grab",
-                    touchAction: "none",
-                    userSelect: "none",
-                    _active: { cursor: "grabbing" },
-                  })}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0) return;
-                    const dialog =
-                      event.currentTarget.closest<HTMLElement>(
-                        '[role="dialog"]',
-                      );
-                    if (!dialog) return;
-                    event.preventDefault();
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    dragRef.current = {
-                      pointerId: event.pointerId,
-                      clientX: event.clientX,
-                      clientY: event.clientY,
-                      ...positionRef.current,
-                      bounds: dialog.getBoundingClientRect(),
-                      dialog,
-                    };
-                  }}
-                  onPointerMove={(event) => {
-                    const drag = dragRef.current;
-                    if (!drag || drag.pointerId !== event.pointerId) return;
-                    const dx = Math.max(
-                      8 - drag.bounds.left,
-                      Math.min(
-                        event.clientX - drag.clientX,
-                        window.innerWidth - 8 - drag.bounds.right,
-                      ),
-                    );
-                    const dy = Math.max(
-                      8 - drag.bounds.top,
-                      Math.min(
-                        event.clientY - drag.clientY,
-                        window.innerHeight - 8 - drag.bounds.bottom,
-                      ),
-                    );
-                    const position = { x: drag.x + dx, y: drag.y + dy };
-                    positionRef.current = position;
-                    drag.dialog.style.translate = `${position.x}px ${position.y}px`;
-                  }}
-                  onPointerUp={(event) => {
-                    if (dragRef.current?.pointerId !== event.pointerId) return;
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                    dragRef.current = null;
-                  }}
-                  onPointerCancel={() => {
-                    dragRef.current = null;
-                  }}
-                  onLostPointerCapture={() => {
-                    dragRef.current = null;
-                  }}
-                >
+              <SettingsPanel
+                section={section}
+                headingRef={headingRef}
+                animated={settings.showAnimations}
+                heading={
                   <SettingsHeading
                     section={item}
                     index={sectionIndex}
                     animated={settings.showAnimations}
                   />
-                </div>
+                }
+              >
                 <FocusStack key={section} axis="vertical">
                   {item.id === "general" && (
                     <>
@@ -521,13 +510,15 @@ export const UserSettingsDialog = ({
                           onChange={settings.setCompactNodes}
                         />
                         <SettingToggle
-                          label="Petricon (Experimental)"
+                          label="Petricon"
+                          experimental
                           description="Use Petrinaut's custom icon pack across the editor."
                           value={settings.enableExperimentalIconPack}
                           onChange={settings.setEnableExperimentalIconPack}
                         />
                         <SettingToggle
-                          label="Automatic arc connections (Experimental)"
+                          label="Automatic arc connections"
+                          experimental
                           description="Connect node outlines and choose attachment directions automatically."
                           value={settings.enableAutomaticArcConnections}
                           onChange={settings.setEnableAutomaticArcConnections}
@@ -643,7 +634,7 @@ export const UserSettingsDialog = ({
                     </>
                   )}
                 </FocusStack>
-              </Tabs.Content>
+              </SettingsPanel>
             </FocusStack>
           </FocusRoot>
         </Tabs.Root>

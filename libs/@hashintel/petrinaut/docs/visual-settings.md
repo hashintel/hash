@@ -6,7 +6,9 @@ Settings are available from every workspace tab, including **Simulate → Experi
 
 Use the vertical tabs to browse the sections. With a tab focused, use **Up/Down** to switch sections and **Home/End** to jump to the first or last section. **Right** moves into the section's settings, **Up/Down** moves between controls, and **Left** returns to the selected tab. Moving back into the same section restores the last focused control. **Tab** and **Shift+Tab** also reach every control. Use **Space** to toggle a switch and **Enter** to open a dropdown; an open dropdown uses its own arrow keys. Press **Escape**, click the close button, or click outside the dialog to close it.
 
-Drag the section heading area to move the settings window. It stays within the viewport and returns to its initial position when reopened.
+Scroll within a section to reach its remaining settings. The heading, section tabs, and close button stay in place. A soft blur and gradient at the top or bottom indicate more settings in that direction. Experimental settings have an inline **Experimental** badge beside their name.
+
+Drag the heading or empty space across the top of the settings window to move it, including while its content is scrolled. Drag any edge or corner to resize it. The opposite edge stays fixed, and the window remains inside the viewport. Switching sections preserves its size and position; reopening returns it to its initial size and position. The canvas keeps its normal brightness while the dialog is open. Text selection is disabled throughout the dialog.
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
@@ -41,7 +43,7 @@ Show or hide the **overview minimap** in the top-right corner of the canvas. The
 
 ### Petricon
 
-In the **Viewport** section, turn on **Petricon (Experimental)** to use Petricon, Petrinaut's
+In the **Viewport** section, turn on **Petricon** to use Petricon, Petrinaut's
 custom icons for entities, playback, zoom, and navigation. The pack includes the
 sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
 buttons, settings gears, editing actions, diagnostics, simulation and data views,

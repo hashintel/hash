@@ -3,9 +3,9 @@ import { cva } from "@hashintel/ds-helpers/css";
 import {
   RESIZE_HANDLE_OFFSET,
   RESIZE_HANDLE_SIZE,
-} from "../../../../../constants/ui";
+} from "../../../constants/ui";
 
-import type { FloatingResizeDirection } from "./use-floating-position";
+import type { FloatingResizeDirection } from "./use-floating-panel";
 import type { ComponentProps } from "react";
 
 const handleStyle = cva({
@@ -119,15 +119,19 @@ const handleStyle = cva({
   },
 });
 
-export const FloatingResizeHandle = ({
+const FloatingResizeHandle = ({
   direction,
+  label,
   ...props
-}: ComponentProps<"button"> & { direction: FloatingResizeDirection }) => (
+}: ComponentProps<"button"> & {
+  direction: FloatingResizeDirection;
+  label: string;
+}) => (
   <button
     {...props}
     type="button"
     tabIndex={-1}
-    aria-label={`Resize AI assistant from ${direction}`}
+    aria-label={`Resize ${label} from ${direction}`}
     data-resize-edge={direction}
     className={handleStyle({ direction, corner: direction.includes("-") })}
     style={{
@@ -137,4 +141,36 @@ export const FloatingResizeHandle = ({
       left: direction.includes("left") ? RESIZE_HANDLE_OFFSET : undefined,
     }}
   />
+);
+
+export const FloatingResizeHandles = ({
+  label,
+  getHandleProps,
+}: {
+  label: string;
+  getHandleProps: (
+    direction: FloatingResizeDirection,
+  ) => ComponentProps<"button">;
+}) => (
+  <>
+    {(
+      [
+        "top",
+        "right",
+        "bottom",
+        "left",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+      ] as const
+    ).map((direction) => (
+      <FloatingResizeHandle
+        key={direction}
+        direction={direction}
+        label={label}
+        {...getHandleProps(direction)}
+      />
+    ))}
+  </>
 );

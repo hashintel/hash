@@ -5,7 +5,7 @@ import {
   type FloatingResizeDirection,
 } from "./resize-floating-panel";
 
-import type { ResizableEdge } from "../../../../../../resize/resize-handle";
+import type { ResizableEdge } from "../../../../resize/resize-handle";
 
 const bounds = {
   right: 100,
@@ -17,6 +17,37 @@ const bounds = {
 };
 
 describe("resizeFloatingPanel", () => {
+  test("uses the settings window's size limits and viewport inset", () => {
+    expect(
+      resizeFloatingPanel(
+        {
+          ...bounds,
+          width: 760,
+          height: 480,
+          parentWidth: 1200,
+          parentHeight: 900,
+        },
+        "top-left",
+        { x: 1000, y: 1000 },
+        { minWidth: 520, minHeight: 320, maxWidth: Infinity, gap: 20 },
+      ),
+    ).toEqual({ right: 100, top: 260, width: 520, height: 320 });
+    expect(
+      resizeFloatingPanel(
+        {
+          ...bounds,
+          width: 760,
+          height: 480,
+          parentWidth: 1200,
+          parentHeight: 900,
+        },
+        "bottom-left",
+        { x: -1000, y: 1000 },
+        { minWidth: 520, minHeight: 320, maxWidth: Infinity, gap: 20 },
+      ),
+    ).toEqual({ right: 100, top: 100, width: 1080, height: 780 });
+  });
+
   test.each([
     {
       direction: "top-left",

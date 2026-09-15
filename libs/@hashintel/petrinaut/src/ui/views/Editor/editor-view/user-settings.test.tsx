@@ -62,35 +62,157 @@ const renderSettings = (
 };
 
 describe("user settings", () => {
-  it("drags from the heading, stays within the viewport, and stops on release", async () => {
-    renderSettings({ overlay: { type: "user-settings" } });
+  it.each(["heading", "top padding"])(
+    "drags from %s, stays within the viewport, and stops on release",
+    async (dragSource) => {
+      renderSettings({ overlay: { type: "user-settings" } });
+      const dialog = await screen.findByRole("dialog");
+      const heading = screen.getByRole("heading", { name: "General" });
+      const handle = dialog.querySelector<HTMLElement>(
+        '[data-scope="tabs"][data-part="root"]',
+      )!;
+      vi.spyOn(
+        heading.closest("header")!,
+        "getBoundingClientRect",
+      ).mockReturnValue(new DOMRect(100, 100, 400, 80));
+      handle.setPointerCapture = vi.fn();
+      const releasePointerCapture = vi.fn();
+      handle.releasePointerCapture = releasePointerCapture;
+      vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
+        x: 100,
+        y: 100,
+        left: 100,
+        top: 100,
+        right: 500,
+        bottom: 500,
+        width: 400,
+        height: 400,
+        toJSON: () => ({}),
+      });
+      vi.spyOn(dialog.parentElement!, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 0, 1024, 768),
+      );
+      fireEvent.pointerDown(dragSource === "heading" ? heading : handle, {
+        button: 0,
+        clientX: 200,
+        clientY: 150,
+      });
+      fireEvent.pointerMove(handle, { clientX: 250, clientY: 170 });
+      expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
+        "474px",
+      );
+      expect(dialog.style.getPropertyValue("--floating-panel-top")).toContain(
+        "120px",
+      );
+      fireEvent.pointerMove(handle, { clientX: -1000, clientY: -1000 });
+      expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
+        "604px",
+      );
+      expect(dialog.style.getPropertyValue("--floating-panel-top")).toContain(
+        "20px",
+      );
+      fireEvent.pointerUp(handle);
+      fireEvent.pointerMove(handle, { clientX: 300, clientY: 300 });
+      expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
+        "604px",
+      );
+      expect(dialog.style.getPropertyValue("--floating-panel-top")).toContain(
+        "20px",
+      );
+      expect(releasePointerCapture).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("keeps tabs and scrolled settings outside the drag area", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "viewport" } });
     const dialog = await screen.findByRole("dialog");
-    const heading = screen.getByRole("heading", { name: "General" });
-    const handle = heading.parentElement!.parentElement!.parentElement!;
-    handle.setPointerCapture = vi.fn();
-    const releasePointerCapture = vi.fn();
-    handle.releasePointerCapture = releasePointerCapture;
-    vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue({
-      x: 100,
-      y: 100,
-      left: 100,
-      top: 100,
-      right: 500,
-      bottom: 500,
-      width: 400,
-      height: 400,
-      toJSON: () => ({}),
+    const heading = screen.getByRole("heading", { name: "Viewport" });
+    const handle = dialog.querySelector<HTMLElement>(
+      '[data-scope="tabs"][data-part="root"]',
+    )!;
+    const setPointerCapture = vi.fn();
+    handle.setPointerCapture = setPointerCapture;
+    vi.spyOn(
+      heading.closest("header")!,
+      "getBoundingClientRect",
+    ).mockReturnValue(new DOMRect(100, 100, 400, 80));
+    const initialPosition = dialog.style.cssText;
+    fireEvent.pointerDown(screen.getByRole("tab", { name: "General" }), {
+      button: 0,
+      clientX: 150,
+      clientY: 150,
     });
-    fireEvent.pointerDown(handle, { button: 0, clientX: 200, clientY: 150 });
-    fireEvent.pointerMove(handle, { clientX: 250, clientY: 170 });
-    expect(dialog.style.translate).toBe("50px 20px");
-    fireEvent.pointerMove(handle, { clientX: -1000, clientY: -1000 });
-    expect(dialog.style.translate).toBe("-92px -92px");
-    fireEvent.pointerUp(handle);
-    fireEvent.pointerMove(handle, { clientX: 300, clientY: 300 });
-    expect(dialog.style.translate).toBe("-92px -92px");
-    expect(releasePointerCapture).toHaveBeenCalledOnce();
+    const panel = screen.getByRole("tabpanel");
+    panel.scrollTop = 200;
+    fireEvent.scroll(panel);
+    fireEvent.pointerDown(screen.getByText("Minimap"), {
+      button: 0,
+      clientX: 300,
+      clientY: 250,
+    });
+    fireEvent.pointerMove(handle, { clientX: 320, clientY: 270 });
+    expect(setPointerCapture).not.toHaveBeenCalled();
+    expect(dialog.style.cssText).toBe(initialPosition);
   });
+
+  it.each([
+    ["top", 760, 440, 140, 320],
+    ["right", 820, 480, 100, 260],
+    ["bottom", 760, 520, 100, 320],
+    ["left", 700, 480, 100, 320],
+    ["top-left", 700, 440, 140, 320],
+    ["top-right", 820, 440, 140, 260],
+    ["bottom-left", 700, 520, 100, 320],
+    ["bottom-right", 820, 520, 100, 260],
+  ] as const)(
+    "resizes from %s and preserves size when changing sections",
+    async (direction, width, height, top, right) => {
+      renderSettings({ overlay: { type: "user-settings" } });
+      const dialog = await screen.findByRole("dialog");
+      vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(200, 100, 760, 480),
+      );
+      vi.spyOn(dialog.parentElement!, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 0, 1280, 900),
+      );
+      const handle = screen.getByRole("button", {
+        name: `Resize User settings from ${direction}`,
+      });
+      handle.setPointerCapture = vi.fn();
+      handle.releasePointerCapture = vi.fn();
+      fireEvent.pointerDown(handle, { button: 0, clientX: 200, clientY: 100 });
+      fireEvent.pointerMove(handle, { clientX: 260, clientY: 140 });
+      fireEvent.pointerUp(handle);
+      expect(dialog.style.getPropertyValue("--floating-panel-width")).toContain(
+        `${width}px`,
+      );
+      expect(
+        dialog.style.getPropertyValue("--floating-panel-height"),
+      ).toContain(`${height}px`);
+      expect(dialog.style.getPropertyValue("--floating-panel-top")).toContain(
+        `${top}px`,
+      );
+      expect(dialog.style.getPropertyValue("--floating-panel-right")).toContain(
+        `${right}px`,
+      );
+      const sizeProperties = [
+        "--floating-panel-width",
+        "--floating-panel-height",
+        "--floating-panel-top",
+        "--floating-panel-right",
+      ];
+      const resizedStyle = sizeProperties.map((property) =>
+        dialog.style.getPropertyValue(property),
+      );
+      fireEvent.click(screen.getByRole("tab", { name: "Viewport" }));
+      await screen.findByRole("heading", { name: "Viewport" });
+      expect(
+        sizeProperties.map((property) =>
+          dialog.style.getPropertyValue(property),
+        ),
+      ).toEqual(resizedStyle);
+    },
+  );
 
   it.each(["edit", "simulate", "actual", "notebook"] as const)(
     "opens from the shortcut and palette in %s mode",
@@ -232,12 +354,12 @@ describe("user settings", () => {
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
-      screen.getByRole("checkbox", { name: "Petricon (Experimental)" }),
+      screen.getByRole("checkbox", { name: "Petricon" }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
       screen.getByRole("checkbox", {
-        name: "Automatic arc connections (Experimental)",
+        name: "Automatic arc connections",
       }),
     );
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
@@ -336,13 +458,13 @@ describe("combined UX settings", () => {
       overlay: { type: "user-settings", section: "viewport" },
     });
     const iconPack = await screen.findByRole("checkbox", {
-      name: "Petricon (Experimental)",
+      name: "Petricon",
     });
     await act(async () => fireEvent.click(iconPack));
     await act(async () =>
       fireEvent.click(
         screen.getByRole("checkbox", {
-          name: "Automatic arc connections (Experimental)",
+          name: "Automatic arc connections",
         }),
       ),
     );
@@ -351,14 +473,14 @@ describe("combined UX settings", () => {
     expect(
       (
         (await screen.findByRole("checkbox", {
-          name: "Petricon (Experimental)",
+          name: "Petricon",
         })) as HTMLInputElement
       ).checked,
     ).toBe(true);
     expect(
       (
         screen.getByRole("checkbox", {
-          name: "Automatic arc connections (Experimental)",
+          name: "Automatic arc connections",
         }) as HTMLInputElement
       ).checked,
     ).toBe(true);
