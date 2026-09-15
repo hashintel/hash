@@ -1007,7 +1007,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.queryByLabelText("Pass threshold (percent)")).toBeNull();
   });
 
-  it("shows a row's error in its reserved line and blocks Optimize naming the row", async () => {
+  it("shows an inline error and blocks Optimize naming the row", async () => {
     const languageClient = makeLoweringLanguageClient();
     const { rerender } = await openConstrainedSweep({ languageClient });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
@@ -1310,9 +1310,10 @@ describe("CreateExperimentDrawer constraints", () => {
   });
 });
 
-/** The objective section's metric select. */
-const objectiveMetricSelect = () =>
-  screen.getByLabelText("Metric to optimize") as HTMLSelectElement;
+const objectiveRadio = (metricLabel: string) =>
+  within(
+    screen.getByRole("group", { name: `Optimization for ${metricLabel}` }),
+  ).getByRole("radio", { name: "Use as objective" }) as HTMLInputElement;
 
 const stepsInput = () =>
   screen.getByLabelText("Optimization steps") as HTMLInputElement;
@@ -1324,7 +1325,7 @@ const objectiveHelper = () =>
   );
 
 describe("CreateExperimentDrawer objective", () => {
-  it("offers no Objective section for a plain experiment", async () => {
+  it("offers no objective controls for a plain experiment", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -1333,11 +1334,11 @@ describe("CreateExperimentDrawer objective", () => {
       />,
     );
     await screen.findByText("transmission_rate");
-    expect(screen.queryByText("Objective")).toBeNull();
+    expect(screen.queryByText("Metrics & objective")).toBeNull();
     expect(footerButton("Run")).toBeTruthy();
   });
 
-  it("offers no Objective section under the Sweep word, with or without a remote optimizer", async () => {
+  it("offers no objective controls under the Sweep word, with or without a remote optimizer", async () => {
     const { unmount } = render(
       <TestProviders
         webGpuEnabled={false}
@@ -1347,7 +1348,7 @@ describe("CreateExperimentDrawer objective", () => {
     );
     flipInterval("transmission_rate", "Sweep");
     expect(await findFooterButton("Create sweep")).toBeTruthy();
-    expect(screen.queryByText("Objective")).toBeNull();
+    expect(screen.queryByText("Metrics & objective")).toBeNull();
     unmount();
 
     render(
@@ -1360,10 +1361,10 @@ describe("CreateExperimentDrawer objective", () => {
     );
     flipInterval("transmission_rate", "Sweep");
     expect(await findFooterButton("Create sweep")).toBeTruthy();
-    expect(screen.queryByText("Objective")).toBeNull();
+    expect(screen.queryByText("Metrics & objective")).toBeNull();
   });
 
-  it("adds the Objective and Constraints sections together at the first Optimize on a saved scenario", async () => {
+  it("unifies metrics and the objective before Constraints at the first Optimize on a saved scenario", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -1373,38 +1374,43 @@ describe("CreateExperimentDrawer objective", () => {
       />,
     );
     await screen.findByRole("button", { name: "Optimize transmission_rate" });
-    expect(screen.queryByText("Objective")).toBeNull();
+    expect(screen.queryByText("Metrics & objective")).toBeNull();
     expect(footerButton("Run")).toBeTruthy();
 
     flipInterval("transmission_rate", "Optimize");
-    expect(await screen.findByText("Objective")).toBeTruthy();
+    expect(await screen.findByText("Metrics & objective")).toBeTruthy();
     expect(screen.getByText("Constraints")).toBeTruthy();
     expect(
       screen.getByText(
         /transmission_rate optimized over its interval — the study picks the points/,
       ),
     ).toBeTruthy();
-    expect(stepsInput().value).toBe("30");
-    expect(
-      screen
-        .getByRole("button", { name: "Maximize" })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
     expect(footerButton("Optimize")).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: footerWord("Create sweep") }),
     ).toBeNull();
 
-    // Without a metric draft the section asks for one, and so does the footer.
-    expect(objectiveMetricSelect().disabled).toBe(true);
-    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
-      "Add a metric below",
-    );
+    expect(screen.queryByLabelText("Metric to optimize")).toBeNull();
+    expect(screen.queryByLabelText("Optimization steps")).toBeNull();
     expect(screen.getByText("Add a metric to optimize")).toBeTruthy();
     expect(submitButton().disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    expect(stepsInput().value).toBe("30");
+    expect(objectiveRadio("Susceptible tokens").checked).toBe(true);
+    expect(
+      screen
+        .getByRole("button", { name: "Maximize" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByText("Metrics & objective")
+        .compareDocumentPosition(screen.getByText("Constraints")),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it("offers the Objective section for No scenario, and no Constraints", async () => {
+  it("offers objective controls for No scenario, and no Constraints", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -1415,13 +1421,13 @@ describe("CreateExperimentDrawer objective", () => {
     );
     fireEvent.click(await screen.findByLabelText("Optimize Rate"));
 
-    expect(await screen.findByText("Objective")).toBeTruthy();
+    expect(await screen.findByText("Metrics & objective")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
     expect(screen.getByText(/Rate optimized over its interval/)).toBeTruthy();
     expect(footerButton("Optimize")).toBeTruthy();
   });
 
-  it("keeps the Objective section and the Optimize word while an ad-hoc bound is being edited", async () => {
+  it("keeps the unified section and the Optimize word while an ad-hoc bound is being edited", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -1431,7 +1437,7 @@ describe("CreateExperimentDrawer objective", () => {
       />,
     );
     fireEvent.click(await screen.findByLabelText("Optimize Rate"));
-    expect(await screen.findByText("Objective")).toBeTruthy();
+    expect(await screen.findByText("Metrics & objective")).toBeTruthy();
 
     // Blanking Max leaves the definition unable to synthesize: the form
     // reports it at the slot and the summary line repeats it, the section
@@ -1446,7 +1452,7 @@ describe("CreateExperimentDrawer objective", () => {
       target: { value: "" },
     });
 
-    expect(screen.getByText("Objective")).toBeTruthy();
+    expect(screen.getByText("Metrics & objective")).toBeTruthy();
     expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
     expect(submitButton().disabled).toBe(true);
     expect(
@@ -1458,32 +1464,27 @@ describe("CreateExperimentDrawer objective", () => {
     await openConstrainedSweep();
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
-    const labels = screen.getAllByLabelText("Metric label");
-    fireEvent.change(labels[1]!, { target: { value: "Peak" } });
+    expect(screen.queryByLabelText("Metric label")).toBeNull();
+    fireEvent.change(screen.getAllByLabelText("Metric type")[1]!, {
+      target: { value: "expression" },
+    });
+    fireEvent.change(screen.getByLabelText("Metric label"), {
+      target: { value: "Peak" },
+    });
 
-    expect(objectiveMetricSelect().disabled).toBe(false);
-    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
-      "Susceptible tokens",
-    );
+    expect(objectiveRadio("Susceptible tokens").checked).toBe(true);
     expect(objectiveHelper()).toBeTruthy();
     expect(submitButton().disabled).toBe(false);
 
-    const peak = [...objectiveMetricSelect().options].find(
-      (option) => option.text === "Peak",
-    )!;
-    fireEvent.change(objectiveMetricSelect(), {
-      target: { value: peak.value },
-    });
-    expect(objectiveMetricSelect().value).toBe(peak.value);
+    fireEvent.click(objectiveRadio("Peak"));
+    expect(objectiveRadio("Peak").checked).toBe(true);
+    expect(objectiveRadio("Susceptible tokens").checked).toBe(false);
 
     // The chosen draft goes; the choice falls back to the first, with no stale id.
     fireEvent.click(
       screen.getAllByRole("button", { name: "Remove metric" })[1]!,
     );
-    expect(objectiveMetricSelect().selectedOptions[0]?.text).toBe(
-      "Susceptible tokens",
-    );
-    expect(objectiveMetricSelect().value).not.toBe(peak.value);
+    expect(objectiveRadio("Susceptible tokens").checked).toBe(true);
   });
 
   it("reads Optimize in the footer and disables it with the step message at 1,001 steps and the budget message at 1,000", async () => {
@@ -1601,7 +1602,7 @@ describe("CreateExperimentDrawer objective", () => {
     expect(setSelectedExperimentId).not.toHaveBeenCalled();
     expect(screen.getByDisplayValue("Peak search")).toBeTruthy();
     expect(stepsInput().value).toBe("12");
-    expect(screen.getByText("Objective")).toBeTruthy();
+    expect(screen.getByText("Metrics & objective")).toBeTruthy();
     expect(footerWord("Optimize")(submitButton().textContent)).toBe(true);
     expect(submitButton().disabled).toBe(false);
   });

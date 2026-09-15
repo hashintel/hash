@@ -1,22 +1,7 @@
-/**
- * The Create Experiment drawer's Constraints section: one ordered list of
- * parameter and state rows, each with a kind chip, its own language session
- * and a reserved diagnostic line, a pass threshold in the header while a
- * state row exists, and two add buttons. Every row's height is fixed for its
- * kind and the diagnostic line is always there, so a diagnostic arriving
- * mid-typing moves nothing.
- */
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 
-import {
-  Button,
-  Chip,
-  HelpTooltip,
-  Icon,
-  NumberInput,
-} from "@hashintel/ds-components";
+import { Button, Icon, NumberInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA } from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
 import { Section } from "../../../../../../components/section";
@@ -35,12 +20,12 @@ import {
   getConstraintErrorMessage,
 } from "./constraint-lsp";
 import { useConstraintLspSession } from "./constraints-section/use-constraint-lsp-session";
-import { constraintPolicyFor } from "./lower-constraint-drafts";
 
 import type {
   ConstraintSpace,
   ScenarioParameter,
 } from "@hashintel/petrinaut-core";
+import type { editor } from "monaco-editor";
 
 const listStyle = css({
   display: "flex",
@@ -48,38 +33,35 @@ const listStyle = css({
   gap: "2",
 });
 
-// The chip column is fixed so every row's code starts on one line; the trash
-// column holds the extra-small button's width.
 const rowStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[84px minmax(0, 1fr) 28px]",
-  alignItems: "start",
-  gap: "2",
-});
-
-const chipCellStyle = css({
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-});
-
-// A grid, not a flex column: the single-line editor's own `flex: 1` would
-// otherwise collapse its fixed height.
-const editorColumnStyle = css({
   display: "grid",
   gap: "1",
   minWidth: "[0]",
+  borderRadius: "lg",
+  _focusVisible: {
+    outline: "[2px solid {colors.neutral.a25}]",
+    outlineOffset: "[4px]",
+  },
 });
 
-// Always mounted: the row's diagnostic lands here without moving anything.
+const rowHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+});
+
+const rowLabelStyle = css({
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s100",
+});
+
 const diagnosticStyle = css({
   fontSize: "xs",
   lineHeight: "[16px]",
-  minHeight: "[16px]",
   color: "red.s100",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  whiteSpace: "pre-wrap",
 });
 
 const emptyStyle = css({
@@ -89,53 +71,47 @@ const emptyStyle = css({
 
 const addRowStyle = css({
   display: "flex",
+  flexWrap: "wrap",
   gap: "2",
 });
 
-// The header's right side keeps one height whether or not the threshold is
-// mounted, so adding the first state row never moves the title line.
-const headerActionStyle = css({
+const thresholdStyle = css({
   display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  paddingTop: "2",
+  borderTopWidth: "[1px]",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
+});
+
+const thresholdFieldStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[minmax(0, 1fr) 120px]",
   alignItems: "center",
   gap: "2",
-  height: "[28px]",
 });
 
 const thresholdLabelStyle = css({
-  fontSize: "xs",
+  fontSize: "sm",
   fontWeight: "medium",
-  color: "neutral.s100",
-  whiteSpace: "nowrap",
 });
 
-const thresholdInputStyle = css({
-  width: "[88px]",
+const hintStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
 });
 
 const SECTION_TOOLTIP =
   "What the optimizer must respect when it drives this sweep. A parameter constraint rules out points before they compute; a state constraint is checked on every frame of every run and runs on the CPU.";
-
-const KIND_CHIP: Record<
-  ConstraintSpace,
-  { label: string; color: "grey" | "purple" }
-> = {
-  parameters: { label: "Parameters", color: "grey" },
-  state: { label: "State", color: "purple" },
-};
-
-const PLACEHOLDER: Record<ConstraintSpace, string> = {
-  parameters: "scenario.min_load < scenario.max_load",
-  state: "return state.places.Queue.count <= 10;",
-};
-
-/** Three lines of a state constraint's body. */
-const STATE_EDITOR_HEIGHT = "72px";
 
 const ConstraintRow = ({
   row,
   label,
   scenarioParameters,
   focusOnMount,
+  placeholder,
+  onEditorMount,
   disabled,
   onCodeChange,
   onRemove,
@@ -145,6 +121,8 @@ const ConstraintRow = ({
   scenarioParameters: readonly ScenarioParameter[];
   /** Whether the editor takes focus as it mounts: the row the user just added. */
   focusOnMount: boolean;
+  placeholder: string;
+  onEditorMount: (instance: editor.IStandaloneCodeEditor) => void;
   disabled: boolean;
   onCodeChange: (code: string) => void;
   onRemove: () => void;
@@ -158,41 +136,80 @@ const ConstraintRow = ({
   const { diagnosticsByUri } = use(LanguageClientContext);
   const errorMessage = getConstraintErrorMessage(diagnosticsByUri, row.id);
   const multiline = row.space === "state";
-  const chip = KIND_CHIP[row.space];
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [editorHeight, setEditorHeight] = useState(30);
 
   return (
-    <div role="group" aria-label={label} className={rowStyle}>
-      <span className={chipCellStyle}>
-        <Chip size="xs" variant="soft" color={chip.color}>
-          {chip.label}
-        </Chip>
-      </span>
-      <div className={editorColumnStyle}>
-        <CodeEditor
-          language="typescript"
-          path={getConstraintDocumentUri(row.id)}
-          singleLine={!multiline}
-          hasError={errorMessage !== undefined}
-          value={row.code}
-          height={multiline ? STATE_EDITOR_HEIGHT : undefined}
-          placeholder={PLACEHOLDER[row.space]}
-          options={{ ariaLabel: label, readOnly: disabled }}
-          onChange={(code) => onCodeChange(code ?? "")}
-          onMount={focusOnMount ? (editor) => editor.focus() : undefined}
-        />
-        <span className={diagnosticStyle} title={errorMessage}>
-          {errorMessage ?? ""}
+    <div
+      ref={rowRef}
+      role="group"
+      aria-label={label}
+      tabIndex={-1}
+      className={rowStyle}
+    >
+      <div className={rowHeaderStyle}>
+        <span className={rowLabelStyle}>
+          {row.space === "parameters" ? "Parameters" : "State"}
         </span>
+        <Button
+          size="xs"
+          variant="ghost"
+          tone="neutral"
+          iconName="trash"
+          aria-label={`Remove ${label.toLowerCase()}`}
+          disabled={disabled}
+          onClick={onRemove}
+        />
       </div>
-      <Button
-        size="xs"
-        variant="ghost"
-        tone="neutral"
-        iconName="trash"
-        aria-label={`Remove ${label.toLowerCase()}`}
-        disabled={disabled}
-        onClick={onRemove}
+      <CodeEditor
+        language="typescript"
+        path={getConstraintDocumentUri(row.id)}
+        singleLine={!multiline}
+        hasError={errorMessage !== undefined}
+        value={row.code}
+        height={multiline ? `${editorHeight}px` : undefined}
+        placeholder={placeholder}
+        options={{
+          ariaLabel: label,
+          readOnly: disabled,
+          tabFocusMode: true,
+          lineHeight: 16,
+          padding: { top: 6, bottom: 6 },
+          lineDecorationsWidth: 8,
+          lineNumbersMinChars: 0,
+          folding: false,
+          renderLineHighlight: "none",
+          overviewRulerLanes: 0,
+          overviewRulerBorder: false,
+          wordWrap: multiline ? "on" : "off",
+          scrollbar: {
+            vertical: "auto",
+            horizontal: "hidden",
+            alwaysConsumeMouseWheel: false,
+          },
+        }}
+        onEscape={() => rowRef.current?.focus()}
+        onChange={(code) => onCodeChange(code ?? "")}
+        onMount={(instance) => {
+          onEditorMount(instance);
+          if (multiline) {
+            const resize = () =>
+              setEditorHeight(
+                Math.min(142, Math.max(30, instance.getContentHeight() + 2)),
+              );
+            resize();
+            instance.onDidContentSizeChange(resize);
+          }
+          if (focusOnMount) {
+            instance.focus();
+          }
+        }}
       />
+      {errorMessage ? (
+        <span className={diagnosticStyle} role="alert">
+          {errorMessage}
+        </span>
+      ) : null}
     </div>
   );
 };
@@ -201,21 +218,41 @@ export const ConstraintsSection = ({
   drafts,
   onChange,
   scenarioParameters,
+  placeNames,
   disabled = false,
 }: {
   drafts: ConstraintDraftsState;
   onChange: (drafts: ConstraintDraftsState) => void;
   /** Ambient as `scenario.*` in every row's language session. */
   scenarioParameters: readonly ScenarioParameter[];
+  placeNames: readonly string[];
   disabled?: boolean;
 }) => {
   // The row added last takes focus as its editor mounts; a UI detail the
   // drafts themselves do not carry.
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
   const hasStateRow = hasStateConstraintDraft(drafts);
-  const alpha =
-    constraintPolicyFor(drafts.passThresholdPercent)?.alpha ??
-    DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA;
+  const editorRefs = useRef(new Map<string, editor.IStandaloneCodeEditor>());
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const parameterName = scenarioParameters[0]?.identifier;
+  const placeName = placeNames[0];
+  const placeholders: Record<ConstraintSpace, string> = {
+    parameters: parameterName
+      ? `scenario.${parameterName} > 0`
+      : "parameters.rate > 0",
+    state: `return state.places[${JSON.stringify(placeName ?? "Queue")}].count <= 10;`,
+  };
+
+  const removeRow = (row: ConstraintDraft) => {
+    const index = drafts.rows.findIndex((candidate) => candidate.id === row.id);
+    const nextRow = drafts.rows[index + 1] ?? drafts.rows[index - 1];
+    onChange(removeConstraintDraft(drafts, row.id));
+    if (nextRow) {
+      editorRefs.current.get(nextRow.id)?.focus();
+    } else {
+      addButtonRef.current?.focus();
+    }
+  };
 
   const addRow = (space: ConstraintSpace) => {
     const id = crypto.randomUUID();
@@ -229,33 +266,6 @@ export const ConstraintsSection = ({
       tooltip={SECTION_TOOLTIP}
       collapsible
       defaultOpen
-      renderHeaderAction={() => (
-        <div className={headerActionStyle}>
-          {hasStateRow ? (
-            <>
-              <span className={thresholdLabelStyle}>Pass threshold</span>
-              <NumberInput
-                className={thresholdInputStyle}
-                size="sm"
-                min={1}
-                max={99.9}
-                step={0.5}
-                hideStepper
-                suffix={{ text: "%", variant: "subtle" }}
-                aria-label="Pass threshold (percent)"
-                value={drafts.passThresholdPercent}
-                disabled={disabled}
-                onChange={(passThresholdPercent) =>
-                  onChange({ ...drafts, passThresholdPercent })
-                }
-              />
-              <HelpTooltip
-                content={`A step is clear when every state constraint holds on at least this share of its runs · alpha ${alpha}`}
-              />
-            </>
-          ) : null}
-        </div>
-      )}
     >
       {drafts.rows.length === 0 ? (
         <span className={emptyStyle}>
@@ -270,11 +280,16 @@ export const ConstraintsSection = ({
               label={describeConstraint(row, drafts.rows)}
               scenarioParameters={scenarioParameters}
               focusOnMount={row.id === focusRowId}
+              placeholder={placeholders[row.space]}
+              onEditorMount={(instance) => {
+                editorRefs.current.set(row.id, instance);
+                instance.onDidDispose(() => editorRefs.current.delete(row.id));
+              }}
               disabled={disabled}
               onCodeChange={(code) =>
                 onChange(updateConstraintDraftCode(drafts, row.id, code))
               }
-              onRemove={() => onChange(removeConstraintDraft(drafts, row.id))}
+              onRemove={() => removeRow(row)}
             />
           ))}
         </div>
@@ -285,6 +300,7 @@ export const ConstraintsSection = ({
           tone="neutral"
           size="sm"
           prefix={<Icon name="plus" size="sm" />}
+          ref={addButtonRef}
           aria-label="Add parameter constraint"
           disabled={disabled}
           onClick={() => addRow("parameters")}
@@ -303,6 +319,31 @@ export const ConstraintsSection = ({
           State constraint
         </Button>
       </div>
+      {hasStateRow ? (
+        <div className={thresholdStyle}>
+          <div className={thresholdFieldStyle}>
+            <span className={thresholdLabelStyle}>Pass threshold</span>
+            <NumberInput
+              size="sm"
+              min={1}
+              max={99.9}
+              step={0.5}
+              hideStepper
+              suffix={{ text: "%", variant: "subtle" }}
+              aria-label="Pass threshold (percent)"
+              value={drafts.passThresholdPercent}
+              disabled={disabled}
+              onChange={(passThresholdPercent) =>
+                onChange({ ...drafts, passThresholdPercent })
+              }
+            />
+          </div>
+          <span className={hintStyle}>
+            Minimum share of runs that must satisfy each state condition at
+            every time step.
+          </span>
+        </div>
+      ) : null}
     </Section>
   );
 };
