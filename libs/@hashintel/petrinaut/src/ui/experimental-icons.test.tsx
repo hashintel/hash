@@ -457,6 +457,85 @@ describe("experimental icon motion", () => {
     expect(cancel).toHaveBeenCalledTimes(4);
   });
 
+  it("jumps on click without replacing the runner's independent gait", () => {
+    const { container, unmount } = render(
+      <button type="button">
+        <ExperimentalIcon name="personRunning" />
+      </button>,
+    );
+    const button = screen.getByRole("button");
+    const runner = container.querySelector('[data-icon-detail="runner"]');
+    expect(runner?.querySelectorAll("[data-runner-part]")).toHaveLength(5);
+    expect(container.querySelector('[data-hover="true"]')).not.toBeNull();
+    expect(container.querySelector("svg")?.style.overflow).toBe("visible");
+    expect(animate).not.toHaveBeenCalled();
+
+    fireEvent.click(button);
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate.mock.contexts.at(-1)).toBe(runner);
+    expect(animate.mock.calls.at(-1)).toEqual([
+      expect.arrayContaining([
+        expect.objectContaining({ transform: "translateY(1px) scaleY(.9)" }),
+        expect.objectContaining({ transform: "translateY(-4px) scaleY(1.04)" }),
+        expect.objectContaining({ transform: "translateY(.6px) scaleY(.94)" }),
+      ]),
+      expect.objectContaining({
+        iterations: 1,
+        fill: "none",
+        easing: "linear",
+      }),
+    ]);
+
+    fireEvent.click(button);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(animate).toHaveBeenCalledTimes(2);
+    unmount();
+    expect(cancel).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["disabled", "motion", "interaction"])(
+    "keeps the runner still with the %s opt-out",
+    (optOut) => {
+      const { container } = render(
+        <button type="button" disabled={optOut === "disabled"}>
+          <ExperimentalIcon
+            name="personRunning"
+            motion={optOut === "motion" ? "none" : "auto"}
+            interaction={optOut === "interaction" ? "none" : "auto"}
+            hover={optOut === "interaction" ? "none" : "auto"}
+          />
+        </button>,
+      );
+      const button = screen.getByRole("button");
+      fireEvent.pointerEnter(button);
+      fireEvent.focus(button);
+      fireEvent.click(button);
+      expect(animate).not.toHaveBeenCalled();
+      if (optOut !== "disabled") {
+        expect(container.querySelector('[data-hover="true"]')).toBeNull();
+      }
+    },
+  );
+
+  it("stops the runner's jump and gait when reduced motion is requested", () => {
+    const { container } = render(
+      <button type="button">
+        <ExperimentalIcon name="personRunning" />
+      </button>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(1);
+    act(() => {
+      reducedMotion = true;
+      mediaListeners.forEach((listener) => listener());
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-hover="true"]')).toBeNull();
+    expect(container.querySelector('[data-icon-motion="none"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(1);
+  });
+
   it("suppresses automatic interaction for disabled controls and motion opt-outs", () => {
     const { rerender } = render(
       <button type="button" aria-disabled="true">

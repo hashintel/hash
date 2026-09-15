@@ -280,6 +280,7 @@ export const ExperimentalIcon = ({
       {...props}
       style={{
         ...(name === "diagnostics" ? { transition: resolvedTransition } : {}),
+        ...(name === "personRunning" ? { overflow: "visible" } : {}),
         ...props.style,
       }}
       data-icon-pack="petrinaut-experimental"

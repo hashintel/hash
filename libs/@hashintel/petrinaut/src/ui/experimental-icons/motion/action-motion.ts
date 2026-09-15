@@ -121,14 +121,17 @@ export const playIconAction = (
     };
   }
   const animations: Animation[] = [];
-  const animate = (target: SVGElement, frames: Keyframe[], delay = 0) => {
+  const animate = (
+    target: SVGElement,
+    frames: Keyframe[],
+    easing = "cubic-bezier(.2, .7, .25, 1)",
+  ) => {
     if (typeof target.animate !== "function") return;
     animations.push(
       target.animate(frames, {
         duration,
-        delay,
         iterations: loop ? Infinity : 1,
-        easing: "cubic-bezier(.2, .7, .25, 1)",
+        easing,
         fill: "none",
       }),
     );
@@ -136,7 +139,27 @@ export const playIconAction = (
   for (const detail of details) {
     const part = detail.getAttribute("data-icon-detail") ?? "";
     const resting = getComputedStyle(detail).transform;
-    if (part === "equation-curve" || part === "equation-solution") {
+    if (part === "runner") {
+      animate(
+        detail,
+        [
+          { transform: previous.get(detail)?.transform ?? resting },
+          {
+            transform: "translateY(1px) scaleY(.9)",
+            offset: 0.18,
+            easing: "ease-out",
+          },
+          {
+            transform: "translateY(-4px) scaleY(1.04)",
+            offset: 0.45,
+            easing: "ease-in",
+          },
+          { transform: "translateY(.6px) scaleY(.94)", offset: 0.82 },
+          { transform: resting },
+        ],
+        "linear",
+      );
+    } else if (part === "equation-curve" || part === "equation-solution") {
       const original = detail.getAttribute("d");
       const wave =
         part === "equation-curve"

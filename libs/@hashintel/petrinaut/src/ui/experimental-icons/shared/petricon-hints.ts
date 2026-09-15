@@ -102,7 +102,7 @@ export const petriconHints = {
   memoCircleCheck: "sequence",
   microscope: "tilt",
   oneHundred: "sequence",
-  personRunning: "right",
+  personRunning: "detail",
   plug: "detail",
   print: "detail",
   puzzlePiece: "shrink",

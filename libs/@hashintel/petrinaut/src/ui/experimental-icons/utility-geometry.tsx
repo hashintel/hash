@@ -145,10 +145,16 @@ export const utilityGeometry = {
     </>
   ),
   personRunning: (
-    <>
-      <circle cx="15" cy="4" r="2" />
-      <path d="m4 10 5-3 4 2 3 4h4m-7-4-3 6 5 3-1 4M10 15l-4 4H2" />
-    </>
+    <g data-icon-detail="runner" style={{ transformOrigin: "10px 22px" }}>
+      <g data-runner-part="body">
+        <circle cx="15" cy="4" r="2" />
+        <path data-runner-part="back-arm" d="M13 9L9 7L4 10" />
+        <path data-runner-part="back-leg" d="M10 15L6 19L2 19" />
+        <path d="M13 9L10 15" />
+        <path data-runner-part="front-arm" d="M13 9L16 13L20 13" />
+        <path data-runner-part="front-leg" d="M10 15L15 18L14 22" />
+      </g>
+    </g>
   ),
   plug: (
     <>

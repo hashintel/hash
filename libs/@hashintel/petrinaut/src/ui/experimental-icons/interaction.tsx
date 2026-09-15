@@ -92,6 +92,28 @@ const interactionStyle = css({
       "& [data-icon-detail=slider]": {
         animationName: "[petrinautIconParameterScrub]",
       },
+      "& [data-runner-part]": {
+        animationDuration: "[var(--petricon-detail-duration)]",
+        animationTimingFunction: "[linear]",
+        animationIterationCount: "[infinite]",
+      },
+      "& [data-runner-part=body]": {
+        animationName: "[petriconRunnerBob]",
+      },
+      "& [data-runner-part=back-arm]": {
+        animationName: "[petriconRunnerBackArm]",
+        transformOrigin: "[13px 9px]",
+      },
+      "& [data-runner-part=front-arm]": {
+        animationName: "[petriconRunnerFrontArm]",
+        transformOrigin: "[13px 9px]",
+      },
+      "& [data-runner-part=back-leg]": {
+        animationName: "[petriconRunnerBackLeg]",
+      },
+      "& [data-runner-part=front-leg]": {
+        animationName: "[petriconRunnerFrontLeg]",
+      },
     },
   '&[data-hover="true"]:is(button:active *, a[href]:active *, [data-scope="segment-group"][data-part="item"]:active *):not(:is(button:disabled *, [aria-disabled="true"] *, [data-disabled] *))':
     {

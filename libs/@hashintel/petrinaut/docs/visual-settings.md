@@ -48,6 +48,10 @@ meaning. Controls with a persistent state keep their existing state animation.
 briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
 quarter-turn when clicked; rear edges stay hidden throughout the turn.
 
+The running-person icon runs in place while you hover over its control or focus
+it with the keyboard. Clicking makes it jump, then land and continue running
+until you move away or move keyboard focus elsewhere.
+
 The AI assistant button uses a robot head. Hovering makes its eyes blink and
 its antenna move briefly before settling.
 

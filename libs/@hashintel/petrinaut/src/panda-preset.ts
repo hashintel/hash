@@ -40,6 +40,30 @@ export const petrinautPandaPreset = {
         },
       },
       keyframes: {
+        petriconRunnerBob: {
+          "0%, 50%, 100%": { transform: "translateY(0)" },
+          "25%, 75%": { transform: "translateY(-0.7px)" },
+        },
+        petriconRunnerBackArm: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "50%": { transform: "rotate(-100deg)" },
+        },
+        petriconRunnerFrontArm: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "50%": { transform: "rotate(100deg)" },
+        },
+        petriconRunnerBackLeg: {
+          "0%, 100%": { d: 'path("M10 15L6 19L2 19")' },
+          "25%": { d: 'path("M10 15L6 16L5 12")' },
+          "50%": { d: 'path("M10 15L15 18L14 22")' },
+          "75%": { d: 'path("M10 15L10 20L6 22")' },
+        },
+        petriconRunnerFrontLeg: {
+          "0%, 100%": { d: 'path("M10 15L15 18L14 22")' },
+          "25%": { d: 'path("M10 15L10 20L6 22")' },
+          "50%": { d: 'path("M10 15L6 19L2 19")' },
+          "75%": { d: 'path("M10 15L6 16L5 12")' },
+        },
         petriconSequence: {
           "0%, 100%": { transform: "translateY(0)", opacity: "1" },
           "40%": { transform: "translateY(-1px)", opacity: "0.72" },

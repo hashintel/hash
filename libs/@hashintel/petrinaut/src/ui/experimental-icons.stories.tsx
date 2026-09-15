@@ -609,7 +609,12 @@ const Gallery = () => {
         />
         <div className={gridStyle}>
           {names.map((name) => (
-            <div key={name} className={tileStyle} data-icon-preview>
+            <button
+              type="button"
+              key={name}
+              className={tileStyle}
+              data-icon-preview
+            >
               <ExperimentalIcon
                 name={name}
                 variant={variant}
@@ -618,7 +623,7 @@ const Gallery = () => {
                 duration={1100}
               />
               <span>{name}</span>
-            </div>
+            </button>
           ))}
         </div>
         <p className={noteStyle}>
