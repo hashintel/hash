@@ -3,7 +3,10 @@ import { cleanup, fireEvent, renderHook, screen } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { compactNodeDimensions } from "@hashintel/petrinaut-core";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "@hashintel/petrinaut-core";
 
 import {
   defaultUserSettingsContextValue,
@@ -112,6 +115,64 @@ const Settings = ({ children }: { children: ReactNode }) => {
 };
 
 describe("automatic arc rendering", () => {
+  it.each([false, true])(
+    "attaches diagonal arcs to square transition corners with compact nodes %s",
+    (compactNodes) => {
+      const dimensions = compactNodes
+        ? compactNodeDimensions
+        : classicNodeDimensions;
+      const transitionSize = dimensions.transition;
+      const transitionPosition = {
+        x: transitionSize.width * 3,
+        y: transitionSize.height * 3,
+      };
+      const { result } = renderHook(
+        () =>
+          useReactFlowElements({
+            ...scene,
+            dimensions,
+            nodes: nodes.map((node) =>
+              node.kind === "transition"
+                ? { ...node, ...transitionSize, position: transitionPosition }
+                : node,
+            ),
+            arcs: [
+              {
+                ...arcBase,
+                id: "input",
+                sourceId: "place",
+                targetId: "transition",
+              },
+            ],
+          }),
+        {
+          wrapper: ({ children }) => (
+            <UserSettingsContext
+              value={{
+                ...defaultUserSettingsContextValue,
+                compactNodes,
+                enableAutomaticArcConnections: true,
+              }}
+            >
+              {children}
+            </UserSettingsContext>
+          ),
+        },
+      );
+
+      const path = result.current.edges.find((edge) => edge.id === "input")
+        ?.data?.outlinePath?.[0];
+      expect(path).toBeDefined();
+      const endpoint = path?.split(" ").at(-1)?.split(",").map(Number);
+      expect(endpoint?.[0]).toBeCloseTo(
+        transitionPosition.x - transitionSize.width / 2,
+      );
+      expect(endpoint?.[1]).toBeCloseTo(
+        transitionPosition.y - transitionSize.height / 2,
+      );
+    },
+  );
+
   it("changes only ordinary arc geometry and restores all legacy edge data when switched off", () => {
     const { result } = renderHook(() => useReactFlowElements(scene), {
       wrapper: Settings,

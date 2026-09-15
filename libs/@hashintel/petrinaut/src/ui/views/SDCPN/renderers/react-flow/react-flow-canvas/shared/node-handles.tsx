@@ -54,8 +54,7 @@ const activateHandle = (event: KeyboardEvent<HTMLDivElement>) => {
 };
 
 export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
-  const { enableAutomaticArcConnections, compactNodes } =
-    use(UserSettingsContext);
+  const { enableAutomaticArcConnections } = use(UserSettingsContext);
   const nodeId = useNodeId();
   const node = useStore((state) =>
     nodeId ? state.nodeLookup.get(nodeId) : undefined,
@@ -78,8 +77,7 @@ export const NodeHandles = ({ isConnectable }: { isConnectable: boolean }) => {
     isConnectable &&
     ((sourceKind === "place" && nodeKind === "transition") ||
       (sourceKind === "transition" && nodeKind === "place"));
-  const borderRadius =
-    nodeKind === "place" ? "999px" : compactNodes ? "0" : "12px";
+  const borderRadius = nodeKind === "place" ? "999px" : "0";
 
   return (
     <>

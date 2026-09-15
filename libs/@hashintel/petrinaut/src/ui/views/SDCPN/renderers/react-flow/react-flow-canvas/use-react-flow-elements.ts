@@ -82,8 +82,7 @@ const toReactFlowEdge = (arc: CanvasArc): ArcEdgeType => {
 export const useReactFlowElements = (
   scene: CanvasScene,
 ): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
-  const { enableAutomaticArcConnections, compactNodes } =
-    use(UserSettingsContext);
+  const { enableAutomaticArcConnections } = use(UserSettingsContext);
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const connections = new Set(
     scene.arcs
@@ -101,8 +100,8 @@ export const useReactFlowElements = (
         if (enableAutomaticArcConnections && edge.data) {
           const source = nodesById.get(arc.sourceId);
           const target = nodesById.get(arc.targetId);
-          const sourceOutline = source && getOutlineNode(source, compactNodes);
-          const targetOutline = target && getOutlineNode(target, compactNodes);
+          const sourceOutline = source && getOutlineNode(source);
+          const targetOutline = target && getOutlineNode(target);
           if (sourceOutline && targetOutline) {
             edge.data.outlinePath = getOutlineArcPath(
               sourceOutline,

@@ -1,7 +1,6 @@
 import { useStore, type ConnectionLineComponent } from "@xyflow/react";
-import { use, useId } from "react";
+import { useId } from "react";
 
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
 
 import type { NodeType } from "./react-flow-types";
@@ -14,7 +13,6 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
   connectionStatus,
   connectionLineStyle,
 }) => {
-  const { compactNodes } = use(UserSettingsContext);
   const markerId = useId();
   const hasReverseArc = useStore(
     (state) =>
@@ -23,11 +21,9 @@ export const OutlineConnectionLine: ConnectionLineComponent<NodeType> = ({
         (edge) => edge.source === toNode.id && edge.target === fromNode.id,
       ),
   );
-  const source = getOutlineNode(fromNode.data, compactNodes);
+  const source = getOutlineNode(fromNode.data);
   const target =
-    connectionStatus === "valid" && toNode
-      ? getOutlineNode(toNode.data, compactNodes)
-      : null;
+    connectionStatus === "valid" && toNode ? getOutlineNode(toNode.data) : null;
   if (!source) {
     return null;
   }
