@@ -20,8 +20,8 @@
  * intern tables (`typeTable`, `propertyTable`) come first, and every
  * type or property reference in the node and link arrays is a uint
  * index into its table; this decoder validates the intern laws
- * (bytewise-sorted, deduplicated, indexes in range, property keys
- * ascending) and returns resolved URL-keyed objects.
+ * (unique table entries, indexes in range, property keys ascending)
+ * and returns resolved URL-keyed objects.
  */
 
 import { decodeCbor, type CborValue } from "./cbor";
