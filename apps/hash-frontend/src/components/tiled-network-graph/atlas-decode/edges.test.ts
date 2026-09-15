@@ -254,21 +254,47 @@ describe("decodeSaltileEdges", () => {
     ]);
   });
 
-  it("rejects an unsorted intern table", () => {
+  it.each([
+    { first: "https://z.test/", second: "https://a.test/" },
+    { first: "https://t.test/\u{10000}", second: "https://t.test/\u{e000}" },
+    { first: "https://t.test/é", second: "https://t.test/e\u0301" },
+  ])(
+    "resolves unique table entries in index order ($first)",
+    ({ first, second }) => {
+      const typeTable = [first, second];
+      const { buffer, request } = fixture({
+        request: { detail: "auxiliary" },
+        head: defaultHead({ 4: cborBool(true) }),
+        tail: cborMap([
+          [0, cborArray(typeTable.map((url) => cborTstr(url)))],
+          [1, cborArray([cborNull(), cborNull(), cborNull()])],
+          [2, cborArray([cborUint(1), cborUint(0), cborUint(1)])],
+        ]),
+      });
+      const { detail } = decodeSaltileEdges(buffer, request);
+      expect(detail?.typeTable).toEqual(typeTable);
+      expect(detail?.linkTypeIds).toEqual([second, first, second]);
+    },
+  );
+
+  it.each([
+    { name: "adjacent", typeTable: ["https://a.test/", "https://a.test/"] },
+    {
+      name: "separated",
+      typeTable: ["https://a.test/", "https://z.test/", "https://a.test/"],
+    },
+  ])("rejects $name duplicate type-table entries", ({ typeTable }) => {
     const { buffer, request } = fixture({
       request: { detail: "auxiliary" },
       head: defaultHead({ 4: cborBool(true) }),
       tail: cborMap([
-        [
-          0,
-          cborArray([cborTstr("https://z.test/"), cborTstr("https://a.test/")]),
-        ],
+        [0, cborArray(typeTable.map((url) => cborTstr(url)))],
         [1, cborArray([cborNull(), cborNull(), cborNull()])],
         [2, cborArray([cborNull(), cborNull(), cborNull()])],
       ]),
     });
     expect(failure({ buffer, request })).toMatch(
-      /typeTable must be bytewise-sorted/u,
+      /typeTable must contain unique entries/u,
     );
   });
 
