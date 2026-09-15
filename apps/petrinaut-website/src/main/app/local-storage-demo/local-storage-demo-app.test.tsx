@@ -2,6 +2,11 @@
  * @vitest-environment jsdom
  */
 import {
+  createMemoryHistory,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import {
   act,
   cleanup,
   fireEvent,
@@ -24,6 +29,7 @@ import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk"
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
 
+import { routeTree } from "../../../routeTree.gen";
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 import { assistantSelectionStorageKey } from "./assistant-selection";
@@ -42,14 +48,21 @@ import {
 } from "./local-storage-demo-search";
 import {
   crewReservationConversationId,
+  crewReservationDocumentId,
   crewReservationFixtureId,
 } from "./prepared-crew-reservation-fixture";
+import {
+  emptySDCPN,
+  readLocalStorageNets,
+  saveLocalStorageNet,
+} from "./use-local-storage-sdcpns";
 
 import type {
   DocumentRecord,
   DocumentRepository,
   DocumentRepositoryStatus,
 } from "./documents/document-repository";
+import type { SDCPNInLocalStorage } from "./use-local-storage-sdcpns";
 import type {
   AgentConversationObservationSnapshot,
   FlueClient,
@@ -123,6 +136,11 @@ const brunchPreviewConfig = vi.hoisted(() => ({
 }));
 vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
+}));
+
+vi.mock("../optimization-demo/browser-optimization-provider", () => ({
+  BrowserOptimizationProvider: ({ children }: { children: ReactNode }) =>
+    children,
 }));
 
 const editorProps = vi.hoisted(() => ({
@@ -687,6 +705,55 @@ describe("local storage demo URL navigation", () => {
     expect(navigation).toBeDefined();
     return navigation as PetrinautNavigationController;
   };
+
+  test("creates and switches documents through their persisted UUID routes", async () => {
+    const first = saveLocalStorageNet(localStorage, {
+      petriNetDefinition: emptySDCPN,
+      title: "First document",
+    });
+    const second = saveLocalStorageNet(localStorage, {
+      petriNetDefinition: emptySDCPN,
+      title: "Second document",
+    });
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: [`/local/${first.uuid}`],
+      }),
+    });
+    render(<RouterProvider router={router} />);
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("First document"),
+    );
+    act(() =>
+      editorProps.current?.createNewNet?.({
+        petriNetDefinition: emptySDCPN,
+        title: "Created through editor",
+      }),
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Created through editor"),
+    );
+    const created = Object.values(readLocalStorageNets(localStorage)).find(
+      (net) => net.title === "Created through editor",
+    );
+    expect(created).toBeDefined();
+    expect(router.state.location.pathname).toBe(`/local/${created?.uuid}`);
+    const loadPetriNet = editorProps.current?.loadPetriNet as (
+      id: string,
+    ) => void;
+    act(() => loadPetriNet(second.id));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/local/${second.uuid}`),
+    );
+    await waitFor(() =>
+      expect(editorProps.current?.title).toBe("Second document"),
+    );
+    expect(readLocalStorageNets(localStorage)[first.id]).toBeDefined();
+    expect(
+      created && readLocalStorageNets(localStorage)[created.id],
+    ).toBeDefined();
+  });
 
   test("resolves a URL-borne location into the controller it hands the editor", () => {
     seedStoredNet();
@@ -1331,6 +1398,14 @@ describe("local storage demo prepared fixture", () => {
     const legacy = editorProps.current?.aiAssistant as PetrinautAiAssistant;
     expect(legacy.conversationId).toBe(crewReservationConversationId);
     expect(legacy.executeMutation).toBeUndefined();
+    const documents = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, SDCPNInLocalStorage>;
+    const tracer = documents[`${crewReservationDocumentId}:root-arc`];
+    const prepared = documents[crewReservationDocumentId];
+    expect(tracer?.uuid).toEqual(expect.any(String));
+    expect(prepared?.uuid).toEqual(expect.any(String));
+    expect(tracer?.uuid).not.toBe(prepared?.uuid);
   });
 
   test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {

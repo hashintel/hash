@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createLocalStorageNetRecord,
   emptySDCPN,
-  isEmptySDCPN,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "../../use-local-storage-sdcpns";
@@ -44,20 +43,18 @@ const toDocumentRecord = (stored: SDCPNInLocalStorage): DocumentRecord => {
   };
 };
 
-const createDefaultDocument = (): SDCPNInLocalStorage => ({
-  id: "net-1",
-  title: "New Process",
-  sdcpn: emptySDCPN,
-  lastUpdated: new Date(0).toISOString(),
-  incarnationId: crypto.randomUUID(),
-  revisionId: crypto.randomUUID(),
-});
+const createDefaultDocument = () =>
+  createLocalStorageNetRecord({
+    title: "New Process",
+    petriNetDefinition: emptySDCPN,
+  });
 
 export const useLocalDocumentRepository = (input: {
   readonly enabled: boolean;
-  readonly onOpen: () => void;
+  readonly initialDocumentId?: string;
+  readonly onOpen: (documentId: string) => void;
 }): LocalDocumentRepositoryAdapter => {
-  const { enabled, onOpen } = input;
+  const { enabled, initialDocumentId, onOpen } = input;
   const {
     ready: storageReady,
     storedSDCPNs,
@@ -87,12 +84,11 @@ export const useLocalDocumentRepository = (input: {
     );
   }, [storedSDCPNs]);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
-    null,
+    initialDocumentId ?? null,
   );
   if (enabled && storageReady && currentDocumentId === null) {
-    const initialDocumentId = mostRecentDocumentId(documents);
-    if (initialDocumentId !== undefined)
-      setCurrentDocumentId(initialDocumentId);
+    const latestDocumentId = mostRecentDocumentId(documents);
+    if (latestDocumentId !== undefined) setCurrentDocumentId(latestDocumentId);
   }
 
   const records = useMemo(
@@ -130,41 +126,13 @@ export const useLocalDocumentRepository = (input: {
     [setStoredSDCPNs],
   );
 
-  const removeEmptyCurrentDocument = useCallback(
-    (nextDocumentId: string) => {
-      if (
-        current === null ||
-        current.documentId === nextDocumentId ||
-        !isEmptySDCPN(current.definition)
-      ) {
-        return;
-      }
-      setStoredSDCPNs((previous) => {
-        const stored = previous[current.documentId];
-        if (stored === undefined || !isEmptySDCPN(stored.sdcpn))
-          return previous;
-        const next = { ...previous };
-        delete next[current.documentId];
-        return next;
-      });
-    },
-    [current, setStoredSDCPNs],
-  );
-
   const open = useCallback(
     (documentId: string) => {
       if (!documents[documentId]) return;
-      removeEmptyCurrentDocument(documentId);
-      if (documentId !== currentDocumentId) onOpen();
+      if (documentId !== currentDocumentId) onOpen(documentId);
       setCurrentDocumentId(documentId);
     },
-    [
-      currentDocumentId,
-      documents,
-      onOpen,
-      removeEmptyCurrentDocument,
-      setCurrentDocumentId,
-    ],
+    [currentDocumentId, documents, onOpen, setCurrentDocumentId],
   );
 
   const create = useCallback(
@@ -179,13 +147,12 @@ export const useLocalDocumentRepository = (input: {
         petriNetDefinition: definition,
         title,
       });
-      removeEmptyCurrentDocument(stored.id);
       setStoredSDCPNs((previous) => ({ ...previous, [stored.id]: stored }));
       setCurrentDocumentId(stored.id);
-      onOpen();
+      onOpen(stored.id);
       return toDocumentRecord(stored);
     },
-    [onOpen, removeEmptyCurrentDocument, setCurrentDocumentId, setStoredSDCPNs],
+    [onOpen, setCurrentDocumentId, setStoredSDCPNs],
   );
 
   const rename = useCallback(

@@ -178,7 +178,7 @@ describe("useLocalDocumentRepository", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
-  test("removes an empty current document when another document opens", () => {
+  test("retains an empty current document so its URL remains available", () => {
     const storage = stubStorage({
       empty: {
         id: "empty",
@@ -219,7 +219,7 @@ describe("useLocalDocumentRepository", () => {
     const stored = JSON.parse(
       storage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<string, unknown>;
-    expect(stored.empty).toBeUndefined();
+    expect(stored.empty).toBeDefined();
     expect(stored.retained).toBeDefined();
     expect(result.current.repository.current?.documentId).toBe("retained");
   });

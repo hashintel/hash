@@ -59,7 +59,22 @@ describe("/new", () => {
     const thrown = visit();
 
     expect(isRedirect(thrown)).toBe(true);
-    expect(thrown).toMatchObject({ options: { to: "/", replace: true } });
+    expect(thrown).toMatchObject({
+      options: {
+        to: "/local/$uuid",
+        params: { uuid: storedNets()[0]?.uuid },
+        replace: true,
+      },
+    });
+  });
+
+  test("reports a storage failure before redirecting to an unwritten document", () => {
+    const failure = new DOMException("Storage full", "QuotaExceededError");
+    localStorage.setItem = () => {
+      throw failure;
+    };
+    expect(visit()).toBe(failure);
+    expect(storedNets()).toEqual([]);
   });
 
   test("leaves one empty net for the editor to open", () => {
@@ -71,10 +86,11 @@ describe("/new", () => {
     expect(nets[0]?.sdcpn.places).toStrictEqual([]);
   });
 
-  test("adds no second empty net when visited again", () => {
+  test("gives each explicit visit a distinct document URL", () => {
     visit();
     visit();
 
-    expect(storedNets()).toHaveLength(1);
+    expect(storedNets()).toHaveLength(2);
+    expect(storedNets()[0]?.uuid).not.toBe(storedNets()[1]?.uuid);
   });
 });

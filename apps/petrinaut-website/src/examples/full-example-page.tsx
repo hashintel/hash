@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
@@ -30,6 +31,7 @@ const titleStyle = css({
 
 export type FullExamplePageProps = {
   example: LoadedExample;
+  onFork: () => void;
   /** Writes the shared search subset back to the page URL. */
   onSearchChange: (
     search: SharedExampleSearch,
@@ -40,9 +42,11 @@ export type FullExamplePageProps = {
 
 export const FullExamplePage = ({
   example,
+  onFork,
   onSearchChange,
   search,
 }: FullExamplePageProps) => {
+  const [forkError, setForkError] = useState<string | null>(null);
   const handle = getReadonlyExampleHandle(example);
   const navigation = useSharedSearchNavigation(search, onSearchChange);
 
@@ -68,6 +72,25 @@ export const FullExamplePage = ({
         title={`${example.catalog.title} oEmbed profile`}
         type="application/json+oembed"
       />
+      {forkError && (
+        <div
+          role="alert"
+          className={css({
+            position: "absolute",
+            top: "16",
+            right: "4",
+            zIndex: "[50]",
+            background: "neutral.s00",
+            borderRadius: "md",
+            padding: "3",
+            boxShadow: "md",
+            maxWidth: "[360px]",
+            fontSize: "sm",
+          })}
+        >
+          {forkError}
+        </div>
+      )}
       <Petrinaut
         handle={handle}
         hideNetManagementControls="all"
@@ -75,6 +98,24 @@ export const FullExamplePage = ({
         presentationProfile="review"
         readonly
         slots={{
+          topBarEnd: (
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => {
+                try {
+                  onFork();
+                  setForkError(null);
+                } catch {
+                  setForkError(
+                    "Your browser couldn't save a copy. Free up browser storage and try again.",
+                  );
+                }
+              }}
+            >
+              Make a local copy
+            </Button>
+          ),
           topBarStart: (
             <span className={titleStyle}>{example.catalog.title}</span>
           ),

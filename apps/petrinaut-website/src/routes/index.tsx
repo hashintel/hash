@@ -1,5 +1,6 @@
 import {
   createFileRoute,
+  redirect,
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
@@ -10,6 +11,10 @@ import {
   validateLocalStorageDemoSearch,
   withLocalStorageDemoIdentity,
 } from "../main/app/local-storage-demo/local-storage-demo-search";
+import {
+  getInitialLocalStorageNet,
+  readLocalStorageNets,
+} from "../main/app/local-storage-demo/use-local-storage-sdcpns";
 import { BrowserOptimizationProvider } from "../main/app/optimization-demo/browser-optimization-provider";
 
 function IndexRoute() {
@@ -20,6 +25,13 @@ function IndexRoute() {
     <BrowserOptimizationProvider>
       <LocalStorageDemoApp
         key={localStorageDemoRouteIdentity(search)}
+        onNetChange={(net) => {
+          void navigate({
+            to: "/local/$uuid",
+            params: { uuid: net.uuid },
+            search: {},
+          });
+        }}
         onSearchChange={(nextSearch, history) => {
           void navigate({
             replace: history === "replace",
@@ -36,6 +48,17 @@ function IndexRoute() {
 }
 
 export const Route = createFileRoute("/")({
+  beforeLoad: ({ search }) => {
+    if (localStorageDemoRouteIdentity(search) !== "ordinary") return;
+    readLocalStorageNets(window.localStorage);
+    const net = getInitialLocalStorageNet(window.localStorage);
+    throw redirect({
+      to: "/local/$uuid",
+      params: { uuid: net.uuid },
+      search,
+      replace: true,
+    });
+  },
   component: IndexRoute,
   validateSearch: validateLocalStorageDemoSearch,
 });

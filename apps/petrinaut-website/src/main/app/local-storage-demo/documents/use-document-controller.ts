@@ -13,7 +13,8 @@ export const useDocumentController = (input: {
   readonly isBrunchConfigured: boolean;
   readonly principalKey: string;
   readonly remoteRouteSelected: boolean;
-  readonly onOpenDocument: () => void;
+  readonly initialLocalDocumentId?: string;
+  readonly onOpenDocument: (documentId: string) => void;
   readonly onSelectLocalRoute: () => void;
   readonly fixture: {
     readonly enabled: boolean;
@@ -28,6 +29,7 @@ export const useDocumentController = (input: {
   const { onSelectLocalRoute } = input;
   const local = useLocalDocumentRepository({
     enabled: !input.remoteRouteSelected,
+    initialDocumentId: input.initialLocalDocumentId,
     onOpen: input.onOpenDocument,
   });
   const localOverlay = useFixtureDocumentOverlay(local, input.fixture);
