@@ -52,16 +52,24 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
-export type PetrinautAiToolStateLabels = Readonly<
-  Record<
-    string,
-    {
-      readonly pending: string;
-      readonly success: string;
-      readonly error: string;
-    }
-  >
->;
+export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
+
+export type PetrinautAiToolPresentationContext = {
+  toolName: string;
+  state: PetrinautAiToolPresentationState;
+  input: unknown;
+  output: unknown;
+  error: string | undefined;
+};
+
+export type PetrinautAiToolPresentation = {
+  title: string;
+  detail?: string;
+};
+
+export type PetrinautAiToolPresentationResolver = (
+  context: PetrinautAiToolPresentationContext,
+) => PetrinautAiToolPresentation | undefined;
 
 export type PetrinautAiAssistant = {
   /**
@@ -81,8 +89,10 @@ export type PetrinautAiAssistant = {
   };
   /** Label for the transcript tab/header. Defaults to "AI". */
   primaryLabel?: string;
-  /** Host card titles by stable tool id and lifecycle state. */
-  toolStateLabels?: PetrinautAiToolStateLabels;
+  /** Status shown while a turn is submitted or streaming. */
+  workingLabel?: string;
+  /** Resolve host tool cards from their identity, lifecycle and payload. */
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   /** Whether the panel may clear this conversation. Defaults to true. */
   canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */

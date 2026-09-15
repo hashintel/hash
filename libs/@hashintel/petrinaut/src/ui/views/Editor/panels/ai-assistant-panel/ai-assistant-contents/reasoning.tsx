@@ -174,7 +174,7 @@ const useReasoningElapsed = ({
  * If the convention is not matched (different provider, OpenAI changes the
  * format, or the model just produced an unheaded summary), we fall back to
  * returning the original text as the body and let the trigger render the
- * plain "Reasoning" label.
+ * plain "Thinking" label.
  */
 const reasoningHeadingPattern =
   /^\s*(?:\*\*([^*\n]+?)\*\*|#+\s+([^\n]+))\s*(?:\n|$)/u;
@@ -242,7 +242,9 @@ export const AiAssistantReasoning = ({
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
         <Icon name="list" size="sm" />
-        <span className={reasoningTitleStyle}>{heading ?? "Reasoning"}</span>
+        <span className={reasoningTitleStyle}>
+          {heading ? `Thinking: ${heading}` : "Thinking"}
+        </span>
         {elapsedTime !== undefined && (
           <span
             className={reasoningElapsedStyle}

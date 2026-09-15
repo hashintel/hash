@@ -21,7 +21,10 @@ export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiStopResult,
-  PetrinautAiToolStateLabels,
+  PetrinautAiToolPresentation,
+  PetrinautAiToolPresentationContext,
+  PetrinautAiToolPresentationResolver,
+  PetrinautAiToolPresentationState,
   PetrinautProps,
 } from "./petrinaut";
 export type {

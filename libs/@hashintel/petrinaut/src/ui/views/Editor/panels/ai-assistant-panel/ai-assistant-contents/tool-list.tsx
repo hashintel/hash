@@ -21,7 +21,7 @@ import {
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { VoiceInputProvenance } from "./voice-input-provenance";
 
-import type { PetrinautAiToolStateLabels } from "../../../../../petrinaut";
+import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
@@ -84,56 +84,10 @@ export type OnInteractiveToolSubmit = (params: {
   output: unknown;
 }) => void | PromiseLike<void>;
 
-const toolListStyle = cva({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    borderRadius: "lg",
-  },
-  variants: {
-    kind: {
-      group: {
-        backgroundColor: "[#eff9ff]",
-        borderWidth: "thin",
-        borderStyle: "solid",
-        borderColor: "[#bee6ff]",
-      },
-      single: {},
-    },
-  },
-});
-
-const toolGroupPanelStyle = css({
+const toolListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[0]",
-  overflow: "hidden",
-  borderRadius: "lg",
-  "& > button": {
-    borderRadius: "[0]",
-  },
-  "& > div > button": {
-    borderRadius: "[0]",
-  },
-  "& > button:first-child": {
-    borderTopLeftRadius: "md",
-    borderTopRightRadius: "md",
-  },
-  "& > div:first-child > button": {
-    borderTopLeftRadius: "md",
-    borderTopRightRadius: "md",
-  },
-  "& > button:last-child": {
-    borderBottomLeftRadius: "md",
-    borderBottomRightRadius: "md",
-  },
-  "& > div:last-child > button": {
-    borderBottomLeftRadius: "md",
-    borderBottomRightRadius: "md",
-  },
-  "& > * + *": {
-    marginTop: "[-1px]",
-  },
+  gap: "1",
 });
 
 const toolItemCollapsibleStyle = css({
@@ -146,50 +100,6 @@ const interactiveToolStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
-});
-
-const toolHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  width: "full",
-  height: "8",
-  paddingX: "2",
-  border: "none",
-  backgroundColor: "[transparent]",
-  cursor: "pointer",
-  fontSize: "sm",
-  fontWeight: "medium",
-  textAlign: "left",
-  color: "[#0666c6]",
-  "& svg[data-chevron]": {
-    transition: "[transform 150ms ease-out]",
-  },
-  "&[data-state=closed] svg[data-chevron]": {
-    transform: "[rotate(180deg)]",
-  },
-});
-
-const toolHeaderIconStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[14px]",
-  height: "[14px]",
-  borderRadius: "full",
-  backgroundColor: "[#2a80c8]",
-  color: "white",
-  boxShadow: "[0px 0px 0px 1px white]",
-  flexShrink: 0,
-  // The `arrow-right-arrow-left` glyph fills more of its 640×640 viewBox than
-  // the other tool-status icons (check/close), so even at `size="xs"` (12px)
-  // it looks crowded inside the 14px circle. Pull the inner svg back to a
-  // tighter visual size — descendant selector wins over the Icon recipe's
-  // own class-level width/height.
-  "& svg": {
-    width: "[9px]",
-    height: "[9px]",
-  },
 });
 
 const toolItemStyle = cva({
@@ -512,7 +422,7 @@ export const toToolRenderItem = (
   message: PetrinautAiMessage,
   part: RenderableToolPart,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
-  toolStateLabels: PetrinautAiToolStateLabels = {},
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver,
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const toolName = getToolName(part);
@@ -521,38 +431,34 @@ export const toToolRenderItem = (
       ? { title: toolName }
       : getToolSummaryFromPart(part);
   const notApplied = isNotAppliedResult(part);
-  const configuredLabels = toolStateLabels[toolName];
-  const configuredTitle =
-    configuredLabels === undefined || notApplied
-      ? undefined
-      : state === "output-error"
-        ? configuredLabels.error
-        : state === "output-available"
-          ? configuredLabels.success
-          : configuredLabels.pending;
-  const outputTitle =
-    state === "output-available" &&
-    typeof part.output === "object" &&
-    part.output !== null &&
-    "title" in part.output &&
-    typeof part.output.title === "string"
-      ? part.output.title
-      : undefined;
   const errorText =
     state === "output-error" && typeof part.errorText === "string"
       ? part.errorText
       : undefined;
-  const summary =
-    configuredTitle === undefined
-      ? defaultSummary
-      : {
-          ...defaultSummary,
-          title: configuredTitle,
-          detail:
-            state === "output-error"
-              ? errorText
-              : (outputTitle ?? defaultSummary.detail),
-        };
+  const presentation = notApplied
+    ? undefined
+    : resolveToolPresentation?.({
+        toolName,
+        state:
+          state === "output-error"
+            ? "error"
+            : state === "output-available"
+              ? "success"
+              : "pending",
+        input: part.input,
+        output: part.output,
+        error: errorText,
+      });
+  const summary = presentation
+    ? {
+        ...defaultSummary,
+        title: presentation.title,
+        detail:
+          state === "output-error"
+            ? (errorText ?? presentation.detail)
+            : presentation.detail,
+      }
+    : defaultSummary;
 
   const interactiveDefinition = hasInteractiveToolInput(state)
     ? getInteractiveTool(toolName, part.input, interactiveTools)
@@ -572,12 +478,12 @@ export const toToolRenderItem = (
         : `${message.id}-${part.type}`,
     state,
     summary,
-    hasConfiguredTitle: configuredTitle !== undefined,
+    hasConfiguredTitle: presentation !== undefined,
     tone: getToolTone({ state, summary, toolName, notApplied }),
     toolName,
     notApplied,
     stateLabel:
-      configuredTitle !== undefined
+      presentation !== undefined
         ? ""
         : state === "input-streaming"
           ? defaultPetrinautAiToolStateLabels.inputStreaming
@@ -716,6 +622,7 @@ const ToolItem = ({
             <LoadingSpinner
               aria-hidden="true"
               className={toolProgressSpinnerStyle}
+              data-tool-progress-spinner
               size="xs"
               variant="bars"
             />
@@ -763,6 +670,7 @@ const ToolItem = ({
           <LoadingSpinner
             aria-hidden="true"
             className={toolProgressSpinnerStyle}
+            data-tool-progress-spinner
             size="xs"
             variant="bars"
           />
@@ -836,69 +744,17 @@ export const AiAssistantToolList = ({
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
 }) => {
-  const allComplete = tools.every(
-    (tool) =>
-      tool.state === "output-available" || tool.state === "output-error",
-  );
-  const groupStateLabel =
-    tools.find((tool) => !tool.interactive && tool.state === "input-available")
-      ?.stateLabel ??
-    tools.find((tool) => !tool.interactive && tool.state === "input-streaming")
-      ?.stateLabel ??
-    (tools.some((tool) => tool.state === "output-error")
-      ? tools.find((tool) => tool.state === "output-error")?.stateLabel
-      : tools.find((tool) => tool.state === "output-available")?.stateLabel);
-  const groupInProgress = tools.some(
-    (tool) =>
-      !tool.interactive &&
-      (tool.state === "input-streaming" || tool.state === "input-available"),
-  );
-
   if (tools.length === 0) {
     return null;
   }
 
-  if (tools.length === 1) {
-    return (
-      <div className={toolListStyle({ kind: "single" })}>
-        <ToolListContent
-          tools={tools}
-          onInteractiveToolSubmit={onInteractiveToolSubmit}
-          onSelectToolTarget={onSelectToolTarget}
-        />
-      </div>
-    );
-  }
-
-  // Remount when the group transitions between in-progress and complete so
-  // `defaultOpen` re-initialises (auto-collapse on completion) without
-  // controlled state fighting user toggles.
   return (
-    <Collapsible.Root
-      key={allComplete ? "complete" : "streaming"}
-      className={toolListStyle({ kind: "group" })}
-      defaultOpen={!allComplete}
-      aria-busy={groupInProgress ? true : undefined}
-    >
-      <Collapsible.Trigger className={toolHeaderStyle}>
-        <span className={toolHeaderIconStyle}>
-          <Icon name="arrowsLeftRight" size="xs" />
-        </span>
-        <span style={{ flex: 1 }}>
-          {tools.length} operations
-          {groupStateLabel ? ` · ${groupStateLabel}` : ""}
-        </span>
-        <Icon name="chevronUp" data-chevron size="sm" />
-      </Collapsible.Trigger>
-      <Collapsible.Content className={collapsibleContentStyle}>
-        <div className={toolGroupPanelStyle}>
-          <ToolListContent
-            tools={tools}
-            onInteractiveToolSubmit={onInteractiveToolSubmit}
-            onSelectToolTarget={onSelectToolTarget}
-          />
-        </div>
-      </Collapsible.Content>
-    </Collapsible.Root>
+    <div className={toolListStyle}>
+      <ToolListContent
+        tools={tools}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
+        onSelectToolTarget={onSelectToolTarget}
+      />
+    </div>
   );
 };

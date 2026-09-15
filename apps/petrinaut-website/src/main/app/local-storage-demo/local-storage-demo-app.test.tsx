@@ -494,48 +494,17 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(aiAssistant.additionalTab?.activityIdentities).toEqual([]);
-    expect(aiAssistant.toolStateLabels).toEqual({
-      mutate_workpiece: {
-        pending: "Updating ledger",
-        success: "Updated ledger",
-        error: "Could not update ledger",
-      },
-      read_workpiece: {
-        pending: "Reading ledger",
-        success: "Read ledger",
-        error: "Could not read ledger",
-      },
-      query_workpiece: {
-        pending: "Checking recorded basis",
-        success: "Checked recorded basis",
-        error: "Could not check recorded basis",
-      },
-      read_petrinaut_docs: {
-        pending: "Reading Petrinaut guidance",
-        success: "Read Petrinaut guidance",
-        error: "Could not read Petrinaut guidance",
-      },
-      read_petrinaut_net: {
-        pending: "Reading current model",
-        success: "Read current model",
-        error: "Could not read current model",
-      },
-      read_petrinaut_diagnostics: {
-        pending: "Checking model diagnostics",
-        success: "Checked model diagnostics",
-        error: "Could not check model diagnostics",
-      },
-      layout_petrinaut_net: {
-        pending: "Laying out model",
-        success: "Laid out model",
-        error: "Could not lay out model",
-      },
-      mutate_petrinaut_net: {
-        pending: "Updating model",
-        success: "Updated model",
-        error: "Could not update model",
-      },
-    });
+    expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
+    expect(aiAssistant.workingLabel).toBe("Brunch is working");
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "success",
+        input: {},
+        output: {},
+        error: undefined,
+      }),
+    ).toEqual({ title: "Laid out model", detail: undefined });
     expect(
       aiAssistant.interactiveTools?.some(
         ({ toolName }) => toolName === "brunch_ask",
@@ -1445,11 +1414,15 @@ describe("local storage demo prepared fixture", () => {
     ).toBe(true);
     expect(aiAssistant.primaryLabel).toBe("Chat");
     expect(aiAssistant.additionalTab?.label).toBe("Ledger");
-    expect(aiAssistant.toolStateLabels?.layout_petrinaut_net).toEqual({
-      pending: "Laying out model",
-      success: "Laid out model",
-      error: "Could not lay out model",
-    });
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "pending",
+        input: {},
+        output: undefined,
+        error: undefined,
+      }),
+    ).toEqual({ title: "Laying out model", detail: undefined });
     expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),

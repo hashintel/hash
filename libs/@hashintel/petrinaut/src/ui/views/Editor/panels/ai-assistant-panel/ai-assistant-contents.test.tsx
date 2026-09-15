@@ -1630,6 +1630,55 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText(/Ask AI to create a Petri net/u)).not.toBeNull();
   });
 
+  test("shows an optional turn-level working label only while busy", () => {
+    const props = {
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      workingLabel: "Brunch is working",
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} status="submitted" />,
+    );
+
+    expect(screen.getByRole("status").textContent).toContain(
+      "Brunch is working",
+    );
+
+    rerender(<AiAssistantContents {...props} status="streaming" />);
+    expect(screen.getByRole("status").textContent).toContain(
+      "Brunch is working",
+    );
+
+    rerender(<AiAssistantContents {...props} status="ready" />);
+    expect(screen.queryByText("Brunch is working")).toBeNull();
+  });
+
+  test("keeps the working label visible while the host tab is selected", () => {
+    render(
+      <AiAssistantContents
+        additionalTab={{ label: "Ledger", content: <p>Saved account</p> }}
+        hostTabSelected
+        input=""
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+        workingLabel="Brunch is working"
+      />,
+    );
+
+    expect(screen.getByRole("tabpanel", { name: "Ledger" })).not.toBeNull();
+    const status = screen.getByTestId("ai-working-status");
+    expect(status.textContent).toContain("Brunch is working");
+    expect(status.closest("[hidden]")).toBeNull();
+  });
+
   test("renders streamed markdown and collapsed reasoning", () => {
     const startedAt = Date.parse("2026-05-14T12:00:00Z");
     const finishedAt = startedAt + 4_500;
@@ -1670,10 +1719,10 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Created")).not.toBeNull();
     expect(
       screen
-        .getByRole("button", { name: /Planning the net/u })
+        .getByRole("button", { name: /Thinking: Planning the net/u })
         .getAttribute("aria-expanded"),
     ).toBe("false");
-    expect(screen.queryByText("Reasoning")).toBeNull();
+    expect(screen.getByText("Thinking: Planning the net")).not.toBeNull();
     expect(screen.queryByTestId("reasoning-status")).toBeNull();
     expect(screen.getByLabelText(/Reasoning time/u)).not.toBeNull();
   });
@@ -1809,7 +1858,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: /Reasoning/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Thinking/u })).toBeNull();
   });
 
   test("renders assistant parts in message order", () => {
@@ -1845,7 +1894,7 @@ describe("AiAssistantContents", () => {
     );
 
     expect(container.textContent).toMatch(
-      /Reasoning[\s\S]*I found the current places\./u,
+      /Thinking[\s\S]*I found the current places\./u,
     );
   });
 
@@ -2014,11 +2063,11 @@ describe("AiAssistantContents", () => {
 
     expect(screen.getByText("Preparing…")).not.toBeNull();
     expect(screen.queryByText(/Buffer/u)).toBeNull();
+    const pendingRow = screen.getByRole("button", { name: /Preparing/u });
+    expect(pendingRow.getAttribute("aria-busy")).toBe("true");
     expect(
-      screen
-        .getByRole("button", { name: /Preparing/u })
-        .getAttribute("aria-busy"),
-    ).toBe("true");
+      pendingRow.querySelector("[data-tool-progress-spinner]"),
+    ).not.toBeNull();
 
     rendered.rerender(
       <AiAssistantContents
@@ -2047,7 +2096,7 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
   });
 
-  test("renders grouped tool rows with Figma-style tones and no item chevrons", async () => {
+  test("renders individual tool rows with tones and no operations control", () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -2095,10 +2144,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    const groupHeader = screen.getByRole("button", {
-      name: /2 operations · Running/u,
-    });
-    expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
+    expect(screen.queryByText(/operations/u)).toBeNull();
     expect(
       screen
         .getByRole("button", { name: /Added place Buffer/u })
@@ -2109,14 +2155,14 @@ describe("AiAssistantContents", () => {
         .getByRole("button", { name: /Deleted 1 item/u })
         .getAttribute("data-tone"),
     ).toBe("danger");
-    fireEvent.click(groupHeader);
-    await waitFor(() => {
-      expect(groupHeader.getAttribute("aria-expanded")).toBe("false");
-    });
-    expect(groupHeader.textContent).toContain("Running…");
+    expect(
+      screen
+        .getByRole("button", { name: /Deleted 1 item/u })
+        .getAttribute("aria-busy"),
+    ).toBe("true");
   });
 
-  test("uses per-tool host labels as titles at every lifecycle site", () => {
+  test("uses the host presentation resolver at every lifecycle site", () => {
     const messages = [
       {
         id: "assistant-labels",
@@ -2175,32 +2221,27 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         status="streaming"
-        toolStateLabels={{
-          one: {
-            pending: "Preparing one",
-            success: "Completed one",
-            error: "Could not complete one",
-          },
-          two: {
-            pending: "Running two",
-            success: "Completed two",
-            error: "Could not complete two",
-          },
-          three: {
-            pending: "Running three",
-            success: "Completed three",
-            error: "Could not complete three",
-          },
-          four: {
-            pending: "Running four",
-            success: "Completed four",
-            error: "Could not complete four",
-          },
-          five: {
-            pending: "Running five",
-            success: "Completed five",
-            error: "Could not complete five",
-          },
+        resolveToolPresentation={({ error, output, state, toolName }) => {
+          if (toolName === "unknown-tool") return undefined;
+          const verb =
+            state === "pending"
+              ? toolName === "one"
+                ? "Preparing"
+                : "Running"
+              : state === "success"
+                ? "Completed"
+                : "Could not complete";
+          return {
+            title: `${verb} ${toolName}`,
+            detail:
+              error ??
+              (typeof output === "object" &&
+              output !== null &&
+              "title" in output &&
+              typeof output.title === "string"
+                ? output.title
+                : undefined),
+          };
         }}
       />,
     );
@@ -2209,11 +2250,7 @@ describe("AiAssistantContents", () => {
     const runningTwo = screen.getByText("Running two").closest("button");
     expect(preparingOne?.getAttribute("aria-busy")).toBe("true");
     expect(runningTwo?.getAttribute("aria-busy")).toBe("true");
-    expect(
-      screen
-        .getByRole("button", { name: /^6 operations/u })
-        .parentElement?.getAttribute("aria-busy"),
-    ).toBe("true");
+    expect(screen.queryByText(/operations/u)).toBeNull();
     expect(screen.getByText("Completed three")).not.toBeNull();
     expect(screen.getByText("Could not complete four")).not.toBeNull();
     expect(
@@ -2232,7 +2269,7 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText("Completed five")).toBeNull();
   });
 
-  test("auto-collapses grouped changes once every tool is complete", () => {
+  test("keeps completed changes as individual rows", () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -2285,13 +2322,15 @@ describe("AiAssistantContents", () => {
     );
 
     expect(
-      screen
-        .getByRole("button", { name: /2 operations/u })
-        .getAttribute("aria-expanded"),
-    ).toBe("false");
+      screen.getByRole("button", { name: /Added place Buffer/u }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Deleted 1 item/u }),
+    ).not.toBeNull();
+    expect(screen.queryByText(/operations/u)).toBeNull();
   });
 
-  test("keeps tool groups inside one provider step", () => {
+  test("keeps step-start internal while rendering chronological rows", () => {
     const tool = (toolName: string, toolCallId: string) => ({
       type: "dynamic-tool" as const,
       toolName,
@@ -2326,13 +2365,19 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(
-      screen.getAllByRole("button", { name: /2 operations/u }),
-    ).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: /4 operations/u })).toBeNull();
+    const labels = within(screen.getByTestId("ai-transcript"))
+      .getAllByRole("button")
+      .map((row) => row.textContent);
+    expect(labels).toEqual([
+      expect.stringContaining("read_workpiece"),
+      expect.stringContaining("mutate_workpiece"),
+      expect.stringContaining("read_petrinaut_net"),
+      expect.stringContaining("mutate_petrinaut_net"),
+    ]);
+    expect(screen.queryByText(/operations/u)).toBeNull();
   });
 
-  test("keeps net definition checks separate from grouped changes", () => {
+  test("renders net definition checks and changes as individual rows", () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -2410,8 +2455,12 @@ describe("AiAssistantContents", () => {
       }),
     ).toBeNull();
     expect(
-      screen.getByRole("button", { name: /2 operations/u }),
+      screen.getByRole("button", { name: /Added place Buffer/u }),
     ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Deleted 1 item/u }),
+    ).not.toBeNull();
+    expect(screen.queryByText(/operations/u)).toBeNull();
   });
 
   test("shows failed tool-call errors inline", () => {

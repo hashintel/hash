@@ -2224,7 +2224,8 @@ const ConversationAiAssistantPanel = ({
       voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
-      toolStateLabels={aiAssistant.toolStateLabels}
+      resolveToolPresentation={aiAssistant.resolveToolPresentation}
+      workingLabel={aiAssistant.workingLabel}
     />
   );
 };
