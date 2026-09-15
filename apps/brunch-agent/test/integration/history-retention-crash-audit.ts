@@ -3,8 +3,6 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { CONSTRUCTION_CONTEXT_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-
 export type CrashRecoveryKind =
   | "plain"
   | "observe"
@@ -46,31 +44,6 @@ const asArray = (value: unknown, label: string): readonly unknown[] => {
     throw new Error(`${label} must be an array`);
   }
   return value;
-};
-
-const lastRevision = (snapshot: JsonObject): unknown => {
-  const messages = asArray(snapshot.messages, "history messages").filter(
-    (message): message is JsonObject => {
-      if (!isJsonObject(message) || !isJsonObject(message.signal)) {
-        return false;
-      }
-      return message.signal.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE;
-    },
-  );
-  const lastMessage = messages.at(-1);
-  if (lastMessage === undefined) {
-    throw new Error("Successful recovered result without exact current state");
-  }
-  const text = asArray(lastMessage.parts, "construction-context parts")
-    .filter(
-      (part): part is JsonObject =>
-        isJsonObject(part) &&
-        part.type === "text" &&
-        typeof part.text === "string",
-    )
-    .map((part) => part.text)
-    .join("");
-  return asObject(JSON.parse(text), "construction context").currentWorkpiece;
 };
 
 const loadBatches = (path: string): readonly StoreBatch[] =>
@@ -197,14 +170,11 @@ export const assertCrashRecovery = (
     expectedOutput,
     "Recovered tool output must match the crashed pointer",
   );
-  assert.deepEqual(
-    lastRevision(
-      asObject(
-        readJson(join(directory, "recover-plain-history.json")),
-        "recovered history",
-      ),
-    ),
-    expected,
+  assert.ok(
+    isJsonObject(nextRevision.output) &&
+      isJsonObject(nextRevision.output.mutation) &&
+      nextRevision.output.mutation.baseRevisionId === "a4-crash-revision" &&
+      nextRevision.output.mutation.beforeSha256 === expected.sha256,
     "Successful recovered result without exact current state",
   );
   assert.equal(

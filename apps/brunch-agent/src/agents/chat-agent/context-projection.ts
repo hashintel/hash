@@ -150,18 +150,32 @@ const withTextJson = (
   };
 };
 
+/**
+ * A reference either names the projected entry that still carries the body
+ * (`retainedEntryId`) or states that the body was superseded and no longer
+ * appears anywhere in the projection. It never names an entry whose body
+ * this same projection removed.
+ */
 const contentReference = (
   content: Pick<SettlementAuthority | ReadAuthority, "revisionId" | "sha256">,
-  retainedEntryId: string,
-) => ({
-  revisionId: content.revisionId,
-  sha256: content.sha256,
-  retainedEntryId,
-});
+  retainedEntryId: string | undefined,
+) =>
+  retainedEntryId === undefined
+    ? {
+        revisionId: content.revisionId,
+        sha256: content.sha256,
+        superseded: true,
+      }
+    : {
+        revisionId: content.revisionId,
+        sha256: content.sha256,
+        retainedEntryId,
+      };
 
 const projectMutationResult = (
   entry: ContextProjectionEntry,
   authority: SettlementAuthority,
+  retainedEntryId: string | undefined,
 ): ContextProjectionEntry => {
   const output = parseTextJson(entry.message);
   if (!output) return entry;
@@ -170,7 +184,7 @@ const projectMutationResult = (
     ...entry,
     message: withTextJson(entry.message, {
       ...pointer,
-      markdownReference: contentReference(authority, authority.callEntryId),
+      markdownReference: contentReference(authority, retainedEntryId),
     }),
   };
 };
@@ -217,6 +231,7 @@ const compactToolCallArguments = (
   entryIndex: number,
   authorities: readonly SettlementAuthority[],
   latestAuthority: SettlementAuthority | undefined,
+  retainedEntryIds: ReadonlyMap<string, string>,
 ): ContextProjectionEntry => {
   if (entry.message.role !== "assistant") return entry;
   const content = entry.message.content.map((part) => {
@@ -258,7 +273,10 @@ const compactToolCallArguments = (
         revisionId: authority.revisionId,
         sha256: authority.sha256,
         length: markdown.length,
-        markdownReference: contentReference(authority, authority.callEntryId),
+        markdownReference: contentReference(
+          authority,
+          retainedEntryIds.get(contentKey(authority)),
+        ),
       },
     };
   });
@@ -320,8 +338,18 @@ export const createBrunchContextProjection = (
     const latestSettlement = settlements.toSorted(
       (left, right) => right.resultEntryIndex - left.resultEntryIndex,
     )[0];
+    const projectArguments =
+      options.projectSupersededWorkpieceArguments === true;
+    // Only bodies this projection leaves in place may be referenced. With
+    // argument projection on, superseded settlement calls lose their body,
+    // so only the latest settlement call counts as retained.
     const retainedEntryIds = new Map<string, string>();
     for (const settlement of settlements) {
+      if (
+        projectArguments &&
+        settlement.toolCallId !== latestSettlement?.toolCallId
+      )
+        continue;
       const key = contentKey(settlement);
       if (!retainedEntryIds.has(key))
         retainedEntryIds.set(key, settlement.callEntryId);
@@ -332,21 +360,25 @@ export const createBrunchContextProjection = (
     }
 
     return entries.map((entry, entryIndex) => {
-      const withProjectedArguments =
-        options.projectSupersededWorkpieceArguments === true
-          ? compactToolCallArguments(
-              entry,
-              entryIndex,
-              settlements,
-              latestSettlement,
-            )
-          : entry;
+      const withProjectedArguments = projectArguments
+        ? compactToolCallArguments(
+            entry,
+            entryIndex,
+            settlements,
+            latestSettlement,
+            retainedEntryIds,
+          )
+        : entry;
       const settlement = settlements.find(
         (candidate) => candidate.resultEntryIndex === entryIndex,
       );
       if (settlement)
         return compactClientToolSignal(
-          projectMutationResult(withProjectedArguments, settlement),
+          projectMutationResult(
+            withProjectedArguments,
+            settlement,
+            retainedEntryIds.get(contentKey(settlement)),
+          ),
         );
       const read = reads.find(
         (candidate) => candidate.entryIndex === entryIndex,

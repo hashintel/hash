@@ -28,7 +28,7 @@ import {
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
-import { verifyMutatePetrinetAttempts } from "./root-arc.ts";
+import { verifyMutatePetrinetAttempts } from "./mutation-delivery.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";

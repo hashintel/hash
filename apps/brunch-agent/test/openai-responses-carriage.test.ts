@@ -12,7 +12,7 @@ import { expect, test } from "vitest";
 
 import {
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   queryWorkpieceInputSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
@@ -61,7 +61,7 @@ test("OpenAI Responses converts example native tools in non-strict mode and tool
       parameters: jsonSchema(queryWorkpieceInputSchema(true)),
     },
     {
-      name: mutatePetrinetToolName,
+      name: mutatePetrinautNetToolName,
       description: "Mutate the bound net",
       parameters: jsonSchema(mutatePetrinetInputSchema),
     },

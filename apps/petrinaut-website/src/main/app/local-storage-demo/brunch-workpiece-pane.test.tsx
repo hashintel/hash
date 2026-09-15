@@ -53,33 +53,6 @@ test("renders only the readable Ledger document without developer metadata", () 
   expect(html).not.toContain("why-call");
 });
 
-test("continues to render retained brunch_why results", () => {
-  const legacyMessages = [
-    {
-      role: "assistant",
-      purpose: "assistant",
-      parts: [
-        {
-          type: "dynamic-tool",
-          toolName: "brunch_why",
-          toolCallId: "why-call",
-          state: "output-available",
-          output,
-        },
-      ],
-    },
-  ];
-  const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={legacyMessages}
-      binding={binding}
-      liveHash={undefined}
-    />,
-  );
-  expect(html).toContain("<h1>Actual tool workpiece</h1>");
-  expect(html).not.toContain("why-call");
-});
-
 test("warns when the live document differs without exposing raw tool output", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane

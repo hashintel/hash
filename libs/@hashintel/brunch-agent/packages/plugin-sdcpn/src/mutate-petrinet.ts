@@ -9,13 +9,9 @@ import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
 export const batchedConstructionMode = "batched-construction";
 export const mutatePetrinautNetToolName = "mutate_petrinaut_net";
-/** @deprecated Use `mutatePetrinautNetToolName`. */
-export const mutatePetrinetToolName = mutatePetrinautNetToolName;
-export const legacyMutatePetrinautNetToolName = "mutate_petrinet";
 
 export const isMutatePetrinautNetToolName = (name: string): boolean =>
-  name === mutatePetrinautNetToolName ||
-  name === legacyMutatePetrinautNetToolName;
+  name === mutatePetrinautNetToolName;
 
 /** Per-operation attempt identity retained under one outer `mutate_petrinaut_net` call. */
 export const mutatePetrinetAttemptCallId = (

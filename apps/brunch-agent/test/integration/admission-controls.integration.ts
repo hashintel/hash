@@ -21,7 +21,7 @@ import {
 
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
@@ -63,7 +63,7 @@ const recordWire = (chunk: ConversationStreamChunk) => {
 const unobserve = observe((event) => record("runtime", event));
 const browserNames: ReadonlySet<string> = new Set([
   ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
 ]);
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {

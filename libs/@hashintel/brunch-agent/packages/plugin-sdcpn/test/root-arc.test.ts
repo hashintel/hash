@@ -8,7 +8,7 @@ const definition: SDCPN = {
   places: [
     {
       id: "place-1",
-      name: "Crew",
+      name: "Buffer",
       colorId: null,
       dynamicsEnabled: false,
       differentialEquationId: null,
@@ -38,7 +38,7 @@ test("locates a root arc as its own kind so later child edits can refuse the who
   expect(
     locateRootArc(definition, {
       transition: "Start",
-      place: "Crew",
+      place: "Buffer",
       arcDirection: "input",
       field: "entity",
     }),

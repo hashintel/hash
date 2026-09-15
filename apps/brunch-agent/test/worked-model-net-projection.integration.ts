@@ -21,7 +21,7 @@ import {
 import { Hono } from "hono";
 
 import {
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   readPetrinautNetToolName,
   type MutatePetrinetOperation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -177,7 +177,7 @@ try {
         ),
       );
       return tool(
-        mutatePetrinetToolName,
+        mutatePetrinautNetToolName,
         {
           observation: {
             toolCallId: observation.toolCallId,

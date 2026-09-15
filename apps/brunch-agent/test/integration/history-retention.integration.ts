@@ -24,7 +24,6 @@ import {
   snapshotToUiMessages,
   CLIENT_TOOL_RESULT_SIGNAL,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import {
   agentOwnershipHeaders,
@@ -377,44 +376,7 @@ const tools = (name: string, input: Record<string, unknown>, id: string) =>
 const project = (snapshot: FlueConversationSnapshot) =>
   snapshotToUiMessages(snapshot, {
     clientToolNames: new Set([READ_PETRINAUT_DOCS_TOOL_NAME]),
-    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
-const legacyQuestionMarkerHistory = JSON.parse(
-  await readFile(
-    new URL(
-      "../fixtures/history-retention/legacy-question-marker.json",
-      import.meta.url,
-    ),
-    "utf8",
-  ),
-) as FlueConversationSnapshot;
-const legacyQuestionMarkerMessages = project(legacyQuestionMarkerHistory);
-assert.equal(legacyQuestionMarkerMessages.length, 1);
-assert(
-  legacyQuestionMarkerMessages[0]?.parts.some(
-    (part) => part.type === "data-brunch-question",
-  ),
-  "Legacy question data must remain hydratable as an inert data part",
-);
-assert(
-  legacyQuestionMarkerMessages[0]?.parts.every(
-    (part) =>
-      !(
-        "toolCallId" in part &&
-        part.toolCallId === "legacy-question-marker-call"
-      ),
-  ),
-  "Legacy question tool rows must remain hidden after hydration",
-);
-assert(
-  legacyQuestionMarkerMessages[0]?.parts.some(
-    (part) =>
-      part.type === "text" &&
-      part.text ===
-        "The historical response still loads. Which current fact should we inspect?",
-  ),
-  "Legacy marker carriage must not suppress finalized assistant prose",
-);
 const status = async (operation: () => Promise<unknown>) => {
   try {
     await operation();
@@ -1148,12 +1110,6 @@ try {
       assert.deepEqual(ping.input, { note: `a4-${suffix}-ping` });
       assert.deepEqual(ping.output, { ok: true, note: `a4-${suffix}-ping` });
     }
-    assert(
-      !before.messages
-        .flatMap((message) => message.parts)
-        .some((part) => part.type === "data-brunch-question"),
-      "New responses must not create question markers",
-    );
     const clientResults = clientToolHistoryFrom(before.messages).results;
     assert.deepEqual(
       clientResults.map((result) => result.toolCallId),

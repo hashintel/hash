@@ -34,14 +34,14 @@ import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 /** The bound document incarnation a mutation was authorized against. */
 export type BrowserBinding = v.InferOutput<typeof browserBindingSchema>;
 
-/** Retained arc request contract; root node requests extend it without changing legacy consumers. */
+/** Arc request contract; root node requests extend it. */
 export type ArcMutationRequest = {
   toolCallId: string;
   toolName: ObservedArcMutationName;
   input: PetrinautAiToolInput<ObservedArcMutationName>;
   binding: BrowserBinding;
   requestedBaseHash: string;
-  /** Required only in the distinct conversation-bound mode; legacy history is unchanged. */
+  /** The verified browser read this request cites as its base. */
   observationToolCallId?: string;
 };
 

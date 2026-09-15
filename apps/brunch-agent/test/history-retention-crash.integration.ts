@@ -14,10 +14,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import {
-  CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
-  validatedFixtureMutationMode,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
@@ -139,7 +136,6 @@ const assertRevision = (
     sha256: createHash("sha256").update(content).digest("hex"),
     ordinal,
   };
-  const revision = { ...pointer, markdown: content };
   const before = previous?.markdown ?? "";
   let commonPrefixUtf16 = 0;
   while (
@@ -196,34 +192,19 @@ const assertRevision = (
     },
     "Stable call/result identity, ordinal, and pointer-only receipt",
   );
-  const signal = snapshot.messages.findLast(
-    (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
-  );
-  assert(signal);
-  const context = JSON.parse(
-    signal.parts
-      .flatMap((part) => (part.type === "text" ? [part.text] : []))
-      .join(""),
-  ) as { currentWorkpiece: unknown };
-  assert.deepEqual(
-    context.currentWorkpiece,
-    revision,
-    "A successful result must retain its exact current state, not only historical JSON",
-  );
 };
 try {
   if (phase === "create") {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: validatedFixtureMutationMode,
-        browser: {
+        mode: batchedConstructionMode,
+        construction: {
           binding: {
             conversationId: identity.conversationId,
             documentId: "a4-no-browser-crash-diagnostic",
             incarnationId: basename(directory),
           },
-          requestedBaseHash: "a".repeat(64),
         },
       },
       message: {
@@ -249,27 +230,10 @@ try {
     ) as { receipt: AgentSendResult; pid: number };
     assert.notEqual(process.pid, original.pid);
     await client.read(original.receipt, { signal: AbortSignal.timeout(60000) });
-    save("history-before-state-render", await client.history());
     save("store-after-recovery", inspect());
-    // Construction context is render-captured at submission entry, not a live state getter.
-    // A new real, prose-only submission observes the current state without writing it.
-    const renderCurrentState = async () => {
-      faux.setResponses([
-        fauxAssistantMessage("Read-only state observation acknowledged."),
-      ]);
-      await client.read(
-        await client.send({
-          uid: original.receipt.uid,
-          message: {
-            kind: "user",
-            body: "Observe the current synthetic revision without changing it or calling tools.",
-          },
-        }),
-        { signal: AbortSignal.timeout(30000) },
-      );
-      return client.history();
-    };
-    const recovered = await renderCurrentState();
+    // The recovered state is observed at the product boundary: the next
+    // settlement must carry ordinal 2 and the recovered revision as previous.
+    const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
       response("a4-next-revision", "# Next synthetic diagnostic revision"),
@@ -285,8 +249,7 @@ try {
       }),
       { signal: AbortSignal.timeout(30000) },
     );
-    save("next-history-before-state-render", await client.history());
-    const next = await renderCurrentState();
+    const next = await client.history();
     save("next-history", next);
     save("result", {
       outcome: "observations-before-safety-assertions",

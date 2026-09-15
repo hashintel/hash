@@ -4,7 +4,7 @@ import type { LiveToolStreamEvent } from "./live-tool-stream";
 import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
-/** How client-executed and hidden tools project into the AI SDK UI, live or from history. */
+/** How client-executed tools project into the AI SDK UI, live or from history. */
 export interface ClientToolProjectionOptions {
   readonly clientToolNames: ReadonlySet<string>;
   /** Host-defined tools that are not part of the AI SDK's static tool registry. */
@@ -17,14 +17,13 @@ export interface ClientToolProjectionOptions {
       "input" | "toolName" | "toolCallId"
     >,
   ) => unknown;
-  readonly hiddenToolNames?: ReadonlySet<string>;
 }
 
 /**
  * A server tool that failed on this submission. Reported before projection
- * decides whether the UI sees it, so hidden and pending-client tools are
- * included; `errorText` is the server's text and may quote content, so hosts
- * classify it before it leaves the browser.
+ * decides whether the UI sees it, so pending-client tools are included;
+ * `errorText` is the server's text and may quote content, so hosts classify
+ * it before it leaves the browser.
  */
 export interface FlueUiToolOutputError {
   readonly submissionId: AgentSendResult["submissionId"];
@@ -32,7 +31,6 @@ export interface FlueUiToolOutputError {
   /** Undefined when the failing call's input was never seen on this stream. */
   readonly toolName: string | undefined;
   readonly errorText: string;
-  readonly hidden: boolean;
 }
 
 export interface FlueUiStreamOptions extends ClientToolProjectionOptions {
@@ -79,7 +77,6 @@ export const createFlueUiStream = (
   let turnId: string | undefined;
   let partOrdinal = 0;
   let streamingPart: StreamingPart | undefined;
-  const hiddenToolCallIds = new Set<string>();
   const toolNamesByCallId = new Map<string, string>();
   const pendingClientToolCallIds = new Set<string>();
   const awaitingValidation = new Map<
@@ -193,12 +190,7 @@ export const createFlueUiStream = (
       return;
     }
     if (event.kind === "tool-input-start") {
-      if (
-        speculativeToolCalls.has(event.toolCallId) ||
-        options.hiddenToolNames?.has(event.toolName) === true
-      ) {
-        return;
-      }
+      if (speculativeToolCalls.has(event.toolCallId)) return;
       speculativeToolCalls.set(event.toolCallId, {
         toolName: event.toolName,
         turnId: event.turnId,
@@ -405,11 +397,6 @@ export const createFlueUiStream = (
           finishPart();
           toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
           admittedToolCallIds.add(chunk.toolCallId);
-          if (options.hiddenToolNames?.has(chunk.toolName) === true) {
-            hiddenToolCallIds.add(chunk.toolCallId);
-            speculativeToolCalls.delete(chunk.toolCallId);
-            return;
-          }
           const isClientTool = options.clientToolNames.has(chunk.toolName);
           if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
           if (
@@ -451,7 +438,6 @@ export const createFlueUiStream = (
         }
         case "tool-output": {
           if (!accepting || messageId === undefined) return;
-          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
           const validated = awaitingValidation.get(chunk.toolCallId);
           if (validated) {
             awaitingValidation.delete(chunk.toolCallId);
@@ -474,9 +460,7 @@ export const createFlueUiStream = (
             toolCallId: chunk.toolCallId,
             toolName: toolNamesByCallId.get(chunk.toolCallId),
             errorText: chunk.errorText,
-            hidden: hiddenToolCallIds.has(chunk.toolCallId),
           });
-          if (hiddenToolCallIds.has(chunk.toolCallId)) return;
           if (awaitingValidation.delete(chunk.toolCallId)) {
             pendingClientToolCallIds.delete(chunk.toolCallId);
           } else if (pendingClientToolCallIds.has(chunk.toolCallId)) return;

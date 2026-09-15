@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { observedArcEnvelopeSchema, rootArcWhyInputSchema } from "./root-arc";
+import { rootArcWhyInputSchema } from "./root-arc";
 
 import type { ConstructionMutationRequest } from "./mutation-record";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -23,55 +23,6 @@ export const isObservedStateMutation = (
   name: string,
 ): name is ObservedStateMutationName =>
   observedStateMutationNames.some((entry) => entry === name);
-const rootOnly = (input: { targetSubnetId?: string | null }) =>
-  !input.targetSubnetId;
-const schemas = {
-  addParameter: petrinautAiTools.addParameter.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly, "Nested parameter construction is unavailable.")
-    .meta(petrinautAiTools.addParameter.inputSchema.meta() ?? {}),
-  addDifferentialEquation: petrinautAiTools.addDifferentialEquation.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(
-      rootOnly,
-      "Nested differential-equation construction is unavailable.",
-    )
-    .meta(petrinautAiTools.addDifferentialEquation.inputSchema.meta() ?? {}),
-  addType: petrinautAiTools.addType.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly)
-    .meta(petrinautAiTools.addType.inputSchema.meta() ?? {}),
-  updateType: petrinautAiTools.updateType.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly)
-    .meta(petrinautAiTools.updateType.inputSchema.meta() ?? {}),
-  addTypeElement: petrinautAiTools.addTypeElement.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly)
-    .meta(petrinautAiTools.addTypeElement.inputSchema.meta() ?? {}),
-  updateTypeElement: petrinautAiTools.updateTypeElement.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly)
-    .meta(petrinautAiTools.updateTypeElement.inputSchema.meta() ?? {}),
-  addScenario: petrinautAiTools.addScenario.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .meta(petrinautAiTools.addScenario.inputSchema.meta() ?? {}),
-  updateScenario: petrinautAiTools.updateScenario.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .meta(petrinautAiTools.updateScenario.inputSchema.meta() ?? {}),
-};
-export const observedStateInputSchema = (name: ObservedStateMutationName) =>
-  schemas[name];
-
-/** Validate natively but retain raw field presence: a default is not authored input. */
-export const parseObservedStateInput = (
-  name: ObservedStateMutationName,
-  input: unknown,
-) => {
-  schemas[name].parse(input);
-  return input as z.input<(typeof schemas)[ObservedStateMutationName]>;
-};
-
 const stateWhyFields = {
   name: z
     .string()

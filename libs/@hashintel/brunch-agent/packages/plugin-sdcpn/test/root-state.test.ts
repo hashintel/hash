@@ -11,13 +11,7 @@ import {
   expectedNodeDefinition,
 } from "../src/mutation-record";
 import { parseConstructionWhyInput } from "../src/root-node";
-import {
-  assertStateIdentity,
-  locateRootState,
-  observedStateInputSchema,
-  observedStateMutationNames,
-  parseObservedStateInput,
-} from "../src/root-state";
+import { assertStateIdentity, locateRootState } from "../src/root-state";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -76,23 +70,6 @@ const setup = () => {
 };
 
 describe("native typed state construction", () => {
-  test.each(observedStateMutationNames)(
-    "%s preserves the full canonical input export, including metadata",
-    (name) => {
-      const canonical = petrinautAiTools[name].inputSchema.toJSONSchema({
-        io: "input",
-      });
-      const joined = observedStateInputSchema(name).toJSONSchema({
-        io: "input",
-      });
-      const { brunch: _brunch, ...properties } = joined.properties!;
-      expect({
-        ...joined,
-        properties,
-        required: joined.required?.filter((key) => key !== "brunch"),
-      }).toEqual(canonical);
-    },
-  );
   test("admits a root parameter and locates it for ordinary why", () => {
     const parameter = {
       id: "line_rate",
@@ -101,29 +78,6 @@ describe("native typed state construction", () => {
       type: "real" as const,
       defaultValue: "1",
     };
-    const raw = {
-      ...parameter,
-      brunch: {
-        basis: { kind: "absent" as const, reason: "TEST" },
-        observationToolCallId: "test-read",
-        requestedBaseHash: "a".repeat(64),
-      },
-    };
-    expect(observedStateInputSchema("addParameter").parse(raw)).toMatchObject(
-      parameter,
-    );
-    expect(
-      petrinautAiTools.addParameter.inputSchema.safeParse({
-        ...parameter,
-        targetSubnetId: "nested-net",
-      }).success,
-    ).toBe(true);
-    expect(() =>
-      observedStateInputSchema("addParameter").parse({
-        ...raw,
-        targetSubnetId: "nested-net",
-      }),
-    ).toThrow("Nested parameter construction is unavailable.");
     const before = empty();
     const req = request("addParameter", parameter);
     const after = expectedNodeDefinition(req, before);
@@ -168,29 +122,6 @@ describe("native typed state construction", () => {
       colorId: continuousType.id,
       code: "return tokens.map(() => ({ continuousValue: 0 }));",
     } satisfies PetrinautAiToolInput<"addDifferentialEquation">;
-    const raw = {
-      ...equation,
-      brunch: {
-        basis: { kind: "absent" as const, reason: "TEST" },
-        observationToolCallId: "test-read",
-        requestedBaseHash: "a".repeat(64),
-      },
-    };
-    expect(
-      observedStateInputSchema("addDifferentialEquation").parse(raw),
-    ).toMatchObject(equation);
-    expect(
-      petrinautAiTools.addDifferentialEquation.inputSchema.safeParse({
-        ...equation,
-        targetSubnetId: "nested-net",
-      }).success,
-    ).toBe(true);
-    expect(() =>
-      observedStateInputSchema("addDifferentialEquation").parse({
-        ...raw,
-        targetSubnetId: "nested-net",
-      }),
-    ).toThrow("Nested differential-equation construction is unavailable.");
     const req = request("addDifferentialEquation", equation);
     expect(() => assertStateIdentity(req, empty(), [])).toThrow(
       "Differential equations require a unique existing root type ID.",
@@ -271,22 +202,10 @@ describe("native typed state construction", () => {
     },
   );
   test("scenario input omission survives while the canonical execution inserts its own default", () => {
-    const schema = observedStateInputSchema("addScenario");
-    expect(schema.toJSONSchema({ io: "input" }).required).not.toContain(
-      "parameterOverrides",
-    );
-    const raw = {
-      ...scenario,
-      brunch: {
-        basis: { kind: "absent", reason: "TEST" },
-        observationToolCallId: "test-read",
-        requestedBaseHash: "a".repeat(64),
-      },
-    };
-    expect(schema.parse(raw)).toHaveProperty("parameterOverrides", {});
-    expect(parseObservedStateInput("addScenario", raw)).not.toHaveProperty(
-      "parameterOverrides",
-    );
+    expect(
+      petrinautAiTools.addScenario.inputSchema.toJSONSchema({ io: "input" })
+        .required,
+    ).not.toContain("parameterOverrides");
     const before = empty();
     before.types.push(type);
     before.places.push(place);

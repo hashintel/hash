@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 
 import {
-  applyAutoLayoutToolName,
+  layoutPetrinautNetToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
+  readPetrinautNetToolName,
   type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { AWAITING_CLIENT } from "../src/conversation/client-tools.ts";
 import { deriveNetFreshness } from "../src/conversation/net-freshness.ts";
@@ -28,7 +28,7 @@ const binding = {
   documentId: "document-freshness",
   incarnationId: "incarnation-freshness",
 };
-const browser: BrowserContext = { binding, construction: true };
+const browser: BrowserContext = { binding };
 
 const emptyNet: SDCPN = {
   places: [],
@@ -108,10 +108,10 @@ const readTurn = (
   definition: SDCPN,
   revisionId?: string,
 ): FlueConversationMessage[] => [
-  assistantCall(toolCallId, getLatestNetDefinitionToolName),
+  assistantCall(toolCallId, readPetrinautNetToolName),
   resultDelivery(
     toolCallId,
-    getLatestNetDefinitionToolName,
+    readPetrinautNetToolName,
     { title: "Net", definition },
     {
       observation: {
@@ -170,8 +170,8 @@ const mutationTurn = (
       toolName: "addPlace",
       input: oneHopPlace,
       binding,
-      requestedBaseHash: sha256Of(pre),
       observationToolCallId: batch.observation.toolCallId,
+      requestedBaseHash: batch.observation.baseHash,
     };
     const attempt: ConstructionMutationAttempt = {
       request,
@@ -184,10 +184,10 @@ const mutationTurn = (
     attempts.push(alterAttempt?.(attempt) ?? attempt);
   }
   return [
-    assistantCall(toolCallId, mutatePetrinetToolName, batch),
+    assistantCall(toolCallId, mutatePetrinautNetToolName, batch),
     resultDelivery(
       toolCallId,
-      mutatePetrinetToolName,
+      mutatePetrinautNetToolName,
       {
         execution: "ordered-stop",
         toolCallId,
@@ -461,7 +461,6 @@ test("an impossible stale batch record leaves the current net unrecorded", async
             ...attempt,
             request: {
               ...attempt.request,
-              requestedBaseHash: "f".repeat(64),
             },
           }),
           "stale",
@@ -546,10 +545,10 @@ test("an unverifiable observation is not a read", async () => {
   expect(
     await deriveNetFreshness(
       snapshotOf([
-        assistantCall(toolCallId, getLatestNetDefinitionToolName),
+        assistantCall(toolCallId, readPetrinautNetToolName),
         resultDelivery(
           toolCallId,
-          getLatestNetDefinitionToolName,
+          readPetrinautNetToolName,
           { title: "Net", definition: emptyNet },
           {
             observation: {
@@ -571,10 +570,12 @@ test("a recorded layout is a known change, not an unrecorded one", async () => {
     places: [{ ...oneHopNet.places[0]!, x: 120, y: 40 }],
   };
   const layoutTurn: FlueConversationMessage[] = [
-    assistantCall("layout-1", applyAutoLayoutToolName, { askUserFirst: false }),
+    assistantCall("layout-1", layoutPetrinautNetToolName, {
+      askUserFirst: false,
+    }),
     resultDelivery(
       "layout-1",
-      applyAutoLayoutToolName,
+      layoutPetrinautNetToolName,
       { commitCount: 1 },
       {
         layoutRecord: {
@@ -613,7 +614,6 @@ test("a read belonging to another document incarnation is not a read", async () 
   expect(
     await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), {
       binding: { ...binding, incarnationId: "another-incarnation" },
-      construction: true,
     }),
   ).toEqual({ kind: "never-read" });
 });
@@ -627,7 +627,6 @@ test.each([
     expect(
       await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), {
         binding: { ...binding, ...bindingChange },
-        construction: true,
       }),
     ).toEqual({ kind: "never-read" });
   },

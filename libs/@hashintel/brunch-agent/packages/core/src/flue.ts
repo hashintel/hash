@@ -1,5 +1,4 @@
 import {
-  type AgentDispatchRequest,
   type CompactionConfig,
   defineTool,
   useModel,
@@ -31,7 +30,6 @@ import {
   workpieceRevisionPointerSchema,
   workpieceRevisionSchema,
   workpieceRevisionStateKey,
-  type PreparedWorkpieceDelivery,
   type WorkpieceEvidenceServices,
   type WorkpieceEvidenceSource,
   type WorkpieceRevision,
@@ -39,15 +37,6 @@ import {
 
 export const MUTATE_WORKPIECE_TOOL_NAME = "mutate_workpiece";
 export const READ_WORKPIECE_TOOL_NAME = "read_workpiece";
-export const LEGACY_UPDATE_WORKPIECE_TOOL_NAME = "update_workpiece";
-export const LEGACY_BRUNCH_WORKPIECE_TOOL_NAME = "brunch_workpiece";
-
-// `workpiece.ts` stays substrate-neutral; this is the one place core may check
-// that a prepared delivery is still what Flue's dispatch accepts (minus the
-// target id the caller supplies).
-const _preparedWorkpieceDeliveryIsDispatchable = (
-  delivery: PreparedWorkpieceDelivery,
-): Omit<AgentDispatchRequest, "id"> => delivery;
 
 /**
  * Mount the contributions owned by Brunch core and return its system prompt.

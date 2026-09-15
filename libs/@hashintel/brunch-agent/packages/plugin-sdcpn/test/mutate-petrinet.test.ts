@@ -16,7 +16,6 @@ const currentRevision = {
   ordinal: 1,
   markdown: "Queue work.",
   sha256: "b".repeat(64),
-  sourceKind: "assistant" as const,
   evidence: [],
 };
 const emptyDefinition: SDCPN = {

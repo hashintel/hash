@@ -1,18 +1,12 @@
 import { describe, expect, test } from "vitest";
 
 import { createPetrinautActions, type SDCPN } from "@hashintel/petrinaut-core";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
   deriveMutationEffects,
   expectedNodeDefinition,
 } from "../src/mutation-record";
-import {
-  assertNodeIdentity,
-  locateRootNode,
-  observedNodeInputSchema,
-  observedNodeMutationNames,
-} from "../src/root-node";
+import { assertNodeIdentity, locateRootNode } from "../src/root-node";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -41,23 +35,6 @@ const transition = {
 } satisfies SDCPN["transitions"][number];
 
 describe("native root node construction", () => {
-  test.each(observedNodeMutationNames)(
-    "%s retains canonical input export without field copies",
-    (name) => {
-      const canonical = petrinautAiTools[name].inputSchema.toJSONSchema({
-        io: "input",
-      });
-      const joined = observedNodeInputSchema(name).toJSONSchema({
-        io: "input",
-      });
-      const { brunch: _brunch, ...properties } = joined.properties!;
-      expect({
-        ...joined,
-        properties,
-        required: joined.required?.filter((key) => key !== "brunch"),
-      }).toEqual(canonical);
-    },
-  );
   test("refuses existing, cross-class, retired, unknown and ambiguous identities", () => {
     const current = empty();
     current.places.push(place);

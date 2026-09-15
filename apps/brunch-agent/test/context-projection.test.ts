@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
 import { expect, test } from "vitest";
@@ -13,6 +14,31 @@ import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
 
 const markdown = "# Account\n\nAuthoritative content.";
 const sha256 = createHash("sha256").update(markdown).digest("hex");
+
+type MarkdownReference = {
+  revisionId: string;
+  sha256: string;
+  retainedEntryId?: string;
+  superseded?: boolean;
+};
+
+/** Find every `markdownReference` in a projected message, including those inside tool-result JSON text. */
+const collectMarkdownReferences = (value: unknown): MarkdownReference[] => {
+  if (typeof value === "string") {
+    try {
+      return collectMarkdownReferences(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+  if (Array.isArray(value)) return value.flatMap(collectMarkdownReferences);
+  if (typeof value !== "object" || value === null) return [];
+  return Object.entries(value).flatMap(([key, member]) =>
+    key === "markdownReference"
+      ? [member as MarkdownReference]
+      : collectMarkdownReferences(member),
+  );
+};
 
 const entries = (): ContextProjectionEntry[] => [
   {
@@ -316,6 +342,47 @@ test("projects superseded settlement and candidate bodies only when enabled", as
   ).toBe(1);
   expect(projectedJson).toContain('"length"');
   expect(projectedJson).toContain('"markdownReference"');
+  // Every reference must either name an entry that still carries the body
+  // or declare the body superseded; a reference to a compacted entry would
+  // read as document loss.
+  const projectedById = new Map(
+    projected.map((entry) => [entry.id, JSON.stringify(entry)]),
+  );
+  const references = projected.flatMap((entry) =>
+    collectMarkdownReferences(entry.message),
+  );
+  expect(references.length).toBeGreaterThanOrEqual(4);
+  for (const reference of references) {
+    const body = bodies.find(
+      (candidate) =>
+        createHash("sha256").update(candidate).digest("hex") ===
+        reference.sha256,
+    );
+    expect(body).toBeDefined();
+    if (typeof reference.retainedEntryId === "string") {
+      assert.equal(reference.superseded, undefined);
+      assert(
+        projectedById
+          .get(reference.retainedEntryId)
+          ?.includes(JSON.stringify(body).slice(1, -1)),
+      );
+    } else {
+      assert.deepEqual(reference, {
+        revisionId: reference.revisionId,
+        sha256: reference.sha256,
+        superseded: true,
+      });
+      assert.notEqual(body, bodies[2]);
+    }
+  }
+  expect(references.some((reference) => reference.superseded === true)).toBe(
+    true,
+  );
+  expect(
+    references.some(
+      (reference) => reference.retainedEntryId === "revision-3-call-entry",
+    ),
+  ).toBe(true);
   const candidateSlice = projectArguments(input.slice(0, 2));
   expect(JSON.stringify(candidateSlice)).not.toContain("markdownReference");
   expect(JSON.stringify(candidateSlice)).toContain("Account A");

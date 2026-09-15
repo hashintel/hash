@@ -14,7 +14,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   createFlueChatTransport,
   snapshotToUiMessages,
@@ -199,7 +199,7 @@ try {
         [
           fauxThinking("The ping returned. Read the user guide next."),
           fauxToolCall(
-            READ_PETRINAUT_DOC_TOOL_NAME,
+            READ_PETRINAUT_DOCS_TOOL_NAME,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
           ),
@@ -270,7 +270,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
+          chunk.toolName === READ_PETRINAUT_DOCS_TOOL_NAME,
       ) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
@@ -292,7 +292,7 @@ try {
         role: "assistant" as const,
         parts: [
           {
-            type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
+            type: `tool-${READ_PETRINAUT_DOCS_TOOL_NAME}`,
             toolCallId: clientToolCall.toolCallId,
             state: "output-available",
             input: { doc: "ai-assistant" },

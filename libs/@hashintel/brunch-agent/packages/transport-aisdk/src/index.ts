@@ -116,7 +116,7 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   ) => void;
   /**
    * Server tool failures never reach `useChat.onError`; this is the only seam
-   * that sees them, hidden tools included. Admission, stream and settlement
+   * that sees them. Admission, stream and settlement
    * failures stay with `onError` so nothing is reported twice.
    */
   readonly onToolOutputError?: FlueUiStreamOptions["onToolOutputError"];
@@ -379,7 +379,6 @@ const streamSubmission = (
         dynamicClientToolNames: options.dynamicClientToolNames,
         validatedClientToolNames: options.validatedClientToolNames,
         mapClientToolInput: options.mapClientToolInput,
-        hiddenToolNames: options.hiddenToolNames,
         onToolOutputError: options.onToolOutputError,
         provisionalMessageId: (turnId) =>
           continuationMessageId ?? `live:${admission.submissionId}:${turnId}`,

@@ -10,14 +10,6 @@ export type SDCPNInLocalStorage = {
   incarnationId?: string;
   /** Petrinaut revision retained when the document handle is reopened. */
   revisionId?: DocumentRevisionId;
-  /** Immutable request base for the single prepared root-arc tracer. */
-  rootArcRequestedBaseHash?: string;
-  /**
-   * Content-addressed coherent revisions retained by prepared fixtures. The
-   * live `sdcpn` remains the automatic mirror; these snapshots give a settled
-   * manifest a concrete document revision to select after a partial write.
-   */
-  coherentSnapshots?: Record<string, SDCPN>;
   id: string;
   lastUpdated: string; // ISO timestamp
   sdcpn: SDCPN;
@@ -39,12 +31,10 @@ const isStoredSDCPN = (value: unknown): value is SDCPN =>
   Array.isArray(value.differentialEquations);
 
 type StoredDocumentIngress = {
-  readonly coherentSnapshots?: unknown;
   readonly id: string;
   readonly incarnationId?: unknown;
   readonly lastUpdated: string;
   readonly revisionId?: unknown;
-  readonly rootArcRequestedBaseHash?: unknown;
   readonly sdcpn: SDCPN;
   readonly title: string;
 };
@@ -157,19 +147,6 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
       typeof value.incarnationId === "string" ? value.incarnationId : undefined;
     const revisionId =
       typeof value.revisionId === "string" ? value.revisionId : undefined;
-    const rootArcRequestedBaseHash =
-      typeof value.rootArcRequestedBaseHash === "string"
-        ? value.rootArcRequestedBaseHash
-        : undefined;
-    let coherentSnapshots: Record<string, SDCPN> | undefined;
-    if (isRecord(value.coherentSnapshots)) {
-      coherentSnapshots = {};
-      for (const [hash, snapshot] of Object.entries(value.coherentSnapshots)) {
-        if (isStoredSDCPN(snapshot)) {
-          coherentSnapshots[hash] = snapshot;
-        }
-      }
-    }
     documents[documentId] = {
       id: value.id,
       title: value.title,
@@ -177,10 +154,6 @@ const readStore = (storage: Storage): LocalStorageSDCPNsStore => {
       sdcpn: value.sdcpn,
       ...(incarnationId === undefined ? {} : { incarnationId }),
       ...(revisionId === undefined ? {} : { revisionId }),
-      ...(rootArcRequestedBaseHash === undefined
-        ? {}
-        : { rootArcRequestedBaseHash }),
-      ...(coherentSnapshots === undefined ? {} : { coherentSnapshots }),
     };
   }
   const needsNormalization = Object.values(documents).some(

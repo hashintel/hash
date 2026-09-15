@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 
 import {
-  applyAutoLayoutToolName,
+  layoutPetrinautNetToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
+  readPetrinautNetToolName,
   type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { AWAITING_CLIENT } from "../src/conversation/client-tools.ts";
 import * as netLedger from "../src/conversation/net-ledger.ts";
@@ -42,7 +42,7 @@ const binding = {
   documentId: "document-ledger",
   incarnationId: "incarnation-ledger",
 };
-const browser: BrowserContext = { binding, construction: true };
+const browser: BrowserContext = { binding };
 
 const emptyNet: SDCPN = {
   places: [],
@@ -126,10 +126,10 @@ const readTurn = (
   definition: SDCPN,
   observed = observationOf(definition),
 ): FlueConversationMessage[] => [
-  assistantCall(toolCallId, getLatestNetDefinitionToolName),
+  assistantCall(toolCallId, readPetrinautNetToolName),
   resultDelivery(
     toolCallId,
-    getLatestNetDefinitionToolName,
+    readPetrinautNetToolName,
     { title: "Net", definition },
     { observation: { toolCallId, binding, observed } },
   ),
@@ -168,8 +168,8 @@ const mutationTurn = (
       toolName: "addPlace",
       input: oneHopNet.places[0]!,
       binding,
-      requestedBaseHash: sha256Of(pre),
       observationToolCallId: batch.observation.toolCallId,
+      requestedBaseHash: batch.observation.baseHash,
     };
     attempts.push({
       request,
@@ -184,10 +184,10 @@ const mutationTurn = (
     });
   }
   return [
-    assistantCall(toolCallId, mutatePetrinetToolName, batch),
+    assistantCall(toolCallId, mutatePetrinautNetToolName, batch),
     resultDelivery(
       toolCallId,
-      mutatePetrinetToolName,
+      mutatePetrinautNetToolName,
       {
         execution: "ordered-stop",
         toolCallId,
@@ -231,10 +231,12 @@ const layoutTurn = (
   pre: SDCPN,
   post: SDCPN,
 ): FlueConversationMessage[] => [
-  assistantCall(toolCallId, applyAutoLayoutToolName, { askUserFirst: false }),
+  assistantCall(toolCallId, layoutPetrinautNetToolName, {
+    askUserFirst: false,
+  }),
   resultDelivery(
     toolCallId,
-    applyAutoLayoutToolName,
+    layoutPetrinautNetToolName,
     { commitCount: 1 },
     {
       layoutRecord: {
@@ -373,10 +375,10 @@ describe("the net ledger is a projection over Flue history", () => {
         sha256: "0".repeat(64),
       }),
       // A read recorded for another document incarnation.
-      assistantCall("read-elsewhere", getLatestNetDefinitionToolName),
+      assistantCall("read-elsewhere", readPetrinautNetToolName),
       resultDelivery(
         "read-elsewhere",
-        getLatestNetDefinitionToolName,
+        readPetrinautNetToolName,
         { title: "Net", definition: oneHopNet },
         {
           observation: {
@@ -412,7 +414,7 @@ describe("the net ledger is a projection over Flue history", () => {
   });
 
   test.each([
-    { toolName: mutatePetrinetToolName, aggregate: true },
+    { toolName: mutatePetrinautNetToolName, aggregate: true },
     { toolName: "legacy_mutation_tool", aggregate: false },
   ])(
     "preserves an unknown aggregate from $toolName as unrecorded despite its verified post",
@@ -453,7 +455,6 @@ describe("the net ledger is a projection over Flue history", () => {
     // construction flag and any live document state are not inputs.
     const again = await deriveNetLedger(fullHistory(), {
       binding: { ...binding },
-      requestedBaseHash: "f".repeat(64),
     });
     expect(again).toEqual(events);
     for (const event of events) {

@@ -56,10 +56,6 @@ export interface DocumentRepository {
 export interface ProcessAgentSeed {
   readonly documentId: string;
   readonly conversationId: string;
-  readonly fixture?: {
-    readonly mode: "prepared" | "root-arc" | "construction" | "root-creation";
-    readonly requestedBaseHash?: string;
-  };
 }
 
 /** What the route resolved to. */

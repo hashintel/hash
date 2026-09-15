@@ -14,9 +14,9 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  applyAutoLayoutToolName,
+  layoutPetrinautNetToolName,
   batchedConstructionMode,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   parseClientToolResultMetadata,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
@@ -206,7 +206,7 @@ const mutateCall = (
     ),
   );
   return tool(
-    mutatePetrinetToolName,
+    mutatePetrinautNetToolName,
     {
       observation: {
         toolCallId: observation.toolCallId,
@@ -227,7 +227,7 @@ const mutationPostHash = (output: unknown) => {
 };
 
 try {
-  await page.goto(`${origin}/?brunchTracer=root-creation`);
+  await page.goto(`${origin}/`);
   await page.getByRole("button", { name: "Skip tour" }).click();
   await page
     .getByRole("button", { name: "Show AI assistant", exact: true })
@@ -311,7 +311,7 @@ try {
       );
       assert.equal(clean.output, cleanCompilation);
       return tool(
-        applyAutoLayoutToolName,
+        layoutPetrinautNetToolName,
         { askUserFirst: false },
         "layout-after-repair",
       );
@@ -319,7 +319,7 @@ try {
     (context: Context) => {
       browserResultFrom(
         textsFrom(context),
-        applyAutoLayoutToolName,
+        layoutPetrinautNetToolName,
         "Missing layout result",
       );
       return tool(readPetrinautNetToolName, {}, "read-after-layout");
@@ -364,7 +364,25 @@ try {
     save("fixture-errors", { errors, blocked, deliveries: deliveries.length });
     throw error;
   }
-  const stored = await page.evaluate(() => {
+  // The ordinary route binds the conversation itself; the first delivered
+  // request names the document and conversation the browser actually used.
+  const firstRequest = JSON.parse(deliveries[0]!.body) as {
+    kind: string;
+    initialData: {
+      mode: string;
+      construction: {
+        binding: {
+          conversationId: string;
+          documentId: string;
+          incarnationId: string;
+        };
+      };
+    };
+  };
+  assert.equal(firstRequest.kind, "user");
+  assert.equal(firstRequest.initialData.mode, batchedConstructionMode);
+  const binding = firstRequest.initialData.construction.binding;
+  const stored = await page.evaluate((documentId) => {
     const document = (
       JSON.parse(localStorage.getItem("petrinaut-sdcpn") ?? "{}") as Record<
         string,
@@ -376,7 +394,7 @@ try {
           };
         }
       >
-    )["synthetic-root-creation-v1"];
+    )[documentId];
     const key = Object.keys(localStorage).find((entry) =>
       entry.includes("principal"),
     );
@@ -386,17 +404,12 @@ try {
       document,
       principalKey: raw.startsWith('"') ? (JSON.parse(raw) as string) : raw,
     };
-  });
+  }, binding.documentId);
+  assert.equal(stored.document.incarnationId, binding.incarnationId);
   const identity = {
     principalKey: stored.principalKey,
-    conversationId: `root-creation-candidate-v1:${stored.document.incarnationId}`,
+    conversationId: binding.conversationId,
   };
-  const firstRequest = JSON.parse(deliveries[0]!.body) as {
-    kind: string;
-    initialData: { mode: string };
-  };
-  assert.equal(firstRequest.kind, "user");
-  assert.equal(firstRequest.initialData.mode, batchedConstructionMode);
   const client = createFlueClient({
     url: `${origin}/agents/chat/${flueConversationIdFrom(identity)}`,
     headers: agentOwnershipHeaders(identity),
@@ -454,7 +467,7 @@ try {
   );
   assert(layout, "Flue history must carry the layout command result");
   assert(readAfterLayout, "Flue history must carry the post-layout read");
-  assert.equal(layout.toolName, applyAutoLayoutToolName);
+  assert.equal(layout.toolName, layoutPetrinautNetToolName);
   const layoutOutput = layout.output as {
     applied?: unknown;
     detail?: unknown;
@@ -484,7 +497,7 @@ try {
   assert.equal(
     layoutRecord.post.sha256,
     observedAfterLayout,
-    "The layout's reported final hash equals a fresh getLatestNetDefinition",
+    "The layout's reported final hash equals a fresh read_petrinaut_net",
   );
   assert.notEqual(layoutRecord.post.sha256, layoutRecord.pre.sha256);
   const positionEffects = layoutRecord.effects as {

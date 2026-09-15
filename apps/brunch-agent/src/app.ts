@@ -13,9 +13,10 @@ import { Hono } from "hono";
 import {
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
-  observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
@@ -99,7 +100,8 @@ if (accounting) {
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
   ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  ...observedConstructionBrowserToolNames,
+  readPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,

@@ -38,7 +38,7 @@ import {
   READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "../src/tools/read-petrinaut-doc";
 
-test("uses the selected Brunch Petrinaut family and recognizes retained names", () => {
+test("uses the selected Brunch Petrinaut family and recognizes only canonical names", () => {
   expect([
     readPetrinautNetToolName,
     READ_PETRINAUT_DOCS_TOOL_NAME,
@@ -52,20 +52,22 @@ test("uses the selected Brunch Petrinaut family and recognizes retained names", 
     "layout_petrinaut_net",
     "mutate_petrinaut_net",
   ]);
-  expect(isReadPetrinautNetToolName("getLatestNetDefinition")).toBe(true);
-  expect(isReadPetrinautDocsToolName("readPetrinautDoc")).toBe(true);
+  expect(isReadPetrinautNetToolName(readPetrinautNetToolName)).toBe(true);
+  expect(isMutatePetrinautNetToolName(mutatePetrinautNetToolName)).toBe(true);
+  expect(isReadPetrinautNetToolName("getLatestNetDefinition")).toBe(false);
+  expect(isReadPetrinautDocsToolName("readPetrinautDoc")).toBe(false);
   expect(isReadPetrinautDiagnosticsToolName("getNetCompilationErrors")).toBe(
-    true,
+    false,
   );
-  expect(isLayoutPetrinautNetToolName("applyAutoLayout")).toBe(true);
-  expect(isMutatePetrinautNetToolName("mutate_petrinet")).toBe(true);
+  expect(isLayoutPetrinautNetToolName("applyAutoLayout")).toBe(false);
+  expect(isMutatePetrinautNetToolName("mutate_petrinet")).toBe(false);
 });
 
 const pre: SDCPN = {
   places: [
     {
       id: "a3-place",
-      name: "Crew",
+      name: "Buffer",
       colorId: null,
       dynamicsEnabled: false,
       differentialEquationId: null,

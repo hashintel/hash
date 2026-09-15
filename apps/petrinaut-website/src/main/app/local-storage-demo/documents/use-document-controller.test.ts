@@ -27,7 +27,6 @@ const open = vi.hoisted(() => vi.fn());
 const createCleanNetProjection = vi.hoisted(() => vi.fn(async () => undefined));
 const useLocal = vi.hoisted(() => vi.fn());
 const useRemote = vi.hoisted(() => vi.fn());
-const useOverlay = vi.hoisted(() => vi.fn());
 
 const repository = (actions: DocumentRepository["actions"]) =>
   ({
@@ -43,9 +42,6 @@ const repository = (actions: DocumentRepository["actions"]) =>
 vi.mock("./local-storage/use-local-document-repository", () => ({
   useLocalDocumentRepository: useLocal,
 }));
-vi.mock("./local-storage/use-fixture-document-overlay", () => ({
-  useFixtureDocumentOverlay: useOverlay,
-}));
 vi.mock("./remote/use-remote-document-repository", () => ({
   useRemoteDocumentRepository: useRemote,
 }));
@@ -57,9 +53,6 @@ beforeEach(() => {
     repository: localRepository,
     storedDocuments: {},
     updateStoredDocuments: vi.fn(),
-  });
-  useOverlay.mockReturnValue({
-    repository: localRepository,
   });
   useRemote.mockReturnValue({
     repository: repository({ createCleanNetProjection }),
@@ -81,13 +74,6 @@ test("calls both adapters unconditionally and leaves the inactive adapter idle",
       remoteRouteSelected: true,
       onOpenDocument: vi.fn(),
       onSelectLocalRoute: vi.fn(),
-      fixture: {
-        enabled: false,
-        crewReservationSelected: false,
-        rootArcTracerSelected: false,
-        constructionSelected: false,
-        rootCreationSelected: false,
-      },
     }),
   );
 
@@ -113,13 +99,6 @@ test("creates through the local repository before navigating and opening", () =>
       remoteRouteSelected: true,
       onOpenDocument: vi.fn(),
       onSelectLocalRoute,
-      fixture: {
-        enabled: false,
-        crewReservationSelected: false,
-        rootArcTracerSelected: false,
-        constructionSelected: false,
-        rootCreationSelected: false,
-      },
     }),
   );
 
