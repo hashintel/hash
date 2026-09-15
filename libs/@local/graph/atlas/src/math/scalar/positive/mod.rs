@@ -6,8 +6,14 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::{DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
 use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a positive literal at compile time.
 ///
@@ -348,20 +354,6 @@ const impl core::ops::Div<Positive> for f32 {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for Positive {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (f32::from_bits(1)..=f32::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for Positive {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
@@ -382,3 +374,14 @@ impl<'de> serde::Deserialize<'de> for Positive {
 
 raw_interop!(Positive[f32]);
 unsafe_impl_try_from_bytes!(Positive[f32]);
+
+#[cfg(test)]
+impl Arbitrary for Positive {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::POSITIVE | num::f32::NORMAL | num::f32::SUBNORMAL).prop_map(Self)
+    }
+}

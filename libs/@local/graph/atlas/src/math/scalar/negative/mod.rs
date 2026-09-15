@@ -6,7 +6,13 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::raw_interop;
+
+#[cfg(test)]
+mod tests;
 
 /// A finite, strictly negative `f32`, valid by construction.
 ///
@@ -116,3 +122,14 @@ const impl From<Negative> for f64 {
 }
 
 raw_interop!(Negative[f32]);
+
+#[cfg(test)]
+impl Arbitrary for Negative {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::NEGATIVE | num::f32::NORMAL | num::f32::SUBNORMAL).prop_map(Self)
+    }
+}

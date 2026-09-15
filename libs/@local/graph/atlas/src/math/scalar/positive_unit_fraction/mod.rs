@@ -7,7 +7,13 @@ use core::{
     ops::Mul,
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::{UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a positive-unit-fraction literal at compile time.
 ///
@@ -198,3 +204,18 @@ const impl Mul<UnitFraction> for PositiveUnitFraction {
 
 raw_interop!(PositiveUnitFraction[f64]);
 unsafe_impl_try_from_bytes!(PositiveUnitFraction[f64]);
+
+#[cfg(test)]
+#[expect(
+    exported_private_dependencies,
+    reason = "the impl is absent from downstream builds"
+)]
+impl Arbitrary for PositiveUnitFraction {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (f64::from_bits(1)..=1.0).prop_map(Self)
+    }
+}

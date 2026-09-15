@@ -38,7 +38,7 @@
 //! result or an out-of-domain finite value, such as a negative result destined for
 //! [`DNonNegative`](super::DNonNegative), for the surrounding operation to interpret.
 
-use core::{fmt, ops};
+use core::{fmt, marker::Destruct, ops};
 
 use self::domain::MulAdd;
 
@@ -85,8 +85,14 @@ impl<D: Domain> Derivation<D> {
     ///
     /// Returns [`Diverged`] carrying the raw value when it lies outside the domain.
     #[inline]
-    pub(crate) fn finish(self) -> Result<D, Diverged<D::Carrier>> {
-        D::validate(self.0).ok_or(Diverged { raw: self.0 })
+    pub(crate) const fn finish(self) -> Result<D, Diverged<D::Carrier>>
+    where
+        D: [const] Domain + [const] Destruct,
+    {
+        match D::validate(self.0) {
+            Some(value) => Ok(value),
+            None => Err(Diverged { raw: self.0 }),
+        }
     }
 
     /// Finishes the derivation without validating the raw value.

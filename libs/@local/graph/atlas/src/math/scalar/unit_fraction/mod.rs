@@ -8,10 +8,16 @@ use core::{
     ops::{Add, Mul, MulAssign, Sub},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::{
     DFinite, DNonNegative, OpenUnitFraction, PositiveUnitFraction, raw_interop,
     unsafe_impl_try_from_bytes,
 };
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a unit-fraction literal at compile time.
 ///
@@ -447,20 +453,6 @@ const impl TryFrom<f64> for UnitFraction {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for UnitFraction {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (0.0..=1.0)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for UnitFraction {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -561,6 +553,17 @@ const impl Add<UnitFraction> for UnitFraction {
 
 raw_interop!(UnitFraction[f64]);
 unsafe_impl_try_from_bytes!(UnitFraction[f64]);
+
+#[cfg(test)]
+impl Arbitrary for UnitFraction {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (0.0..=1.0).prop_map(Self)
+    }
+}
 
 // SAFETY: repr(transparent) preserves the native f64 layout, and this type has no interior
 // mutability.

@@ -7,7 +7,13 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::{DPositive, UnitFraction, raw_interop, unsafe_impl_try_from_bytes};
+
+#[cfg(test)]
+mod tests;
 
 /// Validates an open-unit-fraction literal at compile time.
 ///
@@ -270,24 +276,6 @@ const impl core::ops::Div<OpenUnitFraction> for f64 {
     }
 }
 
-#[cfg(test)]
-#[expect(
-    exported_private_dependencies,
-    reason = "the impl exists only in test builds, which no downstream consumer compiles"
-)]
-impl proptest::arbitrary::Arbitrary for OpenUnitFraction {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (f64::from_bits(1)..1.0)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for OpenUnitFraction {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -308,3 +296,18 @@ impl<'de> serde::Deserialize<'de> for OpenUnitFraction {
 
 raw_interop!(OpenUnitFraction[f64]);
 unsafe_impl_try_from_bytes!(OpenUnitFraction[f64]);
+
+#[cfg(test)]
+#[expect(
+    exported_private_dependencies,
+    reason = "the impl is absent from downstream builds"
+)]
+impl Arbitrary for OpenUnitFraction {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (f64::from_bits(1)..1.0).prop_map(Self)
+    }
+}
