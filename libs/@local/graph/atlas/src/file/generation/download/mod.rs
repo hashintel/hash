@@ -207,7 +207,7 @@ where
     /// before pointer replacement preserve local current. A post-rename synchronization failure
     /// can leave the requested generation selected. Only successful activation records reuse for
     /// a later unchanged call.
-    #[tracing::instrument(skip_all, err)]
+    #[tracing::instrument(skip_all)]
     pub(crate) async fn synchronize(&mut self) -> Result<Option<GenerationId>, DownloadError> {
         let Some(id) = self.current().await? else {
             return Ok(None);
