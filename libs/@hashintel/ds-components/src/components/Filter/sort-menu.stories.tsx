@@ -42,6 +42,7 @@ const Example = ({
   searchable,
   renderTrigger,
   size,
+  align,
 }: {
   /** Shown above the menu; used for columns within a multi-example row */
   columnLabel?: string;
@@ -57,6 +58,7 @@ const Example = ({
         direction: SortDirection | undefined,
       ) => React.ReactElement);
   size?: FormInputSize;
+  align?: "left" | "right";
 }) => {
   const [value, setValue] = useState<Value | undefined>(initialValue);
 
@@ -68,6 +70,7 @@ const Example = ({
       searchable={searchable}
       renderTrigger={renderTrigger}
       size={size}
+      align={align}
     />
   );
 
@@ -201,6 +204,17 @@ export const Sizes: Story = () => (
           key={size}
           columnLabel={size}
           size={size}
+          initialValue={{ sortKey: "name", direction: "ASCENDING" }}
+        />
+      ))}
+    </Row>
+    <Row label='align="right"'>
+      {formInputSizes.map((size) => (
+        <Example
+          key={size}
+          columnLabel={size}
+          size={size}
+          align="right"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
         />
       ))}

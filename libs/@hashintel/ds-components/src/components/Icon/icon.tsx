@@ -4,7 +4,6 @@ import { styles } from "./icon.recipe";
 import Bullseye from "./svgs/light/bullseye.svg";
 import Table from "./svgs/light/table.svg";
 import OneHundred from "./svgs/regular/100.svg";
-import ArrowDownAZ from "./svgs/regular/arrow-down-a-z.svg";
 import ArrowDownLeftAndArrowUpRightToCenter from "./svgs/regular/arrow-down-left-and-arrow-up-right-to-center.svg";
 import ArrowDownWideShort from "./svgs/regular/arrow-down-wide-short.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
@@ -20,7 +19,6 @@ import ArrowUpRightAndArrowDownLeftFromCenter from "./svgs/regular/arrow-up-righ
 import ArrowUpRightFromSquare from "./svgs/regular/arrow-up-right-from-square.svg";
 import ArrowUpRight from "./svgs/regular/arrow-up-right.svg";
 import ArrowUpWideShort from "./svgs/regular/arrow-up-wide-short.svg";
-import ArrowUpZA from "./svgs/regular/arrow-up-z-a.svg";
 import ArrowUp from "./svgs/regular/arrow-up.svg";
 import ArrowsRotate from "./svgs/regular/arrows-rotate.svg";
 import Asterisk from "./svgs/regular/asterisk.svg";
@@ -106,6 +104,8 @@ import Scribble from "./svgs/regular/scribble.svg";
 import Shapes from "./svgs/regular/shapes.svg";
 import Sidebar from "./svgs/regular/sidebar.svg";
 import Sliders from "./svgs/regular/sliders.svg";
+import SortAlphaAsc from "./svgs/regular/sort-alpha-asc.svg";
+import SortAlphaUp from "./svgs/regular/sort-alpha-up.svg";
 import Sparkles from "./svgs/regular/sparkles.svg";
 import SquareCheck from "./svgs/regular/square-check.svg";
 import SquarePlus from "./svgs/regular/square-plus.svg";
@@ -254,9 +254,9 @@ const IconMap = {
   skipForwardFilled: ForwardStepSolid,
   sliders: Sliders,
   sortDown: ArrowDownWideShort,
-  sortDownAZ: ArrowDownAZ,
+  sortDownAZ: SortAlphaAsc,
   sortUp: ArrowUpWideShort,
-  sortUpAZ: ArrowUpZA,
+  sortUpAZ: SortAlphaUp,
   sparkles: Sparkles,
   square: Square,
   squareFilled: Stop,

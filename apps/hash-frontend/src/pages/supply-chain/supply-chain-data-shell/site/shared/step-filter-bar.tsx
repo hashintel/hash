@@ -1,0 +1,201 @@
+import { useEffect, useMemo } from "react";
+
+import {
+  Button,
+  Filter,
+  FilterGroup,
+  Menu,
+  Tooltip,
+} from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import {
+  STEP_FILTER_DEFINITIONS,
+  stepFilterLabel,
+  type ActiveStepFilter,
+  type StepFilterKey,
+  type StepFilterOptions,
+  type StepFilterValue,
+} from "./step-filters";
+
+type MenuItems = React.ComponentProps<typeof Menu>["items"];
+
+// The chip to autofocus on the render that adds it. Module-scoped rather than
+// component state: adding the first chip moves the bar from the header
+// actions into the chips row, remounting the bar (and its FilterGroup, whose
+// own fresh-chip focus treats first-mount chips as restored state) — any
+// in-component record of the addition would be lost with it. Consumed by one
+// render pass, then cleared.
+let pendingAutoFocusKey: StepFilterKey | null = null;
+
+// With no chips the bar is just the add button; push it to the right edge of
+// whatever row hosts it (a block band or a flex title row).
+const emptyBarAlign = css({
+  display: "flex",
+  flex: "1",
+  minW: "0",
+  justifyContent: "flex-end",
+});
+
+export const StepFilterBar = ({
+  filters,
+  onFiltersChange,
+  options,
+  skippedKeys,
+  addableKeys,
+}: {
+  filters: ActiveStepFilter[];
+  onFiltersChange: (next: ActiveStepFilter[]) => void;
+  options: StepFilterOptions;
+  /** Active filter keys not applied to the adjacent table. */
+  skippedKeys?: ReadonlySet<StepFilterKey>;
+  /**
+   * Filter keys the adjacent table can offer in the add menu (see
+   * `applicableFilterKeys`). Filters already active render regardless, so a
+   * set carried over from another view survives — it just cannot be added
+   * afresh here. Omit to offer everything.
+   */
+  addableKeys?: ReadonlySet<StepFilterKey>;
+}) => {
+  // Read for this render, then cleared so later remounts (tab switches, the
+  // other table's bar) never re-focus the same key.
+  const autoFocusKey = pendingAutoFocusKey;
+  useEffect(() => {
+    pendingAutoFocusKey = null;
+  });
+
+  const addMenuItems = useMemo<MenuItems>(() => {
+    const activeKeys = new Set(filters.map((filter) => filter.filterKey));
+    const addFilter = (filterKey: StepFilterKey) => {
+      pendingAutoFocusKey = filterKey;
+      onFiltersChange([...filters, { filterKey, value: null }]);
+    };
+    const groups = new Map<
+      string,
+      Array<{ id: string; text: string; onClick: () => void }>
+    >();
+    for (const definition of STEP_FILTER_DEFINITIONS) {
+      if (activeKeys.has(definition.key)) {
+        continue;
+      }
+      if (addableKeys && !addableKeys.has(definition.key)) {
+        continue;
+      }
+      const groupItems = groups.get(definition.group) ?? [];
+      groupItems.push({
+        id: definition.key,
+        text: stepFilterLabel(definition, options),
+        onClick: () => addFilter(definition.key),
+      });
+      groups.set(definition.group, groupItems);
+    }
+    return [...groups.entries()].map(([label, items]) => ({
+      id: label,
+      label,
+      items,
+    }));
+  }, [filters, onFiltersChange, addableKeys, options]);
+
+  const setFilterValue = (
+    filterKey: StepFilterKey,
+    operatorKey: string,
+    committed: unknown,
+  ) => {
+    const definition = STEP_FILTER_DEFINITIONS.find(
+      (candidate) => candidate.key === filterKey,
+    );
+    const operator = definition
+      ?.operators(options)
+      .find((candidate) => candidate.key === operatorKey);
+    // Input-less operators commit `(key, null)` as their active state; for
+    // every other operator a null commit means the value was cleared.
+    const value: StepFilterValue | null =
+      committed == null && operator?.input !== null
+        ? null
+        : { key: operatorKey, value: committed };
+    onFiltersChange(
+      filters.map((filter) =>
+        filter.filterKey === filterKey ? { ...filter, value } : filter,
+      ),
+    );
+  };
+
+  if (filters.length === 0) {
+    if (addMenuItems.length === 0) {
+      return null;
+    }
+    return (
+      <div className={emptyBarAlign}>
+        <Menu
+          trigger={
+            <Button
+              variant="ghost"
+              size="xs"
+              iconName="filter"
+              aria-label="Add filter"
+            />
+          }
+          items={addMenuItems}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <FilterGroup dismissAbandoned>
+      {filters.map((filter) => {
+        const definition = STEP_FILTER_DEFINITIONS.find(
+          (candidate) => candidate.key === filter.filterKey,
+        );
+        if (!definition) {
+          return null;
+        }
+        const skipped = skippedKeys?.has(filter.filterKey) ?? false;
+        const label = stepFilterLabel(definition, options);
+        const chip = (
+          <Filter
+            key={filter.filterKey}
+            property={filter.filterKey}
+            propertyLabel={label}
+            operators={definition.operators(options)}
+            value={filter.value}
+            disabled={skipped}
+            autoFocus={filter.filterKey === autoFocusKey}
+            onChange={(operatorKey, committed) =>
+              setFilterValue(filter.filterKey, operatorKey, committed)
+            }
+            removeable={{
+              onRemove: () =>
+                onFiltersChange(
+                  filters.filter(
+                    (candidate) => candidate.filterKey !== filter.filterKey,
+                  ),
+                ),
+            }}
+          />
+        );
+        if (!skipped) {
+          return chip;
+        }
+        return (
+          <Tooltip
+            key={filter.filterKey}
+            content={`"${label}" is ignored as it does not apply to this table.`}
+          >
+            {chip}
+          </Tooltip>
+        );
+      })}
+      {addMenuItems.length > 0 && (
+        <Menu
+          trigger={<FilterGroup.AddFilter renderAs="plus" />}
+          items={addMenuItems}
+        />
+      )}
+      {/* A lone chip's own remove button already covers clearing. */}
+      {filters.length > 1 && (
+        <FilterGroup.ClearFilters onClick={() => onFiltersChange([])} />
+      )}
+    </FilterGroup>
+  );
+};

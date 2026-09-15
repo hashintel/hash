@@ -55,18 +55,38 @@ export const menuContent = cva({
   },
 });
 
+// The truncation styles must land on the trigger's label span, whose position
+// among the Button's element children depends on which side the sort icon
+// occupies: icon-left leaves the label last, icon-right leaves it first.
 export const triggerButton = cva({
   base: {
     maxWidth: "[100%]",
     "& svg": {
       flexShrink: "0",
     },
-    "& > span:last-child": {
-      minWidth: "0",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
+  },
+  variants: {
+    align: {
+      left: {
+        "& > span:last-child": {
+          minWidth: "0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      },
+      right: {
+        "& > span:first-child": {
+          minWidth: "0",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      },
     },
+  },
+  defaultVariants: {
+    align: "left",
   },
 });
 
@@ -99,15 +119,59 @@ export const triggerDirectionToggle = cva({
       background: "neutral.a50",
     },
   },
-  // Smaller hit-area chrome on the compact triggers so the hover background
-  // keeps clear of the trigger border; the icon size is unchanged.
   variants: {
     size: {
       xxs: { padding: "[1px]", margin: "[-1px]" },
-      xs: { padding: "[2px]", margin: "[-2px]" },
+      xs: {
+        padding: "[2px]",
+        margin: "[-2px]",
+        marginLeft: "[-1px]",
+        marginRight: "[-1px]",
+      },
       sm: {},
       md: {},
       lg: {},
     },
+    align: {
+      left: {},
+      right: {},
+    },
+  },
+  compoundVariants: [
+    { size: "xxs", align: "left", css: { marginRight: "0" } },
+    { size: "xxs", align: "right", css: { marginLeft: "0" } },
+    {
+      size: "sm",
+      align: "left",
+      css: { marginLeft: "[-2px]", marginRight: "[-3px]" },
+    },
+    {
+      size: "sm",
+      align: "right",
+      css: { marginLeft: "[-3px]", marginRight: "[-2px]" },
+    },
+    {
+      size: "md",
+      align: "left",
+      css: { marginLeft: "[-2px]", marginRight: "[-5px]" },
+    },
+    {
+      size: "md",
+      align: "right",
+      css: { marginLeft: "[-5px]", marginRight: "[-2px]" },
+    },
+    {
+      size: "lg",
+      align: "left",
+      css: { marginLeft: "[2px]", marginRight: "[-4px]" },
+    },
+    {
+      size: "lg",
+      align: "right",
+      css: { marginRight: "[2px]", marginLeft: "[-4px]" },
+    },
+  ],
+  defaultVariants: {
+    align: "left",
   },
 });
