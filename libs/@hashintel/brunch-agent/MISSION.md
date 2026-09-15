@@ -4,27 +4,24 @@
 
 Live execution authority for
 [FE-1722](https://linear.app/hash/issue/FE-1722/improve-brunch-voice-controls).
-This branch is stacked on
-[`origin/kostandin/fe-1664-land-voice-stack` at
-`023a26b96b`](https://github.com/hashintel/hash/commit/023a26b96b51169da0acdb188697e159d001bcc0),
-not `origin/main`. That FE-1664 squash base incorporates merged
+This branch is based directly on `origin/main` after
+[foundation PR #9745](https://github.com/hashintel/hash/pull/9745) merged.
+That foundation incorporates
 [FE-1712 PR #9704](https://github.com/hashintel/hash/pull/9704). FE-1712's
-implementation and evidence remain the protected behavior and evidence source
-inherited through that base; its unfinished speech, acoustic and recovery
-obligations are not accepted or replaced here.
+implementation and evidence remain protected behavior; its unfinished speech,
+acoustic and recovery obligations are not accepted or replaced here.
 
-FE-1722 implementation exists on this branch through the shared-control,
-provider-control, documentation and lifecycle commits from `49ffd6836a` through
-`bdc699c923`, together with the final-review corrections recorded beside this
-refresh. The deterministic product proof below is established. Real
-microphone, speaker and headphone behavior remains unproven and owner-held;
-Kostandin owns that browser witness, and no microphone or provider session is
-authorized for an agent.
+FE-1722 implementation exists on this branch across the shared-control,
+provider-control, documentation and lifecycle work reviewed in
+[PR #9747](https://github.com/hashintel/hash/pull/9747). It is the bottom entry
+of GitHub stack #9750, with follow-up
+[PR #9748](https://github.com/hashintel/hash/pull/9748) above it. The
+deterministic product proof below is established. Real microphone, speaker and
+headphone behavior remains unproven and owner-held; Kostandin owns that browser
+witness, and no microphone or provider session is authorized for an agent.
 
-The approved implementation plan and current owner direction authorize the
-subsequent branch push and opening of a stacked draft PR after this committed
-final gate. This correction task stops before either write. Merge, deployment
-and tracker writes remain unauthorized.
+The owner has authorized branch and PR maintenance for FE-1722. Merge,
+deployment and tracker writes remain unauthorized unless separately requested.
 
 ## Imperative
 

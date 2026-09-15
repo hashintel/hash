@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -481,11 +481,14 @@ export const LiveSessionAudioOptions: Story = {
     const audioOptions = within(dock).getByRole("button", {
       name: "Audio options",
     });
-    await userEvent.click(audioOptions);
+    audioOptions.focus();
+    await expect(audioOptions).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
 
     const speakerMute = await canvas.findByRole("button", {
       name: "Mute speaker",
     });
+    await waitFor(() => expect(speakerMute).toHaveFocus());
     await expect(speakerMute.querySelector("svg")).not.toBeNull();
     await expect(within(speakerMute).queryByText("Mute speaker")).toBeNull();
     await expect(
@@ -503,6 +506,13 @@ export const LiveSessionAudioOptions: Story = {
     await expect(
       canvas.queryByRole("button", { name: "Interruption by speaking" }),
     ).toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(
+        canvas.queryByRole("slider", { name: "Speaker volume" }),
+      ).toBeNull(),
+    );
+    await expect(audioOptions).toHaveFocus();
   },
 };
 
