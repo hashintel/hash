@@ -35,19 +35,19 @@ pub(crate) struct Revision(RevisionKind);
 
 /// A precondition checked atomically with destination replacement.
 #[derive(Debug)]
-pub(crate) enum WriteCondition {
+pub(crate) enum WriteCondition<'revision> {
     /// Replaces the destination regardless of its current contents.
     Any,
     /// Creates the destination only when it does not exist.
     Absent,
     /// Replaces the destination only when its content identity matches the captured revision.
-    Match(Revision),
+    Match(&'revision Revision),
 }
 
-impl<'this> TryFrom<&'this WriteCondition> for s3::WriteCondition<'this> {
+impl<'revision> TryFrom<&WriteCondition<'revision>> for s3::WriteCondition<'revision> {
     type Error = StorageError;
 
-    fn try_from(value: &'this WriteCondition) -> Result<Self, Self::Error> {
+    fn try_from(value: &WriteCondition<'revision>) -> Result<Self, Self::Error> {
         match value {
             WriteCondition::Any => Ok(s3::WriteCondition::Any),
             WriteCondition::Absent => Ok(s3::WriteCondition::Absent),
@@ -61,18 +61,18 @@ impl<'this> TryFrom<&'this WriteCondition> for s3::WriteCondition<'this> {
     }
 }
 
-impl TryFrom<&WriteCondition> for local::WriteCondition {
+impl TryFrom<&WriteCondition<'_>> for local::WriteCondition {
     type Error = StorageError;
 
-    fn try_from(value: &WriteCondition) -> Result<Self, Self::Error> {
+    fn try_from(value: &WriteCondition<'_>) -> Result<Self, Self::Error> {
         match value {
             WriteCondition::Any => Ok(Self::Any),
             WriteCondition::Absent => Ok(Self::Absent),
             WriteCondition::Match(Revision(RevisionKind::Bucket(_))) => {
                 Err(StorageError::RevisionMismatch)
             }
-            &WriteCondition::Match(Revision(RevisionKind::Local(digest))) => {
-                Ok(Self::Match(digest))
+            WriteCondition::Match(Revision(RevisionKind::Local(digest))) => {
+                Ok(Self::Match(*digest))
             }
         }
     }

@@ -3,18 +3,22 @@
 //! Typed paths preserve literal object keys through request construction. Request failures retain
 //! their SDK variants and service responses for conditional-publication decisions.
 
-use core::pin::pin;
+use core::{mem, pin::pin};
 
 use aws_sdk_s3::{
     Client,
     config::{self, retry::RetryConfig},
     operation::{
-        get_object::GetObjectOutput, head_object::HeadObjectOutput, put_object::PutObjectOutput,
+        delete_objects::DeleteObjectsOutput, get_object::GetObjectOutput,
+        head_object::HeadObjectOutput, list_objects_v2::ListObjectsV2Output,
+        put_object::PutObjectOutput,
     },
     primitives::{ByteStream, Length},
+    types::{Delete, ObjectIdentifier},
 };
 use bytes::Bytes;
 use camino::Utf8Path;
+use futures::{Stream, TryStreamExt as _, stream};
 use tokio::{
     fs,
     io::{AsyncBufRead, AsyncWrite},
@@ -76,6 +80,8 @@ pub(crate) struct S3 {
 }
 
 impl S3 {
+    /// The maximum object count accepted by one S3 deletion request.
+    const DELETE_BATCH_SIZE: usize = 1000;
     /// The largest object sent by one upload or copy request.
     const SINGLE_REQUEST_BYTES: u64 = 5 * 1024 * 1024 * 1024;
 
@@ -135,6 +141,139 @@ impl S3 {
     ) -> Result<(Option<ETag>, impl AsyncBufRead + use<>), StorageError> {
         let output = self.get(path).await?;
         Ok((output.e_tag.map(ETag::new), output.body.into_async_read()))
+    }
+
+    /// Lists every object under the path's key, treated as a directory prefix.
+    ///
+    /// A slash delimits the prefix: `a/b` includes `a/b/c` and never the sibling key `a/bc`. Pages
+    /// include nested objects.
+    ///
+    /// # Errors
+    ///
+    /// The stream yields [`StorageError`] if a listing request fails.
+    fn list(
+        &self,
+        path: &BucketPath,
+    ) -> impl Stream<Item = Result<ListObjectsV2Output, StorageError>> {
+        let mut prefix = path.key().to_owned();
+        if !prefix.ends_with('/') {
+            prefix.push('/');
+        }
+
+        let paginator = self
+            .client
+            .list_objects_v2()
+            .bucket(path.bucket())
+            .prefix(prefix)
+            .into_paginator()
+            .send();
+
+        stream::unfold(paginator, async move |mut paginator| {
+            let next = paginator.next().await;
+            next.map(|next| (next.map_err(From::from), paginator))
+        })
+    }
+
+    /// Checks the per-object outcomes of a completed deletion request.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::DeleteRefused`] with every reported refusal, including failures in
+    /// an otherwise successful response.
+    fn reject_refusals(output: DeleteObjectsOutput) -> Result<(), StorageError> {
+        let failures = output.errors.unwrap_or_default();
+
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(StorageError::DeleteRefused { failures })
+        }
+    }
+
+    /// Deletes the named objects from one bucket in a single request.
+    ///
+    /// `objects` must hold at least one and at most [`Self::DELETE_BATCH_SIZE`] identifiers.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if request construction fails or S3 refuses the request or any
+    /// individual object.
+    async fn delete(
+        &self,
+        bucket: &str,
+        objects: Vec<ObjectIdentifier>,
+    ) -> Result<(), StorageError> {
+        let delete = Delete::builder().set_objects(Some(objects)).build()?;
+
+        let output = self
+            .client
+            .delete_objects()
+            .bucket(bucket)
+            .delete(delete)
+            .send()
+            .await?;
+
+        Self::reject_refusals(output)
+    }
+
+    /// Deletes the single object the path names.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if building the identifier fails, the request fails or the
+    /// response refuses the object.
+    pub(crate) async fn remove(&self, path: &BucketPath) -> Result<(), StorageError> {
+        self.delete(
+            path.bucket(),
+            vec![ObjectIdentifier::builder().key(path.key()).build()?],
+        )
+        .await
+    }
+
+    /// Deletes every object under the path's key, treated as a directory prefix.
+    ///
+    /// Holds one listing page and one deletion batch at a time. A prefix with no objects succeeds
+    /// without a delete request. The first failing batch stops removal, preserving earlier
+    /// deletions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if listing fails, building an identifier fails, a delete request
+    /// fails or a response refuses any object.
+    pub(crate) async fn remove_dir_all(&self, path: &BucketPath) -> Result<(), StorageError> {
+        let remaining = self
+            .list(path)
+            .map_ok(|output| {
+                stream::iter(
+                    output
+                        .contents
+                        .into_flat_iter()
+                        .filter_map(|object| object.key)
+                        .map(|key| {
+                            ObjectIdentifier::builder()
+                                .key(key)
+                                .build()
+                                .map_err(StorageError::from)
+                        }),
+                )
+            })
+            .try_flatten()
+            .try_fold(Vec::new(), async |mut acc, object| {
+                acc.push(object);
+
+                if acc.len() == Self::DELETE_BATCH_SIZE {
+                    self.delete(path.bucket(), mem::take(&mut acc)).await?;
+                }
+
+                Ok(acc)
+            })
+            .await?;
+
+        if !remaining.is_empty() {
+            self.delete(path.bucket(), remaining).await?;
+        }
+
+        Ok(())
     }
 
     /// Writes the object from an assembled body stream in one request attempt.

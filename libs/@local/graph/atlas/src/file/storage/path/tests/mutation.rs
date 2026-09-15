@@ -70,7 +70,7 @@ async fn get_replaced_contents() {
     path.put(
         &storage,
         Bytes::from_static(b"new"),
-        &WriteCondition::Match(revision),
+        &WriteCondition::Match(&revision),
     )
     .await
     .expect("should replace the observed contents");
@@ -140,7 +140,7 @@ async fn put_match_missing() {
         .put(
             &storage,
             Bytes::from_static(b"new"),
-            &WriteCondition::Match(revision),
+            &WriteCondition::Match(&revision),
         )
         .await
         .expect_err("should refuse the missing revision");
@@ -228,8 +228,8 @@ async fn put_match_competing() {
         .await
         .expect("should capture the second revision")
         .into_parts();
-    let first_condition = WriteCondition::Match(first_revision);
-    let second_condition = WriteCondition::Match(second_revision);
+    let first_condition = WriteCondition::Match(&first_revision);
+    let second_condition = WriteCondition::Match(&second_revision);
     let (first, second) = tokio::join!(
         path.put(&storage, Bytes::from_static(b"first"), &first_condition),
         path.put(&storage, Bytes::from_static(b"second"), &second_condition),

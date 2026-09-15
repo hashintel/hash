@@ -212,11 +212,11 @@ async fn into_local_unconfigured() {
 async fn sync_s3_unconfigured() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
     let destination = scratch();
+    let missing = root(&destination).join("missing");
     let storages = [
         Storage::new(root(&destination).to_owned()),
-        Storage::new(root(&destination).join("missing")),
+        Storage::new(missing),
     ];
-
     for storage in &storages {
         let error = path
             .sync_to_local(storage)

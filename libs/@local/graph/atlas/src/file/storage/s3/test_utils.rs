@@ -1,4 +1,4 @@
-//! Real-service cases for file materialization and multipart transfer.
+//! Real-service cases for file transfers and prefix deletion.
 
 use core::pin::pin;
 use std::{fs, io::Write as _};
@@ -101,6 +101,90 @@ pub async fn file_input_materialization() {
                 fs::read(again).expect("should read the second local input"),
                 bytes
             );
+            drop(storage);
+            drop(scratch);
+        })
+        .await;
+}
+
+/// Checks recursive deletion across S3 listing pages and deletion batches.
+///
+/// # Panics
+///
+/// Panics if removal leaves a descendant, deletes an adjacent key or fails on an empty prefix.
+pub async fn remove_prefix_batches() {
+    Bucket::new()
+        .await
+        .run(async |bucket| {
+            let scratch = scratch();
+            let storage = Storage::new(
+                scratch
+                    .directory("storage")
+                    .expect("should create storage scratch"),
+            )
+            .with_s3(bucket.client.clone());
+            let prefix = "remove prefix%2f/\u{e9}";
+            let adjacent = format!("{prefix}-retained/object");
+            bucket.write(prefix, "exact key").await;
+            bucket.write(&adjacent, "adjacent key").await;
+            bucket
+                .write(&format!("{prefix}/"), "directory marker")
+                .await;
+
+            // more than one listing page and one delete batch, including nested keys and a
+            // directory marker.
+            for index in 0..1001 {
+                bucket
+                    .write(&format!("{prefix}/nested/{index:04}"), "descendant")
+                    .await;
+            }
+
+            bucket
+                .path(prefix)
+                .remove_dir_all(&storage)
+                .await
+                .expect("should remove the descendants");
+            let remaining = bucket
+                .client
+                .list_objects_v2()
+                .bucket(&bucket.name)
+                .prefix(format!("{prefix}/"))
+                .max_keys(1)
+                .send()
+                .await
+                .expect("should list the removed prefix");
+            assert!(
+                remaining.contents().is_empty(),
+                "should delete every descendant across batch boundaries"
+            );
+            assert_eq!(bucket.read(prefix).await.as_ref(), b"exact key");
+            assert_eq!(bucket.read(&adjacent).await.as_ref(), b"adjacent key");
+
+            let trailing_prefix = "trailing prefix%2f/\u{e9}/";
+            let trailing = bucket.path(trailing_prefix);
+            trailing
+                .remove_dir_all(&storage)
+                .await
+                .expect("should accept an empty prefix");
+            let descendant = format!("{trailing_prefix}new-object");
+            bucket.write(&descendant, "new descendant").await;
+            trailing
+                .remove_dir_all(&storage)
+                .await
+                .expect("should preserve the trailing slash boundary");
+            bucket.assert_absent(&descendant).await;
+            bucket
+                .path(&adjacent)
+                .remove(&storage)
+                .await
+                .expect("should remove one object");
+            bucket.assert_absent(&adjacent).await;
+            bucket
+                .path(&adjacent)
+                .remove(&storage)
+                .await
+                .expect("should accept an absent object");
+            assert_eq!(bucket.read(prefix).await.as_ref(), b"exact key");
             drop(storage);
             drop(scratch);
         })
