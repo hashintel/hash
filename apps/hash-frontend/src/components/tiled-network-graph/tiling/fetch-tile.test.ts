@@ -23,8 +23,10 @@ import {
   fetchTile,
   FetchTileError,
   getAtlasSessionRevision,
+  getAtlasTileMaxZoom,
   setAtlasViewFilter,
   subscribeToAtlasSessionRevision,
+  subscribeToAtlasTileMaxZoom,
   withAtlasRetry,
 } from "./fetch-tile";
 import { WORLD_SIZE } from "./tile-geometry";
@@ -800,6 +802,15 @@ const dataRoutes = (seen: RecordedRequest[]): RecordedRequest[] =>
 const manifestFetches = (seen: RecordedRequest[]): RecordedRequest[] =>
   seen.filter((request) => request.path.endsWith("/manifest"));
 
+/** A response the test releases by hand, so a stale publisher can finish after its world is gone. */
+const held = () => {
+  let release!: (response: Response) => void;
+  const promise = new Promise<Response>((resolve) => {
+    release = resolve;
+  });
+  return { promise, release };
+};
+
 describe("the atlas authority token", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -1154,12 +1165,12 @@ describe("the atlas authority token", () => {
     let active = oldGeneration;
     // Every mint hands out a fresh token, and only the freshest one opens: the client's held token
     // is the one the last manifest response gave it, whichever route that response came from.
-    let held = 0;
+    let mints = 0;
     let expired = false;
     const mint = (generation: string): Response => {
-      held += 1;
+      mints += 1;
       expired = false;
-      return manifest(generation, 16, token(0xc0 + held));
+      return manifest(generation, 16, token(0xc0 + mints));
     };
     const seen = stubAuthorityTransport({
       "/atlas/current": () => json({ generation: active }),
@@ -1170,11 +1181,11 @@ describe("the atlas authority token", () => {
       [`/atlas/tile/${oldGeneration}/plain/1/1/0`]: (request) =>
         active === oldGeneration &&
         !expired &&
-        request.authority === token(0xc0 + held)
+        request.authority === token(0xc0 + mints)
           ? saltile(tileBytes(0x71, 1, 1, 0))
           : unauthorized(),
       [`/atlas/tile/${newGeneration}/plain/1/1/0`]: (request) =>
-        !expired && request.authority === token(0xc0 + held)
+        !expired && request.authority === token(0xc0 + mints)
           ? saltile(tileBytes(0x72, 1, 1, 0))
           : unauthorized(),
     });
@@ -1684,15 +1695,6 @@ describe("a change of authenticated principal", () => {
     ]);
   });
 
-  /** A response the test releases by hand, so a stale publisher can finish after its world is gone. */
-  const held = () => {
-    let release!: (response: Response) => void;
-    const promise = new Promise<Response>((resolve) => {
-      release = resolve;
-    });
-    return { promise, release };
-  };
-
   it("refuses a superseded bootstrap's authority rather than letting it replace the new principal's", async () => {
     enterPrincipal("actor-a");
     const generation = genHex(0x84);
@@ -1846,5 +1848,76 @@ describe("a change of authenticated principal", () => {
     expect(getAtlasSessionRevision()).toBe(pinned);
     expect(notifications).toEqual([]);
     unsubscribe();
+  });
+});
+
+describe("the atlas tile max-zoom", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearAtlasSessionCache();
+  });
+
+  it("publishes the resolved view's depth per session, not per generation", async () => {
+    const generation = genHex(0x93);
+    let manifests = 0;
+    stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => {
+        manifests += 1;
+        return manifest(generation, manifests === 1 ? 9 : 5);
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x93, 1, 1, 0)),
+    });
+
+    const notifications: (number | null)[] = [];
+    const unsubscribe = subscribeToAtlasTileMaxZoom(() => {
+      notifications.push(getAtlasTileMaxZoom());
+    });
+
+    await fetchTile(1, 1, { baseUrl: BASE });
+    expect(getAtlasTileMaxZoom()).toBe(9);
+
+    // A replacement session can resolve the same generation at a different depth — the value is
+    // the view's, not the generation's — so it must land on every bootstrap.
+    clearAtlasSessionCache(BASE);
+    await fetchTile(1, 1, { baseUrl: BASE });
+
+    expect(getAtlasTileMaxZoom()).toBe(5);
+    expect(notifications).toEqual([9, 5]);
+    unsubscribe();
+  });
+
+  it("keeps the live session's depth when a superseded bootstrap resolves late", async () => {
+    const generation = genHex(0x94);
+    const gate = held();
+    let manifests = 0;
+    stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => {
+        manifests += 1;
+        // The first bootstrap's manifest is held: the supersession below lands while it sits in
+        // that round trip, past the bootstrap's own incarnation check (which covers `current`).
+        return manifests === 1 ? gate.promise : manifest(generation, 9);
+      },
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x94, 1, 1, 0)),
+    });
+
+    const superseded = fetchTile(1, 1, { baseUrl: BASE });
+    await vi.waitFor(() => {
+      expect(manifests).toBe(1);
+    });
+    clearAtlasSessionCache(BASE);
+    await fetchTile(1, 1, { baseUrl: BASE });
+    expect(getAtlasTileMaxZoom()).toBe(9);
+
+    // The stale manifest answers at a shallower depth — a narrower view's, say — after the live
+    // session already published its own. Its bootstrap resolves, but it publishes nothing: a
+    // depth adopted here would bound the live camera to a view nobody holds rows for.
+    gate.release(manifest(generation, 3));
+    await superseded;
+
+    expect(getAtlasTileMaxZoom()).toBe(9);
   });
 });
