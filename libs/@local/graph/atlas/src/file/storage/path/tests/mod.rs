@@ -84,13 +84,17 @@ async fn read_local_missing() {
     let file = root(&directory).join("missing.bin");
     let path: FilePath = file.as_str().parse().expect("should parse a local path");
     let storage = Storage::new(root(&directory).to_owned());
+
     let error = path
         .read(&storage)
         .await
         .err()
         .expect("should report the missing file");
-    assert_matches!(error, StorageError::Io(error) if error.kind() == io::ErrorKind::NotFound);
+
+    drop(storage);
     drop(directory);
+
+    assert_matches!(error, StorageError::Io(error) if error.kind() == io::ErrorKind::NotFound);
 }
 
 /// An S3 path without a client reports the unavailable backend instead of an I/O error.
@@ -99,13 +103,17 @@ async fn read_s3_unconfigured() {
     let directory = scratch();
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
     let storage = Storage::new(root(&directory).to_owned());
+
     let error = path
         .read(&storage)
         .await
         .err()
         .expect("should require an S3 backend");
-    assert_matches!(error, StorageError::S3Unavailable);
+
+    drop(storage);
     drop(directory);
+
+    assert_matches!(error, StorageError::S3Unavailable);
 }
 
 /// A local input resolves to its own spelling without writing to the scratch directory.
@@ -142,9 +150,12 @@ async fn into_local_missing() {
         .into_local_file(&storage)
         .await
         .expect("should return the local path without opening it");
+
     assert_eq!(resolved, root(&directory).join("missing.bin"));
     assert_eq!(resolved.as_str().as_ptr(), allocation);
     assert_eq!(entry_count(root(&directory)), 0);
+
+    drop(storage);
     drop(directory);
 }
 
@@ -154,12 +165,16 @@ async fn into_local_unconfigured() {
     let destination = scratch();
     let storage = Storage::new(root(&destination).join("missing"));
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
+
     let error = path
         .into_local_file(&storage)
         .await
         .expect_err("should require S3 before creating a destination");
+
     assert_matches!(error, StorageError::S3Unavailable);
     assert_eq!(entry_count(root(&destination)), 0);
+
+    drop(storage);
     drop(destination);
 }
 
@@ -172,6 +187,7 @@ async fn sync_s3_unconfigured() {
         Storage::new(root(&destination).to_owned()),
         Storage::new(root(&destination).join("missing")),
     ];
+
     for storage in &storages {
         let error = path
             .sync_to_local(storage)
@@ -180,6 +196,7 @@ async fn sync_s3_unconfigured() {
         assert_matches!(error, StorageError::S3Unavailable);
     }
     assert_eq!(entry_count(root(&destination)), 0);
+
     drop(storages);
     drop(destination);
 }
