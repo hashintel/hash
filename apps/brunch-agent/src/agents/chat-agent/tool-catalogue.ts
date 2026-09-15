@@ -48,12 +48,6 @@ export const ordinaryBrunchToolCatalogue: readonly OrdinaryBrunchToolCatalogueEn
       role: "substrate",
     },
     {
-      name: "brunch_mark_question",
-      definitionOwner: "brunch-core",
-      executionOwner: "brunch-app",
-      role: "workpiece",
-    },
-    {
       name: "mutate_workpiece",
       definitionOwner: "brunch-core",
       executionOwner: "brunch-app",

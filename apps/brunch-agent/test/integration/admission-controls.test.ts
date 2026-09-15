@@ -31,12 +31,12 @@ beforeAll(async () => {
 });
 
 test("production rejects every mixed proposal before publishing or partially executing it", () => {
-  expect(result.observations).toHaveLength(14);
+  expect(result.observations).toHaveLength(4);
   const mixed = result.observations.filter(
     ({ generated }) =>
       generated.length > 1 && generated.some((call) => call.name === "addType"),
   );
-  expect(mixed).toHaveLength(11);
+  expect(mixed).toHaveLength(3);
   for (const observation of mixed) {
     expect(observation.pendingMutationIds).toEqual([]);
     expect(observation.after).toEqual(observation.before);
@@ -138,7 +138,7 @@ test("every failed submission is attributable from the server output by stage, s
   }
 });
 
-test("production still settles revisions and noninteractive markers without browser results", () => {
+test("production settles revisions without browser results", () => {
   for (const observation of result.observations) {
     expect(observation.seed.error).toBeNull();
     const revision = observation.seeded.messages
@@ -150,16 +150,6 @@ test("production still settles revisions and noninteractive markers without brow
     expect(revision).toMatchObject({
       output: { revisionId: `${observation.caseId}-old-revision`, ordinal: 1 },
     });
-  }
-  for (const caseId of [
-    "brunch_mark_question",
-    "mutate_workpiece-brunch_mark_question",
-  ]) {
-    const observation = result.observations.find(
-      (entry) => entry.caseId === caseId,
-    )!;
-    expect(observation.attempt.error).toBeNull();
-    expect(observation.providerCallsBeforeClientResult).toBe(2);
   }
 });
 

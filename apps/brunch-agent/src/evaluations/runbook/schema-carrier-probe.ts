@@ -17,6 +17,7 @@ import {
   clientToolHistoryFrom,
   clientToolResultSignal,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 import {
   petrinautAiTools,
   type PetrinautAiToolInput,
@@ -159,8 +160,10 @@ try {
   });
   assert.deepEqual(generatedAddType.parameters, canonicalSchema);
   assert(
-    generatedTools.some((tool) => tool.name === "brunch_mark_question"),
-    "Question marker missing",
+    !generatedTools.some((tool) =>
+      BRUNCH_QUESTION_TOOL_NAMES.some((name) => name === tool.name),
+    ),
+    "Legacy question marker must not be mounted",
   );
   assert.deepEqual(headless.definition().types, [
     petrinautAiTools.addType.inputSchema.parse(nestedType),

@@ -127,71 +127,74 @@ test("projects data and metadata onto the AI SDK stream", () => {
   });
 });
 
-test("hides an implementation tool while preserving its data marker", () => {
-  const written = project(
-    [
-      {
-        type: "message-started",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        submissionId: "submission-1",
-        turnId: "turn-1",
-        position: position(0),
-      },
-      {
-        type: "tool-input",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        toolCallId: "tool-question-1",
-        toolName: "brunch_mark_question",
-        input: { question: "Which line should run this order?" },
-        position: position(1),
-      },
-      {
-        type: "data-part",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        name: "brunch-question",
-        data: {
-          question: "Which line should run this order?",
-          toolCallId: "tool-question-1",
+test.each(["brunch_mark_question", "mark_question_for_replay"])(
+  "hides historical implementation tool $markerToolName while preserving its data marker",
+  (markerToolName) => {
+    const written = project(
+      [
+        {
+          type: "message-started",
+          conversationId: "conversation-1",
+          messageId: "message-1",
+          submissionId: "submission-1",
+          turnId: "turn-1",
+          position: position(0),
         },
-        position: position(2),
-      },
-      {
-        type: "tool-output",
-        conversationId: "conversation-1",
-        toolCallId: "tool-question-1",
-        output: { marked: true },
-        position: position(3),
-      },
-      {
-        type: "submission-settled",
-        conversationId: "conversation-1",
-        submissionId: "submission-1",
-        outcome: "completed",
-        position: position(4),
-      },
-    ],
-    new Set(["brunch_mark_question"]),
-  );
+        {
+          type: "tool-input",
+          conversationId: "conversation-1",
+          messageId: "message-1",
+          toolCallId: "tool-question-1",
+          toolName: markerToolName,
+          input: { question: "Which line should run this order?" },
+          position: position(1),
+        },
+        {
+          type: "data-part",
+          conversationId: "conversation-1",
+          messageId: "message-1",
+          name: "brunch-question",
+          data: {
+            question: "Which line should run this order?",
+            toolCallId: "tool-question-1",
+          },
+          position: position(2),
+        },
+        {
+          type: "tool-output",
+          conversationId: "conversation-1",
+          toolCallId: "tool-question-1",
+          output: { marked: true },
+          position: position(3),
+        },
+        {
+          type: "submission-settled",
+          conversationId: "conversation-1",
+          submissionId: "submission-1",
+          outcome: "completed",
+          position: position(4),
+        },
+      ],
+      new Set([markerToolName]),
+    );
 
-  expect(written).toContainEqual({
-    type: "data-brunch-question",
-    data: {
-      question: "Which line should run this order?",
-      toolCallId: "tool-question-1",
-    },
-  });
-  expect(
-    written.some(
-      (chunk) =>
-        chunk.type === "tool-input-available" ||
-        chunk.type === "tool-output-available" ||
-        chunk.type === "tool-output-error",
-    ),
-  ).toBe(false);
-});
+    expect(written).toContainEqual({
+      type: "data-brunch-question",
+      data: {
+        question: "Which line should run this order?",
+        toolCallId: "tool-question-1",
+      },
+    });
+    expect(
+      written.some(
+        (chunk) =>
+          chunk.type === "tool-input-available" ||
+          chunk.type === "tool-output-available" ||
+          chunk.type === "tool-output-error",
+      ),
+    ).toBe(false);
+  },
+);
 
 test("ignores observation catch-up chunks in a submission stream", () => {
   const written = project([

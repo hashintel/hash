@@ -13,6 +13,7 @@ import {
   elicitationSkill,
   workpieceMarkdownByteCeiling,
 } from "../src/flue";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "../src/question-marker";
 import { deriveWorkpieceMutation } from "../src/update-workpiece";
 import {
   workpieceRevisionStateKey,
@@ -176,9 +177,11 @@ test("captures the persistent-state setter at render and writes from run", async
   const mounted = vi
     .mocked(useTool)
     .mock.calls.map(([definition]) => definition);
-  expect(mounted.map((definition) => definition.name)).toContain(
-    "brunch_mark_question",
-  );
+  const mountedNames = mounted.map((definition) => definition.name);
+  for (const markerName of BRUNCH_QUESTION_TOOL_NAMES) {
+    expect(mountedNames).not.toContain(markerName);
+    expect(prompt).not.toContain(markerName);
+  }
   const revisionTool = mounted.find(
     (definition) => definition.name === MUTATE_WORKPIECE_TOOL_NAME,
   );
