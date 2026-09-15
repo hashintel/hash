@@ -76,14 +76,18 @@ Some hosts offer a Brunch-backed GPT-Live voice interview. It uses one Live
 session for conversational audio and a separate transcription session for
 finalized user messages. Brunch remains responsible for domain answers, chat
 history, and changes to the net; settled Brunch prose is supplied to Live for
-best-effort spoken delivery. Consent and **Start voice** are required for each
-session. The permission panel explains both OpenAI audio streams and text
-retention, with a permission checkbox, **Start voice**, and **Cancel**.
+best-effort spoken delivery. Before the first Live session, the permission
+panel explains both OpenAI audio streams and text retention, with a permission
+checkbox, **Start voice**, and **Cancel**. Petrinaut remembers this
+Live-specific versioned acknowledgement in browser storage, so later Live
+sessions start directly. A failed or ended acknowledged session offers
+**Retry voice** without showing the consent prompt again. Browser microphone
+permission remains separate.
 **Cancel** returns to text without starting one. If the browser blocks remote
 playback, the dock keeps the warning visible and offers **Play voice audio**;
 selecting it retries playback from that user gesture. Closing the panel or
 selecting **End voice mode** ends Live audio, transcription, microphone
-capture, and playback. A connection error returns to setup without retrying.
+capture, and playback. A connection error never retries automatically.
 
 While Voice runs, the composer is replaced by a compact dock at the foot of the
 panel. It shows one short state -- **Connecting**, **Listening**, **Muted**,

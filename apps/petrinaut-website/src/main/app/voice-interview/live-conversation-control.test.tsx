@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   BrunchPanelConversationTracker,
@@ -15,7 +15,9 @@ import {
 } from "../local-storage-demo/brunch-panel-transport";
 import { createLiveConversation } from "./live-conversation";
 import {
+  LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   loadOpenAIVoiceConfig,
+  VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
 } from "./voice-interview-control";
 
@@ -41,9 +43,26 @@ vi.mock("./live-conversation", () => ({
     setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
   })),
 }));
+beforeEach(() => {
+  const values = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      get length() {
+        return values.size;
+      },
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    } satisfies Storage,
+  });
+});
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 const context = (): PetrinautAiVoiceModeContext => ({
@@ -78,6 +97,101 @@ const start = async () => {
   );
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
+
+test("starts Live directly after the voice disclosure is acknowledged", () => {
+  window.localStorage.setItem(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+
+  render(<VoiceInterviewControl {...context()} config={config} />);
+
+  expect(
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+});
+
+test("does not reuse the Realtime voice disclosure acknowledgement", () => {
+  window.localStorage.setItem(
+    VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+
+  render(<VoiceInterviewControl {...context()} config={config} />);
+
+  expect(
+    screen.getByRole("region", { name: "Voice mode consent" }),
+  ).toBeTruthy();
+  expect(createLiveConversation).not.toHaveBeenCalled();
+});
+
+test("starts acknowledged Live after the previous session finishes stopping", () => {
+  window.localStorage.setItem(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const props = context();
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} config={config} />,
+  );
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+  const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+  act(() => onState({ phase: "connected", message: null }));
+  rerender(
+    <VoiceInterviewControl {...props} inputMode="text" config={config} />,
+  );
+  act(() => onState({ phase: "stopping", message: null }));
+
+  rerender(<VoiceInterviewControl {...props} config={config} />);
+
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+  act(() =>
+    onState({
+      phase: "ended",
+      message: "Microphone and playback stopped.",
+    }),
+  );
+  expect(createLiveConversation).toHaveBeenCalledTimes(2);
+});
+
+test("records the voice disclosure acknowledgement when Live starts", async () => {
+  render(<VoiceInterviewControl {...context()} config={config} />);
+
+  expect(
+    window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+  ).toBeNull();
+  await start();
+  expect(
+    window.localStorage.getItem(LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+  ).toBe("acknowledged");
+  expect(
+    window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+  ).toBeNull();
+});
+
+test("retries an acknowledged Live failure without requesting consent again", async () => {
+  render(<VoiceInterviewControl {...context()} config={config} />);
+  await start();
+  const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+
+  act(() =>
+    onState({
+      phase: "error",
+      message: "Live media connection ended.",
+    }),
+  );
+
+  expect(
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(screen.getByRole("region", { name: "Voice mode retry" })).toBeTruthy();
+  expect(screen.queryByRole("checkbox")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Retry voice" }));
+
+  expect(createLiveConversation).toHaveBeenCalledTimes(2);
+});
 
 test("starts only one Live session when Start is activated twice", async () => {
   render(<VoiceInterviewControl {...context()} config={config} />);
@@ -315,9 +429,10 @@ test("reuses setup and reports failure to the host dock and notification surface
   expect(screen.getByText(connectionError)).toBeTruthy();
   expect(
     screen
-      .getByRole("button", { name: "Start voice" })
+      .getByRole("button", { name: "Retry voice" })
       .hasAttribute("disabled"),
-  ).toBe(true);
+  ).toBe(false);
+  expect(screen.queryByRole("checkbox")).toBeNull();
   expect(createLiveConversation).toHaveBeenCalledOnce();
 });
 
@@ -537,7 +652,7 @@ test("resets and applies audio defaults when a Live session restarts", async () 
   liveConversationMocks.setSpeakerMuted.mockClear();
   liveConversationMocks.setSpeakerVolume.mockClear();
 
-  await start();
+  fireEvent.click(screen.getByRole("button", { name: "Retry voice" }));
 
   expect(createLiveConversation).toHaveBeenCalledTimes(2);
   expect(
@@ -561,7 +676,7 @@ test("resets and applies audio defaults when a Live session restarts", async () 
   );
 });
 
-test("does not show a successful prior session close on the next consent card", async () => {
+test("offers restart without showing consent after a Live session closes", async () => {
   render(<VoiceInterviewControl {...context()} config={config} />);
   await start();
   const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
@@ -571,8 +686,9 @@ test("does not show a successful prior session close on the next consent card", 
   act(() => onState({ phase: "ended", message: closureMessage }));
 
   expect(
-    screen.getByRole("region", { name: "Voice mode consent" }),
-  ).toBeTruthy();
+    screen.queryByRole("region", { name: "Voice mode consent" }),
+  ).toBeNull();
+  expect(screen.getByRole("region", { name: "Voice mode retry" })).toBeTruthy();
   expect(screen.queryByText(closureMessage)).toBeNull();
 });
 
