@@ -22,12 +22,12 @@ import { SimulationContext } from "../../../react/simulation/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { useStatusViewNodeStatuses } from "./hooks/use-status-view-node-statuses";
 
-import type { ComponentInstanceStatusSummary } from "./hooks/use-status-view-node-statuses";
 import type {
   InitialMarking,
   SimulationFrameReader,
   SimulationFrameState,
 } from "../../../react/simulation/context";
+import type { ComponentInstanceStatusSummary } from "./hooks/use-status-view-node-statuses";
 import type { TransitionFrameState } from "./renderers/react-flow/react-flow-canvas/react-flow-types";
 
 type FrameSnapshot = {
