@@ -20,7 +20,7 @@ export {
   type PetrinautExperimentProgress,
   type PetrinautExperimentResult,
   type PetrinautExperimentHost,
-} from "./experiments";
+} from "./experiments/host";
 
 export {
   arcEndpointSchema,
