@@ -57,7 +57,7 @@ export const LiveConversationControl = ({
   subscribeToStopRequested,
 }: LiveControlsContext) => {
   const [consented, setConsented] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [state, setState] = useState<LiveConversationState>({
     phase: "idle",
     message: null,
@@ -139,11 +139,11 @@ export const LiveConversationControl = ({
   );
 
   useEffect(() => {
-    if (stopped || inputMode !== "voice" || !isAiAssistantOpen) {
+    if (inputMode !== "voice" || !isAiAssistantOpen) {
       bridge.current?.stop();
       void session.current?.stop();
     }
-  }, [stopped, inputMode, isAiAssistantOpen]);
+  }, [inputMode, isAiAssistantOpen]);
 
   useEffect(
     () =>
@@ -181,7 +181,8 @@ export const LiveConversationControl = ({
               phase === "error" ? 0 : (activity?.microphoneLevel ?? 0),
             microphoneMuted: phase === "error",
             errorMessage: phase === "error" ? message : null,
-            notice: playbackBlocked ? message : notice,
+            notice: playbackBlocked ? message : null,
+            warningMessage,
             ...(playbackBlocked ? { canRetryPlayback: true } : {}),
           }
         : null,
@@ -195,7 +196,7 @@ export const LiveConversationControl = ({
     activity,
     status,
     stopped,
-    notice,
+    warningMessage,
     reportVoiceSessionState,
   ]);
 
@@ -230,7 +231,7 @@ export const LiveConversationControl = ({
         if (!consented || phase === "stopping" || sessionActive.current) return;
         sessionActive.current = true;
         setConsented(false);
-        setNotice(null);
+        setWarningMessage(null);
         setState({ phase: "connecting", message: null });
         const next = createLiveConversation(
           (nextState) => {
@@ -273,7 +274,7 @@ export const LiveConversationControl = ({
               result.status === "local-failure"
                 ? "could not be sent to Live locally"
                 : "was rejected by Live";
-            setNotice(
+            setWarningMessage(
               `The ${label} ${outcome}. Check the conversation; no automatic retry or replay was made. Acceptance does not confirm playback.`,
             );
           },
@@ -282,7 +283,7 @@ export const LiveConversationControl = ({
           submit: (input) => latest.current.submit(input),
           appendCommentary: next.appendCommentary,
           appendInstructions: next.appendInstructions,
-          notice: setNotice,
+          notice: setWarningMessage,
         });
         bridge.current.update(latest.current.chat);
         session.current = next;

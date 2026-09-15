@@ -22,11 +22,15 @@ import {
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
+const liveConversationMocks = vi.hoisted(() => ({
+  stop: vi.fn(async () => {}),
+}));
+
 vi.mock("./live-conversation", () => ({
   createLiveConversation: vi.fn(() => ({
     retryPlayback: vi.fn(async () => {}),
     start: vi.fn(async () => {}),
-    stop: vi.fn(async () => {}),
+    stop: liveConversationMocks.stop,
     appendCommentary: vi.fn(() => true),
     appendInstructions: vi.fn(() => true),
   })),
@@ -152,6 +156,7 @@ test.each(["submitted", "streaming"] as const)(
     expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
       expect.objectContaining({ phase: "listening" }),
     );
+    expect(liveConversationMocks.stop).not.toHaveBeenCalled();
     rerender(
       <VoiceInterviewControl {...props} config={config} status={status} />,
     );
@@ -184,7 +189,11 @@ test("reuses setup and reports failure to the host dock and notification surface
   expect(createLiveConversation).not.toHaveBeenCalled();
   await start();
   expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
-    expect.objectContaining({ phase: "connecting", notice: null }),
+    expect.objectContaining({
+      phase: "connecting",
+      notice: null,
+      warningMessage: null,
+    }),
   );
   const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
   act(() => onState({ phase: "connected", message: null }));
@@ -197,6 +206,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     microphoneMuted: false,
     errorMessage: null,
     notice: null,
+    warningMessage: null,
   });
   act(() =>
     onState({
@@ -284,6 +294,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     microphoneLevel: 0,
     microphoneMuted: true,
     notice: null,
+    warningMessage: null,
   });
   expect(screen.getByText(connectionError)).toBeTruthy();
   expect(
@@ -660,6 +671,7 @@ test.each(["commentary", "instructions"] as const)(
             phase: "listening",
             errorMessage: null,
             notice: null,
+            warningMessage: null,
           }),
         );
       }
@@ -673,14 +685,16 @@ test.each(["commentary", "instructions"] as const)(
         expect.objectContaining({
           phase: "listening",
           errorMessage: null,
-          notice: expect.stringContaining(text) as unknown,
+          notice: null,
+          warningMessage: expect.stringContaining(text) as unknown,
         }),
       );
       for (const nextStatus of ["unknown", "accepted"] as const) {
         act(() => call[4]({ ...result, eventId: "later", status: nextStatus }));
         expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
           expect.objectContaining({
-            notice: expect.stringContaining(text) as unknown,
+            notice: null,
+            warningMessage: expect.stringContaining(text) as unknown,
           }),
         );
       }
