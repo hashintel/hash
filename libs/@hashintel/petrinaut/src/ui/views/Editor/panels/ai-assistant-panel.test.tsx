@@ -2430,8 +2430,17 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Your turn" }));
     expect(takeTurn).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-    const repeatQuestionItem = await screen.findByRole("button", {
+    const audioOptions = screen.getByRole("button", {
+      name: "Audio options",
+    });
+    expect(audioOptions.getAttribute("aria-haspopup")).toBe("dialog");
+    fireEvent.click(audioOptions);
+    await waitFor(() =>
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+        true,
+      ),
+    );
+    const repeatQuestionItem = screen.getByRole("button", {
       name: "Repeat question",
     });
     expect((repeatQuestionItem as HTMLButtonElement).disabled).toBe(false);
@@ -2453,10 +2462,12 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(readFullResponse).toHaveBeenCalledOnce();
 
     fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
+    await waitFor(() => {
+      expect(audioOptions.getAttribute("aria-expanded")).toBe("false");
+      expect(document.activeElement).toBe(audioOptions);
+    });
     rendered.rerenderPanel(aiAssistant(false), editorContextValue);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Audio options" }),
-    );
+    fireEvent.click(audioOptions);
     expect(
       (
         await screen.findByRole("button", { name: "Repeat question" })

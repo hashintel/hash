@@ -54,6 +54,7 @@ export const AudioPopover = ({
       <Button
         ref={triggerRef}
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label={voiceSessionActionLabels.audioOptions}
         iconName="sliders"
         onClick={() => setOpen((wasOpen) => !wasOpen)}

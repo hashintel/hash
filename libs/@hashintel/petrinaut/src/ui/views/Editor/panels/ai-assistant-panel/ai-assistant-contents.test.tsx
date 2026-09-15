@@ -1047,7 +1047,12 @@ describe("AiAssistantContents", () => {
     const trigger = screen.getByRole("button", { name: "Audio options" });
     trigger.focus();
     fireEvent.click(trigger);
-    const speakerMute = await screen.findByRole("button", {
+    await waitFor(() =>
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+        true,
+      ),
+    );
+    const speakerMute = screen.getByRole("button", {
       name: "Mute speaker",
     });
     expect(speakerMute.getAttribute("aria-pressed")).toBe("false");
@@ -1059,9 +1064,6 @@ describe("AiAssistantContents", () => {
     await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.95));
     expect(setSpeakerMuted).not.toHaveBeenCalled();
 
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 50));
-    });
     fireEvent.keyDown(volume, { key: "Escape" });
     await waitFor(() =>
       expect(
@@ -1071,29 +1073,31 @@ describe("AiAssistantContents", () => {
     expect(document.activeElement).toBe(trigger);
 
     fireEvent.click(trigger);
-    const reopenedVolume = await screen.findByRole("slider", {
+    await waitFor(() =>
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+        true,
+      ),
+    );
+    const reopenedVolume = screen.getByRole("slider", {
       name: "Speaker volume",
     });
     expect(reopenedVolume).not.toBeNull();
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    const outside = screen.getByRole("button", {
+      name: "Outside audio options",
     });
-    fireEvent.pointerDown(
-      screen.getByRole("button", { name: "Outside audio options" }),
-      {
+    await waitFor(() => {
+      fireEvent.pointerDown(outside, {
         button: 0,
         clientX: 100,
         clientY: 100,
         isPrimary: true,
         pointerType: "mouse",
-      },
-    );
-    await waitFor(() =>
+      });
       expect(
         screen.queryByRole("slider", { name: "Speaker volume" }),
-      ).toBeNull(),
-    );
-    expect(document.activeElement).toBe(trigger);
+      ).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+    });
   });
 
   test.each([
