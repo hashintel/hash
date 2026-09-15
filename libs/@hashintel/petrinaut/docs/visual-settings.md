@@ -10,7 +10,7 @@ Scroll within a section to reach its remaining settings. The heading, section ta
 
 Drag the heading or empty space across the top of the settings window to move it, including while its content is scrolled. Drag any edge or corner to resize it. The opposite edge stays fixed, and the window remains inside the viewport. Switching sections preserves its size and position; reopening returns it to its initial size and position. The canvas keeps its normal brightness while the dialog is open. Text selection is disabled throughout the dialog.
 
-Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
+Changes apply immediately and are saved as your preferences across nets. Defaults apply only to settings you have not chosen; your saved preferences take precedence. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
 | Section        | Settings                                                             |
 | -------------- | -------------------------------------------------------------------- |
@@ -181,7 +181,7 @@ Shown only when the host application provides an optimizer that runs in your bro
 
 ### Notebook view (experimental)
 
-Add a **Notebook** tab to explore the net as expandable, read-only cells. On by default when you have no saved preference for this setting. A saved choice to hide Notebook is preserved.
+Add a **Notebook** tab to explore the net as expandable, read-only cells. On by default.
 
 ### Net Components (experimental)
 
