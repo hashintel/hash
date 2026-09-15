@@ -50,13 +50,14 @@ const focusRow = (text: string): HTMLElement => {
 
 describe("Table keyboard flow", () => {
   it("is one tab stop whose rows the arrows walk", () => {
+    const onRowSelect = vi.fn();
     const { container } = render(
       <Table
         columns={COLUMNS}
         rows={ROWS}
         getRowId={(row) => row.id}
         emptyLabel="Empty"
-        onRowSelect={() => {}}
+        onRowSelect={onRowSelect}
       />,
     );
 
@@ -65,15 +66,20 @@ describe("Table keyboard flow", () => {
     focusRow("First");
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(rowShowing("Second"));
+    expect(onRowSelect).toHaveBeenLastCalledWith(ROWS[1]);
     fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
     expect(document.activeElement).toBe(rowShowing("Third"));
+    expect(onRowSelect).toHaveBeenLastCalledWith(ROWS[2]);
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(onRowSelect).toHaveBeenCalledTimes(2);
     fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     expect(document.activeElement).toBe(rowShowing("Second"));
+    expect(onRowSelect).toHaveBeenLastCalledWith(ROWS[1]);
 
     expect(container.querySelectorAll("[tabindex='0']")).toHaveLength(1);
   });
 
-  it("activates select-first: the first click selects, the second opens", () => {
+  it("opens on the first click and keeps focus on that row", () => {
     const onRowSelect = vi.fn();
     render(
       <Table
@@ -87,13 +93,9 @@ describe("Table keyboard flow", () => {
 
     const row = rowShowing("Second");
     fireEvent.pointerDown(row);
-    focusRow("Second");
     fireEvent.click(row, { detail: 1 });
-    expect(onRowSelect).not.toHaveBeenCalled();
-
-    fireEvent.pointerDown(row);
-    fireEvent.click(row, { detail: 1 });
-    expect(onRowSelect).toHaveBeenCalledWith(ROWS[1]);
+    expect(onRowSelect).toHaveBeenCalledExactlyOnceWith(ROWS[1]);
+    expect(document.activeElement).toBe(row);
   });
 
   it("activates on Enter and Space", () => {

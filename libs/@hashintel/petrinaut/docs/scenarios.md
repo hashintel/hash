@@ -35,7 +35,7 @@ You will need scenarios when you want to:
 6. Configure **Initial state** -- a count expression per untyped place, rows of cells per typed place (a Dynamic row builds many tokens from one count). See [Ad-hoc Scenarios](ad-hoc-scenarios.md#the-form) for the form itself.
 7. Click **Create**. It is disabled while the name or any value has an error -- hover it to read the first.
 
-The view panel opens from the Scenarios list, which works like the other Simulate-mode lists: the first click selects a row, and a click on the selected row (or Enter) opens it. The list is a single Tab stop whose rows the arrow keys walk. The panel shows the same form populated with the existing values, with **Close** and **Save** buttons.
+The view panel opens from the Scenarios list with a single click. The list is a single Tab stop: **Up** and **Down** select and open the previous or next scenario while keeping focus in the list. The panel shows the same form populated with the existing values, with **Close** and **Save** buttons. Save your edits before selecting another scenario to keep them.
 
 ## Panel and fullscreen views
 
