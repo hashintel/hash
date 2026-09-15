@@ -190,7 +190,3 @@ Enable subnet definitions and component instances for hierarchical nets. This op
 ### Compilation output (experimental)
 
 Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom panel.
-
-### Code editor layouts
-
-Enable **Code editor layouts** to open model functions in **Full screen**, **Properties panel**, or **Bottom dock**. Select a visual layout card to enable the feature and set the preferred layout. The choice is saved between sessions. See [Code Editor](code-editor.md) for navigation and editing.

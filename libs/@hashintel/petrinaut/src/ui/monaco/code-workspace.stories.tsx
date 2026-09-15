@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use } from "react";
 import { userEvent, within } from "storybook/test";
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -8,28 +8,21 @@ import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../react/state/user-settings-provider";
 import { PetrinautStoryProvider } from "../petrinaut-story-provider";
 
-import type { CodeEditorPlacement } from "../../react/state/user-settings-context";
+import type { CodeEditorPlacement } from "./code-workspace";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const LayoutExample = ({
-  placement,
   readonly = false,
 }: {
   placement: CodeEditorPlacement;
   readonly?: boolean;
 }) => {
   const settings = use(UserSettingsContext);
-  const [enabled, setEnabled] = useState(true);
-  const [layout, setLayout] = useState(placement);
   return (
     <UserSettingsContext
       value={{
         ...settings,
         showWalkthroughOnInit: false,
-        enableCodeEditorWorkspace: enabled,
-        setEnableCodeEditorWorkspace: setEnabled,
-        codeEditorPlacement: layout,
-        setCodeEditorPlacement: setLayout,
       }}
     >
       <div className={css({ height: "[100vh]", width: "full" })}>
@@ -54,28 +47,38 @@ const meta = {
       </UserSettingsProvider>
     ),
   ],
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(
       await canvas.findByRole(
-        "button",
-        { name: "Open code" },
+        "option",
+        { name: /^Production Success/ },
         { timeout: 15000 },
       ),
     );
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(
-      await page.findByRole("menuitem", {
-        name: "Production Success / Transition kernel",
-      }),
-    );
+    const resultsToggle = await canvas.findByRole("button", {
+      name: /Transition Results/,
+    });
+    if (resultsToggle.getAttribute("aria-expanded") !== "true") {
+      await userEvent.click(resultsToggle);
+    }
+    if (args.placement === "fullscreen") {
+      const section = canvasElement.querySelector<HTMLElement>(
+        '[id="transition-results"]',
+      );
+      if (!section) throw new Error("Transition results section is missing");
+      await userEvent.click(
+        await within(section).findByRole("button", {
+          name: /Full screen/,
+        }),
+      );
+    }
   },
 } satisfies Meta<typeof LayoutExample>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const FullScreen: Story = { args: { placement: "fullscreen" } };
 export const PropertiesPanel: Story = { args: { placement: "properties" } };
-export const BottomDock: Story = { args: { placement: "bottom" } };
 export const ReadOnly: Story = {
   args: { placement: "properties", readonly: true },
 };
