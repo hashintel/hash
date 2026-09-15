@@ -2,11 +2,46 @@
 
 > Future sequence and decision register only; not execution authority. [`MISSION.md`](MISSION.md) owns live scope and progress. Successor drafts become executable only after an owner-authorized cut; archives and git history retain prior contracts.
 
-On this stacked voice branch, `MISSION.md` owns FE-1664. The inherited Mission 7c
+On this stacked voice branch, `MISSION.md` owns FE-1712. The inherited Mission 7c
 map and its mission-section references below belong to the
 [upstream contract](https://github.com/hashintel/hash/blob/dee90599e9a07d9fa3e55d0711c14491e9ce5c7c/libs/%40hashintel/brunch-agent/MISSION.md)
 on #9667, not to a second execution authority here. The stack does not close that
 mission or grant its paid-run permissions to voice work.
+
+## Voice feedback follow-up
+
+FE-1712 selects explicit capture preferences, semantic transcription turn detection
+and owner-held speech/acoustic comparisons as specified in the live mission. The complete
+[FE-1664 contract](https://github.com/hashintel/hash/blob/9499b9287bd69b751ebcdd61b0c6bf2586bc191e/libs/%40hashintel/brunch-agent/MISSION.md)
+is retained at the branch's pinned parent, not archived as accepted or replaced
+on that branch. Its input/delivery contracts, first no-tool exchange, later
+operation/correction/Stop and independent-tab provenance/withheld-work witnesses
+remain with Kostandin and FE-1664. Its Deferred section retains Mission 7c/7d,
+distribution/breadth and after-demo evaluation obligations in their existing
+linked drafts. This child grants none of the parent's publication permissions.
+
+If the matched speaker/headphone contrast shows residual acoustic echo, return
+to the owner before adding session-local playback observations and exact normalized
+comparison. Any conditional filter must preserve short replies, genuine quotations,
+quantity/negation corrections, original input, ordering after a rejected item,
+once-only admission and stale-session invalidation. Missing/late observations are
+unknown, not proof of echo; fuzzy/prompt rules require separate evidence. Use
+Realtime's classifier as reference, extracting pure comparison only for actual
+reuse. Live event/overlap observation needs its own adapter; generated transcripts,
+activity levels and append acceptance do not prove audible word alignment.
+Filtering canonical input cannot undo native Live's earlier reaction.
+
+If delegation-driven invocation is required, resolve the immutable-range endpoint
+and completeness oracle before changing admission. Shared capture does not provide
+shared clocks; Live-native input removes that join but lacks authoritative transcript
+finalization. Select late-fragment, duplicate/overlapping-delegation and correction
+policy explicitly; add no speculative timers or task FIFO. If deterministic
+app-level exclusion is required, select half-duplex/typed interaction and a justified
+Live handoff boundary, rather than assuming Realtime response-terminal events exist.
+Existing Realtime manual handoff remains an explicit fallback after ending Live.
+The broader alternatives, rejected shortcuts and discriminating test portfolio are
+planning context in [FE-1712](https://linear.app/hash/issue/FE-1712/stabilize-gpt-live-full-duplex-voice-feedback),
+not authority for these deferred changes.
 
 ## How to use this spine
 

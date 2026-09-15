@@ -256,7 +256,7 @@ export const createLiveConversation = (
     if (playing && outputLevel > 0.01) lastOutputActivity = Date.now();
     const activity = {
       microphoneLevel: Math.round(microphoneLevel * 100) / 100,
-      outputActive: Boolean(playing) && Date.now() - lastOutputActivity < 300,
+      outputActive: Boolean(playing) && Date.now() - lastOutputActivity < 500,
     };
     if (
       !lastActivity ||
@@ -701,7 +701,13 @@ export const createLiveConversation = (
     try {
       audio = new Audio();
       audio.autoplay = true;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
       if (abort.signal.aborted) {
         stream.getTracks().forEach((track) => track.stop());
         return;

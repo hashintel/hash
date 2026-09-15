@@ -390,6 +390,13 @@ test("starts Live and transcription WebRTC from one consented capture and connec
   const fixture = setup();
   await fixture.conversation.start();
   expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+  expect(fixture.getUserMedia).toHaveBeenCalledWith({
+    audio: {
+      autoGainControl: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
   expect(fixture.fetch.mock.calls.map(([url]) => url)).toEqual([
     "/api/voice/live-session",
     "/api/voice/transcription-session",
@@ -1047,12 +1054,24 @@ test("telemetry shows activity but silence and late samples never settle or revi
     outputActive: true,
   });
   getStats.mockResolvedValue(new Map());
-  await vi.advanceTimersByTimeAsync(500);
+  await vi.advanceTimersByTimeAsync(400);
+  expect(fixture.onState.mock.lastCall?.[0].activity?.outputActive).toBe(true);
+  await vi.advanceTimersByTimeAsync(99);
+  expect(fixture.onState.mock.lastCall?.[0].activity?.outputActive).toBe(true);
+  await vi.advanceTimersByTimeAsync(1);
   expect(fixture.onState.mock.lastCall?.[0].activity?.outputActive).toBe(false);
   expect(fixture.onFinalizedInput).not.toHaveBeenCalled();
   getStats.mockRejectedValueOnce(new Error("Optional telemetry failed"));
   await vi.advanceTimersByTimeAsync(100);
   expect(fixture.input.stop).not.toHaveBeenCalled();
+  getStats.mockResolvedValueOnce(
+    new Map([
+      ["output", { type: "inbound-rtp", kind: "audio", audioLevel: 0.2 }],
+    ]),
+  );
+  await vi.advanceTimersByTimeAsync(100);
+  await vi.advanceTimersByTimeAsync(300);
+  expect(fixture.onState.mock.lastCall?.[0].activity?.outputActive).toBe(true);
   let release = (_stats: Map<string, unknown>) => {};
   getStats.mockImplementationOnce(
     () =>
@@ -1061,7 +1080,12 @@ test("telemetry shows activity but silence and late samples never settle or revi
       }),
   );
   await vi.advanceTimersByTimeAsync(100);
+  await vi.advanceTimersByTimeAsync(99);
   const stop = fixture.conversation.stop();
+  expect(fixture.audio.muted).toBe(true);
+  expect(fixture.audio.pause).toHaveBeenCalledOnce();
+  expect(fixture.input.stop).toHaveBeenCalledOnce();
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("stopping");
   fixture.emit(0, { type: "session.closed" });
   await stop;
   const calls = fixture.onState.mock.calls.length;

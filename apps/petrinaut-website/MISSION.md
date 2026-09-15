@@ -1,15 +1,29 @@
-# Experiment Live Full Brunch Integration
+# GPT-Live capture mitigation
 
 The child branch's sole execution authority is the
 [Brunch mission](../../libs/@hashintel/brunch-agent/MISSION.md).
 This file is a pointer, not a second mission.
 
-The accepted experiment uses native Live with best-effort speech instructions and
-separate authoritative transcription. Brunch retains canonical answers and tool
-authority; settlement gates Brunch context sent to Live, not all audible speech.
-Independent questions and unsupported claims are manual-test failures.
+FE-1712 permits explicit browser capture preferences, semantic VAD with medium
+eagerness on the separate Live transcription session, and provider-free checks.
+It also permits a 500 ms Speaking-indicator hold and a patient-listening Live
+instruction. Submission timing, separate finalized transcription and Realtime stay
+unchanged. The indicator does not control playback or establish turn completion.
+Acoustic benefit remains Kostandin's matched speaker/headphone witness; no
+deterministic feedback prevention or migration-readiness claim is established.
+The sole mission specifies bounded headless probe allocations and their results;
+natural human turn boundaries still require the owner witness. No new publication authority.
 
-Keep `PETRINAUT_VOICE_PROVIDER=realtime|live`, with unset meaning `realtime`.
-The Brunch mission records current proof, risks and acceptance blockers. No
-agent-started paid sessions, automatic microphone access, merge or deployment are
-authorized; Kostandin performs live testing manually.
+The publication base is restacked FE-1664 at
+[6d188da42f](https://github.com/hashintel/hash/commit/6d188da42f86b2d6ef3d211ec55058685185e8c7).
+Its integration contract and earlier standalone comparisons are retained in the
+[future spine](../../libs/@hashintel/brunch-agent/MISSION.next.md#voice-feedback-follow-up).
+The parent has removed its superseded `PR_DESCRIPTION.md` draft; its PR body on
+GitHub is its authority. This child's local Git branch description mirrors its mission.
+
+Kostandin authorizes pushing this child and opening its draft PR against FE-1664.
+The authorized conflict fix preserves the parent's consent and Thinking dock behavior
+and refreshes this draft's proof record. No other issue/PR changes, agent
+microphone access, merge or deployment are authorized. The sole provider exception
+is the bounded synthetic transcription probe specified in the mission.
+Delegation-driven invocation and transcript filtering remain deferred.
