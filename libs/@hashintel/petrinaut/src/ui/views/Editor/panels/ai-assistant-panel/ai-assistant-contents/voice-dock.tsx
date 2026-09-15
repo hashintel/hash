@@ -5,6 +5,7 @@ import {
   useVoiceSessionActions,
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
+  useVoiceSessionCanRetryPlayback,
   useVoiceSessionCanTakeTurn,
   useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
@@ -74,6 +75,7 @@ const statusStyle = cva({
   },
   variants: {
     phase: {
+      connected: { color: "blue.s90" },
       connecting: { color: "neutral.s90" },
       error: { color: "neutral.s100" },
       listening: { color: "blue.s90" },
@@ -108,6 +110,7 @@ export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
+  canRetryPlayback?: boolean;
   canTakeTurn: boolean;
   collapsed: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
@@ -129,6 +132,7 @@ export const VoiceDock = ({
   actions,
   canReadFullResponse,
   canRepeatQuestion,
+  canRetryPlayback = false,
   canTakeTurn,
   collapsed,
   indicator,
@@ -172,14 +176,17 @@ export const VoiceDock = ({
           type="button"
           variant="ghost"
         />
-        {actions !== null && (
-          <VoicePlaybackMenu
-            actions={actions}
-            canReadFullResponse={canReadFullResponse}
-            canRepeatQuestion={canRepeatQuestion}
-            interruptionBySpeaking={interruptionBySpeaking}
-          />
-        )}
+        {actions !== null &&
+          (actions.readFullResponse ||
+            actions.repeatQuestion ||
+            actions.setInterruptionBySpeaking) && (
+            <VoicePlaybackMenu
+              actions={actions}
+              canReadFullResponse={canReadFullResponse}
+              canRepeatQuestion={canRepeatQuestion}
+              interruptionBySpeaking={interruptionBySpeaking}
+            />
+          )}
       </span>
 
       <div className={centerStyle}>
@@ -192,6 +199,17 @@ export const VoiceDock = ({
       <span className={`${sideStyle} ${actionsStyle}`}>
         {actions !== null && (
           <>
+            {canRetryPlayback && actions.retryPlayback && (
+              <Button
+                aria-label={voiceSessionActionLabels.retryPlayback}
+                iconName="play"
+                onClick={actions.retryPlayback}
+                size="sm"
+                tooltip={voiceSessionActionLabels.retryPlayback}
+                type="button"
+                variant="ghost"
+              />
+            )}
             {!interruptionBySpeaking && canTakeTurn && actions.takeTurn && (
               <Button
                 aria-label={voiceSessionActionLabels.takeTurn}
@@ -203,39 +221,45 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
-            {phase === "error" ? (
-              <Button
-                aria-label={voiceSessionActionLabels.reconnect}
-                iconName="rotate"
-                onClick={actions.reconnect}
-                size="sm"
-                tooltip="Reconnect"
-                type="button"
-                variant="ghost"
-              />
-            ) : phase === "paused" ? (
-              <Button
-                aria-label={voiceSessionActionLabels.resume}
-                iconName="play"
-                onClick={actions.resume}
-                size="sm"
-                tooltip="Resume"
-                type="button"
-                variant="ghost"
-              />
-            ) : (
-              <Button
-                aria-label={microphoneLabel}
-                disabled={phase === "connecting"}
-                onClick={() => actions.setMicrophoneMuted(!microphoneMuted)}
-                prefix={<MicrophoneIcon muted={microphoneMuted} />}
-                pressed={microphoneMuted}
-                size="sm"
-                tooltip={microphoneLabel}
-                type="button"
-                variant="ghost"
-              />
-            )}
+            {phase === "error"
+              ? actions.reconnect && (
+                  <Button
+                    aria-label={voiceSessionActionLabels.reconnect}
+                    iconName="rotate"
+                    onClick={actions.reconnect}
+                    size="sm"
+                    tooltip="Reconnect"
+                    type="button"
+                    variant="ghost"
+                  />
+                )
+              : phase === "paused"
+                ? actions.resume && (
+                    <Button
+                      aria-label={voiceSessionActionLabels.resume}
+                      iconName="play"
+                      onClick={actions.resume}
+                      size="sm"
+                      tooltip="Resume"
+                      type="button"
+                      variant="ghost"
+                    />
+                  )
+                : actions.setMicrophoneMuted && (
+                    <Button
+                      aria-label={microphoneLabel}
+                      disabled={phase === "connecting"}
+                      onClick={() =>
+                        actions.setMicrophoneMuted?.(!microphoneMuted)
+                      }
+                      prefix={<MicrophoneIcon muted={microphoneMuted} />}
+                      pressed={microphoneMuted}
+                      size="sm"
+                      tooltip={microphoneLabel}
+                      type="button"
+                      variant="ghost"
+                    />
+                  )}
             <Button
               aria-label={voiceSessionActionLabels.end}
               iconName="close"
@@ -281,6 +305,7 @@ export const LiveVoiceDock = ({
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
+  const canRetryPlayback = useVoiceSessionCanRetryPlayback();
   const canTakeTurn = useVoiceSessionCanTakeTurn();
   const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
@@ -296,6 +321,7 @@ export const LiveVoiceDock = ({
       actions={actions}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
+      canRetryPlayback={canRetryPlayback}
       canTakeTurn={canTakeTurn}
       collapsed={collapsed}
       interruptionBySpeaking={interruptionBySpeaking}

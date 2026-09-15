@@ -8,6 +8,8 @@ export const voiceSessionStatusLabel = (
   phase: PetrinautAiVoiceSessionPhase,
 ): string => {
   switch (phase) {
+    case "connected":
+      return "Connected";
     case "connecting":
       return "Connecting";
     case "error":
@@ -36,6 +38,7 @@ export const voiceSessionActionLabels = {
   readFullResponse: "Read full response",
   reconnect: "Reconnect voice mode",
   repeatQuestion: "Repeat question",
+  retryPlayback: "Play voice audio",
   resume: "Resume voice mode",
   takeTurn: "Your turn",
   unmute: "Unmute microphone",

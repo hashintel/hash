@@ -79,6 +79,7 @@ import type {
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
@@ -599,9 +600,8 @@ const ConversationAiAssistantPanel = ({
     setVoiceActiveState(active);
   }, []);
   const voiceHandoffPendingRef = useRef(false);
-  const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
-    null,
-  );
+  const voiceModeControlsRef =
+    useRef<PetrinautAiVoiceModeSessionControls | null>(null);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
     null,
@@ -690,8 +690,8 @@ const ConversationAiAssistantPanel = ({
     [voiceSessionStore],
   );
 
-  const registerVoiceModeControls = useCallback(
-    (controls: PetrinautAiVoiceModeControls) => {
+  const registerVoiceModeSessionControls = useCallback(
+    (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
         // Ending returns the composer to text, which is also the path that
@@ -701,18 +701,28 @@ const ConversationAiAssistantPanel = ({
         ...(controls.readFullResponse
           ? { readFullResponse: () => controls.readFullResponse?.() }
           : {}),
-        reconnect: () => controls.reconnect(),
+        ...(controls.reconnect
+          ? { reconnect: () => controls.reconnect?.() }
+          : {}),
         ...(controls.repeatQuestion
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
           : {}),
-        resume: () => controls.resume(),
+        ...(controls.retryPlayback
+          ? { retryPlayback: () => controls.retryPlayback?.() }
+          : {}),
+        ...(controls.resume ? { resume: () => controls.resume?.() } : {}),
         ...(controls.setInterruptionBySpeaking
           ? {
               setInterruptionBySpeaking: (enabled: boolean) =>
                 controls.setInterruptionBySpeaking?.(enabled),
             }
           : {}),
-        setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
+        ...(controls.setMicrophoneMuted
+          ? {
+              setMicrophoneMuted: (muted: boolean) =>
+                controls.setMicrophoneMuted?.(muted),
+            }
+          : {}),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
 
@@ -725,6 +735,11 @@ const ConversationAiAssistantPanel = ({
       };
     },
     [requestInputMode, voiceSessionStore],
+  );
+  const registerVoiceModeControls = useCallback(
+    (controls: PetrinautAiVoiceModeControls) =>
+      registerVoiceModeSessionControls(controls),
+    [registerVoiceModeSessionControls],
   );
 
   const stopRequestedRef = useRef(false);
@@ -2056,6 +2071,7 @@ const ConversationAiAssistantPanel = ({
     inputMode: interactionMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
+    registerVoiceModeSessionControls,
     reportVoiceSessionState,
     setInputMode: requestInputMode,
     setVoiceActive,

@@ -119,6 +119,7 @@ const editorContextValue: EditorContextValue = {
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
+  setAiAssistantDockHeight: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},
@@ -2477,19 +2478,16 @@ describe("AiAssistantPanel composer submissions", () => {
     }: {
       context: PetrinautAiVoiceModeContext;
     }) => {
-      const { registerVoiceModeControls, reportVoiceSessionState } = context;
+      const { registerVoiceModeSessionControls, reportVoiceSessionState } =
+        context;
 
-      useEffect(
-        () =>
-          registerVoiceModeControls({
-            end: async () => undefined,
-            pause: vi.fn(),
-            reconnect: vi.fn(),
-            resume: vi.fn(),
-            setMicrophoneMuted: vi.fn(),
-          }),
-        [registerVoiceModeControls],
-      );
+      useEffect(() => {
+        if (!registerVoiceModeSessionControls) return;
+        return registerVoiceModeSessionControls({
+          end: async () => undefined,
+          pause: vi.fn(),
+        });
+      }, [registerVoiceModeSessionControls]);
       useEffect(() => {
         reportVoiceSessionState({
           canReadFullResponse: true,
@@ -2516,19 +2514,13 @@ describe("AiAssistantPanel composer submissions", () => {
     const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
 
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Voice playback options" }),
-    );
+    await screen.findByRole("region", { name: "Voice session" });
     expect(
-      (
-        await screen.findByRole("menuitem", { name: "Repeat question" })
-      ).getAttribute("aria-disabled"),
-    ).toBe("true");
+      screen.queryByRole("button", { name: "Voice playback options" }),
+    ).toBeNull();
     expect(
-      screen
-        .getByRole("menuitem", { name: "Read full response" })
-        .getAttribute("aria-disabled"),
-    ).toBe("true");
+      screen.queryByRole("button", { name: "Mute microphone" }),
+    ).toBeNull();
 
     rendered.rerenderPanel(aiAssistant(false), editorContextValue);
 

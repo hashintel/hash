@@ -30,13 +30,15 @@ import { VoiceTurnController } from "./voice-turn-controller";
 import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
-  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "@hashintel/petrinaut/ui";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
-let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
+let registeredVoiceModeControls:
+  | PetrinautAiVoiceModeSessionControls
+  | undefined;
 
 const VoiceInterviewHarness = () => {
   "use no memo";

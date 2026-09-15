@@ -54,7 +54,7 @@ export type PetrinautAiComposerControl = (
   context: PetrinautAiComposerControlContext,
 ) => ReactNode;
 
-/** Imperative lifecycle controls registered by a host-owned Voice mode. */
+/** Complete lifecycle controls retained for existing host-owned Voice modes. */
 export type PetrinautAiVoiceModeControls = {
   /**
    * Invalidates the active Voice generation synchronously, then finishes
@@ -83,6 +83,21 @@ export type PetrinautAiVoiceModeControls = {
   takeTurn?: () => Promise<void> | void;
 };
 
+/** Lifecycle controls registered by a session with provider-specific capabilities. */
+export type PetrinautAiVoiceModeSessionControls = Omit<
+  PetrinautAiVoiceModeControls,
+  "reconnect" | "resume" | "setMicrophoneMuted"
+> &
+  Partial<
+    Pick<
+      PetrinautAiVoiceModeControls,
+      "reconnect" | "resume" | "setMicrophoneMuted"
+    >
+  > & {
+    /** Retries browser-blocked session audio from a user gesture. */
+    retryPlayback?: () => void;
+  };
+
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
 export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   /** True when Petrinaut can retain one next voice turn while chat settles. */
@@ -95,6 +110,13 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
    */
   registerVoiceModeControls: (
     controls: PetrinautAiVoiceModeControls,
+  ) => () => void;
+  /**
+   * Registers a Voice session whose provider supports only a subset of the
+   * complete lifecycle controls.
+   */
+  registerVoiceModeSessionControls?: (
+    controls: PetrinautAiVoiceModeSessionControls,
   ) => () => void;
   /**
    * Publishes the live session state Petrinaut renders from. Pass `null` once

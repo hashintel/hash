@@ -83,6 +83,16 @@ export const useVoiceSessionCanRepeatQuestion = (): boolean => {
   );
 };
 
+export const useVoiceSessionCanRetryPlayback = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canRetryPlayback ?? false,
+    () => false,
+  );
+};
+
 export const useVoiceSessionCanTakeTurn = (): boolean => {
   const store = use(VoiceSessionContext);
 
