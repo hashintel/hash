@@ -50,7 +50,7 @@ export type StatusConditionEvaluationError = {
 
 const KEY_SEPARATOR = "\u0000";
 
-export const encodeInstanceKey = (keyValues: readonly string[]): InstanceKey =>
+const encodeInstanceKey = (keyValues: readonly string[]): InstanceKey =>
   keyValues.join(KEY_SEPARATOR);
 
 const toKeyString = (value: TokenAttributeValue): string =>
