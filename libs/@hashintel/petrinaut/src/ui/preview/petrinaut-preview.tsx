@@ -43,10 +43,7 @@ import {
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
 import { PreviewNetNavigation } from "./preview-net-navigation";
-import {
-  PreviewSimulationConfiguration,
-  PreviewSimulationPlaybackControls,
-} from "./preview-quick-simulation-controls";
+import { PreviewSimulationPlaybackControls } from "./preview-quick-simulation-controls";
 import { PreviewPropertiesPanel } from "./properties-panel";
 import {
   createPreviewSimulationCompiler,
@@ -293,11 +290,6 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
           <span className={previewTitleStyle} title={title}>
             {title}
           </span>
-          {quickSimulation && (
-            <PreviewSimulationConfiguration
-              parameterBounds={quickSimulation.parameterBounds}
-            />
-          )}
           {fullViewUrl !== undefined && (
             <Button
               href={fullViewUrl}
@@ -318,6 +310,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
             {quickSimulation && (
               <PreviewSimulationPlaybackControls
                 allowedPlaybackSpeeds={playbackOptions?.allowedPlaybackSpeeds}
+                parameterBounds={quickSimulation.parameterBounds}
               />
             )}
           </div>

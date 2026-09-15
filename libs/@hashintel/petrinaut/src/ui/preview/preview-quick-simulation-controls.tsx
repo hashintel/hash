@@ -1,6 +1,6 @@
 import { use, useRef, useState } from "react";
 
-import { Button, Icon, Popover } from "@hashintel/ds-components";
+import { Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
@@ -8,6 +8,8 @@ import { SimulationContext } from "../../react/simulation/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { SimulationControls } from "../views/Editor/components/BottomBar/simulation-controls";
+import { ToolbarButton } from "../views/Editor/components/BottomBar/toolbar-button";
+import { ToolbarDivider } from "../views/Editor/components/BottomBar/toolbar-divider";
 import { SimulationTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content";
 import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
 
@@ -103,13 +105,12 @@ const timelineStyle = css({
   borderColor: "neutral.bd.subtle",
 });
 
-const configurationLabelStyle = css({
-  "@media (max-width: 420px)": {
-    display: "none",
-  },
-});
-
-export const PreviewSimulationConfiguration = ({
+/**
+ * The scenario and parameters a run is configured with, opened from the
+ * playback bar: the choices and the Play button they feed are one task, and
+ * the bar is where the reader already is.
+ */
+const PreviewSimulationConfiguration = ({
   parameterBounds,
 }: Pick<PetrinautPreviewQuickSimulation, "parameterBounds">) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -117,21 +118,20 @@ export const PreviewSimulationConfiguration = ({
 
   return (
     <>
-      <Button
+      <ToolbarButton
         ref={triggerRef}
-        size="xs"
-        variant="ghost"
-        prefix={<Icon name="play" size="xs" />}
-        aria-label="Configure Quick Simulation"
-        aria-expanded={open}
+        tooltip="Quick Simulation: scenario and parameters"
+        ariaLabel="Configure Quick Simulation"
+        ariaExpanded={open}
+        isSelected={open}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
-        <span className={configurationLabelStyle}>Quick Simulation</span>
-      </Button>
+        <Icon name="sliders" />
+      </ToolbarButton>
       {open && (
         <Popover
           triggerRef={triggerRef}
-          position="bottom-end"
+          position="top-start"
           onClose={() => setOpen(false)}
         >
           <Popover.Container className={configurationPopoverStyle}>
@@ -151,7 +151,11 @@ export const PreviewSimulationConfiguration = ({
 
 export const PreviewSimulationPlaybackControls = ({
   allowedPlaybackSpeeds,
-}: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
+  parameterBounds,
+}: Pick<
+  PetrinautPreviewQuickSimulation,
+  "allowedPlaybackSpeeds" | "parameterBounds"
+>) => {
   const { activeSubnetId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
   const { totalFrames } = use(ExecutionFrameSourceContext);
@@ -168,6 +172,8 @@ export const PreviewSimulationPlaybackControls = ({
     >
       <div className={playbackControlsScrollStyle}>
         <div className={playbackControlsRowStyle}>
+          <PreviewSimulationConfiguration parameterBounds={parameterBounds} />
+          <ToolbarDivider />
           <SimulationControls
             allowedPlaybackSpeeds={
               allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined

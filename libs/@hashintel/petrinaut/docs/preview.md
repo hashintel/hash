@@ -41,9 +41,9 @@ canvas, selection, and inspector update together when you change nets.
 
 ## Quick Simulation
 
-Some embeds include Quick Simulation. Open **Quick Simulation** in the header
-to choose one of the model's named scenarios and adjust the parameters the
-embed makes available. The first scenario is selected when the embed does not
+Some embeds include Quick Simulation. Open it from the sliders button in the
+playback bar at the bottom of the canvas, next to Play, to choose one of the
+model's named scenarios and adjust the parameters the embed makes available. The first scenario is selected when the embed does not
 specify a valid one. There is no "No scenario" option in this surface.
 
 The selected scenario's initial marking appears on the shared canvas before a
