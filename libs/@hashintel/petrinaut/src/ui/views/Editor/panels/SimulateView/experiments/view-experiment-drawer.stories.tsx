@@ -53,10 +53,19 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const DrawerFromContext = () => {
+const DrawerFromContext = ({
+  presentation = "drawer",
+}: {
+  presentation?: "drawer" | "inline";
+}) => {
   const { experiments } = use(ExperimentsContext);
   return (
-    <ViewExperimentDrawer open onClose={() => {}} experiment={experiments[0]} />
+    <ViewExperimentDrawer
+      open
+      onClose={() => {}}
+      experiment={experiments[0]}
+      presentation={presentation}
+    />
   );
 };
 
@@ -68,6 +77,19 @@ export const Sweep: Story = {
     >
       <DrawerFromContext />
     </FakeExperimentsProvider>
+  ),
+};
+
+export const InlineResults: Story = {
+  render: () => (
+    <div style={{ height: "100vh", display: "flex" }}>
+      <FakeExperimentsProvider
+        initialExperiments={[makeParameterSweepExperiment()]}
+        restreamOnSelectionChange
+      >
+        <DrawerFromContext presentation="inline" />
+      </FakeExperimentsProvider>
+    </div>
   ),
 };
 
