@@ -14,7 +14,13 @@ export type I64 = Brand<bigint, "i64">;
 export type F32 = Brand<number, "f32">;
 export type F64 = Brand<number, "f64">;
 
+/** A byte-range or text-decoding failure. */
 export type DecoderErrorReason =
+  | {
+      readonly _tag: "invalid-range";
+      readonly byteOffset: number;
+      readonly byteLength: number;
+    }
   | {
       readonly _tag: "eof";
 
@@ -25,23 +31,28 @@ export type DecoderErrorReason =
       readonly _tag: "invalid-string";
     };
 
-export class DecoderError extends TaggedError<"DecoderError"> {
-  reason: DecoderErrorReason;
-  cause?: unknown;
-
+/** A rejected byte read with its range or UTF-8 failure. */
+export class DecoderError extends TaggedError<
+  "DecoderError",
+  DecoderErrorReason
+> {
+  /** Describes the read failure and retains an optional cause. */
   constructor(reason: DecoderErrorReason, options?: ErrorOptions) {
-    super("DecoderError", `unable to decode: ${reason._tag}`, options);
+    let message: string;
 
-    this.reason = reason;
-  }
-
-  get message(): string {
-    switch (this.reason._tag) {
+    switch (reason._tag) {
       case "eof":
-        return `End of file (${this.reason.byteLength} total bytes, requested ${this.reason.requestedByteLength} bytes)`;
+        message = `end of input (${reason.byteLength} bytes, requested ${reason.requestedByteLength} bytes)`;
+        break;
+      case "invalid-range":
+        message = `invalid byte range: offset ${reason.byteOffset}, length ${reason.byteLength}`;
+        break;
       case "invalid-string":
-        return `Invalid string`;
+        message = "invalid UTF-8 string";
+        break;
     }
+
+    super("DecoderError", reason, message, options);
   }
 }
 
@@ -58,9 +69,21 @@ export class Decoder<T extends ArrayBufferLike> {
     byteOffset: number,
     byteLength: number,
   ): Result.Result<void, DecoderError> {
-    // TODO: validate offset and byteLength
+    if (
+      !Number.isSafeInteger(byteOffset) ||
+      byteOffset < 0 ||
+      !Number.isSafeInteger(byteLength) ||
+      byteLength < 0
+    ) {
+      return Result.err(
+        new DecoderError({ _tag: "invalid-range", byteOffset, byteLength }),
+      );
+    }
 
-    if (byteOffset + byteLength > this.#view.byteLength) {
+    if (
+      byteOffset > this.#view.byteLength ||
+      byteLength > this.#view.byteLength - byteOffset
+    ) {
       return Result.err(
         new DecoderError({
           _tag: "eof",
@@ -74,19 +97,33 @@ export class Decoder<T extends ArrayBufferLike> {
   }
 
   #checkOffsetLength(byteLength: number): Result.Result<void, DecoderError> {
-    // TODO: validate byteLength
+    return this.#checkLength(this.#byteOffset, byteLength);
+  }
 
-    if (this.#byteOffset + byteLength > this.#view.byteLength) {
-      return Result.err(
-        new DecoderError({
-          _tag: "eof",
-          byteLength: this.#view.byteLength,
-          requestedByteLength: byteLength,
-        }),
-      );
-    }
+  /** Size of the input view in bytes. */
+  get byteLength(): number {
+    return this.#view.byteLength;
+  }
 
-    return Result.ok(undefined);
+  /** Current byte offset relative to the input view. */
+  get offset(): number {
+    return this.#byteOffset;
+  }
+
+  /** Number of bytes following the cursor. */
+  get remaining(): number {
+    return this.byteLength - this.#byteOffset;
+  }
+
+  /**
+   * Moves the cursor to an absolute offset within the input view.
+   *
+   * Returns {@link DecoderError} for an invalid offset or an offset past the input. Failure leaves the cursor unchanged.
+   */
+  seek(offset: number): Result.Result<void, DecoderError> {
+    return Result.map(this.#checkLength(offset, 0), () => {
+      this.#byteOffset = offset;
+    });
   }
 
   nextU8(): Result.Result<U8, DecoderError> {
@@ -179,7 +216,7 @@ export class Decoder<T extends ArrayBufferLike> {
     });
   }
 
-  nextUint8Array(length: number): Result.Result<Uint8Array, DecoderError> {
+  nextUint8Array(length: number): Result.Result<Uint8Array<T>, DecoderError> {
     return Result.map(this.#checkOffsetLength(length), () => {
       const value = new Uint8Array(
         this.#view.buffer,
@@ -196,7 +233,7 @@ export class Decoder<T extends ArrayBufferLike> {
   uint8Array(
     offset: number,
     length: number,
-  ): Result.Result<Uint8Array, DecoderError> {
+  ): Result.Result<Uint8Array<T>, DecoderError> {
     return Result.map(this.#checkLength(offset, length), () => {
       const value = new Uint8Array(
         this.#view.buffer,
@@ -211,7 +248,11 @@ export class Decoder<T extends ArrayBufferLike> {
   nextString(length: number): Result.Result<string, DecoderError> {
     return Result.andThen(this.nextUint8Array(length), (buffer) => {
       try {
-        return Result.ok(new TextDecoder().decode(buffer));
+        return Result.ok(
+          new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+            buffer,
+          ),
+        );
       } catch (exception) {
         return Result.err(
           new DecoderError(

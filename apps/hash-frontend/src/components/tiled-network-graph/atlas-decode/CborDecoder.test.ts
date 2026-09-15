@@ -663,6 +663,67 @@ describe("CborDecoder access", () => {
     }
   });
 
+  it("ignored_array_visitor_error", () => {
+    const result = new CborDecoder(Uint8Array.of(0x81, 1, 2)).decode({
+      expecting: "an array",
+      visitArray: (array) => {
+        const first = array.readElement({
+          expecting: "an accepted integer",
+          visitUnsignedInteger: () => Result.err("rejected"),
+        });
+        expect(Result.isErr(first)).toBe(true);
+        return array.readElement(unsignedVisitor);
+      },
+    });
+    expectError(result, "invalid-access", 2);
+  });
+
+  it("ignored_map_visitor_error", () => {
+    const result = new CborDecoder(Uint8Array.of(0xa1, 0, 1, 2)).decode({
+      expecting: "a map",
+      visitMap: (map) => {
+        expect(Result.isOk(map.readKey())).toBe(true);
+        const first = map.readValue({
+          expecting: "an accepted integer",
+          visitUnsignedInteger: () => Result.err("rejected"),
+        });
+        expect(Result.isErr(first)).toBe(true);
+        return map.readValue(unsignedVisitor);
+      },
+    });
+    expectError(result, "invalid-access", 3);
+  });
+
+  it("caught_element_exception", () => {
+    const cause = new Error("rejected integer");
+    const result = new CborDecoder(Uint8Array.of(0x81, 1, 2)).decode({
+      expecting: "an array",
+      visitArray: (array) => {
+        expect(() =>
+          array.readElement({
+            expecting: "an accepted integer",
+            visitUnsignedInteger: () => {
+              throw cause;
+            },
+          }),
+        ).toThrow(cause);
+        return array.readElement(unsignedVisitor);
+      },
+    });
+    expectError(result, "invalid-access", 2);
+  });
+
+  it("parse_error_precedence", () => {
+    const result = new CborDecoder(Uint8Array.of(0x81, 0xff)).decode({
+      expecting: "an array",
+      visitArray: (array) => {
+        expect(Result.isErr(array.readElement(unsignedVisitor))).toBe(true);
+        return Result.err("domain error");
+      },
+    });
+    expectError(result, "invalid-encoding", 1);
+  });
+
   it("ignored_parse_error", () => {
     const visitor: CborVisitor<null, never> = {
       expecting: "an array",
