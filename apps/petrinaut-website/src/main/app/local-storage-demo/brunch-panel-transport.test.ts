@@ -448,7 +448,7 @@ test("returns a fixture-scoped mutation result through the same Flue client", as
   });
 });
 
-test("omits hidden server tools while delivering hidden browser tools for execution", async () => {
+test("delivers automatic browser tools without a marker-specific stream filter", async () => {
   const admission: AgentSendResult = {
     streamUrl: "http://brunch.test/stream",
     offset: "offset-hidden",
@@ -466,7 +466,6 @@ test("omits hidden server tools while delivering hidden browser tools for execut
       position: { batch: 1, index: 0 },
     });
     for (const [index, toolName] of [
-      "brunch_mark_question",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
     ].entries()) {
@@ -484,14 +483,14 @@ test("omits hidden server tools while delivering hidden browser tools for execut
       type: "message-completed",
       conversationId: "conversation-stable",
       messageId: "assistant-hidden",
-      position: { batch: 1, index: 4 },
+      position: { batch: 1, index: 3 },
     });
     await options?.onEvent?.({
       type: "submission-settled",
       conversationId: "conversation-stable",
       submissionId: admission.submissionId,
       outcome: "completed",
-      position: { batch: 1, index: 5 },
+      position: { batch: 1, index: 4 },
     });
   });
   const transport = createBrunchPanelTransport(
@@ -534,7 +533,6 @@ test("omits hidden server tools while delivering hidden browser tools for execut
       toolName: "layout_petrinaut_net",
     }),
   );
-  expect(JSON.stringify(chunks)).not.toContain("brunch_mark_question");
 });
 
 test("refuses fixture traffic when the mounted Flue route is unavailable", async () => {

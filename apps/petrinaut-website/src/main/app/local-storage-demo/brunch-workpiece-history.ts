@@ -38,7 +38,11 @@ export type BrunchWorkpieceHistory = {
   readonly whyPredatesSettlement: boolean;
 };
 
-/** Folds only validated outputs; historical tool inputs never become state. */
+/**
+ * Folds successful tool results only. A settlement body is read from the
+ * input solely when its output binds that same call (`revisionId ===
+ * toolCallId`); failed, pending or unbound inputs never become state.
+ */
 export const foldBrunchWorkpieceHistory = (
   messages: readonly BrunchWorkpieceHistoryMessage[],
   binding: {
@@ -72,18 +76,22 @@ export const foldBrunchWorkpieceHistory = (
         if (why) {
           whyPredatesSettlement = true;
         }
+        // A successful settlement output carries identity only; the body is
+        // the canonical input the server hashed and accepted under that
+        // toolCallId. Neither side is state by itself.
         if (
           isRecord(part.output) &&
+          isRecord(part.input) &&
           part.output.revisionId === part.toolCallId &&
           typeof part.output.sha256 === "string" &&
           typeof part.output.ordinal === "number" &&
-          typeof part.output.markdown === "string"
+          typeof part.input.markdown === "string"
         ) {
           activityIdentities.add(part.toolCallId);
           report = {
             toolCallId: part.toolCallId,
             source: "settlement",
-            workpiece: part.output,
+            workpiece: { ...part.output, markdown: part.input.markdown },
           };
           stateChangedSinceReport = false;
         }

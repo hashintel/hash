@@ -37,7 +37,6 @@ test("the built agent settles a revision over the mounted route", () => {
         revisionId: "settled-revision",
         sha256: markdownSha256,
         ordinal: 1,
-        markdown: result.markdown,
         mutation: {
           baseRevisionId: null,
           beforeSha256: null,

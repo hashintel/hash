@@ -132,10 +132,8 @@ const probe = async () => {
 
     const mixed = [];
     for (const names of [
-      ["brunch_mark_question", "addType"],
       ["mutate_workpiece", "addType"],
-      ["brunch_mark_question", "mutate_workpiece", "addType"],
-      ["addType", "mutate_workpiece", "brunch_mark_question"],
+      ["addType", "mutate_workpiece"],
     ]) {
       const caseId = names.join("-");
       const typeInput = {
@@ -146,15 +144,9 @@ const probe = async () => {
         elements: [],
       } satisfies PetrinautAiToolInput<"addType">;
       const generated = names.map((name) =>
-        fauxToolCall(
-          name,
-          name === "addType"
-            ? typeInput
-            : name === "mutate_workpiece"
-              ? { markdown }
-              : { question: "What remains unknown?" },
-          { id: `${caseId}-${name}` },
-        ),
+        fauxToolCall(name, name === "addType" ? typeInput : { markdown }, {
+          id: `${caseId}-${name}`,
+        }),
       );
       const contextStart = contexts.length;
       faux.setResponses([

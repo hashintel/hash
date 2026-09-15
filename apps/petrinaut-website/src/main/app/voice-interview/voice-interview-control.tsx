@@ -596,7 +596,7 @@ const AvailableVoiceInterviewControl = ({
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: canonicalSpeech.segments.map(correlateSegment),
-      ...(canonicalSpeech.questionSegment
+      ...(context.status === "ready" && canonicalSpeech.questionSegment
         ? { questionSegment: correlateSegment(canonicalSpeech.questionSegment) }
         : {}),
       settlements,

@@ -7,6 +7,10 @@ import {
 } from "./client-tool-result";
 import { serializeErrorText } from "./error-text";
 import {
+  readLiveToolStream,
+  type LiveToolStreamOptions,
+} from "./live-tool-stream";
+import {
   createFlueUiStream,
   type ClientToolProjectionOptions,
   type FlueUiStreamOptions,
@@ -53,9 +57,15 @@ export {
 export {
   createFlueUiStream,
   type ClientToolProjectionOptions,
+  type FlueUiStream,
   type FlueUiStreamOptions,
   type FlueUiToolOutputError,
 } from "./ui-stream";
+export {
+  readLiveToolStream,
+  type LiveToolStreamEvent,
+  type LiveToolStreamOptions,
+} from "./live-tool-stream";
 
 export interface FlueChatResponseMessageEvent {
   readonly messageId: string;
@@ -83,6 +93,16 @@ export interface FlueChatTransportOptions extends ClientToolProjectionOptions {
   readonly clientToolResultMetadata?: (
     result: ClientToolResult,
   ) => ClientToolResult["metadata"];
+  /**
+   * Promote verified model-required fields out of a host metadata sidecar.
+   * The callback receives the sidecar produced for this exact result.
+   */
+  readonly clientToolResultOutput?: (
+    result: ClientToolResult,
+    metadata: ClientToolResult["metadata"],
+  ) => ClientToolResult["output"];
+  /** Best-effort pre-admission presentation; canonical Flue history remains authoritative. */
+  readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -320,6 +340,7 @@ const streamSubmission = (
   // controller immediately, so the detached `wait()` settlement below must not
   // write or close again afterwards.
   let closed = false;
+  let disconnectLive: (() => void) | undefined;
 
   return new ReadableStream<UIMessageChunk>({
     start(controller) {
@@ -333,6 +354,8 @@ const streamSubmission = (
       const close = (): void => {
         if (closed) return;
         closed = true;
+        disconnectLive?.();
+        localAbort.abort();
         controller.close();
       };
       const write = (chunk: UIMessageChunk): void => {
@@ -358,13 +381,33 @@ const streamSubmission = (
         mapClientToolInput: options.mapClientToolInput,
         hiddenToolNames: options.hiddenToolNames,
         onToolOutputError: options.onToolOutputError,
+        provisionalMessageId: (turnId) =>
+          continuationMessageId ?? `live:${admission.submissionId}:${turnId}`,
         write,
       });
+      disconnectLive = projector.disconnectLive;
+      if (options.liveToolStream !== undefined) {
+        void readLiveToolStream({
+          conversationUrl: options.client.url,
+          onEvent: projector.acceptLive,
+          options: options.liveToolStream,
+          signal,
+          submissionId: admission.submissionId,
+        })
+          .then(() => {
+            if (!signal.aborted) projector.disconnectLive();
+          })
+          .catch((error: unknown) => {
+            options.liveToolStream?.onError?.(error);
+            if (!signal.aborted) projector.disconnectLive();
+          });
+      }
 
       void options.client
         .wait(admission, {
           signal,
           onEvent: (event) => {
+            projector.accept(event);
             if (
               event.type === "message-started" &&
               event.submissionId === admission.submissionId
@@ -372,7 +415,10 @@ const streamSubmission = (
               // Report the id the consumer sees: a client-tool continuation is
               // projected onto the assistant message it resumes.
               responseMessage = {
-                effectiveId: continuationMessageId ?? event.messageId,
+                effectiveId:
+                  continuationMessageId ??
+                  projector.effectiveMessageId(event.messageId) ??
+                  event.messageId,
                 flueId: event.messageId,
               };
               options.onResponseMessage?.({
@@ -381,7 +427,6 @@ const streamSubmission = (
                 submissionId: admission.submissionId,
               });
             }
-            projector.accept(event);
             if (
               event.type === "message-completed" &&
               event.messageId === responseMessage?.flueId
@@ -404,6 +449,7 @@ const streamSubmission = (
     },
     cancel(reason) {
       closed = true;
+      disconnectLive?.();
       localAbort.abort(reason);
     },
   });
@@ -428,15 +474,18 @@ export const createFlueChatTransport = <
             messageId,
             options.clientToolNames,
           )
-            // oxlint-disable-next-line oxc/no-map-spread -- Preserve immutable canonical results while adding the host sidecar.
-            .map((result) =>
-              options.clientToolResultMetadata === undefined
-                ? result
-                : {
-                    ...result,
-                    metadata: options.clientToolResultMetadata(result),
-                  },
-            )
+            .map((result) => {
+              const metadata = options.clientToolResultMetadata?.(result);
+              const output =
+                options.clientToolResultOutput === undefined
+                  ? result.output
+                  : options.clientToolResultOutput(result, metadata);
+              return {
+                ...result,
+                output,
+                ...(metadata === undefined ? {} : { metadata }),
+              };
+            })
             .toSorted((left, right) =>
               left.toolCallId < right.toolCallId
                 ? -1

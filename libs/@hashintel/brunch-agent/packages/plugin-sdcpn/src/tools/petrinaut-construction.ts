@@ -73,7 +73,7 @@ export {
 
 export const observedDefinitionReadTool = defineTool({
   name: readPetrinautNetToolName,
-  description: `${petrinautAiTools.getLatestNetDefinition.description}\nThe browser also returns metadata.observation: copy its toolCallId and observed.sha256 into mutate_petrinaut_net.observation.toolCallId and baseHash. For query_workpiece, copy the same toolCallId into selector.observationToolCallId. These identify this exact document read, not the workpiece. Call in its own proposal and wait for the browser result before using it; obtain a fresh read after any mutation or layout.`,
+  description: `${petrinautAiTools.getLatestNetDefinition.description}\nThe browser output also returns observation: copy its toolCallId and sha256 into mutate_petrinaut_net.observation.toolCallId and baseHash. For query_workpiece, copy the same toolCallId into selector.observationToolCallId. These identify this exact document read, not the workpiece. Call in its own proposal and wait for the browser result before using it; obtain a fresh read after any mutation or layout.`,
   input: petrinautAiTools.getLatestNetDefinition.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
   run() {
@@ -98,7 +98,7 @@ export const observedCompilationReadTool = defineTool({
  */
 export const observedLayoutCommandTool = defineTool({
   name: layoutPetrinautNetToolName,
-  description: `${petrinautAiTools.applyAutoLayout.description}\nLayout is a recorded document mutation, separate from mutate_petrinaut_net. Call it in its own proposal after a batch that added or restructured places or transitions, never after a batch that only changed types, parameters or dynamics. The browser result's metadata.layoutRecord reports the observed pre hash, post hash and position effects; the post hash is the current base, so obtain a fresh read_petrinaut_net before any further mutation.`,
+  description: `${petrinautAiTools.applyAutoLayout.description}\nLayout is a recorded document mutation, separate from mutate_petrinaut_net. Call it in its own proposal after a batch that added or restructured places or transitions, never after a batch that only changed types, parameters or dynamics. Obtain a fresh read_petrinaut_net after layout and before any further mutation; host-only layout provenance is not model context.`,
   input: petrinautAiTools.applyAutoLayout.inputSchema,
   output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
   run() {

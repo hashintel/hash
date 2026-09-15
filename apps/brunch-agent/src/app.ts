@@ -19,6 +19,9 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
+import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
+import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
 import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
@@ -45,6 +48,20 @@ instrument({
   observe: diagnostics.observe,
   interceptor: (_operation, _context, next) => next(),
   dispose() {},
+});
+const liveToolBroadcaster = createLiveToolBroadcaster();
+const liveToolObserver = createLiveToolObserver(
+  liveToolBroadcaster,
+  ChatAgent.agentName,
+);
+instrument({
+  key: Symbol.for("brunch.live-pending-tools"),
+  observe: liveToolObserver.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose() {
+    liveToolObserver.dispose();
+    liveToolBroadcaster.close();
+  },
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is an async execution flag, never a proposal/state ledger.
@@ -114,6 +131,7 @@ app.use(
   `${chatAgentMount}/*`,
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
+app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
   `${WORKED_MODELS_ROUTE}/*`,

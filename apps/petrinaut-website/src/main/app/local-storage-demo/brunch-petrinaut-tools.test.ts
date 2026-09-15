@@ -156,6 +156,10 @@ describe("Brunch-named Petrinaut tools", () => {
         parameters: true,
         subnets: false,
       },
+      observation: {
+        toolCallId: "call-1",
+        sha256: observeBrowserDefinition(instance.handle).sha256,
+      },
     });
   });
 

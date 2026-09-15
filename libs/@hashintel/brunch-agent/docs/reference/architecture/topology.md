@@ -128,7 +128,6 @@ those remain with their definition owners.
 | `task` | Flue | Flue | substrate delegation |
 | `activate_skill` | Flue | Flue | skill activation |
 | `read_skill_resource` | Flue | Flue | skill resource read |
-| `brunch_mark_question` | Brunch core | Brunch app | question relay metadata |
 | `mutate_workpiece` | Brunch core | Brunch app | durable full-revision write with recorded delta |
 | `read_petrinaut_net` | Petrinaut Core | Petrinaut website | current document read |
 | `read_petrinaut_docs` | Petrinaut Core | Petrinaut website | user-guide read |
@@ -138,6 +137,14 @@ those remain with their definition owners.
 | `read_workpiece` | Brunch core | Brunch app | workpiece/source/locator read |
 | `query_workpiece` | Brunch app | Brunch app | current-model explanation and provenance query |
 | `ping` | Brunch app | Brunch app | server diagnostic |
+
+Voice derives its repeatable question segment in the browser from the whole
+finalized assistant text of the folded turn. A text part followed by more tool
+work is not final; after a client-tool continuation, all finalized text parts
+in that assistant message form one stable, message-addressed segment. Empty,
+tool-only and stopped replies produce no new segment. Historical
+`brunch_mark_question` rows remain hidden and `data-brunch-question` parts
+remain loadable as inert data, but neither can select or override Voice speech.
 
 Stock Petrinaut has its own canonical individual AI-tool surface and history.
 Legacy/headless Brunch modes still mount individual construction tools for

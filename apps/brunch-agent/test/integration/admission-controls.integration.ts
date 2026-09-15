@@ -25,7 +25,6 @@ import {
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -70,7 +69,6 @@ const browserNames: ReadonlySet<string> = new Set([
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
     clientToolNames: browserNames,
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   });
 const faux = fauxProvider({
   provider: "anthropic",
@@ -152,20 +150,11 @@ const run = async () => {
   const observations = [];
   try {
     for (const names of [
-      [BRUNCH_QUESTION_TOOL_NAME, "addType"],
-      ["addType", BRUNCH_QUESTION_TOOL_NAME],
       ["mutate_workpiece", "addType"],
       ["addType", "mutate_workpiece"],
-      [BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece", "addType"],
-      [BRUNCH_QUESTION_TOOL_NAME, "addType", "mutate_workpiece"],
-      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME, "addType"],
-      ["mutate_workpiece", "addType", BRUNCH_QUESTION_TOOL_NAME],
-      ["addType", BRUNCH_QUESTION_TOOL_NAME, "mutate_workpiece"],
-      ["addType", "mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
       ["addType", "unmounted_admission_probe"],
       ["addType"],
-      [BRUNCH_QUESTION_TOOL_NAME],
-      ["mutate_workpiece", BRUNCH_QUESTION_TOOL_NAME],
+      ["mutate_workpiece"],
     ]) {
       caseId = names.join("-");
       const client = clientFor();
@@ -310,12 +299,7 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          ...(abort
-            ? [makeCall("addType")]
-            : [
-                makeCall("mutate_workpiece"),
-                makeCall(BRUNCH_QUESTION_TOOL_NAME),
-              ]),
+          ...(abort ? [makeCall("addType")] : [makeCall("mutate_workpiece")]),
         ],
         { stopReason: "toolUse" },
       );
@@ -391,7 +375,7 @@ const run = async () => {
       });
     }
     const rejected = observations.find(
-      (observation) => observation.caseId === "brunch_mark_question-addType",
+      (observation) => observation.caseId === "mutate_workpiece-addType",
     )!;
     const priorIds = new Set(
       rejected.seeded.messages.map((message) => message.id),

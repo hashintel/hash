@@ -379,6 +379,42 @@ const project = (snapshot: FlueConversationSnapshot) =>
     clientToolNames: new Set([READ_PETRINAUT_DOCS_TOOL_NAME]),
     hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   });
+const legacyQuestionMarkerHistory = JSON.parse(
+  await readFile(
+    new URL(
+      "../fixtures/history-retention/legacy-question-marker.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+) as FlueConversationSnapshot;
+const legacyQuestionMarkerMessages = project(legacyQuestionMarkerHistory);
+assert.equal(legacyQuestionMarkerMessages.length, 1);
+assert(
+  legacyQuestionMarkerMessages[0]?.parts.some(
+    (part) => part.type === "data-brunch-question",
+  ),
+  "Legacy question data must remain hydratable as an inert data part",
+);
+assert(
+  legacyQuestionMarkerMessages[0]?.parts.every(
+    (part) =>
+      !(
+        "toolCallId" in part &&
+        part.toolCallId === "legacy-question-marker-call"
+      ),
+  ),
+  "Legacy question tool rows must remain hidden after hydration",
+);
+assert(
+  legacyQuestionMarkerMessages[0]?.parts.some(
+    (part) =>
+      part.type === "text" &&
+      part.text ===
+        "The historical response still loads. Which current fact should we inspect?",
+  ),
+  "Legacy marker carriage must not suppress finalized assistant prose",
+);
 const status = async (operation: () => Promise<unknown>) => {
   try {
     await operation();
@@ -780,7 +816,7 @@ try {
       "The model sees the exact authored arguments, independently of settled readbacks",
     );
     const markdownOccurrences = countExactString(
-      finalContext.messages.filter((message) => message.role === "toolResult"),
+      finalContext.messages,
       markdown,
     );
     const compactionContexts = contexts.filter(
@@ -792,28 +828,19 @@ try {
       const payload = JSON.stringify(entry.context);
       if (payload.includes("markdownReference"))
         assert(
-          payload.includes("markdownIdentity"),
+          payload.includes("Authoritative retained detail."),
           `Compaction consumer ${entry.purpose}[${index}] has a content reference without its authoritative body: ${payload.slice(Math.max(0, payload.indexOf("markdownReference") - 300), payload.indexOf("markdownReference") + 500)}`,
         );
     }
     assert(
       compactionContexts.some(
         (entry) =>
-          entry.purpose === "compaction_prefix" &&
-          JSON.stringify(entry.context).includes("markdownReference"),
-      ),
-      "The forced split-turn cut must exercise compact reference carriage",
-    );
-    assert(
-      compactionContexts.some(
-        (entry) =>
-          entry.purpose === "compaction_prefix" &&
-          !JSON.stringify(entry.context).includes("markdownReference") &&
+          JSON.stringify(entry.context).includes("markdownReference") &&
           JSON.stringify(entry.context).includes(
             "Authoritative retained detail.",
           ),
       ),
-      "A split-turn consumer without the referenced target must restore the exact body instead of stranding a reference",
+      "At least one complete compaction consumer must carry a reference with its authority",
     );
     const snapshot = await client.history();
     const workpieceOutputs = snapshot.messages
@@ -826,9 +853,25 @@ try {
           : [],
       );
     assert.equal(workpieceOutputs.length, 3);
+    const mutationPart = snapshot.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "a4-workpiece-mutation",
+      );
     assert(
-      workpieceOutputs.every((output) => output.includes(encodedMarkdown)),
-      "Public history must retain every complete authoritative result",
+      mutationPart?.type === "dynamic-tool" &&
+        mutationPart.state === "output-available",
+    );
+    assert(
+      !JSON.stringify(mutationPart.output).includes(encodedMarkdown),
+      "Canonical settlement output must remain pointer-only",
+    );
+    assert(
+      workpieceOutputs.filter((output) => output.includes(encodedMarkdown))
+        .length === 2,
+      "Canonical content reads must retain their complete authoritative bodies",
     );
     const canonical = JSON.stringify(canonicalRecords());
     const finalContextJson = JSON.stringify(finalContext);
@@ -855,12 +898,13 @@ try {
     const publicJson = JSON.stringify(snapshot);
     const payloadClassCharacters = {
       workpieceMarkdown: {
-        retained: workpieceOutputs.reduce(
-          (total, output) =>
-            total +
-            (output.includes(encodedMarkdown) ? encodedMarkdown.length : 0),
-          0,
-        ),
+        retained:
+          workpieceOutputs.reduce(
+            (total, output) =>
+              total +
+              (output.includes(encodedMarkdown) ? encodedMarkdown.length : 0),
+            0,
+          ) + encodedMarkdown.length,
         provider: markdownOccurrences * encodedMarkdown.length,
       },
       mutationOutput: {
@@ -913,7 +957,7 @@ try {
     assert.equal(
       markdownOccurrences,
       1,
-      "The final provider request must retain one authoritative Markdown body",
+      "The final provider request must retain one authoritative submitted Markdown body",
     );
   } else if (projectionOracle) {
     const seed = JSON.parse(
@@ -930,8 +974,30 @@ try {
       "Fresh-process reopen must preserve exact canonical/public history",
     );
     assert.equal(faux.state.callCount, 0);
+    const originalRevision = seed.snapshot.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "a4-workpiece-mutation" &&
+          part.state === "output-available",
+      );
+    assert(
+      originalRevision?.type === "dynamic-tool" &&
+        originalRevision.state === "output-available",
+    );
+    const reconciledMarkdown = `${seed.markdown}\n\nA4 reconciled after fresh-process reopen.`;
     responses.push(
       tools("read_workpiece", {}, "a4-reopened-workpiece-read"),
+      tools(
+        "mutate_workpiece",
+        {
+          markdown: reconciledMarkdown,
+          baseRevisionId: (originalRevision.output as { revisionId: string })
+            .revisionId,
+        },
+        "a4-reopened-workpiece-mutation",
+      ),
       fauxAssistantMessage("A4 reopened exact reread complete."),
     );
     await send(
@@ -965,6 +1031,25 @@ try {
         .currentWorkpiece.markdown,
       seed.markdown,
     );
+    const reconciled = continued.messages
+      .flatMap((message) => message.parts)
+      .find(
+        (part) =>
+          part.type === "dynamic-tool" &&
+          part.toolCallId === "a4-reopened-workpiece-mutation",
+      );
+    assert(
+      reconciled?.type === "dynamic-tool" &&
+        reconciled.state === "output-available",
+    );
+    assert.equal(
+      (reconciled.output as { revisionId: string }).revisionId,
+      "a4-reopened-workpiece-mutation",
+    );
+    assert(
+      !("markdown" in (reconciled.output as Record<string, unknown>)),
+      "Reconciled canonical output remains pointer-only",
+    );
     await save("projection-reopened.json", continued);
   } else if (phase === "create") {
     assert.equal(
@@ -974,11 +1059,6 @@ try {
     );
     responses.push(
       tools("ping", { note: "a4-early-ping" }, "a4-ping-early"),
-      tools(
-        BRUNCH_QUESTION_TOOL_NAME,
-        { question: "Which synthetic record follows?" },
-        "a4-question",
-      ),
       tools(
         READ_PETRINAUT_DOCS_TOOL_NAME,
         { doc: "ai-assistant" },
@@ -1058,13 +1138,7 @@ try {
       .filter((part) => part.type === "dynamic-tool");
     assert.deepEqual(
       publicTools.map((part) => part.toolCallId),
-      [
-        "a4-ping-early",
-        "a4-question",
-        "a4-doc-early",
-        "a4-ping-middle",
-        "a4-doc-late",
-      ],
+      ["a4-ping-early", "a4-doc-early", "a4-ping-middle", "a4-doc-late"],
     );
     for (const suffix of ["early", "middle"]) {
       const ping = publicTools.find(
@@ -1074,16 +1148,6 @@ try {
       assert.deepEqual(ping.input, { note: `a4-${suffix}-ping` });
       assert.deepEqual(ping.output, { ok: true, note: `a4-${suffix}-ping` });
     }
-    const marker = publicTools.find(
-      (part) => part.toolCallId === "a4-question",
-    );
-    assert(marker?.state === "output-available");
-    assert.deepEqual(marker.output, { marked: true });
-    assert(
-      before.messages
-        .flatMap((message) => message.parts)
-        .some((part) => part.type === "data-brunch-question"),
-    );
     const clientResults = clientToolHistoryFrom(before.messages).results;
     assert.deepEqual(
       clientResults.map((result) => result.toolCallId),
@@ -1245,7 +1309,7 @@ try {
           ? compactions.some(
               (event) =>
                 !event.isError &&
-                event.messagesBefore === 20 &&
+                event.messagesBefore === 18 &&
                 event.messagesAfter === 3,
             )
           : compactions.some(
@@ -1253,7 +1317,7 @@ try {
                 !event.isError && event.messagesAfter < event.messagesBefore,
             ),
         silentOverflow
-          ? "Silent overflow must fold the known 20-message window to 3"
+          ? "Silent overflow must fold the known 18-message marker-free window to 3"
           : "Actual successful folding must reduce runtime context messages",
       );
       assert(
@@ -1373,7 +1437,7 @@ try {
       assert.deepEqual(
         project(after).slice(0, project(before).length),
         project(before),
-        "Reopened UI projection must retain completed causal tools and question data",
+        "Reopened UI projection must retain completed causal tools",
       );
     }
   } else {

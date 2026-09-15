@@ -1,79 +1,9 @@
-import * as v from "valibot";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 
-import { createBrunchQuestionMarkerTool } from "../src/flue";
-import {
-  BRUNCH_QUESTION_DATA_NAME,
-  BRUNCH_QUESTION_TOOL_NAME,
-  BrunchQuestionDataSchema,
-  BrunchQuestionInputSchema,
-  parseBrunchQuestionData,
-  type BrunchQuestionData,
-} from "../src/question-marker";
+import { BRUNCH_QUESTION_TOOL_NAME } from "../src/question-marker";
 
-import type { FlueLogger } from "@flue/runtime";
-
-describe("the Brunch question marker", () => {
-  test("defines one non-interactive tool and data-part identity", () => {
+describe("legacy Brunch question-marker hydration", () => {
+  test("retains the persisted tool identity needed to hide old rows", () => {
     expect(BRUNCH_QUESTION_TOOL_NAME).toBe("brunch_mark_question");
-    expect(BRUNCH_QUESTION_DATA_NAME).toBe("brunch-question");
-  });
-
-  test("preserves exact non-blank question text and tool-call identity", () => {
-    const question = "  Which line should run this order?  ";
-
-    expect(
-      v.parse(BrunchQuestionInputSchema, {
-        question,
-      }),
-    ).toEqual({ question });
-    expect(
-      v.parse(BrunchQuestionDataSchema, {
-        question,
-        toolCallId: "tool-question-1",
-      }),
-    ).toEqual({ question, toolCallId: "tool-question-1" });
-  });
-
-  test("writes the exact marker without terminating or waiting for an answer", async () => {
-    const writeQuestion = vi.fn<(question: BrunchQuestionData) => void>();
-    const tool = createBrunchQuestionMarkerTool(writeQuestion);
-
-    const result = await tool.run({
-      data: { question: "Which line should run this order?" },
-      log: {
-        error: vi.fn<FlueLogger["error"]>(),
-        info: vi.fn<FlueLogger["info"]>(),
-        warn: vi.fn<FlueLogger["warn"]>(),
-      },
-      toolCallId: "tool-question-1",
-    });
-
-    expect(writeQuestion).toHaveBeenCalledOnce();
-    expect(writeQuestion).toHaveBeenCalledWith({
-      question: "Which line should run this order?",
-      toolCallId: "tool-question-1",
-    });
-    expect(result).toEqual({ output: { marked: true } });
-  });
-
-  test.each([
-    { question: "" },
-    { question: "   " },
-    { question: "What matters?", toolCallId: "" },
-    { question: "What matters?", toolCallId: "   " },
-  ])("rejects an incomplete marker: %j", (marker) => {
-    expect(v.safeParse(BrunchQuestionDataSchema, marker).success).toBe(false);
-    expect(parseBrunchQuestionData(marker)).toBeUndefined();
-  });
-
-  test("parses exact question data at the client projection boundary", () => {
-    const marker = {
-      question: "  Which line should run this order?  ",
-      toolCallId: "tool-question-1",
-    };
-
-    expect(parseBrunchQuestionData(marker)).toEqual(marker);
-    expect(parseBrunchQuestionData(null)).toBeUndefined();
   });
 });

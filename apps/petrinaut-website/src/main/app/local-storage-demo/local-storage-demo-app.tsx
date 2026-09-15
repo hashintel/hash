@@ -834,6 +834,17 @@ export const LocalStorageDemoApp = ({
               }
             : {}),
           dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+          ...(transportClientPromise === flueClientPromise &&
+          conversationId !== null
+            ? {
+                liveToolStream: {
+                  headers: agentOwnershipHeaders({
+                    conversationId,
+                    principalKey: brunchPrincipal,
+                  }),
+                },
+              }
+            : {}),
           ...(constructionClientTools === undefined
             ? {}
             : {
@@ -845,6 +856,8 @@ export const LocalStorageDemoApp = ({
                   mutationRecorder?.validatedClientToolNames,
                 clientToolResultMetadata:
                   mutationRecorder?.clientToolResultMetadata,
+                clientToolResultOutput:
+                  mutationRecorder?.clientToolResultOutput,
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -864,6 +877,7 @@ export const LocalStorageDemoApp = ({
       : stockChatTransport;
   }, [
     conversationTracker,
+    conversationId,
     constructionClientTools,
     constructionSelected,
     batchedConstructionSelected,
@@ -871,6 +885,7 @@ export const LocalStorageDemoApp = ({
     rootArcBrowser,
     crewReservationSession.transportUnavailableReason,
     fixtureConfiguration,
+    flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,

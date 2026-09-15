@@ -19,10 +19,7 @@ import {
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
-import {
-  BRUNCH_QUESTION_DATA_NAME,
-  BRUNCH_QUESTION_TOOL_NAME,
-} from "@hashintel/brunch-agent/question-marker";
+import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
 import {
@@ -85,35 +82,6 @@ const userTextFromHistory = (
     .map((part) => part.text)
     .join("");
 
-const questionMarkerFromHistory = (
-  messages: ReturnType<typeof snapshotToUiMessages>,
-): unknown => {
-  const marker = messages
-    .flatMap((message) => message.parts)
-    .find(
-      (part) =>
-        part.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in part,
-    );
-  return marker !== undefined && "data" in marker ? marker.data : undefined;
-};
-
-const questionMarkerFromChunks = (
-  chunks: readonly UIMessageChunk[],
-): unknown => {
-  const marker = chunks.find(
-    (chunk) =>
-      chunk.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in chunk,
-  );
-  return marker !== undefined && "data" in marker ? marker.data : undefined;
-};
-
-const questionToolVisibleInHistory = (
-  messages: ReturnType<typeof snapshotToUiMessages>,
-): boolean =>
-  messages
-    .flatMap((message) => message.parts)
-    .some((part) => part.type === `tool-${BRUNCH_QUESTION_TOOL_NAME}`);
-
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
@@ -149,8 +117,6 @@ try {
     const result: PetrinautResumeResult = {
       historyGetStatus: 200,
       historyUserText: userTextFromHistory(historyMessages),
-      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
-      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       transcript: formatFlueTranscript(snapshot),
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
@@ -232,16 +198,6 @@ try {
             READ_PETRINAUT_DOC_TOOL_NAME,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-      fauxAssistantMessage(
-        [
-          fauxToolCall(
-            BRUNCH_QUESTION_TOOL_NAME,
-            { question },
-            { id: "tool-question-1" },
           ),
         ],
         { stopReason: "toolUse" },
@@ -440,14 +396,6 @@ try {
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
-      questionMarkerLive: questionMarkerFromChunks(resumedChunks),
-      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
-      questionToolVisibleLive: resumedChunks.some(
-        (chunk) =>
-          chunk.type === "tool-input-available" &&
-          chunk.toolName === BRUNCH_QUESTION_TOOL_NAME,
-      ),
-      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       historyUserEntryCount: userEntryIds.length,
       historyClientToolResultCount: clientToolResultCount,
       historyGetStatus: 200,

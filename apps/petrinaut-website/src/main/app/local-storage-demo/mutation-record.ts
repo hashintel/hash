@@ -14,6 +14,7 @@ import {
   mutatePetrinetOutputSchema,
   mutatePetrinautNetToolName,
   observedMutationOutcome,
+  parseClientToolResultMetadata,
   parseJoinedRootArcInput,
   parseObservedArcInput,
   reconcileMutationAttempts,
@@ -537,10 +538,34 @@ export const createJoinedBrowserMutationRecorder = (input: {
       );
     return { mutationRecord } satisfies ClientToolResultMetadata;
   };
+  const clientToolResultOutput: NonNullable<
+    FlueChatTransportOptions["clientToolResultOutput"]
+  > = (result, metadata) => {
+    if (!isReadPetrinautNetToolName(result.toolName)) return result.output;
+    const observation = parseClientToolResultMetadata(metadata)?.observation;
+    if (
+      observation === undefined ||
+      typeof result.output !== "object" ||
+      result.output === null ||
+      Array.isArray(result.output)
+    ) {
+      throw new Error(
+        "A browser read requires verified model-visible observation identity.",
+      );
+    }
+    return {
+      ...result.output,
+      observation: {
+        toolCallId: observation.toolCallId,
+        sha256: observation.observed.sha256,
+      },
+    };
+  };
   return {
     ...recorder,
     mapClientToolInput,
     clientToolResultMetadata,
+    clientToolResultOutput,
     validatedClientToolNames: new Set(
       input.construction
         ? [

@@ -138,8 +138,8 @@ const assertRevision = (
     revisionId,
     sha256: createHash("sha256").update(content).digest("hex"),
     ordinal,
-    markdown: content,
   };
+  const revision = { ...pointer, markdown: content };
   const before = previous?.markdown ?? "";
   let commonPrefixUtf16 = 0;
   while (
@@ -194,7 +194,7 @@ const assertRevision = (
         },
       },
     },
-    "Stable call/result identity, ordinal, and exact markdown",
+    "Stable call/result identity, ordinal, and pointer-only receipt",
   );
   const signal = snapshot.messages.findLast(
     (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
@@ -207,7 +207,7 @@ const assertRevision = (
   ) as { currentWorkpiece: unknown };
   assert.deepEqual(
     context.currentWorkpiece,
-    pointer,
+    revision,
     "A successful result must retain its exact current state, not only historical JSON",
   );
 };

@@ -21,6 +21,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
 import { createHeadlessPetrinautClient } from "../src/evaluations/runbook/headless-petrinaut-client.ts";
 
 import type { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
@@ -238,7 +239,11 @@ export const seedRetentionApplication = async (options: {
   faux.setResponses([
     retentionCall(
       "read_workpiece",
-      { markdown: retentionMarkdown, locateTexts: [...retentionQuotes] },
+      {
+        includeSources: true,
+        markdown: retentionMarkdown,
+        locateTexts: [...retentionQuotes],
+      },
       "retention-discover",
     ),
     (context) => {
@@ -485,7 +490,8 @@ export const seedRetentionApplication = async (options: {
     );
   assert(governingPart?.type === "dynamic-tool");
   assert.equal(governingPart.state, "output-available");
-  const governing = governingPart.output;
+  const governing = retainedSettledRevision(history, "retention-revision-2");
+  assert(governing);
   save("seed", {
     pid: process.pid,
     identity,
