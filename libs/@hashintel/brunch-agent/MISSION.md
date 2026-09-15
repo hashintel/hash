@@ -125,7 +125,7 @@ Verified 2026-09-15:
 
 - Network-denied
   `yarn workspace @hashintel/petrinaut test:unit --run`
-  over the three focused Voice files passed 146 tests.
+  over the three focused Voice files passed 152 tests.
 - Network-denied `yarn workspace @apps/petrinaut-website test:unit` over the
   eight focused unit files passed 347 tests; the ninth
   `voice-preview.integration.test.ts` file passed 5 tests under the same

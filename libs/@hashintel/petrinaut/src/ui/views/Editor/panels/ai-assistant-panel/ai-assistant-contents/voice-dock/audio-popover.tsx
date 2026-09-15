@@ -33,6 +33,7 @@ export const AudioPopover = ({
   canReadFullResponse,
   canRepeatQuestion,
   interruptionBySpeaking,
+  speakerControlsDisabled,
   speakerMuted,
   speakerVolume,
 }: {
@@ -40,6 +41,7 @@ export const AudioPopover = ({
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   interruptionBySpeaking: boolean;
+  speakerControlsDisabled: boolean;
   speakerMuted: boolean;
   speakerVolume: number;
 }) => {
@@ -80,6 +82,7 @@ export const AudioPopover = ({
                 {actions.setSpeakerMuted && (
                   <Button
                     className={actionStyle}
+                    disabled={speakerControlsDisabled}
                     onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
                     pressed={speakerMuted}
                     size="sm"
@@ -92,6 +95,7 @@ export const AudioPopover = ({
                 {actions.setSpeakerVolume && (
                   <Slider
                     className={volumeStyle}
+                    disabled={speakerControlsDisabled}
                     label={voiceSessionActionLabels.speakerVolume}
                     max={1}
                     min={0}

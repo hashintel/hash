@@ -405,7 +405,10 @@ test("registers truthful microphone and speaker controls for the same Live sessi
 test("ignores media controls without a usable Live session", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
-  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
 
   act(() => {
     controls.setMicrophoneMuted?.(true);
@@ -447,7 +450,10 @@ test("caches speaker controls while a Live session is connecting", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
   await start();
-  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
   liveConversationMocks.setSpeakerMuted.mockClear();
   liveConversationMocks.setSpeakerVolume.mockClear();
 
@@ -475,7 +481,10 @@ test("ignores media controls as soon as a Live session ends", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
   await start();
-  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
   const onState = vi.mocked(createLiveConversation).mock.lastCall![0];
   act(() => onState({ phase: "connected", message: null }));
 

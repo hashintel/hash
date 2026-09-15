@@ -194,6 +194,7 @@ export const VoiceDock = ({
     purpose === "setup"
       ? voiceSetupLabels.status
       : (notice ?? voiceSessionStatusLabel(phase));
+  const speakerControlsDisabled = phase === "connecting" || phase === "error";
 
   return (
     <section
@@ -226,6 +227,7 @@ export const VoiceDock = ({
               canReadFullResponse={canReadFullResponse}
               canRepeatQuestion={canRepeatQuestion}
               interruptionBySpeaking={interruptionBySpeaking}
+              speakerControlsDisabled={speakerControlsDisabled}
               speakerMuted={speakerMuted}
               speakerVolume={speakerVolume}
             />

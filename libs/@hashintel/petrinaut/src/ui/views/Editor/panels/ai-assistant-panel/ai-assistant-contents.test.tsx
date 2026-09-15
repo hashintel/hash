@@ -147,6 +147,7 @@ test("offers a user-gesture retry while session audio is blocked", () => {
   const retryPlayback = vi.fn();
   const commonProps = {
     actions: { end: noop, pause: noop, retryPlayback },
+    assistantBusy: false,
     canReadFullResponse: false,
     canRepeatQuestion: false,
     canTakeTurn: false,
@@ -155,7 +156,10 @@ test("offers a user-gesture retry while session audio is blocked", () => {
     microphoneMuted: false,
     notice: "Audio playback is blocked. Select Play voice audio to hear Live.",
     onCollapsedToggle: noop,
+    onStop: noop,
     phase: "connected" as const,
+    speakerMuted: false,
+    speakerVolume: 1,
   };
   const rendered = render(
     <VoiceDock {...commonProps} canRetryPlayback={true} />,
@@ -283,6 +287,116 @@ test.each(["listening", "thinking", "speaking"] as const)(
     expect(microphone.disabled).toBe(false);
     fireEvent.click(microphone);
     expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(true);
+  },
+);
+
+test.each(["connecting", "error"] as const)(
+  "disables only speaker controls in Audio options while Voice is %s",
+  async (phase) => {
+    const setInterruptionBySpeaking = vi.fn();
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
+    render(
+      <VoiceDock
+        actions={{
+          end: vi.fn(),
+          pause: noop,
+          readFullResponse: vi.fn(),
+          repeatQuestion: vi.fn(),
+          setInterruptionBySpeaking,
+          setSpeakerMuted,
+          setSpeakerVolume,
+        }}
+        assistantBusy={false}
+        canReadFullResponse={false}
+        canRepeatQuestion={false}
+        canTakeTurn={false}
+        collapsed={false}
+        indicator={<span />}
+        interruptionBySpeaking
+        microphoneMuted={false}
+        onCollapsedToggle={noop}
+        onStop={noop}
+        phase={phase}
+        speakerMuted={false}
+        speakerVolume={1}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+    const speakerMute = await screen.findByRole<HTMLButtonElement>("button", {
+      name: "Mute speaker",
+    });
+    const volume = screen.getByRole("slider", { name: "Speaker volume" });
+    expect(speakerMute.disabled).toBe(true);
+    expect(volume.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(speakerMute);
+    volume.focus();
+    fireEvent.keyDown(volume, { key: "ArrowLeft" });
+    expect(setSpeakerMuted).not.toHaveBeenCalled();
+    expect(setSpeakerVolume).not.toHaveBeenCalled();
+
+    const interruption = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Interruption by speaking",
+    });
+    expect(interruption.disabled).toBe(false);
+    fireEvent.click(interruption);
+    expect(setInterruptionBySpeaking).toHaveBeenCalledExactlyOnceWith(false);
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Repeat question",
+      }).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Read full response",
+      }).disabled,
+    ).toBe(true);
+  },
+);
+
+test.each(["listening", "thinking", "speaking", "paused"] as const)(
+  "keeps speaker controls callable while Voice is %s",
+  async (phase) => {
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
+    render(
+      <VoiceDock
+        actions={{
+          end: vi.fn(),
+          pause: noop,
+          setSpeakerMuted,
+          setSpeakerVolume,
+        }}
+        assistantBusy={false}
+        canReadFullResponse={false}
+        canRepeatQuestion={false}
+        canTakeTurn={false}
+        collapsed={false}
+        indicator={<span />}
+        microphoneMuted={false}
+        onCollapsedToggle={noop}
+        onStop={noop}
+        phase={phase}
+        speakerMuted={false}
+        speakerVolume={1}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+    const speakerMute = await screen.findByRole<HTMLButtonElement>("button", {
+      name: "Mute speaker",
+    });
+    const volume = screen.getByRole("slider", { name: "Speaker volume" });
+    expect(speakerMute.disabled).toBe(false);
+    expect(volume.getAttribute("aria-disabled")).not.toBe("true");
+    fireEvent.click(speakerMute);
+    volume.focus();
+    fireEvent.keyDown(volume, { key: "ArrowLeft" });
+    expect(setSpeakerMuted).toHaveBeenCalledExactlyOnceWith(true);
+    await waitFor(() =>
+      expect(setSpeakerVolume).toHaveBeenCalledExactlyOnceWith(0.95),
+    );
   },
 );
 

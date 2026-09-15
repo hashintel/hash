@@ -107,6 +107,7 @@ Brunch has a submitted or streaming response, while **Speaking** means audio is
 currently playing. Neither state announces progress aloud or changes the
 microphone setting. The microphone action remains visible but disabled while
 Voice is connecting, paused, or interrupted by an error.
+The latest microphone-mute choice is reapplied when a handoff settles.
 
 **Stop AI response** appears next to the separate **End voice mode** action
 only while Brunch has submitted or streaming work. Stop cancels that current
@@ -122,10 +123,12 @@ volume**. These controls affect assistant playback only: they do not affect
 microphone input, Brunch work, or the **Speaking** state. When the speaker is
 muted during playback, the dock therefore continues to say **Speaking** and
 Audio options shows the pressed speaker state. Speaker mute and volume reset
-for each new Voice session. They are the only Audio options preferences that
-reset per Voice session: Realtime remembers **Interruption by speaking** in
-this browser. The dock does not promise device switching, voice or speed
-selection, helmet animation, or persistence of the speaker settings.
+for each new Voice session. Speaker controls are unavailable while Voice is
+connecting or interrupted by an error; they remain available while Realtime is
+paused. They are the only Audio options preferences that reset per Voice
+session: Realtime remembers **Interruption by speaking** in this browser. The
+dock does not promise device switching, voice or speed selection, helmet
+animation, or persistence of the speaker settings.
 
 Realtime-based Brunch Voice additionally provides **Repeat question**, **Read
 full response**, and **Interruption by speaking** in Audio options. Live Voice
