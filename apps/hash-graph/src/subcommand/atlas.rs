@@ -1,28 +1,15 @@
-use alloc::sync::Arc;
-use core::{net::SocketAddr, time::Duration};
+use core::time::Duration;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
-use hash_graph_atlas::cli::{self, PasswordString};
-use hash_graph_postgres_store::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
-};
-use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
-use hash_telemetry::Telemetry;
-use opentelemetry::metrics::Meter;
+use hash_graph_atlas::cli;
+use hash_graph_postgres_store::store::DatabaseConnectionInfo;
 use reqwest::Client;
-use tokio::{net::TcpListener, signal, time::timeout};
-use tokio_postgres::NoTls;
-use tokio_util::sync::CancellationToken;
+use tokio::time::timeout;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{
-        HealthcheckArgs, ServerLifecycle,
-        server::{KratosSessionAuthConfig, TemporalConfig, create_temporal_client},
-        wait_healthcheck,
-    },
+    subcommand::{HealthcheckArgs, wait_healthcheck},
 };
 
 /// Address configuration for the atlas server.
@@ -47,54 +34,10 @@ pub struct AtlasArgs {
 /// The atlas operations.
 #[derive(Debug, clap::Subcommand)]
 pub enum AtlasCommand {
-    /// Serves the read API over the root's active generation.
-    Serve(Box<AtlasServeArgs>),
     /// Fits one generation over the live store and activates it on admission.
     Fit(Box<AtlasFitArgs>),
     /// Probes the liveness endpoint of a serving atlas process.
     Healthcheck(AtlasHealthcheckArgs),
-}
-
-/// CLI arguments for `atlas serve`.
-#[derive(Debug, Parser)]
-pub struct AtlasServeArgs {
-    #[clap(flatten)]
-    pub address: AtlasAddress,
-
-    #[clap(flatten)]
-    pub root: cli::RootArgs,
-
-    #[clap(flatten)]
-    pub serve: cli::ServeArgs,
-
-    #[clap(flatten)]
-    pub db_info: DatabaseConnectionInfo,
-
-    #[clap(flatten)]
-    pub db_pool_config: DatabasePoolConfig,
-
-    #[clap(flatten)]
-    pub temporal: TemporalConfig,
-
-    #[clap(flatten)]
-    pub session_auth: KratosSessionAuthConfig,
-
-    /// Shared secret internal services present to act on behalf of an actor.
-    ///
-    /// Sent as the `Authorization: HASH-Service <secret>` credential next to
-    /// `X-Authenticated-User-Actor-Id`.
-    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
-    pub service_secret: PasswordString,
-
-    #[clap(flatten)]
-    pub rate_limit: RateLimitConfig,
-
-    /// Disables filter protection that prevents enumeration attacks on protected properties.
-    ///
-    /// The flag matches the server subcommand's, so the embedding exclusions the atlas ensures
-    /// carry stay equal to the exclusions the store's own workflow starts carry.
-    #[clap(long, env = "HASH_GRAPH_SKIP_FILTER_PROTECTION")]
-    pub skip_filter_protection: bool,
 }
 
 /// CLI arguments for `atlas fit`.
@@ -128,102 +71,6 @@ pub struct AtlasHealthcheckArgs {
     pub timeout: Option<u64>,
 }
 
-struct AtlasTelemetry {
-    meter: Meter,
-}
-
-/// Runs the atlas server, shutting down when `shutdown` is cancelled.
-async fn run_atlas(
-    args: AtlasServeArgs,
-    telemetry: &AtlasTelemetry,
-    shutdown: CancellationToken,
-) -> Result<(), Report<GraphError>> {
-    // Before running anything, make sure that the configuration is valid.
-    let session_auth = args.session_auth.into_provider_config()?;
-
-    // The same filter-protection configuration the server subcommand parses, so the embedding
-    // exclusions the staging arm's ensures carry stay equal to the exclusions the store's own
-    // workflow starts carry.
-    let filter_protection = if args.skip_filter_protection {
-        PropertyProtectionFilterConfig::new()
-    } else {
-        PropertyProtectionFilterConfig::hash_default()
-    };
-    let exclusions = filter_protection.embedding_exclusions().clone();
-
-    let service_secret = cli::SecretString::from(args.service_secret);
-
-    // A single pool serves the whole process, so the detail trailers, the permission
-    // resolution, and the credential chain's actor lookups behind every request read through
-    // shared connections and none waits on a connection another holds.
-    let pool = Arc::new(
-        PostgresStorePool::new(
-            &args.db_info,
-            &args.db_pool_config,
-            NoTls,
-            PostgresStoreSettings {
-                filter_protection,
-                ..PostgresStoreSettings::default()
-            },
-        )
-        .await
-        .change_context(GraphError)?,
-    );
-
-    // Absent a configured Temporal server, arrivals stage and never ensure, which fails closed.
-    let workflow =
-        create_temporal_client(&args.temporal)
-            .await?
-            .map(|client| cli::EmbeddingWorkflow {
-                temporal: client,
-                exclusions,
-            });
-
-    // The chain the REST router authenticates with, so a credential means the same thing on
-    // every route of the deployment: a Kratos session, or the service secret with the actor it
-    // delegates. Cloudflare Access fronts the admin server's operator routes, so no JWT
-    // verifier enters this chain.
-    let provider = Arc::new(build_authentication_provider(
-        session_auth,
-        None,
-        service_secret.clone().into_unguarded().as_ref().to_owned(),
-        &pool,
-        &telemetry.meter,
-    ));
-
-    // Every request answers under the scope of the actor it names.
-    let router = cli::ServeCommand::new(args.root, args.serve)
-        .run(cli::ServeOptions {
-            provider,
-            service_secret,
-            rate_limit: (&args.rate_limit).into(),
-            pool,
-            visibility: cli::VisibilityLimits::default(),
-            workflow,
-        })
-        .map_err(Report::new)
-        .change_context(GraphError)?;
-
-    let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
-        .await
-        .change_context(GraphError)?;
-
-    tracing::info!(
-        "Listening on port {}",
-        listener.local_addr().change_context(GraphError)?.port()
-    );
-
-    axum::serve(
-        listener,
-        router.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .with_graceful_shutdown(shutdown.cancelled_owned())
-    .await
-    .change_context(GraphError)?;
-
-    Ok(())
-}
-
 /// Renders one fit's verdict, the `atlas fit` subcommand's product.
 #[expect(
     clippy::print_stdout,
@@ -234,16 +81,8 @@ fn print_verdict(verdict: &cli::FitVerdict) {
 }
 
 /// Standalone `atlas` subcommand entrypoint.
-#[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
-#[expect(
-    clippy::exit,
-    reason = "Force shutdown on double ctrl-c is intentional"
-)]
-pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
-    let serve_args = match args.command {
+pub async fn atlas(args: AtlasArgs) -> Result<(), Report<GraphError>> {
+    match args.command {
         AtlasCommand::Fit(fit_args) => {
             let mut client = cli::connect(&fit_args.db_info.url())
                 .await
@@ -256,68 +95,18 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
                 .change_context(GraphError)?;
             print_verdict(&verdict);
 
-            return Ok(());
+            Ok(())
         }
-        AtlasCommand::Healthcheck(healthcheck_args) => {
-            return wait_healthcheck(
-                || healthcheck(healthcheck_args.address.clone()),
-                &HealthcheckArgs {
-                    healthcheck: true,
-                    wait: healthcheck_args.wait,
-                    timeout: healthcheck_args.timeout,
-                },
-            )
-            .await
-            .change_context(GraphError);
-        }
-        AtlasCommand::Serve(serve_args) => serve_args,
-    };
-
-    let telemetry = AtlasTelemetry {
-        meter: telemetry.meter("Graph Atlas API"),
-    };
-
-    let lifecycle = ServerLifecycle::new();
-    let shutdown = lifecycle.shutdown.clone();
-    lifecycle.spawn("Atlas", async move {
-        run_atlas(*serve_args, &telemetry, shutdown).await
-    });
-
-    // Wait for shutdown signal or unexpected server exit
-    let aborted = tokio::select! {
-        result = signal::ctrl_c() => {
-            match result {
-                Ok(()) => false,
-                Err(error) => {
-                    tracing::error!("Failed to install Ctrl+C handler: {error}");
-                    true
-                }
-            }
-        }
-        () = lifecycle.abort.cancelled() => {
-            tracing::error!("Atlas exited unexpectedly");
-            true
-        }
-    };
-
-    // Double ctrl-c for force shutdown
-    tokio::select! {
-        () = lifecycle.shutdown_and_wait() => {}
-        result = signal::ctrl_c() => {
-            if let Err(error) = result {
-                tracing::error!("Failed to install Ctrl+C handler: {error}");
-            }
-            tracing::warn!("Forced shutdown");
-            std::process::exit(1);
-        }
-    }
-
-    tracing::info!("Shutdown complete");
-
-    if aborted {
-        Err(GraphError.into())
-    } else {
-        Ok(())
+        AtlasCommand::Healthcheck(healthcheck_args) => wait_healthcheck(
+            || healthcheck(healthcheck_args.address.clone()),
+            &HealthcheckArgs {
+                healthcheck: true,
+                wait: healthcheck_args.wait,
+                timeout: healthcheck_args.timeout,
+            },
+        )
+        .await
+        .change_context(GraphError),
     }
 }
 
@@ -342,6 +131,8 @@ async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckErro
 
 #[cfg(test)]
 mod tests {
+    use tokio::net::TcpListener;
+
     use super::*;
 
     #[tokio::test]
