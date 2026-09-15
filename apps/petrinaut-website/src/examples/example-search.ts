@@ -28,6 +28,7 @@ export const sharedSimulateViews = [
   "scenarios",
   "metrics",
   "experiments",
+  "status-views",
 ] as const;
 
 export const sharedOverlays = [
@@ -35,6 +36,7 @@ export const sharedOverlays = [
   "create-scenario",
   "create-metric",
   "create-experiment",
+  "create-status-view",
 ] as const;
 
 export type SharedMode = (typeof sharedModes)[number];
