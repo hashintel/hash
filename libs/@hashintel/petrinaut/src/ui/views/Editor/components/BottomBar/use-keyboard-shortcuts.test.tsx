@@ -7,6 +7,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const actions = vi.hoisted(() => ({
+  readOnly: true,
   notify: vi.fn(),
   remove: vi.fn(),
   paste: vi.fn(),
@@ -19,7 +20,11 @@ vi.mock("../../../../../react", () => ({
 vi.mock("../../../../../react/hooks/use-read-only-feedback", () => ({
   useReadOnlyFeedback: () => actions.notify,
 }));
+vi.mock("../../../../../react/state/use-is-read-only", () => ({
+  useIsReadOnly: () => actions.readOnly,
+}));
 afterEach(() => {
+  actions.readOnly = true;
   cleanup();
   vi.clearAllMocks();
 });
@@ -78,3 +83,24 @@ test("typing and selection shortcuts stay quiet", () => {
   expect(actions.notify).not.toHaveBeenCalled();
   expect(actions.mode).toHaveBeenCalledWith("cursor");
 });
+
+test.each([
+  { metaKey: true },
+  { ctrlKey: true },
+  { metaKey: true, shiftKey: true },
+])(
+  "leaves native undo and redo available without an editor history adapter (%j)",
+  (modifiers) => {
+    actions.readOnly = false;
+    render(<Shortcuts />);
+    const event = new KeyboardEvent("keydown", {
+      ...modifiers,
+      key: "z",
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(document.body, event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(actions.notify).not.toHaveBeenCalled();
+  },
+);

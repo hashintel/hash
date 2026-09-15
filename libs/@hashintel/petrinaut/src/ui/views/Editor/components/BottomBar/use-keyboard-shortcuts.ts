@@ -59,6 +59,7 @@ export function useKeyboardShortcuts(
     // Handle undo/redo shortcuts, but let inputs handle their own undo/redo.
     if (
       !isInputFocused &&
+      (isReadonly || undoRedo !== null) &&
       (event.metaKey || event.ctrlKey) &&
       event.key.toLowerCase() === "z"
     ) {
