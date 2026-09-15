@@ -147,6 +147,86 @@ describe("root addArc transition semantics", () => {
     );
   });
 
+  test("accepts the exact canonical colored output-arc footprint including generated kernel code", async () => {
+    const before: SDCPN = {
+      ...structuredClone(pre),
+      places: [{ ...pre.places[0]!, colorId: "item" }],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [],
+        },
+      ],
+    };
+    const outputRequest: ArcMutationRequest = {
+      ...request,
+      requestedBaseHash: observe(before).sha256,
+      input: {
+        transitionId: "a3-transition",
+        arcDirection: "output",
+        placeId: "a3-place",
+        weight: 1,
+      },
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.addArc(outputRequest.input);
+    const post = observe(instance.definition.get());
+    instance.dispose();
+    const effects = deriveMutationEffects(
+      outputRequest,
+      before,
+      post.definition,
+    );
+    const attempt: ArcMutationAttempt = {
+      request: outputRequest,
+      binding: outputRequest.binding,
+      pre: observe(before),
+      post,
+      outcome: "applied",
+      effects,
+    };
+
+    expect(post.definition.transitions[0]?.transitionKernelCode).not.toBe("");
+    expect(effects.created).toEqual([
+      expect.objectContaining({
+        path: "/transitions/0/outputArcs/0",
+        kind: "created",
+      }),
+    ]);
+    expect(effects.derived).toEqual([
+      expect.objectContaining({
+        path: "/transitions/0/transitionKernelCode",
+        kind: "updated",
+      }),
+    ]);
+    expect(observedMutationOutcome(attempt)).toBe("applied");
+    await expect(verifyMutationAttempt(attempt)).resolves.toMatchObject({
+      outcome: "applied",
+    });
+
+    const unrelated = structuredClone(attempt);
+    unrelated.post!.definition.transitions[0]!.name = "Unaccounted rename";
+    unrelated.post = observe(unrelated.post!.definition);
+    unrelated.effects = deriveMutationEffects(
+      outputRequest,
+      before,
+      unrelated.post.definition,
+    );
+    unrelated.outcome = "unknown";
+    expect(observedMutationOutcome(unrelated)).toBe("unknown");
+    await expect(verifyMutationAttempt(unrelated)).resolves.toMatchObject({
+      outcome: "unknown",
+    });
+  });
+
   test("accounts for updated, deleted and unmapped fields without granting them the request's basis", () => {
     const before = applied().post!.definition;
     before.transitions[0]!.description = "Test-only description";

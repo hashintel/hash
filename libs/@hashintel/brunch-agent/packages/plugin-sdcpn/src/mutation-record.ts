@@ -750,7 +750,13 @@ export const classifyMutationOutcome = (
     return { outcome: unchanged ? "stale" : "unknown" };
   if (unchanged) return { outcome: "no-op" };
   if (
+    attempt.request.toolName === "updateArcWeight" ||
+    attempt.request.toolName === "updateArcType"
+  )
+    return { outcome: observedArcUpdateEffectOutcome(attempt) };
+  if (
     isBatchedNodeMutation(attempt.request.toolName) ||
+    attempt.request.toolName === "addArc" ||
     attempt.request.toolName === "removeArc" ||
     isObservedStateMutation(attempt.request.toolName) ||
     isBatchedStateMutation(attempt.request.toolName)
@@ -773,10 +779,11 @@ export const classifyMutationOutcome = (
       };
     }
   }
-  return { outcome: observedArcEffectOutcome(attempt) };
+  attempt.request.toolName satisfies never;
+  return { outcome: "unknown" };
 };
 
-const observedArcEffectOutcome = (
+const observedArcUpdateEffectOutcome = (
   attempt: Omit<ConstructionMutationAttempt, "outcome">,
 ): ConstructionMutationAttempt["outcome"] => {
   const effects = attempt.effects;
@@ -799,35 +806,10 @@ const observedArcEffectOutcome = (
     );
     return singleFieldUpdate("weight", input.weight);
   }
-  if (attempt.request.toolName === "updateArcType") {
-    const input = mutationActionInputSchemas.updateArcType.parse(
-      attempt.request.input,
-    );
-    return singleFieldUpdate("type", input.type);
-  }
-  if (
-    effects.derived.length ||
-    effects.updated.length ||
-    effects.deleted.length ||
-    effects.created.length !== 1
-  )
-    return "unknown";
-  const {
-    transitionId: _transitionId,
-    targetSubnetId: _targetSubnetId,
-    arcDirection,
-    type,
-    ...endpointAndWeight
-  } = mutationActionInputSchemas.addArc.parse(attempt.request.input);
-  const expectedArc = {
-    ...endpointAndWeight,
-    ...(arcDirection === "input" ? { type: type ?? "standard" } : {}),
-  };
-  const created = effects.created[0];
-  return created?.kind === "created" &&
-    canonicalContent(created.after) === canonicalContent(expectedArc)
-    ? "applied"
-    : "unknown";
+  const input = mutationActionInputSchemas.updateArcType.parse(
+    attempt.request.input,
+  );
+  return singleFieldUpdate("type", input.type);
 };
 
 export const verifyDefinitionObservation = async (

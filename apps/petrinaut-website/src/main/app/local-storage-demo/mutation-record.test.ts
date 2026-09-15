@@ -566,6 +566,52 @@ describe("browser transition adapter (canonical handle, not a real browser witne
     expect(metadata).toMatchObject({
       mutationRecord: { outcome: "applied" },
     });
+    const reportedOutcome = output.outcomes[0];
+    if (!reportedOutcome || !("postHash" in reportedOutcome))
+      throw new Error("Expected one completed mutation outcome.");
+    const contradictoryOutputs = [
+      {
+        ...output,
+        preHash: "0".repeat(64),
+      },
+      {
+        ...output,
+        outcomes: [{ ...reportedOutcome, operationId: "unrecorded" }],
+      },
+      {
+        ...output,
+        outcomes: [reportedOutcome, { ...reportedOutcome, index: 1 }],
+      },
+      {
+        ...output,
+        outcomes: [{ ...reportedOutcome, status: "no-op" as const }],
+      },
+      {
+        ...output,
+        outcomes: [{ ...reportedOutcome, postHash: "0".repeat(64) }],
+      },
+      {
+        ...output,
+        outcomes: [
+          {
+            index: reportedOutcome.index,
+            operationId: reportedOutcome.operationId,
+            basisId: reportedOutcome.basisId,
+            status: "unknown" as const,
+            preHash: reportedOutcome.preHash,
+            error: "Synthetic missing post observation",
+          },
+        ],
+      },
+    ];
+    for (const contradictoryOutput of contradictoryOutputs) {
+      expect(() =>
+        recorder.clientToolResultMetadata({
+          ...result,
+          output: contradictoryOutput,
+        }),
+      ).toThrow(/contradicts the observed browser mutation record/iu);
+    }
     // The reported final hash is final: a later change cannot hide behind it.
     fixture.execute();
     expect(() => recorder.clientToolResultMetadata(result)).toThrow(
