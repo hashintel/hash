@@ -17,7 +17,7 @@ The item’s menu in the left sidebar opens its code directly. For a place with 
 
 Use the **Fill panel** button in the section header to expand that section to the full width and height of the Properties Panel’s section area. Its controls stay beside the code. The canvas and the panel’s width stay unchanged.
 
-Use the back arrow in the expanded section header to return to the item’s other properties. For a transition, this button is **Back to transition**. You can also press **Escape** when focus is inside the section. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
+Use the back arrow in the expanded section header to return to the item’s other properties. For a transition, this button is **Back to transition**. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
 
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
