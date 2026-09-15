@@ -118,7 +118,7 @@ Move a slider and compute immediately restarts on the new selection, like a rayt
 
 Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
-#### Optimizing a sweep
+### Optimizing a sweep
 
 The in-browser optimizer is experimental and off by default. Turn on **In-browser optimization** under Simulation in the [settings dialog](visual-settings.md#in-browser-optimization-experimental); the setting is offered only when the host application provides an optimizer that runs in your browser. Turning it off while a study runs cancels the study.
 
@@ -134,7 +134,7 @@ An **Objective by step** strip sits under the sliders from the moment the panel 
 
 The panel's shape is fixed when the experiment is created, and it holds through running, stopped and failed studies: an experiment created with **Optimize** has, from its first frame, a headline over the header's columns, **Steps** and **Steps clear** columns after **Compute** (see [Reading the header](#reading-the-header)), the **Constraints** and **Sensitivity analysis** cards after the metric charts and the steps table under them (see [Metric charts](#metric-charts)), empty until the steps fill them; a sweep created with **Create sweep** has none of them. Nothing appears later, and nothing moves.
 
-#### The surface view
+### The surface view
 
 A sweep with two or more swept parameters grows a **Surface** card under the **Parameters** card: a contour plot of one metric's final value over two parameters you pick, drawn from the points the sweep has computed. It starts empty. Every point you visit — by moving the sliders to a point, by clicking the plot, or through the optimizer — lands as a dot with its value, the field is interpolated between the dots once there are three, and the point being computed is a ring; its value joins the field once its batch completes. Points computed at other values of the parameters not shown are drawn too, projected onto the two you picked. The **X** and **Y** pickers sit in the row under the plot and the **Metric** picker in the row beneath them; every metric is measured at every point, so switching the shown metric repaints from what was already computed. The line under the card's title counts the points and what computes -- **computing the selected point** or **sampling across the selected ranges**, with the runs so far -- or, mid-drag, the values under the pointer. **The surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release every swept parameter collapses to a point -- the two shown at the place you released, the others at the middle of their current range -- which then computes. A dark ring marks where the navigator sits. While the optimizer drives the sweep the card is read-only: the plot only displays under a not-allowed cursor, the **X**, **Y** and **Metric** pickers lock, a purple **Read-only** mark sits beside them, and between two steps the line says the optimizer is choosing the next point. A cancelled sweep locks the same way, with the mark in grey.
 
