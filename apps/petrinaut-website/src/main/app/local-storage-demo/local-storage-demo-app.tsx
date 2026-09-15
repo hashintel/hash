@@ -600,13 +600,17 @@ export const LocalStorageDemoApp = ({
       ? persistFailure.error.message
       : null;
 
-  const existingNets: MinimalNetMetadata[] = source.repository.records.map(
-    (document) => ({
+  const existingNets: MinimalNetMetadata[] = source.repository.records
+    .map((document) => ({
       netId: document.documentId,
       title: document.title,
       lastUpdated: document.lastUpdated ?? new Date(0).toISOString(),
-    }),
-  );
+    }))
+    .toSorted(
+      (left, right) =>
+        new Date(right.lastUpdated).getTime() -
+        new Date(left.lastUpdated).getTime(),
+    );
 
   const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) =>
     controller.createLocalAndOpen({

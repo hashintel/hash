@@ -251,25 +251,41 @@ const otherTabStorageEvent = (key: string): Event =>
     storageArea: { value: localStorage },
   });
 
+const storedNet = (params: {
+  id: string;
+  incarnationId?: string;
+  lastUpdated: string;
+  revisionId?: string;
+  title: string;
+}) => ({
+  id: params.id,
+  title: params.title,
+  lastUpdated: params.lastUpdated,
+  ...(params.incarnationId === undefined
+    ? {}
+    : { incarnationId: params.incarnationId }),
+  ...(params.revisionId === undefined ? {} : { revisionId: params.revisionId }),
+  sdcpn: {
+    places: [],
+    transitions: [],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+  },
+});
+
 const seedStoredNet = (incarnationId?: string, revisionId?: string) => {
   stubStorage();
   localStorage.setItem(
     "petrinaut-sdcpn",
     JSON.stringify({
-      "net-1": {
+      "net-1": storedNet({
         id: "net-1",
-        title: "Seeded net",
+        incarnationId,
         lastUpdated: "2020-01-01T00:00:00.000Z",
-        ...(incarnationId === undefined ? {} : { incarnationId }),
-        ...(revisionId === undefined ? {} : { revisionId }),
-        sdcpn: {
-          places: [],
-          transitions: [],
-          types: [],
-          parameters: [],
-          differentialEquations: [],
-        },
-      },
+        revisionId,
+        title: "Seeded net",
+      }),
     }),
   );
 };
@@ -867,6 +883,33 @@ describe("local document revision persistence", () => {
         new Date("2020-01-01T00:00:00.000Z").getTime(),
       );
     });
+  });
+
+  test("lists stored nets with the most recently updated first", () => {
+    stubStorage();
+    localStorage.setItem(
+      "petrinaut-sdcpn",
+      JSON.stringify({
+        "net-stale": storedNet({
+          id: "net-stale",
+          incarnationId: "stale-incarnation",
+          lastUpdated: "2020-01-01T00:00:00.000Z",
+          revisionId: "stale-revision",
+          title: "Stale net",
+        }),
+        "net-fresh": storedNet({
+          id: "net-fresh",
+          incarnationId: "fresh-incarnation",
+          lastUpdated: "2024-06-01T00:00:00.000Z",
+          revisionId: "fresh-revision",
+          title: "Fresh net",
+        }),
+      }),
+    );
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    const nets = editorProps.current?.existingNets as MinimalNetMetadata[];
+    expect(nets.map(({ netId }) => netId)).toEqual(["net-fresh", "net-stale"]);
   });
 
   test("adopts another tab's revision of the open document and chains later changes from it", async () => {
