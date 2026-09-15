@@ -47,6 +47,11 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import {
+  CodeWorkspacePanel,
+  CodeWorkspaceProvider,
+  useCodeWorkspace,
+} from "../../monaco/code-workspace";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -140,7 +145,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = ({
+const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
@@ -156,6 +161,8 @@ export const EditorView = ({
   titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
+  const { activePath, placement } = useCodeWorkspace();
+  const codeReplacesCanvas = activePath !== null && placement === "fullscreen";
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
@@ -590,10 +597,12 @@ export const EditorView = ({
               <LeftSideBar />
 
               {/* Properties Panel - Right Side */}
-              <PropertiesPanel />
+              {!codeReplacesCanvas && <PropertiesPanel />}
 
               {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+              {!codeReplacesCanvas && (
+                <SDCPNView viewportActions={viewportActions} />
+              )}
 
               {showEmptyAiHero && (
                 <AiCtaModal
@@ -612,20 +621,22 @@ export const EditorView = ({
                 />
               )}
 
+              <CodeWorkspacePanel />
               {/* Bottom Panel */}
-              <BottomPanel />
+              {!codeReplacesCanvas && <BottomPanel />}
             </Box>
           )}
-          {(effectiveMode === "edit" || effectiveMode === "actual") && (
-            <BottomBar
-              mode={effectiveMode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={aiAssistant !== undefined}
-            />
-          )}
+          {!codeReplacesCanvas &&
+            (effectiveMode === "edit" || effectiveMode === "actual") && (
+              <BottomBar
+                mode={effectiveMode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+                hasAiAssistant={aiAssistant !== undefined}
+              />
+            )}
           {aiAssistant && (
             <AiAssistantPanel
               /** Reset state (e.g. initial messages) when the active net changes */
@@ -650,3 +661,11 @@ export const EditorView = ({
     </ExperimentalIconProvider>
   );
 };
+
+export const EditorView = (
+  props: React.ComponentProps<typeof EditorViewContent>,
+) => (
+  <CodeWorkspaceProvider>
+    <EditorViewContent {...props} />
+  </CodeWorkspaceProvider>
+);

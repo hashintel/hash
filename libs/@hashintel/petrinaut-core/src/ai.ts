@@ -108,6 +108,7 @@ export const petrinautDocNames = [
   "preview",
   "ai-assistant",
   "visual-settings",
+  "code-editor",
   "compilation-output",
   "examples",
 ] as const;
@@ -135,6 +136,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
+  "code-editor":
+    "Code editing in the Properties Panel and full screen: direct function navigation, returning to property controls, automatic edits and read-only behavior.",
   "visual-settings":
     "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, in-browser optimization.",
   "compilation-output":

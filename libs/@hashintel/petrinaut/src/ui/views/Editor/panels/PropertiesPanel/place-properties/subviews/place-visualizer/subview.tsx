@@ -17,8 +17,12 @@ import {
 import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import {
+  useCodeEditorMenuItems,
+  SourceCodeEditor as CodeEditor,
+} from "../../../../../../../monaco/code-workspace";
 import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
+import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { usePlacePropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -88,7 +92,7 @@ const VisualizerPreview: React.FC = () => {
 };
 
 const PlaceVisualizerContent: React.FC = () => {
-  const { place, updatePlace } = usePlacePropertiesContext();
+  const { place, updatePlace, isReadOnly } = usePlacePropertiesContext();
   const { totalFrames } = use(ExecutionFrameSourceContext);
   const [viewMode, setViewMode] = useState<ViewMode>("code");
 
@@ -131,6 +135,7 @@ const PlaceVisualizerContent: React.FC = () => {
               path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
               language="typescript"
               height="100%"
+              options={{ readOnly: isReadOnly }}
               value={place.visualizerCode}
               onChange={(value) => {
                 updatePlace({
@@ -155,6 +160,12 @@ const VisualizerHeaderAction: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { globalMode } = use(EditorContext);
 
+  const { showMutationActions } = usePetrinautPresentation();
+
+  const codeEditorItems = useCodeEditorMenuItems(
+    `inmemory://sdcpn/places/${place.id}/visualizer.tsx`,
+  );
+
   const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
     placeId: string;
     code: string;
@@ -168,7 +179,7 @@ const VisualizerHeaderAction: React.FC = () => {
 
   return (
     <div className={headerActionsStyle}>
-      {globalMode === "edit" && (
+      {globalMode === "edit" && showMutationActions && (
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
           disableTooltip={!isReadOnly}
@@ -215,42 +226,48 @@ const VisualizerHeaderAction: React.FC = () => {
             />
           }
           items={[
-            {
-              id: "load-default",
-              text: "Load default template",
-              onClick: () => {
-                const currentPlaceType = place.colorId
-                  ? types.find((type) => type.id === place.colorId)
-                  : null;
+            ...codeEditorItems,
+            ...(showMutationActions
+              ? [
+                  {
+                    id: "load-default",
+                    text: "Load default template",
+                    disabled: isReadOnly,
+                    onClick: () => {
+                      const currentPlaceType = place.colorId
+                        ? types.find((type) => type.id === place.colorId)
+                        : null;
 
-                updatePlace({
-                  placeId: place.id,
-                  update: {
-                    visualizerCode: currentPlaceType
-                      ? generateDefaultVisualizerCode(currentPlaceType)
-                      : DEFAULT_VISUALIZER_CODE,
+                      updatePlace({
+                        placeId: place.id,
+                        update: {
+                          visualizerCode: currentPlaceType
+                            ? generateDefaultVisualizerCode(currentPlaceType)
+                            : DEFAULT_VISUALIZER_CODE,
+                        },
+                      });
+                    },
                   },
-                });
-              },
-            },
-            {
-              id: "generate-ai",
-              text: (
-                <Tooltip
-                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                  position="bottom"
-                >
-                  <div className={aiMenuItemStyle}>
-                    <Icon name="sparkles" size="sm" />
-                    Generate with AI
-                  </div>
-                </Tooltip>
-              ),
-              disabled: true,
-              onClick: () => {
-                // TODO: Implement AI generation
-              },
-            },
+                  {
+                    id: "generate-ai",
+                    text: (
+                      <Tooltip
+                        content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                        position="bottom"
+                      >
+                        <div className={aiMenuItemStyle}>
+                          <Icon name="sparkles" size="sm" />
+                          Generate with AI
+                        </div>
+                      </Tooltip>
+                    ),
+                    disabled: true,
+                    onClick: () => {
+                      // TODO: Implement AI generation
+                    },
+                  },
+                ]
+              : []),
           ]}
         />
       )}

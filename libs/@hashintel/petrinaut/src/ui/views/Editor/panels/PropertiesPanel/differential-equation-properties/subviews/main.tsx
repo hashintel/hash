@@ -21,6 +21,8 @@ import { DraftFieldInput } from "../../../../../../components/draft-field-input"
 import { PropertyValue } from "../../../../../../components/property-value";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useCodeEditorMenuItems } from "../../../../../../monaco/code-workspace";
+import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { usePetrinautPresentation } from "../../../../../shared/presentation-context";
 import { useDiffEqPropertiesContext } from "../context";
 
@@ -251,7 +253,13 @@ const DiffEqCodeAction: React.FC = () => {
     useDiffEqPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
-  if (isReadOnly) {
+  const { showMutationActions } = usePetrinautPresentation();
+
+  const codeEditorItems = useCodeEditorMenuItems(
+    getDocumentUri("differential-equation", differentialEquation.id),
+  );
+
+  if ((isReadOnly || !showMutationActions) && codeEditorItems.length === 0) {
     return null;
   }
 
@@ -267,42 +275,48 @@ const DiffEqCodeAction: React.FC = () => {
         />
       }
       items={[
-        {
-          id: "load-default",
-          text: "Load default template",
-          onClick: () => {
-            const equationType = types.find(
-              (tp) => tp.id === differentialEquation.colorId,
-            );
+        ...codeEditorItems,
+        ...(showMutationActions
+          ? [
+              {
+                id: "load-default",
+                text: "Load default template",
+                disabled: isReadOnly,
+                onClick: () => {
+                  const equationType = types.find(
+                    (tp) => tp.id === differentialEquation.colorId,
+                  );
 
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: {
-                code: equationType
-                  ? generateDefaultDifferentialEquationCode(equationType)
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+                  updateDifferentialEquation({
+                    equationId: differentialEquation.id,
+                    update: {
+                      code: equationType
+                        ? generateDefaultDifferentialEquationCode(equationType)
+                        : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+                    },
+                  });
+                },
               },
-            });
-          },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
+              {
+                id: "generate-ai",
+                text: (
+                  <Tooltip
+                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                    position="bottom"
+                  >
+                    <div className={aiMenuItemStyle}>
+                      <Icon name="sparkles" size="sm" />
+                      Generate with AI
+                    </div>
+                  </Tooltip>
+                ),
+                disabled: true,
+                onClick: () => {
+                  // TODO: Implement AI generation
+                },
+              },
+            ]
+          : []),
       ]}
     />
   );
@@ -315,6 +329,6 @@ export const diffEqMainContentSubView: SubView = {
   main: true,
   component: DiffEqMainContent,
   renderHeaderAction: () => <DiffEqCodeAction />,
-  headerActionMutates: true,
+  headerActionMutates: false,
   alwaysShowHeaderAction: true,
 };
