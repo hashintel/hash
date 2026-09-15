@@ -188,14 +188,16 @@ const DeleteComponentInstanceAction: React.FC = () => {
 
   return (
     <Button
-      aria-label="Delete"
-      size="xs"
+      aria-label="Delete component instance"
+      size="sm"
       variant="ghost"
       tone="error"
       iconName="trash"
       onClick={() => removeComponentInstance({ instanceId: instance.id })}
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+      tooltip={
+        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete component instance"
+      }
     />
   );
 };

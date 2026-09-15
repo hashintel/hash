@@ -65,7 +65,7 @@ const panelStyle = css({
 const messageStyle = css({
   padding: "[12px]",
   fontSize: "xs",
-  color: "[#666]",
+  color: "neutral.fg.muted",
   lineHeight: "[1.5]",
 });
 
@@ -185,6 +185,7 @@ const VisualizerHeaderAction: React.FC = () => {
           disableTooltip={!isReadOnly}
         >
           <Toggle
+            aria-label="Visualizer"
             size="sm"
             tone="success"
             value={hasVisualizer}

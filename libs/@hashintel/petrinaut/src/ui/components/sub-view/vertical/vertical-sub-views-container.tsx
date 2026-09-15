@@ -123,7 +123,7 @@ const scrollShadowStyle = cva({
 
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
-  borderTopColor: "neutral.a20",
+  borderTopColor: "neutral.a40",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
@@ -149,7 +149,7 @@ const headerRowStyle = cva({
     alignItems: "center",
 
     borderBottomWidth: "thin",
-    borderBottomColor: "neutral.a20",
+    borderBottomColor: "neutral.a40",
   },
   variants: {
     isCollapsed: {
@@ -169,7 +169,7 @@ const mainHeaderRowStyle = css({
   alignItems: "center",
 
   borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a20",
+  borderBottomColor: "neutral.a40",
 });
 
 const headerActionVisibleStyle = css({
@@ -202,12 +202,8 @@ const sectionToggleStyle = css({
   minWidth: "[0]",
   overflow: "hidden",
 
-  /* Reveal the chevron icon on toggle section hover */
   "& [data-toggle-icon]": {
     width: "3.5",
-    opacity: "[0]",
-  },
-  "&:hover [data-toggle-icon]": {
     opacity: "[1]",
   },
 });
@@ -393,7 +389,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         </span>
       </div>
     )}
-    {isExpanded && renderHeaderAction && (
+    {(isExpanded || alwaysShowHeaderAction) && renderHeaderAction && (
       <div
         {...(!alwaysShowHeaderAction && { "data-header-action": true })}
         className={

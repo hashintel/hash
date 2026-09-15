@@ -180,6 +180,7 @@ const PlaceInitialStateContent: React.FC = () => {
           disableTooltip={!hasSimulationFrames && !isReadOnly}
         >
           <NumberInput
+            size="sm"
             min={0}
             value={currentTokenCount}
             onChange={(tokenCount) => {
