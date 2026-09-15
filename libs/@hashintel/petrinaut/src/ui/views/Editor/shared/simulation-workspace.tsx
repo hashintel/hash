@@ -33,6 +33,22 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
     (state.mode === "simulate" ||
       state.overlay?.type === "create-scenario" ||
       state.overlay?.type === "create-experiment");
+  const location = `${state.mode}/${state.simulateView}/${state.simulateResource?.type}/${state.simulateResource?.id}/${state.overlay?.type}`;
+  const [presentation, setPresentation] = useState({
+    location,
+    fullscreen,
+    animate: false,
+  });
+  if (
+    presentation.location !== location ||
+    presentation.fullscreen !== fullscreen
+  ) {
+    setPresentation({
+      location,
+      fullscreen,
+      animate: presentation.location === location,
+    });
+  }
   const workspaceWidth = workspaceSize?.width ?? 0;
   const maxWidth = Math.max(
     0,
@@ -50,7 +66,13 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
         ref={workspaceRef}
         data-simulation-workspace
         data-fullscreen={fullscreen}
-        data-animate={showAnimations}
+        data-animate={showAnimations && presentation.animate}
+        style={
+          {
+            "--simulation-panel-width":
+              workspaceSize === null ? "min(60%, 960px)" : `${panelWidth}px`,
+          } as CSSProperties
+        }
         className={css({
           position: "relative",
           display: "flex",
@@ -69,6 +91,10 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
             minWidth: "[0]",
             minHeight: "[0]",
             overflow: "hidden",
+            ":has(> [data-simulation-panel-slot] > [data-simulation-panel]:not([hidden])) > &":
+              {
+                marginRight: "[var(--simulation-panel-width)]",
+              },
           })}
         >
           {children}
@@ -76,21 +102,17 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
         <div
           ref={setContainer}
           data-simulation-panel-slot
-          style={
-            {
-              "--simulation-panel-width":
-                workspaceSize === null ? "min(60%, 960px)" : `${panelWidth}px`,
-            } as CSSProperties
-          }
           className={css({
-            position: "relative",
-            display: "grid",
-            flexShrink: "0",
-            width: "[0]",
+            position: "absolute",
+            top: "[0]",
+            right: "[0]",
+            bottom: "[0]",
+            display: "none",
+            width: "[var(--simulation-panel-width)]",
             minWidth: "[0]",
             minHeight: "[0]",
             "[data-animate=true] > &": {
-              transition: "[width 200ms ease, min-width 200ms ease]",
+              transition: "[width 200ms ease]",
               "&:has([data-resizing=true])": {
                 transition: "[none]",
               },
@@ -99,12 +121,9 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
               },
             },
             "&:has(> [data-simulation-panel]:not([hidden]))": {
-              width: "[var(--simulation-panel-width)]",
-              "[data-fullscreen=true] > &": {
-                width: "full",
-                minWidth: "full",
-              },
+              display: "grid",
             },
+            "[data-fullscreen=true] > &": { width: "full" },
           })}
         >
           {!fullscreen && (

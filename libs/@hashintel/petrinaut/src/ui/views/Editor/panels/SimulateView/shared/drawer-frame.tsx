@@ -31,7 +31,11 @@ import {
 } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
-import { SimulationPanel, SimulationPanelControls } from "./simulation-panel";
+import {
+  SimulationPanel,
+  SimulationPanelControls,
+  SimulationPanelTitle,
+} from "./simulation-panel";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 export {
@@ -182,7 +186,9 @@ export const DrawerFrame = ({
 
   const header = (
     <FrameHeader
-      title={title}
+      title={
+        panel === undefined ? title : <SimulationPanelTitle title={title} />
+      }
       headline={headline}
       stats={stats}
       badge={badge}

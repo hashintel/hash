@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { SimulateView } from "./simulate-view";
+import { SimulateViewTabs } from "./simulate-view";
 
 import type { PetrinautOptimization } from "@hashintel/petrinaut-core";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
@@ -87,7 +87,7 @@ const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
   const { container, unmount } = render(
     wrap(
       <FakeEditorProvider>
-        <SimulateView />
+        <SimulateViewTabs />
       </FakeEditorProvider>,
     ),
   );

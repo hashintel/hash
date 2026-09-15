@@ -67,7 +67,10 @@ import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
-import { SimulateView } from "./panels/SimulateView/simulate-view";
+import {
+  SimulateView,
+  SimulateViewTabs,
+} from "./panels/SimulateView/simulate-view";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { EditorCommands } from "./use-editor-commands";
@@ -607,6 +610,7 @@ const EditorViewContent = ({
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
         <Stack direction="row" className={rowContainerStyle}>
+          {effectiveMode === "simulate" && <SimulateViewTabs />}
           <SimulationWorkspace>
             {globalMode === "simulate" ? (
               <SimulateView />

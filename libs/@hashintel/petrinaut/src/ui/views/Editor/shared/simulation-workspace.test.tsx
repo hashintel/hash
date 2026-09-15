@@ -3,7 +3,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { PetrinautNavigationProvider } from "../../../../react/navigation";
+import {
+  PetrinautNavigationProvider,
+  usePetrinautNavigation,
+} from "../../../../react/navigation";
 import { SimulationPanel } from "../panels/SimulateView/shared/simulation-panel";
 import { SimulationWorkspace } from "./simulation-workspace";
 
@@ -34,7 +37,7 @@ it("resizes the divider, retains its width through fullscreen, and fits beside o
   );
   const view = render(workspace());
   const panelSlot = view.container.querySelector<HTMLElement>(
-    "[data-simulation-panel-slot]",
+    "[data-simulation-workspace]",
   )!;
   const width = () =>
     panelSlot.style.getPropertyValue("--simulation-panel-width");
@@ -69,4 +72,85 @@ it("resizes the divider, retains its width through fullscreen, and fits beside o
   expect(width()).toBe("920px");
   resize(280, 2000);
   expect(width()).toBe("440px");
+});
+
+it("restores a tab's fullscreen resource directly and only animates presentation changes", () => {
+  const Workspace = () => {
+    const { state, navigate } = usePetrinautNavigation();
+    return (
+      <>
+        <nav aria-label="Simulation views">
+          {(["experiments", "scenarios"] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              onClick={() =>
+                navigate(
+                  { simulateView: view, simulateResource: null },
+                  { cause: "user", action: "simulation-view" },
+                )
+              }
+            >
+              {view}
+            </button>
+          ))}
+        </nav>
+        <SimulationWorkspace>
+          <p>Resource list</p>
+          {state.simulateResource && (
+            <SimulationPanel
+              title="Mars Orbit"
+              onClose={() =>
+                navigate(
+                  { simulateResource: null },
+                  { cause: "user", action: "simulation-resource" },
+                )
+              }
+            >
+              <SimulationPanel.Header />
+            </SimulationPanel>
+          )}
+        </SimulationWorkspace>
+      </>
+    );
+  };
+  const view = render(
+    <PetrinautNavigationProvider
+      initialState={{
+        mode: "simulate",
+        simulateView: "scenarios",
+        simulateResource: { type: "scenario", id: "mars" },
+        simulatePresentation: "fullscreen",
+      }}
+    >
+      <Workspace />
+    </PetrinautNavigationProvider>,
+  );
+  const workspace = view.container.querySelector(
+    "[data-simulation-workspace]",
+  )!;
+  expect(workspace.getAttribute("data-fullscreen")).toBe("true");
+  expect(workspace.getAttribute("data-animate")).toBe("false");
+  expect(
+    screen.getByRole("heading", { name: "Scenarios Mars Orbit" }),
+  ).toBeTruthy();
+  expect(screen.getByText("Resource list").closest("[inert]")).toBeTruthy();
+  expect(screen.getByRole("navigation").closest("[inert]")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Show as panel" }));
+  expect(workspace.getAttribute("data-animate")).toBe("true");
+  expect(screen.getByRole("heading", { name: "Mars Orbit" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Expand to fullscreen" }));
+  fireEvent.click(screen.getByRole("button", { name: "experiments" }));
+  expect(screen.queryByRole("region", { name: "Mars Orbit" })).toBeNull();
+  const scenariosTab = screen.getByRole("button", { name: "scenarios" });
+  scenariosTab.focus();
+  fireEvent.click(scenariosTab);
+  expect(document.activeElement).toBe(scenariosTab);
+  expect(screen.getByRole("region", { name: "Mars Orbit" })).toBeTruthy();
+  expect(workspace.getAttribute("data-fullscreen")).toBe("true");
+  expect(workspace.getAttribute("data-animate")).toBe("false");
+  fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+  fireEvent.click(screen.getByRole("button", { name: "experiments" }));
+  fireEvent.click(screen.getByRole("button", { name: "scenarios" }));
+  expect(screen.queryByRole("region", { name: "Mars Orbit" })).toBeNull();
 });

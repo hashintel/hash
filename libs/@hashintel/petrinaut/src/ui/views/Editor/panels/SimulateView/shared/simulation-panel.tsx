@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../../../react/navigation";
@@ -70,7 +70,12 @@ const PanelContent = ({
 
   useEffect(() => {
     const panel = panelRef.current;
-    if (!hidden && fullscreen && !panel?.contains(document.activeElement)) {
+    const activeElement = document.activeElement;
+    if (
+      !hidden &&
+      fullscreen &&
+      (activeElement === document.body || activeElement?.closest("[inert]"))
+    ) {
       (initialFocusRef?.current ?? panel)?.focus({ preventScroll: true });
     }
   }, [fullscreen, hidden, initialFocusRef]);
@@ -175,6 +180,80 @@ export const SimulationPanelControls = () => {
   );
 };
 
+export const SimulationPanelTitle = ({ title }: { title: string }) => {
+  const { state } = usePetrinautNavigation();
+  const expanded = state.simulatePresentation === "fullscreen";
+  const section =
+    state.overlay?.type === "create-scenario"
+      ? "Scenarios"
+      : state.overlay?.type === "create-experiment"
+        ? "Experiments"
+        : {
+            scenarios: "Scenarios",
+            experiments: "Experiments",
+            metrics: "Metrics",
+          }[state.simulateView];
+  return (
+    <span
+      className={css({
+        display: "flex",
+        alignItems: "center",
+        minWidth: "[0]",
+      })}
+    >
+      <span
+        data-simulation-breadcrumb
+        data-expanded={expanded}
+        aria-hidden={!expanded}
+        className={css({
+          display: "grid",
+          gridTemplateColumns: "[0fr]",
+          opacity: "[0]",
+          transform: "[translateX(-4px)]",
+          flexShrink: "0",
+          "&[data-expanded=true]": {
+            gridTemplateColumns: "[1fr]",
+            opacity: "[1]",
+            transform: "[translateX(0)]",
+          },
+          "[data-simulation-workspace][data-animate=true] &": {
+            transition:
+              "[grid-template-columns 200ms ease, opacity 160ms ease, transform 200ms ease]",
+            "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+          },
+        })}
+      >
+        <span className={css({ minWidth: "[0]", overflow: "hidden" })}>
+          <span
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              gap: "2",
+              paddingRight: "3",
+              whiteSpace: "nowrap",
+              fontWeight: "normal",
+              color: "neutral.s90",
+            })}
+          >
+            {section}
+            <Icon name="chevronRight" size="xs" />
+          </span>
+        </span>
+      </span>
+      <span
+        className={css({
+          minWidth: "[0]",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        })}
+      >
+        {title}
+      </span>
+    </span>
+  );
+};
+
 const PanelHeader = ({ description }: { description?: ReactNode }) => {
   const { title } = use(PanelContext);
   return (
@@ -212,7 +291,7 @@ const PanelHeader = ({ description }: { description?: ReactNode }) => {
             whiteSpace: "nowrap",
           })}
         >
-          {title}
+          <SimulationPanelTitle title={title} />
         </h2>
         <SimulationPanelControls />
       </div>
