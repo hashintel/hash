@@ -1,10 +1,11 @@
-import { type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, use, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import {
   createVoiceSessionStore,
@@ -230,12 +231,14 @@ const hostSlotTitleStyle = css({
 });
 
 const frameStyle = css({
+  containerType: "inline-size",
   height: "[720px]",
   position: "relative",
   width: "full",
 });
 
 const narrowFrameStyle = css({
+  containerType: "inline-size",
   height: "[720px]",
   maxWidth: "full",
   position: "relative",
@@ -320,8 +323,10 @@ const createStoryVoiceSessionStore = (
 };
 
 const Frame = ({
+  additionalTab,
   error,
   fixedNarrowWidth = false,
+  initialPlacement = "docked",
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
@@ -332,8 +337,10 @@ const Frame = ({
   voiceProvider = "live",
   voiceSession,
 }: {
+  additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
   error?: Error;
   fixedNarrowWidth?: boolean;
+  initialPlacement?: "docked" | "floating";
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
@@ -344,6 +351,10 @@ const Frame = ({
   voiceProvider?: VoiceProvider;
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
+  const editor = use(EditorContext);
+  const [placement, setPlacement] = useState(initialPlacement);
+  const [width, setWidth] = useState(editor.aiAssistantWidth);
+  const [isOpen, setOpen] = useState(true);
   const [input, setInput] = useState("");
   const [voiceDockCollapsed, setVoiceDockCollapsed] = useState(
     initialVoiceDockCollapsed,
@@ -355,30 +366,42 @@ const Frame = ({
   );
 
   return (
-    <VoiceSessionContext.Provider value={voiceSessionStore}>
-      <div
-        className={fixedNarrowWidth ? narrowFrameStyle : frameStyle}
-        data-testid="ai-assistant-story-frame"
-      >
-        <AiAssistantContents
-          error={error}
-          input={input}
-          inputMode={inputMode}
-          messages={messages}
-          onClose={() => {}}
-          onInputChange={setInput}
-          onInputModeChange={() => {}}
-          onStop={() => {}}
-          onSubmit={() => setInput("")}
-          onVoiceDockCollapsedChange={setVoiceDockCollapsed}
-          status={status}
-          stopped={stopped}
-          voiceDockCollapsed={voiceDockCollapsed}
-          voiceMode={voiceMode}
-          voiceModeAvailable={voiceModeAvailable}
-        />
-      </div>
-    </VoiceSessionContext.Provider>
+    <EditorContext
+      value={{
+        ...editor,
+        aiAssistantPlacement: placement,
+        setAiAssistantPlacement: setPlacement,
+        aiAssistantWidth: width,
+        setAiAssistantWidth: setWidth,
+      }}
+    >
+      <VoiceSessionContext.Provider value={voiceSessionStore}>
+        <div
+          className={fixedNarrowWidth ? narrowFrameStyle : frameStyle}
+          data-testid="ai-assistant-story-frame"
+        >
+          <AiAssistantContents
+            additionalTab={additionalTab}
+            error={error}
+            input={input}
+            inputMode={inputMode}
+            messages={messages}
+            isOpen={isOpen}
+            onClose={() => setOpen(false)}
+            onInputChange={setInput}
+            onInputModeChange={() => {}}
+            onStop={() => {}}
+            onSubmit={() => setInput("")}
+            onVoiceDockCollapsedChange={setVoiceDockCollapsed}
+            status={status}
+            stopped={stopped}
+            voiceDockCollapsed={voiceDockCollapsed}
+            voiceMode={voiceMode}
+            voiceModeAvailable={voiceModeAvailable}
+          />
+        </div>
+      </VoiceSessionContext.Provider>
+    </EditorContext>
   );
 };
 
@@ -394,6 +417,32 @@ const liveSession = (
 
 export const Empty: Story = {
   render: () => <Frame messages={[]} />,
+};
+
+export const Floating: Story = {
+  render: () => (
+    <Frame
+      initialPlacement="floating"
+      messages={[userMessage, assistantMarkdownMessage]}
+    />
+  ),
+};
+
+export const WithWorkpieceTab: Story = {
+  render: () => (
+    <Frame
+      additionalTab={{
+        label: "Workpiece",
+        content: (
+          <div>
+            <h2>Model account</h2>
+            <p>A saved description of the process being modeled.</p>
+          </div>
+        ),
+      }}
+      messages={[userMessage, assistantMarkdownMessage]}
+    />
+  ),
 };
 
 export const EmptyWithVoiceAvailable: Story = {
@@ -850,7 +899,7 @@ export const CollapsedVoiceIssues: Story = {
     const indicator = canvas.getByRole("button", {
       name: "Show 2 Voice issues",
     });
-    const { x, y, width, height } = indicator.getBoundingClientRect();
+    const { width, height } = indicator.getBoundingClientRect();
     await userEvent.click(
       canvas.getByRole("button", { name: "Show conversation" }),
     );
@@ -858,17 +907,22 @@ export const CollapsedVoiceIssues: Story = {
       canvas.getByRole("button", { name: "Show 2 Voice issues" }),
     ).toBe(indicator);
     await expect(indicator.getBoundingClientRect()).toMatchObject({
-      x,
-      y,
       width,
       height,
     });
+    await userEvent.click(indicator);
+    await waitFor(() =>
+      expect(
+        canvas.getByText(
+          "Voice connection interrupted. Check your connection before reconnecting.",
+        ),
+      ).toBeVisible(),
+    );
+    await userEvent.click(canvas.getByRole("button", { name: /^Close$/ }));
     await userEvent.click(
       canvas.getByRole("button", { name: "Hide conversation" }),
     );
     await expect(indicator.getBoundingClientRect()).toMatchObject({
-      x,
-      y,
       width,
       height,
     });

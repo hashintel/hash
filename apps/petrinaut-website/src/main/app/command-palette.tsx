@@ -110,7 +110,12 @@ export const CommandPalette = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if (
+        !event.shiftKey &&
+        !event.altKey &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "k"
+      ) {
         event.preventDefault();
         setOpen((open) => !open);
         setQuery("");
@@ -158,6 +163,14 @@ export const CommandPalette = () => {
         aria-label="Command palette"
         style={paletteStyle}
         onPointerDown={(event) => event.stopPropagation()}
+        onBlur={(event) => {
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            setOpen(false);
+          }
+        }}
       >
         <input
           ref={(element) => element?.focus()}

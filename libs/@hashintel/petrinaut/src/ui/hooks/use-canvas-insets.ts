@@ -21,6 +21,8 @@ export interface PanelLayoutState {
   readonly isAiAssistantOpen: boolean;
   readonly aiAssistantWidth: number;
   readonly aiAssistantDockHeight: number | null;
+  readonly aiAssistantPlacement: "docked" | "floating";
+  readonly isAiAssistantCollapsed: boolean;
   readonly isBottomPanelOpen: boolean;
   readonly bottomPanelHeight: number;
 }
@@ -33,15 +35,17 @@ interface CanvasInsetOptions {
 /**
  * Each edge's rule is the one the panel on it renders by: search opens the
  * left sidebar without the toggle, a selection opens the properties panel, and
- * the assistant docks beside the properties panel rather than over it, so an
- * open pair covers the sum of the two.
+ * a compact Voice dock stays at the right edge. The expanded, docked assistant
+ * has its own column outside the canvas. A movable assistant reserves no edge.
  */
 export const getCanvasInsets = (
   state: PanelLayoutState,
   { aboveCollapsedDock = false }: CanvasInsetOptions = {},
 ): CanvasInsets => {
   const dockHeight =
-    aboveCollapsedDock && state.isAiAssistantOpen
+    aboveCollapsedDock &&
+    state.isAiAssistantOpen &&
+    state.isAiAssistantCollapsed
       ? state.aiAssistantDockHeight
       : null;
   return {
@@ -49,14 +53,17 @@ export const getCanvasInsets = (
       state.isLeftSidebarOpen || state.isSearchOpen
         ? state.leftSidebarWidth + PANEL_MARGIN
         : 0,
-    right:
-      (state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0) +
-      (state.isAiAssistantOpen && dockHeight === null
-        ? state.aiAssistantWidth
-        : 0),
+    right: Math.max(
+      state.hasSelection ? state.propertiesPanelWidth + PANEL_MARGIN : 0,
+      state.isAiAssistantOpen &&
+        state.isAiAssistantCollapsed &&
+        dockHeight === null
+        ? state.aiAssistantWidth + 12
+        : 0,
+    ),
     bottom: Math.max(
       state.isBottomPanelOpen ? state.bottomPanelHeight + PANEL_MARGIN : 0,
-      dockHeight ?? 0,
+      dockHeight === null ? 0 : dockHeight + 12,
     ),
   };
 };

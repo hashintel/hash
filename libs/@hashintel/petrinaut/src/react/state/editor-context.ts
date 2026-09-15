@@ -84,6 +84,8 @@ export type EditorState = {
   aiAssistantWidth: number;
   /** Rendered compact dock height; null when expanded or closed. */
   aiAssistantDockHeight: number | null;
+  aiAssistantPlacement: "docked" | "floating";
+  isAiAssistantCollapsed: boolean;
   activeBottomPanelTab: BottomPanelTab;
   componentSubnetId: string | null;
   selection: SelectionMap;
@@ -143,6 +145,8 @@ export type EditorActions = {
   setPropertiesPanelWidth: (width: number) => void;
   setAiAssistantWidth: (width: number) => void;
   setAiAssistantDockHeight: (height: number | null) => void;
+  setAiAssistantPlacement: (placement: "docked" | "floating") => void;
+  setAiAssistantCollapsed: (collapsed: boolean) => void;
   setBottomPanelOpen: (isOpen: boolean) => void;
   toggleBottomPanel: () => void;
   setBottomPanelHeight: (height: number) => void;
@@ -199,6 +203,8 @@ export const initialEditorState: EditorState = {
   bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
   aiAssistantWidth: DEFAULT_AI_ASSISTANT_WIDTH,
   aiAssistantDockHeight: null,
+  aiAssistantPlacement: "docked",
+  isAiAssistantCollapsed: false,
   activeBottomPanelTab: "diagnostics",
   componentSubnetId: null,
   selection: new Map(),
@@ -228,6 +234,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setPropertiesPanelWidth: () => {},
   setAiAssistantWidth: () => {},
   setAiAssistantDockHeight: () => {},
+  setAiAssistantPlacement: () => {},
+  setAiAssistantCollapsed: () => {},
   setBottomPanelOpen: () => {},
   toggleBottomPanel: () => {},
   setBottomPanelHeight: () => {},

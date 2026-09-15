@@ -11,6 +11,8 @@ const closed: PanelLayoutState = {
   isAiAssistantOpen: false,
   aiAssistantWidth: 500,
   aiAssistantDockHeight: null,
+  aiAssistantPlacement: "docked",
+  isAiAssistantCollapsed: false,
   isBottomPanelOpen: false,
   bottomPanelHeight: 180,
 };
@@ -32,9 +34,9 @@ describe("getCanvasInsets", () => {
     expect(getCanvasInsets({ ...closed, hasSelection: true }).right).toBe(450);
   });
 
-  it("stacks the assistant on the properties panel, which it docks beside", () => {
+  it("leaves the docked assistant's separate column out of the canvas insets", () => {
     expect(getCanvasInsets({ ...closed, isAiAssistantOpen: true }).right).toBe(
-      500,
+      0,
     );
     expect(
       getCanvasInsets({
@@ -42,7 +44,45 @@ describe("getCanvasInsets", () => {
         hasSelection: true,
         isAiAssistantOpen: true,
       }).right,
-    ).toBe(950);
+    ).toBe(450);
+  });
+
+  it("reserves no canvas edge for the movable floating assistant", () => {
+    const floating = {
+      ...closed,
+      aiAssistantPlacement: "floating" as const,
+      isAiAssistantOpen: true,
+      hasSelection: false,
+    };
+    expect(getCanvasInsets(floating).right).toBe(0);
+    expect(getCanvasInsets({ ...floating, hasSelection: true }).right).toBe(
+      450,
+    );
+    expect(
+      getCanvasInsets({ ...floating, isAiAssistantOpen: false }).right,
+    ).toBe(0);
+  });
+
+  it("leaves room for a compact voice dock until it expands or closes", () => {
+    const compact = {
+      ...closed,
+      isAiAssistantOpen: true,
+      isAiAssistantCollapsed: true,
+    };
+    expect(getCanvasInsets(compact).right).toBe(512);
+    expect(
+      getCanvasInsets({ ...compact, isAiAssistantCollapsed: false }).right,
+    ).toBe(0);
+    expect(
+      getCanvasInsets({ ...compact, isAiAssistantOpen: false }).right,
+    ).toBe(0);
+    expect(
+      getCanvasInsets({
+        ...compact,
+        hasSelection: true,
+        propertiesPanelWidth: 600,
+      }).right,
+    ).toBe(600);
   });
 
   it("counts the bottom panel's height, not its open state alone", () => {
@@ -59,17 +99,18 @@ describe("getCanvasInsets", () => {
     const compact = {
       ...closed,
       isAiAssistantOpen: true,
+      isAiAssistantCollapsed: true,
       aiAssistantDockHeight: 84,
     };
     expect(getCanvasInsets(compact)).toEqual({
       left: 0,
-      right: 500,
+      right: 512,
       bottom: 0,
     });
     expect(getCanvasInsets(compact, { aboveCollapsedDock: true })).toEqual({
       left: 0,
       right: 0,
-      bottom: 84,
+      bottom: 96,
     });
     expect(
       getCanvasInsets(
@@ -82,7 +123,7 @@ describe("getCanvasInsets", () => {
         { ...compact, aiAssistantDockHeight: 320, isBottomPanelOpen: true },
         { aboveCollapsedDock: true },
       ),
-    ).toEqual({ left: 0, right: 0, bottom: 320 });
+    ).toEqual({ left: 0, right: 0, bottom: 332 });
   });
 
   it("keeps expanded positioning and ignores a closing dock's last measurement", () => {
@@ -91,7 +132,7 @@ describe("getCanvasInsets", () => {
         { ...closed, isAiAssistantOpen: true },
         { aboveCollapsedDock: true },
       ),
-    ).toEqual({ left: 0, right: 500, bottom: 0 });
+    ).toEqual({ left: 0, right: 0, bottom: 0 });
     expect(
       getCanvasInsets(
         { ...closed, aiAssistantDockHeight: 84 },
