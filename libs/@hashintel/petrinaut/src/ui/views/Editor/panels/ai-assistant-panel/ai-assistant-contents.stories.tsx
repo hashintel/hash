@@ -491,6 +491,9 @@ export const LiveSessionAudioOptions: Story = {
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
     ).toHaveAttribute("aria-valuenow", "0.65");
+    await expect(canvas.getByText("65%")).toBeInTheDocument();
+    await expect(canvas.queryByText("Audio options")).toBeNull();
+    await expect(canvas.queryByRole("button", { name: "Close" })).toBeNull();
     await expect(
       canvas.queryByRole("button", { name: "Repeat question" }),
     ).toBeNull();
@@ -535,6 +538,7 @@ export const RealtimeSessionAudioOptions: Story = {
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
     ).toHaveAttribute("aria-valuenow", "0.4");
+    await expect(canvas.getByText("40%")).toBeInTheDocument();
     await expect(
       canvas.getByRole("button", { name: "Repeat question" }),
     ).toBeEnabled();

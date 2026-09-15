@@ -977,7 +977,8 @@ describe("AiAssistantContents", () => {
     await waitFor(() =>
       expect(setInterruptionBySpeaking).toHaveBeenCalledWith(false),
     );
-    expect(screen.getByText("Audio options")).not.toBeNull();
+    expect(screen.queryByText("Audio options")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
     expect(preference.getAttribute("aria-pressed")).toBe("false");
     expect(screen.getByRole("button", { name: "Your turn" })).not.toBeNull();
     fireEvent.click(preference);
@@ -1082,6 +1083,7 @@ describe("AiAssistantContents", () => {
     expect(actions.setSpeakerVolume).not.toHaveBeenCalled();
 
     const volume = screen.getByRole("slider", { name: "Speaker volume" });
+    expect(screen.getByText("40%")).not.toBeNull();
     volume.focus();
     fireEvent.keyDown(volume, { key: "ArrowRight" });
     await waitFor(() =>
