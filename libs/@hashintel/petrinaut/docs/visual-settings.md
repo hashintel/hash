@@ -142,6 +142,12 @@ Off by default. Adds an interval toggle to every numeric value of the experiment
 
 Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with an **Objective** and **Constraints** chosen in the form. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
+### Automatic arc connections (experimental)
+
+Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
+
+This setting uses automatic curves and temporarily disables the **Arcs rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
+
 ### Arcs rendering
 
 Choose how arcs are drawn between nodes:

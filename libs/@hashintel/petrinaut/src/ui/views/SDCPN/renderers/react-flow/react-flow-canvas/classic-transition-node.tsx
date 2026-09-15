@@ -1,4 +1,4 @@
-import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
 import { useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
@@ -16,8 +16,8 @@ import {
   nodeSurfaceStyle,
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
-import { handleStyling } from "../../../styles/styling";
 import { iconBadgeStyle } from "./node-card";
+import { NodeHandles } from "./shared/node-handles";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
@@ -111,12 +111,6 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 
   return (
     <div className={containerStyle}>
-      <Handle
-        type="target"
-        position={Position.Left}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
       <div
         ref={boxRef}
         className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
@@ -139,12 +133,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="lightning" size="sm" />
         </div>
       </div>
-      <Handle
-        type="source"
-        position={Position.Right}
-        isConnectable={isConnectable}
-        style={handleStyling}
-      />
+      <NodeHandles isConnectable={isConnectable} />
     </div>
   );
 };

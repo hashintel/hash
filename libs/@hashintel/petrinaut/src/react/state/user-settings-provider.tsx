@@ -97,6 +97,11 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ...settings,
         enableExperimentalIconPack: value,
       })),
+    setEnableAutomaticArcConnections: (value: boolean) =>
+      setState((settings) => ({
+        ...settings,
+        enableAutomaticArcConnections: value,
+      })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
     setCursorMode: (value: CursorMode) =>
