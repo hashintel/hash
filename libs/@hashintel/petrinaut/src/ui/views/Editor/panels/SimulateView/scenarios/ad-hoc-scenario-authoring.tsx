@@ -14,6 +14,7 @@
  */
 
 import { use, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import { Drawer, Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -139,7 +140,7 @@ export function useAdHocScenarioAuthoring({
   );
   // Owned here (not generated inside the form) so the footer can address
   // exactly this form's diagnostics.
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(() => generateUuid());
 
   const context = {
     netParameters: extensions.parameters ? petriNetDefinition.parameters : [],

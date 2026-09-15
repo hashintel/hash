@@ -86,7 +86,7 @@ export const useAutomaticArcPaths = (
   return enableAutomaticArcConnections && routingScene
     ? routeArcs(
         routingScene,
-            automaticArcRendering === "square",
+        automaticArcRendering === "square",
         avoidArcObstacles,
       )
     : new Map();

@@ -8,7 +8,7 @@
  */
 
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
@@ -25,6 +25,25 @@ const stateWith = (expression: string): AdHocScenarioState => ({
 });
 
 describe("useAdHocLspSession", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("keeps a stable session ID when crypto.randomUUID is unavailable", () => {
+    vi.stubGlobal("crypto", {
+      getRandomValues: crypto.getRandomValues.bind(crypto),
+    });
+    const { result, rerender, unmount } = renderHook(() =>
+      useAdHocLspSession(stateWith("1")),
+    );
+    const sessionId = result.current;
+
+    expect(sessionId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    rerender();
+    expect(result.current).toBe(sessionId);
+    unmount();
+  });
+
   it("syncs the worker on content changes, never on state identity alone", () => {
     const client = {
       ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,

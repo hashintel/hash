@@ -1,5 +1,6 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import {
   Button,
@@ -378,7 +379,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
       : "expression";
 
   return {
-    id: crypto.randomUUID(),
+    id: generateUuid(),
     kind,
     label: getDefaultMetricLabel(kind, sdcpn),
     expanded: true,
@@ -387,7 +388,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
     transitionMode: "firedInThisFrame",
     code: DEFAULT_METRIC_CODE,
     sourceMetricId: null,
-    metricSessionId: crypto.randomUUID(),
+    metricSessionId: generateUuid(),
     lspDiagnostics: EMPTY_METRIC_LSP_DIAGNOSTICS,
   };
 }

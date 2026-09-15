@@ -1,5 +1,6 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import { Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -131,7 +132,7 @@ export function useMetricLspSession(
     use(LanguageClientContext);
   // useState (not useRef/useMemo) — needed for a stable per-mount value.
   // React Compiler doesn't replace useState; it only memoizes derived values.
-  const [sessionId] = useState(() => providedSessionId ?? crypto.randomUUID());
+  const [sessionId] = useState(() => providedSessionId ?? generateUuid());
   const initializedRef = useRef(false);
 
   useEffect(() => {
