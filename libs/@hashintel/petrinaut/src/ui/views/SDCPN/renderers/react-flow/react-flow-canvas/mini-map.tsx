@@ -21,9 +21,6 @@ const miniMapClassName = css({
   },
 });
 
-const SHAPE_SIZE = 90;
-/** Component instances are the one wide shape on the canvas. */
-const COMPONENT_INSTANCE_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 /** Thick and solid: at map scale a ring has to carry the whole signal. */
@@ -31,14 +28,20 @@ const FOCUS_STROKE_WIDTH = 22;
 
 /**
  * Custom node renderer for the MiniMap.
- * Renders place nodes as circles and transition nodes as squared rectangles, carrying
+ * Renders place nodes as circles and transition nodes as rectangles, carrying
  * the canvas's focus roles: a shape at the focused item is boxed in the
  * role's colour and the rest of the net drops far back, so a glance at the
  * map answers "where is this neighbourhood" on a net larger than the screen.
  * The map is too small for the canvas's white band, so the box and the fade
  * carry it alone.
  */
-const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
+const MiniMapNode: React.FC<MiniMapNodeProps> = ({
+  id,
+  x,
+  y,
+  width,
+  height,
+}) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
     (state) => state.nodeLookup.get(id) as NodeType | undefined,
@@ -77,23 +80,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   if (node.data.kind === "place") {
     return (
       <circle
-        cx={x + SHAPE_SIZE / 2}
-        cy={y + SHAPE_SIZE / 2}
-        r={SHAPE_SIZE / 2}
-        className={shapeClass}
-        style={shapeStyle}
-      />
-    );
-  }
-
-  if (node.data.kind === "componentInstance") {
-    return (
-      <rect
-        x={x - SHAPE_SIZE}
-        y={y - SHAPE_SIZE / 2}
-        width={SHAPE_SIZE * COMPONENT_INSTANCE_WIDTH_RATIO}
-        height={SHAPE_SIZE}
-        rx={12}
+        cx={x + width / 2}
+        cy={y + height / 2}
+        r={Math.min(width, height) / 2}
         className={shapeClass}
         style={shapeStyle}
       />
@@ -104,8 +93,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
     <rect
       x={x}
       y={y}
-      width={SHAPE_SIZE}
-      height={SHAPE_SIZE}
+      width={width}
+      height={height}
+      rx={node.data.kind === "componentInstance" ? 12 : undefined}
       className={shapeClass}
       style={shapeStyle}
     />
@@ -114,7 +104,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
 /**
  * A wrapper around ReactFlow's MiniMap with custom styling.
- * Renders place nodes as circles and transition nodes as squared rectangles.
+ * Renders place nodes as circles and transition nodes as rectangles.
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {

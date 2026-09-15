@@ -14,12 +14,8 @@ export const nodeSurfaceStyle = css({
  */
 export const transitionSurfaceStyle = css({
   background: "neutral.s00",
-  // The compact card outlines itself with a border, the classic node with a
-  // ring; each mode reads the one that applies to it.
-  borderColor: "neutral.s70",
   "--node-outline-color": "var(--colors-neutral-s70)",
   _hover: {
-    borderColor: "neutral.s100",
     "--node-outline-color": "var(--colors-neutral-s100)",
   },
 });
