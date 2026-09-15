@@ -1,32 +1,21 @@
-use core::{
-    assert_matches,
-    future::Future as _,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use alloc::io::Read;
+use core::{assert_matches, io::Cursor};
 use std::{fs, io};
 
-use tokio::{
-    io::{AsyncRead, AsyncReadExt as _, ReadBuf},
-    sync::oneshot,
-};
+use tokio::sync::oneshot;
 
-use super::LocalFile;
+use super::{LocalFile, WriteCondition};
 use crate::file::{
     generation::scratch::tests::{entry_count, root, scratch},
-    storage::{WriteCondition, error::StorageError},
+    storage::error::StorageError,
 };
 
 /// A source that fails on its first read.
 struct FailedReader;
 
-impl AsyncRead for FailedReader {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-        _buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        Poll::Ready(Err(io::Error::other("source stopped")))
+impl Read for FailedReader {
+    fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+        Err(io::Error::other("source stopped"))
     }
 }
 
@@ -35,28 +24,21 @@ struct PausedReader {
     /// Signals the first read, once.
     entered: Option<oneshot::Sender<()>>,
     /// Completes the read when the observer releases it.
-    release: oneshot::Receiver<()>,
+    release: Option<oneshot::Receiver<()>>,
 }
 
-impl AsyncRead for PausedReader {
-    fn poll_read(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        _buf: &mut ReadBuf<'_>,
-    ) -> Poll<io::Result<()>> {
-        let this = self.get_mut();
-
-        if let Some(entered) = this.entered.take()
+impl Read for PausedReader {
+    fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
+        if let Some(entered) = self.entered.take()
             && entered.send(()).is_err()
         {
-            return Poll::Ready(Err(io::Error::other("entry observer dropped")));
+            return Err(io::Error::other("entry observer dropped"));
         }
 
-        match Pin::new(&mut this.release).poll(cx) {
-            Poll::Ready(Ok(())) => Poll::Ready(Ok(())),
-            Poll::Ready(Err(error)) => Poll::Ready(Err(io::Error::other(error))),
-            Poll::Pending => Poll::Pending,
+        if let Some(release) = self.release.take() {
+            release.blocking_recv().map_err(io::Error::other)?;
         }
+        Ok(0)
     }
 }
 
@@ -66,9 +48,9 @@ async fn write_partial_source() {
     let directory = scratch();
     let path = root(&directory).join("current");
     fs::write(&path, b"retained").expect("should seed the destination");
-    let source = b"partial".as_slice().chain(FailedReader);
+    let source = Cursor::new(b"partial").chain(FailedReader);
     let error = LocalFile::new(&path)
-        .write(source, &WriteCondition::Any)
+        .write(source, WriteCondition::Any)
         .await
         .expect_err("should return the source failure");
     assert_matches!(error, StorageError::Io(error) if error.to_string() == "source stopped");
@@ -97,9 +79,9 @@ async fn write_transfer_lock() {
             .write(
                 PausedReader {
                     entered: Some(entered),
-                    release: proceed,
+                    release: Some(proceed),
                 },
-                &WriteCondition::Absent,
+                WriteCondition::Absent,
             )
             .await
     });

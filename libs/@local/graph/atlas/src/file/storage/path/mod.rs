@@ -6,6 +6,7 @@
 
 use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
+use std::io::Cursor;
 
 use bytes::Bytes;
 use camino::{Utf8Path, Utf8PathBuf};
@@ -109,15 +110,17 @@ impl FilePath {
         &self,
         storage: &Storage,
         body: Bytes,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
-                LocalFile::new(path).write(body.as_ref(), &condition).await
+                LocalFile::new(path)
+                    .write(Cursor::new(body), condition.try_into()?)
+                    .await
             }
             FilePathVariant::Bucket(path) => storage
                 .s3()?
-                .put(path, body, condition.as_s3()?)
+                .put(path, body, condition.try_into()?)
                 .await
                 .map(|_| ()),
         }
@@ -137,15 +140,20 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: impl AsRef<Utf8Path>,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
-                let source = fs::File::open(source.as_ref()).await?;
-                LocalFile::new(path).write(source, &condition).await
+                let source = fs::File::open(source.as_ref()).await?.into_std().await;
+                LocalFile::new(path)
+                    .write(source, condition.try_into()?)
+                    .await
             }
             FilePathVariant::Bucket(path) => {
-                storage.s3()?.upload(path, source, condition.as_s3()?).await
+                storage
+                    .s3()?
+                    .upload(path, source, condition.try_into()?)
+                    .await
             }
         }
     }
@@ -164,14 +172,14 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: &Self,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         if let (FilePathVariant::Bucket(source), FilePathVariant::Bucket(destination)) =
             (&source.variant, &self.variant)
         {
             return storage
                 .s3()?
-                .copy(source, destination, condition.as_s3()?)
+                .copy(source, destination, condition.try_into()?)
                 .await;
         }
 

@@ -78,7 +78,7 @@ steppe                    = { workspace = true }
 subtle                    = { workspace = true }
 tiktoken-rs               = { workspace = true }
 time                      = { workspace = true }
-tokio-util                = { workspace = true }
+tokio-util                = { workspace = true, features = ["io"] }
 tower                     = { workspace = true }
 tracing                   = { workspace = true }
 tracing-subscriber        = { workspace = true, optional = true, features = ["ansi", "env-filter", "fmt", "std"] }

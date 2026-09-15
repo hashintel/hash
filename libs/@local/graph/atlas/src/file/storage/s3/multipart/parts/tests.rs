@@ -1,3 +1,4 @@
+use core::assert_matches;
 use std::fs;
 
 use super::Parts;
@@ -145,9 +146,9 @@ fn complete_missing_metadata() {
             .complete(etag.map(str::to_owned), checksum.map(str::to_owned))
             .expect_err("should require both metadata fields");
         if missing_etag {
-            core::assert_matches!(error, StorageError::MissingEntityTag);
+            assert_matches!(error, StorageError::MissingEntityTag);
         } else {
-            core::assert_matches!(error, StorageError::MissingChecksum);
+            assert_matches!(error, StorageError::MissingChecksum);
         }
     }
 }
@@ -156,8 +157,8 @@ fn complete_missing_metadata() {
 #[test]
 fn parts_oversized() {
     let length = Parts::MAX_PART_BYTES * Parts::MAX_PARTS + 1;
-    core::assert_matches!(Parts::new(length).err(), Some(StorageError::ObjectTooLarge { length: actual }) if actual == length);
-    core::assert_matches!(
+    assert_matches!(Parts::new(length).err(), Some(StorageError::ObjectTooLarge { length: actual }) if actual == length);
+    assert_matches!(
         Parts::new(u64::MAX).err(),
         Some(StorageError::ObjectTooLarge { .. })
     );

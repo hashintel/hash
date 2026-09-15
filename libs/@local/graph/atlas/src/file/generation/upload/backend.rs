@@ -43,7 +43,7 @@ pub(crate) trait GenerationUploadBackend {
         &self,
         path: &FilePath,
         body: Bytes,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError>;
 
     /// Streams a local artifact under a destination precondition.
@@ -62,7 +62,7 @@ pub(crate) trait GenerationUploadBackend {
         &self,
         destination: &FilePath,
         source: &Utf8Path,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError>;
 
     /// Copies a complete source under a destination precondition.
@@ -81,7 +81,7 @@ pub(crate) trait GenerationUploadBackend {
         &self,
         source: &FilePath,
         destination: &FilePath,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError>;
 }
 
@@ -98,7 +98,7 @@ impl GenerationUploadBackend for &Storage {
         &self,
         path: &FilePath,
         body: Bytes,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         path.put(self, body, condition).await
     }
@@ -107,7 +107,7 @@ impl GenerationUploadBackend for &Storage {
         &self,
         destination: &FilePath,
         source: &Utf8Path,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         destination.upload(self, source, condition).await
     }
@@ -116,7 +116,7 @@ impl GenerationUploadBackend for &Storage {
         &self,
         source: &FilePath,
         destination: &FilePath,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         destination.copy_from(self, source, condition).await
     }

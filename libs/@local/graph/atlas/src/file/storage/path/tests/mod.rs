@@ -1,4 +1,3 @@
-#![expect(clippy::significant_drop_tightening, reason = "false-psotive")]
 use alloc::borrow::Cow;
 use core::{assert_matches, pin::pin};
 use std::{fs, io};
@@ -117,12 +116,14 @@ async fn sync_local() {
     fs::write(&file, b"local contents").expect("should write the source file");
     let path: FilePath = file.as_str().parse().expect("should parse a local path");
     let destination = scratch();
+    let storage = Storage::new(root(&destination).to_owned());
     let resolved = path
-        .sync_to_local(&Storage::new(root(&destination).to_owned()))
+        .sync_to_local(&storage)
         .await
         .expect("should resolve the local path without S3");
     assert_matches!(resolved, Cow::Borrowed(value) if value == file);
     assert_eq!(entry_count(root(&destination)), 0);
+    drop(storage);
     drop(destination);
     drop(source);
 }
@@ -167,14 +168,18 @@ async fn into_local_unconfigured() {
 async fn sync_s3_unconfigured() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
     let destination = scratch();
-    let missing = root(&destination).join("missing");
-    for directory in [root(&destination), missing.as_path()] {
+    let storages = [
+        Storage::new(root(&destination).to_owned()),
+        Storage::new(root(&destination).join("missing")),
+    ];
+    for storage in &storages {
         let error = path
-            .sync_to_local(&Storage::new(directory.to_owned()))
+            .sync_to_local(storage)
             .await
             .expect_err("should require S3 before accessing the destination");
         assert_matches!(error, StorageError::S3Unavailable);
     }
     assert_eq!(entry_count(root(&destination)), 0);
+    drop(storages);
     drop(destination);
 }
