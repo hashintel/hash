@@ -2079,7 +2079,7 @@ describe("assistant selection", () => {
     const brunch = currentAssistant();
     // Brunch reads Flue history, which holds none of the stock turn; and a
     // Brunch-side message write never reaches the local store.
-    expect(brunch.messages).not.toContainEqual(stockMessage);
+    expect(brunch.messages ?? []).not.toContainEqual(stockMessage);
     act(() =>
       brunch.onMessages?.([
         { id: "brunch-1", role: "user", parts: [] } as PetrinautAiMessage,
