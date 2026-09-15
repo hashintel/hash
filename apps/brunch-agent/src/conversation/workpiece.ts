@@ -5,7 +5,6 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 
 import {
-  LEGACY_UPDATE_WORKPIECE_TOOL_NAME,
   MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceInputSchema,
   updateWorkpieceOutputSchema,
@@ -24,8 +23,7 @@ const settledRevisionFromPart = (
 ): WorkpieceRevision | undefined => {
   if (
     part.type !== "dynamic-tool" ||
-    (part.toolName !== MUTATE_WORKPIECE_TOOL_NAME &&
-      part.toolName !== LEGACY_UPDATE_WORKPIECE_TOOL_NAME) ||
+    part.toolName !== MUTATE_WORKPIECE_TOOL_NAME ||
     part.state !== "output-available"
   )
     return undefined;
@@ -106,12 +104,7 @@ const sha256 = (value: string): string =>
 /** Core's selection plus content and source hashes; the source message itself is not carried. */
 export type RecoveredRunbookWorkpiece = Pick<
   SelectedRunbookWorkpiece,
-  | "authorship"
-  | "content"
-  | "fixtureId"
-  | "sourceKind"
-  | "sourceMessageId"
-  | "sourceSubmissionId"
+  "content" | "sourceMessageId" | "sourceSubmissionId"
 > & {
   readonly sha256: string;
   readonly sourceMessageSha256: string;
@@ -128,13 +121,8 @@ export const recoverRunbookWorkpiece = (
   if (selected === undefined) return undefined;
 
   return {
-    authorship: selected.authorship,
     content: selected.content,
-    ...(selected.fixtureId === undefined
-      ? {}
-      : { fixtureId: selected.fixtureId }),
     sha256: sha256(selected.content),
-    sourceKind: selected.sourceKind,
     sourceMessageId: selected.sourceMessageId,
     sourceMessageSha256: sha256(JSON.stringify(selected.sourceMessage)),
     ...(selected.sourceSubmissionId === undefined

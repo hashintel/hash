@@ -7,7 +7,6 @@ import {
   batchedConstructionMode,
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
-  validatedFixtureMutationMode,
 } from "../src/flue";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -24,18 +23,13 @@ const toolByName = (toolName: string) => {
 };
 
 describe("Petrinaut construction tools", () => {
-  test("accepts only the ordinary headless and prepared-fixture modes", () => {
+  test("accepts only the headless runbook and bound batched construction modes", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
     expect(
       v.parse(sdcpnInitialDataSchema, {
         mode: VALIDATED_CONSTRUCTION_MODE,
       }),
     ).toEqual({ mode: VALIDATED_CONSTRUCTION_MODE });
-    expect(
-      v.parse(sdcpnInitialDataSchema, {
-        mode: validatedFixtureMutationMode,
-      }),
-    ).toEqual({ mode: validatedFixtureMutationMode });
     const construction = {
       binding: {
         conversationId: "conversation",
@@ -56,32 +50,13 @@ describe("Petrinaut construction tools", () => {
     ).toThrow(/distinct immutable binding/u);
     expect(() =>
       v.parse(sdcpnInitialDataSchema, {
-        mode: "unrestricted-construction",
-      }),
-    ).toThrow(/Invalid type/u);
-  });
-
-  test("restricts issued browser binding to the opt-in prepared mode", () => {
-    const browser = {
-      binding: {
-        conversationId: "conversation",
-        documentId: "document",
-        incarnationId: "incarnation",
-      },
-      requestedBaseHash: "a".repeat(64),
-    };
-    expect(
-      v.parse(sdcpnInitialDataSchema, {
-        mode: validatedFixtureMutationMode,
-        browser,
-      }),
-    ).toEqual({ mode: validatedFixtureMutationMode, browser });
-    expect(() =>
-      v.parse(sdcpnInitialDataSchema, {
         mode: VALIDATED_CONSTRUCTION_MODE,
-        browser,
+        construction,
       }),
-    ).toThrow(/prepared root-arc/u);
+    ).toThrow(/distinct immutable binding/u);
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, { mode: "unrestricted-construction" }),
+    ).toThrow(/Invalid type/u);
   });
 
   test("mechanically carries the canonical input contract", () => {

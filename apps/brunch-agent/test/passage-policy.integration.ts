@@ -18,13 +18,9 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { workpieceReadOutputSchema } from "@hashintel/brunch-agent/flue";
-import {
-  preparedWorkpieceAuthorship,
-  preparedWorkpieceSignalTag,
-  preparedWorkpieceSignalType,
-} from "@hashintel/brunch-agent/workpiece";
+import { workpieceRevisionPointerSchema } from "@hashintel/brunch-agent/workpiece";
 
 import {
   agentOwnershipHeaders,
@@ -37,12 +33,39 @@ import {
   type NativeRequestCapture,
 } from "./native-schema-provider.ts";
 
-import type {
-  WorkpieceEvidenceRelation,
-  WorkpieceRevision,
-} from "@hashintel/brunch-agent/workpiece";
+import type { WorkpieceEvidenceRelation } from "@hashintel/brunch-agent/workpiece";
 
-type ReadOutput = v.InferOutput<typeof workpieceReadOutputSchema>;
+/**
+ * The model-facing read result is the projected context, not the raw tool
+ * output: the body is carried inline by at most one retained entry and every
+ * other copy is a `markdownReference`. Revisions therefore compare here by
+ * pointer and evidence; body identity is asserted through the locator lookup.
+ */
+const settledRevisionSchema = v.object({
+  ...workpieceRevisionPointerSchema.entries,
+  evidence: v.optional(v.unknown()),
+  evidenceValidated: v.optional(v.literal(true)),
+});
+type SettledRevision = v.InferOutput<typeof settledRevisionSchema>;
+const modelReadOutputSchema = v.object({
+  ...workpieceReadOutputSchema.entries,
+  currentWorkpiece: v.nullable(
+    v.pipe(
+      v.looseObject(settledRevisionSchema.entries),
+      v.transform(
+        ({ revisionId, sha256: hash, ordinal, evidence, evidenceValidated }) =>
+          ({
+            revisionId,
+            sha256: hash,
+            ordinal,
+            ...(evidence === undefined ? {} : { evidence }),
+            ...(evidenceValidated === undefined ? {} : { evidenceValidated }),
+          }) satisfies SettledRevision,
+      ),
+    ),
+  ),
+});
+type ReadOutput = v.InferOutput<typeof modelReadOutputSchema>;
 /** Every read here supplies locateTexts, so the lookup branch is always present. */
 type ReadResult = Omit<ReadOutput, "locatorLookup"> & {
   locatorLookup: Extract<
@@ -96,9 +119,9 @@ const modelOutput = (context: Context, id: string): ReadResult => {
     result?.role === "toolResult" && !result.isError,
     `Actual successful model-facing response required: ${id}`,
   );
-  // Core's read-tool output schema decides what a well-formed response is.
+  // Core's read-tool output schema, as the model sees it after projection.
   const parsed = v.parse(
-    workpieceReadOutputSchema,
+    modelReadOutputSchema,
     JSON.parse(
       result.content
         .flatMap((part) => (part.type === "text" ? [part.text] : []))
@@ -183,14 +206,13 @@ const session = (label: string) => {
       ...(!initialized
         ? {
             initialData: {
-              mode: validatedFixtureMutationMode,
-              browser: {
+              mode: batchedConstructionMode,
+              construction: {
                 binding: {
                   conversationId: identity.conversationId,
                   documentId: "TEST-passage-document",
                   incarnationId: identity.conversationId,
                 },
-                requestedBaseHash: "a".repeat(64),
               },
             },
           }
@@ -228,7 +250,11 @@ const seed = async (current: Session, markdown = base) => {
   setResponses([
     call(
       "read_workpiece",
-      { markdown, locateTexts: [quote, narrow, tail, markdown] },
+      {
+        markdown,
+        includeSources: true,
+        locateTexts: [quote, narrow, tail, markdown],
+      },
       `${prefix}-candidate`,
     ),
     (context) => {
@@ -296,7 +322,7 @@ const seed = async (current: Session, markdown = base) => {
 const edit = async (
   current: Session,
   label: string,
-  previous: WorkpieceRevision,
+  previous: SettledRevision,
   markdown: string,
   expected: WorkpieceEvidenceRelation[] | undefined,
   declaration?: (candidate: ReadResult) => WorkpieceEvidenceRelation[],
@@ -331,8 +357,7 @@ const edit = async (
     (context) => {
       actual = modelOutput(context, `${prefix}-read`);
       checkLookup(actual, markdown, `${prefix}-revision`);
-      assert.equal(actual.currentWorkpiece?.markdown, markdown);
-      assert.equal(actual.currentWorkpiece.sha256, sha256(markdown));
+      assert.equal(actual.currentWorkpiece?.sha256, sha256(markdown));
       assert.equal(actual.currentWorkpiece.ordinal, previous.ordinal + 1);
       assert.deepEqual(
         actual.currentWorkpiece.evidence,
@@ -569,24 +594,10 @@ try {
   const relation = negativeSeed.relations[0];
   assert(relation);
   setResponses([done()]);
-  const preparedReceipt = await negatives.client.send({
-    message: {
-      kind: "signal",
-      type: preparedWorkpieceSignalType,
-      tagName: preparedWorkpieceSignalTag,
-      attributes: { authorship: preparedWorkpieceAuthorship },
-      body: "TEST prepared source, never operational user testimony.",
-    },
-  });
-  await negatives.client.read(preparedReceipt, {
-    signal: AbortSignal.timeout(30000),
-  });
-  assert.equal(factoryFailures.length, 0);
+  await negatives.send(
+    "TEST assistant turn whose reply is never user testimony.",
+  );
   const history = await negatives.client.history();
-  const preparedId = history.messages.find(
-    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
-  )?.id;
-  assert(preparedId);
   const assistantId = history.messages.find(
     (message) => message.role === "assistant",
   )?.id;
@@ -595,7 +606,6 @@ try {
   const foreignSeed = await seed(foreign);
   for (const [label, evidence] of [
     ["assistant-source", [{ ...relation, messageIds: [assistantId] }]],
-    ["prepared-signal-source", [{ ...relation, messageIds: [preparedId] }]],
     [
       "foreign-conversation-source",
       [{ ...relation, messageIds: [foreignSeed.sourceId] }],
@@ -621,7 +631,7 @@ try {
         assert.deepEqual(read.currentWorkpiece, negativeSeed.revision);
         assert(
           !read.sources.some((source) =>
-            [assistantId, preparedId, foreignSeed.sourceId].includes(source.id),
+            [assistantId, foreignSeed.sourceId].includes(source.id),
           ),
         );
         return done();

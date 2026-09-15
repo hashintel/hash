@@ -177,7 +177,7 @@ try {
   const afterRead = await client.history();
   const derivedAfterRead = await deriveNetFreshness(
     afterRead,
-    { binding, construction: true },
+    { binding },
     reportedRevisionId,
   );
   assert.deepEqual(
@@ -375,7 +375,7 @@ try {
       (
         await deriveNetFreshness(
           await client.history(),
-          { binding, construction: true },
+          { binding },
           reportedRevisionId,
         )
       ).kind,

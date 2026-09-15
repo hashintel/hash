@@ -87,8 +87,7 @@ apps/petrinaut-website/src/main/app/local-storage-demo
 ├─ documents/document-repository.ts ✓ storage-neutral document/source/controller contracts and
 │                                      the typed process-agent seed
 ├─ documents/local-storage/
-│  ├─ use-local-document-repository.ts ✓ ordinary browser-local persistence
-│  └─ use-fixture-document-overlay.ts  ✓ local-only prepared-fixture decorator
+│  └─ use-local-document-repository.ts ✓ ordinary browser-local persistence
 ├─ documents/remote/
 │  ├─ use-remote-document-repository.ts ✓ worked-model source and read-only title boundary
 │  ├─ use-worked-model-net-projection.ts ✓ queued identity-explicit remote revision persistence
@@ -142,13 +141,13 @@ Voice derives its repeatable question segment in the browser from the whole
 finalized assistant text of the folded turn. A text part followed by more tool
 work is not final; after a client-tool continuation, all finalized text parts
 in that assistant message form one stable, message-addressed segment. Empty,
-tool-only and stopped replies produce no new segment. Historical
-`brunch_mark_question` rows remain hidden and `data-brunch-question` parts
-remain loadable as inert data, but neither can select or override Voice speech.
+tool-only and stopped replies produce no new segment. No tool or data part
+selects or overrides Voice speech.
 
 Stock Petrinaut has its own canonical individual AI-tool surface and history.
-Legacy/headless Brunch modes still mount individual construction tools for
-their bounded tests; they are not the ordinary product surface.
+The headless `validated-construction` runbook still mounts individual
+construction tools for its bounded tests; it is not the ordinary product
+surface.
 
 ## Current placement locks
 

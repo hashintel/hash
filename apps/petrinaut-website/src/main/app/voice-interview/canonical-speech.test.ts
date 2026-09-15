@@ -199,29 +199,6 @@ describe("canonical speech selection", () => {
     );
   });
 
-  test("keeps legacy marker parts inert", () => {
-    const text = "The finalized response is authoritative.";
-    const selection = selectCanonicalSpeech([
-      {
-        id: "assistant-legacy-marker",
-        role: "assistant",
-        parts: [
-          {
-            type: "data-brunch-question",
-            data: {
-              question: "Legacy narrow question?",
-              toolCallId: "legacy-question-1",
-            },
-          },
-          { type: "text", text, state: "done" },
-        ],
-      },
-    ]);
-
-    expect(selection.questionSegment?.text).toBe(text);
-    expect(selection.questionSegment?.id).not.toContain("legacy-question-1");
-  });
-
   test.each([
     {
       name: "streaming",

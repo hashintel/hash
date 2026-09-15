@@ -43,7 +43,7 @@ does not choose the assistant.
 **Document source**:
 The route-selected repository plus any typed seed needed to bind that source's
 document to Brunch. Local storage and the remote worked-model service are
-distinct sources; the prepared-fixture overlay decorates only the local source.
+distinct sources.
 
 **Document controller**:
 The host coordinator that knows the local and selected repositories and owns

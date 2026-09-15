@@ -7,7 +7,6 @@ import type {
 
 /**
  * Visible ordinary tools mirrored from the Brunch browser catalogue. The
- * transport-only `brunch_mark_question` marker is deliberately absent.
  */
 export const visibleOrdinaryBrunchToolNames = [
   "task",

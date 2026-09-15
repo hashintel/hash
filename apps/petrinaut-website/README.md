@@ -74,31 +74,13 @@ worked-model route, they create a local document and navigate to the ordinary
 route; they do not write the imported or example content into the remote copy.
 
 The host implements this boundary through a `DocumentController` over
-storage-neutral repositories: the ordinary local repository, its local-only
-fixture decorator and the remote net-projection repository. The controller
-alone crosses sources. A typed process-agent seed carries the remote document
-and conversation identity into the Brunch binding; remote adapter-private
-storage identities and fixture metadata do not cross that host boundary. This
+storage-neutral repositories: the ordinary local repository and the remote
+net-projection repository. The controller alone crosses sources. A typed
+process-agent seed carries the remote document and conversation identity into
+the Brunch binding; remote adapter-private storage identities do not cross that
+host boundary. This
 repository/controller/binding split remains the document-lifecycle authority,
 but it does not instantiate or preserve the required complete connected bundle.
-
-## Prepared root-arc tracer
-
-With Brunch configured, the prepared-fixture selector offers **Open the prepared root-arc mechanical tracer** at `/?brunch-fixture=crew-reservation-v1&brunchTracer=root-arc`. It opens a separate prepared document and a conversation bound to that document's persisted incarnation and original base. The **legacy crew-reservation fixture** retains its existing conversation, manifest, and fenced-workpiece reads; selecting the tracer does not migrate or overwrite that fixture.
-
-The tracer settles a full Markdown workpiece before admitting one root arc. Unknown citations refuse. Superseded citations refuse unless a retained superseded revision is explicitly intended. A changed document base refuses the mutation. Successful browser results carry independently observed before/after definitions and a correlated mutation record; reopening does not resubmit a completed mutation. A conflicting result displays an unknown outcome rather than a successful change. This is a prepared mechanical demonstration, not genuine process construction or proof of provider-schema fidelity.
-
-The tracer also exposes **Current workpiece · recorded why** beside the existing assistant. Ask Brunch to read the workpiece to see the actual current-state query and discover authorized user-message IDs. The same read tool can locate exact quoted text in the current revision or an explicitly unsettled candidate; it returns bounded UTF-16 occurrences and reports omitted matches. Candidate hashes/offsets never settle a revision or confer support. Optional revision evidence is validated before settlement; prepared signals and assistant messages cannot become elicited sources. Unchanged unique passages at the same revision-local span can carry their relation, but editing, moving or duplicating text does not establish passage continuity. Missing relations remain temporal context, not inferred support.
-
-Ask why the input arc exists by its endpoint names or IDs. Brunch can read the live document, query `brunch_why`, and interpret its structured response in the normal conversation. The extra pane shows that actual response and the workpiece as reported by the tool, not a reconstruction from historical revision inputs. Reopen and ask again to refresh it. Unavailable observations are labelled as-of; real unrecorded content changes refuse attribution. A serialization-equivalent result preserves two different, independently verified hashes and recognizes only object-key-order differences across the complete definitions. It does not identify an actor or relax mutation base checks. Evidence authorization and recorded effects are mechanical facts; source relevance, flexible-template completeness, semantic fidelity and reviewer utility remain unassessed. The legacy fixture and stock host are unchanged.
-
-The ordinary configured host still uses its configured model. The explicit `test:browser-tracer` and `test:reopened-why` Brunch workspace scripts use synthetic native SDK responses, isolated storage and the existing ephemeral loopback-only listener, not external model requests. `test:browser-tracer` then reopens that original store in later Node processes; `test:reopened-why-retention` is the opt-in three-process Vitest for why/source survival. Before builds or probes, verify the process-tree guard in `libs/@hashintel/brunch-agent/evaluations/protocols/network-guard/verify-network-guard.mjs`; use that directory's deny-network profile for builds and loopback-only profile for Chrome. Build the website with `VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat`. `M7_CHROME_PATH` selects an installed Chrome executable, and `M7_BROWSER_OUTPUT` selects a fresh evidence directory. `test:reopened-why-retention` seeds the store in Chrome, then folds and reopens that same store in two later Node processes; it requires three distinct process IDs and does not reload Chrome for fold or reopen. None of these scripts claim genuine testimony or utility acceptance.
-
-## Conversation-bound construction candidate
-
-With Brunch configured, `/?brunchTracer=construction` opens a separately identified, labelled synthetic net substrate. Its first ordinary user message initializes a new mode/incarnation-scoped conversation; there is no prepared workpiece dispatch or history import. Settle the workpiece, then read the document before each root `addArc` or `updateArcWeight`. Each mutation cites the earlier browser result ID and its exact observed raw hash, plus the settled workpiece basis. Reopening requires a fresh browser read before new mutation work. Ordinary configured Brunch now uses the same batched `mutate_petrinet` catalogue as `/?brunchTracer=root-creation`; the prepared fixture and individual-tool construction tracer stay distinct.
-
-This candidate proves only root arc/weight progression. Other root classes, deletion/recreation, arc connectivity changes, layout/title, components and subnets are unavailable, not silently approximated. The why result keeps origin separate from subsequent recorded changes and attempts; weight corrections resolve their own governing revision. Basis remains operation-level and semantic utility unassessed. Unrecorded intervening content prevents attribution; failed, stale, no-op and conflicting results are not causes. `test:construction-progression` uses actual Chrome with synthetic native SDK responses, not paid or genuine/provider-class admission.
 
 ## Example embeds and oEmbed
 
@@ -206,9 +188,9 @@ microphone for fresh capture. Its playback menu offers **Repeat question** and
 response and audio output have both finished, enqueues all exact retained
 canonical segments in order, and is disabled during capture, submission,
 cancellation, pause, and errors. **Repeat question** has the same safety gates
-and replays only exact question text carrying Brunch's non-interactive marker;
-if the marker is missing, malformed, or does not match finalized prose, the
-action stays disabled rather than guessing from the final segment.
+and replays the whole finalized assistant text of the folded turn; while the
+turn is still continuing through tool work, or produced no finalized text, the
+action stays disabled rather than guessing from a partial segment.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified

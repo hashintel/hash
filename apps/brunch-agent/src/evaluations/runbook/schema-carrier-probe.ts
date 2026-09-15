@@ -158,10 +158,6 @@ try {
     io: "input",
   });
   assert.deepEqual(generatedAddType.parameters, canonicalSchema);
-  assert(
-    generatedTools.every((tool) => tool.name !== "brunch_mark_question"),
-    "Retired question marker remains mounted",
-  );
   assert.deepEqual(headless.definition().types, [
     petrinautAiTools.addType.inputSchema.parse(nestedType),
   ]);

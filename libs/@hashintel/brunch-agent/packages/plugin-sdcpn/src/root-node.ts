@@ -1,12 +1,9 @@
 import { z } from "zod";
 
 import { getArcEndpointPlaceId, type SDCPN } from "@hashintel/petrinaut-core";
-import {
-  petrinautAiTools,
-  normalizePetrinautAiToolInput,
-} from "@hashintel/petrinaut-core/ai";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { observedArcEnvelopeSchema, rootArcWhyInputSchema } from "./root-arc";
+import { rootArcWhyInputSchema } from "./root-arc";
 import { rootStateWhyInputSchema } from "./root-state";
 
 import type { ConstructionMutationRequest } from "./mutation-record";
@@ -65,35 +62,6 @@ export const isBatchedNodeMutation = (
   name: string,
 ): name is BatchedNodeMutationName =>
   batchedNodeMutationNames.some((entry) => entry === name);
-const rootOnly = (input: { targetSubnetId?: string | null }) =>
-  !input.targetSubnetId;
-
-/** Compose only the Brunch envelope. Petrinaut owns every executable input field. */
-const schemas = {
-  addPlace: petrinautAiTools.addPlace.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly, { message: "Only root places are admitted." })
-    .meta(petrinautAiTools.addPlace.inputSchema.meta() ?? {}),
-  updatePlace: petrinautAiTools.updatePlace.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly, { message: "Only root places are admitted." })
-    .meta(petrinautAiTools.updatePlace.inputSchema.meta() ?? {}),
-  addTransition: petrinautAiTools.addTransition.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly, { message: "Only root transitions are admitted." })
-    .meta(petrinautAiTools.addTransition.inputSchema.meta() ?? {}),
-  updateTransition: petrinautAiTools.updateTransition.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootOnly, { message: "Only root transitions are admitted." })
-    .meta(petrinautAiTools.updateTransition.inputSchema.meta() ?? {}),
-};
-export const observedNodeInputSchema = (name: ObservedNodeMutationName) =>
-  schemas[name];
-export const parseObservedNodeInput = (
-  name: ObservedNodeMutationName,
-  input: unknown,
-) => schemas[name].parse(normalizePetrinautAiToolInput(name, input));
-
 /** Pre-execution identity check uses verified definitions, never the model's courtesy. */
 export const assertNodeIdentity = (
   mutation: Pick<ConstructionMutationRequest, "toolName" | "input">,

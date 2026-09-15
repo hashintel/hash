@@ -15,12 +15,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { validatedFixtureMutationMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import {
-  preparedWorkpieceAuthorship,
-  preparedWorkpieceSignalTag,
-  preparedWorkpieceSignalType,
-} from "@hashintel/brunch-agent/workpiece";
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
@@ -84,10 +79,24 @@ const toolResult = (
       .join(""),
   ) as Record<string, unknown>;
 };
-const speak = (body: string) =>
-  client
-    .send({ message: { kind: "user", body } })
+let initialized = false;
+const speak = (body: string) => {
+  const first = !initialized;
+  initialized = true;
+  return client
+    .send({
+      ...(first
+        ? {
+            initialData: {
+              mode: batchedConstructionMode,
+              construction: { binding },
+            },
+          }
+        : {}),
+      message: { kind: "user", body },
+    })
     .then((receipt) => client.wait(receipt));
+};
 const call = (name: string, args: Record<string, unknown>, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",
@@ -101,47 +110,6 @@ const expectedEvidence = () => [
 ];
 const observations: unknown[] = [];
 try {
-  faux.setResponses([
-    call(
-      "read_workpiece",
-      { locateTexts: ["missing current"] },
-      "unavailable-locators",
-    ),
-    (context) => {
-      const result = toolResult(context, "read_workpiece");
-      assert.equal(result.currentWorkpiece, null);
-      const lookup = result.locatorLookup as {
-        subject: { kind: string };
-        sha256?: string;
-      };
-      assert.equal(lookup.subject.kind, "unavailable");
-      assert.equal(lookup.sha256, undefined);
-      observations.push({ noCurrentLookup: result });
-      return fauxAssistantMessage([
-        fauxText("TEST prepared source acknowledged; not user evidence."),
-      ]);
-    },
-  ]);
-  await client.wait(
-    await client.send({
-      initialData: {
-        mode: validatedFixtureMutationMode,
-        browser: { binding, requestedBaseHash: "a".repeat(64) },
-      },
-      message: {
-        kind: "signal",
-        type: preparedWorkpieceSignalType,
-        tagName: preparedWorkpieceSignalTag,
-        attributes: { authorship: preparedWorkpieceAuthorship },
-        body: "Prepared hypothesis, not elicited support.",
-      },
-    }),
-  );
-  assert.equal(
-    observations.length,
-    1,
-    "Unavailable-current lookup must complete without inventing a document.",
-  );
   faux.setResponses([
     call(
       "read_workpiece",
@@ -238,7 +206,7 @@ try {
   );
   assert.equal(
     observations.length,
-    2,
+    1,
     "The positive model-facing assertions must actually complete.",
   );
   faux.setResponses([
@@ -285,7 +253,7 @@ try {
   await speak(
     "TEST locate a different candidate without replacing the current workpiece.",
   );
-  assert.equal(observations.length, 3);
+  assert.equal(observations.length, 2);
   const newTestimony = "TEST new testimony: the reserve lasts two hours.";
   faux.setResponses([
     call(
@@ -378,16 +346,13 @@ try {
   );
   assert(focusedSource);
   assert.equal(
-    (observations[3] as { newSourceId: string }).newSourceId,
+    (observations[2] as { newSourceId: string }).newSourceId,
     focusedSource.id,
   );
-  const preparedId = history.messages.find(
-    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
-  )?.id;
   const assistantId = history.messages.find(
     (message) => message.role === "assistant",
   )?.id;
-  assert(preparedId && assistantId);
+  assert(assistantId);
   // A second principal's actual source exists, but is outside this bound history.
   const otherIdentity = {
     principalKey: "TEST-other-owner",
@@ -451,10 +416,6 @@ try {
   assert(otherId);
   for (const [label, evidence] of [
     ["assistant", [{ locator, messageIds: [assistantId], kind: "elicited" }]],
-    [
-      "prepared-signal",
-      [{ locator, messageIds: [preparedId], kind: "elicited" }],
-    ],
     [
       "other-principal-conversation",
       [{ locator, messageIds: [otherId], kind: "elicited" }],
@@ -560,7 +521,7 @@ try {
   );
   assert.equal(
     observations.length,
-    12,
+    10,
     "Every model-facing positive, refusal, carry and reopen assertion must complete.",
   );
   writeFileSync(

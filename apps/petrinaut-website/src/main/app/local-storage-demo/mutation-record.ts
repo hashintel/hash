@@ -15,25 +15,13 @@ import {
   mutatePetrinautNetToolName,
   observedMutationOutcome,
   parseClientToolResultMetadata,
-  parseJoinedRootArcInput,
-  parseObservedArcInput,
   reconcileMutationAttempts,
   verifyMutationAttempt,
   type ConstructionMutationRequest,
-  type ObservedConstructionMutationName,
-  isObservedNodeMutation,
-  parseObservedNodeInput,
-  expectedNodeDefinition,
-  assertNodeIdentity,
-  assertStateIdentity,
-  isObservedStateMutation,
-  parseObservedStateInput,
-  observedStateMutationNames,
   type ClientToolResultMetadata,
   type ConstructionMutationAttempt,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
@@ -115,11 +103,7 @@ export const createBrowserMutationRecorder = ({
     if (
       call.toolName !== request.toolName ||
       request.toolCallId !== call.toolCallId ||
-      canonicalContent(
-        isObservedStateMutation(request.toolName)
-          ? petrinautAiTools[request.toolName].inputSchema.parse(request.input)
-          : request.input,
-      ) !== canonicalContent(call.input)
+      canonicalContent(request.input) !== canonicalContent(call.input)
     ) {
       throw new Error(
         "The transition request does not match the canonical tool call.",
@@ -180,40 +164,6 @@ export const createBrowserMutationRecorder = ({
           output: structuredClone(output),
         });
         return output;
-      }
-      if (
-        isObservedNodeMutation(request.toolName) ||
-        isObservedStateMutation(request.toolName)
-      ) {
-        if (handle.capabilities?.disabledExtensions?.length)
-          throw new Error(
-            "Construction observation is unavailable for disabled extensions.",
-          );
-        const assertIdentity = isObservedStateMutation(request.toolName)
-          ? assertStateIdentity
-          : assertNodeIdentity;
-        assertIdentity(
-          request,
-          pre.definition,
-          [...attemptsByCall.values()].flatMap((attempts) =>
-            attempts.flatMap((entry) => [
-              entry.pre.definition,
-              ...(entry.post ? [entry.post.definition] : []),
-            ]),
-          ),
-        );
-        expectedNodeDefinition(request, pre.definition);
-      } else if (
-        request.observationToolCallId !== undefined &&
-        deriveEffects(
-          request,
-          pre.definition,
-          expectedNodeDefinition(request, pre.definition),
-        ).derived.length
-      ) {
-        throw new Error(
-          "Derived arc footprints are unavailable; no mutation was executed. Embedded transition creation has a separately observed kernel path.",
-        );
       }
       const output = call.execute();
       attempt.post = observeBrowserDefinition(handle);
@@ -312,42 +262,23 @@ export const createBrowserMutationRecorder = ({
   };
 };
 
-/** Production adapter for the opt-in prepared root-arc lane; issued identities are immutable. */
+/** Joins canonical browser observations and batched mutation records to transport results. */
 export const createJoinedBrowserMutationRecorder = (input: {
   handle: PetrinautDocHandle;
   binding: ConstructionMutationRequest["binding"];
-  requestedBaseHash?: string;
-  construction?: true;
   onContainedFailure?: (failure: MutationRecordContainedFailure) => void;
 }) => {
-  if (!input.construction && !input.requestedBaseHash)
-    throw new Error("Legacy recorder requires its immutable original base.");
   const binding = structuredClone(input.binding);
-  const requestedBaseHash = input.requestedBaseHash;
   const issuedReads = new Set<string>();
   const observedReads = new Map<string, string>();
   /** Live observation taken when the layout call was issued, before the browser ran it. */
   const issuedLayouts = new Map<string, DefinitionObservation>();
-  const issued = new Map<
-    string,
-    { request: ConstructionMutationRequest; envelope: unknown }
-  >();
   const recorder = createBrowserMutationRecorder({
     handle: input.handle,
     binding,
     onContainedFailure: input.onContainedFailure,
     requestFor: (toolCallId) => {
-      const request = issued.get(toolCallId);
-      if (!request) throw new Error("Unknown issued root arc request.");
-      if (
-        input.construction &&
-        observedReads.get(request.request.observationToolCallId ?? "") !==
-          request.request.requestedBaseHash
-      )
-        throw new Error(
-          "Construction requires the cited earlier verified browser read; after reopen obtain a fresh read.",
-        );
-      return structuredClone(request.request);
+      throw new Error(`Unknown issued mutation request ${toolCallId}.`);
     },
   });
   const mapClientToolInput: NonNullable<
@@ -365,43 +296,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
         );
       return call.input;
     }
-    if (
-      call.toolName !== "addArc" &&
-      !(
-        input.construction &&
-        (call.toolName === "updateArcWeight" ||
-          isObservedNodeMutation(call.toolName) ||
-          isObservedStateMutation(call.toolName))
-      )
-    )
-      return call.input;
-    const name = call.toolName as ObservedConstructionMutationName;
-    const { brunch, ...canonicalInput } = input.construction
-      ? isObservedNodeMutation(name)
-        ? parseObservedNodeInput(name, call.input)
-        : isObservedStateMutation(name)
-          ? parseObservedStateInput(name, call.input)
-          : parseObservedArcInput(name, call.input)
-      : parseJoinedRootArcInput(call.input);
-    if (!input.construction && brunch.requestedBaseHash !== requestedBaseHash)
-      throw new Error("Root arc cites another issued base.");
-    const request: ConstructionMutationRequest = {
-      toolCallId: call.toolCallId,
-      toolName: name,
-      input: canonicalInput,
-      ...("observationToolCallId" in brunch
-        ? { observationToolCallId: String(brunch.observationToolCallId) }
-        : {}),
-      binding,
-      requestedBaseHash: brunch.requestedBaseHash,
-    };
-    const previous = issued.get(call.toolCallId);
-    const issuedCall = { request, envelope: brunch };
-    if (previous && canonicalContent(previous) !== canonicalContent(issuedCall))
-      throw new Error("Conflicting issued root arc identity.");
-    issued.set(call.toolCallId, structuredClone(issuedCall));
-    // Canonical history still holds brunch; only the execution projection strips it.
-    return canonicalInput;
+    return call.input;
   };
   const clientToolResultMetadata: NonNullable<
     FlueChatTransportOptions["clientToolResultMetadata"]
@@ -516,27 +411,7 @@ export const createJoinedBrowserMutationRecorder = (input: {
         mutationRecord: { attempts, outcome },
       } satisfies ClientToolResultMetadata;
     }
-    if (
-      result.toolName !== "addArc" &&
-      !(
-        input.construction &&
-        (result.toolName === "updateArcWeight" ||
-          isObservedNodeMutation(result.toolName) ||
-          isObservedStateMutation(result.toolName))
-      )
-    )
-      return undefined;
-    const mutationRecord = recorder
-      .records()
-      .find(
-        (record) =>
-          record.attempts[0]?.request.toolCallId === result.toolCallId,
-      );
-    if (!mutationRecord)
-      throw new Error(
-        "A root arc result requires an observed browser mutation record.",
-      );
-    return { mutationRecord } satisfies ClientToolResultMetadata;
+    return undefined;
   };
   const clientToolResultOutput: NonNullable<
     FlueChatTransportOptions["clientToolResultOutput"]
@@ -566,19 +441,6 @@ export const createJoinedBrowserMutationRecorder = (input: {
     mapClientToolInput,
     clientToolResultMetadata,
     clientToolResultOutput,
-    validatedClientToolNames: new Set(
-      input.construction
-        ? [
-            "addArc",
-            "updateArcWeight",
-            "addPlace",
-            "updatePlace",
-            "addTransition",
-            "updateTransition",
-            mutatePetrinautNetToolName,
-            ...observedStateMutationNames,
-          ]
-        : ["addArc"],
-    ),
+    validatedClientToolNames: new Set([mutatePetrinautNetToolName]),
   };
 };

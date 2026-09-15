@@ -137,17 +137,15 @@ describe("Brunch tool presentation", () => {
     ).toEqual({ title: "Reviewing modelling guidance: %E0%A4%A" });
   });
 
-  test("does not present hidden markers or unknown tools", () => {
-    for (const toolName of ["brunch_mark_question", "future_tool"]) {
-      expect(
-        resolveBrunchToolPresentation({
-          toolName,
-          state: "success",
-          input: {},
-          output: {},
-          error: undefined,
-        }),
-      ).toBeUndefined();
-    }
+  test("does not present unknown tools", () => {
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "future_tool",
+        state: "success",
+        input: {},
+        output: {},
+        error: undefined,
+      }),
+    ).toBeUndefined();
   });
 });

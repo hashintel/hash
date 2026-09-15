@@ -59,7 +59,7 @@ The Evidence column is unit/host evidence: the executor under vitest against a r
 | `updateTransitionPosition` | yes | no | — | schema refusal; positions belong to `applyAutoLayout` |
 | `removeTransition` | yes | yes | host `removes a place, its connected arcs, and a transition` | — |
 | `addArc` | yes | yes (root `placeId` endpoint only) | host `executes created-ID dependencies…`; plugin `mutation-record.test.ts` | component-port endpoints refused by the carrier schema |
-| `updateArcWeight` | yes | yes | host `edits existing parts by ID…`; plugin `root-arc.test.ts` | — |
+| `updateArcWeight` | yes | yes | host `edits existing parts by ID…`; plugin `mutation-record.test.ts` | — |
 | `updateArcType` | yes | yes | host `edits existing parts by ID…`; plugin `mutation-record.test.ts`; core `turning an input arc into an inhibitor…` | — |
 | `updateArcPlace` | yes | no | — | schema refusal; re-pointing an arc changes identity, remove and add is the honest record |
 | `removeArc` | yes | yes | host `removes one arc without deleting its endpoints`; core `removing an input arc dirties transition code…` | — |

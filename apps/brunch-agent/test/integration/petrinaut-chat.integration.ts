@@ -13,13 +13,12 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   createFlueChatTransport,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
 import {
@@ -101,14 +100,12 @@ try {
   const panelTransport = createFlueChatTransport({
     client: historyClient,
     clientToolNames,
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
   });
   const projectHistory = (
     snapshot: Awaited<ReturnType<typeof historyClient.history>>,
   ) =>
     snapshotToUiMessages(snapshot, {
       clientToolNames,
-      hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
     });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
@@ -195,7 +192,7 @@ try {
         [
           fauxThinking("The ping returned. Read the user guide next."),
           fauxToolCall(
-            READ_PETRINAUT_DOC_TOOL_NAME,
+            READ_PETRINAUT_DOCS_TOOL_NAME,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
           ),
@@ -266,7 +263,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
+          chunk.toolName === READ_PETRINAUT_DOCS_TOOL_NAME,
       ) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
@@ -288,7 +285,7 @@ try {
         role: "assistant" as const,
         parts: [
           {
-            type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
+            type: `tool-${READ_PETRINAUT_DOCS_TOOL_NAME}`,
             toolCallId: clientToolCall.toolCallId,
             state: "output-available",
             input: { doc: "ai-assistant" },

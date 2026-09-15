@@ -113,7 +113,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain(
       READ_PETRINAUT_DOCS_TOOL_NAME,
     );
-    expect(result.interviewerToolNames).not.toContain("brunch_mark_question");
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
@@ -154,7 +153,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
     );
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");
-    expect(resumeResult.transcript).not.toContain("tool brunch_mark_question");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

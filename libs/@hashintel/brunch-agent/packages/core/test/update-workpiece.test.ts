@@ -178,9 +178,6 @@ test("captures the persistent-state setter at render and writes from run", async
   const mounted = vi
     .mocked(useTool)
     .mock.calls.map(([definition]) => definition);
-  expect(mounted.map((definition) => definition.name)).not.toContain(
-    "brunch_mark_question",
-  );
   const revisionTool = mounted.find(
     (definition) => definition.name === MUTATE_WORKPIECE_TOOL_NAME,
   );

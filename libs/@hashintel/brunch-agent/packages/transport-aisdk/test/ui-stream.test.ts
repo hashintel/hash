@@ -10,13 +10,11 @@ const position = (index: number) => ({ batch: 1, index });
 
 const project = (
   chunks: readonly ConversationStreamChunk[],
-  hiddenToolNames: ReadonlySet<string> = new Set(),
 ): UIMessageChunk[] => {
   const written: UIMessageChunk[] = [];
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["readPetrinautDoc"]),
-    hiddenToolNames,
     write: (chunk) => written.push(chunk),
   });
   for (const chunk of chunks) projector.accept(chunk);
@@ -126,72 +124,6 @@ test("projects data and metadata onto the AI SDK stream", () => {
     type: "data-orderCard",
     data: { orderId: "42", status: "loaded" },
   });
-});
-
-test("hides an implementation tool while preserving its data marker", () => {
-  const written = project(
-    [
-      {
-        type: "message-started",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        submissionId: "submission-1",
-        turnId: "turn-1",
-        position: position(0),
-      },
-      {
-        type: "tool-input",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        toolCallId: "tool-question-1",
-        toolName: "brunch_mark_question",
-        input: { question: "Which line should run this order?" },
-        position: position(1),
-      },
-      {
-        type: "data-part",
-        conversationId: "conversation-1",
-        messageId: "message-1",
-        name: "brunch-question",
-        data: {
-          question: "Which line should run this order?",
-          toolCallId: "tool-question-1",
-        },
-        position: position(2),
-      },
-      {
-        type: "tool-output",
-        conversationId: "conversation-1",
-        toolCallId: "tool-question-1",
-        output: { marked: true },
-        position: position(3),
-      },
-      {
-        type: "submission-settled",
-        conversationId: "conversation-1",
-        submissionId: "submission-1",
-        outcome: "completed",
-        position: position(4),
-      },
-    ],
-    new Set(["brunch_mark_question"]),
-  );
-
-  expect(written).toContainEqual({
-    type: "data-brunch-question",
-    data: {
-      question: "Which line should run this order?",
-      toolCallId: "tool-question-1",
-    },
-  });
-  expect(
-    written.some(
-      (chunk) =>
-        chunk.type === "tool-input-available" ||
-        chunk.type === "tool-output-available" ||
-        chunk.type === "tool-output-error",
-    ),
-  ).toBe(false);
 });
 
 test("ignores observation catch-up chunks in a submission stream", () => {
@@ -535,7 +467,7 @@ test("bounds cyclic failed-submission objects", () => {
   expect(failure?.errorText.length).toBeLessThanOrEqual(10_000);
 });
 
-test("reports server tool failures to the diagnostic callback, hidden tools included, before projection drops them", () => {
+test("reports server tool failures to the diagnostic callback before projection", () => {
   const written: UIMessageChunk[] = [];
   const reported: Parameters<
     NonNullable<Parameters<typeof createFlueUiStream>[0]["onToolOutputError"]>
@@ -543,7 +475,6 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
   const projector = createFlueUiStream({
     submissionId: "submission-1",
     clientToolNames: new Set(["readPetrinautDoc"]),
-    hiddenToolNames: new Set(["brunch_question"]),
     onToolOutputError: (event) => reported.push(event),
     write: (chunk) => written.push(chunk),
   });
@@ -565,27 +496,11 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
     position: position(1),
   });
   projector.accept({
-    type: "tool-input",
-    conversationId: "conversation-1",
-    messageId: "message-1",
-    toolCallId: "hidden-1",
-    toolName: "brunch_question",
-    input: {},
-    position: position(2),
-  });
-  projector.accept({
     type: "tool-output-error",
     conversationId: "conversation-1",
     toolCallId: "visible-1",
     errorText: "Unknown governing revision",
-    position: position(3),
-  });
-  projector.accept({
-    type: "tool-output-error",
-    conversationId: "conversation-1",
-    toolCallId: "hidden-1",
-    errorText: "Question marker rejected",
-    position: position(4),
+    position: position(2),
   });
 
   expect(reported).toEqual([
@@ -594,17 +509,8 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
       toolCallId: "visible-1",
       toolName: "query_workpiece",
       errorText: "Unknown governing revision",
-      hidden: false,
-    },
-    {
-      submissionId: "submission-1",
-      toolCallId: "hidden-1",
-      toolName: "brunch_question",
-      errorText: "Question marker rejected",
-      hidden: true,
     },
   ]);
-  // The UI projection is unchanged: the hidden tool still never reaches it.
   const errorChunks = written.filter(
     (chunk) => chunk.type === "tool-output-error",
   );
@@ -616,11 +522,6 @@ test("reports server tool failures to the diagnostic callback, hidden tools incl
       providerExecuted: true,
     },
   ]);
-  expect(
-    written.some(
-      (chunk) => "toolCallId" in chunk && chunk.toolCallId === "hidden-1",
-    ),
-  ).toBe(false);
 });
 
 test("does not report tool failures from another submission", () => {
@@ -904,34 +805,4 @@ test("lets canonical admission win the live turn-terminal race", () => {
   } finally {
     vi.useRealTimers();
   }
-});
-
-test("hides speculative tools before creating a pending row", () => {
-  const written: UIMessageChunk[] = [];
-  const projector = createFlueUiStream({
-    submissionId: "submission-1",
-    clientToolNames: new Set(),
-    hiddenToolNames: new Set(["layout_petrinaut_net"]),
-    write: (chunk) => written.push(chunk),
-  });
-  projector.accept({
-    type: "message-started",
-    conversationId: "conversation-1",
-    messageId: "message-1",
-    submissionId: "submission-1",
-    turnId: "turn-1",
-    position: position(0),
-  });
-  projector.acceptLive(
-    liveEvent(0, {
-      kind: "tool-input-start",
-      toolCallId: "hidden-call",
-      toolName: "layout_petrinaut_net",
-    }),
-  );
-  expect(
-    written.some(
-      (chunk) => "toolCallId" in chunk && chunk.toolCallId === "hidden-call",
-    ),
-  ).toBe(false);
 });

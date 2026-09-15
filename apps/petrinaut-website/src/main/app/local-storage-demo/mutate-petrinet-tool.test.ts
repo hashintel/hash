@@ -868,7 +868,6 @@ test.each([tokenType, parameter, dynamics])(
     const recorder = createJoinedBrowserMutationRecorder({
       handle: instance.handle,
       binding,
-      construction: true,
     });
     const tool = createMutatePetrinetAutomaticTool(binding, {
       retainAttempt: recorder.retainAttempt,

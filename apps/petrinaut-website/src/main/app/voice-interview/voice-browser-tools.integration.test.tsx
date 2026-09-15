@@ -7,9 +7,14 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
+  batchedConstructionClientToolNames,
+  brunchPetrinautDynamicToolNames,
+} from "../local-storage-demo/brunch-client-tools";
+import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
+import { createBrunchPetrinautTools } from "../local-storage-demo/brunch-petrinaut-tools";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -94,8 +99,6 @@ afterEach(() => {
 });
 
 test.each([
-  { preamble: true, outcome: "completed" },
-  { preamble: false, outcome: "completed" },
   { preamble: false, outcome: "invalid-input" },
   { preamble: false, outcome: "withheld" },
   { preamble: true, outcome: "withheld" },
@@ -114,7 +117,6 @@ test.each([
     const tracker = new BrunchPanelConversationTracker();
     let context: PetrinautAiVoiceModeContext | undefined;
     let emitInput: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
-    let finishContinuation: (() => void) | undefined;
     let finishStoppedStep: (() => void) | undefined;
     const events: RealtimeBrunchBridgeEvent[] = [];
     const speakCanonical =
@@ -129,19 +131,14 @@ test.each([
     );
     const wait = vi.fn<FlueClient["wait"]>(async (admission, options) => {
       const submissionId = (admission as AgentSendResult).submissionId;
-      const continuation = submissionId === "submission-2";
-      if (continuation)
-        await new Promise<void>((resolve) => {
-          finishContinuation = resolve;
-        });
-      if (!continuation && outcome === "withheld")
+      if (outcome === "withheld")
         await new Promise<void>((resolve) => {
           finishStoppedStep = resolve;
         });
-      const messageId = continuation ? "continuation" : "assistant";
+      const messageId = "assistant";
       let ordinal = 0;
       const position = () => ({
-        batch: continuation ? 2 : 1,
+        batch: 1,
         index: ordinal++,
       });
       await options?.onEvent?.({
@@ -152,29 +149,26 @@ test.each([
         turnId: messageId,
         position: position(),
       });
-      if (preamble || continuation)
+      if (preamble)
         await options?.onEvent?.({
           type: "message-delta",
           conversationId: "test",
           messageId,
           kind: "text",
-          delta: continuation
-            ? "The guide is available."
-            : "Checking the guide.",
+          delta: "Checking the guide.",
           position: position(),
         });
-      if (!continuation)
-        await options?.onEvent?.({
-          type: "tool-input",
-          conversationId: "test",
-          messageId,
-          toolCallId: "read-guide",
-          toolName: "readPetrinautDoc",
-          input: {
-            doc: outcome === "invalid-input" ? "missing-page" : "ai-assistant",
-          },
-          position: position(),
-        });
+      await options?.onEvent?.({
+        type: "tool-input",
+        conversationId: "test",
+        messageId,
+        toolCallId: "read-guide",
+        toolName: "read_petrinaut_docs",
+        input: {
+          doc: outcome === "invalid-input" ? "missing-page" : "ai-assistant",
+        },
+        position: position(),
+      });
       await options?.onEvent?.({
         type: "message-completed",
         conversationId: "test",
@@ -254,6 +248,9 @@ test.each([
         handle={handle}
         lspWorkerFactory={cleanDiagnosticsWorker}
         aiAssistant={{
+          automaticTools: createBrunchPetrinautTools({
+            readTitle: () => "Voice browser test",
+          }),
           conversationId: "test",
           requestStop: async () => {
             tracker.recordStopRequested();
@@ -265,6 +262,10 @@ test.each([
           transport: createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
+            {
+              clientToolNames: batchedConstructionClientToolNames,
+              dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+            },
           ),
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
@@ -309,33 +310,5 @@ test.each([
       expect(speakCanonical).not.toHaveBeenCalled();
       return;
     }
-    await waitFor(() => expect(finishContinuation).toBeDefined());
-    expect(send).toHaveBeenCalledTimes(2);
-    expect(context?.status).not.toBe("ready");
-    expect(
-      events.some((event) => event.type === "canonical-response-ready"),
-    ).toBe(false);
-    expect(send.mock.calls[1]?.[0].message).toMatchObject({
-      kind: "signal",
-      attributes: { toolCallIds: "read-guide" },
-    });
-    await act(async () => {
-      finishContinuation?.();
-    });
-    await waitFor(() =>
-      expect(events).toContainEqual(
-        expect.objectContaining({ type: "canonical-response-ready" }),
-      ),
-    );
-    expect(context?.status).toBe("ready");
-    expect(
-      speakCanonical.mock.calls
-        .flatMap(([segments]) => segments)
-        .map((segment) => segment.text),
-    ).toEqual(
-      preamble
-        ? ["Checking the guide.", "The guide is available."]
-        : ["The guide is available."],
-    );
   },
 );

@@ -19,7 +19,6 @@ import {
   type MockInstance,
 } from "vitest";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
@@ -40,10 +39,6 @@ import {
   withLocalStorageDemoIdentity,
   type LocalStorageDemoSearch,
 } from "./local-storage-demo-search";
-import {
-  crewReservationConversationId,
-  crewReservationFixtureId,
-} from "./prepared-crew-reservation-fixture";
 
 import type {
   DocumentRecord,
@@ -487,13 +482,9 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual([
-      "read_petrinaut_docs",
-      "readPetrinautDoc",
-    ]);
+    expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
-    expect(aiAssistant.additionalTab?.activityIdentities).toEqual([]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1263,194 +1254,6 @@ describe("local document revision persistence", () => {
   });
 });
 
-describe("local storage demo prepared fixture", () => {
-  afterEach(() => {
-    cleanup();
-    editorProps.current = null;
-    brunchPreviewConfig.isBrunchConfigured = true;
-  });
-
-  test("shows the fixture selector only while Brunch demo mode is on", () => {
-    seedStoredNet();
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    const selector = () =>
-      document.querySelector<HTMLElement>(
-        '[aria-label="Prepared fixture selector"]',
-      );
-
-    // Never displayed by default, even on a Brunch-configured build.
-    expect(selector()).toBeNull();
-
-    // The palette command flips the persisted setting.
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
-    );
-    const shown = selector();
-    expect(shown).not.toBeNull();
-    // Clear of Petrinaut's 64px top bar, so the panel is usable.
-    expect(shown!.style.position).toBe("fixed");
-    expect(shown!.style.top).toBe("80px");
-
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
-    );
-    expect(selector()).toBeNull();
-  });
-
-  test("mounts the recorder only on the opt-in incarnation-scoped root-arc route and keeps it stable across renders", async () => {
-    seedStoredNet();
-    flueClientMock.current = {
-      history: async () => {
-        throw new Error("Test preparation unavailable");
-      },
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    const search = {
-      "brunch-fixture": crewReservationFixtureId,
-      brunchTracer: "root-arc" as const,
-    };
-    const view = render(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
-    );
-    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(first.executeMutation).toBeTypeOf("function");
-    expect(first.conversationId).toMatch(/^prepared-root-arc:/u);
-    expect(first.conversationId).not.toBe(crewReservationConversationId);
-    await waitFor(() =>
-      expect(document.body.textContent).toContain(
-        "Test preparation unavailable",
-      ),
-    );
-    view.rerender(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
-    );
-    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(next.executeMutation).toBe(first.executeMutation);
-    expect(next.conversationId).toBe(first.conversationId);
-    view.unmount();
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ "brunch-fixture": crewReservationFixtureId }}
-      />,
-    );
-    const legacy = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(legacy.conversationId).toBe(crewReservationConversationId);
-    expect(legacy.executeMutation).toBeUndefined();
-  });
-
-  test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
-    brunchPreviewConfig.isBrunchConfigured = false;
-    // With Brunch disabled there is no Flue client to prepare the fixture conversation. Opening the fixture URL
-    // anyway once left the banner on "preparing" forever with every send
-    // unavailable; the URL now falls back to the ordinary per-net demo.
-    seedStoredNet();
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ "brunch-fixture": crewReservationFixtureId }}
-      />,
-    );
-
-    expect(
-      document.querySelector('[aria-label="Prepared fixture status"]'),
-    ).toBeNull();
-    const aiAssistant = editorProps.current?.aiAssistant as
-      | { conversationId?: string; executeMutation?: unknown }
-      | undefined;
-    expect(aiAssistant?.conversationId).not.toBe(crewReservationConversationId);
-    expect(aiAssistant?.executeMutation).toBeUndefined();
-  });
-
-  test("mounts the batched construction catalogue on ordinary configured Brunch", async () => {
-    const incarnationId = "ordinary-incarnation";
-    seedStoredNet(incarnationId);
-    flueClientMock.current = {
-      history: async () => ({
-        conversation: {
-          conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
-          settlements: [],
-          messages: [],
-        },
-        offset: "offset-0",
-      }),
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
-    const aiAssistant = editorProps.current
-      ?.aiAssistant as PetrinautAiAssistant;
-    const transportOptions = brunchPanelTransportOptions.current as {
-      readonly initialData?: {
-        readonly mode?: string;
-        readonly construction?: { readonly binding?: unknown };
-      };
-      readonly clientToolNames?: ReadonlySet<string>;
-      readonly dynamicClientToolNames?: ReadonlySet<string>;
-    };
-
-    expect(aiAssistant.conversationId).toBe(
-      ordinaryConstructionConversationIdFrom(incarnationId),
-    );
-    expect(aiAssistant.executeMutation).toBeTypeOf("function");
-    expect(
-      aiAssistant.automaticTools?.some(
-        ({ toolName }) => toolName === "mutate_petrinaut_net",
-      ),
-    ).toBe(true);
-    expect(aiAssistant.primaryLabel).toBe("Chat");
-    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
-    expect(
-      aiAssistant.resolveToolPresentation?.({
-        toolName: "layout_petrinaut_net",
-        state: "pending",
-        input: {},
-        output: undefined,
-        error: undefined,
-      }),
-    ).toBeUndefined();
-    expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
-    expect(transportOptions.initialData?.construction?.binding).toEqual({
-      conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
-      documentId: "net-1",
-      incarnationId,
-    });
-    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
-      "applyAutoLayout",
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
-      "layout_petrinaut_net",
-      "mutate_petrinaut_net",
-      "mutate_petrinet",
-      "readPetrinautDoc",
-      "read_petrinaut_diagnostics",
-      "read_petrinaut_docs",
-      "read_petrinaut_net",
-    ]);
-    expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
-      "read_petrinaut_docs",
-      "read_petrinaut_net",
-      "read_petrinaut_diagnostics",
-      "layout_petrinaut_net",
-      "mutate_petrinaut_net",
-    ]);
-  });
-});
-
 describe("worked-model net-projection selection", () => {
   afterEach(() => {
     cleanup();
@@ -1749,31 +1552,6 @@ describe("worked-model net-projection selection", () => {
       <LocalStorageDemoApp
         onSearchChange={() => {}}
         search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    expect(
-      screen.getByRole("heading", {
-        name: "Worked-model document unavailable",
-      }),
-    ).toBeDefined();
-    expectNoFallbackStorageReads(getItem);
-    expect(editorProps.current).toBeNull();
-  });
-
-  test("selects the remote document when leftover fixture parameters accompany a bundle", () => {
-    seedStoredNet();
-    const getItem = vi.spyOn(localStorage, "getItem");
-    getItem.mockClear();
-    brunchPreviewConfig.isBrunchConfigured = false;
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{
-          bundle: "inventory-purchasing",
-          brunchTracer: "construction",
-        }}
       />,
     );
 

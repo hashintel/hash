@@ -23,7 +23,6 @@ import {
   isReadPetrinautNetToolName,
   parseClientToolResultMetadata,
   readPetrinautNetToolName,
-  type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   SDCPN_MODELLING_SKILL_NAME,
@@ -50,6 +49,7 @@ import {
 import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
+import { verifyMutationResults } from "../../conversation/mutation-delivery.ts";
 import {
   deriveNetFreshness,
   NET_STALE_SIGNAL,
@@ -57,10 +57,6 @@ import {
 } from "../../conversation/net-freshness.ts";
 import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
 import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
-import {
-  verifyRootArcResults,
-  assertConstructionIdentity,
-} from "../../conversation/root-arc.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
@@ -96,8 +92,8 @@ export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
   const browserContext: BrowserContext | undefined = initialData?.construction
-    ? { ...initialData.construction, construction: true }
-    : initialData?.browser;
+    ? { binding: initialData.construction.binding }
+    : undefined;
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
@@ -139,33 +135,13 @@ export function ChatAgent({ id }: AgentProps) {
           retainedSettledRevision(await history(), revisionId),
         ...(initialData?.construction
           ? {
-              observationFor: async (
-                callId: string,
-                mutation?: Pick<
-                  ConstructionMutationRequest,
-                  "toolName" | "input"
-                >,
-              ) => {
+              observationFor: async (callId: string) => {
                 const snapshot = await history();
-                const observed = await recordedBrowserObservation(
+                return recordedBrowserObservation(
                   snapshot,
                   initialData.construction!,
                   callId,
                 );
-                if (mutation)
-                  await assertConstructionIdentity(
-                    snapshot,
-                    observed,
-                    mutation,
-                    initialData.construction!.binding,
-                    (id) =>
-                      recordedBrowserObservation(
-                        snapshot,
-                        initialData.construction!,
-                        id,
-                      ),
-                  );
-                return observed;
               },
             }
           : {}),
@@ -218,7 +194,7 @@ export function ChatAgent({ id }: AgentProps) {
           recordedBrowserObservation(snapshot, browser, callId),
         ),
       );
-      await verifyRootArcResults({
+      await verifyMutationResults({
         body: delivery.body,
         snapshot,
         ...browserContext,

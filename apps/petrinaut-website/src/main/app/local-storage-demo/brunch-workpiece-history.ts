@@ -5,15 +5,10 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const workpieceMutationToolNames: ReadonlySet<string> = new Set([
   "mutate_workpiece",
-  "update_workpiece",
 ]);
-const workpieceReadToolNames: ReadonlySet<string> = new Set([
-  "read_workpiece",
-  "brunch_workpiece",
-]);
+const workpieceReadToolNames: ReadonlySet<string> = new Set(["read_workpiece"]);
 const workpieceQueryToolNames: ReadonlySet<string> = new Set([
   "query_workpiece",
-  "brunch_why",
 ]);
 
 export type BrunchWorkpieceHistoryMessage = {

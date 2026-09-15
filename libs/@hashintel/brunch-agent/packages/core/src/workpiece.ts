@@ -99,11 +99,6 @@ export type WorkpieceRevision = ReadonlyDeep<
   v.InferOutput<typeof workpieceRevisionSchema>
 >;
 
-export const preparedWorkpieceSignalType = "brunch.fixture.prepared";
-export const preparedWorkpieceSignalTag = "prepared-fixture";
-export const preparedWorkpieceAuthorship = "test-authored";
-export const preparedWorkpieceClaimBoundary = "prepared-not-model-produced";
-export const preparedWorkpieceInitialDataMode = "validated-fixture-mutation";
 export const runbookIrFence = "runbook-ir";
 
 type WorkpieceTextPart = {
@@ -133,32 +128,14 @@ export interface WorkpieceHistory {
   readonly messages: readonly WorkpieceHistoryMessage[];
 }
 
-export interface PreparedWorkpieceDelivery {
-  readonly idempotencyKey: string;
-  readonly message: {
-    readonly attributes: {
-      readonly authorship: typeof preparedWorkpieceAuthorship;
-      readonly claimBoundary: typeof preparedWorkpieceClaimBoundary;
-      readonly fixtureId: string;
-    };
-    readonly body: string;
-    readonly kind: "signal";
-    readonly tagName: typeof preparedWorkpieceSignalTag;
-    readonly type: typeof preparedWorkpieceSignalType;
-  };
-}
-
 export interface SelectedRunbookWorkpiece {
-  readonly authorship: "model-produced" | typeof preparedWorkpieceAuthorship;
   readonly content: string;
-  readonly fixtureId?: string;
   /**
    * Position in the append-only revision sequence, derived from the history
-   * itself rather than from whoever observed it: a prepared source is always
-   * revision zero and each later eligible assistant workpiece adds one.
+   * itself: the first eligible assistant workpiece is revision zero and each
+   * later one adds one.
    */
   readonly revision: number;
-  readonly sourceKind: "assistant" | "prepared-signal";
   readonly sourceMessage: WorkpieceHistoryMessage;
   readonly sourceMessageId: string;
   readonly sourceSubmissionId?: string;
@@ -208,37 +185,15 @@ const textFrom = (message: WorkpieceHistoryMessage): string =>
     .map((part) => part.text)
     .join("\n");
 
-const preparedFixtureIdFrom = (
-  message: WorkpieceHistoryMessage,
-): string | undefined => {
-  const fixtureId = message.signal?.attributes?.fixtureId;
-  return typeof fixtureId === "string" && fixtureId.length > 0
-    ? fixtureId
-    : undefined;
-};
-
-const isPreparedWorkpieceMessage = (
-  message: WorkpieceHistoryMessage,
-): boolean =>
-  message.role === "system" &&
-  message.purpose === "dispatch" &&
-  message.signal?.tagName === preparedWorkpieceSignalTag &&
-  message.signal.attributes?.authorship === preparedWorkpieceAuthorship &&
-  message.signal.attributes.claimBoundary === preparedWorkpieceClaimBoundary &&
-  preparedFixtureIdFrom(message) !== undefined;
-
 const selectedFrom = (
   message: WorkpieceHistoryMessage,
-  source: Pick<
-    SelectedRunbookWorkpiece,
-    "authorship" | "revision" | "sourceKind"
-  >,
+  revision: number,
 ): SelectedRunbookWorkpiece | undefined => {
   const content = latestRunbookIrBlock(textFrom(message));
   if (content === undefined) return undefined;
 
   return {
-    ...source,
+    revision,
     content,
     sourceMessage: message,
     sourceMessageId: message.id,
@@ -248,100 +203,20 @@ const selectedFrom = (
   };
 };
 
-export const createPreparedWorkpieceDelivery = (input: {
-  readonly body: string;
-  readonly fixtureId: string;
-  readonly revision: number;
-}): PreparedWorkpieceDelivery => {
-  if (input.fixtureId.length === 0) {
-    throw new Error("A prepared workpiece delivery requires a fixture id.");
-  }
-  if (latestRunbookIrBlock(input.body) === undefined) {
-    throw new Error(
-      "A prepared workpiece delivery requires a full runbook-ir block.",
-    );
-  }
-
-  return {
-    idempotencyKey: `${preparedWorkpieceSignalTag}:${input.fixtureId}:revision-${input.revision}`,
-    message: {
-      kind: "signal",
-      type: preparedWorkpieceSignalType,
-      tagName: preparedWorkpieceSignalTag,
-      body: input.body,
-      attributes: {
-        fixtureId: input.fixtureId,
-        authorship: preparedWorkpieceAuthorship,
-        claimBoundary: preparedWorkpieceClaimBoundary,
-      },
-    },
-  };
-};
-
-/**
- * Prepared revision zero is a tagged dispatch record. Later assistant
- * workpieces win in log order, except for the assistant reply produced by the
- * preparation submission itself.
- */
+/** The latest assistant reply carrying a fenced runbook-ir block wins in log order. */
 export const selectRunbookWorkpiece = (
   history: WorkpieceHistory,
 ): SelectedRunbookWorkpiece | undefined => {
-  const preparedCandidates = history.messages.filter(
-    (message) => message.signal?.tagName === preparedWorkpieceSignalTag,
-  );
-  if (preparedCandidates.length > 1) {
-    throw new Error(
-      `Conversation ${history.conversationId} has more than one prepared workpiece source.`,
-    );
-  }
-
-  const preparedMessage = preparedCandidates.at(0);
-  if (
-    preparedMessage !== undefined &&
-    !isPreparedWorkpieceMessage(preparedMessage)
-  ) {
-    throw new Error(
-      `Conversation ${history.conversationId} has a malformed prepared workpiece source.`,
-    );
-  }
-
-  const preparationSubmissionId = preparedMessage?.submissionId;
   let selected: SelectedRunbookWorkpiece | undefined;
 
   for (const message of history.messages) {
-    if (message === preparedMessage) {
-      const preparedWorkpiece = selectedFrom(message, {
-        authorship: preparedWorkpieceAuthorship,
-        revision: 0,
-        sourceKind: "prepared-signal",
-      });
-      if (preparedWorkpiece === undefined) {
-        throw new Error(
-          `Conversation ${history.conversationId} has a prepared source without a runbook-ir block.`,
-        );
-      }
-      const fixtureId = preparedFixtureIdFrom(message);
-      if (fixtureId === undefined) {
-        throw new Error(
-          `Conversation ${history.conversationId} has a malformed prepared workpiece source.`,
-        );
-      }
-      selected = { ...preparedWorkpiece, fixtureId };
+    if (message.purpose !== "assistant" || message.role !== "assistant") {
       continue;
     }
-    if (
-      message.purpose !== "assistant" ||
-      message.role !== "assistant" ||
-      (preparationSubmissionId !== undefined &&
-        message.submissionId === preparationSubmissionId)
-    ) {
-      continue;
-    }
-    const assistantWorkpiece = selectedFrom(message, {
-      authorship: "model-produced",
-      revision: selected === undefined ? 0 : selected.revision + 1,
-      sourceKind: "assistant",
-    });
+    const assistantWorkpiece = selectedFrom(
+      message,
+      selected === undefined ? 0 : selected.revision + 1,
+    );
     if (assistantWorkpiece !== undefined) selected = assistantWorkpiece;
   }
 
