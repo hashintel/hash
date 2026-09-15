@@ -264,8 +264,10 @@ export class LiveBrunchBridge {
   public update(chat: Chat): void {
     if (this.#abort.signal.aborted) return;
     const stopped = chat.stopped === true && this.#chat.stopped !== true;
+    const enteredError =
+      chat.status === "error" && this.#chat.status !== "error";
     this.#chat = chat;
-    if (stopped || chat.status === "error") {
+    if (stopped || enteredError) {
       this.#interruptTurns();
       return;
     }
