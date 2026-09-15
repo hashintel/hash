@@ -402,7 +402,11 @@ pub(super) const fn rejected(
         return Err(SolverFailure::RadiusUnderflow);
     }
 
-    control.radius = (config.shrink_factor * control.radius).max(config.radius_minimum);
+    control.radius = match (config.shrink_factor * control.radius).finish() {
+        Ok(radius) => radius.max(config.radius_minimum),
+        // a positive fraction cannot overflow the radius. A rejected product rounded to zero.
+        Err(_) => config.radius_minimum,
+    };
     Ok(())
 }
 
@@ -462,4 +466,34 @@ fn curvature_diagnostic(
         return CurvatureDiagnostic::NonFiniteNormalization;
     };
     CurvatureDiagnostic::Value { along, normalized }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SolverConfig, SolverControl, SolverFailure, WorkCounters, rejected};
+    use crate::math::{d_positive, open_unit_fraction};
+
+    #[test]
+    fn rejected_product_underflow() {
+        let config = SolverConfig {
+            radius_minimum: d_positive!(1e-300),
+            radius_initial: d_positive!(1e-200),
+            shrink_factor: open_unit_fraction!(1e-200),
+            ..
+        };
+        config
+            .validate()
+            .expect("the radii and thresholds are ordered");
+        let mut control = SolverControl::new(config.radius_initial, WorkCounters::default());
+
+        assert_eq!(rejected(&mut control, &config), Ok(()));
+        assert_eq!(control.radius, config.radius_minimum);
+        assert_eq!(control.consecutive_rejections, 1);
+        core::assert_matches!(
+            rejected(&mut control, &config),
+            Err(SolverFailure::RadiusUnderflow)
+        );
+        assert_eq!(control.radius, config.radius_minimum);
+        assert_eq!(control.consecutive_rejections, 2);
+    }
 }

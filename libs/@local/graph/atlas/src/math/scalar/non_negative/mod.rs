@@ -6,10 +6,16 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::{
     DNonNegative, Finite, Positive, UnitFraction, raw_interop, unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a non-negative literal at compile time.
 ///
@@ -564,20 +570,6 @@ const impl core::ops::Add<NonNegative> for f32 {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for NonNegative {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (0.0..=f32::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for NonNegative {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
@@ -600,35 +592,13 @@ raw_interop!(NonNegative[f32]);
 unsafe_impl_try_from_bytes!(NonNegative[f32]);
 
 #[cfg(test)]
-mod tests {
-    use super::NonNegative;
-    use crate::math::{Derivation, derivation::Diverged, finite};
+impl Arbitrary for NonNegative {
+    type Parameters = ();
 
-    #[test]
-    fn power_deferred_overflow() {
-        let power = non_negative!(f32::MAX).powf(finite!(2.0));
-        assert_eq!(power.finish(), Err(Diverged { raw: f32::INFINITY }));
-        let reciprocal = Derivation::from(NonNegative::ONE) / power;
-        assert_eq!(reciprocal.finish(), Ok(NonNegative::ZERO));
-    }
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
 
-    #[test]
-    fn power_signed_exponent() {
-        assert_eq!(
-            non_negative!(4.0).powf(finite!(-0.5)).finish(),
-            Ok(non_negative!(0.5))
-        );
-        assert_eq!(
-            NonNegative::ZERO.powf(finite!(-1.0)).finish(),
-            Err(Diverged { raw: f32::INFINITY })
-        );
-        assert_eq!(
-            NonNegative::ZERO.powf(finite!(0.0)).finish(),
-            Ok(NonNegative::ONE)
-        );
-        assert_eq!(
-            non_negative!(f32::from_bits(1)).powf(finite!(2.0)).finish(),
-            Ok(NonNegative::ZERO)
-        );
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::POSITIVE | num::f32::NORMAL | num::f32::SUBNORMAL | num::f32::ZERO)
+            .prop_map(Self)
     }
 }

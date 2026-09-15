@@ -2,7 +2,13 @@
 
 use core::fmt;
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::unsafe_impl_try_from_bytes;
+
+#[cfg(test)]
+mod tests;
 
 /// A power-of-two exponent below the `u64` shift width, valid by construction.
 ///
@@ -123,3 +129,18 @@ impl<'de> serde::Deserialize<'de> for Log2 {
 }
 
 unsafe_impl_try_from_bytes!(Log2[u8]);
+
+#[cfg(test)]
+#[expect(
+    exported_private_dependencies,
+    reason = "the impl is absent from downstream builds"
+)]
+impl Arbitrary for Log2 {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (0_u8..64).prop_map(Self)
+    }
+}

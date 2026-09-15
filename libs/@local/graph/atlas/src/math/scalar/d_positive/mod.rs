@@ -8,11 +8,17 @@ use core::{
     num::NonZero,
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
 use super::{
     DFinite, DNonNegative, OpenUnitFraction, Positive, PositiveUnitFraction, raw_interop,
     unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a positive double-precision literal at compile time.
 ///
@@ -309,28 +315,28 @@ const impl core::ops::Div<DPositive> for DPositive {
 }
 
 const impl core::ops::Mul<PositiveUnitFraction> for DPositive {
-    type Output = Self;
+    type Output = Derivation<Self>;
 
-    /// Scales by a positive fraction.
+    /// Scales by a positive fraction with deferred validation of underflow.
     ///
-    /// The rounded product must remain positive. For in-domain operands it cannot exceed the
-    /// positive value or become NaN, but underflow can round it to zero.
+    /// The product is finite and non-negative. Underflow can round it to zero, which
+    /// [`Derivation::finish`] rejects for the positive domain.
     #[inline]
-    fn mul(self, rhs: PositiveUnitFraction) -> Self {
-        Self::new_unchecked(self.0 * rhs.get())
+    fn mul(self, rhs: PositiveUnitFraction) -> Self::Output {
+        Derivation::raw(self.0 * rhs.get())
     }
 }
 
 const impl core::ops::Mul<DPositive> for OpenUnitFraction {
-    type Output = DPositive;
+    type Output = Derivation<DPositive>;
 
-    /// Scales a positive value toward zero.
+    /// Scales a positive value toward zero with deferred validation of underflow.
     ///
-    /// The rounded product must remain positive. For in-domain operands it cannot exceed the
-    /// positive value or become NaN. Rounding can leave the value unchanged or underflow to zero.
+    /// The product is finite and non-negative. Rounding can leave the value unchanged or underflow
+    /// to zero, which [`Derivation::finish`] rejects for the positive domain.
     #[inline]
-    fn mul(self, rhs: DPositive) -> DPositive {
-        DPositive::new_unchecked(self.get() * rhs.0)
+    fn mul(self, rhs: DPositive) -> Self::Output {
+        Derivation::raw(self.get() * rhs.0)
     }
 }
 
@@ -405,20 +411,6 @@ const impl From<Positive> for DPositive {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for DPositive {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (f64::from_bits(1)..=f64::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for DPositive {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -441,39 +433,12 @@ raw_interop!(DPositive[f64]);
 unsafe_impl_try_from_bytes!(DPositive[f64]);
 
 #[cfg(test)]
-mod tests {
-    use super::DPositive;
-    use crate::math::{Positive, positive};
+impl Arbitrary for DPositive {
+    type Parameters = ();
 
-    #[test]
-    fn narrow_subnormal_bounds() {
-        let smallest = Positive::MIN.widen();
-        assert_eq!(smallest.narrow(), Some(Positive::MIN));
-        assert_eq!(
-            (smallest / d_positive!(2.0))
-                .finish()
-                .expect("the half-subnormal is representable in f64")
-                .narrow(),
-            None
-        );
-        assert_eq!(
-            DPositive::new(smallest.get() * 0.75)
-                .expect("the value is positive")
-                .narrow(),
-            Some(Positive::MIN)
-        );
-    }
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
 
-    #[test]
-    fn narrow_overflow() {
-        assert_eq!(Positive::MAX.widen().narrow(), Some(Positive::MAX));
-        assert_eq!(
-            (Positive::MAX.widen() * d_positive!(2.0))
-                .finish()
-                .expect("twice the f32 maximum is finite in f64")
-                .narrow(),
-            None
-        );
-        assert_eq!(d_positive!(1.5).narrow(), Some(positive!(1.5)));
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f64::POSITIVE | num::f64::NORMAL | num::f64::SUBNORMAL).prop_map(Self)
     }
 }

@@ -1,6 +1,12 @@
 //! The finite `f64` scalar strictly greater than one.
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::unsafe_impl_try_from_bytes;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a greater-than-one literal at compile time.
 ///
@@ -90,5 +96,16 @@ impl<'de> serde::Deserialize<'de> for GreaterThanOne {
                 &"a finite positive number greater than one",
             )
         })
+    }
+}
+
+#[cfg(test)]
+impl Arbitrary for GreaterThanOne {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (1.0_f64.next_up()..=f64::MAX).prop_map(Self)
     }
 }
