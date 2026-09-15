@@ -172,13 +172,23 @@ export const createLiveConversation = (
     } catch {
       if (abort.signal.aborted || attempt !== playbackAttempt) return;
       playbackBlocked = true;
-      onState(activeState(ready && !recovering ? "connected" : "connecting"));
+      onState(
+        activeState(
+          ready && !recovering ? "connected" : "connecting",
+          lastActivity,
+        ),
+      );
       return;
     }
     if (abort.signal.aborted || attempt !== playbackAttempt || !playbackBlocked)
       return;
     playbackBlocked = false;
-    onState(activeState(ready && !recovering ? "connected" : "connecting"));
+    onState(
+      activeState(
+        ready && !recovering ? "connected" : "connecting",
+        lastActivity,
+      ),
+    );
   };
 
   const start = async (): Promise<void> => {

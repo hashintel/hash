@@ -377,6 +377,17 @@ test.each(["rejects", "throws"] as const)(
   async (failureMode) => {
     vi.useFakeTimers();
     const fixture = setup();
+    Object.assign(fixture.peer, {
+      getStats: vi.fn(
+        async () =>
+          new Map([
+            [
+              "input",
+              { type: "media-source", kind: "audio", audioLevel: 0.42 },
+            ],
+          ]),
+      ),
+    });
     if (failureMode === "rejects") {
       fixture.audio.play.mockRejectedValueOnce(new Error("Playback blocked"));
     } else {
@@ -386,6 +397,7 @@ test.each(["rejects", "throws"] as const)(
     }
     await fixture.conversation.start();
     fixture.emit({ type: "session.started" });
+    await vi.advanceTimersByTimeAsync(100);
     fixture.peer.dispatchEvent(
       Object.assign(new Event("track"), {
         track: fixture.output,
@@ -399,6 +411,7 @@ test.each(["rejects", "throws"] as const)(
       message:
         "Audio playback is blocked. Select Play voice audio to hear Live.",
       playbackBlocked: true,
+      activity: { microphoneLevel: 0.42, outputActive: false },
     });
     await vi.advanceTimersByTimeAsync(100);
     expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
@@ -414,6 +427,7 @@ test.each(["rejects", "throws"] as const)(
     expect(fixture.onState).toHaveBeenLastCalledWith({
       phase: "connected",
       message: null,
+      activity: { microphoneLevel: 0.42, outputActive: false },
     });
     expect(fixture.fetch).toHaveBeenCalledOnce();
     expect(fixture.getUserMedia).toHaveBeenCalledOnce();
