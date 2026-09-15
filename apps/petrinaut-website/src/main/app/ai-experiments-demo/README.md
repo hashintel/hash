@@ -19,7 +19,7 @@ the initial infected share demonstrates parameter search, not a health intervent
 
 This demo exercises Petrinaut's tool contract and presentation. Brunch owns
 its production tool selection, transport integration, and agent behavior.
-See <a href="/architecture/core/ai/client-integration">AI client integration</a> for the responsibility
+See <a href="/architecture/core/experiments/client-integration">AI client integration</a> for the responsibility
 boundary and <a href="/architecture/react/experiment-host/ai-created-experiments#try-the-demo">AI-created experiments</a>
 for the demo steps.
 

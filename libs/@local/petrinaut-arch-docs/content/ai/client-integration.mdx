@@ -1,7 +1,7 @@
 ---
 title: AI client integration
 description: What Petrinaut provides and what each integrating application owns.
-attachTo: core.ai
+attachTo: core.experiments
 sidebar_order: 10
 ---
 
@@ -26,7 +26,7 @@ experiments independently.
 
 | Owner                                                  | Responsibility                                                                                |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| [Core](layer:core.ai)                                  | Define request/result schemas and host/progress types.                                        |
+| [Core](layer:core.experiments)                         | Define request/result schemas and host/progress types.                                        |
 | [Browser host](doc:experiments/ai-created-experiments) | Validate, run, cancel, protect inputs, and capture results.                                   |
 | [AI chat](doc:ai/experiment-chat)                      | Dispatch calls, show progress, and return terminal results.                                   |
 | Integrating application                                | Select tools, carry schemas, preserve call identity, persist history, and continue the agent. |
