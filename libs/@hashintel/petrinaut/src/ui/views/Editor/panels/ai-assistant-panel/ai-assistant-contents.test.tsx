@@ -93,7 +93,6 @@ test("session-only dock shows Connected and End without unsupported controls", (
       collapsed={false}
       indicator={<span />}
       microphoneMuted={false}
-      notice={null}
       onCollapsedToggle={collapse}
       phase="connected"
     />,
@@ -374,20 +373,16 @@ describe("AiAssistantContents", () => {
     expect(screen.getAllByText("Response stopped")).toHaveLength(1);
   });
 
-  test("shows assistant errors as toasts instead of transcript messages", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
+  test("keeps non-Voice assistant errors in global notifications", () => {
+    const message =
+      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}';
+    const addNotification = vi.fn(() => "notification-id");
     render(
-      <NotificationsProvider>
+      <NotificationsContext
+        value={{ addNotification, dismissNotification: vi.fn() }}
+      >
         <AiAssistantContents
-          error={
-            new Error(
-              'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
-            )
-          }
+          error={new Error(message)}
           input=""
           messages={[]}
           onClose={noop}
@@ -396,43 +391,21 @@ describe("AiAssistantContents", () => {
           onSubmit={noop}
           status="error"
         />
-      </NotificationsProvider>,
+      </NotificationsContext>,
     );
 
-    const toast = await waitFor(() => {
-      const element = document.querySelector<HTMLElement>(
-        '[data-scope="toast"][data-part="root"]',
-      );
-      expect(element).not.toBeNull();
-      return element!;
+    expect(addNotification).toHaveBeenCalledOnce();
+    expect(addNotification).toHaveBeenCalledWith({
+      detail: message,
+      message: "AI assistant error",
+      tone: "error",
     });
     expect(
-      toast.querySelector('[data-scope="toast"][data-part="title"]')
-        ?.textContent,
-    ).toBe("AI assistant error");
-    expect(
-      toast.querySelector('[data-scope="toast"][data-part="description"]')
-        ?.textContent,
-    ).toBe(
-      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
-    );
-    fireEvent.click(
-      within(toast).getByRole("button", { name: "Copy details" }),
-    );
-    expect(writeText).toHaveBeenCalledWith(
-      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}',
-    );
-    expect(
-      within(screen.getByTestId("ai-transcript")).queryByText(
-        "AI assistant error",
-      ),
+      screen.queryByRole("button", { name: /Show .*Voice issue/ }),
     ).toBeNull();
-    fireEvent.click(
-      within(toast).getByRole("button", { name: "Close notification" }),
-    );
-    await waitFor(() =>
-      expect(toast.getAttribute("data-state")).toBe("closed"),
-    );
+    expect(
+      within(screen.getByTestId("ai-transcript")).queryByText(message),
+    ).toBeNull();
   });
 
   test("keeps one Voice mode slot mounted across tab switches and panel closure", () => {
@@ -657,6 +630,8 @@ describe("AiAssistantContents", () => {
       name: "Voice mode consent",
     });
     const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    expect(within(setupDock).queryByText(/connecting/i)).toBeNull();
+    expect(within(setupDock).getByText("Voice setup")).not.toBeNull();
     expect(permission.parentElement?.nextElementSibling).toBe(
       setupDock.parentElement,
     );
@@ -859,12 +834,97 @@ describe("AiAssistantContents", () => {
       });
     });
     expect(
-      within(dock).getAllByText("We didn't catch that. Please try again."),
-    ).not.toHaveLength(0);
-    expect(dock.getAttribute("data-voice-notice")).toBe("visible");
+      within(dock).getByRole("status", { name: "Voice status" }).textContent,
+    ).toBe("Voice status: We didn't catch that. Please try again.");
+    expect(
+      within(dock).getByText("We didn't catch that. Please try again."),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /Show .*Voice issue/ }),
+    ).toBeNull();
+    act(() => {
+      store.setState({
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        notice: null,
+        phase: "listening",
+      });
+    });
+    expect(within(dock).getByText("Listening")).toBeTruthy();
   });
 
-  test("shows a voice recovery failure as a toast", async () => {
+  test.each([
+    "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+    "That utterance was not retained. Wait for the pending input, then use the composer to send it.",
+  ])(
+    "contains a session warning in the warning popover until dismissed: %s",
+    async (warningMessage) => {
+      const store = createVoiceSessionStore();
+      const state = {
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        phase: "connected" as const,
+        warningMessage,
+      };
+      store.setState(state);
+      const end = vi.fn();
+      store.setActions({ end, pause: noop });
+      render(
+        <NotificationsProvider>
+          <VoiceSessionContext.Provider value={store}>
+            <AiAssistantContents
+              input=""
+              inputMode="voice"
+              messages={[]}
+              onClose={noop}
+              onInputChange={noop}
+              onStop={noop}
+              onSubmit={noop}
+              status="ready"
+              voiceDockCollapsed
+            />
+          </VoiceSessionContext.Provider>
+        </NotificationsProvider>,
+      );
+      const dock = screen.getByTestId("ai-voice-dock");
+      expect(within(dock).getByText("Connected")).toBeTruthy();
+      expect(screen.queryByText(warningMessage)).toBeNull();
+      expect(within(dock).getByRole("status").textContent).toBe(
+        "Voice status: Connected",
+      );
+      fireEvent.click(
+        within(dock).getByRole("button", { name: "Show 1 Voice issue" }),
+      );
+      expect(await screen.findByText(warningMessage)).toBeTruthy();
+      expect(within(dock).queryByText(warningMessage)).toBeNull();
+      expect(
+        screen.getByText(warningMessage).closest('[data-scope="toast"]'),
+      ).toBeNull();
+      act(() => {
+        store.setState({ ...state, phase: "thinking", microphoneLevel: 0.5 });
+      });
+      expect(screen.getAllByText(warningMessage)).toHaveLength(1);
+      act(() => {
+        store.setState({ ...state, warningMessage: null });
+      });
+      expect(screen.getByText(warningMessage)).toBeTruthy();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Dismiss Voice issues" }),
+      );
+      expect(screen.queryByText(warningMessage)).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: /Show .*Voice issue/ }),
+      ).toBeNull();
+      fireEvent.click(
+        within(dock).getByRole("button", { name: "End voice mode" }),
+      );
+      expect(end).toHaveBeenCalledOnce();
+    },
+  );
+
+  test("contains voice failures in the collapsed dock without a toast", async () => {
     const store = createVoiceSessionStore();
     store.setState({
       errorMessage: "Microphone unavailable. Check your browser permissions.",
@@ -883,25 +943,27 @@ describe("AiAssistantContents", () => {
             onStop={noop}
             onSubmit={noop}
             status="ready"
+            voiceDockCollapsed
           />
         </VoiceSessionContext.Provider>
       </NotificationsProvider>,
     );
 
-    const toast = await waitFor(() => {
-      const element = document.querySelector<HTMLElement>(
-        '[data-scope="toast"][data-part="root"]',
-      );
-      expect(element).not.toBeNull();
-      return element!;
-    });
+    const dock = screen.getByTestId("ai-voice-dock");
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Show 1 Voice issue" }),
+    );
     expect(
-      toast.querySelector('[data-scope="toast"][data-part="title"]')
-        ?.textContent,
-    ).toBe("Microphone unavailable. Check your browser permissions.");
+      await screen.findByText(
+        "Microphone unavailable. Check your browser permissions.",
+      ),
+    ).toBeTruthy();
+    expect(
+      document.querySelector('[data-scope="toast"][data-part="root"]'),
+    ).toBeNull();
   });
 
-  test("does not repeat a voice error toast until the session recovers", () => {
+  test("deduplicates voice failures locally and never calls the shared notifier", () => {
     const store = createVoiceSessionStore();
     const errorState = {
       errorMessage: "Microphone unavailable. Check your browser permissions.",
@@ -932,7 +994,10 @@ describe("AiAssistantContents", () => {
     );
     const { rerender } = render(renderWithNotifier(firstAddNotification));
 
-    expect(firstAddNotification).toHaveBeenCalledOnce();
+    expect(firstAddNotification).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Show 1 Voice issue" }),
+    ).toBeTruthy();
     rerender(renderWithNotifier(secondAddNotification));
     expect(secondAddNotification).not.toHaveBeenCalled();
 
@@ -947,7 +1012,10 @@ describe("AiAssistantContents", () => {
     act(() => {
       store.setState(errorState);
     });
-    expect(secondAddNotification).toHaveBeenCalledOnce();
+    expect(secondAddNotification).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Show 1 Voice issue" }),
+    ).toBeTruthy();
   });
 
   test("isolates microphone-level updates from completed transcript messages", () => {
