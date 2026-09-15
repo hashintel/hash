@@ -787,10 +787,7 @@ test.each(["rejects", "throws"] as const)(
     const fixture = setup();
     fixture.peers[0]!.getStats.mockResolvedValue(
       new Map([
-        [
-          "input",
-          { type: "media-source", kind: "audio", audioLevel: 0.42 },
-        ],
+        ["input", { type: "media-source", kind: "audio", audioLevel: 0.42 }],
       ]),
     );
     if (failureMode === "rejects") {

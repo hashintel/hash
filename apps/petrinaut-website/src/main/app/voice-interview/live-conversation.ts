@@ -221,8 +221,7 @@ export const createLiveConversation = (
     } else if (state === "connected" && recoveryTimers.has(kind)) {
       clearTimeout(recoveryTimers.get(kind));
       recoveryTimers.delete(kind);
-      if (recoveryTimers.size === 0)
-        onState(activeState("connected"));
+      if (recoveryTimers.size === 0) onState(activeState("connected"));
     }
   };
 
@@ -311,8 +310,7 @@ export const createLiveConversation = (
     // A peer may have disconnected before the last session-ready event.
     peers.forEach((_, connectionKind) => handleConnectionState(connectionKind));
     if (stopping) return;
-    if (recoveryTimers.size === 0)
-      onState(activeState("connected"));
+    if (recoveryTimers.size === 0) onState(activeState("connected"));
     activityTimer = setTimeout(() => void sampleActivity(), 100);
     flushFinalizedInputs();
   };

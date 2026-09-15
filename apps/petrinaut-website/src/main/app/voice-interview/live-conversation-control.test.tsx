@@ -265,6 +265,7 @@ test("reuses setup and reports failure to the host dock and notification surface
     microphoneMuted: false,
     errorMessage: null,
     notice: playbackNotice,
+    warningMessage: null,
   });
   if (!props.registerVoiceModeSessionControls)
     throw new Error("Session control registration was not provided");
