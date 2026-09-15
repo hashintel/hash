@@ -16,6 +16,6 @@ Full screen replaces the canvas with code and leaves the left sidebar available.
 
 Use **Back to properties** or **Close code editor** to return to the same code section in the Properties Panel. Code, undo history, cursor position, diagnostics, and the section’s saved height carry over. Full-screen code shows line numbers, wrapped lines, and a minimap.
 
-Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Changing the file or active subnet closes the editor.
+Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Changing the file or active subnet closes the editor and resets its code undo history. Code opens in the Properties Panel the next time.
 
 Review layouts keep the code navigation actions available and hide template-loading and visualizer enablement controls.
