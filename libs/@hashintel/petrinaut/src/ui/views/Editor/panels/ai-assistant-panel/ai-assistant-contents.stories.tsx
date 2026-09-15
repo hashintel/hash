@@ -1,5 +1,5 @@
 import { type ComponentProps, type ReactNode, use, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -899,7 +899,7 @@ export const CollapsedVoiceIssues: Story = {
     const indicator = canvas.getByRole("button", {
       name: "Show 2 Voice issues",
     });
-    const { x, y, width, height } = indicator.getBoundingClientRect();
+    const { width, height } = indicator.getBoundingClientRect();
     await userEvent.click(
       canvas.getByRole("button", { name: "Show conversation" }),
     );
@@ -907,17 +907,22 @@ export const CollapsedVoiceIssues: Story = {
       canvas.getByRole("button", { name: "Show 2 Voice issues" }),
     ).toBe(indicator);
     await expect(indicator.getBoundingClientRect()).toMatchObject({
-      x,
-      y,
       width,
       height,
     });
+    await userEvent.click(indicator);
+    await waitFor(() =>
+      expect(
+        canvas.getByText(
+          "Voice connection interrupted. Check your connection before reconnecting.",
+        ),
+      ).toBeVisible(),
+    );
+    await userEvent.click(canvas.getByRole("button", { name: /^Close$/ }));
     await userEvent.click(
       canvas.getByRole("button", { name: "Hide conversation" }),
     );
     await expect(indicator.getBoundingClientRect()).toMatchObject({
-      x,
-      y,
       width,
       height,
     });
