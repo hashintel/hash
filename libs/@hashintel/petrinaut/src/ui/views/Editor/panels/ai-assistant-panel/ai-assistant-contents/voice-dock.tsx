@@ -5,6 +5,7 @@ import {
   useVoiceSessionActions,
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
+  useVoiceSessionCanRetryPlayback,
   useVoiceSessionCanTakeTurn,
   useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
@@ -109,6 +110,7 @@ export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
+  canRetryPlayback?: boolean;
   canTakeTurn: boolean;
   collapsed: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
@@ -130,6 +132,7 @@ export const VoiceDock = ({
   actions,
   canReadFullResponse,
   canRepeatQuestion,
+  canRetryPlayback = false,
   canTakeTurn,
   collapsed,
   indicator,
@@ -196,6 +199,17 @@ export const VoiceDock = ({
       <span className={`${sideStyle} ${actionsStyle}`}>
         {actions !== null && (
           <>
+            {canRetryPlayback && actions.retryPlayback && (
+              <Button
+                aria-label={voiceSessionActionLabels.retryPlayback}
+                iconName="play"
+                onClick={actions.retryPlayback}
+                size="sm"
+                tooltip={voiceSessionActionLabels.retryPlayback}
+                type="button"
+                variant="ghost"
+              />
+            )}
             {!interruptionBySpeaking && canTakeTurn && actions.takeTurn && (
               <Button
                 aria-label={voiceSessionActionLabels.takeTurn}
@@ -291,6 +305,7 @@ export const LiveVoiceDock = ({
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
+  const canRetryPlayback = useVoiceSessionCanRetryPlayback();
   const canTakeTurn = useVoiceSessionCanTakeTurn();
   const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
@@ -306,6 +321,7 @@ export const LiveVoiceDock = ({
       actions={actions}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
+      canRetryPlayback={canRetryPlayback}
       canTakeTurn={canTakeTurn}
       collapsed={collapsed}
       interruptionBySpeaking={interruptionBySpeaking}

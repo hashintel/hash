@@ -592,12 +592,15 @@ const PinnedVoiceInterviewControl = ({
   // Never replace a running provider or resubmit its input.
   const [sessionConfig] = useState(config);
   if (sessionConfig.provider === "live") {
+    if (!context.registerVoiceModeSessionControls) return null;
     return (
       <LiveConversationControl
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
         inputMode={context.inputMode}
         isAiAssistantOpen={context.isAiAssistantOpen}
-        registerVoiceModeControls={context.registerVoiceModeControls}
+        registerVoiceModeSessionControls={
+          context.registerVoiceModeSessionControls
+        }
         reportVoiceSessionState={context.reportVoiceSessionState}
         setInputMode={context.setInputMode}
         setVoiceActive={context.setVoiceActive}

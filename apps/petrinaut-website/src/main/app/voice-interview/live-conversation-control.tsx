@@ -13,16 +13,18 @@ type LiveControlsContext = Pick<
   PetrinautAiVoiceModeContext,
   | "inputMode"
   | "isAiAssistantOpen"
-  | "registerVoiceModeControls"
   | "reportVoiceSessionState"
   | "setVoiceActive"
   | "setInputMode"
->;
+> &
+  Required<
+    Pick<PetrinautAiVoiceModeContext, "registerVoiceModeSessionControls">
+  >;
 
 export const LiveConversationControl = ({
   inputMode,
   isAiAssistantOpen,
-  registerVoiceModeControls,
+  registerVoiceModeSessionControls,
   reportVoiceSessionState,
   setVoiceActive,
   setInputMode,
@@ -33,7 +35,7 @@ export const LiveConversationControl = ({
     phase: "idle",
     message: null,
   });
-  const { phase, activity } = state;
+  const { phase, activity, message, playbackBlocked } = state;
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
@@ -47,14 +49,17 @@ export const LiveConversationControl = ({
 
   useEffect(
     () =>
-      registerVoiceModeControls({
+      registerVoiceModeSessionControls({
         end,
         // Closing the panel ends Live. Reopening requires consent and a new session.
         pause: () => {
           void end();
         },
+        retryPlayback: () => {
+          void session.current?.retryPlayback();
+        },
       }),
-    [end, registerVoiceModeControls],
+    [end, registerVoiceModeSessionControls],
   );
 
   useEffect(() => {
@@ -72,11 +77,20 @@ export const LiveConversationControl = ({
             microphoneLevel: activity?.microphoneLevel ?? 0,
             microphoneMuted: false,
             errorMessage: null,
-            notice: null,
+            notice: playbackBlocked ? message : null,
+            ...(playbackBlocked ? { canRetryPlayback: true } : {}),
           }
         : null,
     );
-  }, [inputMode, isAiAssistantOpen, phase, activity, reportVoiceSessionState]);
+  }, [
+    inputMode,
+    isAiAssistantOpen,
+    phase,
+    activity,
+    message,
+    playbackBlocked,
+    reportVoiceSessionState,
+  ]);
 
   useEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen)

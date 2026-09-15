@@ -112,6 +112,31 @@ test("session-only dock shows Connected and End without unsupported controls", (
   expect(end).toHaveBeenCalledOnce();
 });
 
+test("offers a user-gesture retry while session audio is blocked", () => {
+  const retryPlayback = vi.fn();
+  const commonProps = {
+    actions: { end: noop, pause: noop, retryPlayback },
+    canReadFullResponse: false,
+    canRepeatQuestion: false,
+    canTakeTurn: false,
+    collapsed: false,
+    indicator: <span />,
+    microphoneMuted: false,
+    notice: "Audio playback is blocked. Select Play voice audio to hear Live.",
+    onCollapsedToggle: noop,
+    phase: "connected" as const,
+  };
+  const rendered = render(
+    <VoiceDock {...commonProps} canRetryPlayback={true} />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Play voice audio" }));
+  expect(retryPlayback).toHaveBeenCalledOnce();
+
+  rendered.rerender(<VoiceDock {...commonProps} canRetryPlayback={false} />);
+  expect(screen.queryByRole("button", { name: "Play voice audio" })).toBeNull();
+});
+
 describe("AiAssistantContents", () => {
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {
     const onStop = vi.fn();

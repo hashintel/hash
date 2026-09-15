@@ -10,6 +10,7 @@ export type VoiceSessionActions = {
   readFullResponse?: () => void;
   reconnect?: () => void;
   repeatQuestion?: () => void;
+  retryPlayback?: () => void;
   resume?: () => void;
   setInterruptionBySpeaking?: (enabled: boolean) => void;
   setMicrophoneMuted?: (muted: boolean) => void;

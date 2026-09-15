@@ -73,6 +73,7 @@ import type {
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
   PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
@@ -665,7 +666,7 @@ const ConversationAiAssistantPanel = ({
     [voiceSessionStore],
   );
 
-  const registerVoiceModeControls = useCallback(
+  const registerVoiceModeSessionControls = useCallback(
     (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
@@ -681,6 +682,9 @@ const ConversationAiAssistantPanel = ({
           : {}),
         ...(controls.repeatQuestion
           ? { repeatQuestion: () => controls.repeatQuestion?.() }
+          : {}),
+        ...(controls.retryPlayback
+          ? { retryPlayback: () => controls.retryPlayback?.() }
           : {}),
         ...(controls.resume ? { resume: () => controls.resume?.() } : {}),
         ...(controls.setInterruptionBySpeaking
@@ -707,6 +711,11 @@ const ConversationAiAssistantPanel = ({
       };
     },
     [requestInputMode, voiceSessionStore],
+  );
+  const registerVoiceModeControls = useCallback(
+    (controls: PetrinautAiVoiceModeControls) =>
+      registerVoiceModeSessionControls(controls),
+    [registerVoiceModeSessionControls],
   );
 
   const stopRequestedRef = useRef(false);
@@ -1980,6 +1989,7 @@ const ConversationAiAssistantPanel = ({
     inputMode: interactionMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
+    registerVoiceModeSessionControls,
     reportVoiceSessionState,
     setInputMode: requestInputMode,
     setVoiceActive,

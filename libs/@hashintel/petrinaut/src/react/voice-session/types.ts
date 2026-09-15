@@ -21,6 +21,8 @@ export type PetrinautAiVoiceSessionState = {
   canReadFullResponse?: boolean;
   /** Whether the final segment of the canonical response is safe to repeat. */
   canRepeatQuestion?: boolean;
+  /** Whether browser-blocked session audio can be retried by the user. */
+  canRetryPlayback?: boolean;
   /** Whether the user can cancel Voice output and start their turn. */
   canTakeTurn?: boolean;
   /** Whether speaking can interrupt assistant audio. */

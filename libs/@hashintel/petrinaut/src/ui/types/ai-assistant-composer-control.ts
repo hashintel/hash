@@ -93,7 +93,10 @@ export type PetrinautAiVoiceModeSessionControls = Omit<
       PetrinautAiVoiceModeControls,
       "reconnect" | "resume" | "setMicrophoneMuted"
     >
-  >;
+  > & {
+    /** Retries browser-blocked session audio from a user gesture. */
+    retryPlayback?: () => void;
+  };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
 export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
@@ -106,6 +109,13 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
    * typed-message handoff with the host-owned Voice lifecycle.
    */
   registerVoiceModeControls: (
+    controls: PetrinautAiVoiceModeControls,
+  ) => () => void;
+  /**
+   * Registers a Voice session whose provider supports only a subset of the
+   * complete lifecycle controls.
+   */
+  registerVoiceModeSessionControls?: (
     controls: PetrinautAiVoiceModeSessionControls,
   ) => () => void;
   /**

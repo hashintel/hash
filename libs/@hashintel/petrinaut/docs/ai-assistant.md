@@ -67,10 +67,12 @@ browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 Some hosts offer a **GPT-Live · Experimental interview** instead. It uses the same
 Voice setup and dock, but is a standalone conversation: it does not add chat messages
 or edit the net. Consent and **Start voice** are required for each session. Its dock
-shows **Listening** or **Speaking**, with collapse/expand and **End voice mode**
-only. Speaking reflects local audio activity, not a completed turn; the microphone
+normally shows **Listening** or **Speaking**, with collapse/expand and **End voice
+mode**. Speaking reflects local audio activity, not a completed turn; the microphone
 stays open while it speaks. The input ribbon follows your microphone level where
 the browser supports it. The experimental label appears only during consent.
+If the browser blocks remote playback, the dock keeps the warning visible and
+offers **Play voice audio**; selecting it retries playback from that user gesture.
 Ending Voice stops microphone capture and playback; closing the panel ends
 the experiment rather than pausing it. A connection error returns to setup without
 retrying. The following turn-taking and playback controls apply to integrated

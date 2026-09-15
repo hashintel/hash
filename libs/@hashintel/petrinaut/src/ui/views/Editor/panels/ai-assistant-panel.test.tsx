@@ -2463,16 +2463,16 @@ describe("AiAssistantPanel composer submissions", () => {
     }: {
       context: PetrinautAiVoiceModeContext;
     }) => {
-      const { registerVoiceModeControls, reportVoiceSessionState } = context;
+      const { registerVoiceModeSessionControls, reportVoiceSessionState } =
+        context;
 
-      useEffect(
-        () =>
-          registerVoiceModeControls({
-            end: async () => undefined,
-            pause: vi.fn(),
-          }),
-        [registerVoiceModeControls],
-      );
+      useEffect(() => {
+        if (!registerVoiceModeSessionControls) return;
+        return registerVoiceModeSessionControls({
+          end: async () => undefined,
+          pause: vi.fn(),
+        });
+      }, [registerVoiceModeSessionControls]);
       useEffect(() => {
         reportVoiceSessionState({
           canReadFullResponse: true,

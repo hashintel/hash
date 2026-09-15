@@ -30,11 +30,13 @@ per-session Show transcription in chat action write those turns into the convers
 instead. Keep every session control -- transcription, the microphone toggle, Resume, Reconnect, and
 End -- in the dock, leaving the canvas toolbar untouched. Add `setMicrophoneMuted` to the Voice mode
 controls and a `muted` session phase, so muting stops capture without interrupting what the assistant
-is saying, unlike pausing. Keep the complete legacy Voice controls type required while session
-registration accepts a provider-specific capability subset. Surface voice recovery failures as toasts
-with privacy-safe diagnostic references, and request one-time consent before the host starts the
-microphone. Mark persisted spoken messages and the exact interactive-tool answer completed by Voice
-with an inline Voice chip ahead of the words themselves.
+is saying, unlike pausing. Keep the complete legacy Voice controls and context registration contract
+required while a separate optional registration seam accepts provider-specific capabilities. Offer
+an explicit playback retry when a browser blocks session audio, keeping the warning visible until
+that user gesture succeeds. Surface voice recovery failures as toasts with privacy-safe diagnostic
+references, and request one-time consent before the host starts the microphone. Mark persisted
+spoken messages and the exact interactive-tool answer completed by Voice with an inline Voice chip
+ahead of the words themselves.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session

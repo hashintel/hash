@@ -19,6 +19,7 @@ import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.mock("./live-conversation", () => ({
   createLiveConversation: vi.fn(() => ({
+    retryPlayback: vi.fn(async () => {}),
     start: vi.fn(async () => {}),
     stop: vi.fn(async () => {}),
   })),
@@ -39,6 +40,7 @@ const context = (): PetrinautAiVoiceModeContext => ({
   submitText: vi.fn(),
   submitVoiceInput: vi.fn(),
   registerVoiceModeControls: vi.fn(() => () => {}),
+  registerVoiceModeSessionControls: vi.fn(() => () => {}),
   reportVoiceSessionState: vi.fn(),
   setInputMode: vi.fn(),
   setVoiceActive: vi.fn(),
@@ -145,8 +147,37 @@ test("reuses setup, reports listening and speaking to the host dock, and clears 
       microphoneLevel: 0.12,
     }),
   );
-  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
-  expect(Object.keys(controls).sort()).toEqual(["end", "pause"]);
+  const playbackNotice =
+    "Audio playback is blocked. Select Play voice audio to hear Live.";
+  act(() =>
+    onState({
+      phase: "connected",
+      message: playbackNotice,
+      playbackBlocked: true,
+    }),
+  );
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith({
+    canRetryPlayback: true,
+    phase: "listening",
+    microphoneLevel: 0,
+    microphoneMuted: false,
+    errorMessage: null,
+    notice: playbackNotice,
+  });
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
+  expect(props.registerVoiceModeControls).not.toHaveBeenCalled();
+  expect(Object.keys(controls).sort()).toEqual([
+    "end",
+    "pause",
+    "retryPlayback",
+  ]);
+  controls.retryPlayback?.();
+  const liveSession = vi.mocked(createLiveConversation).mock.results[0]!
+    .value as ReturnType<typeof createLiveConversation>;
+  expect(liveSession.retryPlayback).toHaveBeenCalledOnce();
   act(() =>
     onState({
       phase: "error",
@@ -187,7 +218,10 @@ test("pins provider, ends through host controls, and never submits or stops cano
     />,
   );
   expect(session.start).toHaveBeenCalledOnce();
-  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  if (!props.registerVoiceModeSessionControls)
+    throw new Error("Session control registration was not provided");
+  const controls = vi.mocked(props.registerVoiceModeSessionControls).mock
+    .lastCall![0];
   await act(() => controls.end());
   expect(session.stop).toHaveBeenCalled();
   expect(props.submitText).not.toHaveBeenCalled();

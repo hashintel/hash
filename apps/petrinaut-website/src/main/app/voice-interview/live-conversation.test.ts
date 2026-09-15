@@ -372,23 +372,57 @@ test("plays the remote track while microphone remains attached, then stops both"
   expect(fixture.input.stop).toHaveBeenCalled();
 });
 
-test("keeps the Live session connected when browser playback is initially blocked", async () => {
-  const fixture = setup();
-  fixture.audio.play.mockRejectedValueOnce(new Error("Playback blocked"));
-  await fixture.conversation.start();
-  fixture.emit({ type: "session.started" });
-  fixture.peer.dispatchEvent(
-    Object.assign(new Event("track"), {
-      track: fixture.output,
-      streams: [{ getTracks: () => [fixture.output] }],
-    }),
-  );
-  await Promise.resolve();
+test.each(["rejects", "throws"] as const)(
+  "reports playback that %s and retries it without restarting the Live session",
+  async (failureMode) => {
+    vi.useFakeTimers();
+    const fixture = setup();
+    if (failureMode === "rejects") {
+      fixture.audio.play.mockRejectedValueOnce(new Error("Playback blocked"));
+    } else {
+      fixture.audio.play.mockImplementationOnce(() => {
+        throw new Error("Playback blocked");
+      });
+    }
+    await fixture.conversation.start();
+    fixture.emit({ type: "session.started" });
+    fixture.peer.dispatchEvent(
+      Object.assign(new Event("track"), {
+        track: fixture.output,
+        streams: [{ getTracks: () => [fixture.output] }],
+      }),
+    );
+    await Promise.resolve();
 
-  expect(fixture.input.stop).not.toHaveBeenCalled();
-  expect(fixture.output.stop).not.toHaveBeenCalled();
-  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connected");
-});
+    expect(fixture.onState).toHaveBeenLastCalledWith({
+      phase: "connected",
+      message:
+        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      playbackBlocked: true,
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fixture.onState.mock.lastCall?.[0]).toMatchObject({
+      phase: "connected",
+      message:
+        "Audio playback is blocked. Select Play voice audio to hear Live.",
+      playbackBlocked: true,
+    });
+    expect(fixture.input.stop).not.toHaveBeenCalled();
+    expect(fixture.output.stop).not.toHaveBeenCalled();
+    await fixture.conversation.retryPlayback();
+    expect(fixture.audio.play).toHaveBeenCalledTimes(2);
+    expect(fixture.onState).toHaveBeenLastCalledWith({
+      phase: "connected",
+      message: null,
+    });
+    expect(fixture.fetch).toHaveBeenCalledOnce();
+    expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+    const stopped = fixture.conversation.stop();
+    fixture.emit({ type: "session.closed" });
+    await stopped;
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);
 
 test("reports local audio activity without treating silence or transcripts as turn completion", async () => {
   vi.useFakeTimers();

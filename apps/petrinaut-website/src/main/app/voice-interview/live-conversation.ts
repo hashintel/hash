@@ -7,6 +7,7 @@ export interface LiveConversationState {
     | "ended"
     | "error";
   readonly message: string | null;
+  readonly playbackBlocked?: boolean;
   /** Local media activity for the dock, never a turn or playback-completion signal. */
   readonly activity?: {
     readonly microphoneLevel: number;
@@ -27,6 +28,8 @@ export const createLiveConversation = (
   let started = false;
   let ready = false;
   let recovering = false;
+  let playbackBlocked = false;
+  let playbackAttempt = 0;
   let stopping = false;
   let finished = false;
   let creationRequested = false;
@@ -39,6 +42,18 @@ export const createLiveConversation = (
   let resolveStopped: () => void = () => {};
   const stopped = new Promise<void>((resolve) => {
     resolveStopped = resolve;
+  });
+
+  const activeState = (
+    phase: "connecting" | "connected",
+    activity?: LiveConversationState["activity"],
+  ): LiveConversationState => ({
+    phase,
+    message: playbackBlocked
+      ? "Audio playback is blocked. Select Play voice audio to hear Live."
+      : null,
+    ...(playbackBlocked ? { playbackBlocked: true } : {}),
+    ...(activity ? { activity } : {}),
   });
 
   const sampleActivity = async () => {
@@ -81,7 +96,7 @@ export const createLiveConversation = (
       activity.outputActive !== lastActivity.outputActive
     ) {
       lastActivity = activity;
-      onState({ phase: "connected", message: null, activity });
+      onState(activeState("connected", activity));
     }
   };
 
@@ -148,10 +163,28 @@ export const createLiveConversation = (
     void stop();
   };
 
+  const playAudio = async (): Promise<void> => {
+    const currentAudio = audio;
+    if (stopping || !currentAudio?.srcObject) return;
+    const attempt = ++playbackAttempt;
+    try {
+      await currentAudio.play();
+    } catch {
+      if (abort.signal.aborted || attempt !== playbackAttempt) return;
+      playbackBlocked = true;
+      onState(activeState(ready && !recovering ? "connected" : "connecting"));
+      return;
+    }
+    if (abort.signal.aborted || attempt !== playbackAttempt || !playbackBlocked)
+      return;
+    playbackBlocked = false;
+    onState(activeState(ready && !recovering ? "connected" : "connecting"));
+  };
+
   const start = async (): Promise<void> => {
     if (started || stopping) return;
     started = true;
-    onState({ phase: "connecting", message: null });
+    onState(activeState("connecting"));
     connectionTimer = setTimeout(
       () => fail("Live connection timed out. No automatic retry was made."),
       connectionTimeoutMs,
@@ -180,7 +213,7 @@ export const createLiveConversation = (
           recovering = true;
           lastActivity = undefined;
           lastOutputActivity = -Infinity;
-          onState({ phase: "connecting", message: null });
+          onState(activeState("connecting"));
           connectionTimer = setTimeout(
             () =>
               fail(
@@ -191,7 +224,7 @@ export const createLiveConversation = (
         } else if (connection.connectionState === "connected" && recovering) {
           recovering = false;
           clearTimeout(connectionTimer);
-          onState({ phase: "connected", message: null });
+          onState(activeState("connected"));
         }
       };
       channel = connection.createDataChannel("oai-events");
@@ -215,7 +248,7 @@ export const createLiveConversation = (
           ready = true;
           clearTimeout(connectionTimer);
           activityTimer = setTimeout(() => void sampleActivity(), 100);
-          onState({ phase: "connected", message: null });
+          onState(activeState("connected"));
           handleConnectionState();
         } else if (data.type === "error" || data.type === "session.error") {
           fail("Live reported an error. No automatic retry was made.");
@@ -241,11 +274,7 @@ export const createLiveConversation = (
         }
         if (!audio) return;
         audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
-        try {
-          void audio.play().catch(() => undefined);
-        } catch {
-          // Autoplay remains enabled; the media element will retry on audio.
-        }
+        void playAudio();
       });
       stream.getTracks().forEach((track) => {
         track.addEventListener(
@@ -313,5 +342,5 @@ export const createLiveConversation = (
     }
   };
 
-  return { start, stop };
+  return { retryPlayback: playAudio, start, stop };
 };
