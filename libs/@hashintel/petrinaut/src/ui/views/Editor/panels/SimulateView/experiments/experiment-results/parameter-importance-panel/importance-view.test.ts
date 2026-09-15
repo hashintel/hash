@@ -217,14 +217,12 @@ describe("importanceRows", () => {
     expect(view.rows).toHaveLength(1);
     expect(view.rows[0]?.importance).toBeNull();
     expect(view.rows[0]?.correlation).not.toBeNull();
-    expect(describeImportance(view)).toBe(
-      `PED-ANOVA ranks two or more parameters · ${completedCount} completed steps · correlation only`,
-    );
+    expect(describeImportance(view)).toBe("Correlation only · one parameter");
   });
 });
 
 describe("the card's copy", () => {
-  it("names the statistic and the count, the floor only below it, and ends with the question the bars answer", () => {
+  it("distinguishes preliminary, available and missing estimates in a short summary", () => {
     const rows: never[] = [];
     expect(
       describeImportance({
@@ -236,9 +234,7 @@ describe("the card's copy", () => {
         belowFloor: false,
         barScale: 0.5,
       }),
-    ).toBe(
-      "PED-ANOVA importance estimated from 54 completed steps · how much each parameter matters for reaching the best steps",
-    );
+    ).toBe("Based on 54 completed steps");
     expect(
       describeImportance({
         rows,
@@ -249,9 +245,7 @@ describe("the card's copy", () => {
         belowFloor: true,
         barScale: 1,
       }),
-    ).toBe(
-      "PED-ANOVA importance estimated from 27 completed steps · below the 50-step floor, treat as a hint · how much each parameter matters for reaching the best steps",
-    );
+    ).toBe("Preliminary · 27 completed steps");
     expect(
       describeImportance({
         rows,
@@ -262,7 +256,7 @@ describe("the card's copy", () => {
         belowFloor: true,
         barScale: 1,
       }),
-    ).toContain("importance estimated from 1 completed step ·");
+    ).toContain("Preliminary · 1 completed step");
     expect(
       describeImportance({
         rows,
@@ -273,9 +267,7 @@ describe("the card's copy", () => {
         belowFloor: true,
         barScale: 1,
       }),
-    ).toMatch(
-      /^no PED-ANOVA importance yet · 12 completed steps · below the 50-step floor/u,
-    );
+    ).toMatch(/^No estimate yet · 12 completed steps/u);
   });
 
   it("prints a share as a whole percentage and a correlation with its sign", () => {

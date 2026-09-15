@@ -26,6 +26,7 @@ import {
   axisValueAt,
 } from "../../../../../../react/experiments/parameter-grid";
 import { formatAxisValue } from "../shared/format-axis-value";
+import { formatCount } from "../shared/format-value";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
@@ -67,6 +68,7 @@ const rowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  "@container drawer-frame-body (max-width: 599px)": { flexWrap: "wrap" },
 });
 
 const nameStyle = css({
@@ -77,6 +79,7 @@ const nameStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  "@container drawer-frame-body (max-width: 599px)": { width: "full" },
 });
 
 const readoutStyle = css({
@@ -101,6 +104,7 @@ const statusStyle = css({
   gap: "[6px]",
   // Aligns under the sliders: the 140px name column plus the row gap.
   paddingLeft: "[148px]",
+  "@container drawer-frame-body (max-width: 599px)": { paddingLeft: "0" },
   minWidth: "[0]",
   fontSize: "xs",
   color: "neutral.s80",
@@ -211,11 +215,11 @@ const SamplingStatus = ({
     (range) => range.from !== range.to,
   );
   const activity = isRange
-    ? "sampling across the selected ranges"
-    : "refining while you stay here";
+    ? "Sampling selected ranges"
+    : "Sampling selected values";
   const { following } = status;
   const sampling = status.computing
-    ? ` — ${status.runsSampled} of ${status.runTarget ?? status.runCount} runs`
+    ? ` · ${formatCount(status.runsSampled)} / ${formatCount(status.runTarget ?? status.runCount)} runs`
     : "";
 
   return (
@@ -229,28 +233,25 @@ const SamplingStatus = ({
       </span>
       {following?.kind === "following" ? (
         <span>
-          Following step {following.step} of {following.total}
+          Testing step {following.step}
           {sampling}
         </span>
-      ) : following?.kind === "settled" ? (
+      ) : following?.kind === "settled" && !status.computing ? (
         <span>
           {following.summary}
           {sampling}
         </span>
       ) : status.computing ? (
         <span>
-          {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
           {activity}
+          {sampling}
         </span>
       ) : status.runsCompleted === 0 ? (
-        <span>
-          collapse a control to a point or click the surface to compute a point;
-          widen a range to sample across it
-        </span>
+        <span>Choose parameter values or ranges to see results.</span>
       ) : (
         <span>
-          {status.runsCompleted} of {status.runCount} runs
-          {status.runsCompleted >= status.runCount ? " — fully sampled" : ""}
+          {formatCount(status.runsCompleted)}{" "}
+          {status.runsCompleted === 1 ? "run" : "runs"} sampled
         </span>
       )}
     </div>
