@@ -51,11 +51,13 @@ export const rowTintStrongStyle = css({
 });
 
 export const tableContainerStyle = css({
+  userSelect: "none",
+  "& :is(input, textarea, [contenteditable=true])": { userSelect: "text" },
   position: "relative",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.a45",
-  borderRadius: "sm",
+  borderRadius: "md",
   overflowX: "auto",
   width: "[100%]",
   backgroundColor: "neutral.s00",

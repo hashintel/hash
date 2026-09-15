@@ -34,7 +34,7 @@ Quick-action buttons next to the picker let you edit the selected scenario, crea
 Override values for this run:
 
 - With **No scenario** selected: the form's **Parameters** table -- an expression per [net-level parameter](petri-net-extensions.md#global-parameters), the default shown with a `default` tag until you override it; expressions may read the Variables above as `scenario.<name>`.
-- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter overrides](scenarios.md#parameters) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. A scenario saved from the ad-hoc form shows its definition; any other scenario shows a computed preview of the exact tokens the run will start with, recomputed as you change parameter values (very large places preview their first 100 rows).
+- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter overrides](scenarios.md#parameters) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. Every scenario shows computed parameter values and the exact tokens the run will start with, recomputed as you change scenario parameters. Select a read-only value to see its source expression in a floating cell over the selected value. The expression disappears when focus moves away. Very large places preview their first 100 rows.
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
@@ -60,6 +60,12 @@ If you need multiple runs of the same configuration -- e.g. to compare a stochas
 If there are unresolved error-severity [diagnostics](petri-net-extensions.md#diagnostics) (code errors), pressing Play opens the Diagnostics tab instead of starting the simulation. Fix all errors first -- warnings and hints don't block simulation.
 
 <img width="1018" height="354" alt="simulation-settings" src="https://github.com/user-attachments/assets/8736a52e-6455-40fd-bede-51e0439a3e5b" />
+
+### Navigating Simulation Settings
+
+Use arrow keys to move between the scenario picker, its action buttons, the time-step field, and the tables below. Enter opens a picker or edits a selected table value. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
+
+The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on **Show all places** on the header to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
 
 ## How a frame is computed
 

@@ -2,78 +2,11 @@ import { Tabs } from "@ark-ui/react/tabs";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ScrollFade } from "../../../../../components/scroll-fade";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 
 import type { PetrinautSettingsSection } from "../../../../../../react/navigation";
 import type { ReactNode, RefObject } from "react";
-
-const edgeFadeStyle = css({
-  position: "absolute",
-  insetInline: "0",
-  height: "16",
-  pointerEvents: "none",
-  zIndex: "[1]",
-  "&[data-edge='top']": { top: "0" },
-  "&[data-edge='bottom']": { bottom: "0", transform: "[rotate(180deg)]" },
-  "& > span, &::after": {
-    position: "absolute",
-    insetInline: "0",
-    opacity: "0",
-  },
-  "& > span": {
-    top: "0",
-    maskImage: "[linear-gradient(to bottom, black, transparent)]",
-  },
-  _after: {
-    content: '""',
-    top: "[-1px]",
-    height: "[calc(100% + 1px)]",
-    background:
-      "[linear-gradient(to bottom, {colors.neutral.s00} 1px, transparent)]",
-  },
-  "&[data-visible] > span, &[data-visible]::after": { opacity: "1" },
-  "&[data-animated] > span, &[data-animated]::after": {
-    transition: "[opacity 120ms ease]",
-    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-  },
-});
-
-const edgeBlurStyles = [
-  css({
-    height: "16",
-    backdropFilter: "[blur(0.5px)]",
-  }),
-  css({
-    height: "12",
-    backdropFilter: "[blur(1px)]",
-  }),
-  css({
-    height: "8",
-    backdropFilter: "[blur(2px)]",
-  }),
-];
-
-const ScrollEdgeFade = ({
-  edge,
-  visible,
-  animated,
-}: {
-  edge: "top" | "bottom";
-  visible: boolean;
-  animated: boolean;
-}) => (
-  <div
-    aria-hidden="true"
-    className={edgeFadeStyle}
-    data-edge={edge}
-    data-visible={visible || undefined}
-    data-animated={animated || undefined}
-  >
-    {edgeBlurStyles.map((className) => (
-      <span key={className} className={className} />
-    ))}
-  </div>
-);
 
 const scrollAreaStyle = css({
   position: "relative",
@@ -118,11 +51,19 @@ const SettingsScrollBody = ({
       >
         <div>{children}</div>
       </Tabs.Content>
-      <ScrollEdgeFade edge="top" visible={canScrollUp} animated={animated} />
-      <ScrollEdgeFade
+      <ScrollFade
+        edge="top"
+        visible={canScrollUp}
+        animated={animated}
+        size={64}
+        blur={2}
+      />
+      <ScrollFade
         edge="bottom"
         visible={canScrollDown}
         animated={animated}
+        size={64}
+        blur={2}
       />
     </div>
   );
