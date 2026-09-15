@@ -276,11 +276,7 @@ export const Filter = <
    * inside a `FilterGroup` with `dismissAbandoned`, when the group dismisses
    * the chip as abandoned.
    */
-  removeable?:
-    | false
-    | {
-        onRemove: () => void;
-      };
+  removeable?: false | { onRemove: () => void };
 }) => {
   const looseOperators = operators as unknown as Array<
     ItemOrGroup<LooseOperator>
@@ -300,8 +296,6 @@ export const Filter = <
   // collapse and remove itself (`dismissing`).
   const abandonment = useContext(FilterGroupAbandonmentContext);
   const [dismissing, setDismissing] = useState(false);
-  // Mount-only by design: `autoFocus` is a creation-time request, not a
-  // reactive control (mirroring the DOM attribute).
   const autoFocusOnMountRef = useRef(autoFocus);
   useEffect(() => {
     if (!autoFocusOnMountRef.current) {
@@ -670,21 +664,10 @@ export const Filter = <
     draftComplete: complete,
     selectedOperator,
   });
-  // The group-registered handle below reads through these refs, so
-  // eligibility and callbacks are always current when the group's
-  // mount-scoped countdown fades or fires.
   const onRemoveRef = useRef(onRemove);
   const abandonableRef = useRef(abandonable);
   const dismissRef = useRef<() => void>(() => {});
 
-  // Removal — manual (the ✕ button) and abandoned dismissal alike — collapses
-  // the chip's width before onRemove inside a FilterGroup, so the row closes
-  // up smoothly; standalone chips are removed instantly. `removingRef` guards
-  // re-entry during the animation. The delayed call goes through `onRemoveRef`
-  // — the call-time callback closes over the parent's state snapshot from
-  // that render, and firing it after later changes (a second remove, a clear,
-  // an add) would clobber them — and the timer is cleared on unmount so it
-  // can never fire against a chip the parent already removed some other way.
   const removingRef = useRef(false);
   const removeTimerRef = useRef<number | null>(null);
   useEffect(
@@ -716,8 +699,6 @@ export const Filter = <
   };
 
   const dismiss = () => {
-    // Rescued since the fade began (e.g. an external value commit), or
-    // already leaving via the ✕ button: nothing to dismiss.
     if (!abandonableRef.current || removingRef.current) {
       return;
     }
@@ -767,13 +748,8 @@ export const Filter = <
       ref={rootRef as React.Ref<HTMLDivElement>}
       className={cx(classes.root, className)}
       style={
-        // A dismissing chip stays invisible (the fade already reached 0)
-        // while its width collapses; until then, abandonable chips render
-        // the group's shared fade, dropped instantly on rescue.
         dismissing ? { opacity: 0 } : fading ? abandonedFadeStyle : undefined
       }
-      // Dismissal is committed once the collapse starts: inert keeps a stray
-      // click or Tab from landing in a control about to unmount.
       inert={dismissing}
       onBlur={handleRootBlur}
       onKeyDownCapture={handleArrowKeyCapture}

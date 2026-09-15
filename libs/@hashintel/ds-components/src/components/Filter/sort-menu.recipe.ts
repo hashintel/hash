@@ -119,11 +119,6 @@ export const triggerDirectionToggle = cva({
       background: "neutral.a50",
     },
   },
-  // Smaller hit-area chrome on the compact triggers so the hover background
-  // keeps clear of the trigger border; the icon size is unchanged. The
-  // side-specific margins tuck the toggle against the trigger's near edge,
-  // so they mirror between the Button's prefix (align="left") and suffix
-  // (align="right") slots.
   variants: {
     size: {
       xxs: { padding: "[1px]", margin: "[-1px]" },
