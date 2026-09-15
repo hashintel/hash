@@ -457,7 +457,7 @@ __metadata:
     "@types/react-dom": "npm:19.2.3"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     ai: "npm:6.0.182"
-    hono: "npm:4.13.2"
+    hono: "npm:4.13.5"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     pg: "npm:8.23.0"
@@ -30642,10 +30642,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hono@npm:4.13.2, hono@npm:^4.11.4, hono@npm:^4.8.3":
-  version: 4.13.2
-  resolution: "hono@npm:4.13.2"
-  checksum: 10c0/063daaa596bfb1ed3a4dc523a9f47725cf8d56e0918c21a241161f6f1996229f5525bf0f70d6b15cc28912720ddde519584eeb06fb92730a66f01e39faba8131
+"hono@npm:4.13.5, hono@npm:^4.11.4, hono@npm:^4.8.3":
+  version: 4.13.5
+  resolution: "hono@npm:4.13.5"
+  checksum: 10c0/c4ec94e9d6fdefbdfc011b3f06a201ed134c38c8db77fb65ef7282ef445526ce188ce3f80a2f2638ad30d93bb2a03e43bb34ed254a82b8e82011e5d7e0dc02ba
   languageName: node
   linkType: hard
 
