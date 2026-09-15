@@ -688,16 +688,19 @@ export const experimentalIconPack: Required<IconPack> = {
 const defaultIconPack: IconPack = {};
 
 export const ExperimentalIconProvider = ({
-  enabled = true,
+  enabled,
   children,
   ...defaults
 }: PropsWithChildren<ExperimentalIconDefaults & { enabled?: boolean }>) => {
   const parentDefaults = use(ExperimentalIconContext);
+  const resolvedEnabled = enabled ?? parentDefaults.enabled ?? true;
   return (
     <ExperimentalIconContext
-      value={{ ...parentDefaults, ...defaults, enabled }}
+      value={{ ...parentDefaults, ...defaults, enabled: resolvedEnabled }}
     >
-      <IconProvider icons={enabled ? experimentalIconPack : defaultIconPack}>
+      <IconProvider
+        icons={resolvedEnabled ? experimentalIconPack : defaultIconPack}
+      >
         {children}
       </IconProvider>
     </ExperimentalIconContext>

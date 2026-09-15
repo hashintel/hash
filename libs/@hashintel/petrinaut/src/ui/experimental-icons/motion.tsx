@@ -127,6 +127,7 @@ export const useIconEffects = ({
   const ref = useRef<SVGGElement>(null);
   const previousTrigger = useRef(trigger);
   const cancelInteraction = useRef<() => void>(() => {});
+  const cubeActionInProgress = useRef(false);
   const effectKey = (
     typeof effect === "string" ? [effect] : (effect ?? [])
   ).join(",");
@@ -170,10 +171,19 @@ export const useIconEffects = ({
         Math.min(duration, 420),
         false,
         cancelInteraction.current,
+        () => {
+          cubeActionInProgress.current = false;
+        },
       );
+      cubeActionInProgress.current = Boolean(cube);
     };
     const enter = () => {
-      if (!hoverEnabled || isIconControlDisabled(control)) return;
+      if (
+        !hoverEnabled ||
+        cubeActionInProgress.current ||
+        isIconControlDisabled(control)
+      )
+        return;
       if (cube) {
         cancelInteraction.current();
         const angle = Number(cube.getAttribute("data-cube-angle") ?? 35);
@@ -193,7 +203,7 @@ export const useIconEffects = ({
         );
     };
     const leave = () => {
-      if (!cube || !hoverEnabled) return;
+      if (!cube || !hoverEnabled || cubeActionInProgress.current) return;
       cancelInteraction.current();
       const angle = Number(cube.getAttribute("data-cube-angle") ?? 35);
       cancelInteraction.current = animateCube(
@@ -209,6 +219,7 @@ export const useIconEffects = ({
     control.addEventListener("blur", leave);
     return () => {
       cancelInteraction.current();
+      cubeActionInProgress.current = false;
       if (cube) paintCube(cube, 35);
       control.removeEventListener("click", play);
       control.removeEventListener("pointerenter", enter);
@@ -245,6 +256,12 @@ export const useIconEffects = ({
           totalDuration,
           active === true,
           cancelInteraction.current,
+          () => {
+            cubeActionInProgress.current = false;
+          },
+        );
+        cubeActionInProgress.current = Boolean(
+          root.querySelector("[data-icon-cube]"),
         );
         cancelInteraction.current = cancelAction;
         continue;
@@ -326,6 +343,7 @@ export const useIconEffects = ({
     }
     return () => {
       cancelAction();
+      if (effects.includes("action")) cubeActionInProgress.current = false;
       animations.forEach((animation) => animation.cancel());
     };
   }, [

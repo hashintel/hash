@@ -89,6 +89,7 @@ export const playIconAction = (
   duration: number,
   loop = false,
   cancelPrevious: () => void = () => {},
+  onComplete?: () => void,
 ) => {
   const details = root.querySelectorAll<SVGElement>("[data-icon-detail]");
   const previous = new Map(
@@ -111,6 +112,7 @@ export const playIconAction = (
         cube,
         Number(cube.getAttribute("data-cube-angle") ?? 35) + 90,
         duration,
+        loop ? undefined : onComplete,
       );
     };
     turn();
@@ -214,6 +216,14 @@ export const playIconAction = (
       ]);
   }
   let cancelled = false;
+  if (!loop && onComplete) {
+    void Promise.all(animations.map((animation) => animation.finished)).then(
+      () => {
+        if (!cancelled) onComplete();
+      },
+      () => {},
+    );
+  }
   return () => {
     if (cancelled) return;
     cancelled = true;

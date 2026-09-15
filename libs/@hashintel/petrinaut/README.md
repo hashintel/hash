@@ -123,8 +123,8 @@ The provider sets size, weight, color, motion, and duration defaults for custom 
 the experimental pack to design-system components in its tree, including portals.
 Design-system `Icon` sizes continue to follow their existing size tokens.
 Use `enabled={false}` to restore the default design-system pack. Explicit custom
-icon components still render their requested icon. Nested providers inherit defaults
-and can override individual values.
+icon components still render their requested icon. Nested providers inherit defaults,
+including `enabled`, and can override individual values.
 
 `experimentalIconNames` lists the custom icon names. `experimentalIconPack` maps
 design-system names to replacements and can also be passed to the design-system

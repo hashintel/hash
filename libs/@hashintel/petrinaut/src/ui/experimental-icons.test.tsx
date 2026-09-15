@@ -175,6 +175,37 @@ describe("experimental SVG API", () => {
   });
 
   it.each([
+    { parentEnabled: false, enabled: undefined, expected: false },
+    { parentEnabled: true, enabled: undefined, expected: true },
+    { parentEnabled: false, enabled: true, expected: true },
+    { parentEnabled: true, enabled: false, expected: false },
+    { parentEnabled: undefined, enabled: undefined, expected: true },
+  ])(
+    "resolves nested enabled=$enabled with parent enabled=$parentEnabled to $expected",
+    ({ parentEnabled, enabled, expected }) => {
+      const Sample = ({ parent }: { parent?: boolean }) => (
+        <ExperimentalIconProvider enabled={parent} weight={700}>
+          <ExperimentalIconProvider enabled={enabled} size={16}>
+            <Icon name="play" alt="Play" />
+            <AiAssistantIcon title="Assistant" />
+          </ExperimentalIconProvider>
+        </ExperimentalIconProvider>
+      );
+      const { rerender } = render(<Sample parent={parentEnabled} />);
+      const expectEnabled = (isEnabled: boolean) => {
+        for (const name of ["Play", "Assistant"]) {
+          expect(
+            screen.getByRole("img", { name }).getAttribute("data-icon-pack"),
+          ).toBe(isEnabled ? "petrinaut-experimental" : null);
+        }
+      };
+      expectEnabled(expected);
+      rerender(<Sample parent={!parentEnabled} />);
+      expectEnabled(enabled ?? !parentEnabled);
+    },
+  );
+
+  it.each([
     [0, 1],
     [800, 3],
     [Number.NaN, 2],
@@ -695,6 +726,74 @@ describe("experimental icon motion", () => {
     expect(frames.size).toBe(0);
     expect(cube?.getAttribute("data-cube-angle")).toBe("35");
   });
+
+  it.each([
+    { exit: "pointerLeave", triggered: false },
+    { exit: "blur", triggered: false },
+    { exit: "pointerLeave", triggered: true },
+    { exit: "blur", triggered: true },
+  ] as const)(
+    "finishes a cube turn after $exit with triggered=$triggered",
+    ({ exit, triggered }) => {
+      const frames = new Map<number, FrameRequestCallback>();
+      let frameId = 0;
+      vi.stubGlobal(
+        "requestAnimationFrame",
+        (callback: FrameRequestCallback) => {
+          frames.set(++frameId, callback);
+          return frameId;
+        },
+      );
+      vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+      const tick = (time: number) =>
+        act(() => {
+          const pending = [...frames.values()];
+          frames.clear();
+          pending.forEach((callback) => callback(time));
+        });
+      const Sample = ({ trigger = 0 }: { trigger?: number }) => (
+        <button type="button">
+          <ExperimentalIcon
+            name="cube"
+            effect={triggered ? "action" : undefined}
+            trigger={triggered ? trigger : undefined}
+          />
+        </button>
+      );
+      const { container, rerender, unmount } = render(<Sample />);
+      const button = screen.getByRole("button");
+      const cube = container.querySelector("[data-icon-cube]");
+      const enter = exit === "blur" ? "focus" : "pointerEnter";
+      fireEvent[enter](button);
+      tick(0);
+      tick(100);
+      const startingAngle = Number(cube?.getAttribute("data-cube-angle"));
+      if (triggered) rerender(<Sample trigger={1} />);
+      else fireEvent.click(button);
+      tick(110);
+      tick(120);
+      fireEvent[exit](button);
+      fireEvent[enter](button);
+      fireEvent[exit](button);
+      expect(frames.size).toBe(1);
+      tick(1100);
+      expect(Number(cube?.getAttribute("data-cube-angle"))).toBeCloseTo(
+        startingAngle + 90,
+      );
+      expect(frames.size).toBe(0);
+
+      fireEvent[enter](button);
+      tick(1200);
+      tick(1500);
+      expect(Number(cube?.getAttribute("data-cube-angle"))).toBe(145);
+      fireEvent[exit](button);
+      tick(1600);
+      tick(1900);
+      expect(Number(cube?.getAttribute("data-cube-angle"))).toBe(125);
+      unmount();
+      expect(frames.size).toBe(0);
+    },
+  );
 
   it("clamps drawing progress, preserves it with motion disabled, and releases the override", () => {
     const { container, rerender } = render(

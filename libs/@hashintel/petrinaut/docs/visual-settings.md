@@ -46,7 +46,8 @@ meaning. Controls with a persistent state keep their existing state animation.
 
 **Recent changes** uses a clock with a return arrow. Hovering or opening its menu
 briefly rewinds the hands. The subnet cube turns in depth on hover and makes a
-quarter-turn when clicked; rear edges stay hidden throughout the turn.
+quarter-turn when clicked. The click turn finishes even if you move the pointer
+or keyboard focus away; rear edges stay hidden throughout the turn.
 
 The running-person icon runs in place while you hover over its control or focus
 it with the keyboard. Clicking makes it jump, then land and continue running

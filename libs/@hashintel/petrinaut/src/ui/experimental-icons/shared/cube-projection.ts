@@ -72,6 +72,7 @@ export const animateCube = (
   root: Element,
   target: number,
   duration: number,
+  onComplete?: () => void,
 ) => {
   const start = Number(root.getAttribute("data-cube-angle") ?? 35);
   let frame = 0;
@@ -82,6 +83,7 @@ export const animateCube = (
     const eased = 1 - (1 - progress) ** 3;
     paintCube(root, start + (target - start) * eased);
     if (progress < 1) frame = requestAnimationFrame(tick);
+    else onComplete?.();
   };
   frame = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(frame);
