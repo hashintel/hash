@@ -17,18 +17,6 @@ import {
   type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  cafeQueue,
-  deploymentPipelineSDCPN,
-  dronePatrol,
-  probabilisticSatellitesSDCPN,
-  productionMachines,
-  sirModel,
-  supplyChainWithDisruption,
-  supplyChainProfit,
-  vaccinationCampaign,
-  ticketProcessingSDCPN,
-} from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
@@ -70,6 +58,7 @@ import {
 } from "./editor-view/create-new-net-menu";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { loadExampleMenuItem } from "./editor-view/load-example-menu";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
@@ -477,92 +466,13 @@ const EditorViewContent = ({
         ]),
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "load-example",
-            text: "Load example",
-            subItems: [
-              {
-                id: "load-example-sir-model",
-                text: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-cafe-queue",
-                text: "Café Queue",
-                onClick: () => {
-                  createNewNet(cafeQueue);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-drone-patrol",
-                text: "Drone Patrol",
-                onClick: () => {
-                  createNewNet(dronePatrol);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-deployment-pipeline",
-                text: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-ticket-processing",
-                text: "Ticket Processing",
-                onClick: () => {
-                  createNewNet(ticketProcessingSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-profit",
-                text: "Supply Chain Profit",
-                onClick: () => {
-                  createNewNet(supplyChainProfit);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-vaccination-campaign",
-                text: "Vaccination Campaign",
-                onClick: () => {
-                  createNewNet(vaccinationCampaign);
-                  clearSelection();
-                },
-              },
-            ],
-          },
+          loadExampleMenuItem({
+            enableStatusViews,
+            onLoadExample: (example) => {
+              createNewNet(example);
+              clearSelection();
+            },
+          }),
         ]
       : []),
     {
