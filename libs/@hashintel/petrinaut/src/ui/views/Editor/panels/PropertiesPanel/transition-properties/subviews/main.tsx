@@ -29,7 +29,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",
-  color: "[#999]",
+  color: "neutral.fg.muted",
 });
 
 const fieldsSectionStyle = css({
@@ -283,14 +283,14 @@ const DeleteTransitionAction: React.FC = () => {
 
   return (
     <Button
-      aria-label="Delete"
-      size="xs"
+      aria-label="Delete transition"
+      size="sm"
       variant="ghost"
       tone="error"
       iconName="trash"
       onClick={() => removeTransition({ transitionId: transition.id })}
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete transition"}
     />
   );
 };
