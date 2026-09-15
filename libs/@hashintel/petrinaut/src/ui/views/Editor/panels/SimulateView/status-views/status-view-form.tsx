@@ -20,7 +20,7 @@ import type { Identity } from "@hashintel/petrinaut-core";
 
 // -- Form state ---------------------------------------------------------------
 
-export interface StatusLabelFormState {
+interface StatusLabelFormState {
   id: string;
   name: string;
   displayColor: string;
@@ -89,7 +89,7 @@ function validateStatusViewForm(
 
 // -- TanStack Form integration -------------------------------------------------
 
-export interface UseStatusViewFormOptions {
+interface UseStatusViewFormOptions {
   /** Names of other existing status views; the form's name must not match. */
   existingStatusViewNames?: ReadonlySet<string>;
   /**
@@ -104,7 +104,7 @@ export interface UseStatusViewFormOptions {
   ) => Promise<string | undefined>;
 }
 
-export interface StatusViewFormSubmitContext {
+interface StatusViewFormSubmitContext {
   reset: () => void;
 }
 
@@ -426,7 +426,7 @@ const StatusViewFormSections = ({
 
 // -- Form body wired to a TanStack form instance --------------------------------
 
-export interface StatusViewFormBodyProps {
+interface StatusViewFormBodyProps {
   form: StatusViewFormInstance;
   identities: Identity[];
   placeOptions: StatusViewPlaceOption[];
