@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Show the most influential parameters first in the Sensitivity analysis card.
+Simplify experiment result headers and chart summaries, move configuration and compute information into Details, and show the most influential parameters first in Sensitivity analysis.

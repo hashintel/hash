@@ -144,7 +144,7 @@ export const ParameterImportancePanel = ({
     <ChartCard
       title="Sensitivity analysis"
       subtitle={describeImportance(view)}
-      help={HELP}
+      help={`${HELP} At least ${view.floor} completed steps are recommended for this study.`}
       bodyHeight={plotHeight}
       tone={tone ?? (view.belowFloor ? "muted" : "default")}
     >

@@ -144,25 +144,15 @@ export const importanceRows = (
   };
 };
 
-/**
- * The line under the card's title: the statistic and the count first, so
- * they survive a narrow card's clipping. Before the first estimate the line
- * says so rather than claiming an estimate over the steps completed so far;
- * a study with one optimized parameter never gets one, so its line says why
- * and points at the correlation column.
- */
 export const describeImportance = (view: ImportanceView): string => {
-  const steps = `${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
   if (!view.rankable) {
-    return `PED-ANOVA ranks two or more parameters · ${steps} · correlation only`;
+    return "Correlation only · one parameter";
   }
-  const count = view.estimated
-    ? `PED-ANOVA importance estimated from ${steps}`
-    : `no PED-ANOVA importance yet · ${steps}`;
-  const floor = view.belowFloor
-    ? ` · below the ${view.floor}-step floor, treat as a hint`
-    : "";
-  return `${count}${floor} · how much each parameter matters for reaching the best steps`;
+  const steps = `${view.effectiveCount} completed ${view.effectiveCount === 1 ? "step" : "steps"}`;
+  if (!view.estimated) {
+    return `No estimate yet · ${steps}`;
+  }
+  return view.belowFloor ? `Preliminary · ${steps}` : `Based on ${steps}`;
 };
 
 /** A share as the bar prints it: a whole percentage. */
