@@ -880,16 +880,19 @@ test("Stop synchronously silences playback and capture, closes both transports, 
   );
 });
 
-test("late speaker settings cannot undo teardown silence", async () => {
+test("late media settings cannot change a stopped session", async () => {
   const fixture = setup();
   await connect(fixture);
 
   const stopped = fixture.conversation.stop();
   expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
+  expect(fixture.input.enabled).toBe(true);
 
+  fixture.conversation.setMicrophoneMuted(true);
   fixture.conversation.setSpeakerMuted(false);
   fixture.conversation.setSpeakerVolume(0.2);
 
+  expect(fixture.input.enabled).toBe(true);
   expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
   expect(fixture.audio.pause).toHaveBeenCalledOnce();
   fixture.emit(0, { type: "session.closed" });

@@ -2181,6 +2181,61 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("ignores speaker settings unless Realtime is connected", async () => {
+    const harness = createHarness();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+
+    let finishConnection: ((epoch: number) => void) | undefined;
+    harness.session.connect.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishConnection = resolve;
+        }),
+    );
+    const start = harness.controller.start();
+    harness.session.setSpeakerMuted.mockClear();
+    harness.session.setSpeakerVolume.mockClear();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "connecting",
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+
+    finishConnection?.(1);
+    await start;
+    harness.emitSession({
+      code: "network",
+      message: "Voice connection unavailable.",
+      requestId: "request-speaker",
+      type: "error",
+    });
+    harness.session.setSpeakerMuted.mockClear();
+    harness.session.setSpeakerVolume.mockClear();
+
+    harness.controller.setSpeakerMuted(true);
+    harness.controller.setSpeakerVolume(0.4);
+    expect(harness.session.setSpeakerMuted).not.toHaveBeenCalled();
+    expect(harness.session.setSpeakerVolume).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "error",
+      speakerMuted: false,
+      speakerVolume: 1,
+    });
+  });
+
   test("ignores muting while the session is paused", async () => {
     const harness = createHarness();
     await harness.controller.start();

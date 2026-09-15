@@ -289,7 +289,11 @@ export const VoiceDock = ({
             {actions.setMicrophoneMuted && (
               <Button
                 aria-label={microphoneLabel}
-                disabled={phase === "connecting"}
+                disabled={
+                  phase === "connecting" ||
+                  phase === "error" ||
+                  phase === "paused"
+                }
                 onClick={() => actions.setMicrophoneMuted?.(!microphoneMuted)}
                 prefix={<MicrophoneIcon muted={microphoneMuted} />}
                 pressed={microphoneMuted}

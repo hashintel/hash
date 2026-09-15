@@ -25,6 +25,10 @@ switching, voice and speed selection, helmet animation and persistence remain
 deferred in the
 [future spine](../../libs/@hashintel/brunch-agent/MISSION.next.md#voice-control-follow-up).
 
-No FE-1722 product implementation or verification is claimed by this authority
-cut. No agent microphone/provider session, push, PR, merge, deployment, Linear
-write or other tracker change is authorized.
+FE-1722 implementation and deterministic verification are established on this
+branch; the Brunch mission owns the exact proof and remaining limitations.
+Real microphone, speaker and headphone behavior remains unproven and
+owner-held. No agent microphone or provider session is authorized. Current
+owner direction authorizes the subsequent branch push and stacked draft PR
+after the committed final gate; this correction task performs neither. Merge,
+deployment, Linear writes and other tracker changes remain unauthorized.

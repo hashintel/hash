@@ -789,6 +789,7 @@ export const createLiveConversation = (
   };
 
   const setMicrophoneMuted = (muted: boolean): void => {
+    if (stopping || finished) return;
     microphoneMuted = muted;
     applyMicrophoneMuted();
   };

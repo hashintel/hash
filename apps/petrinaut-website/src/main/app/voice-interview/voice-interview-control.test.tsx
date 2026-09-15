@@ -557,7 +557,7 @@ describe("voice interview control", () => {
     expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
   });
 
-  test("forwards speaker controls and retires them on unmount", async () => {
+  test("keeps idle speaker controls inert and retires them on unmount", async () => {
     const setSpeakerMuted = vi
       .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerMuted")
       .mockImplementation(() => {});
@@ -570,8 +570,8 @@ describe("voice interview control", () => {
     registeredVoiceModeControls?.setSpeakerMuted?.(true);
     registeredVoiceModeControls?.setSpeakerVolume?.(0.35);
 
-    expect(setSpeakerMuted).toHaveBeenCalledWith(true);
-    expect(setSpeakerVolume).toHaveBeenCalledWith(0.35);
+    expect(setSpeakerMuted).not.toHaveBeenCalled();
+    expect(setSpeakerVolume).not.toHaveBeenCalled();
 
     unmount();
     expect(registeredVoiceModeControls).toBeUndefined();

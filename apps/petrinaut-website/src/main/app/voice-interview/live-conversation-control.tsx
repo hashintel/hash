@@ -128,22 +128,26 @@ export const LiveConversationControl = ({
   );
   const end = useCallback(async () => {
     bridge.current?.stop();
+    sessionActive.current = false;
     const closing = session.current?.stop();
     setVoiceActive(false);
     setConsented(false);
     await closing;
   }, [setVoiceActive]);
   const setMicrophoneMuted = useCallback((muted: boolean) => {
-    session.current?.setMicrophoneMuted(muted);
+    if (!sessionActive.current || !session.current) return;
+    session.current.setMicrophoneMuted(muted);
     setMicrophoneMutedState(muted);
   }, []);
   const setSpeakerMuted = useCallback((muted: boolean) => {
-    session.current?.setSpeakerMuted(muted);
+    if (!sessionActive.current || !session.current) return;
+    session.current.setSpeakerMuted(muted);
     setSpeakerMutedState(muted);
   }, []);
   const setSpeakerVolume = useCallback((volume: number) => {
+    if (!sessionActive.current || !session.current) return;
     const clampedVolume = Math.min(1, Math.max(0, volume));
-    session.current?.setSpeakerVolume(clampedVolume);
+    session.current.setSpeakerVolume(clampedVolume);
     setSpeakerVolumeState(clampedVolume);
   }, []);
   useEffect(
@@ -273,7 +277,11 @@ export const LiveConversationControl = ({
         const next = createLiveConversation(
           (nextState) => {
             if (session.current !== next) return;
-            if (nextState.phase === "ended" || nextState.phase === "error") {
+            if (
+              nextState.phase === "stopping" ||
+              nextState.phase === "ended" ||
+              nextState.phase === "error"
+            ) {
               sessionActive.current = false;
             }
             if (

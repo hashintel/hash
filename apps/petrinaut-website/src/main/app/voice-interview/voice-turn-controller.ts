@@ -410,11 +410,13 @@ export class VoiceTurnController {
   }
 
   public setSpeakerMuted(muted: boolean): void {
+    if (this.#snapshot.connection !== "connected") return;
     this.#session.setSpeakerMuted(muted);
     this.#update({ speakerMuted: muted });
   }
 
   public setSpeakerVolume(volume: number): void {
+    if (this.#snapshot.connection !== "connected") return;
     const clampedVolume = Math.min(1, Math.max(0, volume));
     this.#session.setSpeakerVolume(clampedVolume);
     this.#update({ speakerVolume: clampedVolume });

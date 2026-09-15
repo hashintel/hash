@@ -94,6 +94,8 @@ restore the AI header, transcript, and host Voice region. These controls change
 visibility only: they do not pause, stop, or end Voice. Ending Voice while the
 conversation is hidden also closes the AI panel; ending it while the
 conversation is visible returns to the text composer.
+When the conversation is hidden, the zoom and fullscreen controls remain above
+the compact dock at the right edge.
 
 The microphone action stays directly in the dock. **Mute microphone** becomes
 **Unmute microphone** and remains pressed while input is muted. Mute is
@@ -103,7 +105,8 @@ shows that input is muted. When no output or Brunch work takes precedence, a
 muted session can instead show **Muted**. For Live sessions, **Thinking** means
 Brunch has a submitted or streaming response, while **Speaking** means audio is
 currently playing. Neither state announces progress aloud or changes the
-microphone setting.
+microphone setting. The microphone action remains visible but disabled while
+Voice is connecting, paused, or interrupted by an error.
 
 **Stop AI response** appears next to the separate **End voice mode** action
 only while Brunch has submitted or streaming work. Stop cancels that current
@@ -119,8 +122,10 @@ volume**. These controls affect assistant playback only: they do not affect
 microphone input, Brunch work, or the **Speaking** state. When the speaker is
 muted during playback, the dock therefore continues to say **Speaking** and
 Audio options shows the pressed speaker state. Speaker mute and volume reset
-for each new Voice session. The dock does not promise device switching,
-voice or speed selection, helmet animation, or persistence of these settings.
+for each new Voice session. They are the only Audio options preferences that
+reset per Voice session: Realtime remembers **Interruption by speaking** in
+this browser. The dock does not promise device switching, voice or speed
+selection, helmet animation, or persistence of the speaker settings.
 
 Realtime-based Brunch Voice additionally provides **Repeat question**, **Read
 full response**, and **Interruption by speaking** in Audio options. Live Voice
@@ -130,6 +135,8 @@ retained canonical segment in order. **Repeat question** uses the same
 availability gates and replays only exact question text explicitly marked by
 Brunch. It stays disabled when that marker is missing or does not match
 finalized assistant text.
+Both replay controls stay unavailable while capture, submission, cancellation,
+pause, or an error makes playback unsafe.
 
 With **Interruption by speaking** enabled, start speaking while Brunch is
 talking to stop its audio and give your answer. Your interrupting words are
@@ -148,6 +155,9 @@ display-only until the provider finalizes their transcript. Spoken turns then
 appear in the conversation, and finalized spoken user messages carry a
 **Voice** chip. Only finalized answers and canonical Brunch text become chat
 history; provisional transcription and provider audio are ephemeral.
+Completed interruptions that strongly repeat the assistant's active speech may
+be silently discarded instead of sent as an answer. Short answers such as
+“stop” and “no” remain valid.
 
 Voice failures and recovery warnings, including unconfirmed submissions and
 input that was not retained, appear behind the Voice warning indicator instead
@@ -155,7 +165,8 @@ of as global notifications. Hover to preview or select it to read the complete
 details, including while the conversation is hidden. Distinct issues share one
 icon with a count. Dismissing them does not retry a request or mean unsent
 input was retained. Temporary notices replace the short dock state only while
-they apply.
+they apply. Diagnostic references and their records contain neither your
+transcript nor the response being spoken.
 
 Realtime Voice pauses microphone capture and active speech when the AI panel
 closes. Reopen the panel and select **Resume voice mode** to continue. Live

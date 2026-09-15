@@ -208,9 +208,81 @@ test.each([
 
     expect(screen.getByRole("button", { name: recoveryAction })).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Mute microphone" }),
-    ).toBeTruthy();
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Mute microphone",
+      }).disabled,
+    ).toBe(true);
     expect(screen.queryByRole("button", { name: absentAction })).toBeNull();
+  },
+);
+
+test.each(["connecting", "error", "paused"] as const)(
+  "disables the direct microphone action while Voice is %s",
+  (phase) => {
+    const setMicrophoneMuted = vi.fn();
+    render(
+      <VoiceDock
+        actions={{
+          end: vi.fn(),
+          pause: noop,
+          setMicrophoneMuted,
+        }}
+        assistantBusy={false}
+        canReadFullResponse={false}
+        canRepeatQuestion={false}
+        canTakeTurn={false}
+        collapsed={false}
+        indicator={<span />}
+        microphoneMuted={false}
+        onCollapsedToggle={noop}
+        onStop={noop}
+        phase={phase}
+        speakerMuted={false}
+        speakerVolume={1}
+      />,
+    );
+
+    const microphone = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Mute microphone",
+    });
+    expect(microphone.disabled).toBe(true);
+    fireEvent.click(microphone);
+    expect(setMicrophoneMuted).not.toHaveBeenCalled();
+  },
+);
+
+test.each(["listening", "thinking", "speaking"] as const)(
+  "keeps the direct microphone action functional while Voice is %s",
+  (phase) => {
+    const setMicrophoneMuted = vi.fn();
+    render(
+      <VoiceDock
+        actions={{
+          end: vi.fn(),
+          pause: noop,
+          setMicrophoneMuted,
+        }}
+        assistantBusy={false}
+        canReadFullResponse={false}
+        canRepeatQuestion={false}
+        canTakeTurn={false}
+        collapsed={false}
+        indicator={<span />}
+        microphoneMuted={false}
+        onCollapsedToggle={noop}
+        onStop={noop}
+        phase={phase}
+        speakerMuted={false}
+        speakerVolume={1}
+      />,
+    );
+
+    const microphone = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Mute microphone",
+    });
+    expect(microphone.disabled).toBe(false);
+    fireEvent.click(microphone);
+    expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(true);
   },
 );
 

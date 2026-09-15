@@ -11,12 +11,18 @@ not `origin/main`. FE-1712's implementation and evidence are inherited from
 that pinned parent; its unfinished speech, acoustic and recovery obligations
 are not accepted or replaced here.
 
-No FE-1722 product implementation or product proof exists yet. The next
-authorized move, after this separate authority commit, is the provider-free
-implementation of the reduced Voice-control cut below. Kostandin owns the
-subsequent browser witness. No microphone or provider session is authorized for
-an agent. Parent publication permissions do not transfer to this child; no
-push, PR, merge, deployment or tracker write is authorized by this mission.
+FE-1722 implementation exists on this branch through the shared-control,
+provider-control, documentation and lifecycle commits from `fb22f14950` through
+`6c9893e9a3`, together with the final-review corrections recorded beside this
+refresh. The deterministic product proof below is established. Real
+microphone, speaker and headphone behavior remains unproven and owner-held;
+Kostandin owns that browser witness, and no microphone or provider session is
+authorized for an agent.
+
+The approved implementation plan and current owner direction authorize the
+subsequent branch push and opening of a stacked draft PR after this committed
+final gate. This correction task stops before either write. Merge, deployment
+and tracker writes remain unauthorized.
 
 ## Imperative
 
@@ -92,7 +98,7 @@ authority only; they do not establish any product behavior. The pre-cut focused
 baselines were reported as 51 Petrinaut tests and 218 website tests passing;
 they contain no FE-1722 implementation.
 
-### Deterministic product proof — pending
+### Deterministic product proof — established
 
 - `libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents.test.tsx`
   owns the compact dock, Show/Hide conversation as visibility only, canonical
@@ -114,11 +120,26 @@ they contain no FE-1722 implementation.
 - `apps/petrinaut-website/src/main/app/voice-interview/voice-session-state.test.ts`
   and `live-conversation-control.test.tsx` own status precedence and prove that
   speaker mute or volume zero does not rewrite Speaking.
-- Run the affected Petrinaut and website suites, then each affected workspace's
-  typecheck, lint and build. Review user-facing Petrinaut Voice documentation
-  and add the required Petrinaut changeset with the implementation. These
-  checks can establish deterministic controls and regressions, not physical
-  audio, conversational quality or visual usability.
+
+Verified 2026-09-15:
+
+- Network-denied
+  `yarn workspace @hashintel/petrinaut test:unit --run`
+  over the three focused Voice files passed 146 tests.
+- Network-denied `yarn workspace @apps/petrinaut-website test:unit` over the
+  eight focused unit files passed 347 tests; the ninth
+  `voice-preview.integration.test.ts` file passed 5 tests under the same
+  network denial.
+- `build`, `lint:tsc` and `lint:eslint` passed independently for
+  `@hashintel/petrinaut` and `@apps/petrinaut-website`.
+- `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` reported 79
+  layers, 408 edges, 866 files, 80 generated pages and 40 authored pages.
+- Root `yarn lint:format`, exact Markdown lint over the changed mission,
+  pointer, user guide and changeset, plus working and committed
+  `git diff --check` checks passed.
+
+These checks establish deterministic controls and regressions, not physical
+audio, conversational quality or visual usability.
 
 ### Product witness — pending, owner-held
 

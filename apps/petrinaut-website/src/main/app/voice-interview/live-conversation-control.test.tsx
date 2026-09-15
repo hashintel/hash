@@ -402,6 +402,100 @@ test("registers truthful microphone and speaker controls for the same Live sessi
   );
 });
 
+test("ignores media controls without a usable Live session", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+
+  act(() => {
+    controls.setMicrophoneMuted?.(true);
+    controls.setSpeakerMuted?.(true);
+    controls.setSpeakerVolume?.(0.4);
+  });
+
+  expect(liveConversationMocks.setMicrophoneMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerVolume).not.toHaveBeenCalled();
+
+  await start();
+  const onState = vi.mocked(createLiveConversation).mock.lastCall![0];
+  act(() => onState({ phase: "connected", message: null }));
+  act(() =>
+    onState({
+      phase: "error",
+      message: "Live media connection ended.",
+    }),
+  );
+  liveConversationMocks.setMicrophoneMuted.mockClear();
+  liveConversationMocks.setSpeakerMuted.mockClear();
+  liveConversationMocks.setSpeakerVolume.mockClear();
+  vi.mocked(props.reportVoiceSessionState).mockClear();
+
+  act(() => {
+    controls.setMicrophoneMuted?.(true);
+    controls.setSpeakerMuted?.(true);
+    controls.setSpeakerVolume?.(0.4);
+  });
+
+  expect(liveConversationMocks.setMicrophoneMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerVolume).not.toHaveBeenCalled();
+  expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
+});
+
+test("caches speaker controls while a Live session is connecting", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  liveConversationMocks.setSpeakerMuted.mockClear();
+  liveConversationMocks.setSpeakerVolume.mockClear();
+
+  act(() => {
+    controls.setSpeakerMuted?.(true);
+    controls.setSpeakerVolume?.(0.4);
+  });
+
+  expect(liveConversationMocks.setSpeakerMuted).toHaveBeenCalledExactlyOnceWith(
+    true,
+  );
+  expect(
+    liveConversationMocks.setSpeakerVolume,
+  ).toHaveBeenCalledExactlyOnceWith(0.4);
+  expect(props.reportVoiceSessionState).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      phase: "connecting",
+      speakerMuted: true,
+      speakerVolume: 0.4,
+    }),
+  );
+});
+
+test("ignores media controls as soon as a Live session ends", async () => {
+  const props = context();
+  render(<VoiceInterviewControl {...props} config={config} />);
+  await start();
+  const controls = vi.mocked(props.registerVoiceModeControls).mock.lastCall![0];
+  const onState = vi.mocked(createLiveConversation).mock.lastCall![0];
+  act(() => onState({ phase: "connected", message: null }));
+
+  await act(() => controls.end());
+  liveConversationMocks.setMicrophoneMuted.mockClear();
+  liveConversationMocks.setSpeakerMuted.mockClear();
+  liveConversationMocks.setSpeakerVolume.mockClear();
+  vi.mocked(props.reportVoiceSessionState).mockClear();
+  act(() => {
+    controls.setMicrophoneMuted?.(true);
+    controls.setSpeakerMuted?.(true);
+    controls.setSpeakerVolume?.(0.4);
+  });
+
+  expect(liveConversationMocks.setMicrophoneMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerMuted).not.toHaveBeenCalled();
+  expect(liveConversationMocks.setSpeakerVolume).not.toHaveBeenCalled();
+  expect(props.reportVoiceSessionState).not.toHaveBeenCalled();
+});
+
 test("resets and applies audio defaults when a Live session restarts", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
