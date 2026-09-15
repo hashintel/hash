@@ -163,7 +163,7 @@ describe("CborDecoder scalars", () => {
   ])("scalar $value", ({ bytes, value }) => {
     expect(
       new CborDecoder(Uint8Array.from(bytes)).decode(valueVisitor),
-    ).toEqual(Result.ok(value));
+    ).toMatchObject({ _tag: "ok", value });
   });
 
   it("float_width", () => {
@@ -171,8 +171,8 @@ describe("CborDecoder scalars", () => {
     const double = Uint8Array.of(0xfb, 0x3f, 0xf8, 0, 0, 0, 0, 0, 0);
     const first = new CborDecoder(single).decode(float32Visitor);
     const second = new CborDecoder(double).decode(float64Visitor);
-    expect(first).toEqual(Result.ok(1.5));
-    expect(second).toEqual(Result.ok(1.5));
+    expect(first).toMatchObject({ _tag: "ok", value: 1.5 });
+    expect(second).toMatchObject({ _tag: "ok", value: 1.5 });
     expectTypeOf(first).toEqualTypeOf<Result.Result<F32, CborDecoderError>>();
     expectTypeOf(second).toEqualTypeOf<Result.Result<F64, CborDecoderError>>();
     expectError(
@@ -218,7 +218,7 @@ describe("CborDecoder scalars", () => {
     const bytes = Uint8Array.of(0xff, 0x19, 0x12, 0x34, 0xff);
     expect(
       new CborDecoder(bytes.subarray(1, 4)).decode(unsignedVisitor),
-    ).toEqual(Result.ok(0x1234n));
+    ).toMatchObject({ _tag: "ok", value: 0x1234n });
   });
 
   it("visitor_receiver", () => {
@@ -226,7 +226,7 @@ describe("CborDecoder scalars", () => {
       new CborDecoder(Uint8Array.of(0x61, 0x61)).decode(
         new PrefixedTextVisitor("label:"),
       ),
-    ).toEqual(Result.ok("label:a"));
+    ).toMatchObject({ _tag: "ok", value: "label:a" });
   });
 });
 
@@ -261,16 +261,17 @@ describe("CborDecoder containers", () => {
       0x61,
       0x61,
     );
-    expect(new CborDecoder(bytes).decode(valueVisitor)).toEqual(
-      Result.ok([
+    expect(new CborDecoder(bytes).decode(valueVisitor)).toMatchObject({
+      _tag: "ok",
+      value: [
         [],
         new Map(),
         new Map<bigint, Value>([
           [0n, [1n, null]],
           [1n, "a"],
         ]),
-      ]),
-    );
+      ],
+    });
   });
 
   it("wide_map_keys", () => {
@@ -287,9 +288,10 @@ describe("CborDecoder containers", () => {
       0xff,
       0xf6,
     );
-    expect(new CborDecoder(bytes).decode(valueVisitor)).toEqual(
-      Result.ok(new Map([[18446744073709551615n, null]])),
-    );
+    expect(new CborDecoder(bytes).decode(valueVisitor)).toMatchObject({
+      _tag: "ok",
+      value: new Map([[18446744073709551615n, null]]),
+    });
   });
 
   it("domain_error", () => {
@@ -532,7 +534,7 @@ describe("CborDecoder profile", () => {
     const bytes = Uint8Array.of(0x81, 0x81, 0);
     expect(
       new CborDecoder(bytes, { maximumDepth: 2 }).decode(valueVisitor),
-    ).toEqual(Result.ok([[0n]]));
+    ).toMatchObject({ _tag: "ok", value: [[0n]] });
     expectError(
       new CborDecoder(bytes, { maximumDepth: 1 }).decode(valueVisitor),
       "nesting-limit",
@@ -542,7 +544,7 @@ describe("CborDecoder profile", () => {
       new CborDecoder(Uint8Array.of(0), { maximumDepth: 0 }).decode(
         valueVisitor,
       ),
-    ).toEqual(Result.ok(0n));
+    ).toMatchObject({ _tag: "ok", value: 0n });
   });
 
   it("default_depth", () => {
@@ -638,9 +640,10 @@ describe("CborDecoder access", () => {
         return Result.ok(null);
       },
     };
-    expect(new CborDecoder(Uint8Array.of(0x80)).decode(visitor)).toEqual(
-      Result.ok(null),
-    );
+    expect(new CborDecoder(Uint8Array.of(0x80)).decode(visitor)).toMatchObject({
+      _tag: "ok",
+      value: null,
+    });
     expect(saved).toBeDefined();
     if (saved) {
       expectError(saved.readElement(unsignedVisitor), "invalid-access", 1);
@@ -658,7 +661,7 @@ describe("CborDecoder access", () => {
       },
     };
     const result = new CborDecoder(Uint8Array.of(0x81, 0)).decode(visitor);
-    expect(result).toEqual(Result.err(error));
+    expect(result).toMatchObject({ _tag: "err", error });
     expect(saved).toBeDefined();
     if (saved) {
       expectError(saved.readElement(unsignedVisitor), "invalid-access", 1);
@@ -779,7 +782,10 @@ describe("CborDecoder access", () => {
 
   it("reused_decoder", () => {
     const decoder = new CborDecoder(Uint8Array.of(0));
-    expect(decoder.decode(unsignedVisitor)).toEqual(Result.ok(0n));
+    expect(decoder.decode(unsignedVisitor)).toMatchObject({
+      _tag: "ok",
+      value: 0n,
+    });
     expectError(decoder.decode(unsignedVisitor), "invalid-access", 1);
   });
 

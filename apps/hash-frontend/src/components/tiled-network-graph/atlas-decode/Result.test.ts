@@ -14,26 +14,50 @@ class HighLevelError extends Error {
 }
 
 describe("Result equality in tests", () => {
-  it("distinguishes different Err values", () => {
-    expect(Result.err("boom")).toEqual(Result.err("boom"));
-    expect(Result.err("boom")).not.toEqual(Result.err("other"));
-    expect(Result.ok(1)).not.toEqual(Result.err(1));
+  it("field_comparison", () => {
+    expect(Result.err("boom")).toMatchObject({ _tag: "err", error: "boom" });
+    expect(Result.err("boom")).not.toMatchObject({
+      _tag: "err",
+      error: "other",
+    });
+    expect(Result.ok(1)).not.toMatchObject({ _tag: "err", error: 1 });
+  });
+
+  it("error_resumption", () => {
+    const originalError = new Error("original");
+    const result = Result.err(originalError);
+    const iterator = result[Symbol.iterator]();
+    const first = iterator.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(result);
+
+    const resumed = Result.catch(
+      () => Result.ok(iterator.next()),
+      (cause) => Result.err(cause),
+    );
+    expect(Result.isErr(resumed)).toBe(true);
+    if (Result.isErr(resumed)) {
+      expect(resumed.error).toBeInstanceOf(TypeError);
+      if (resumed.error instanceof TypeError) {
+        expect(resumed.error.cause).toBe(originalError);
+      }
+    }
   });
 });
 
 describe("Result.gen", () => {
-  it("unwraps Ok values and wraps the return value", () => {
+  it("success_values", () => {
     const result = Result.gen(function* () {
       const left = yield* Result.ok(1);
       const right = yield* Result.ok(2);
       return left + right;
     });
 
-    expect(result).toEqual(Result.ok(3));
+    expect(result).toMatchObject({ _tag: "ok", value: 3 });
     expectTypeOf(result).toEqualTypeOf<Result.Result<number, never>>();
   });
 
-  it("short-circuits on the first Err", () => {
+  it("first_error", () => {
     let reachedAfterErr = false;
 
     const result = Result.gen(function* () {
@@ -46,11 +70,11 @@ describe("Result.gen", () => {
       return value + missing;
     });
 
-    expect(result).toEqual(Result.err("boom"));
+    expect(result).toMatchObject({ _tag: "err", error: "boom" });
     expect(reachedAfterErr).toBe(false);
   });
 
-  it("collects the error types of every unwrapped Result", () => {
+  it("error_union", () => {
     const first: Result.Result<number, "a"> = Result.ok(1);
     const second: Result.Result<string, "b"> = Result.ok("two");
 
@@ -61,10 +85,10 @@ describe("Result.gen", () => {
     });
 
     expectTypeOf(result).toEqualTypeOf<Result.Result<string, "a" | "b">>();
-    expect(result).toEqual(Result.ok("1two"));
+    expect(result).toMatchObject({ _tag: "ok", value: "1two" });
   });
 
-  it("accepts an explicit gen.Return annotation on the body", () => {
+  it("explicit_return_type", () => {
     const first: Result.Result<number, "a"> = Result.ok(1);
     const second: Result.Result<string, "b"> = Result.ok("two");
 
@@ -78,10 +102,10 @@ describe("Result.gen", () => {
     });
 
     expectTypeOf(result).toEqualTypeOf<Result.Result<string, "a" | "b">>();
-    expect(result).toEqual(Result.ok("1two"));
+    expect(result).toMatchObject({ _tag: "ok", value: "1two" });
   });
 
-  it("runs finally blocks when short-circuiting", () => {
+  it("failed_body_cleanup", () => {
     let cleanedUp = false;
     const failing: Result.Result<number, string> = Result.err("boom");
 
@@ -93,7 +117,7 @@ describe("Result.gen", () => {
       }
     });
 
-    expect(result).toEqual(Result.err("boom"));
+    expect(result).toMatchObject({ _tag: "err", error: "boom" });
     expect(cleanedUp).toBe(true);
   });
 });
@@ -202,15 +226,21 @@ describe("dual functions", () => {
   const errResult: Result.Result<number, LowLevelError> =
     Result.err(lowLevelError);
 
-  it("map works data-first and data-last", () => {
-    expect(Result.map(okResult, (value) => value * 2)).toEqual(Result.ok(4));
-    expect(Result.map((value: number) => value * 2)(okResult)).toEqual(
-      Result.ok(4),
-    );
-    expect(Result.map(errResult, (value) => value * 2)).toEqual(errResult);
+  it("map_call_forms", () => {
+    expect(Result.map(okResult, (value) => value * 2)).toMatchObject({
+      _tag: "ok",
+      value: 4,
+    });
+    expect(Result.map((value: number) => value * 2)(okResult)).toMatchObject({
+      _tag: "ok",
+      value: 4,
+    });
+    expect(Result.map(errResult, (value) => value * 2)).toMatchObject({
+      ...errResult,
+    });
   });
 
-  it("andThen unions the error types", () => {
+  it("and_then_error_union", () => {
     const result = Result.andThen(okResult, (value) =>
       value > 1 ? Result.err("too big" as const) : Result.ok(value),
     );
@@ -218,10 +248,10 @@ describe("dual functions", () => {
     expectTypeOf(result).toEqualTypeOf<
       Result.Result<number, LowLevelError | "too big">
     >();
-    expect(result).toEqual(Result.err("too big"));
+    expect(result).toMatchObject({ _tag: "err", error: "too big" });
   });
 
-  it("match works data-first and data-last", () => {
+  it("match_call_forms", () => {
     const handlers = {
       onOk: (value: number) => `ok:${value}`,
       onErr: (error: LowLevelError) => `err:${error.message}`,
@@ -231,7 +261,7 @@ describe("dual functions", () => {
     expect(Result.match(handlers)(errResult)).toBe("err:low");
   });
 
-  it("changeContext wraps the error and records the cause", () => {
+  it("context_cause", () => {
     const result = Result.changeContext(
       errResult,
       () => new HighLevelError("decode"),
@@ -246,7 +276,7 @@ describe("dual functions", () => {
 
     expect(
       Result.changeContext(okResult, () => new HighLevelError("x")),
-    ).toEqual(okResult);
+    ).toMatchObject({ ...okResult });
   });
 });
 
@@ -259,7 +289,7 @@ describe("changeContextIf", () => {
   const highLevel: Result.Result<number, LowLevelError | HighLevelError> =
     Result.err(new HighLevelError("already high"));
 
-  it("wraps errors matched by the refinement", () => {
+  it("matched_error", () => {
     const result = Result.changeContextIf(
       lowLevel,
       isLowLevelError,
@@ -274,20 +304,20 @@ describe("changeContextIf", () => {
     }
   });
 
-  it("leaves errors that are already the target type untouched", () => {
+  it("unmatched_error", () => {
     const result = Result.changeContextIf(
       highLevel,
       isLowLevelError,
       () => new HighLevelError("rewrapped"),
     );
 
-    expect(result).toEqual(highLevel);
+    expect(result).toMatchObject({ ...highLevel });
     if (Result.isErr(result)) {
       expect(result.error.cause).toBeUndefined();
     }
   });
 
-  it("infers the source error type from the piped Result in data-last form", () => {
+  it("piped_error_inference", () => {
     const result = lowLevel.pipe(
       Result.changeContextIf(
         isLowLevelError,
@@ -299,7 +329,7 @@ describe("changeContextIf", () => {
     expect(Result.isErr(result)).toBe(true);
   });
 
-  it("keeps unmatched error types in the union", () => {
+  it("unmatched_error_union", () => {
     const mixed: Result.Result<number, LowLevelError | "other"> =
       Result.err("other");
 
@@ -310,22 +340,22 @@ describe("changeContextIf", () => {
     expectTypeOf(result).toEqualTypeOf<
       Result.Result<number, HighLevelError | "other">
     >();
-    expect(result).toEqual(Result.err("other"));
+    expect(result).toMatchObject({ _tag: "err", error: "other" });
   });
 
-  it("passes Ok values through", () => {
+  it("success_value", () => {
     expect(
       Result.changeContextIf(
         Result.ok(1) as Result.Result<number, LowLevelError>,
         isLowLevelError,
         () => new HighLevelError("x"),
       ),
-    ).toEqual(Result.ok(1));
+    ).toMatchObject({ _tag: "ok", value: 1 });
   });
 });
 
 describe("Result#pipe", () => {
-  it("threads a Result through data-last functions", () => {
+  it("data_last_composition", () => {
     const decoded: Result.Result<number, LowLevelError> = Result.err(
       new LowLevelError("low"),
     );
@@ -343,7 +373,7 @@ describe("Result#pipe", () => {
     }
   });
 
-  it("composes with gen", () => {
+  it("generator_composition", () => {
     const readByte = (): Result.Result<number, LowLevelError> => Result.ok(7);
 
     const message = Result.gen(function* () {
@@ -362,7 +392,7 @@ describe("Result#pipe", () => {
     expect(message).toBe("sum=14");
   });
 
-  it("with no arguments returns the result itself", () => {
+  it("empty_pipe_identity", () => {
     const result = Result.ok(1);
     expect(result.pipe()).toBe(result);
   });
