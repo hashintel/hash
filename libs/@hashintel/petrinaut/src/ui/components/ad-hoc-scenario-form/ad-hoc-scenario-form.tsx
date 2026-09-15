@@ -35,6 +35,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 
+import { Toggle } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
@@ -46,7 +47,8 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
-import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
+import { FocusControls } from "../../worksheet/focus-controls";
+import { FocusStack } from "../../worksheet/focus-stack";
 import { useFocusClearance } from "../../worksheet/use-focus-clearance";
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { Section, SectionList } from "../section";
@@ -59,6 +61,8 @@ import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
 
+export { FormSectionHeader } from "./form-section-header";
+
 import type { AdHocFocusTarget } from "./dependency-highlight";
 import type {
   AdHocFormMode,
@@ -69,6 +73,7 @@ import type {
   AdHocScenarioState,
   AdHocSlot,
   AdHocSynthesisContext,
+  AdHocValueTarget,
 } from "@hashintel/petrinaut-core";
 
 // The CSS twin of useFocusClearance (which carries the shared 25px
@@ -84,7 +89,7 @@ const focusClearanceStyle = css({
 const placesListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1.5",
+  gap: "1",
 });
 
 export interface AdHocScenarioFormProps {
@@ -100,6 +105,7 @@ export interface AdHocScenarioFormProps {
    * everything else is read-only yet keyboard-navigable and selectable.
    */
   mode?: AdHocFormMode;
+  expressionFor?: (target: AdHocValueTarget) => string | undefined;
   /**
    * Custom arrangement: the host receives each group — already wired to the
    * form's contexts — and lays them out itself (e.g. Simulation Settings
@@ -115,6 +121,7 @@ export interface AdHocScenarioFormProps {
     variables: React.ReactNode;
     parameters: React.ReactNode;
     places: React.ReactNode;
+    placesVisibilityControl: React.ReactNode;
   }) => React.ReactNode;
   /** Classname for the form's root element (the keyboard-handling div). */
   className?: string;
@@ -144,14 +151,16 @@ const NavigableSection: React.FC<{
   title: string;
   tooltip: string;
   children: React.ReactNode;
-}> = ({ title, tooltip, children }) => {
+  action?: React.ReactNode;
+}> = ({ title, tooltip, children, action }) => {
   const [open, setOpen] = useState(true);
   const header = useFocusHeader({
-    collapse: () => setOpen(false),
-    expand: () => setOpen(true),
+    collapse: open ? () => setOpen(false) : undefined,
+    expand: open ? undefined : () => setOpen(true),
   });
   return (
     <Section
+      stacked
       title={title}
       tooltip={tooltip}
       collapsible
@@ -160,6 +169,7 @@ const NavigableSection: React.FC<{
       onOpenChange={setOpen}
       triggerRef={header.attach}
       onTriggerKeyDown={header.onHeaderKeyDown}
+      renderHeaderAction={action ? () => action : undefined}
     >
       {children}
     </Section>
@@ -172,11 +182,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   mode = "author",
+  expressionFor = () => undefined,
   renderLayout,
   className,
   sessionId: externalSessionId,
 }) => {
   const sessionId = useAdHocLspSession(state, externalSessionId);
+  const [showAllPlaces, setShowAllPlaces] = useState(false);
   const { diagnosticsByUri, requestFormatExpression } = use(
     LanguageClientContext,
   );
@@ -300,6 +312,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     setFocusedValue,
     formatExpression: requestFormatExpression,
     mode,
+    expressionFor,
     dense: renderLayout !== undefined,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
@@ -322,9 +335,43 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       />
     );
 
+  const visiblePlaces = context.places.filter(
+    (place) => showAllPlaces || place.showAsInitialState,
+  );
+  const hasOtherPlaces = context.places.some(
+    (place) => !place.showAsInitialState,
+  );
+  const placesVisibilityControl = hasOtherPlaces ? (
+    <FocusControls axis="horizontal">
+      <Toggle
+        size="xxs"
+        value={showAllPlaces}
+        onChange={setShowAllPlaces}
+        labelOnText="Show all places"
+      />
+    </FocusControls>
+  ) : null;
   const placesList = (
-    <div className={placesListStyle}>
-      {context.places.map((place) => {
+    <div
+      className={cx(
+        placesListStyle,
+        renderLayout && css({ paddingLeft: "[24px]" }),
+      )}
+    >
+      {visiblePlaces.length === 0 ? (
+        <p
+          className={css({
+            fontSize: "xs",
+            color: "neutral.s90",
+            paddingY: "2",
+          })}
+        >
+          {hasOtherPlaces
+            ? "No default starting places. Turn on “Show all places” to inspect the initial state."
+            : "No places defined."}
+        </p>
+      ) : null}
+      {visiblePlaces.map((place) => {
         const placeState = adHocPlaceStateFor(state, context, place.id);
         const colour = place.colorId
           ? context.types.find((type) => type.id === place.colorId)
@@ -356,57 +403,57 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 
   return (
     <AdHocFormContext value={services}>
-      <FocusRoot>
-        {/* Undo/redo listens in the capture phase, so it sees keys before any
+      {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
-        <div
-          ref={rootRef}
-          className={cx(focusClearanceStyle, className)}
-          role="group"
-          aria-label="Ad-hoc scenario definition"
-          onKeyDownCapture={handleKeyDown}
-          onPointerDownCapture={clearance.onPointerDownCapture}
-          onFocusCapture={clearance.onFocusCapture}
-          onKeyDown={stopDeleteKeys}
-        >
-          {renderLayout ? (
-            <FocusStack axis="horizontal">
-              {renderLayout({
-                variables: variableRows,
-                parameters: parameterRows,
-                places: placesList,
-              })}
-            </FocusStack>
-          ) : (
-            <FocusStack axis="vertical">
-              <SectionList>
-                <NavigableSection
-                  title="Variables"
-                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                >
-                  {variableRows}
-                </NavigableSection>
+      <div
+        ref={rootRef}
+        className={cx(focusClearanceStyle, className)}
+        role="group"
+        aria-label="Ad-hoc scenario definition"
+        onKeyDownCapture={handleKeyDown}
+        onPointerDownCapture={clearance.onPointerDownCapture}
+        onFocusCapture={clearance.onFocusCapture}
+        onKeyDown={stopDeleteKeys}
+      >
+        {renderLayout ? (
+          <FocusStack axis="horizontal">
+            {renderLayout({
+              variables: variableRows,
+              parameters: parameterRows,
+              places: placesList,
+              placesVisibilityControl,
+            })}
+          </FocusStack>
+        ) : (
+          <FocusStack axis="vertical">
+            <SectionList stacked>
+              <NavigableSection
+                title="Variables"
+                tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+              >
+                {variableRows}
+              </NavigableSection>
 
-                {parameterRows ? (
-                  <NavigableSection
-                    title="Parameters"
-                    tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
-                  >
-                    {parameterRows}
-                  </NavigableSection>
-                ) : null}
-
+              {parameterRows ? (
                 <NavigableSection
-                  title="Initial state"
-                  tooltip="Token counts and values per place. Every value is an expression."
+                  title="Parameters"
+                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
                 >
-                  {placesList}
+                  {parameterRows}
                 </NavigableSection>
-              </SectionList>
-            </FocusStack>
-          )}
-        </div>
-      </FocusRoot>
+              ) : null}
+
+              <NavigableSection
+                title="Initial state"
+                tooltip="Token counts and values per place. Every value is an expression."
+                action={placesVisibilityControl}
+              >
+                {placesList}
+              </NavigableSection>
+            </SectionList>
+          </FocusStack>
+        )}
+      </div>
     </AdHocFormContext>
   );
 };

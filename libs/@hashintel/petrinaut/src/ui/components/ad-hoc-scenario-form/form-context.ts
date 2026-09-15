@@ -79,6 +79,7 @@ export type AdHocFormMode = "author" | "run";
 export interface AdHocFormServices {
   /** What the form lets the user change; see {@link AdHocFormMode}. */
   mode: AdHocFormMode;
+  expressionFor: (target: AdHocValueTarget) => string | undefined;
   /** The whole form state, as currently edited. */
   formState: AdHocScenarioState;
   /**
@@ -139,6 +140,7 @@ export interface AdHocFormServices {
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
   mode: "author",
+  expressionFor: () => undefined,
   formState: { variables: [], netParameters: [], places: {} },
   dispatch: () => {},
   synthesisContext: { netParameters: [], places: [], types: [] },
