@@ -5,8 +5,6 @@ description: Stub. Elicit software correctness obligations, maintain a recoverab
 
 # Stub: capability-aware verification lifecycle
 
-Aligned to core as of `7f498ad`.
-
 This skill is a placeholder home. It records the proposed disclosure shape from the accepted Ampcode pressure test and authors no procedure yet.
 
 Proposed shape, not yet earned:
