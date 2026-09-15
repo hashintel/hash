@@ -67,27 +67,31 @@ const views = {
 
 // -- Component -----------------------------------------------------------------
 
-export const SimulateView = () => {
+export const SimulateViewTabs = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
   const visibleModeOptions = modeOptions.filter(
     (option) => option.value !== "metrics",
   );
   const visibleMode = mode === "metrics" ? "experiments" : mode;
-  const ActiveView = views[visibleMode];
+  return (
+    <nav aria-label="Simulation views" className={sidebarStyle}>
+      <SegmentedControl
+        value={visibleMode}
+        items={visibleModeOptions}
+        onChange={setMode}
+        layout="vertical"
+        size="sm"
+      />
+    </nav>
+  );
+};
 
+export const SimulateView = () => {
+  const { simulateViewMode: mode } = use(EditorContext);
+  const ActiveView = views[mode === "metrics" ? "experiments" : mode];
   return (
     <div className={containerStyle}>
-      <div className={sidebarStyle}>
-        <SegmentedControl
-          value={visibleMode}
-          items={visibleModeOptions}
-          onChange={setMode}
-          layout="vertical"
-          size="sm"
-        />
-      </div>
-
       <ActiveView />
     </div>
   );

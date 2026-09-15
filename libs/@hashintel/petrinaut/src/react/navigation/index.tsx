@@ -240,6 +240,32 @@ export const PetrinautNavigationProvider = ({
       selection: canonicalizeSelection(initialState?.selection ?? []),
     }));
   const state = controller?.state ?? uncontrolledState;
+  const [simulationVisits, setSimulationVisits] = useState<
+    Partial<
+      Record<
+        SimulateViewMode,
+        Pick<
+          PetrinautNavigationState,
+          "simulateResource" | "simulatePresentation"
+        >
+      >
+    >
+  >({});
+  const visit = simulationVisits[state.simulateView];
+  if (
+    visit === undefined ||
+    visit.simulateResource?.type !== state.simulateResource?.type ||
+    visit.simulateResource?.id !== state.simulateResource?.id ||
+    visit.simulatePresentation !== state.simulatePresentation
+  ) {
+    setSimulationVisits({
+      ...simulationVisits,
+      [state.simulateView]: {
+        simulateResource: state.simulateResource,
+        simulatePresentation: state.simulatePresentation,
+      },
+    });
+  }
   /**
    * React normally rerenders after navigation, but several UI libraries emit
    * related callbacks in the same event. Track the state those accepted
@@ -280,7 +306,24 @@ export const PetrinautNavigationProvider = ({
   ) => {
     const updater: PetrinautNavigationUpdater<PetrinautNavigationState> = (
       current,
-    ) => resolveNavigationUpdate(current, update);
+    ) => {
+      const next = resolveNavigationUpdate(current, update);
+      if (
+        intent.cause === "user" &&
+        intent.action === "simulation-view" &&
+        next.simulateView !== current.simulateView
+      ) {
+        return {
+          ...next,
+          simulateResource:
+            simulationVisits[next.simulateView]?.simulateResource ?? null,
+          simulatePresentation:
+            simulationVisits[next.simulateView]?.simulatePresentation,
+          overlay: null,
+        };
+      }
+      return next;
+    };
     const optimistic = optimisticRef.current;
     const current = optimistic?.preview ?? state;
     const preview = updater(current);

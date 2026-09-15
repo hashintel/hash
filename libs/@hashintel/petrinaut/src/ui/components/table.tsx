@@ -87,14 +87,21 @@ const tableRowStyle = css({
 });
 
 const selectedRowStyle = css({
-  backgroundColor: "neutral.s05",
+  "&[aria-selected=true]": {
+    backgroundColor: "neutral.s30",
+    boxShadow: "[inset 3px 0 0 {colors.neutral.s120}]",
+    "& [role=cell]": { color: "neutral.s120" },
+    "& [role=cell] > span": { color: "neutral.s120" },
+    _hover: { backgroundColor: "neutral.s40" },
+  },
 });
 
 const selectableTableRowStyle = css({
   cursor: "pointer",
   outline: "none",
-  _focus: {
-    boxShadow: "[inset 0 0 0 2px {colors.neutral.a25}]",
+  _focusVisible: {
+    outline: "[2px solid {colors.neutral.s90}]",
+    outlineOffset: "[-2px]",
   },
 });
 

@@ -35,7 +35,7 @@ import { SimulationWorkspace } from "../../shared/simulation-workspace";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { SimulateView } from "./simulate-view";
+import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 import type {
   CreateExperimentInput,
@@ -136,6 +136,7 @@ export const SimulateViewStoryStage = ({ children }: PropsWithChildren) => {
     <PortalContainerContext value={portalContainerRef}>
       <div className={`${rootStyle} petrinaut-root`}>
         <div ref={portalContainerRef} className={portalContainerStyle} />
+        <SimulateViewTabs />
         <SimulationWorkspace>
           <SimulateView />
           <SimulationCreationDrawer />

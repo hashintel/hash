@@ -40,6 +40,7 @@ vi.mock("./panels/ai-assistant-panel", () => ({
   },
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
+  SimulateViewTabs: () => <nav aria-label="Simulation views" />,
   SimulateView: () => (
     <section aria-label="Experiments">Experiment results</section>
   ),
