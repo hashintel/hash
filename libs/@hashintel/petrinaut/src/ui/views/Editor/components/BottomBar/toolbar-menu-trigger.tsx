@@ -1,6 +1,8 @@
 import { Icon, type IconName } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import type { ToolbarTone } from "./toolbar-button";
+
 const triggerStyle = cva({
   base: {
     display: "flex",
@@ -17,7 +19,7 @@ const triggerStyle = cva({
     paddingX: "[6px]",
     fontSize: "xl",
     "& > *": {
-      transition: "[transform 0.2s ease]",
+      transition: "[transform 0.2s ease, background-color 0.2s ease]",
     },
     _hover: {
       color: "neutral.s120",
@@ -40,7 +42,53 @@ const triggerStyle = cva({
         },
       },
     },
+    appearance: {
+      plain: {},
+      filled: {
+        paddingLeft: "[2px]",
+      },
+    },
   },
+});
+
+/**
+ * The filled appearance keeps the glyph in a tinted square and leaves the
+ * chevron outside it, so the square reads as the mode and the chevron as the
+ * menu.
+ */
+const glyphBoxStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  variants: {
+    appearance: {
+      plain: {},
+      filled: {
+        width: "7",
+        height: "7",
+        borderRadius: "md",
+        color: "[white]",
+      },
+    },
+    tone: {
+      brand: {},
+      simulation: {},
+    },
+  },
+  compoundVariants: [
+    {
+      appearance: "filled",
+      tone: "brand",
+      css: { backgroundColor: "[#3b82f6]" },
+    },
+    {
+      appearance: "filled",
+      tone: "simulation",
+      css: { backgroundColor: "[#8b5cf6]" },
+    },
+  ],
 });
 
 const chevronStyle = css({
@@ -59,13 +107,24 @@ const chevronStyle = css({
 export const ToolbarMenuTrigger = ({
   icon,
   isActive,
+  appearance = "plain",
+  tone = "brand",
   ...buttonProps
 }: {
   icon: IconName;
   isActive: boolean;
+  /** `filled` paints the glyph on a square in the tone; `plain` colours it. */
+  appearance?: "plain" | "filled";
+  tone?: ToolbarTone;
 } & React.ComponentPropsWithRef<"button">) => (
-  <button type="button" {...buttonProps} className={triggerStyle({ isActive })}>
-    <Icon name={icon} />
+  <button
+    type="button"
+    {...buttonProps}
+    className={triggerStyle({ isActive, appearance })}
+  >
+    <span className={glyphBoxStyle({ appearance, tone })}>
+      <Icon name={icon} />
+    </span>
     <Icon name="chevronDown" size="xs" className={chevronStyle} />
   </button>
 );

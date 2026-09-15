@@ -3,6 +3,7 @@ import { use, useEffect, useState } from "react";
 import {
   defaultUserSettings,
   defaultUserSettingsContextValue,
+  isBottomBarVariant,
   UserSettingsContext,
 } from "./user-settings-context";
 import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
@@ -15,6 +16,7 @@ import type {
 } from "./editor-context";
 import type {
   ArcRendering,
+  BottomBarVariant,
   SubViewSectionSettings,
   UserSettings,
 } from "./user-settings-context";
@@ -63,6 +65,10 @@ const loadSettings = (): UserSettings => {
         ...parsed,
         // Someone who had selected the GPU globally keeps it available.
         webGpuEnabled: parsed.webGpuEnabled ?? computeBackend === "webgpu",
+        // A layout this build no longer has falls back to the default one.
+        bottomBarVariant: isBottomBarVariant(parsed.bottomBarVariant)
+          ? parsed.bottomBarVariant
+          : defaultUserSettings.bottomBarVariant,
       };
     }
   } catch {
@@ -104,6 +110,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
+    setBottomBarVariant: (value: BottomBarVariant) =>
+      setState((prev) => ({ ...prev, bottomBarVariant: value })),
     setCursorMode: (value: CursorMode) =>
       setState((prev) => ({ ...prev, cursorMode: value })),
     setIsLeftSidebarOpen: (value: boolean) =>

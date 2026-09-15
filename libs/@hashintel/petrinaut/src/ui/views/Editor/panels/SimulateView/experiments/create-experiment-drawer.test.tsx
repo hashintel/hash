@@ -273,6 +273,7 @@ const TestProviders = ({
     setEnableExperimentalIconPack: () => {},
     setEnableAutomaticArcConnections: () => {},
     setArcRendering: () => {},
+    setBottomBarVariant: () => {},
     setCursorMode: () => {},
     setIsLeftSidebarOpen: () => {},
     setLeftSidebarWidth: () => {},

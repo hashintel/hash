@@ -3,6 +3,9 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 import type { CSSProperties, ReactNode, Ref } from "react";
 
+/** Which of the bar's two accents a control takes when selected or filled. */
+export type ToolbarTone = "brand" | "simulation";
+
 const buttonStyle = cva({
   base: {
     display: "flex",
@@ -27,6 +30,10 @@ const buttonStyle = cva({
     },
   },
   variants: {
+    tone: {
+      brand: {},
+      simulation: {},
+    },
     isSelected: {
       true: {
         color: "[#3b82f6]",
@@ -40,7 +47,43 @@ const buttonStyle = cva({
         opacity: "[0.4]",
       },
     },
+    emphasis: {
+      plain: {},
+      filled: {
+        color: "[white]",
+        backgroundColor: "[#3b82f6]",
+        _hover: {
+          color: "[white]",
+          backgroundColor: "[#2563eb]",
+        },
+        _active: {
+          color: "[white]",
+        },
+      },
+    },
   },
+  compoundVariants: [
+    {
+      tone: "simulation",
+      isSelected: true,
+      css: {
+        color: "[#8b5cf6]",
+        _hover: {
+          color: "[#7c3aed]",
+        },
+      },
+    },
+    {
+      tone: "simulation",
+      emphasis: "filled",
+      css: {
+        backgroundColor: "[#8b5cf6]",
+        _hover: {
+          backgroundColor: "[#7c3aed]",
+        },
+      },
+    },
+  ],
 });
 
 interface ToolbarButtonProps {
@@ -55,6 +98,13 @@ interface ToolbarButtonProps {
   isSelected?: boolean;
   /** Whether the button appears disabled (lower opacity, but still clickable) */
   disabled?: boolean;
+  /** The accent a selected or filled button takes. Brand blue by default. */
+  tone?: ToolbarTone;
+  /**
+   * `filled` paints the button in its tone with a white glyph, for the one
+   * action a segment is about. Everything else stays `plain`.
+   */
+  emphasis?: "plain" | "filled";
   /** Accessibility label */
   ariaLabel: string;
   /** Accessibility expanded state */
@@ -84,6 +134,8 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   style,
   isSelected = false,
   disabled = false,
+  tone = "brand",
+  emphasis = "plain",
   ariaLabel,
   ariaExpanded,
   draggable = false,
@@ -105,7 +157,12 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
         type="button"
         onClick={onClick}
         onKeyDown={handleKeyDown}
-        className={buttonStyle({ isSelected, isDisabled: disabled })}
+        className={buttonStyle({
+          tone,
+          isSelected,
+          isDisabled: disabled,
+          emphasis,
+        })}
         style={style}
         aria-label={ariaLabel}
         aria-expanded={ariaExpanded}
