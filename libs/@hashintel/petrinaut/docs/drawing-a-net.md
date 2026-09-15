@@ -94,6 +94,8 @@ You can also focus the outgoing handle with **Tab**, press **Enter** or **Space*
 
 Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
 
+To open a subnet from the canvas, select a component instance and click **Open subnet** in its properties panel. This navigation is also available in read-only mode.
+
 Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
 
 When you instantiate that subnet as a component, each port appears as a handle on the component instance:
