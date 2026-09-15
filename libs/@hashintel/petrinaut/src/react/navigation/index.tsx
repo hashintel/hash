@@ -29,7 +29,14 @@ export type PetrinautSimulateResource =
   | { type: "metric"; id: string }
   | { type: "experiment"; id: string };
 
+export type PetrinautSettingsSection =
+  | "general"
+  | "viewport"
+  | "simulation"
+  | "labs";
+
 export type PetrinautNavigationOverlay =
+  | { type: "user-settings"; section?: PetrinautSettingsSection }
   | { type: "viewport-settings" }
   | { type: "create-scenario" }
   | { type: "create-metric" }
@@ -170,7 +177,11 @@ export const petrinautNavigationStatesMatch = (
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
-  left.overlay?.type === right.overlay?.type;
+  left.overlay?.type === right.overlay?.type &&
+  (left.overlay?.type !== "user-settings" ||
+    right.overlay?.type !== "user-settings" ||
+    (left.overlay.section ?? "general") ===
+      (right.overlay.section ?? "general"));
 
 const resolveNavigationUpdate = (
   current: Readonly<PetrinautNavigationState>,
@@ -376,6 +387,7 @@ export const navigationResourceToSimulateDrawer = (
     case "create-experiment":
       return { type: overlay.type };
     case "viewport-settings":
+    case "user-settings":
     case undefined:
       break;
   }

@@ -8,6 +8,30 @@ import {
 } from "./example-search";
 
 describe("example search contract", () => {
+  it("validates settings sections only for the user settings dialog", () => {
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "viewport",
+      }),
+    ).toMatchObject({ overlay: "user-settings", settings: "viewport" });
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "unknown",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({
+        overlay: "create-experiment",
+        settings: "viewport",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({ overlay: "viewport-settings" }).overlay,
+    ).toBe("viewport-settings");
+  });
+
   it("strips unsupported query values", () => {
     expect(
       validateSharedExampleSearch({

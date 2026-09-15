@@ -4,9 +4,9 @@ import { useState } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
-  useFloatingPosition,
+  useFloatingPanel,
   type FloatingResizeDirection,
-} from "./use-floating-position";
+} from "./use-floating-panel";
 
 afterEach(() => {
   cleanup();
@@ -19,15 +19,15 @@ const ResizeHarness = ({
   direction: FloatingResizeDirection;
 }) => {
   const [width, setWidth] = useState(600);
-  const { panelRef, getResizeHandleProps, style } = useFloatingPosition(
+  const { panelRef, getResizeHandleProps, style } = useFloatingPanel({
     width,
-    setWidth,
-  );
+    onWidthChange: setWidth,
+  });
   return (
     <div data-testid="editor">
       <aside
         ref={panelRef}
-        data-height={style.height}
+        data-height={style["--floating-panel-height"]}
         aria-label="AI assistant"
       >
         <button type="button" {...getResizeHandleProps(direction)}>

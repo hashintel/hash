@@ -8,6 +8,31 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it.each(["general", "viewport", "simulation", "labs"] as const)(
+    "round-trips the %s settings section in Simulate",
+    (settings) => {
+      const search = {
+        mode: "simulate",
+        view: "metrics",
+        overlay: "user-settings",
+        settings,
+      } as const;
+      const state = sharedSearchToNavigationState(search);
+      expect(state.overlay).toEqual({
+        type: "user-settings",
+        section: settings,
+      });
+      expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+      expect(
+        applyPreviewNavigationUpdate(search, (current) => current),
+      ).toMatchObject(search);
+      expect(
+        sharedSearchToNavigationState({ mode: "simulate", view: "metrics" })
+          .overlay,
+      ).toBeNull();
+    },
+  );
+
   it("round-trips scenario, subnet, and selection", () => {
     const state = sharedSearchToNavigationState({
       scenario: "none",

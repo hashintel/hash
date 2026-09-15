@@ -11,7 +11,6 @@ import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
-import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 import type { ViewportAction } from "../../../types/viewport-action";
 
@@ -42,13 +41,9 @@ export const ViewportControls: React.FC<{
   const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
   const { enableExperimentalIconPack } = use(UserSettingsContext);
-  const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
-  const setIsSettingsOpen = (open: boolean) => {
-    navigation.navigate(
-      { overlay: open ? { type: "viewport-settings" } : null },
-      { cause: "user", action: "overlay" },
-    );
-  };
+  const isSettingsOpen =
+    navigation.state.overlay?.type === "user-settings" ||
+    navigation.state.overlay?.type === "viewport-settings";
   const chromeBackground = presentation.blurredChrome
     ? blurredBackground
     : undefined;
@@ -127,8 +122,8 @@ export const ViewportControls: React.FC<{
           <Button
             size="xs"
             variant="subtle"
-            aria-label="Settings"
-            tooltip="Settings"
+            aria-label="Viewport settings"
+            tooltip="Viewport settings"
             tooltipOptions={{ position: "left" }}
             {...(enableExperimentalIconPack
               ? {
@@ -142,11 +137,12 @@ export const ViewportControls: React.FC<{
                 }
               : { iconName: "gear" })}
             className={chromeBackground}
-            onClick={() => setIsSettingsOpen(true)}
-          />
-          <ViewportSettingsDialog
-            open={isSettingsOpen}
-            onOpenChange={(details) => setIsSettingsOpen(details.open)}
+            onClick={() =>
+              navigation.navigate(
+                { overlay: { type: "user-settings", section: "viewport" } },
+                { cause: "user", action: "overlay" },
+              )
+            }
           />
         </>
       )}

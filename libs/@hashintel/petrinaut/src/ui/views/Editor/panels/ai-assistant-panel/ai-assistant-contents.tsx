@@ -33,11 +33,12 @@ import {
 } from "../../../../experimental-icons";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
+import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
+import { useFloatingPanel } from "../../shared/use-floating-panel";
 import {
   ExperimentCard,
   type AiExperimentState,
 } from "./ai-assistant-contents/experiment-card";
-import { FloatingResizeHandle } from "./ai-assistant-contents/floating-resize-handle";
 import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -50,7 +51,6 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
-import { useFloatingPosition } from "./ai-assistant-contents/use-floating-position";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
@@ -726,7 +726,10 @@ export const AiAssistantContents = ({
     handleProps,
     getResizeHandleProps,
     style: floatingPositionStyle,
-  } = useFloatingPosition(assistantWidth, setAssistantWidth);
+  } = useFloatingPanel({
+    width: assistantWidth,
+    onWidthChange: setAssistantWidth,
+  });
   const panelWidth = `min(${assistantWidth}px, 100cqw)`;
   const placementLabel = isFloating
     ? "Dock AI assistant"
@@ -932,24 +935,10 @@ export const AiAssistantContents = ({
         }}
       >
         {isFloating && !isVoiceDockCollapsed ? (
-          (
-            [
-              "top",
-              "right",
-              "bottom",
-              "left",
-              "top-left",
-              "top-right",
-              "bottom-left",
-              "bottom-right",
-            ] as const
-          ).map((direction) => (
-            <FloatingResizeHandle
-              key={direction}
-              direction={direction}
-              {...getResizeHandleProps(direction)}
-            />
-          ))
+          <FloatingResizeHandles
+            label="AI assistant"
+            getHandleProps={getResizeHandleProps}
+          />
         ) : (
           <div
             className={`${resizeAnchorStyle} ${panelContentStyle({

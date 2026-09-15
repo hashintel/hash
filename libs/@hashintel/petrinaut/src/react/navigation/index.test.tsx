@@ -9,6 +9,7 @@ import {
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
@@ -20,6 +21,21 @@ import type {
 } from ".";
 
 describe("Petrinaut navigation", () => {
+  test("distinguishes settings sections and normalizes the default section", () => {
+    const state = (
+      section?: "general" | "viewport",
+    ): PetrinautNavigationState => ({
+      ...defaultPetrinautNavigationState,
+      overlay: { type: "user-settings", section },
+    });
+    expect(petrinautNavigationStatesMatch(state(), state("general"))).toBe(
+      true,
+    );
+    expect(
+      petrinautNavigationStatesMatch(state("general"), state("viewport")),
+    ).toBe(false);
+  });
+
   test("passes an updater and app-history intent to a controlled host", () => {
     const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
     const controller: PetrinautNavigationController = {
