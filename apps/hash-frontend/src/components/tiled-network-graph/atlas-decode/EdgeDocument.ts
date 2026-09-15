@@ -1,15 +1,15 @@
 import { validateVersionedUrl } from "@blockprotocol/type-system";
 
-import { BinaryEntityIdColumn } from "./BinaryEntityId";
+import * as BinaryEntityId from "./BinaryEntityId";
 import * as CborDecoder from "./CborDecoder";
 import * as CborPrimitive from "./CborPrimitive";
 import * as Envelope from "./Envelope";
 import * as GenerationId from "./GenerationId";
-import { NodeIdColumn } from "./NodeId";
+import * as NodeId from "./NodeId";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-import type { Decoder, DecoderError, U64 } from "./Decoder";
+import type * as Decoder from "./Decoder";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** Invalid edges metadata, missing payloads or inconsistent column lengths. */
@@ -22,13 +22,13 @@ export type EdgeDocumentErrorReason =
   | {
       readonly _tag: "unknown-field";
       readonly section: "head" | "trailer";
-      readonly key: U64;
+      readonly key: Decoder.U64;
     }
   | { readonly _tag: "missing-field"; readonly field: string }
   | {
       readonly _tag: "length";
       readonly field: string;
-      readonly expected: U64;
+      readonly expected: Decoder.U64;
       readonly actual: number;
     }
   | {
@@ -85,12 +85,12 @@ export interface EdgeDocumentTrailer {
 /** Edges metadata with equally sized, borrowed identity columns. */
 export interface EdgeDocument<T extends ArrayBufferLike> {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: U64;
-  readonly count: U64;
+  readonly variant: Decoder.U64;
+  readonly count: Decoder.U64;
   readonly complete: boolean;
-  readonly sources: NodeIdColumn<T>;
-  readonly targets: NodeIdColumn<T>;
-  readonly identities: BinaryEntityIdColumn<T>;
+  readonly sources: NodeId.NodeIdColumn<T>;
+  readonly targets: NodeId.NodeIdColumn<T>;
+  readonly identities: BinaryEntityId.BinaryEntityIdColumn<T>;
   readonly trailer: EdgeDocumentTrailer | null;
 }
 
@@ -100,8 +100,8 @@ type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 /** Edges header fields that determine column sizes and trailer presence. */
 interface Head {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: U64;
-  readonly count: U64;
+  readonly variant: Decoder.U64;
+  readonly count: Decoder.U64;
   readonly complete: boolean;
   readonly hasTrailer: boolean;
 }
@@ -110,7 +110,7 @@ interface Head {
 type DecodeError =
   | EdgeDocumentError
   | Envelope.EnvelopeError
-  | DecoderError
+  | Decoder.DecoderError
   | CborDecoder.CborDecoderError
   | CborPrimitive.ArrayVisitorError
   | GenerationId.GenerationIdError;
@@ -189,7 +189,7 @@ const decodeHead = (bytes: Uint8Array): Result.Result<Head, DecodeError> =>
 /** Checks a column's row count against its header declaration. */
 const checkCount = (
   actual: number,
-  expected: U64,
+  expected: Decoder.U64,
   field: string,
 ): Result.Result<void, EdgeDocumentError> => {
   if (BigInt(actual) !== expected) {
@@ -204,10 +204,10 @@ const checkCount = (
 /** Borrows a node column or returns a header-count mismatch. */
 const decodeNodeIdColumn = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
-  count: U64,
+  count: Decoder.U64,
   field: string,
 ) => {
-  const column = new NodeIdColumn(
+  const column = new NodeId.NodeIdColumn(
     new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
   );
 
@@ -217,9 +217,9 @@ const decodeNodeIdColumn = <T extends ArrayBufferLike>(
 /** Borrows an identity column or returns a header-count mismatch. */
 const decodeIdentities = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
-  count: U64,
+  count: Decoder.U64,
 ) => {
-  const column = new BinaryEntityIdColumn(
+  const column = new BinaryEntityId.BinaryEntityIdColumn(
     new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
   );
 
@@ -257,7 +257,7 @@ const labelVisitor: CborDecoder.CborVisitor<string | null, never> = {
 };
 
 /** Accepts an intern-table index or its explicit absence. */
-const typeIndexVisitor: CborDecoder.CborVisitor<U64 | null, never> = {
+const typeIndexVisitor: CborDecoder.CborVisitor<Decoder.U64 | null, never> = {
   ...CborPrimitive.nullable(CborPrimitive.unsigned),
   expecting: "a type index or null",
 };
@@ -265,11 +265,11 @@ const typeIndexVisitor: CborDecoder.CborVisitor<U64 | null, never> = {
 /** Reads edge detail and resolves its interned type references. */
 const readTrailer = Result.fn(function* readTrailer(
   access: CborDecoder.CborMapAccess,
-  count: U64,
+  count: Decoder.U64,
 ): Result.gen.Return<EdgeDocumentTrailer, DecodeError> {
   let types: VersionedUrl[] | undefined;
   let labels: (string | null)[] | undefined;
-  let indexes: (U64 | null)[] | undefined;
+  let indexes: (Decoder.U64 | null)[] | undefined;
 
   while (access.remaining > 0) {
     const key = yield* access.readKey();
@@ -343,7 +343,7 @@ const readTrailer = Result.fn(function* readTrailer(
 /** Constructs trailer detail or returns a schema, reference or CBOR error. */
 const decodeTrailer = (
   bytes: Uint8Array,
-  count: U64,
+  count: Decoder.U64,
 ): Result.Result<EdgeDocumentTrailer, DecodeError> =>
   new CborDecoder.CborDecoder(bytes).decode({
     expecting: "an edges trailer",
@@ -366,7 +366,9 @@ const requiredSlot = <T extends ArrayBufferLike>(
 /** Assembles the envelope's edge columns with their decoded metadata. */
 const readDocument = Result.fn(function* readDocument<
   T extends ArrayBufferLike,
->(decoder: Decoder<T>): Result.gen.Return<EdgeDocument<T>, DecodeError> {
+>(
+  decoder: Decoder.Decoder<T>,
+): Result.gen.Return<EdgeDocument<T>, DecodeError> {
   const [envelope, chunks] = yield* Envelope.decode(decoder);
 
   if (envelope.kind !== "SALTILEE") {
@@ -432,7 +434,7 @@ const readDocument = Result.fn(function* readDocument<
  * @returns The complete document or an {@link EdgeDocumentError}. Underlying errors and unexpected exceptions are retained as causes. Failure may advance the decoder.
  */
 export const decode = <T extends ArrayBufferLike>(
-  decoder: Decoder<T>,
+  decoder: Decoder.Decoder<T>,
 ): Result.Result<EdgeDocument<T>, EdgeDocumentError> =>
   Result.catch(
     () => readDocument(decoder),

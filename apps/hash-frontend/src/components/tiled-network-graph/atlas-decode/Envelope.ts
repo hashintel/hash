@@ -1,7 +1,7 @@
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-import type { Decoder, DecoderError, U16, U32 } from "./Decoder";
+import type * as Decoder from "./Decoder";
 
 /** The supported binary envelope version. */
 export const SALTILE_WIRE_VERSION = 1;
@@ -52,10 +52,10 @@ export class EnvelopeError extends TaggedError.TaggedError<
 /** The validated prefix shared by tile, edges and locate documents. */
 export interface Envelope {
   readonly kind: "SALTILEE" | "SALTILEL" | "SALTILET";
-  readonly version: U16;
-  readonly flags: U16;
-  readonly slots: U16;
-  readonly reserved: U16;
+  readonly version: Decoder.U16;
+  readonly flags: Decoder.U16;
+  readonly slots: Decoder.U16;
+  readonly reserved: Decoder.U16;
 }
 
 /**
@@ -64,8 +64,8 @@ export interface Envelope {
  * An absent section has zero offsets and null bytes. A present section may have an empty view, as in a zero-row column. Keep the input buffer attached and unchanged while using the view.
  */
 export interface Chunk<T extends ArrayBufferLike> {
-  readonly start: U32;
-  readonly end: U32;
+  readonly start: Decoder.U32;
+  readonly end: Decoder.U32;
   readonly bytes: Uint8Array<T> | null;
 }
 
@@ -83,8 +83,8 @@ export type DecodedEnvelope<T extends ArrayBufferLike> = readonly [
 const readEnvelope = Result.fn(function* readEnvelope<
   T extends ArrayBufferLike,
 >(
-  decoder: Decoder<T>,
-): Result.gen.Return<DecodedEnvelope<T>, EnvelopeError | DecoderError> {
+  decoder: Decoder.Decoder<T>,
+): Result.gen.Return<DecodedEnvelope<T>, EnvelopeError | Decoder.DecoderError> {
   if (decoder.offset !== 0) {
     return yield* invalidLayout("envelope decoding requires offset zero");
   }
@@ -175,7 +175,7 @@ const readEnvelope = Result.fn(function* readEnvelope<
  * @returns A {@link DecodedEnvelope} or an {@link EnvelopeError} for malformed framing. Underlying read errors and unexpected exceptions are retained as causes.
  */
 export const decode = <T extends ArrayBufferLike>(
-  decoder: Decoder<T>,
+  decoder: Decoder.Decoder<T>,
 ): Result.Result<DecodedEnvelope<T>, EnvelopeError> =>
   Result.catch(
     () => readEnvelope(decoder),
