@@ -72,110 +72,96 @@ understand and selecting **Start voice mode**. Petrinaut remembers that acknowle
 browser for the current disclosure version, so later uses of **Start voice mode** start directly. If
 browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
-Some hosts offer a Brunch-backed GPT-Live voice interview instead. It uses one
-GPT-Live session for conversational audio and a separate transcription session for
-canonical user messages. Brunch remains responsible for domain answers, chat history,
-and model operations; settled Brunch prose is supplied to Live for best-effort spoken
-delivery. Consent and **Start voice** are required for each session. The permission
-panel explains both OpenAI audio streams and text retention, with a permission
-checkbox, **Start voice**, and **Cancel**. Cancel returns to text without starting a
-session. Its dock provides collapse/expand and **End voice mode**; **Thinking** means
-Brunch is working, while **Speaking** reflects local audio activity rather than a
-completed turn. The microphone stays open during playback and the input ribbon follows
-its level where the browser supports it. If the browser blocks remote playback, the
-dock keeps the warning visible and offers **Play voice audio**; selecting it retries
-playback from that user gesture. Ending Voice stops both sessions, microphone capture,
-and playback; closing the panel ends the experiment rather than pausing it. A
-connection error returns to setup without retrying. The detailed turn-taking and
-playback controls below apply to Realtime-based Brunch Voice, not the Live experiment.
+Some hosts offer a Brunch-backed GPT-Live voice interview. It uses one Live
+session for conversational audio and a separate transcription session for
+finalized user messages. Brunch remains responsible for domain answers, chat
+history, and changes to the net; settled Brunch prose is supplied to Live for
+best-effort spoken delivery. Consent and **Start voice** are required for each
+session. The permission panel explains both OpenAI audio streams and text
+retention, with a permission checkbox, **Start voice**, and **Cancel**.
+**Cancel** returns to text without starting one. If the browser blocks remote
+playback, the dock keeps the warning visible and offers **Play voice audio**;
+selecting it retries playback from that user gesture. Closing the panel or
+selecting **End voice mode** ends Live audio, transcription, microphone
+capture, and playback. A connection error returns to setup without retrying.
 
-While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
-a ribbon that fades out at both ends and one short state -- **Connecting**, **Listening**,
-**Muted**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. The ribbon is three
-travelling waves, one leading and two trailing it more faintly. While it listens they open with your
-voice and settle back between phrases, so an ordinary speaking level is plainly visible rather than a
-flicker above the line. While the assistant speaks the ribbon takes on a restrained self-driven
-motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
-glance. It flattens to near a line whenever nobody holds the turn.
+While Voice runs, the composer is replaced by a compact dock at the foot of the
+panel. It shows one short state -- **Connecting**, **Listening**, **Muted**,
+**Thinking**, **Speaking**, **Paused**, or **Voice interrupted** -- and keeps
+the controls available without covering the transcript. Select **Hide
+conversation** to leave only the dock visible, and **Show conversation** to
+restore the AI header, transcript, and host Voice region. These controls change
+visibility only: they do not pause, stop, or end Voice. Ending Voice while the
+conversation is hidden also closes the AI panel; ending it while the
+conversation is visible returns to the text composer.
 
-For Brunch-backed Live sessions, **Thinking** follows an active submitted or streaming
-request, even without microphone activity. **Speaking** takes precedence during playback;
-once work and playback are idle, the dock returns to **Listening**. This status does not
-mute the microphone or announce progress aloud.
+The microphone action stays directly in the dock. **Mute microphone** becomes
+**Unmute microphone** and remains pressed while input is muted. Mute is
+independent of the activity state: if the assistant is playing audio, the dock
+continues to say **Speaking** while the pressed microphone action truthfully
+shows that input is muted. When no output or Brunch work takes precedence, a
+muted session can instead show **Muted**. For Live sessions, **Thinking** means
+Brunch has a submitted or streaming response, while **Speaking** means audio is
+currently playing. Neither state announces progress aloud or changes the
+microphone setting.
 
-Voice failures and recovery warnings, including unconfirmed submissions and input that was not
-retained, join the Voice warning indicator rather than appearing as global notifications. Hover to
-preview or click to read the complete details, including while the panel is collapsed. Distinct
-issues share one icon with a count; long details wrap and scroll in the popover, where they can be
-copied or dismissed with **Dismiss Voice issues**. Issues stay in the list until dismissed or the
-chat is cleared; dismissing them does not trigger a retry or mean that unsent input was retained.
-Temporary status notices, such as a pending handoff, replace the short dock state only while they
-apply and do not become Voice issues.
+**Stop AI response** appears next to the separate **End voice mode** action
+only while Brunch has submitted or streaming work. Stop cancels that current
+canonical Brunch response; it does not reverse changes that already completed.
+During a Live session, Stop leaves both media sessions and the microphone
+available for the next turn. **End voice mode** tears down Voice but does not
+cancel canonical Brunch work already in progress, so select Stop first when
+you also need to cancel that work.
 
-Spoken turns appear in the conversation as soon as their finalized text arrives, so the transcript
-stays current while the session runs and tools that edit the net remain visible. Select **Collapse
-voice session** to reduce the panel to the Voice dock alone; this hides the AI header, transcript, and
-host Voice region without ending the session. Select **Expand voice session** to restore them. Ending
-Voice while collapsed also closes the AI panel; ending Voice while expanded returns to the text
-composer. When Voice is collapsed, the zoom and fullscreen controls sit above the compact dock
-at the right edge; the bottom toolbar stays beside it. Only finalized answers and canonical Brunch text become chat history; provisional
-transcription and Realtime audio are ephemeral. Finalized spoken user messages carry a small
-**Voice** chip in front of the words themselves, and the exact inline answer completed by speech
-carries the same chip, so Voice provenance remains visible without duplicating an answer while the
-session is mounted.
+Open **Audio options** for session-local speaker controls. Both Live and
+Realtime Voice provide **Mute speaker** / **Unmute speaker** and **Speaker
+volume**. These controls affect assistant playback only: they do not affect
+microphone input, Brunch work, or the **Speaking** state. When the speaker is
+muted during playback, the dock therefore continues to say **Speaking** and
+Audio options shows the pressed speaker state. Speaker mute and volume reset
+for each new Voice session. The dock does not promise device switching,
+voice or speed selection, helmet animation, or persistence of these settings.
 
-**Interruption by speaking** is on by default. Start speaking while Brunch is talking to stop its
-audio and give your answer. Your interrupting words are captured; you do not need to repeat them.
-If Brunch is still finishing its previous turn, the dock shows **Answer captured. Waiting for Brunch.**
-and sends that answer when it is ready. Wait for that answer to be sent before giving another one.
+Realtime-based Brunch Voice additionally provides **Repeat question**, **Read
+full response**, and **Interruption by speaking** in Audio options. Live Voice
+does not show these controls. **Read full response** becomes available after
+the matching response and speech have both finished and replays every exact
+retained canonical segment in order. **Repeat question** uses the same
+availability gates and replays only exact question text explicitly marked by
+Brunch. It stays disabled when that marker is missing or does not match
+finalized assistant text.
 
-Open **Voice playback options** and uncheck **Interruption by speaking** to use manual handover.
-This preference is remembered in your browser. In manual mode the microphone closes during
-assistant output. Select **Your turn**, wait for cancellation to finish, then speak; audio before
-that handover is discarded. The **Your turn** control is hidden when interruption by speaking is on.
-If speaker playback causes unwanted interruptions, use headphones or switch to manual handover.
+With **Interruption by speaking** enabled, start speaking while Brunch is
+talking to stop its audio and give your answer. Your interrupting words are
+captured; you do not need to repeat them. If Brunch is still finishing its
+previous turn, the dock shows **Answer captured. Waiting for Brunch.** and
+sends that answer when it is ready. Wait for it to be sent before giving
+another one. Disable **Interruption by speaking** to use manual handover. In
+manual mode, select **Your turn**, wait for cancellation to finish, then speak;
+audio before that handover is discarded. **Your turn** is hidden while
+interruption by speaking is enabled.
 
-Semantic voice detection finishes your answer automatically after a natural pause, so there is no
-required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are not submitted.
-An empty or failed transcript asks you to try again, and an overlong answer asks for a shorter response.
-Completed interruptions that strongly repeat the transcription vocabulary or the assistant's active
-speech are silently discarded rather than sent as your answer. Short answers such as “stop”, “no”,
-and “wait” remain valid. A false speech detection can still stop playback even when its transcript
-is discarded.
-Provisional words remain display-only until the provider completes their transcript.
+Semantic voice detection finishes an answer automatically after a natural
+pause, so there is no required done-speaking action. Duplicate, empty, failed,
+or unavailable transcripts are not submitted. Provisional words remain
+display-only until the provider finalizes their transcript. Spoken turns then
+appear in the conversation, and finalized spoken user messages carry a
+**Voice** chip. Only finalized answers and canonical Brunch text become chat
+history; provisional transcription and provider audio are ephemeral.
 
-Every session control lives in the dock: **Collapse voice session** / **Expand voice session** and
-**Voice playback options** on the left, and the available handoff, microphone, recovery, and end
-actions on the right.
-**Read full response** becomes available after the matching response and speech have both finished
-and replays every exact retained canonical segment in order. **Repeat question** uses the same
-availability gates and replays only exact question text explicitly marked by Brunch. It stays
-disabled when that marker is missing or does not match finalized assistant text rather than
-guessing that the final segment is a question.
-Playback stays unavailable during active capture, submission, cancellation, pause, and errors. **Mute microphone** becomes
-**Unmute microphone** once muted, and your latest choice applies when a handoff settles. **Resume voice mode**
-replaces the microphone action while a session is paused, and **Reconnect voice mode** replaces it
-after a failure. Nothing is added to the canvas toolbar. Sending non-empty typed text from the
-composer or first-run prompt ends Voice mode before it sends the message once through the same
-conversation; repeated send actions are ignored while that short handoff completes.
+Voice failures and recovery warnings, including unconfirmed submissions and
+input that was not retained, appear behind the Voice warning indicator instead
+of as global notifications. Hover to preview or select it to read the complete
+details, including while the conversation is hidden. Distinct issues share one
+icon with a count. Dismissing them does not retry a request or mean unsent
+input was retained. Temporary notices replace the short dock state only while
+they apply.
 
-The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
-
-Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
-reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
-ready. **Clear AI chat** is unavailable while a Voice
-session is active.
-
-If voice cannot continue, the status reads **Voice interrupted** and the warning icon contains
-the microphone, connection, or Voice failure, followed by any diagnostic reference in parentheses.
-**Reconnect voice mode** replaces the microphone action until
-the session recovers. For microphone permission or device errors, allow access or connect/select a
-microphone before reconnecting. For an interrupted request, network error, or timeout, check the
-connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid
-service response includes a diagnostic reference you can give to an operator. That reference and its
-diagnostic record do not contain your transcript or the response being spoken. Interview-state
-failures use a content-free `interview-correlation`, `interview-response`, or `interview-submission`
-code so an operator can distinguish them without receiving your answer.
+Realtime Voice pauses microphone capture and active speech when the AI panel
+closes. Reopen the panel and select **Resume voice mode** to continue. Live
+Voice ends when the panel closes. If Realtime Voice is interrupted, allow
+microphone access or check the connection, then select **Reconnect voice
+mode**. **Clear AI chat** is unavailable while a Voice session is active.
 
 When no interview is active and the host permits clearing, **Clear AI chat** via the delete button in the top right of the panel wipes the local conversation, stops any in-flight stream, and tells the host app to forget the messages if it persists them. Hosts with canonical history may disable this control. The Brunch panel disables it because clearing only the browser view would not delete Flue history and the conversation would return on rehydration.
 

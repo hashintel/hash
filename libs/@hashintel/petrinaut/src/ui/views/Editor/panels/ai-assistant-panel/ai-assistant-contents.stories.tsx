@@ -6,7 +6,11 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
-import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
+import {
+  createVoiceSessionStore,
+  type VoiceSessionActions,
+  type VoiceSessionStore,
+} from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
@@ -225,6 +229,22 @@ const hostSlotTitleStyle = css({
   fontWeight: "semibold",
 });
 
+const frameStyle = css({
+  height: "[720px]",
+  position: "relative",
+  width: "full",
+});
+
+const narrowFrameStyle = css({
+  height: "[720px]",
+  maxWidth: "full",
+  position: "relative",
+  width: "[390px]",
+  "& > aside": {
+    maxWidth: "[calc(100% - 32px)]",
+  },
+});
+
 /**
  * Stands in for a host's pre-session slot. Once a session is running the host
  * reports state instead of rendering, and Petrinaut's own dock takes over.
@@ -243,8 +263,65 @@ const HostVoiceSlotPreview = () => (
   </section>
 );
 
+type VoiceProvider = "live" | "realtime";
+
+const updateVoiceSessionState = (
+  store: VoiceSessionStore,
+  update: Partial<PetrinautAiVoiceSessionState>,
+) => {
+  const current = store.getSnapshot().state;
+  if (current) {
+    store.setState({ ...current, ...update });
+  }
+};
+
+const createStoryVoiceSessionStore = (
+  provider: VoiceProvider,
+  state?: PetrinautAiVoiceSessionState,
+): VoiceSessionStore => {
+  const store = createVoiceSessionStore();
+  if (!state) {
+    return store;
+  }
+
+  const speakerActions = {
+    setSpeakerMuted: (speakerMuted: boolean) =>
+      updateVoiceSessionState(store, { speakerMuted }),
+    setSpeakerVolume: (speakerVolume: number) =>
+      updateVoiceSessionState(store, {
+        speakerVolume: Math.min(1, Math.max(0, speakerVolume)),
+      }),
+  };
+  const liveActions: VoiceSessionActions = {
+    end: () => {},
+    pause: () => {},
+    setMicrophoneMuted: (microphoneMuted) =>
+      updateVoiceSessionState(store, { microphoneMuted }),
+    ...speakerActions,
+  };
+
+  store.setActions(
+    provider === "live"
+      ? liveActions
+      : {
+          ...liveActions,
+          readFullResponse: () => {},
+          reconnect: () => {},
+          repeatQuestion: () => {},
+          resume: () => {},
+          setInterruptionBySpeaking: (interruptionBySpeaking) =>
+            updateVoiceSessionState(store, { interruptionBySpeaking }),
+          takeTurn: () => {},
+        },
+  );
+  store.setState(state);
+
+  return store;
+};
+
 const Frame = ({
   error,
+  fixedNarrowWidth = false,
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
@@ -252,9 +329,11 @@ const Frame = ({
   stopped = false,
   voiceMode,
   voiceModeAvailable = false,
+  voiceProvider = "live",
   voiceSession,
 }: {
   error?: Error;
+  fixedNarrowWidth?: boolean;
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
@@ -262,6 +341,7 @@ const Frame = ({
   stopped?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
+  voiceProvider?: VoiceProvider;
   voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
@@ -270,23 +350,16 @@ const Frame = ({
   );
   // Stands in for the host, which reports session state rather than rendering
   // the live surfaces itself.
-  const [voiceSessionStore] = useState(() => {
-    const store = createVoiceSessionStore();
-    store.setActions({
-      end: () => {},
-      pause: () => {},
-      reconnect: () => {},
-      resume: () => {},
-      setMicrophoneMuted: () => {},
-    });
-    store.setState(voiceSession ?? null);
-
-    return store;
-  });
+  const [voiceSessionStore] = useState(() =>
+    createStoryVoiceSessionStore(voiceProvider, voiceSession),
+  );
 
   return (
     <VoiceSessionContext.Provider value={voiceSessionStore}>
-      <div style={{ height: "720px", position: "relative", width: "100%" }}>
+      <div
+        className={fixedNarrowWidth ? narrowFrameStyle : frameStyle}
+        data-testid="ai-assistant-story-frame"
+      >
         <AiAssistantContents
           error={error}
           input={input}
@@ -381,6 +454,95 @@ export const VoiceSessionListening: Story = {
   ),
 };
 
+export const LiveSessionAudioOptions: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({
+        microphoneLevel: 0.35,
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const microphone = within(dock).getByRole("button", {
+      name: "Mute microphone",
+    });
+
+    await expect(microphone).toBeInTheDocument();
+    await expect(
+      microphone.closest('[data-scope="popover"][data-part="content"]'),
+    ).toBeNull();
+    await userEvent.click(
+      within(dock).getByRole("button", { name: "Audio options" }),
+    );
+
+    await expect(
+      await canvas.findByRole("button", { name: "Mute speaker" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("slider", { name: "Speaker volume" }),
+    ).toHaveAttribute("aria-valuenow", "0.65");
+    await expect(
+      canvas.queryByRole("button", { name: "Repeat question" }),
+    ).toBeNull();
+    await expect(
+      canvas.queryByRole("button", { name: "Read full response" }),
+    ).toBeNull();
+    await expect(
+      canvas.queryByRole("button", { name: "Interruption by speaking" }),
+    ).toBeNull();
+  },
+};
+
+export const RealtimeSessionAudioOptions: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
+        canTakeTurn: true,
+        interruptionBySpeaking: true,
+        phase: "speaking",
+        speakerVolume: 0.4,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+
+    await userEvent.click(
+      within(dock).getByRole("button", { name: "Audio options" }),
+    );
+
+    await expect(
+      await canvas.findByRole("button", { name: "Mute speaker" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("slider", { name: "Speaker volume" }),
+    ).toHaveAttribute("aria-valuenow", "0.4");
+    await expect(
+      canvas.getByRole("button", { name: "Repeat question" }),
+    ).toBeEnabled();
+    await expect(
+      canvas.getByRole("button", { name: "Read full response" }),
+    ).toBeEnabled();
+    await expect(
+      canvas.getByRole("button", { name: "Interruption by speaking" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
 export const VoiceSessionLongWarning: Story = {
   render: () => (
     <Frame
@@ -426,7 +588,7 @@ export const VoiceSessionCollapsed: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", {
-        name: "Collapse voice session",
+        name: "Hide conversation",
       }),
     );
   },
@@ -443,6 +605,57 @@ export const VoiceSessionSpeaking: Story = {
       })}
     />
   ),
+};
+
+export const MicrophoneMutedWhileSpeaking: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({
+        microphoneMuted: true,
+        phase: "speaking",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const dock = within(canvasElement).getByRole("region", {
+      name: "Voice session",
+    });
+    await expect(within(dock).getByText("Speaking")).toBeInTheDocument();
+    await expect(
+      within(dock).getByRole("button", { name: "Unmute microphone" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
+export const SpeakerMutedWhileSpeaking: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({
+        phase: "speaking",
+        speakerMuted: true,
+        speakerVolume: 0.55,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    await expect(within(dock).getByText("Speaking")).toBeInTheDocument();
+    await userEvent.click(
+      within(dock).getByRole("button", { name: "Audio options" }),
+    );
+    await expect(
+      await canvas.findByRole("button", { name: "Unmute speaker" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  },
 };
 
 export const VoiceSessionThinking: Story = {
@@ -473,6 +686,7 @@ export const VoiceSessionPaused: Story = {
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
+      voiceProvider="realtime"
       voiceSession={liveSession({ phase: "paused" })}
     />
   ),
@@ -484,6 +698,7 @@ export const VoiceSessionRecovery: Story = {
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
+      voiceProvider="realtime"
       voiceSession={liveSession({
         errorMessage:
           "Connection interrupted. Check your connection. (network)",
@@ -585,6 +800,7 @@ export const MultipleVoiceIssues: Story = {
   render: () => (
     <Frame
       messages={[userMessage]}
+      voiceProvider="realtime"
       voiceSession={liveSession({
         phase: "error",
         errorMessage:
@@ -601,6 +817,7 @@ export const CollapsedVoiceIssues: Story = {
     <Frame
       initialVoiceDockCollapsed
       messages={[userMessage]}
+      voiceProvider="realtime"
       voiceSession={liveSession({
         phase: "error",
         errorMessage:
@@ -617,7 +834,7 @@ export const CollapsedVoiceIssues: Story = {
     });
     const { x, y, width, height } = indicator.getBoundingClientRect();
     await userEvent.click(
-      canvas.getByRole("button", { name: "Expand voice session" }),
+      canvas.getByRole("button", { name: "Show conversation" }),
     );
     await expect(
       canvas.getByRole("button", { name: "Show 2 Voice issues" }),
@@ -629,7 +846,7 @@ export const CollapsedVoiceIssues: Story = {
       height,
     });
     await userEvent.click(
-      canvas.getByRole("button", { name: "Collapse voice session" }),
+      canvas.getByRole("button", { name: "Hide conversation" }),
     );
     await expect(indicator.getBoundingClientRect()).toMatchObject({
       x,
@@ -662,6 +879,101 @@ export const WaitingForResponse: Story = {
       status="submitted"
     />
   ),
+};
+
+export const LiveSessionSubmittedWork: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, streamingReasoningMessage]}
+      status="submitted"
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({ phase: "thinking" })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const dock = within(canvasElement).getByRole("region", {
+      name: "Voice session",
+    });
+    const stop = within(dock).getByRole("button", {
+      name: "Stop AI response",
+    });
+    const end = within(dock).getByRole("button", { name: "End voice mode" });
+    await expect(stop).not.toBe(end);
+    await expect(stop.parentElement?.parentElement).toBe(
+      end.parentElement?.parentElement,
+    );
+  },
+};
+
+export const LiveSessionStreamingWork: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, streamingReasoningMessage]}
+      status="streaming"
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({ phase: "speaking" })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const dock = within(canvasElement).getByRole("region", {
+      name: "Voice session",
+    });
+    const stop = within(dock).getByRole("button", {
+      name: "Stop AI response",
+    });
+    const end = within(dock).getByRole("button", { name: "End voice mode" });
+    await expect(stop).not.toBe(end);
+    await expect(stop.parentElement?.parentElement).toBe(
+      end.parentElement?.parentElement,
+    );
+  },
+};
+
+export const NarrowVoiceDockWithAudioOptions: Story = {
+  render: () => (
+    <Frame
+      fixedNarrowWidth
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="live"
+      voiceSession={liveSession({
+        phase: "speaking",
+        speakerMuted: true,
+        speakerVolume: 0.6,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+
+    await userEvent.click(
+      within(dock).getByRole("button", { name: "Audio options" }),
+    );
+    const volume = await canvas.findByRole("slider", {
+      name: "Speaker volume",
+    });
+    const popover = volume.closest<HTMLElement>(
+      '[data-scope="popover"][data-part="content"]',
+    )!;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
+
+    const frameBounds = frame.getBoundingClientRect();
+    for (const element of [dock, popover]) {
+      const bounds = element.getBoundingClientRect();
+      await expect(bounds.left).toBeGreaterThanOrEqual(frameBounds.left - 1);
+      await expect(bounds.right).toBeLessThanOrEqual(frameBounds.right + 1);
+    }
+  },
 };
 
 const applyAutoLayoutPendingMessage: PetrinautAiMessage = {
