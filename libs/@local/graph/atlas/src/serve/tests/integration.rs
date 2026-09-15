@@ -209,6 +209,7 @@ impl RouteFixture {
     ///
     /// Panics if PostgreSQL, fixture publication or serving setup fails. Resumes a case's panic
     /// after cleanup.
+    #[expect(clippy::significant_drop_tightening, reason = "test cases")]
     pub async fn run(case: impl AsyncFnOnce(&Self)) {
         Database::new()
             .await
