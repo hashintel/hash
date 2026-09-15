@@ -40,6 +40,7 @@ const setup = () => {
   });
   vi.stubGlobal("RTCPeerConnection", RTCPeerConnectionMock);
   const audio = {
+    autoplay: false,
     srcObject: null,
     muted: false,
     paused: false,
