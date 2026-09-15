@@ -98,6 +98,104 @@ describe("Result.gen", () => {
   });
 });
 
+describe("Result.catch", () => {
+  it("returned_variants", () => {
+    const outcomes = [Result.ok(7), Result.err("ordinary failure")];
+    for (const outcome of outcomes) {
+      let handled = false;
+      const actual = Result.catch(
+        () => outcome,
+        () => {
+          handled = true;
+          return Result.ok(0);
+        },
+      );
+      expect(actual).toBe(outcome);
+      expect(handled).toBe(false);
+    }
+  });
+
+  it.each([
+    { name: "error", cause: new Error("thrown") },
+    { name: "undefined", cause: undefined },
+    { name: "object", cause: { code: "thrown" } },
+  ])("exception_$name", ({ cause }) => {
+    const error = new HighLevelError("caught");
+    let calls = 0;
+    const result = Result.catch(
+      () => {
+        calls += 1;
+        // eslint-disable-next-line @typescript-eslint/only-throw-error -- JavaScript can throw values that are not Error objects.
+        throw cause;
+      },
+      (received) => {
+        expect(received).toBe(cause);
+        error.cause = received;
+        return Result.err(error);
+      },
+    );
+    expect(calls).toBe(1);
+    expect(result).toMatchObject({ _tag: "err", error });
+    expect(error.cause).toBe(cause);
+  });
+
+  it("curried_recovery", () => {
+    const recover = Result.catch(() => Result.ok("fallback"));
+    let calls = 0;
+    const result = recover(() => {
+      calls += 1;
+      throw new Error("failed");
+    });
+    expect(result).toMatchObject({ _tag: "ok", value: "fallback" });
+    expect(calls).toBe(1);
+  });
+
+  it("value_and_error_unions", () => {
+    const body = (): Result.Result<number, "parse"> => Result.ok(1);
+    const handler = (): Result.Result<string, "recover"> =>
+      Result.ok("fallback");
+    const direct = Result.catch(body, handler);
+    const curried = Result.catch(handler)(body);
+    expectTypeOf(direct).toEqualTypeOf<
+      Result.Result<number | string, "parse" | "recover">
+    >();
+    expectTypeOf(curried).toEqualTypeOf<typeof direct>();
+  });
+
+  it("handler_exception", () => {
+    const error = new Error("handler failed");
+    expect(() =>
+      Result.catch(
+        () => {
+          throw new Error("body failed");
+        },
+        () => {
+          throw error;
+        },
+      ),
+    ).toThrow(error);
+  });
+
+  it("generator_cleanup_exception", () => {
+    const cause = new Error("cleanup failed");
+    const result = Result.catch(
+      () =>
+        Result.gen(function* cleanupFailure() {
+          try {
+            return yield* Result.err("original");
+          } finally {
+            throw cause;
+          }
+        }),
+      (received) => Result.err(new HighLevelError(String(received))),
+    );
+    expect(result).toMatchObject({
+      _tag: "err",
+      error: { message: "high level: Error: cleanup failed" },
+    });
+  });
+});
+
 describe("dual functions", () => {
   const okResult: Result.Result<number, LowLevelError> = Result.ok(2);
   const lowLevelError = new LowLevelError("low");

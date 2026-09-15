@@ -56,15 +56,15 @@ export class GenerationId {
 /** Constructs a generation identity from a CBOR byte string. */
 export const Visitor: CborVisitor<GenerationId, GenerationIdError> = {
   expecting: "a 32-byte generation identity",
-  visitByteString(value) {
-    try {
-      return Result.ok(new GenerationId(value));
-    } catch (cause) {
-      if (cause instanceof GenerationIdError) {
-        return Result.err(cause);
-      }
+  visitByteString: (value) =>
+    Result.catch(
+      () => Result.ok(new GenerationId(value)),
+      (cause) => {
+        if (cause instanceof GenerationIdError) {
+          return Result.err(cause);
+        }
 
-      throw cause;
-    }
-  },
+        throw cause;
+      },
+    ),
 };

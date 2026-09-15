@@ -70,15 +70,17 @@ const valueVisitor: CborVisitor<Value, never> = {
 
 /** Checks a profile error and its offset within the supplied byte view. */
 const expectError = (
-  result: Result.Result<unknown, CborDecoderError>,
+  result: Result.Result<unknown, unknown>,
   tag: CborDecoderErrorReason["_tag"],
   offset: number,
 ): void => {
   expect(Result.isErr(result)).toBe(true);
   if (Result.isErr(result)) {
     expect(result.error).toBeInstanceOf(CborDecoderError);
-    expect(result.error.reason._tag).toBe(tag);
-    expect(result.error.offset).toBe(offset);
+    if (result.error instanceof CborDecoderError) {
+      expect(result.error.reason._tag).toBe(tag);
+      expect(result.error.offset).toBe(offset);
+    }
   }
 };
 

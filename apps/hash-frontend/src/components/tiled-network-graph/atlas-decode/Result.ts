@@ -147,21 +147,68 @@ type DataFirst<Signature extends DualSignature> = (
  * optional, and defaulted parameters in the implementation.
  */
 const dual = <Signature extends DualSignature>(
+  arity: FixedArity<Parameters<Signature>>["length"],
   body: DataFirst<Signature>,
 ): Signature => {
-  const arity = body.length;
   const call = body as (...args: unknown[]) => unknown;
 
-  const dispatch = (...args: unknown[]): unknown =>
-    args.length >= arity
-      ? call(...args)
-      : (self: unknown) => call(self, ...args);
+  const dispatch = (...args: unknown[]): unknown => {
+    if (args.length === arity) {
+      return call(...args);
+    }
+    if (args.length === arity - 1) {
+      return (self: unknown) => call(self, ...args);
+    }
+    throw new TypeError(
+      `expected ${arity} or ${arity - 1} arguments, received ${args.length}`,
+    );
+  };
 
   // `dispatch` is deliberately untyped: the overloads in `Signature` are the
   // only description of which argument shapes are valid, and they cannot be
   // reconstructed from a runtime arity check.
   return dispatch as unknown as Signature;
 };
+
+/**
+ * Runs a result-producing thunk and handles thrown exceptions.
+ *
+ * The thunk runs once. An ordinary returned {@link Err} remains unchanged. A thrown value is passed to the handler, which may return either variant. Exceptions thrown by the handler propagate to its caller.
+ *
+ * Both `Result.catch(body, handler)` and `Result.catch(handler)(body)` are supported. Pass the computation as a thunk so that evaluation occurs inside the exception handler.
+ *
+ * @example
+ * ```ts
+ * const parsed = Result.catch(
+ *   () => Result.ok(JSON.parse("{")),
+ *   (cause) => Result.err(new Error("invalid JSON", { cause })),
+ * );
+ * // parsed is Err; parsed.error.cause is the JSON SyntaxError.
+ * ```
+ */
+const catchResult: {
+  <U, F>(
+    handler: (cause: unknown) => Result<U, F>,
+  ): <T, E>(body: () => Result<T, E>) => Result<T | U, E | F>;
+  <T, E, U, F>(
+    body: () => Result<T, E>,
+    handler: (cause: unknown) => Result<U, F>,
+  ): Result<T | U, E | F>;
+} = dual(
+  2,
+  <T, E, U, F>(
+    body: () => Result<T, E>,
+    handler: (cause: unknown) => Result<U, F>,
+  ): Result<T | U, E | F> => {
+    try {
+      return body();
+    } catch (cause) {
+      return handler(cause);
+    }
+  },
+);
+
+export { catchResult as catch };
 
 export const match: {
   <T, E, R>(handlers: {
@@ -173,6 +220,7 @@ export const match: {
     handlers: { onOk: (value: T) => R; onErr: (error: E) => R },
   ): R;
 } = dual(
+  2,
   <T, E, R>(
     result: Result<T, E>,
     { onOk, onErr }: { onOk: (value: T) => R; onErr: (error: E) => R },
@@ -183,6 +231,7 @@ export const map: {
   <T, U>(func: (value: T) => U): <E>(result: Result<T, E>) => Result<U, E>;
   <T, E, U>(result: Result<T, E>, func: (value: T) => U): Result<U, E>;
 } = dual(
+  2,
   <T, E, U>(result: Result<T, E>, func: (value: T) => U): Result<U, E> =>
     isOk(result) ? ok(func(result.value)) : err(result.error),
 );
@@ -196,6 +245,7 @@ export const andThen: {
     func: (value: T) => Result<U, E2>,
   ): Result<U, E1 | E2>;
 } = dual(
+  2,
   <T, E1, U, E2>(
     result: Result<T, E1>,
     func: (value: T) => Result<U, E2>,
@@ -216,6 +266,7 @@ export const changeContext: {
     context: (error: E1) => E2,
   ): Result<T, E2>;
 } = dual(
+  2,
   <T, E1, E2 extends Error>(
     result: Result<T, E1>,
     context: (error: E1) => E2,
@@ -260,6 +311,7 @@ export const changeContextIf: {
     context: (error: E2) => E3,
   ): Result<T, Exclude<E1, E2> | E3>;
 } = dual(
+  3,
   <T, E1, E2 extends E1, E3 extends Error>(
     result: Result<T, E1>,
     refinement: (error: E1) => error is E2,
@@ -308,8 +360,11 @@ export const gen = <Y extends Err<unknown, unknown>, R>(
     return ok(step.value);
   }
 
-  // Close the generator so any `finally` blocks in the body still run.
-  iterator.return(undefined as never);
+  // a failed yield in cleanup suspends again. Return again to close its enclosing finally blocks without resuming that failed step.
+  let closed = iterator.return(undefined as never);
+  while (!closed.done) {
+    closed = iterator.return(undefined as never);
+  }
 
   return err(step.value.error as ErrorOf<Y>);
 };
