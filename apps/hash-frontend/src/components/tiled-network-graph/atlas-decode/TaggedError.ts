@@ -1,22 +1,21 @@
-const isFunction = (input: unknown): input is Function => {
-  return typeof input === "function";
-};
-
-const isObject = (input: unknown): input is object => {
-  return (typeof input === "object" && input !== null) || isFunction(input);
-};
-
-export class TaggedError<T> extends Error {
-  readonly _tag: T;
-
-  constructor(tag: T, message: string, options?: ErrorOptions) {
+/** An error identified by a discriminant and a structured reason. */
+export class TaggedError<Tag extends string, Reason> extends Error {
+  /** Retains the reason independently of its human-readable message. */
+  constructor(
+    readonly _tag: Tag,
+    readonly reason: Reason,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
-    this._tag = tag;
   }
 }
 
+/** Narrows a known error union by its discriminant. */
 export const is =
-  <T, U>(tag: U) =>
-  (error: T): error is Extract<T, TaggedError<U>> => {
-    return isObject(error) && "_tag" in error && error._tag === tag;
-  };
+  <const Tag extends string>(tag: Tag) =>
+  <E>(error: E): error is Extract<E, TaggedError<Tag, unknown>> =>
+    ((typeof error === "object" && error !== null) ||
+      typeof error === "function") &&
+    "_tag" in error &&
+    error._tag === tag;

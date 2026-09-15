@@ -40,27 +40,53 @@ export type CborDecoderErrorReason =
   | { readonly _tag: "invalid-access"; readonly detail: string };
 
 /** A profile or visitation error with an offset relative to the input view. */
-export class CborDecoderError extends TaggedError.TaggedError<"CborDecoderError"> {
+export class CborDecoderError extends TaggedError.TaggedError<
+  "CborDecoderError",
+  CborDecoderErrorReason
+> {
   /** Records the failure at the byte where its check applies. */
   constructor(
-    readonly reason: CborDecoderErrorReason,
+    reason: CborDecoderErrorReason,
     readonly offset: number,
     options?: ErrorOptions,
   ) {
-    const detail =
-      "detail" in reason
-        ? reason.detail
-        : reason._tag === "unexpected-kind"
-          ? `expected ${reason.expected}, received ${reason.actual}`
-          : reason._tag;
+    let detail: string;
 
-    super("CborDecoderError", `${detail} (at byte ${offset})`, options);
+    switch (reason._tag) {
+      case "invalid-encoding":
+      case "invalid-access":
+        detail = reason.detail;
+        break;
+      case "unexpected-kind":
+        detail = `expected ${reason.expected}, received ${reason.actual}`;
+        break;
+      case "unexpected-end":
+        detail = "unexpected end of CBOR input";
+        break;
+      case "invalid-utf8":
+        detail = "invalid UTF-8 text";
+        break;
+      case "nesting-limit":
+        detail = `maximum CBOR depth ${reason.maximumDepth} exceeded`;
+        break;
+      case "unconsumed-container":
+        detail = `${reason.remaining} container items remain unread`;
+        break;
+      case "trailing-data":
+        detail = `${reason.remaining} trailing bytes`;
+        break;
+      case "exception":
+        detail = "CBOR decoding raised an exception";
+        break;
+    }
+
+    super("CborDecoderError", reason, `${detail} (at byte ${offset})`, options);
   }
 }
 
 /** Sequential access to a definite-length CBOR array. */
 export interface CborArrayAccess {
-  /** Number of elements not yet consumed. */
+  /** Number of elements still awaiting a successful read. */
   readonly remaining: number;
 
   /**
@@ -75,7 +101,7 @@ export interface CborArrayAccess {
 
 /** Sequential key/value access to a definite-length CBOR map. */
 export interface CborMapAccess {
-  /** Number of entries whose values have not yet been consumed. */
+  /** Number of entries whose values still await a successful read. */
   readonly remaining: number;
 
   /**
@@ -100,7 +126,7 @@ export interface CborMapAccess {
  *
  * Implement the visits the value accepts. An omitted visit produces an unexpected-kind error naming {@link CborVisitor.expecting}. Integer values remain exact as bigint, and byte strings borrow the input buffer.
  *
- * A successful container visit consumes every entry through its access object. A read must finish before another begins on the same access object. Access closes when its visit returns. Returned visitor errors propagate unchanged. Unexpected exceptions become {@link CborDecoderError} values at {@link CborDecoder.decode}.
+ * A successful container visit consumes every entry through its access object. A read must finish before another begins on the same access object. A failed read closes that access, including when the enclosing visitor handles the failure. Access also closes when its visit returns. {@link CborDecoder.decode} returns visitor errors unchanged unless a decoding error was already recorded. Unexpected exceptions become {@link CborDecoderError} values.
  */
 export interface CborVisitor<T, E> {
   /** The expected domain value, used when an encoded category is unsupported. */
@@ -171,6 +197,7 @@ export class CborDecoder<T extends ArrayBufferLike> {
    * Borrows one complete CBOR payload, including a possible buffer subview.
    *
    * @throws {RangeError} If maximumDepth is not a nonnegative safe integer.
+   * @throws {TypeError} If the input buffer is detached.
    */
   constructor(
     buffer: Uint8Array<T>,
@@ -451,15 +478,12 @@ export class CborDecoder<T extends ArrayBufferLike> {
           });
         }
         active = false;
-        try {
-          const result = this.#read(elementVisitor, depth + 1);
-          if (Result.isOk(result)) {
-            remaining -= 1;
-          }
-          return result;
-        } finally {
+        const result = this.#read(elementVisitor, depth + 1);
+        if (Result.isOk(result)) {
+          remaining -= 1;
           active = true;
         }
+        return result;
       },
     };
 
@@ -559,16 +583,13 @@ export class CborDecoder<T extends ArrayBufferLike> {
         }
 
         active = false;
-        try {
-          const result = this.#read(valueVisitor, depth + 1);
-          if (Result.isOk(result)) {
-            pendingValue = false;
-            remaining -= 1;
-          }
-          return result;
-        } finally {
+        const result = this.#read(valueVisitor, depth + 1);
+        if (Result.isOk(result)) {
+          pendingValue = false;
+          remaining -= 1;
           active = true;
         }
+        return result;
       },
     };
 
@@ -591,7 +612,7 @@ export class CborDecoder<T extends ArrayBufferLike> {
   /**
    * Constructs a value from exactly one complete payload.
    *
-   * Returns a {@link CborDecoderError} for malformed encoding, incomplete container consumption, trailing bytes or repeated decoding. Returned visitor errors propagate unchanged. An unexpected exception becomes an exception error with the thrown value as its cause, unless a decoding error was already recorded. The decoder is consumed even when decoding fails.
+   * Returns a {@link CborDecoderError} for malformed encoding, incomplete container consumption, trailing bytes or repeated decoding. The first recorded decoding error takes precedence over a visitor's return value. Otherwise, returned visitor errors propagate unchanged and an unexpected exception becomes an exception error with the thrown value as its cause. The decoder is consumed even when decoding fails.
    */
   decode<V, E>(
     visitor: CborVisitor<V, E>,
