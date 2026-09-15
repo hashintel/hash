@@ -4,6 +4,7 @@ import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { StatusConditionArtifactsContext } from "../../../../../../react/status-condition-artifacts";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
@@ -362,9 +363,11 @@ const ActualEventsContent: React.FC = () => {
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
 
   const { statusConditions } = use(StatusConditionArtifactsContext);
-  const statusViews = actualMode.available
-    ? (actualMode.definition?.statusViews ?? [])
-    : [];
+  const { enableStatusViews } = use(UserSettingsContext);
+  const statusViews =
+    enableStatusViews && actualMode.available
+      ? (actualMode.definition?.statusViews ?? [])
+      : [];
   const statusView = statusViews[0];
   const statusChangesByFiring = useActualEventStatusChanges(
     {

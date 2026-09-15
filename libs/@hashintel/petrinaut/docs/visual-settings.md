@@ -46,6 +46,10 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
 
+### Status views (experimental)
+
+Off by default. Derives per-instance statuses from where each instance's token sits: adds a **Status views** tab to the Simulate panel, an identity picker to token type attributes, a Kanban board toggle above a net that has status views, and a **Status changes** column to Actual mode's Events tab. See [Status Views](status-views.md).
+
 ### WebGPU (experimental)
 
 Off by default. Offers a GPU option when creating an experiment; each experiment then chooses its own backend. See [Compute backend](experiments.md#compute-backend-experimental).

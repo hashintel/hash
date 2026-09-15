@@ -108,6 +108,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setEnableNetComponents,
     enableNotebookView,
     setEnableNotebookView,
+    enableStatusViews,
+    setEnableStatusViews,
     webGpuEnabled,
     setWebGpuEnabled,
     showCompilationOutput,
@@ -247,6 +249,23 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             />
           </SettingRow>
         )}
+        <SettingRow
+          label={
+            <>
+              Status views{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Derive per-instance statuses from the net: a Status views tab in the Simulate panel, an identity picker on token type attributes, a Kanban board toggle above the canvas, and a status changes column in Actual mode's Events tab"
+        >
+          <Toggle
+            value={enableStatusViews}
+            onChange={setEnableStatusViews}
+            size="sm"
+          />
+        </SettingRow>
         <h3 className={sectionTitleStyle}>Simulation</h3>
         <SettingRow
           label={

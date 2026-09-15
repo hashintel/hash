@@ -206,6 +206,7 @@ export const EditorView = ({
   const {
     brunchDemoMode,
     enableNotebookView,
+    enableStatusViews,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
@@ -513,7 +514,8 @@ export const EditorView = ({
     },
   ];
 
-  const hasStatusViews = (petriNetDefinition.statusViews ?? []).length > 0;
+  const showKanbanToggle =
+    enableStatusViews && (petriNetDefinition.statusViews ?? []).length > 0;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -578,16 +580,17 @@ export const EditorView = ({
               <PropertiesPanel />
 
               {/* SDCPN Visualization, or the Kanban projection of a status
-                  view over the same frame source. A net without status views
-                  always shows the canvas: the toggle is hidden then, so a
-                  stored "kanban" preference would otherwise be inescapable. */}
-              {hasStatusViews && canvasViewMode === "kanban" ? (
+                  view over the same frame source. A net without status views,
+                  or with the Status views setting off, always shows the
+                  canvas: the toggle is hidden then, so a stored "kanban"
+                  preference would otherwise be inescapable. */}
+              {showKanbanToggle && canvasViewMode === "kanban" ? (
                 <KanbanView />
               ) : (
                 <SDCPNView viewportActions={viewportActions} />
               )}
 
-              {hasStatusViews && (
+              {showKanbanToggle && (
                 <div className={canvasViewToggleStyle}>
                   <SegmentedControl
                     value={canvasViewMode}
