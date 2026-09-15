@@ -235,6 +235,15 @@ export type {
   PetrinautDocName,
 } from "./ai";
 
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
+} from "./experiments";
+
 // --- Simulation ---
 export {
   PETRINAUT_DEFAULT_SEED,

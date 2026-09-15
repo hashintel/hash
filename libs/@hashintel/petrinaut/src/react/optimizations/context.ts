@@ -134,6 +134,8 @@ type CreateOptimizationOptions = {
     axes: readonly ExperimentParameterAxis[];
     /** The experiment metric the objective reads at each point. */
     metricId: string;
+    /** A host can await its own final refinement after the search finishes. */
+    refineOnSettle?: boolean;
   };
 };
 

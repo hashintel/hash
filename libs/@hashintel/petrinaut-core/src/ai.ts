@@ -14,6 +14,15 @@ import { typedKeys } from "./lib/typed-entries";
 import type { Petrinaut } from "./instance";
 
 export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
+  type PetrinautExperimentHost,
+} from "./experiments/host";
+
+export {
   arcEndpointSchema,
   colorSchema,
   componentInstanceSchema,
@@ -141,7 +150,7 @@ const getLatestNetDefinitionToolInputSchema = z
 const getNetCompilationErrorsToolInputSchema = z
   .strictObject({})
   .describe(
-    "Validate the current Petrinaut net snapshot and return its TypeScript and HIR diagnostics.",
+    "Validate the current Petrinaut net snapshot and return its TypeScript and HIR diagnostics. Saved scenario and metric compilation is checked separately when creating an experiment.",
   );
 
 export const setNetTitleToolInputSchema = z

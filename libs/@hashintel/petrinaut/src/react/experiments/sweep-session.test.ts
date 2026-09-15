@@ -190,7 +190,7 @@ function makeFakeBatch(request: {
         listener(progress);
       }
     },
-    complete() {
+    complete(erroredRuns = 0) {
       if (!started) {
         throw new Error("batch completed before start()");
       }
@@ -201,8 +201,8 @@ function makeFakeBatch(request: {
             activeRuns: 0,
             advancedRuns: request.runCount,
             allFinished: true,
-            completedRuns: request.runCount,
-            erroredRuns: 0,
+            completedRuns: request.runCount - erroredRuns,
+            erroredRuns,
             frameNumber: 0,
             runCount: request.runCount,
             time: 0,
@@ -222,7 +222,10 @@ function makeHarness(
   runCount: number,
   initialSelection?: SweepSelection,
   options: Partial<
-    Pick<CreateSweepSessionOptions, "startComputing" | "axes">
+    Pick<
+      CreateSweepSessionOptions,
+      "startComputing" | "axes" | "requireSuccessfulRuns"
+    >
   > = {},
 ) {
   const batches: ReturnType<typeof makeFakeBatch>[] = [];
@@ -781,6 +784,38 @@ describe("navigateTo", () => {
     expect(
       batches.filter((batch) => batch.request.parameterValues.x === 1),
     ).toHaveLength(1);
+    session.dispose();
+  });
+
+  it("refuses a host's final refinement when a run in the last rung errors", async () => {
+    const { session, batches, updates, onError, settle } = makeHarness(
+      25,
+      point(0, 0),
+      {
+        startComputing: false,
+        requireSuccessfulRuns: true,
+      },
+    );
+    const trial = session.navigateTo(point(1, 1), { runCap: 8 });
+    await settle();
+    batches[0]!.stream([frame(8, [[2, 8]])]);
+    batches[0]!.complete();
+    await settle();
+    expect((await trial)?.runsCompleted).toBe(8);
+
+    const refinement = session.navigateTo(point(1, 1));
+    await settle();
+    expect(batches[1]!.request.runCount).toBe(17);
+    batches[1]!.stream([frame(16, [[2, 16]])]);
+    batches[1]!.complete(1);
+    await expect(refinement).rejects.toThrow("1 of 17 runs failed");
+    await settle();
+    expect(onError).toHaveBeenCalledExactlyOnceWith("1 of 17 runs failed");
+    expect(updates.at(-1)).toMatchObject({
+      failed: true,
+      computing: false,
+      runsCompleted: 8,
+    });
     session.dispose();
   });
 

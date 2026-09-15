@@ -24,6 +24,8 @@ import type {
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
   Scenario,
+  SDCPN,
+  PetrinautExtensionSettings,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautOptimizationConstraintPolicy } from "@hashintel/petrinaut-core/optimization";
 
@@ -105,8 +107,21 @@ export type CreateExperimentInput = {
   constraintPolicy?: PetrinautOptimizationConstraintPolicy;
 };
 
+export type CreateExperimentOptions = {
+  definition?: SDCPN;
+  extensions?: PetrinautExtensionSettings;
+  ownership?: {
+    signal: AbortSignal;
+    finished: Promise<void>;
+    cancel: () => void;
+    onError?: (message: string) => void;
+  };
+};
+
 export type ExperimentRecord = {
   id: string;
+  /** Compute controls are held until a host request captures its result. */
+  requestActive?: boolean;
   name: string;
   createdAt: number;
   scenarioId: string | null;
@@ -245,7 +260,10 @@ export type ExperimentsContextValue = {
    * once a sweep's session is registered (or a plain run's backend selection
    * has begun). Selects nothing: the caller decides what opens, and when.
    */
-  createExperiment: (input: CreateExperimentInput) => Promise<ExperimentRecord>;
+  createExperiment: (
+    input: CreateExperimentInput,
+    options?: CreateExperimentOptions,
+  ) => Promise<ExperimentRecord>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection up to the run count. */

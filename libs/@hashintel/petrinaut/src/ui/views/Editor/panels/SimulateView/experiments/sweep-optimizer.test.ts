@@ -5,16 +5,18 @@ import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import { buildAdHocSweepAxes } from "../../../../../../react/experiments/parameter-grid";
 import {
+  buildSweepOptimizationInput,
+  type SweepOptimizationExperiment,
+} from "../../../../../../react/experiments/sweep-optimization";
+import {
   sirOptimizationConstraints,
   sirOptimizationMetric,
   sirOptimizationScenario,
 } from "../../../../../../react/optimizations/sir-optimization-input.fixtures";
 import { makeExperiment } from "./experiments-story-fixtures";
 import {
-  buildSweepOptimizationInput,
   startSweepStudy,
   sweepOptimizationMetric,
-  type SweepOptimizationExperiment,
   type SweepStudyStarter,
 } from "./sweep-optimizer";
 
@@ -236,7 +238,7 @@ describe("buildSweepOptimizationInput", () => {
       metricId: "infected",
       direction: "maximize",
     });
-    expect(input.name).toBe("Mixed sweep · Maximize Infected");
+    expect(input.name).toBe("Mixed sweep");
   });
 
   it("throws the schema's rejection when the steps exceed the trial cap", () => {

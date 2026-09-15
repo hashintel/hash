@@ -134,6 +134,7 @@ export const createSweepTrialEvaluator = ({
   experimentId,
   axes,
   metricId,
+  refineOnSettle = true,
   navigateSweep,
 }: {
   experimentId: string;
@@ -141,6 +142,7 @@ export const createSweepTrialEvaluator = ({
   axes: readonly ExperimentParameterAxis[];
   /** The experiment metric the study optimizes. */
   metricId: string;
+  refineOnSettle?: boolean;
   navigateSweep: ExperimentsActionsValue["navigateSweep"];
 }): SweepTrialEvaluator => {
   /** Where the sweep is parked once the study is over; "none" while it runs. */
@@ -234,7 +236,7 @@ export const createSweepTrialEvaluator = ({
       }
       parked = next;
       const point = bestPoint ?? lastPoint;
-      if (point !== null) {
+      if (point !== null && refineOnSettle) {
         // The sweep may be gone already (its experiment removed): nothing
         // left to park.
         void navigateSweep(experimentId, point).catch(() => undefined);
