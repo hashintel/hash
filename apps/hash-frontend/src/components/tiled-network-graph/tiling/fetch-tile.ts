@@ -896,6 +896,18 @@ export interface SaltileSession {
   readonly deliverySpanLog2: number;
   /** Deepest requestable zoom the manifest allows. */
   readonly maxZoom: number;
+  /**
+   * The deepest tile zoom at which this session's view still delivers new
+   * points, from its manifest's `scopeSchedule.maxZoom` — past it every tile
+   * repeats accumulated content. Distinct from both the wire ceiling
+   * {@link ATLAS_TILE_MAX_ZOOM} and {@link SaltileSession.maxZoom} (the
+   * generation's own route-validity bound): this is the *useful* depth for the
+   * resolved view, which may sit shallower than either. The session carries it
+   * so the depth travels with the view it belongs to; {@link getSaltileSession}
+   * mirrors the live session's copy into {@link getAtlasTileMaxZoom} for the
+   * camera.
+   */
+  readonly tileMaxZoom: number;
   /** Cap on the tile list of one edges request (manifest `limits.edgesTiles`). */
   readonly edgesTiles: number;
 }
@@ -905,13 +917,13 @@ const manifestUrl = (baseUrl: string, generation: string): string =>
   `${baseUrl}/generation/${generation}/manifest`;
 
 /**
- * The deepest tile zoom at which this session's view still delivers new points,
- * from its manifest's `scopeSchedule.maxZoom` — past it every tile repeats
- * accumulated content; `null` until the first session bootstraps. Distinct from
- * both the wire ceiling {@link ATLAS_TILE_MAX_ZOOM} and the generation's own
- * `bucketSchedule.maxZoom` (the route-validity bound the session retains as
- * `maxZoom`): this is the *useful* depth for the resolved view, which may sit
- * shallower than either.
+ * The live session's {@link SaltileSession.tileMaxZoom}; `null` until the first
+ * session bootstraps. The session field is the value's home — this mirror
+ * exists because the camera reads it through `useSyncExternalStore`, which
+ * needs a synchronous snapshot no promise can give. Written only by
+ * {@link getSaltileSession}, and only while the bootstrap that resolved it is
+ * still the cached population: a superseded bootstrap resolving late publishes
+ * nothing, so a stale view's depth never bounds the live camera.
  */
 let atlasTileMaxZoom: number | null = null;
 const tileMaxZoomListeners = new Set<() => void>();
@@ -1026,12 +1038,6 @@ const fetchSaltileSession = async (
     }
   }
 
-  // Publish the resolved view's tile max-zoom — the deepest zoom that still
-  // delivers new points (see {@link getAtlasTileMaxZoom}) — so a view driving
-  // the camera can bound its zoom range and requested tile depth by it.
-  // Per-session rather than per-generation, so it lands on every bootstrap.
-  publishAtlasTileMaxZoom(manifest.scopeSchedule.maxZoom);
-
   return {
     generation: current.generation,
     generationBytes: generationBytes(current.generation),
@@ -1039,6 +1045,7 @@ const fetchSaltileSession = async (
     variantIndex: 0,
     deliverySpanLog2,
     maxZoom: manifest.bucketSchedule.maxZoom,
+    tileMaxZoom: manifest.scopeSchedule.maxZoom,
     edgesTiles: manifest.limits.edgesTiles,
   };
 };
@@ -1064,13 +1071,26 @@ export const getSaltileSession = (baseUrl: string): Promise<SaltileSession> => {
   if (cached) {
     return cached;
   }
-  const pending = fetchSaltileSession(baseUrl).catch((error: unknown) => {
-    // Never cache a rejection: the next caller should get a fresh attempt.
-    if (sessionCache.get(baseUrl) === pending) {
-      sessionCache.delete(baseUrl);
-    }
-    throw error;
-  });
+  const pending = fetchSaltileSession(baseUrl)
+    .then((session) => {
+      // Publish the view's tile max-zoom only while this bootstrap still owns the origin. A
+      // bootstrap superseded during its manifest round trip resolves after its promise left the
+      // cache, and the session it resolved answers for a view — a filter, a principal, a
+      // generation — that is no longer the live one, so its depth must not bound the live camera.
+      // Identity rather than a flag, for the same reason as {@link canReplaceAtlasSession}: the
+      // memoized promise is the population's name.
+      if (sessionCache.get(baseUrl) === pending) {
+        publishAtlasTileMaxZoom(session.tileMaxZoom);
+      }
+      return session;
+    })
+    .catch((error: unknown) => {
+      // Never cache a rejection: the next caller should get a fresh attempt.
+      if (sessionCache.get(baseUrl) === pending) {
+        sessionCache.delete(baseUrl);
+      }
+      throw error;
+    });
   sessionCache.set(baseUrl, pending);
   return pending;
 };
