@@ -10,7 +10,6 @@ import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
   classicNodeBoxStyle,
   classicNodeLabelStyle,
-  classicNodeRowStyle,
 } from "../../../styles/classic-node-layout";
 import { nodeFocusStyle } from "../../../styles/focus";
 import {
@@ -18,6 +17,7 @@ import {
   transitionSurfaceStyle,
 } from "../../../styles/node-surface";
 import { handleStyling } from "../../../styles/styling";
+import { iconBadgeStyle } from "./node-card";
 import { useTransitionFiringAnimation } from "./use-transition-firing-animation";
 
 import type { TransitionNodeType } from "./react-flow-types";
@@ -29,29 +29,49 @@ const containerStyle = css({
 });
 
 const transitionBoxStyle = css({
-  // Tighter than the circle's, so four lines of a name and the two rows
-  // around them fit the square with room to spare.
-  padding: "[2px 10px]",
-  // The flat box leaves less room for a name than a circle does, so its
-  // three lines are set smaller.
-  fontSize: "[13px]",
+  display: "flex",
+  alignItems: "center",
+  gap: "[10px]",
+  padding: "[6px 12px]",
+  textAlign: "left",
 });
 
-const transitionRowStyle = css({
-  height: "[12px]",
+const transitionIconStyle = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[28px]",
+  height: "[28px]",
+  flexShrink: "0",
+  color: "neutral.s80",
+});
+
+const transitionTextStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[2px]",
+  minWidth: "0",
 });
 
 const transitionLabelStyle = css({
-  lineClamp: "4",
+  lineClamp: "2",
+});
+
+const transitionTypeStyle = css({
+  fontSize: "[11px]",
+  lineHeight: "[1.2]",
+  color: "neutral.a90",
 });
 
 const stochasticIconStyle = css({
   color: "blue.s60",
-  fontSize: "lg",
 });
 
 const firingIndicatorStyle = css({
-  fontSize: "xl",
+  position: "absolute",
+  top: "[-8px]",
+  right: "[-8px]",
   color: "yellow.s60",
   opacity: "[0]",
   transform: "scale(0.5)",
@@ -65,8 +85,13 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
   positionAbsoluteY,
   selected,
 }: NodeProps<TransitionNodeType>) => {
-  // Wrap points let a long name break inside the square instead of clipping.
   const label = withLabelWrapPoints(data.label);
+  const subtitle =
+    data.lambdaType === "none"
+      ? "Transition"
+      : data.lambdaType === "stochastic"
+        ? "Stochastic"
+        : "Predicate";
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -96,20 +121,22 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         ref={boxRef}
         className={`${nodeSurfaceStyle} ${nodeFocusStyle({ focus })} ${transitionSurfaceStyle} ${classicNodeBoxStyle} ${transitionBoxStyle}`}
       >
-        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
+        <div className={transitionIconStyle}>
+          <Icon name="squareFilled" size="lg" />
           {data.lambdaType === "stochastic" ? (
-            <div className={stochasticIconStyle}>
-              <Icon name="lambda" size="sm" />
+            <div className={`${iconBadgeStyle} ${stochasticIconStyle}`}>
+              <Icon name="lambda" size="xs" />
             </div>
           ) : null}
         </div>
-        <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
-          {label}
-        </div>
-        <div className={`${classicNodeRowStyle} ${transitionRowStyle}`}>
-          <div ref={boltRef} className={firingIndicatorStyle}>
-            <Icon name="lightning" size="sm" />
+        <div className={transitionTextStyle}>
+          <div className={`${classicNodeLabelStyle} ${transitionLabelStyle}`}>
+            {label}
           </div>
+          <div className={transitionTypeStyle}>{subtitle}</div>
+        </div>
+        <div ref={boltRef} className={firingIndicatorStyle}>
+          <Icon name="lightning" size="sm" />
         </div>
       </div>
       <Handle

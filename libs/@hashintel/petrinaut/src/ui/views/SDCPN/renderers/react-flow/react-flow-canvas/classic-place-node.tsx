@@ -24,11 +24,16 @@ const containerStyle = css({
 });
 
 const placeBoxStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "[2px]",
+  textAlign: "center",
   // A circle, since the node is square.
   borderRadius: "[50%]",
   // Wider than the transition's, to keep the name clear of the curve.
-  padding: "[8px 20px]",
-  fontSize: "[15px]",
+  padding: "[8px 14px]",
 });
 
 const placeRowStyle = css({

@@ -1,15 +1,3 @@
-/**
- * The layout the classic place and transition share: a centred name with a
- * fixed row above and below it.
- *
- * The rows are always in the layout, so a name sits at the same height on
- * every node and whatever a row holds -- the dynamics or lambda mark above,
- * a token count or the firing bolt below -- appears over or under the name
- * rather than pushing it aside. Each node sets its own row height and font
- * size, since a transition has less height to give than a circle, and two
- * classes setting one property would leave the winner to Panda's ordering.
- */
-
 import { css } from "@hashintel/ds-helpers/css";
 
 /** Half a pixel heavier than the compact card's hairline. */
@@ -25,17 +13,11 @@ const OUTLINE_WIDTH = "1.5px";
  * none.
  */
 export const classicNodeBoxStyle = css({
-  "--node-outline-ring": `0 0 0 ${OUTLINE_WIDTH} var(--node-outline-color, currentColor)`,
+  "--node-outline-ring": `0 0 0 ${OUTLINE_WIDTH} color-mix(in oklab, var(--node-outline-color, currentColor) 75%, var(--colors-neutral-s70))`,
   "--node-elevation": "0px 2px 9px rgba(0, 0, 0, 0.04)",
   _hover: {
     "--node-elevation": "0px 4px 11px rgba(0, 0, 0, 0.1)",
   },
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  gap: "[6px]",
-  textAlign: "center",
 });
 
 export const classicNodeRowStyle = css({
@@ -46,12 +28,9 @@ export const classicNodeRowStyle = css({
   lineHeight: "[1]",
 });
 
-/**
- * How many lines a name may take is left to each node: a circle has the
- * height for three, a flat transition for one. Both classes setting the
- * clamp would leave the winner to Panda's own ordering.
- */
 export const classicNodeLabelStyle = css({
+  fontSize: "[13px]",
+  fontWeight: "medium",
   maxWidth: "[100%]",
   overflowWrap: "break-word",
   textOverflow: "ellipsis",
