@@ -994,8 +994,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                   />
                 </div>
               ) : null}
-              {boundsError ? (
-                <div className={fieldErrorStyle}>{boundsError}</div>
+              {error ? (
+                <div className={fieldErrorStyle} role="alert">
+                  {error}
+                </div>
               ) : null}
             </PortalContainerContext>
           </div>
