@@ -155,7 +155,7 @@ async fn run_atlas(
 
     let service_secret = cli::SecretString::from(args.service_secret);
 
-    let mut storage = Storage::in_temp_dir();
+    let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
     if let Some(s3) = args.s3.client().await.change_context(GraphError)? {
         storage.set_s3(s3);
     }
