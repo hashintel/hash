@@ -28,7 +28,6 @@ interface Turn {
   readonly baselineMessages: ReadonlySet<string>;
   delegationId: string | null;
   submissionId?: string;
-  sawBusy: boolean;
 }
 
 type Submit = ConstructorParameters<
@@ -121,15 +120,22 @@ export class LiveBrunchBridge {
       return;
     }
     this.#seenInputs.add(input.id);
+    const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
+    if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
     if (!input.text.trim()) {
       logLiveDiagnostic("input.ignored", {
         inputId: input.id,
+        delegationId,
         reason: "empty",
       });
+      if (delegationId !== null) {
+        this.#dependencies.appendInstructions(
+          "No usable speech was captured for this turn. Ask the person to continue without assuming an answer.",
+          delegationId,
+        );
+      }
       return;
     }
-    const delegationId = [...this.#unclaimedDelegations].at(-1) ?? null;
-    if (delegationId !== null) this.#unclaimedDelegations.delete(delegationId);
     if (
       input.text.length > 32_000 ||
       this.#waitingForComposer ||
@@ -157,8 +163,6 @@ export class LiveBrunchBridge {
         ...this.#chat.segments.map((segment) => segment.messageId),
         ...(this.#chat.snapshot?.messages.map((message) => message.id) ?? []),
       ]),
-      sawBusy:
-        this.#chat.status === "submitted" || this.#chat.status === "streaming",
     };
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
@@ -265,9 +269,6 @@ export class LiveBrunchBridge {
       this.#interruptTurns();
       return;
     }
-    if (chat.status === "submitted" || chat.status === "streaming") {
-      for (const turn of this.#turns) turn.sawBusy = true;
-    }
     this.#settle();
   }
 
@@ -346,7 +347,6 @@ export class LiveBrunchBridge {
         this.#unserved(turn.delegationId);
         continue;
       }
-      if (!turn.sawBusy) continue;
       if (settlements.some((settlement) => !settlement)) continue;
       if (
         [...messages].some((id) =>
@@ -517,7 +517,20 @@ export class LiveBrunchBridge {
       const segments = sourceSegments.filter(
         (segment) => !this.#offeredSegments.has(segment.id),
       );
-      if (!segments.length) continue;
+      if (!segments.length) {
+        logLiveDiagnostic("brunch.already-offered", {
+          inputId: turn.inputId,
+          submissionId: turn.submissionId,
+          delegationId: turn.delegationId,
+        });
+        if (turn.delegationId !== null) {
+          this.#dependencies.appendInstructions(
+            "This answer was already delivered through another live turn. Continue the interview without repeating it.",
+            turn.delegationId,
+          );
+        }
+        continue;
+      }
       for (const segment of segments) this.#offeredSegments.add(segment.id);
       // Freeze complete prose once. Sending is neither exact relay nor playback proof.
       const source = segments.map((segment) => segment.text).join("\n\n");

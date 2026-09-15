@@ -165,6 +165,21 @@ test("offers one frozen correlated answer only after complete settlement, never 
   );
 });
 
+test("offers a completed correlated answer across a ready-to-ready transition", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    null,
+  );
+});
+
 test("waits for observed prose rendered after ready settlement", async () => {
   const fixture = setup();
   await fixture.bridge.accept({ id: "one", text: "Seven, not four" });
@@ -372,6 +387,28 @@ test("duplicates, empty input and one waiting composer submission never create a
   expect(fixture.submit).toHaveBeenCalledTimes(2);
 });
 
+test("empty finalized input resolves its delegation before a later turn", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("empty-delegation");
+  await fixture.bridge.accept({ id: "empty", text: "  " });
+  await fixture.bridge.accept({ id: "next", text: "Continue" });
+  fixture.update({ status: "streaming" });
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("No usable speech"),
+    "empty-delegation",
+  );
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    null,
+  );
+});
+
 test("uncertain admission is visible and never automatically replayed", async () => {
   const fixture = setup();
   fixture.submit.mockRejectedValueOnce(new Error("Unknown admission"));
@@ -532,6 +569,10 @@ test("two inputs answered by one submission offer its canonical prose only once"
   expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
     segment().text,
     "first-delegation",
+  );
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("already delivered"),
+    "second-delegation",
   );
   expect(fixture.notice).not.toHaveBeenCalledWith(
     expect.stringContaining("without a spoken answer"),
