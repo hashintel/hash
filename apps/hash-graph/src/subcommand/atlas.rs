@@ -138,6 +138,7 @@ struct AtlasTelemetry {
 }
 
 /// Runs HTTP and retains generation maintenance through listener and request failures.
+#[expect(clippy::significant_drop_tightening, reason = "false-positive")]
 async fn run_atlas(
     args: AtlasServeArgs,
     telemetry: &AtlasTelemetry,
