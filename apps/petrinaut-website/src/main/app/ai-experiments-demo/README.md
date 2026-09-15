@@ -20,7 +20,7 @@ the initial infected share demonstrates parameter search, not a health intervent
 This demo exercises Petrinaut's tool contract and presentation. Brunch owns
 its production tool selection, transport integration, and agent behavior.
 See <a href="/architecture/core/ai/client-integration">AI client integration</a> for the responsibility
-boundary and <a href="/architecture/react/ai-experiments/ai-created-experiments#try-the-demo">AI-created experiments</a>
+boundary and <a href="/architecture/react/experiment-host/ai-created-experiments#try-the-demo">AI-created experiments</a>
 for the demo steps.
 
 The user guide covers [AI chat](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/docs/ai-assistant.md#experiments-from-chat)
