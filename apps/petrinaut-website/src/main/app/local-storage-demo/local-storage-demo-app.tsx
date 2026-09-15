@@ -907,9 +907,6 @@ export const LocalStorageDemoApp = ({
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
-                construction={
-                  constructionSelected || productConstructionSelected
-                }
                 binding={rootArcBrowser.binding}
                 liveHash={observedLiveHash}
               />
@@ -1012,9 +1009,7 @@ export const LocalStorageDemoApp = ({
     brunchSelected,
     brunchVoiceMode,
     batchedConstructionSelected,
-    constructionSelected,
     observedLiveHash,
-    productConstructionSelected,
     rootArcBrowser,
     conversationTracker,
     conversationId,

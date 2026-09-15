@@ -448,6 +448,95 @@ test("returns a fixture-scoped mutation result through the same Flue client", as
   });
 });
 
+test("omits hidden server tools while delivering hidden browser tools for execution", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-hidden",
+    submissionId: "submission-hidden",
+    uid: "uid-hidden",
+  };
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    await options?.onEvent?.({
+      type: "message-started",
+      conversationId: "conversation-stable",
+      messageId: "assistant-hidden",
+      submissionId: admission.submissionId,
+      turnId: "turn-hidden",
+      position: { batch: 1, index: 0 },
+    });
+    for (const [index, toolName] of [
+      "brunch_mark_question",
+      "layout_petrinaut_net",
+      "mutate_petrinaut_net",
+    ].entries()) {
+      await options?.onEvent?.({
+        type: "tool-input",
+        conversationId: "conversation-stable",
+        messageId: "assistant-hidden",
+        toolCallId: `tool-${index}`,
+        toolName,
+        input: {},
+        position: { batch: 1, index: index + 1 },
+      });
+    }
+    await options?.onEvent?.({
+      type: "message-completed",
+      conversationId: "conversation-stable",
+      messageId: "assistant-hidden",
+      position: { batch: 1, index: 4 },
+    });
+    await options?.onEvent?.({
+      type: "submission-settled",
+      conversationId: "conversation-stable",
+      submissionId: admission.submissionId,
+      outcome: "completed",
+      position: { batch: 1, index: 5 },
+    });
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send, wait } as Pick<
+      FlueClient,
+      "send" | "wait"
+    > as FlueClient),
+    new BrunchPanelConversationTracker(),
+  );
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: undefined,
+    messages: [
+      {
+        id: "user-hidden",
+        role: "user",
+        parts: [{ type: "text", text: "Arrange and update the net." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  const chunks = [];
+  const reader = stream.getReader();
+  for (;;) {
+    const result = await reader.read();
+    if (result.done) break;
+    chunks.push(result.value);
+  }
+
+  expect(chunks).toContainEqual(
+    expect.objectContaining({
+      type: "tool-input-available",
+      toolName: "mutate_petrinaut_net",
+    }),
+  );
+  expect(chunks).toContainEqual(
+    expect.objectContaining({
+      type: "tool-input-available",
+      toolName: "layout_petrinaut_net",
+    }),
+  );
+  expect(JSON.stringify(chunks)).not.toContain("brunch_mark_question");
+});
+
 test("refuses fixture traffic when the mounted Flue route is unavailable", async () => {
   const transport = createUnavailableBrunchPanelTransport(
     "Fixture route unavailable.",

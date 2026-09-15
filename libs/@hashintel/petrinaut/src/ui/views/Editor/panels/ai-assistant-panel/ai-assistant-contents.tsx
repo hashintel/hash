@@ -82,6 +82,7 @@ export type AiAssistantContentsProps = {
   primaryAttention?: boolean;
   primaryLabel?: string;
   resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  hiddenToolNames?: ReadonlySet<string>;
   workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
@@ -540,6 +541,7 @@ type MessageHandlersRef = RefObject<{
 const AiAssistantMessage = memo(
   ({
     handlersRef,
+    hiddenToolNames,
     interactiveTools,
     message,
     experimentStates,
@@ -547,6 +549,7 @@ const AiAssistantMessage = memo(
     resolveToolPresentation,
   }: {
     handlersRef: MessageHandlersRef;
+    hiddenToolNames?: ReadonlySet<string>;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
     experimentStates?: Record<string, AiExperimentState>;
@@ -558,6 +561,7 @@ const AiAssistantMessage = memo(
       message,
       interactiveTools,
       resolveToolPresentation,
+      hiddenToolNames,
     );
     const hasVoiceOrigin =
       role === "user" && message.metadata?.source === "voice";
@@ -650,6 +654,7 @@ export const AiAssistantContents = ({
   isOpen = true,
   hostAttentionCount = 0,
   hostTabSelected: controlledHostTabSelected,
+  hiddenToolNames,
   messages,
   onClearMessages,
   onClose,
@@ -1113,6 +1118,7 @@ export const AiAssistantContents = ({
             )}
             {messages.map((message) => (
               <AiAssistantMessage
+                hiddenToolNames={hiddenToolNames}
                 interactiveTools={interactiveTools}
                 key={message.id}
                 message={message}

@@ -4,7 +4,12 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
-import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
+import {
+  getToolName,
+  isToolPart,
+  toToolRenderItem,
+  type ToolRenderItem,
+} from "./tool-list";
 
 import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
@@ -21,6 +26,8 @@ export type MessageRenderItem =
   | { type: "experiment"; key: string; part: ExperimentToolPart }
   | { type: "tools"; key: string; tools: ToolRenderItem[] };
 
+const emptyHiddenToolNames: ReadonlySet<string> = new Set();
+
 export const isPartActive = (
   part: PetrinautAiMessage["parts"][number],
 ): boolean =>
@@ -33,6 +40,7 @@ export const getMessageRenderItems = (
   message: PetrinautAiMessage,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
   resolveToolPresentation?: PetrinautAiToolPresentationResolver,
+  hiddenToolNames: ReadonlySet<string> = emptyHiddenToolNames,
 ): MessageRenderItem[] => {
   const items: MessageRenderItem[] = [];
   let pendingTools: ToolRenderItem[] = [];
@@ -83,6 +91,9 @@ export const getMessageRenderItems = (
     }
 
     if (isToolPart(part)) {
+      if (hiddenToolNames.has(getToolName(part))) {
+        return;
+      }
       const tool = toToolRenderItem(
         message,
         part,

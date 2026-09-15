@@ -116,6 +116,7 @@ describe("Brunch-named Petrinaut tools", () => {
     expect(tools.map(({ toolName }) => toolName).toSorted()).toEqual(
       [...brunchPetrinautDynamicToolNames].toSorted(),
     );
+    expect(toolNamed(tools, "layout_petrinaut_net").visibility).toBe("hidden");
     expect(
       createBrunchPetrinautTools({ readTitle: () => "Net" }).some(
         ({ toolName }) => toolName === "mutate_petrinaut_net",

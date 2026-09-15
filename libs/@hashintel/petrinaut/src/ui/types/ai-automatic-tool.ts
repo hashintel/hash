@@ -40,6 +40,8 @@ export type PetrinautAiAutomaticToolExecuteParams = {
 export type PetrinautAiAutomaticTool = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
   toolName: string;
+  /** Whether this implementation detail appears in the transcript. Defaults to visible. */
+  visibility?: "visible" | "hidden";
   inputSchema: PetrinautAiAutomaticToolSchema<unknown>;
   outputSchema: PetrinautAiAutomaticToolSchema<unknown>;
   /** Execute once; Petrinaut owns validated output insertion and continuation. */

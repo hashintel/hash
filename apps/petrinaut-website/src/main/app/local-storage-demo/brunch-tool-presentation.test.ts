@@ -47,7 +47,8 @@ describe("Brunch tool presentation", () => {
         error: undefined,
       }),
     ).toEqual({
-      title: "Read skill resource: sdcpn-modelling / references/profile.md",
+      title:
+        "Reviewed modelling guidance: sdcpn-modelling / references/profile.md",
     });
   });
 
@@ -84,7 +85,7 @@ describe("Brunch tool presentation", () => {
     ],
     [
       { includeContent: false, includeSources: false },
-      "Checked workpiece revision",
+      "Checked Ledger revision",
     ],
     [{ includeContent: true, includeSources: true }, "Read ledger"],
     [{}, "Read ledger"],
@@ -133,7 +134,7 @@ describe("Brunch tool presentation", () => {
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Reading skill resource: %E0%A4%A" });
+    ).toEqual({ title: "Reviewing modelling guidance: %E0%A4%A" });
   });
 
   test("does not present hidden markers or unknown tools", () => {

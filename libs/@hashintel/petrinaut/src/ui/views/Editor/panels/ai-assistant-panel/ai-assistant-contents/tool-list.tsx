@@ -455,8 +455,8 @@ export const toToolRenderItem = (
         title: presentation.title,
         detail:
           state === "output-error"
-            ? (errorText ?? presentation.detail)
-            : presentation.detail,
+            ? (errorText ?? presentation.detail ?? defaultSummary.detail)
+            : (presentation.detail ?? defaultSummary.detail),
       }
     : defaultSummary;
 

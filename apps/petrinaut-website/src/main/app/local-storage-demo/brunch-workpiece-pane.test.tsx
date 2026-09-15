@@ -37,7 +37,7 @@ const messages = [
   },
 ];
 
-test("renders a readable document without a floating overlay and keeps raw records in details", () => {
+test("renders only the readable Ledger document without developer metadata", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane
       messages={messages}
@@ -47,8 +47,10 @@ test("renders a readable document without a floating overlay and keeps raw recor
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
   expect(html).not.toContain("position:fixed");
-  expect(html).toContain("<details");
-  expect(html).not.toContain("<details open");
+  expect(html).not.toContain("<details");
+  expect(html).not.toContain("Revision 1");
+  expect(html).not.toContain("SHA-256");
+  expect(html).not.toContain("why-call");
 });
 
 test("continues to render retained brunch_why results", () => {
@@ -75,10 +77,10 @@ test("continues to render retained brunch_why results", () => {
     />,
   );
   expect(html).toContain("<h1>Actual tool workpiece</h1>");
-  expect(html).toContain("State queried by why-call");
+  expect(html).not.toContain("why-call");
 });
 
-test("shows actual recorded tool output and refuses to call a hand-edited document reconciled", () => {
+test("warns when the live document differs without exposing raw tool output", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane
       messages={messages}
@@ -86,16 +88,11 @@ test("shows actual recorded tool output and refuses to call a hand-edited docume
       liveHash={"c".repeat(64)}
     />,
   );
-  expect(html).toContain("# Actual tool workpiece");
   expect(html).toContain("Live document hash differs");
-  expect(html).toContain("Temporal context is not support.");
+  expect(html).not.toContain("Temporal context is not support.");
 });
 
-const settlementMessage = (
-  revisionId: string,
-  markdown?: string,
-  mutation?: unknown,
-) => ({
+const settlementMessage = (revisionId: string, markdown?: string) => ({
   role: "assistant",
   purpose: "assistant",
   parts: [
@@ -110,38 +107,9 @@ const settlementMessage = (
         sha256: "d".repeat(64),
         ordinal: 2,
         ...(markdown === undefined ? {} : { markdown }),
-        ...(mutation === undefined ? {} : { mutation }),
       },
     },
   ],
-});
-
-test("shows the verified full-replacement mutation window", () => {
-  const html = renderToStaticMarkup(
-    <BrunchWorkpiecePane
-      messages={[
-        settlementMessage("settled-call", "# Changed account", {
-          baseRevisionId: "prior-call",
-          beforeSha256: "a".repeat(64),
-          afterSha256: "b".repeat(64),
-          commonPrefixUtf16: 2,
-          commonSuffixUtf16: 3,
-          removed: { start: 2, end: 8, utf16Length: 6, sha256: "c".repeat(64) },
-          inserted: {
-            start: 2,
-            end: 11,
-            utf16Length: 9,
-            sha256: "d".repeat(64),
-          },
-        }),
-      ]}
-      binding={binding}
-      liveHash={undefined}
-    />,
-  );
-  expect(html).toContain("Changed from revision prior-call");
-  expect(html).toContain("removed 6 UTF-16 units [2, 8)");
-  expect(html).toContain("inserted 9 [2, 11)");
 });
 
 test("shows successful settlement output without requiring a model-chosen query", () => {
@@ -152,9 +120,8 @@ test("shows successful settlement output without requiring a model-chosen query"
       liveHash={undefined}
     />,
   );
-  expect(html).toContain("# Settled account");
-  expect(html).toContain("Recorded settlement from settled-call");
-  expect(html).toContain("not a current-authority query");
+  expect(html).toContain("<h1>Settled account</h1>");
+  expect(html).not.toContain("settled-call");
   expect(html).not.toContain("Unvalidated input must not be displayed");
 });
 
@@ -169,12 +136,11 @@ test("a later settlement replaces the displayed query while retaining the record
       liveHash={undefined}
     />,
   );
-  expect(html).toContain("# Later account");
-  expect(html).toContain("Recorded settlement from later-call");
-  expect(html).toContain("Temporal context is not support.");
+  expect(html).toContain("<h1>Later account</h1>");
   expect(html).toContain(
-    "This why answer predates a later workpiece settlement",
+    "recorded explanation predates a newer Ledger revision",
   );
+  expect(html).not.toContain("Temporal context is not support.");
 });
 
 test("an explicit later query replaces a recorded settlement", () => {
@@ -188,9 +154,9 @@ test("an explicit later query replaces a recorded settlement", () => {
       liveHash={undefined}
     />,
   );
-  expect(html).toContain("# Actual tool workpiece");
-  expect(html).toContain("State queried by why-call");
-  expect(html).not.toContain("# Earlier account");
+  expect(html).toContain("<h1>Actual tool workpiece</h1>");
+  expect(html).not.toContain("why-call");
+  expect(html).not.toContain("<h1>Earlier account</h1>");
 });
 
 test("a later pointer-only legacy settlement marks the displayed account stale", () => {
@@ -204,8 +170,8 @@ test("a later pointer-only legacy settlement marks the displayed account stale",
       liveHash={undefined}
     />,
   );
-  expect(html).toContain("# Earlier account");
-  expect(html).toContain("A later settlement exists");
+  expect(html).toContain("<h1>Earlier account</h1>");
+  expect(html).toContain("A newer Ledger revision exists");
   expect(html).not.toContain("Unvalidated input must not be displayed");
 });
 
@@ -232,7 +198,7 @@ test("does not reconstruct current state from historical revision input", () => 
     />,
   );
   expect(html).not.toContain("History is not state");
-  expect(html).toContain("Current state has not been queried");
+  expect(html).not.toContain("Current state has not been queried");
 });
 
 test("folds unique validated settlement identities without treating queries as activity", () => {

@@ -55,7 +55,7 @@ A host may also enable live history following, as the local Brunch panel does. T
 
 In Brunch construction conversations, the **Ledger** tab shows the saved account as a readable document while **Chat** contains the transcript. Ledger updates when Brunch saves a revision, without covering the canvas or opening another panel. Each unseen settled revision adds to Ledger's badge while Chat is selected or the panel is closed. You can read Ledger while continuing to type in the same composer, then switch to Chat to inspect the reply; if a response completes, errors, or is stopped while Ledger is visible, Chat receives an activity dot. Closing and reopening the assistant retains the selected tab for that mounted conversation.
 
-The revision label describes the recorded account, not a promise of continuing freshness. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to read the workpiece or explain the relevant model part again when you need a fresh answer. **Recorded details** expands the revision identifiers, exact saved Markdown and structured explanation results; those records do not prove the modelling rationale is correct.
+Ledger presents the saved account without internal revision hashes, mutation ranges, or duplicate raw Markdown. Warnings remain visible when a later revision exists or an explanation no longer matches the observed net. Ask Brunch to refresh the Ledger or explain the relevant model part again when you need a fresh answer.
 
 ### Prepared local demo fixture
 
