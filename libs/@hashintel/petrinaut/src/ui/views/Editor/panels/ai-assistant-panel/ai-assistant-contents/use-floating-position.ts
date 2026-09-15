@@ -3,9 +3,9 @@ import { useRef, useState } from "react";
 import {
   resizeFloatingPanel,
   type FloatingPanelBounds,
+  type FloatingResizeDirection,
 } from "./use-floating-position/resize-floating-panel";
 
-import type { ResizableEdge } from "../../../../../resize/resize-handle";
 import type { KeyboardEvent, PointerEvent } from "react";
 
 export const useFloatingPosition = (
@@ -20,7 +20,7 @@ export const useFloatingPosition = (
     x: number;
     y: number;
     bounds: FloatingPanelBounds;
-    edge?: ResizableEdge;
+    direction?: FloatingResizeDirection;
   } | null>(null);
 
   const getBounds = () => {
@@ -43,7 +43,7 @@ export const useFloatingPosition = (
 
   const onPointerDown = (
     event: PointerEvent<HTMLElement>,
-    edge?: ResizableEdge,
+    direction?: FloatingResizeDirection,
   ) => {
     if (event.button !== 0 || dragRef.current) {
       return;
@@ -52,13 +52,13 @@ export const useFloatingPosition = (
     if (!bounds) {
       return;
     }
-    if (edge) {
+    if (direction) {
       event.preventDefault();
     }
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
       bounds,
-      edge,
+      direction,
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
@@ -71,12 +71,11 @@ export const useFloatingPosition = (
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
-    if (drag.edge) {
-      const delta =
-        drag.edge === "left" || drag.edge === "right"
-          ? event.clientX - drag.x
-          : event.clientY - drag.y;
-      const resized = resizeFloatingPanel(drag.bounds, drag.edge, delta);
+    if (drag.direction) {
+      const resized = resizeFloatingPanel(drag.bounds, drag.direction, {
+        x: event.clientX - drag.x,
+        y: event.clientY - drag.y,
+      });
       setPosition({
         right: resized.right,
         top: resized.top,
@@ -143,9 +142,9 @@ export const useFloatingPosition = (
       onLostPointerCapture,
       onKeyDown,
     },
-    getResizeHandleProps: (edge: ResizableEdge) => ({
+    getResizeHandleProps: (direction: FloatingResizeDirection) => ({
       onPointerDown: (event: PointerEvent<HTMLElement>) =>
-        onPointerDown(event, edge),
+        onPointerDown(event, direction),
       onPointerMove,
       onLostPointerCapture,
     }),

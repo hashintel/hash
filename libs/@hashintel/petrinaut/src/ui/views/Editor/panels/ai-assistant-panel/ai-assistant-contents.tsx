@@ -931,11 +931,22 @@ export const AiAssistantContents = ({
         }}
       >
         {isFloating && !isVoiceDockCollapsed ? (
-          (["top", "right", "bottom", "left"] as const).map((edge) => (
+          (
+            [
+              "top",
+              "right",
+              "bottom",
+              "left",
+              "top-left",
+              "top-right",
+              "bottom-left",
+              "bottom-right",
+            ] as const
+          ).map((direction) => (
             <FloatingResizeHandle
-              key={edge}
-              edge={edge}
-              {...getResizeHandleProps(edge)}
+              key={direction}
+              direction={direction}
+              {...getResizeHandleProps(direction)}
             />
           ))
         ) : (
