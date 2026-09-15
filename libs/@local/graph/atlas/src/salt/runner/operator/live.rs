@@ -3,7 +3,7 @@ use core::panic::UnwindSafe;
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use tokio_postgres::Client;
 
-use super::{Options, RunError, Summary, resolve, summary};
+use super::{Options, RunError, Summary, resolve};
 use crate::{
     dataset::{TemporalAxes, postgres::PostgresDataset},
     device::PinnedDevice,
@@ -24,7 +24,7 @@ use crate::{
 /// fails. The snapshot opens before document resolution.
 pub(crate) async fn live<P>(
     client: &mut Client,
-    root: GenerationRoot,
+    root: &GenerationRoot,
     device: PinnedDevice,
     axes: TemporalAxes,
     options: Options<P>,
@@ -42,11 +42,11 @@ where
         embedder,
         &resolved.classifier,
         resolved.verdicts.as_ref(),
-        &root,
+        root,
         resolved.runner,
         &options.progress,
     )
     .await?;
 
-    Ok(summary(&outcome))
+    Ok(outcome.into())
 }

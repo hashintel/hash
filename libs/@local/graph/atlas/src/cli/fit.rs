@@ -11,7 +11,13 @@ use super::embedder::{self, EmbedderArgs, EmbedderError};
 use crate::{
     dataset::TemporalAxes,
     device::PinnedDevice,
-    file::generation::GenerationRoot,
+    file::{
+        generation::{
+            GenerationRoot,
+            upload::{Promotion, Upload, UploadError},
+        },
+        storage::{Storage, error::StorageError, path::FilePath},
+    },
     progress::{NoProgress, Progress},
     salt::{
         knn::recall::RecallAdmission,
@@ -68,7 +74,7 @@ pub struct FitArgs {
     /// The trained placement's phase boundary freezes its Proximal radius from the reviewed pairs,
     /// so a corpus whose relations carry Proximal force needs one to train.
     #[arg(long, env = "HASH_GRAPH_ATLAS_VERDICTS", value_hint = ValueHint::FilePath)]
-    verdicts: Option<Utf8PathBuf>,
+    verdicts: Option<FilePath>,
 
     /// Path of a quality-thresholds document overriding the source defaults.
     ///
@@ -83,18 +89,18 @@ pub struct FitArgs {
         env = "HASH_GRAPH_ATLAS_QUALITY_THRESHOLDS",
         value_hint = ValueHint::FilePath,
     )]
-    quality_thresholds: Option<Utf8PathBuf>,
+    quality_thresholds: Option<FilePath>,
 
     /// Path of an annotation-corpus document, the classifier's training supply.
     ///
     /// The run assembles the corpus and fits the relation classifier. It then stages the corpus,
     /// the embedding table, and the model beside the generation.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS", value_hint = ValueHint::FilePath)]
-    annotations: Option<Utf8PathBuf>,
+    annotations: Option<FilePath>,
 
     /// Path of a fitted classifier artifact (.clsf) to supply in place of fitting one.
     #[arg(long, env = "HASH_GRAPH_ATLAS_CLASSIFIER", value_hint = ValueHint::FilePath)]
-    classifier: Option<Utf8PathBuf>,
+    classifier: Option<FilePath>,
 
     /// Override the trained placement's step count.
     ///
@@ -124,6 +130,25 @@ pub struct FitArgs {
     /// Defaults to `admission-report.json` in the working directory.
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
+
+    /// Whether to upload the generated results to remote storage.
+    #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
+    upload: Option<FilePath>,
+}
+
+#[derive(Debug)]
+pub struct FitUploadError(UploadError);
+
+impl fmt::Display for FitUploadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl core::error::Error for FitUploadError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        core::error::Error::source(&self.0)
+    }
 }
 
 /// One fit invocation's failure, by step.
@@ -138,6 +163,16 @@ pub enum FitError {
     Run(RunError),
     /// Writing the admission report failed.
     Io(io::Error),
+    /// Uploading the results failed.
+    Upload(FitUploadError),
+    /// Serializing the admission report failed.
+    Serialize(serde_json::Error),
+}
+
+impl From<UploadError> for FitError {
+    fn from(error: UploadError) -> Self {
+        Self::Upload(FitUploadError(error))
+    }
 }
 
 impl fmt::Display for FitError {
@@ -146,6 +181,8 @@ impl fmt::Display for FitError {
             Self::Embedder(error) => fmt::Display::fmt(error, fmt),
             Self::Run(error) => fmt::Display::fmt(error, fmt),
             Self::Io(_) => fmt.write_str("the admission report could not be written"),
+            Self::Upload(_) => fmt.write_str("uploading the results failed"),
+            Self::Serialize(_) => fmt.write_str("serializing the admission report failed"),
         }
     }
 }
@@ -156,6 +193,8 @@ impl Error for FitError {
             Self::Embedder(error) => error.source(),
             Self::Run(error) => error.source(),
             Self::Io(error) => Some(error),
+            Self::Upload(error) => Some(error),
+            Self::Serialize(error) => Some(error),
         }
     }
 }
@@ -185,26 +224,6 @@ pub struct FitVerdict {
     report: Utf8PathBuf,
     /// How long the run took.
     elapsed: Duration,
-}
-
-impl FitVerdict {
-    /// The run's summary.
-    #[must_use]
-    pub const fn summary(&self) -> &Summary {
-        &self.summary
-    }
-
-    /// Where the admission report landed.
-    #[must_use]
-    pub fn report(&self) -> &Utf8Path {
-        &self.report
-    }
-
-    /// How long the run took.
-    #[must_use]
-    pub const fn elapsed(&self) -> Duration {
-        self.elapsed
-    }
 }
 
 impl fmt::Display for FitVerdict {
@@ -239,16 +258,17 @@ impl fmt::Display for FitVerdict {
     }
 }
 
-/// One fit invocation, resolved: the run's typed options over an opened root.
+/// A prepared fit with local inputs, a generation root and an optional upload destination.
 ///
-/// `P` is the run's progress observer: [`new`](Self::new) resolves the flags into a silent run, and
-/// [`with_progress`](Self::with_progress) hands the run to an operator surface that renders it.
+/// [`Self::with_progress`] replaces the initial silent observer with `P`.
 #[derive(Debug)]
 pub struct FitCommand<P> {
     root: GenerationRoot,
     device: PinnedDevice,
     report: Utf8PathBuf,
     options: Options<P>,
+    storage: Storage,
+    upload: Option<FilePath>,
 }
 
 impl<P> FitCommand<P> {
@@ -272,6 +292,8 @@ impl<P> FitCommand<P> {
                 nn_descent: self.options.nn_descent,
                 progress,
             },
+            storage: self.storage,
+            upload: self.upload,
         }
     }
 }
@@ -280,24 +302,24 @@ impl<P> FitCommand<P>
 where
     P: Progress + Sync,
 {
-    /// Runs one production generation over the live store and returns its verdict.
+    /// Fits one generation over the live store and returns its verdict.
     ///
-    /// The hosting binary supplies the dialed store connection ([`PostgresArgs::connect`] in the
-    /// standalone shell, [`connect`] behind the graph binary's own store flags) and the embedding
-    /// provider's credential. This call pins the snapshot, so the run reads the store as of the
-    /// moment the command starts.
+    /// The store snapshot uses the temporal axes captured when fitting begins. The command writes
+    /// the admission report before uploading results. An activated generation also updates remote
+    /// current.
     ///
     /// # Errors
     ///
-    /// Returns [`FitError`] on embedding-provider preparation, fitting or report-write failure.
+    /// Returns [`FitError`] on preparation, fitting, report-write or remote-publication failure.
     ///
     /// # Panics
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
     /// CPU below the compiled baseline, on the conditions it documents.
-    ///
-    /// [`PostgresArgs::connect`]: super::PostgresArgs::connect
-    /// [`connect`]: super::connect
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "storage is active for the lifetime of the closure"
+    )]
     pub async fn run(
         self,
         client: &mut Client,
@@ -329,10 +351,18 @@ where
             .await
             .map_err(FitError::Embedder)?;
 
+        let upload = match self.upload.as_ref() {
+            Some(path) => {
+                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
+                Some(upload)
+            }
+            None => None,
+        };
+
         let started = Instant::now();
         let summary = live(
             client,
-            self.root,
+            &self.root,
             self.device,
             TemporalAxes::now(),
             self.options,
@@ -341,7 +371,24 @@ where
         .await?;
         let elapsed = started.elapsed();
 
-        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+        let mut buffer = Vec::new();
+        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .map_err(FitError::Io)?;
+
+        if let Some(upload) = upload {
+            upload.upload(summary.generation).await?;
+
+            if summary.activated {
+                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                tracing::info!(%id, "promoted generation");
+
+                if let Some(previous_error) = previous_error {
+                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
+                }
+            }
+        }
 
         Ok(FitVerdict {
             summary,
@@ -350,21 +397,24 @@ where
         })
     }
 
-    /// Runs one production generation over the dump directory at `dump` and returns its verdict.
+    /// Fits one generation from the snapshot and embeddings in `dump`.
     ///
-    /// The offline counterpart of [`run`](Self::run): the dump supplies the snapshot, its
-    /// temporal axes, and every embedding the run requests, so the command needs neither a store
-    /// connection nor a provider credential, and the generation publishes under the same root a
-    /// live fit's would.
+    /// The dump supplies the temporal axes. Report writing and remote publication follow
+    /// [`Self::run`].
     ///
     /// # Errors
     ///
-    /// Returns [`FitError`] if fitting the dump or writing the admission report fails.
+    /// Returns [`FitError`] on upload preparation, offline fitting, report-write or
+    /// remote-publication failure.
     ///
     /// # Panics
     ///
     /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first, as in
     /// [`Self::run`].
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "storage is active for the lifetime of the closure"
+    )]
     pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError>
     where
         P::Detached: UnwindSafe,
@@ -388,11 +438,36 @@ where
             "starting the offline production run"
         );
 
+        let upload = match self.upload.as_ref() {
+            Some(path) => {
+                let upload = Upload::prepare(&self.storage, &self.root, path).await?;
+                Some(upload)
+            }
+            None => None,
+        };
+
         let started = Instant::now();
-        let summary = offline(dump, self.root, self.device, self.options).await?;
+        let summary = offline(dump, &self.root, self.device, self.options).await?;
         let elapsed = started.elapsed();
 
-        std::fs::write(&self.report, &summary.report).map_err(FitError::Io)?;
+        let mut buffer = Vec::new();
+        serde_json::to_writer_pretty(&mut buffer, &summary.report).map_err(FitError::Serialize)?;
+        tokio::fs::write(&self.report, buffer)
+            .await
+            .map_err(FitError::Io)?;
+
+        if let Some(upload) = upload {
+            upload.upload(summary.generation).await?;
+
+            if summary.activated {
+                let Promotion { id, previous_error } = upload.promote(summary.generation).await?;
+                tracing::info!(%id, "promoted generation");
+
+                if let Some(previous_error) = previous_error {
+                    tracing::error!(%previous_error, "failed to update advisory previous pointer");
+                }
+            }
+        }
 
         Ok(FitVerdict {
             summary,
@@ -403,12 +478,25 @@ where
 }
 
 impl FitCommand<NoProgress> {
-    /// Resolves the parsed flags into one silent fit invocation over the root.
-    #[must_use]
-    pub fn new(root: super::RootArgs, args: FitArgs) -> Self {
+    /// Resolves local or S3 fit inputs before starting a fit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if resolving or downloading an input fails.
+    pub async fn new(
+        root: super::RootArgs,
+        args: FitArgs,
+        storage: Storage,
+    ) -> Result<Self, StorageError> {
         let classifier = match (args.annotations, args.classifier) {
-            (Some(annotations), None) => ClassifierSource::Annotations(annotations),
-            (None, Some(artifact)) => ClassifierSource::Artifact(artifact),
+            (Some(annotations), None) => {
+                let path = annotations.into_local_file(&storage).await?;
+                ClassifierSource::Annotations(path)
+            }
+            (None, Some(artifact)) => {
+                let path = artifact.into_local_file(&storage).await?;
+                ClassifierSource::Artifact(path)
+            }
             // Clap requires the `classifier_input` argument group with exactly one member, and
             // refuses every other shape.
             _ => unreachable!("the classifier_input argument group admits exactly one path"),
@@ -423,7 +511,19 @@ impl FitCommand<NoProgress> {
             }
         };
 
-        Self {
+        let verdicts = if let Some(verdicts) = args.verdicts {
+            Some(verdicts.into_local_file(&storage).await?)
+        } else {
+            None
+        };
+
+        let quality_thresholds = if let Some(quality_thresholds) = args.quality_thresholds {
+            Some(quality_thresholds.into_local_file(&storage).await?)
+        } else {
+            None
+        };
+
+        Ok(Self {
             root: root.root,
             device: root.device,
             report: args.report,
@@ -433,13 +533,15 @@ impl FitCommand<NoProgress> {
                 fresh: args.fresh,
                 anchors: args.anchors,
                 comparisons: args.comparisons,
-                verdicts: args.verdicts,
-                quality_thresholds: args.quality_thresholds,
+                verdicts,
+                quality_thresholds,
                 classifier,
                 placement,
                 nn_descent: args.nn_descent,
                 progress: NoProgress,
             },
-        }
+            storage,
+            upload: args.upload,
+        })
     }
 }
