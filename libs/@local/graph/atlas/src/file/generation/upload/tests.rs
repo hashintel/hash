@@ -249,15 +249,16 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         path: &FilePath,
         body: Bytes,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         self.record(Event::Put {
             path: path.to_string(),
-            condition: Condition::from(&condition),
+            condition: Condition::from(condition),
         });
         if let Some(fault) = self.take_fault(path) {
             return Err(fault.error());
         }
+
         path.put(&self.storage, body, condition).await
     }
 
@@ -265,11 +266,11 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         destination: &FilePath,
         source: &Utf8Path,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         self.record(Event::Upload {
             path: destination.to_string(),
-            condition: Condition::from(&condition),
+            condition: Condition::from(condition),
         });
         if let Some(fault) = self.take_fault(destination) {
             return Err(fault.error());
@@ -281,12 +282,12 @@ impl GenerationUploadBackend for &Fixture {
         &self,
         source: &FilePath,
         destination: &FilePath,
-        condition: WriteCondition,
+        condition: &WriteCondition,
     ) -> Result<(), StorageError> {
         self.record(Event::Copy {
             source: source.to_string(),
             destination: destination.to_string(),
-            condition: Condition::from(&condition),
+            condition: Condition::from(condition),
         });
         if let Some(fault) = self.take_fault(destination) {
             return Err(fault.error());

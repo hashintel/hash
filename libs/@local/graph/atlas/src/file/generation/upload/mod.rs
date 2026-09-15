@@ -210,7 +210,7 @@ where
             generation = returned;
             let result = self
                 .backend
-                .upload(&destination, path.as_ref(), WriteCondition::Absent)
+                .upload(&destination, path.as_ref(), &WriteCondition::Absent)
                 .await;
 
             self.finish_object(destination, hash, result).await?;
@@ -223,7 +223,7 @@ where
             .put(
                 &destination,
                 generation.into_document().into_bytes(),
-                WriteCondition::Absent,
+                &WriteCondition::Absent,
             )
             .await;
 
@@ -252,7 +252,7 @@ where
 
             let result = self
                 .backend
-                .copy(&source, &destination, WriteCondition::Absent)
+                .copy(&source, &destination, &WriteCondition::Absent)
                 .await;
 
             self.finish_object(destination, file.hash, result).await?;
@@ -265,7 +265,7 @@ where
             .put(
                 &destination,
                 generation.into_document().into_bytes(),
-                WriteCondition::Absent,
+                &WriteCondition::Absent,
             )
             .await;
 
@@ -281,7 +281,7 @@ where
 
         if let Err(error) = self
             .backend
-            .put(&current, Bytes::from(id.to_string()), condition)
+            .put(&current, Bytes::from(id.to_string()), &condition)
             .await
         {
             return Err(if error.is_precondition_failed() {
@@ -293,7 +293,7 @@ where
 
         let previous_error = if let Some(id) = previous_id {
             self.backend
-                .put(&previous, Bytes::from(id.to_string()), WriteCondition::Any)
+                .put(&previous, Bytes::from(id.to_string()), &WriteCondition::Any)
                 .await
                 .err()
         } else {

@@ -20,6 +20,7 @@ fn join_local_nested() {
     let joined = path
         .join("generations/current")
         .expect("should join the suffix");
+
     assert_eq!(joined.to_string(), "output/generations/current");
     assert_matches!(&joined.variant, FilePathVariant::Local(_));
 }
@@ -32,9 +33,11 @@ fn join_s3_literal() {
         let joined = path
             .join("nested/%2F space")
             .expect("should join the literal suffix");
+
         let FilePathVariant::Bucket(remote) = &joined.variant else {
             panic!("should preserve the S3 backend");
         };
+
         assert_eq!(
             (remote.bucket(), remote.key()),
             ("bucket", "prefix/nested/%2F space")
@@ -49,27 +52,36 @@ async fn get_replaced_contents() {
     let storage = Storage::new(root(&directory).to_owned());
     let file = root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
-    path.put(&storage, Bytes::from_static(b"old"), WriteCondition::Absent)
-        .await
-        .expect("should create the initial contents");
+
+    path.put(
+        &storage,
+        Bytes::from_static(b"old"),
+        &WriteCondition::Absent,
+    )
+    .await
+    .expect("should create the initial contents");
+
     let (reader, revision) = path
         .get(&storage)
         .await
         .expect("should open the initial contents")
         .into_parts();
+
     path.put(
         &storage,
         Bytes::from_static(b"new"),
-        WriteCondition::Match(revision),
+        &WriteCondition::Match(revision),
     )
     .await
     .expect("should replace the observed contents");
+
     let mut body = Vec::new();
     let mut reader = pin!(reader);
     reader
         .read_to_end(&mut body)
         .await
         .expect("should read the opened contents");
+
     assert_eq!(body, b"old");
     assert_eq!(
         fs::read(&file).expect("should read the destination"),
@@ -85,15 +97,18 @@ async fn put_absent_existing() {
     let storage = Storage::new(root(&directory).to_owned());
     let file = root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
+
     fs::write(&file, b"retained").expect("should seed the destination");
+
     let error = path
         .put(
             &storage,
             Bytes::from_static(b"replacement"),
-            WriteCondition::Absent,
+            &WriteCondition::Absent,
         )
         .await
         .expect_err("should refuse an existing destination");
+
     assert_matches!(error, StorageError::PreconditionFailed);
     assert_eq!(
         fs::read(&file).expect("should read the destination"),
@@ -120,7 +135,7 @@ async fn put_match_missing() {
         .put(
             &storage,
             Bytes::from_static(b"new"),
-            WriteCondition::Match(revision),
+            &WriteCondition::Match(revision),
         )
         .await
         .expect_err("should refuse the missing revision");
@@ -137,9 +152,13 @@ async fn put_any_nested() {
     let file = root(&directory).join("nested/current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     for bytes in [b"first".as_slice(), b"replacement"] {
-        path.put(&storage, Bytes::copy_from_slice(bytes), WriteCondition::Any)
-            .await
-            .expect("should replace the complete file");
+        path.put(
+            &storage,
+            Bytes::copy_from_slice(bytes),
+            &WriteCondition::Any,
+        )
+        .await
+        .expect("should replace the complete file");
         assert_eq!(fs::read(&file).expect("should read the destination"), bytes);
     }
     assert_eq!(
@@ -161,12 +180,12 @@ async fn put_absent_competing() {
         path.put(
             &storage,
             Bytes::from_static(b"first"),
-            WriteCondition::Absent
+            &WriteCondition::Absent
         ),
         path.put(
             &storage,
             Bytes::from_static(b"second"),
-            WriteCondition::Absent
+            &WriteCondition::Absent
         ),
     );
     let expected = match (first, second) {
@@ -199,17 +218,11 @@ async fn put_match_competing() {
         .await
         .expect("should capture the second revision")
         .into_parts();
+    let first_condition = WriteCondition::Match(first_revision);
+    let second_condition = WriteCondition::Match(second_revision);
     let (first, second) = tokio::join!(
-        path.put(
-            &storage,
-            Bytes::from_static(b"first"),
-            WriteCondition::Match(first_revision)
-        ),
-        path.put(
-            &storage,
-            Bytes::from_static(b"second"),
-            WriteCondition::Match(second_revision)
-        ),
+        path.put(&storage, Bytes::from_static(b"first"), &first_condition),
+        path.put(&storage, Bytes::from_static(b"second"), &second_condition),
     );
     let expected = match (first, second) {
         (Ok(()), Err(StorageError::PreconditionFailed)) => b"first".as_slice(),
@@ -235,7 +248,7 @@ async fn put_reserved_destination() {
             .parse()
             .expect("should parse the reserved path");
         let error = path
-            .put(&storage, Bytes::new(), WriteCondition::Any)
+            .put(&storage, Bytes::new(), &WriteCondition::Any)
             .await
             .expect_err("should refuse the temporary storage namespace");
         assert_matches!(error, StorageError::InvalidLocalDestination);
@@ -258,7 +271,7 @@ async fn copy_local_nested() {
         .parse()
         .expect("should parse the destination");
     destination
-        .copy_from(&storage, &source, WriteCondition::Absent)
+        .copy_from(&storage, &source, &WriteCondition::Absent)
         .await
         .expect("should copy the complete file");
     assert_eq!(
@@ -267,7 +280,7 @@ async fn copy_local_nested() {
     );
     fs::write(&file, b"changed source").expect("should change the source");
     let error = destination
-        .copy_from(&storage, &source, WriteCondition::Absent)
+        .copy_from(&storage, &source, &WriteCondition::Absent)
         .await
         .expect_err("should preserve the existing destination");
     assert_matches!(error, StorageError::PreconditionFailed);
@@ -286,17 +299,17 @@ async fn mutations_s3_unconfigured() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse the S3 path");
     let missing = root(&directory).join("missing");
     assert_matches!(
-        path.put(&storage, Bytes::new(), WriteCondition::Absent)
+        path.put(&storage, Bytes::new(), &WriteCondition::Absent)
             .await,
         Err(StorageError::S3Unavailable)
     );
     assert_matches!(
-        path.upload(&storage, &missing, WriteCondition::Absent)
+        path.upload(&storage, &missing, &WriteCondition::Absent)
             .await,
         Err(StorageError::S3Unavailable)
     );
     assert_matches!(
-        path.copy_from(&storage, &path, WriteCondition::Absent)
+        path.copy_from(&storage, &path, &WriteCondition::Absent)
             .await,
         Err(StorageError::S3Unavailable)
     );

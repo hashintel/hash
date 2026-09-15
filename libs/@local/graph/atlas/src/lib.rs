@@ -98,6 +98,7 @@
 
     // Library Features
     allocator_api,
+    alloc_io,
     arc_is_unique,
     clone_from_ref,
     clone_to_uninit,

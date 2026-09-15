@@ -2,6 +2,7 @@
 
 use alloc::sync::{Arc, Weak};
 use core::{
+    assert_matches,
     future::{self, Future},
     time::Duration,
 };
@@ -255,7 +256,7 @@ async fn open_disabled() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
-    core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+    assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
     assert!(join(&mut runtime).await.is_none());
 }
 
@@ -277,7 +278,7 @@ async fn open_without_axes() {
 
     assert!(runtime.reader().load().contains_node(NodeRowId::MIN));
     assert!(weak_pool.upgrade().is_none());
-    core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+    assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
     assert!(join(&mut runtime).await.is_none());
 }
 
@@ -334,7 +335,7 @@ async fn open_invalid_interval() {
     .err()
     .expect("a zero interval should fail");
 
-    core::assert_matches!(error.current_context(), RuntimeError::Feed);
+    assert_matches!(error.current_context(), RuntimeError::Feed);
     assert!(weak_pool.upgrade().is_none());
 }
 
@@ -350,7 +351,7 @@ async fn start_entropy_failure() {
         .err()
         .expect("unavailable entropy should fail");
 
-    core::assert_matches!(error.current_context(), RuntimeError::Entropy);
+    assert_matches!(error.current_context(), RuntimeError::Entropy);
     assert!(weak_pool.upgrade().is_none());
 }
 
@@ -457,7 +458,7 @@ fn join_feed_error() {
             .await
             .expect("the runner should have a result")
             .expect_err("the runner should report its failure");
-        core::assert_matches!(error.current_context(), RuntimeError::Feed);
+        assert_matches!(error.current_context(), RuntimeError::Feed);
         assert!(join(&mut runtime).await.is_none());
     });
 }
@@ -484,7 +485,7 @@ fn join_panic() {
             .await
             .expect("the runner should have a result")
             .expect_err("the runner should report its panic");
-        core::assert_matches!(error.current_context(), RuntimeError::Join);
+        assert_matches!(error.current_context(), RuntimeError::Join);
         assert!(join(&mut runtime).await.is_none());
     });
 }
@@ -510,14 +511,14 @@ fn try_join_pending() {
             },
         );
 
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Running));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Running));
         assert!(runtime.feed.is_some());
         release.send(()).expect("should retain the waiting worker");
         feed_finished(&runtime).await;
 
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
         assert!(runtime.feed.is_none());
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(join(&mut runtime).await.is_none());
         shutdown(&mut runtime).await.expect("should remain joined");
     });
@@ -542,9 +543,9 @@ fn try_join_feed_error() {
         let error = runtime
             .try_join()
             .expect_err("should report the feed failure");
-        core::assert_matches!(error.current_context(), RuntimeError::Feed);
+        assert_matches!(error.current_context(), RuntimeError::Feed);
         assert!(runtime.feed.is_none());
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(join(&mut runtime).await.is_none());
         shutdown(&mut runtime).await.expect("should remain joined");
     });
@@ -569,9 +570,9 @@ fn try_join_panic() {
         let error = runtime
             .try_join()
             .expect_err("should report the runner panic");
-        core::assert_matches!(error.current_context(), RuntimeError::Join);
+        assert_matches!(error.current_context(), RuntimeError::Join);
         assert!(runtime.feed.is_none());
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(join(&mut runtime).await.is_none());
         shutdown(&mut runtime).await.expect("should remain joined");
     });
@@ -604,14 +605,14 @@ fn try_join_exhausted_budget() {
             "consuming budget should report pending once the drain spends it"
         );
 
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Running));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Running));
         assert!(runtime.feed.is_some());
 
         tokio::task::yield_now().await;
 
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Finished));
         assert!(runtime.feed.is_none());
-        core::assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
+        assert_matches!(runtime.try_join(), Ok(FeedState::Absent));
         assert!(join(&mut runtime).await.is_none());
         shutdown(&mut runtime).await.expect("should remain joined");
     });

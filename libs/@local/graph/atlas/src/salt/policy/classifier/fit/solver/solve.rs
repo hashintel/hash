@@ -466,6 +466,8 @@ fn curvature_diagnostic(
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches;
+
     use super::{
         super::config::SolverOptions, SolverConfig, SolverControl, SolverFailure, WorkCounters,
         rejected,
@@ -486,7 +488,7 @@ mod tests {
         assert_eq!(rejected(&mut control, &config), Ok(()));
         assert_eq!(control.radius, config.radius_minimum());
         assert_eq!(control.consecutive_rejections, 1);
-        core::assert_matches!(
+        assert_matches!(
             rejected(&mut control, &config),
             Err(SolverFailure::RadiusUnderflow)
         );

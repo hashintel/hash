@@ -44,21 +44,36 @@ pub(crate) enum WriteCondition {
     Match(Revision),
 }
 
-impl WriteCondition {
-    /// Restates the condition as the object-write precondition an S3 request carries.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`StorageError::RevisionMismatch`] if the captured revision is a local one, which
-    /// no object write can check.
-    fn as_s3(&self) -> Result<s3::WriteCondition<'_>, StorageError> {
-        match self {
-            Self::Any => Ok(s3::WriteCondition::Any),
-            Self::Absent => Ok(s3::WriteCondition::Absent),
-            Self::Match(Revision(RevisionKind::Bucket(etag))) => {
+impl<'this> TryFrom<&'this WriteCondition> for s3::WriteCondition<'this> {
+    type Error = StorageError;
+
+    fn try_from(value: &'this WriteCondition) -> Result<Self, Self::Error> {
+        match value {
+            WriteCondition::Any => Ok(s3::WriteCondition::Any),
+            WriteCondition::Absent => Ok(s3::WriteCondition::Absent),
+            WriteCondition::Match(Revision(RevisionKind::Bucket(etag))) => {
                 Ok(s3::WriteCondition::Match(etag.as_ref()))
             }
-            Self::Match(Revision(RevisionKind::Local(_))) => Err(StorageError::RevisionMismatch),
+            WriteCondition::Match(Revision(RevisionKind::Local(_))) => {
+                Err(StorageError::RevisionMismatch)
+            }
+        }
+    }
+}
+
+impl TryFrom<&WriteCondition> for local::WriteCondition {
+    type Error = StorageError;
+
+    fn try_from(value: &WriteCondition) -> Result<Self, Self::Error> {
+        match value {
+            WriteCondition::Any => Ok(Self::Any),
+            WriteCondition::Absent => Ok(Self::Absent),
+            WriteCondition::Match(Revision(RevisionKind::Bucket(_))) => {
+                Err(StorageError::RevisionMismatch)
+            }
+            &WriteCondition::Match(Revision(RevisionKind::Local(digest))) => {
+                Ok(Self::Match(digest))
+            }
         }
     }
 }
