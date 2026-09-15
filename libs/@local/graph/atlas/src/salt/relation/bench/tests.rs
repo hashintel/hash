@@ -8,7 +8,10 @@ use hashql_core::id::Id as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{Corpus, Profile};
-use crate::identity::{EdgeRowId, NodeRowId};
+use crate::{
+    identity::{EdgeRowId, NodeRowId},
+    math::nz,
+};
 
 /// Link count of the synthesised bench corpora.
 const LINKS: usize = 4_096;
@@ -150,7 +153,7 @@ fn summary_self_references(corpus: &Corpus<NodeRowId, EdgeRowId>) -> usize {
 #[test]
 fn judge_layouts_agree() {
     let live = corpus(Profile::Live);
-    let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
+    let per_row = nz!(24);
 
     // include both hit-poor and hit-rich probe sets in the access-layout comparison.
     for fraction in [0.0, 0.25, 0.9] {
@@ -166,7 +169,7 @@ fn judge_layouts_agree() {
 #[test]
 fn judge_hit_rate_follows_partner_fraction() {
     let live = corpus(Profile::Live);
-    let per_row = core::num::NonZero::new(24).expect("the candidate width is positive");
+    let per_row = nz!(24);
 
     // partner draws increase the expected hit rate under zero thresholds.
     let uniform = live.judge_probes::<Xoshiro256PlusPlus>(per_row, 0.0, SEED);

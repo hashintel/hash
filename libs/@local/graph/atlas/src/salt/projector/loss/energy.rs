@@ -1,11 +1,44 @@
 //! Scalar pair energies and their hand-derived first derivatives.
 //!
 //! Every energy exposes its value together with the derivative the batch terms fold into coordinate
-//! gradients, so the pair loops in the parent module stay pure plumbing. The unit tests certify
-//! each derivative against a finite-difference reference. The value and derivative always compute
-//! in one fused evaluation.
+//! gradients. The pair loops in the parent module apply the chain rule and derive nothing
+//! themselves. The unit tests certify each derivative against a finite-difference reference. The
+//! value and derivative always compute in one fused evaluation.
+
+use core::{fmt, marker::PhantomData};
+
+use serde::de::Error as _;
 
 use crate::math::{AffinityCurve, DNonNegative, Derivation, NonNegative, Positive, softplus};
+
+#[derive(Debug, Clone, PartialEq)]
+struct UnvalidatedAffinityEnergyError {
+    _marker: PhantomData<()>,
+}
+
+impl fmt::Display for UnvalidatedAffinityEnergyError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("affinity energy has a curve with a b exponent of less than 0.5")
+    }
+}
+
+impl core::error::Error for UnvalidatedAffinityEnergyError {}
+
+#[derive(Debug, Copy, Clone, PartialEq, serde::Deserialize)]
+struct UnvalidatedAffinityEnergy {
+    curve: AffinityCurve,
+    epsilon: Positive,
+}
+
+impl TryFrom<UnvalidatedAffinityEnergy> for AffinityEnergy {
+    type Error = UnvalidatedAffinityEnergyError;
+
+    fn try_from(value: UnvalidatedAffinityEnergy) -> Result<Self, Self::Error> {
+        Self::new(value.curve, value.epsilon).ok_or(UnvalidatedAffinityEnergyError {
+            _marker: PhantomData,
+        })
+    }
+}
 
 /// The semantic edge energy over the low-dimensional affinity.
 ///
@@ -14,7 +47,8 @@ use crate::math::{AffinityCurve, DNonNegative, Derivation, NonNegative, Positive
 /// placement of a negative pair by `-ln(1 - q + ε)`. The offset keeps both logarithms finite over
 /// the affinity's whole range, and bounds the repulsion derivative as the pair approaches
 /// coincidence.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedAffinityEnergy")]
 pub(crate) struct AffinityEnergy {
     curve: AffinityCurve,
     epsilon: Positive,
@@ -98,31 +132,13 @@ impl AffinityEnergy {
 ///
 /// The energy is strictly increasing, and coincidence is its unique minimum. That residual and the
 /// competing terms jointly set a pair's equilibrium distance.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ProximalEnergy {
     pub radius: NonNegative,
     pub temperature: Positive,
 }
 
 impl ProximalEnergy {
-    /// Creates a Proximal energy.
-    ///
-    /// The domains ride in the types, so there is nothing left to validate.
-    #[must_use]
-    pub(crate) const fn new(radius: NonNegative, temperature: Positive) -> Self {
-        Self {
-            radius,
-            temperature,
-        }
-    }
-
-    /// Returns the target radius.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn radius(self) -> NonNegative {
-        self.radius
-    }
-
     /// Evaluates the energy and its derivative at a normalized distance.
     ///
     /// The derivative is the logistic function of the scaled excess: it approaches one far outside
@@ -144,37 +160,15 @@ impl ProximalEnergy {
 /// The Coincident class energy, an outlier-resistant pull below a tight radius.
 ///
 /// `E(z) = huber(max(z - radius, 0), threshold)` is zero inside the radius, quadratic immediately
-/// outside it, and linear beyond the threshold, so one far-flung pair cannot dominate a batch. The
-/// derivative is continuous everywhere.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// outside it, and linear beyond the threshold. One far-flung pair therefore cannot dominate a
+/// batch. The derivative is continuous everywhere.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct CoincidentEnergy {
     pub radius: NonNegative,
     pub threshold: Positive,
 }
 
 impl CoincidentEnergy {
-    /// Creates a Coincident energy.
-    ///
-    /// Both settings carry their domain in the type, so construction validates nothing.
-    #[must_use]
-    pub(crate) const fn new(radius: NonNegative, threshold: Positive) -> Self {
-        Self { radius, threshold }
-    }
-
-    /// Returns the target radius.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn radius(self) -> NonNegative {
-        self.radius
-    }
-
-    /// Returns the Huber threshold.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn threshold(self) -> Positive {
-        self.threshold
-    }
-
     /// Evaluates the energy and its derivative at a normalized distance.
     ///
     /// The derivative is zero inside the radius, the excess itself in the quadratic regime, and the
@@ -198,8 +192,17 @@ impl CoincidentEnergy {
 /// placement than the loose one. `epsilon` guards the local scales in the normalization `z = d /
 /// √((scale_i + ε)(scale_j + ε))`, keeping `z` finite where a diverged neighbourhood measured a
 /// zero radius.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) struct RelationEnergy {
+    coincident: CoincidentEnergy,
+    proximal: ProximalEnergy,
+    epsilon: Positive,
+}
+
+/// Relation components awaiting validation of their radius ordering.
+#[derive(serde::Deserialize)]
+#[serde(rename = "RelationEnergy")]
+struct UnvalidatedRelationEnergy {
     coincident: CoincidentEnergy,
     proximal: ProximalEnergy,
     epsilon: Positive,
@@ -215,7 +218,7 @@ impl RelationEnergy {
         proximal: ProximalEnergy,
         epsilon: Positive,
     ) -> Option<Self> {
-        (coincident.radius() < proximal.radius()).then_some(Self {
+        (coincident.radius < proximal.radius).then_some(Self {
             coincident,
             proximal,
             epsilon,
@@ -263,5 +266,20 @@ impl RelationEnergy {
                 proximal_weight.widen() * proximal_derivative.widen(),
             ),
         )
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for RelationEnergy {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let components = UnvalidatedRelationEnergy::deserialize(deserializer)?;
+        Self::new(
+            components.coincident,
+            components.proximal,
+            components.epsilon,
+        )
+        .ok_or_else(|| D::Error::custom("coincident radius must be strictly below proximal radius"))
     }
 }

@@ -190,8 +190,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn overall(&self) -> &BudgetSummary {
@@ -203,8 +203,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &BudgetSummary)> {
@@ -220,8 +220,8 @@ impl BudgetBreakdown {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn deciles(&self) -> &[BudgetSummary; Decile::COUNT] {
@@ -307,8 +307,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn count(&self) -> u64 {
@@ -322,8 +322,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn sum(&self) -> DNonNegative {
@@ -337,8 +337,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn sum_squares(&self) -> DNonNegative {
@@ -352,8 +352,8 @@ impl DisplacementMoments {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn maximum(&self) -> NonNegative {
@@ -396,8 +396,8 @@ impl DisplacementHistogram {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn counts(&self) -> &[u64; EXPONENT_BUCKETS] {
@@ -411,8 +411,8 @@ impl DisplacementHistogram {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn moments(&self) -> &DisplacementMoments {
@@ -501,8 +501,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn overall(&self) -> &DisplacementHistogram {
@@ -514,8 +514,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) fn types(&self) -> impl Iterator<Item = (OntologyRowId, &DisplacementMoments)> {
@@ -531,8 +531,8 @@ impl DisplacementSummary {
         not(test),
         expect(
             dead_code,
-            reason = "the generation evidence's training stats are the designed reader; writing \
-                      them into the generation metadata is registered wiring work"
+            reason = "the generation evidence's training stats are the designed reader, and \
+                      nothing writes them into the generation metadata"
         )
     )]
     pub(crate) const fn deciles(&self) -> &[DisplacementHistogram; Decile::COUNT] {

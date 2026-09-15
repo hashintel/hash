@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{future::ready, num::NonZero};
+use core::{assert_matches, future::ready, num::NonZero};
 use std::{collections::HashMap, fs};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -26,6 +26,7 @@ use crate::{
     },
     device::Device,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         classifier::read::ClassifierFile,
@@ -46,14 +47,15 @@ use crate::{
     integrity::{Sha256, Update as _},
     math::{
         AffinityCurve, AlignedVecN, BoxedVecN, Positive, Similarity, UnitFraction, Vec2, VecN,
-        d_non_negative, d_positive, greater_than_one, non_negative, open_unit_fraction, positive,
-        positive_unit_fraction, unit_fraction,
+        d_non_negative, d_positive, greater_than_one, non_negative, nz, open_unit_fraction,
+        positive, positive_unit_fraction, unit_fraction,
     },
     postgres::id::ArchivedOntologyTypeUuid,
     progress::NoProgress,
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
+        fit::prepare::IdentityProvider as _,
         knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
         ladder::{
             CanonicalError,
@@ -67,15 +69,18 @@ use crate::{
             GeometryClass, PolicyOverride, PolicySource, Posterior,
             artifact::PolicyTableArchive,
             classifier::{
-                Classifier, FitConfig as ClassifierFitConfig, PreparationSettings, SolverConfig,
-                TrainingRow, TrainingSet, fit as fit_classifier,
+                Classifier, FitConfig as ClassifierFitConfig, FitOptions as ClassifierFitOptions,
+                PreparationSettings, SolverOptions, TrainingRow, TrainingSet,
+                fit as fit_classifier,
             },
         },
-        postings::artifact::PostingsArchive,
+        postings::artifact::{Membership, PostingsArchive},
         projector::{
             loss::CoincidentEnergy,
             model::Architecture,
-            train::{BatchPlan, RelationLens, TrainError, TrainingSchedule},
+            train::{
+                BatchPlan, RelationLens, TrainError, TrainingSchedule, fit::TrainingScheduleOptions,
+            },
             verdict::{PlacementClass, ReviewedVerdicts},
         },
         relation::{
@@ -253,16 +258,13 @@ impl CardEmbedder for HashEmbedder {
 /// The classifier fit echo round-trips every solver knob.
 #[test]
 fn classifier_fit_echo_round_trips_every_knob() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
-    // Every knob differs from its default and from every sibling, so the round-trip equality
-    // certifies each field's wire path individually.
-    let distinct = ClassifierFitConfig {
-        solver: SolverConfig {
+    // Every knob differs from its default and from every sibling: the round-trip equality
+    // therefore certifies each field's wire path individually.
+    let distinct = ClassifierFitConfig::new(ClassifierFitOptions {
+        solver: SolverOptions {
             preparation: PreparationSettings {
                 regularization: d_positive!(0.625),
-                target_sum_tolerance_ulps: NonZero::new(24).expect("twenty-four is nonzero"),
+                target_sum_tolerance_ulps: nz!(24),
                 curvature_relative_floor: d_positive!(1.0e-11),
             },
             radius_minimum: d_positive!(3.0e-8),
@@ -274,20 +276,21 @@ fn classifier_fit_echo_round_trips_every_knob() {
             eta_expand: open_unit_fraction!(0.8),
             relative_scaled_gradient_tolerance: open_unit_fraction!(2.0e-6),
             absolute_scaled_gradient_tolerance: d_non_negative!(1.0e-9),
-            objective_resolution_ulps: NonZero::new(5).expect("five is nonzero"),
-            curvature_guard_ulps: NonZero::new(17).expect("seventeen is nonzero"),
-            maximum_outer_iterations: NonZero::new(501).expect("the budget is nonzero"),
+            objective_resolution_ulps: nz!(5),
+            curvature_guard_ulps: nz!(17),
+            maximum_outer_iterations: nz!(501),
         },
         folds: 3,
         seed: 11,
-    };
+    })
+    .expect("the distinct classifier fit config is valid");
 
     let mut config = config();
     config.policy.classifier_fit = distinct;
 
-    let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
-    let echoed: Echo = serde_json::from_value(document).expect("the echo deserializes");
-    assert_eq!(echoed.0, config);
+    let document = serde_json::to_value(config.clone()).expect("the echo serializes");
+    let echoed: FitConfig = serde_json::from_value(document).expect("the echo deserializes");
+    assert_eq!(echoed, config);
 }
 
 /// An echo carrying the retired solver knob names decodes.
@@ -301,10 +304,7 @@ fn classifier_fit_echo_round_trips_every_knob() {
 /// consecutive-rejection budget, and no work limit besides the outer-iteration cap.
 #[test]
 fn config_echo_decodes_the_retired_solver_knobs() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
-    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+    let mut document = serde_json::to_value(config()).expect("the echo serializes");
     let solver = document
         .pointer_mut("/policy/classifier_fit/solver")
         .and_then(serde_json::Value::as_object_mut)
@@ -332,17 +332,14 @@ fn config_echo_decodes_the_retired_solver_knobs() {
         serde_json::json!(500_000),
     );
 
-    let echoed: Echo =
+    let echoed: FitConfig =
         serde_json::from_value(document).expect("the echo decodes with unknown solver fields");
-    assert_eq!(echoed.0, config());
+    assert_eq!(echoed, config());
 }
 
 /// A config echo names every setting, and a missing setting fails the parse.
 #[test]
 fn config_echo_requires_every_setting() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
     for path in [
         "/selection/parallel_chunk",
         "/policy/assembly/maximum_group_fraction",
@@ -350,16 +347,19 @@ fn config_echo_requires_every_setting() {
         "/policy/classifier_fit",
         "/construction",
     ] {
-        let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+        let mut document = serde_json::to_value(config()).expect("the echo serializes");
         let (parent, field) = path.rsplit_once('/').expect("every path names a field");
         let object = document
             .pointer_mut(parent)
             .and_then(serde_json::Value::as_object_mut)
             .expect("the echo carries the field's parent object");
-        assert!(object.remove(field).is_some(), "{path} rides the echo");
+        assert!(
+            object.remove(field).is_some(),
+            "{path} is present in the echo"
+        );
 
         assert!(
-            serde_json::from_value::<Echo>(document).is_err(),
+            serde_json::from_value::<FitConfig>(document).is_err(),
             "an echo without {path} does not parse"
         );
     }
@@ -367,49 +367,72 @@ fn config_echo_requires_every_setting() {
 
 /// Preserves a non-default diagnostic floor in the projector configuration.
 #[test]
-fn budget_echo_writes_the_floor_and_decodes_the_retired_clamp_array() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
+fn budget_echo_projector() {
+    let mut options = projector_options();
+    options.budget.floor = positive!(0.125);
     let config = FitConfig {
-        placement: PlacementOptions::Projector(projector_options()),
+        placement: PlacementOptions::Projector(options),
         ..config()
     };
-    let document = serde_json::to_value(Echo(config.clone())).expect("the echo serializes");
+    let document = serde_json::to_value(config.clone()).expect("the echo should serialize");
     assert_eq!(
         document
             .pointer("/placement/projector/budget")
-            .expect("the echo carries the budget"),
-        &serde_json::json!({ "floor": 2.0e-4_f32 }),
-        "the budget echoes as the bare floor object",
+            .expect("the echo should contain the budget"),
+        &serde_json::json!({ "floor": 0.125_f32 }),
+        "the budget should encode the configured floor as an object",
     );
-    let echoed: Echo = serde_json::from_value(document.clone()).expect("the echo deserializes");
-    assert_eq!(echoed.0, config);
-
-    let mut document = document;
-    *document
-        .pointer_mut("/placement/projector/budget")
-        .expect("the echo carries the budget") =
-        serde_json::json!([0.1_f32, 0.1_f32, 2.0e-4_f32, 1.0e-12_f32]);
-    let echoed: Echo = serde_json::from_value(document).expect("the retired clamp form decodes");
-    assert_eq!(echoed.0, config);
+    let echoed: FitConfig = serde_json::from_value(document).expect("the echo should deserialize");
+    assert_eq!(echoed, config, "the echo should preserve the configuration");
 }
 
 /// A config echo revalidates the group budget's domain.
 #[test]
 fn config_echo_validates_the_group_budget() {
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    struct Echo(#[serde(with = "super::FitConfigDef")] FitConfig);
-
-    let mut document = serde_json::to_value(Echo(config())).expect("the echo serializes");
+    let mut document = serde_json::to_value(config()).expect("the echo serializes");
     document
         .pointer_mut("/policy/assembly")
         .and_then(serde_json::Value::as_object_mut)
         .expect("the echo carries the assembly settings")
         .insert("maximum_group_fraction".to_owned(), serde_json::json!(1.5));
-    let error = serde_json::from_value::<Echo>(document)
+    let error = serde_json::from_value::<FitConfig>(document)
         .expect_err("an out-of-range budget refuses to parse");
-    assert!(error.to_string().contains("fraction in (0, 1]"));
+    assert!(
+        error.to_string().contains("half-open unit interval"),
+        "should reject the group fraction's domain: {error}"
+    );
+}
+
+#[test]
+fn config_echo_validates_the_classifier_fit() {
+    for (path, value, message) in [
+        (
+            "/policy/classifier_fit/solver/radius_minimum",
+            serde_json::json!(2.0),
+            "trust radii must satisfy",
+        ),
+        (
+            "/policy/classifier_fit/solver/eta_accept",
+            serde_json::json!(0.75),
+            "acceptance thresholds must satisfy",
+        ),
+        (
+            "/policy/classifier_fit/folds",
+            serde_json::json!(1),
+            "cannot hold anything out",
+        ),
+    ] {
+        let mut document = serde_json::to_value(config()).expect("the echo serializes");
+        *document
+            .pointer_mut(path)
+            .expect("the echo should contain the field") = value;
+        let error = serde_json::from_value::<FitConfig>(document)
+            .expect_err("the cross-field violation refuses to parse");
+        assert!(
+            error.to_string().contains(message),
+            "the error should name {path}: {error}",
+        );
+    }
 }
 
 /// Builds a landmark-baseline configuration that skips projector training.
@@ -422,7 +445,7 @@ fn config() -> FitConfig {
         },
         curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
             .expect("the reference falloff is well-conditioned"),
-        neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
+        neighbours: nz!(4),
         // The fixtures whose subject is not the placement opt out of
         // the default's training run; the projector tests configure
         // their own schedules.
@@ -474,9 +497,14 @@ fn fixture_classifier() -> Classifier {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
-        .expect("the fixture classifier fits")
-        .classifier
+    fit_classifier(
+        training,
+        ClassifierFitConfig::new(ClassifierFitOptions { folds: 2, .. })
+            .expect("the fixture classifier fit config is valid"),
+        &NoProgress,
+    )
+    .expect("the fixture classifier fits")
+    .classifier
 }
 
 /// Wraps a fitted model as the fit's supplied classifier input.
@@ -644,7 +672,7 @@ fn assert_rows_sit_on_landmarks(published: &Utf8Path) {
                 point.x().to_bits() == landmark.x().to_bits()
                     && point.y().to_bits() == landmark.y().to_bits()
             }),
-        "every row should sit exactly on its assigned landmark",
+        "every row should lie exactly on its assigned landmark",
     );
 }
 
@@ -662,7 +690,7 @@ fn assert_identities_translate(published: &Utf8Path) {
     assert_eq!(nodes.len(), NODES as u64);
     for row in 0..NODES as u64 {
         assert_eq!(
-            nodes.id(NodeRowId::new(row)),
+            nodes.key_of(NodeRowId::new(row)),
             Some(MemoryNodeId::new(row)),
             "row {row}"
         );
@@ -676,7 +704,7 @@ fn assert_identities_translate(published: &Utf8Path) {
             Label::new(&format!("node {row}")),
         );
         assert_eq!(
-            nodes.payload_of(NodeRowId::new(row)),
+            nodes.payload_of_row(NodeRowId::new(row)),
             Some(&*legend),
             "payload of row {row}"
         );
@@ -689,15 +717,24 @@ fn assert_identities_translate(published: &Utf8Path) {
     )
     .expect("the edge identities should validate");
     assert_eq!(edge_ids.len(), 2);
-    assert_eq!(edge_ids.id(EdgeRowId::new(0)), Some(MemoryEdgeId::new(100)));
+    assert_eq!(
+        edge_ids.key_of(EdgeRowId::new(0)),
+        Some(MemoryEdgeId::new(100))
+    );
     assert_eq!(
         edge_ids.row_of(MemoryEdgeId::new(101)),
         Some(EdgeRowId::new(1))
     );
     let employs_100 = OwnedLegend::new(OntologyRowId::new(2), Label::new("employs 100"));
-    assert_eq!(edge_ids.payload_of(EdgeRowId::new(0)), Some(&*employs_100));
+    assert_eq!(
+        edge_ids.payload_of_row(EdgeRowId::new(0)),
+        Some(&*employs_100)
+    );
     let employs_101 = OwnedLegend::new(OntologyRowId::new(2), Label::new("employs 101"));
-    assert_eq!(edge_ids.payload_of(EdgeRowId::new(1)), Some(&*employs_101));
+    assert_eq!(
+        edge_ids.payload_of_row(EdgeRowId::new(1)),
+        Some(&*employs_101)
+    );
 
     let ontology_ids = IdentityTableArchive::<MemoryOntologyId, OntologyRowId>::new(
         IdentityFile::open(published.join("ontology-identities.idnt"))
@@ -708,7 +745,7 @@ fn assert_identities_translate(published: &Utf8Path) {
     for (row, icon) in ["person", "company", "\u{3bb}"].into_iter().enumerate() {
         let expected = OwnedIcon::from(icon);
         assert_eq!(
-            ontology_ids.payload_of(OntologyRowId::new(row as u64)),
+            ontology_ids.payload_of_row(OntologyRowId::new(row as u64)),
             Some(&*expected),
             "ontology row {row}"
         );
@@ -746,16 +783,12 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
             "position {position} should carry row {row}'s direct type",
         );
     }
-    let domain = BasePosition::from_usize(0)
-        ..BasePosition::from_usize(
-            usize::try_from(postings.points()).expect("the point count fits usize"),
-        );
-    let members = |type_row: u64| {
-        postings
-            .membership(OntologyRowId::new(type_row))
-            .expect("the fixture types lie in the type domain")
-            .positions_in(domain.clone())
-            .count() as u64
+    let members = |type_row: u64| match postings
+        .membership(OntologyRowId::new(type_row))
+        .expect("the fixture types lie in the type domain")
+    {
+        Membership::List(positions) => positions.len() as u64,
+        Membership::Dense(set) => set.count(),
     };
     assert_eq!(members(0), members(1), "rows alternate the node types");
     assert_eq!(members(0) + members(1), NODES as u64);
@@ -831,7 +864,7 @@ async fn policy_artifacts_publish_and_read_back() {
     assert_eq!(
         policy.strength.to_bits(),
         1.0_f32.to_bits(),
-        "the strength head is disabled",
+        "the strength head is off",
     );
 }
 
@@ -1117,7 +1150,8 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
         .expect("a contract-conforming corpus admits");
 
     let mut config = config();
-    config.policy.classifier_fit = ClassifierFitConfig { folds: 2, .. };
+    config.policy.classifier_fit = ClassifierFitConfig::new(ClassifierFitOptions { folds: 2, .. })
+        .expect("the fixture classifier fit config is valid");
 
     let published = fit(
         &dataset,
@@ -1313,8 +1347,12 @@ async fn override_supersedes_the_classifier() {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.25, 0.5, 0.25])
-                    .expect("the asserted distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.25),
+                    unit_fraction!(0.5),
+                    unit_fraction!(0.25),
+                ])
+                .expect("the asserted distribution sums to one"),
             }],
             ..
         },
@@ -1452,13 +1490,8 @@ async fn defective_corpus_publishes_nothing() {
         &NoProgress,
     )
     .await;
-    assert!(
-        matches!(
-            result,
-            Err(FitError::RepresentationDefects(ref check)) if !check.passes(),
-        ),
-        "the defective corpus should fail the norm check",
-    );
+    assert_matches!(result,
+            Err(FitError::RepresentationDefects(ref check)) if !check.passes(), "the defective corpus should fail the norm check");
 
     // Failure leaves the root empty: the fit clears its transients and publishes no generation.
     let entries: Vec<_> = fs::read_dir(&path)
@@ -1476,13 +1509,13 @@ async fn defective_corpus_publishes_nothing() {
 /// For orchestration certificates whose asserted behaviour does not depend on trained movement: a
 /// vacuous or forceless run still reaches the boundary at the minimum cost a valid schedule allows.
 fn minimal_schedule() -> TrainingSchedule {
-    TrainingSchedule::new(
-        NonZero::new(1).expect("the fixture step count is nonzero"),
-        0,
-        NonZero::new(1).expect("the fixture cadence is nonzero"),
-        positive_unit_fraction!(1.0e-3),
-        unit_fraction!(1.0e-5),
-    )
+    TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(1),
+        boundary: 0,
+        refresh_interval: nz!(1),
+        initial_learning_rate: positive_unit_fraction!(1.0e-3),
+        minimum_learning_rate: unit_fraction!(1.0e-5),
+    })
     .expect("the fixture schedule is valid")
 }
 
@@ -1494,38 +1527,40 @@ fn minimal_schedule() -> TrainingSchedule {
 /// boundary's own certificates (`compute::projector::tests`) pin the bit-exact publish contracts,
 /// and these fixtures certify the fit's composition.
 fn projector_options() -> ProjectorOptions {
-    let mut options = ProjectorOptions::ratified();
+    let mut options = ProjectorOptions::live();
     options.architecture = Architecture {
-        width: NonZero::new(8).expect("the fixture width is nonzero"),
-        residual_blocks: NonZero::new(1).expect("the fixture depth is nonzero"),
-        representation_dimensions: NonZero::new(PROJECTOR_DIMENSIONS)
-            .expect("the projector width is nonzero"),
-        role_dimensions: NonZero::new(4).expect("the fixture role width is nonzero"),
-        condition_dimensions: NonZero::new(1).expect("the fixture condition width is nonzero"),
+        width: nz!(8),
+        residual_blocks: nz!(1),
+        representation_dimensions: nz!(PROJECTOR_DIMENSIONS),
+        role_dimensions: nz!(4),
+        condition_dimensions: nz!(1),
     };
-    options.schedule = TrainingSchedule::new(
-        NonZero::new(12).expect("the fixture step count is nonzero"),
-        6,
-        NonZero::new(4).expect("the fixture cadence is nonzero"),
-        positive_unit_fraction!(1.0e-3),
-        unit_fraction!(1.0e-5),
-    )
+    options.schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(12),
+        boundary: 6,
+        refresh_interval: nz!(4),
+        initial_learning_rate: positive_unit_fraction!(1.0e-3),
+        minimum_learning_rate: unit_fraction!(1.0e-5),
+    })
     .expect("the fixture schedule is valid");
     options.plan = BatchPlan {
-        semantic_pairs: NonZero::new(8).expect("the fixture draw is nonzero"),
+        semantic_pairs: nz!(8),
         ordinary_pairs: 4,
         relation_types: 1,
-        relation_cap: NonZero::new(4).expect("the fixture cap is nonzero"),
+        relation_cap: nz!(4),
         hard_queries: 2,
         landmark_anchors: 2,
         temporal_anchors: 0,
     };
-    options.lens = RelationLens::new(
-        CoincidentEnergy::new(non_negative!(0.5), positive!(0.5)),
-        Positive::new(0.25).expect("the fixture temperature is positive"),
-        Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
-    );
-    options.forward_rows = NonZero::new(16).expect("the fixture slice is nonzero");
+    options.lens = RelationLens {
+        coincident: CoincidentEnergy {
+            radius: non_negative!(0.5),
+            threshold: positive!(0.5),
+        },
+        temperature: positive!(0.25),
+        epsilon: positive!(1.0e-8),
+    };
+    options.forward_rows = nz!(16);
     options
 }
 
@@ -1567,7 +1602,7 @@ fn default_placement_is_the_trained_projector() {
     let PlacementOptions::Projector(options) = &config.placement else {
         panic!("the default placement should train the projector");
     };
-    assert_eq!(*options, ProjectorOptions::ratified());
+    assert_eq!(*options, ProjectorOptions::live());
     assert_eq!(options.schedule.steps().get(), 20_000);
     assert_eq!(options.schedule.boundary(), 5_000);
     assert_eq!(options.ladder.canonical.to_bits(), 1.0_f32.to_bits());
@@ -1591,8 +1626,12 @@ async fn forceless_projector_publishes_the_baseline_step() {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.0, 0.0, 1.0])
-                    .expect("the asserted distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.0),
+                    unit_fraction!(0.0),
+                    unit_fraction!(1.0),
+                ])
+                .expect("the asserted distribution sums to one"),
             }],
             ..
         },
@@ -1725,7 +1764,7 @@ fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
     assert_eq!(
         deciles.iter().map(|stratum| stratum.selected).sum::<u64>(),
         2,
-        "every drawn control lands in a stratum"
+        "the strata count every drawn control once"
     );
     for stratum in deciles {
         assert_eq!(stratum.displacement.is_some(), stratum.selected > 0);
@@ -1748,8 +1787,12 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.0, 1.0, 0.0])
-                    .expect("the asserted distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.0),
+                    unit_fraction!(1.0),
+                    unit_fraction!(0.0),
+                ])
+                .expect("the asserted distribution sums to one"),
             }],
             ..
         },
@@ -1784,11 +1827,9 @@ async fn trained_lens_publishes_the_canonical_step_aligned() {
         .projector
         .as_ref()
         .expect("a trained placement records projector evidence");
-    assert!(
-        matches!(
-            evidence.boundary,
-            Some(FrozenRadiusEvidence::Measured { .. })
-        ),
+    assert_matches!(
+        evidence.boundary,
+        Some(FrozenRadiusEvidence::Measured { .. }),
         "the boundary freezes the radius measured from the reviewed pairs"
     );
 
@@ -1973,19 +2014,26 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     // takes a 0.01 Coincident radius in place of the fixture's 0.5.
     let verdicts = proximal_link_verdicts();
     let mut options = projector_options();
-    options.lens = RelationLens::new(
-        CoincidentEnergy::new(non_negative!(0.01), positive!(0.5)),
-        Positive::new(0.25).expect("the fixture temperature is positive"),
-        Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
-    );
+    options.lens = RelationLens {
+        coincident: CoincidentEnergy {
+            radius: non_negative!(0.01),
+            threshold: positive!(0.5),
+        },
+        temperature: Positive::new(0.25).expect("the fixture temperature is positive"),
+        epsilon: Positive::new(1.0e-8).expect("the fixture scale guard is positive"),
+    };
     let config = FitConfig {
         placement: PlacementOptions::Projector(options),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.0, 1.0, 0.0])
-                    .expect("the asserted distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.0),
+                    unit_fraction!(1.0),
+                    unit_fraction!(0.0),
+                ])
+                .expect("the asserted distribution sums to one"),
             }],
             ..
         },
@@ -2083,8 +2131,12 @@ async fn vacuous_placement_trains_without_reviews() {
         overrides: vec![PolicyOverride {
             relation: OntologyRowId::new(2),
             source: PolicySource::Human,
-            distribution: Posterior::new([0.0, 1.0, 0.0])
-                .expect("the asserted distribution sums to one"),
+            distribution: Posterior::new([
+                unit_fraction!(0.0),
+                unit_fraction!(1.0),
+                unit_fraction!(0.0),
+            ])
+            .expect("the asserted distribution sums to one"),
         }],
         ..
     };
@@ -2108,14 +2160,11 @@ async fn vacuous_placement_trains_without_reviews() {
         &NoProgress,
     )
     .await;
-    assert!(
-        matches!(
-            result,
-            Err(FitError::Compute(ComputeError::Projector(
-                ProjectorError::Train(TrainError::MissingProximalReviews)
-            ))),
-        ),
-        "proximal force without reviews should refuse",
+    assert_matches!(
+        result,
+        Err(FitError::Compute(ComputeError::Projector(
+            ProjectorError::Train(TrainError::MissingProximalReviews)
+        )))
     );
 
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
@@ -2213,8 +2262,12 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
             overrides: vec![PolicyOverride {
                 relation: OntologyRowId::new(2),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.0, 1.0, 0.0])
-                    .expect("the asserted distribution sums to one"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.0),
+                    unit_fraction!(1.0),
+                    unit_fraction!(0.0),
+                ])
+                .expect("the asserted distribution sums to one"),
             }],
             ..
         },
@@ -2235,14 +2288,12 @@ async fn canonical_condition_outside_the_schedule_publishes_nothing() {
         &NoProgress,
     )
     .await;
-    assert!(
-        matches!(
-            result,
-            Err(FitError::Compute(ComputeError::Projector(
-                ProjectorError::Canonical(CanonicalError::UnknownStep { .. })
-            ))),
-        ),
-        "an off-schedule canonical condition should abort the fit",
+    assert_matches!(
+        result,
+        Err(FitError::Compute(ComputeError::Projector(
+            ProjectorError::Canonical(CanonicalError::UnknownStep { .. })
+        ))),
+        "an off-schedule canonical condition should abort the fit"
     );
 
     let entries: Vec<_> = fs::read_dir(&path)
@@ -2450,8 +2501,12 @@ async fn edge_artifacts_publish_and_read_back() {
         .map(|relation| PolicyOverride {
             relation: OntologyRowId::new(relation),
             source: PolicySource::Human,
-            distribution: Posterior::new([0.25, 0.5, 0.25])
-                .expect("the fixture distribution sums to one"),
+            distribution: Posterior::new([
+                unit_fraction!(0.25),
+                unit_fraction!(0.5),
+                unit_fraction!(0.25),
+            ])
+            .expect("the fixture distribution sums to one"),
         })
         .collect();
 
@@ -2525,7 +2580,7 @@ async fn edge_artifacts_publish_and_read_back() {
     .expect("the ontology identities should validate");
     assert_eq!(ontology_ids.len(), 4);
     assert_eq!(
-        ontology_ids.id(OntologyRowId::new(2)),
+        ontology_ids.key_of(OntologyRowId::new(2)),
         Some(MemoryOntologyId::new(2))
     );
     assert_eq!(

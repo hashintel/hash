@@ -7,7 +7,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "the exact fixtures produce exactly representable readings, so the asserted \
+    reason = "the exact fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"
 )]
 
@@ -390,7 +390,7 @@ fn the_residual_bar_binds_at_the_fit() {
     assert!((residual - 0.5 / f64::from(gauge.frozen_spread())).abs() < 1e-12);
 
     let admitted = fit_fields(&gauge, frame(&canonical), frame(&zero), Some(positive(0.5)))
-        .expect("the residual sits under the raised bar");
+        .expect("the residual is below the increased tolerance");
     assert_eq!(admitted.scale().get(), 1.0);
     assert_eq!(admitted.similarity.rotation().cos(), 1.0);
     assert_eq!(admitted.similarity.rotation().sin(), 0.0);

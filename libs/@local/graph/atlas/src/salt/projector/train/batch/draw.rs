@@ -13,7 +13,7 @@ use rand::Rng;
 use super::super::BatchPlan;
 use crate::{
     identity::NodeRowId,
-    math::{NonNegative, Vec2},
+    math::{NonNegative, Positive, Vec2},
     random::sample_indices_vec,
     salt::{
         landmark::artifact::LandmarkSkeleton,
@@ -45,7 +45,7 @@ pub(crate) struct SupportAnchor<N> {
     pub row: N,
     pub target: Vec2,
     pub radius: NonNegative,
-    pub weight: f32,
+    pub weight: Positive,
 }
 
 /// Computes one landmark's median layout distance to its nearest skeleton neighbours.
@@ -94,7 +94,7 @@ impl<N> SupportAnchor<N> {
     /// guards the division.
     pub(crate) fn at_landmarks(
         skeleton: &LandmarkSkeleton<NodeRowId>,
-        weight: f32,
+        weight: Positive,
         mut class_of: impl FnMut(NodeRowId) -> N,
     ) -> Vec<Self> {
         let coordinates = skeleton.coordinates();

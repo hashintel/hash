@@ -94,8 +94,8 @@ where
     /// defect.
     #[expect(
         clippy::panic_in_result_fn,
-        reason = "row-domain agreement is a wiring contract asserted at entry; the error channel \
-                  is reserved for diverged coordinates, a runtime condition"
+        reason = "row-domain agreement is a wiring contract asserted at entry, and the error \
+                  channel is reserved for diverged coordinates, a runtime condition"
     )]
     pub(crate) fn compute(
         coordinates: &FinitePointField<N>,

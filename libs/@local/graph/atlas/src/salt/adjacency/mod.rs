@@ -53,9 +53,7 @@ use std::io;
 use hashql_core::id::Id as _;
 use sprs::{CsMatBase, SpIndex};
 
-#[cfg(test)]
-pub(crate) use self::artifact::EdgeList;
-pub(crate) use self::artifact::{AdjacencyArchive, InvalidAdjacencyFile};
+pub(crate) use self::artifact::{AdjacencyArchive, EdgeList};
 use crate::{
     file::{
         WriteAs, WriteInto,

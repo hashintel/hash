@@ -286,12 +286,8 @@ impl WriteInto for Postings {
     }
 }
 
-/// The measurements of one postings build.
-///
-/// What the manifest records so the representation split follows data rather than taste. Not
-/// evidence: the metadata's `Evidence` section holds admission checks, while these are build
-/// census numbers.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Type counts and region populations of one postings build.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PostingsMeasurements {
     /// Types in the domain.
     pub types: u64,

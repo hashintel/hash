@@ -81,7 +81,7 @@ const DEFAULT_MAXIMUM_ITERATIONS: usize = 20;
 const DEFAULT_TERMINATION: f64 = 0.001;
 
 /// Pinned NN-Descent sampling, convergence, and termination settings.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct NnDescentOptions {
     /// Candidates sampled per side (new and old, forward and reverse) per row per iteration.
     ///
@@ -397,8 +397,8 @@ where
 /// a rate that can exceed `1`, and need not decrease monotonically between iterations.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "an accepted-update count and an entry count both stay far below exact f64 integer \
-              precision"
+    reason = "accepted updates and stored entries deliberately convert to f64 for progress \
+              reporting. The count conversions and rate division may round"
 )]
 fn accepted_per_entry(accepted: u64, entries: usize) -> f64 {
     accepted as f64 / entries as f64
@@ -414,8 +414,9 @@ where
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the entry count is far below exact f64 integer precision and the threshold only \
-                  gates a loop"
+        reason = "the entry count deliberately converts to f64 for rounded threshold arithmetic. \
+                  The result of ceil is cast to u64 with saturation and only controls loop \
+                  termination"
     )]
     fn construct<P>(
         &mut self,
@@ -521,7 +522,7 @@ where
                 let list = list
                     .entries
                     .lock()
-                    .expect("the join finished; no offer holds a lock");
+                    .expect("the completed join should leave the list mutex unpoisoned");
 
                 for (slot, entry) in slots.iter_mut().zip(list.iter()) {
                     *slot = Neighbour {

@@ -691,7 +691,12 @@ fn association_statement<'params>(
     BoundStatement::new(&statement, binder, columns)
 }
 
-fn cardinality(value: Option<i64>) -> Option<usize> {
+/// Reads a link-target cardinality bound out of its nullable column.
+///
+/// A null column is an unbounded end and answers [`None`]. The same applies to a stored value
+/// that is not a count on this host - negative, or past `usize` - since neither constrains a
+/// target list that has to fit in memory to be built.
+const fn cardinality(value: Option<i64>) -> Option<usize> {
     usize::try_from(value?).ok()
 }
 

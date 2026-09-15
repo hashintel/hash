@@ -39,7 +39,7 @@ use crate::salt::semantic::{
 const MAXIMUM_NEIGHBOURS: NonZero<usize> = const { NonZero::new(64).unwrap() };
 
 /// Contraction settings.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QuotientOptions {
     /// Strongest directed edges each landmark row keeps before union, 64 by default.
     // the unvalidated default bounds retained directions at M · 64 before union. Trustworthiness and landmark rank correlation supply the measurements for revising it.
@@ -164,8 +164,8 @@ where
                         .map(|(column, weight)| {
                             #[expect(
                                 clippy::cast_possible_truncation,
-                                reason = "a max-normalized finite weight lies in (0, 1], well \
-                                          inside f32"
+                                reason = "normalization bounds the ratio by one. Graph validation \
+                                          rejects any zero produced by f32 underflow"
                             )]
                             let normalized = (weight / maximum) as f32;
                             (column, normalized)

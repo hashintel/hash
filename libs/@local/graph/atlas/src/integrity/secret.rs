@@ -252,12 +252,10 @@ impl FromStr for PasswordString {
 pub(crate) struct SecretHexBytes<const N: usize>(HexBytes<N>);
 
 impl<const N: usize> SecretHexBytes<N> {
-    /// Wraps raw secret bytes.
-    #[cfg(test)] // required by `WireSecret`
-    pub(crate) const fn new(bytes: [u8; N]) -> Self {
-        Self(HexBytes::new(bytes))
-    }
-
+    /// Returns `N` zero bytes: the buffer a key derivation fills through [`AsMut`].
+    ///
+    /// The value is a placeholder awaiting the derivation's output. Reading it before something
+    /// has written the derived bytes over it reads zeros.
     pub(crate) const fn zeroed() -> Self {
         Self(HexBytes::new([0_u8; N]))
     }

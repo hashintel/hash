@@ -27,7 +27,7 @@ use hashql_core::id::{Id, IdSlice};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::{AlignedVecN, NonNegative},
+    math::{AlignedVecN, NonNegative, nz},
     salt::{
         projector::{
             loss::{BatchAnchor, BatchRowId, RelationEdge, RelationEdges},
@@ -53,8 +53,7 @@ pub(crate) use self::draw::{BatchSampler, DrawContext, Populations, SupportAncho
 ///
 /// Padded rows replicate the last participating row, and no population references them. They
 /// receive exactly zero force and contribute exactly zero parameter gradient.
-pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
-    NonZero::new(256).expect("the row alignment is non-zero");
+pub(crate) const ROW_ALIGNMENT: NonZero<usize> = nz!(256);
 
 /// The per-row model input columns of one corpus.
 ///

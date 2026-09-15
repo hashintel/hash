@@ -17,9 +17,8 @@ mod tests;
 
 /// The importance signal selected for a fit.
 ///
-/// The manifest echoes the variant and the metadata's ranking origin mirrors it, so a published
-/// generation names the signal its delivery order ran under.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Uses [`Self::IncidentDegree`] by default.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) enum RankingConfig {
     /// A constant column.
     ///
@@ -97,8 +96,7 @@ impl<'graph> DegreeImportance<'graph> {
 impl ImportanceSignal for DegreeImportance<'_> {
     #[expect(
         clippy::cast_precision_loss,
-        reason = "degrees stay exactly representable in f32 far beyond any plausible fan-in; the \
-                  documented rounding beyond 2^24 reorders near-ties only"
+        reason = "f32 scores are finite for resident degrees, with rounded ties beyond 2^24"
     )]
     fn derive(&self, rows: usize) -> IdVec<NodeRowId, f32> {
         assert_eq!(

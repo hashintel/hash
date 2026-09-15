@@ -117,18 +117,13 @@ impl OwnedLegend {
     /// allocation fails.
     pub(crate) fn new(representative: OntologyRowId, label: &Label) -> Self {
         let mut boxed = Legend::new_box_zeroed_with_elems(label.len())
-            .expect("a label's length fits the allocator's limits");
+            .expect("the legend allocation should succeed");
         boxed.representative_ontology = representative;
 
         // SAFETY: the write copies the bytes of a valid `&Label` whole. The field holds valid UTF-8
         // when the borrow ends.
         unsafe { boxed.label.0.as_bytes_mut() }.copy_from_slice(label.as_bytes());
         Self(boxed)
-    }
-
-    /// Returns the legend's retained heap in bytes: the representative header and the label text.
-    pub(crate) fn heap_bytes(&self) -> u64 {
-        size_of_val(&*self.0) as u64
     }
 }
 

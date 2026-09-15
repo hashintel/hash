@@ -16,7 +16,8 @@ use crate::{
 ///
 /// The calibrated distribution and the applicability.
 fn prediction(calibrated: [f64; 3], applicability: f64) -> Prediction {
-    let posterior = Posterior::new(calibrated).expect("test distributions are valid");
+    let posterior = Posterior::new(calibrated.map(UnitFraction::new_unchecked))
+        .expect("test distributions are valid");
     Prediction {
         logits: [0.0; 3],
         raw: posterior,
@@ -82,17 +83,32 @@ fn overrides_supersede_predictions_by_precedence() {
         PolicyOverride {
             relation: relation(1),
             source: PolicySource::Synthetic,
-            distribution: Posterior::new([0.25, 0.5, 0.25]).expect("valid"),
+            distribution: Posterior::new([
+                unit_fraction!(0.25),
+                unit_fraction!(0.5),
+                unit_fraction!(0.25),
+            ])
+            .expect("valid"),
         },
         PolicyOverride {
             relation: relation(1),
             source: PolicySource::Human,
-            distribution: Posterior::new([0.5, 0.25, 0.25]).expect("valid"),
+            distribution: Posterior::new([
+                unit_fraction!(0.5),
+                unit_fraction!(0.25),
+                unit_fraction!(0.25),
+            ])
+            .expect("valid"),
         },
         PolicyOverride {
             relation: relation(1),
             source: PolicySource::Reviewed,
-            distribution: Posterior::new([0.0, 0.75, 0.25]).expect("valid"),
+            distribution: Posterior::new([
+                unit_fraction!(0.0),
+                unit_fraction!(0.75),
+                unit_fraction!(0.25),
+            ])
+            .expect("valid"),
         },
     ];
 
@@ -188,12 +204,22 @@ fn contract_violations_are_rejected() {
             PolicyOverride {
                 relation: relation(1),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.5, 0.25, 0.25]).expect("valid"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.5),
+                    unit_fraction!(0.25),
+                    unit_fraction!(0.25),
+                ])
+                .expect("valid"),
             },
             PolicyOverride {
                 relation: relation(1),
                 source: PolicySource::Human,
-                distribution: Posterior::new([0.25, 0.5, 0.25]).expect("valid"),
+                distribution: Posterior::new([
+                    unit_fraction!(0.25),
+                    unit_fraction!(0.5),
+                    unit_fraction!(0.25),
+                ])
+                .expect("valid"),
             },
         ],
         CoincidentAdmission::default(),
@@ -215,7 +241,12 @@ fn contract_violations_are_rejected() {
         &[PolicyOverride {
             relation: relation(2),
             source: PolicySource::Human,
-            distribution: Posterior::new([0.5, 0.25, 0.25]).expect("valid"),
+            distribution: Posterior::new([
+                unit_fraction!(0.5),
+                unit_fraction!(0.25),
+                unit_fraction!(0.25),
+            ])
+            .expect("valid"),
         }],
         CoincidentAdmission::default(),
     )

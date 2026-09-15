@@ -24,6 +24,7 @@ use super::super::fit::{FitConfig, TrainingRow};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         generation::{GenerationId, GenerationRoot},
         repository::Artifact as _,
@@ -256,7 +257,7 @@ impl Frozen {
             staged_hashes_digest: hashes_digest,
             staged_classifier_digest: None,
             assembly: AssemblyConfig { .. },
-            fit: FitConfig { .. },
+            fit: FitConfig::default(),
         }
     }
 

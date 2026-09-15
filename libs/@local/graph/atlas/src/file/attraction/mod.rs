@@ -49,8 +49,8 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the id and count fields are little endian, while the magic discriminant stores \
-              native endian, so a cross-endian reader fails loudly at the magic instead of \
-              misreading fields"
+              native endian. A cross-endian reader fails magic validation instead of misreading \
+              fields"
 )]
 
 use core::fmt;

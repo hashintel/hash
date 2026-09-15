@@ -16,7 +16,7 @@ use super::{
     error::RelationIndexError,
     protection::{NodePair, PairEvidence, ProtectionIndex, ProtectionMatrix},
 };
-use crate::math::{DNonNegative, NonNegative, PositiveUnitFraction, narrow_f32};
+use crate::math::{DNonNegative, NonNegative, PositiveUnitFraction, UnitFraction, narrow_f32};
 
 /// Instances per parallel emission chunk within one relation group.
 ///
@@ -165,8 +165,8 @@ pub(super) fn resolve_groups<'policy, N, E>(
 #[derive(Debug, Copy, Clone)]
 pub(super) struct ProtectionRecord<N> {
     pair: NodePair<N>,
-    discounted: f32,
-    undiscounted: f32,
+    discounted: NonNegative,
+    undiscounted: NonNegative,
 }
 
 impl<N> ProtectionRecord<N> {
@@ -181,8 +181,8 @@ impl<N> ProtectionRecord<N> {
     {
         Self {
             pair: NodePair::new(N::from_u64(0), N::from_u64(0)),
-            discounted: 0.0,
-            undiscounted: 0.0,
+            discounted: NonNegative::ZERO,
+            undiscounted: NonNegative::ZERO,
         }
     }
 }
@@ -307,8 +307,8 @@ where
 
 /// Aggregates one canonical pair's contiguous records into evidence.
 fn pair_evidence<N>(run: &[ProtectionRecord<N>]) -> PairEvidence {
-    let mut discounted = 0.0_f32;
-    let mut undiscounted = 0.0_f32;
+    let mut discounted = NonNegative::ZERO;
+    let mut undiscounted = NonNegative::ZERO;
     for record in run {
         discounted = discounted.max(record.discounted);
         undiscounted = undiscounted.max(record.undiscounted);
@@ -326,10 +326,11 @@ struct GroupFactors {
     /// The positive force scale `s+`.
     scale: NonNegative,
     /// The selected positive class evidence `p_C + p_P`, in double precision.
-    positive: f64,
-    /// The relation's calibrated applicability `a`, narrowed once so the protection evidence
-    /// derives from one shared `f32` reading.
-    applicability: f32,
+    positive: DNonNegative,
+    /// The relation's calibrated applicability `a`, narrowed once to `f32`.
+    ///
+    /// Every protection record in the group uses this same rounded value.
+    applicability: UnitFraction,
 }
 
 /// Builds one relation's attraction group from its contiguous instances.
@@ -366,8 +367,8 @@ where
     };
     let factors = GroupFactors {
         scale: weights.scale(),
-        positive: f64::from(policy.selected.coincident) + f64::from(policy.selected.proximal),
-        applicability: narrow_f32(policy.applicability.get()).expect("a fraction narrows finitely"),
+        positive: (policy.selected.coincident + policy.selected.proximal),
+        applicability: policy.applicability,
     };
 
     let share = |instance: &RelationInstance<N, E>| f64::from(instance.multiplicity.max(1)).recip();
@@ -480,18 +481,16 @@ where
         let confidence = instance.confidence.effective();
         let confidence_value = confidence.value();
 
-        // One narrow derives the undiscounted side, and the discounted side multiplies the
-        // narrowed value: `undiscounted · a ≤ undiscounted` exactly, because multiplying a
-        // non-negative f32 by a factor ∈ [0, 1] cannot round above it, so every record keeps
-        // `discounted ≤ undiscounted` and taking the maximum over records keeps that ordering.
-        // The shared intermediate is also what keeps the protection floor identity exact: both
-        // sides of `max(discounted, F · undiscounted)` scale the same f32 value.
-        let undiscounted = narrow_f32(confidence_value * factors.positive)
-            .expect("a fraction of a finite f32 factor narrows finitely");
+        // Rounded multiplication of a finite non-negative f32 by a factor in [0, 1] cannot exceed
+        // the original value. The discounted component scales the already-narrowed undiscounted
+        // component by the narrowed applicability. Therefore each record satisfies discounted ≤
+        // undiscounted, and taking independent maxima preserves that order. Sharing the narrowed
+        // value also preserves the floor factorization described in protection.
+        let undiscounted = confidence_value * factors.positive;
         *record = ProtectionRecord {
             pair: instance.pair(),
-            discounted: undiscounted * factors.applicability,
-            undiscounted,
+            discounted: (factors.applicability * undiscounted).narrow_lossy(),
+            undiscounted: undiscounted.narrow_lossy(),
         };
 
         let share = f64::from(instance.multiplicity.max(1)).recip();

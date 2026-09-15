@@ -107,18 +107,14 @@ where
 
     /// Returns the underlying raw slice.
     #[inline]
-    #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw(&self) -> &[T] {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
-        unsafe { &*(ptr::from_ref(self) as *const [T]) }
+        &self.raw
     }
 
     /// Returns the underlying raw mutable slice.
     #[inline]
-    #[expect(unsafe_code, reason = "repr(transparent)")]
     pub const fn as_raw_mut(&mut self) -> &mut [T] {
-        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
-        unsafe { &mut *(ptr::from_mut(self) as *mut [T]) }
+        &mut self.raw
     }
 
     /// Converts a boxed slice into a boxed typed slice.
@@ -1058,11 +1054,16 @@ where
 #[cfg(test)]
 mod tests {
     #![expect(unsafe_code, clippy::cast_possible_truncation)]
-    use alloc::boxed::Box;
-    use core::{mem::MaybeUninit, num::NonZero};
+    use alloc::{boxed::Box, rc::Rc};
+    use core::{
+        clone::CloneToUninit as _,
+        mem::MaybeUninit,
+        num::NonZero,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use super::IdSlice;
-    use crate::id::Id as _;
+    use crate::id::{Id as _, IdVec};
 
     hashql_macros::define_id! {
         #[id(crate = crate)]
@@ -1072,6 +1073,18 @@ mod tests {
     hashql_macros::define_id! {
         #[id(crate = crate)]
         struct FourElementId(u8 is 0..=3)
+    }
+
+    #[test]
+    fn raw_views_const() {
+        const VALUES: [u32; 3] = {
+            let mut values = [10, 20, 30];
+            let slice = IdSlice::<TestId, _>::from_raw_mut(&mut values);
+            slice.as_raw_mut()[1] = 42;
+            [slice.as_raw()[0], slice.as_raw()[1], slice.as_raw()[2]]
+        };
+
+        assert_eq!(VALUES, [10, 42, 30]);
     }
 
     #[test]
@@ -1258,5 +1271,131 @@ mod tests {
         let init = unsafe { IdSlice::boxed_assume_init(id_slice) };
 
         assert!(init.is_empty());
+    }
+
+    #[test]
+    fn clone_to_uninit_order() {
+        let data = [10_u32, 20, 30];
+        let source = IdSlice::<TestId, _>::from_raw(&data);
+        let mut buffer: Box<[MaybeUninit<u32>]> = Box::new_uninit_slice(3);
+
+        // SAFETY: `buffer` holds exactly `source.len()` slots of `u32` with `u32`'s alignment, and
+        // `as_mut_ptr` points at its first byte.
+        unsafe {
+            source.clone_to_uninit(buffer.as_mut_ptr().cast::<u8>());
+        }
+
+        let boxed = IdSlice::<TestId, _>::from_boxed_slice(buffer);
+        // SAFETY: `clone_to_uninit` returned normally, which initializes every slot.
+        let cloned = unsafe { IdSlice::boxed_assume_init(boxed) };
+
+        assert_eq!(cloned.as_raw(), &[10, 20, 30]);
+    }
+
+    #[test]
+    fn boxed_clone_shared() {
+        let source: Box<IdSlice<TestId, Rc<u8>>> =
+            IdVec::from_raw(alloc::vec![Rc::new(1), Rc::new(2)]).into_boxed_slice();
+        let first = TestId::from_usize(0);
+        let second = TestId::from_usize(1);
+
+        let cloned = source.clone();
+
+        assert!(Rc::ptr_eq(&source[first], &cloned[first]));
+        assert!(Rc::ptr_eq(&source[second], &cloned[second]));
+        assert_eq!(Rc::strong_count(&source[first]), 2);
+        assert_eq!(Rc::strong_count(&source[second]), 2);
+        drop(cloned);
+        assert_eq!(Rc::strong_count(&source[first]), 1);
+        assert_eq!(Rc::strong_count(&source[second]), 1);
+    }
+
+    #[test]
+    #[expect(clippy::redundant_clone, reason = "the test is testing exactly this")]
+    fn boxed_clone_empty() {
+        let source: Box<IdSlice<TestId, Rc<u8>>> = IdVec::new().into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert!(cloned.is_empty());
+    }
+
+    #[test]
+    #[expect(clippy::redundant_clone, reason = "the test is testing exactly this")]
+    fn boxed_clone_aligned_zst() {
+        static CLONES: AtomicUsize = AtomicUsize::new(0);
+
+        #[repr(align(64))]
+        struct Unit;
+
+        impl Clone for Unit {
+            fn clone(&self) -> Self {
+                CLONES.fetch_add(1, Ordering::Relaxed);
+                Self
+            }
+        }
+
+        assert_eq!(core::mem::size_of::<Unit>(), 0);
+        assert_eq!(core::mem::align_of::<Unit>(), 64);
+        let source: Box<IdSlice<TestId, Unit>> =
+            IdVec::from_raw(alloc::vec![Unit, Unit, Unit]).into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert_eq!(cloned.len(), 3);
+        assert_eq!(CLONES.load(Ordering::Relaxed), 3);
+    }
+
+    #[test]
+    #[expect(clippy::redundant_clone, reason = "the test is testing exactly this")]
+    fn boxed_clone_aligned() {
+        #[repr(align(64))]
+        #[derive(Clone)]
+        struct Aligned(u8);
+
+        let source: Box<IdSlice<TestId, Aligned>> =
+            IdVec::from_raw(alloc::vec![Aligned(1), Aligned(2)]).into_boxed_slice();
+
+        let cloned = source.clone();
+
+        assert_eq!(cloned.len(), 2);
+        assert_eq!(cloned[TestId::from_usize(0)].0, 1);
+        assert_eq!(cloned[TestId::from_usize(1)].0, 2);
+        assert!(cloned.as_raw().as_ptr().addr().is_multiple_of(64));
+    }
+
+    #[test]
+    fn boxed_clone_unwind() {
+        static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+        struct PanicsOnThird(u8);
+
+        impl Clone for PanicsOnThird {
+            #[track_caller]
+            fn clone(&self) -> Self {
+                assert_ne!(self.0, 3, "third clone unwinds");
+                Self(self.0)
+            }
+        }
+
+        impl Drop for PanicsOnThird {
+            fn drop(&mut self) {
+                DROPS.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+
+        let source: Box<IdSlice<TestId, PanicsOnThird>> = IdVec::from_raw(alloc::vec![
+            PanicsOnThird(1),
+            PanicsOnThird(2),
+            PanicsOnThird(3),
+        ])
+        .into_boxed_slice();
+
+        let outcome = std::panic::catch_unwind(|| source.clone());
+
+        assert!(outcome.is_err());
+        assert_eq!(DROPS.load(Ordering::Relaxed), 2);
+        drop(source);
+        assert_eq!(DROPS.load(Ordering::Relaxed), 5);
     }
 }

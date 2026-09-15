@@ -10,7 +10,7 @@ use super::{
     acceptance_sample_size, keyed_rng, mean_sample_size, normal_quantile, sample_ids,
     sample_indices_vec, uniform_below,
 };
-use crate::math::{OpenUnitFraction, d_non_negative, d_positive, open_unit_fraction};
+use crate::math::{OpenUnitFraction, d_non_negative, d_positive, nz, open_unit_fraction};
 
 /// Creates a reproducible generator for a test case.
 fn rng(seed: u64) -> Xoshiro256PlusPlus {
@@ -20,7 +20,7 @@ fn rng(seed: u64) -> Xoshiro256PlusPlus {
 #[test]
 fn uniform_below_bound_one() {
     let mut rng = rng(7);
-    let bound = NonZero::new(1).expect("one is not zero");
+    let bound = nz!(1);
 
     for _ in 0..64 {
         assert_eq!(uniform_below(&mut rng, bound), 0);
@@ -30,7 +30,7 @@ fn uniform_below_bound_one() {
 #[test]
 fn uniform_below_residue_balance() {
     let mut rng = rng(42);
-    let bound = NonZero::new(7).expect("seven is not zero");
+    let bound = nz!(7);
 
     let mut counts = [0_u32; 7];
     let draws = 70_000;

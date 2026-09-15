@@ -76,8 +76,7 @@ pub(crate) enum UnitLaw {
         not(test),
         expect(
             dead_code,
-            reason = "the selected unit law for the planned calibration; consumed when the band \
-                      trainer is wired"
+            reason = "no production path constructs this unit law, and the tests select it"
         )
     )]
     PerLinkInstance,

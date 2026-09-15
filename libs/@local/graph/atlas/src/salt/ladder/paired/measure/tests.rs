@@ -160,7 +160,7 @@ fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
 #[test]
 #[expect(
     clippy::float_cmp,
-    reason = "the forbidden-shortcut restatement compares exact decimal literals"
+    reason = "the median differences are exactly representable integers"
 )]
 fn the_readout_reproduces_its_bytes_and_pins_exact_decimal_aggregates() {
     let (groups, edges) = readout_index();

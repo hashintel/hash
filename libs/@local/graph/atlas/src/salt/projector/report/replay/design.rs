@@ -4,25 +4,24 @@ use alloc::borrow::Cow;
 use core::num::NonZero;
 
 use super::{draw::DrawnSamples, error::ReplayError};
-use crate::{file::generation::Generation, salt::quality::metric::NeighbourhoodAggregate};
+use crate::{
+    file::generation::Generation, math::nz, salt::quality::metric::NeighbourhoodAggregate,
+};
 
 // The defaults mirror the quality suite's probe: 256 queries against
 // the suite's anchor count, 4,096 comparisons and the same
-// neighbourhood sizes and horizon factor, so a replay reading and a
-// suite reading sit on comparable normalizers.
-const DEFAULT_QUERIES: NonZero<usize> =
-    NonZero::new(256).expect("the default query count is nonzero");
-const DEFAULT_COMPARISONS: NonZero<usize> =
-    NonZero::new(4096).expect("the default comparison count is nonzero");
-const DEFAULT_CONTROLS: NonZero<usize> =
-    NonZero::new(256).expect("the default control count is nonzero");
-const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[
-    NonZero::new(15).expect("the default neighbourhood sizes are nonzero"),
-    NonZero::new(30).expect("the default neighbourhood sizes are nonzero"),
-    NonZero::new(50).expect("the default neighbourhood sizes are nonzero"),
-];
-const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
-    NonZero::new(2).expect("the default horizon factor is nonzero");
+// neighbourhood sizes and horizon factor. A replay reading and a
+// suite reading therefore share comparable normalizers.
+/// The default arrival-query sample size.
+const DEFAULT_QUERIES: NonZero<usize> = nz!(256);
+/// The default size of the shared comparison universe.
+const DEFAULT_COMPARISONS: NonZero<usize> = nz!(4096);
+/// The default control sample size.
+const DEFAULT_CONTROLS: NonZero<usize> = nz!(256);
+/// The default neighbourhood sizes, applied to both estimands.
+const DEFAULT_NEIGHBOURHOODS: &[NonZero<usize>] = &[nz!(15), nz!(30), nz!(50)];
+/// The default horizon multiplier of the intrusion and extrusion readings.
+const DEFAULT_HORIZON_FACTOR: NonZero<usize> = nz!(2);
 
 /// Sampling and neighbourhood settings for one replay.
 ///
@@ -68,10 +67,11 @@ pub(crate) struct ReplayInputs<'pair> {
 
 /// One neighbourhood size's validated design.
 ///
-/// Construction is the validation: each empty aggregate is built here once against its
-/// universe, and every pass clones a template instead of revalidating the triple. The estimand
-/// template serves both estimands, because the entity and class universes come from one joint
-/// draw of `comparisons` members each, so they share one cardinality.
+/// Construction validates each empty aggregate against its universe once. Every pass clones a
+/// template instead of revalidating the triple. Entity and class estimands use separate draws,
+/// each jointly selecting comparison and control members before splitting them. Each comparison
+/// universe contains `comparisons` members, allowing both estimands to reuse one template.
+#[derive(Debug)]
 #[expect(
     clippy::min_ident_chars,
     reason = "k is the canonical neighbourhood-size name across the metric literature"

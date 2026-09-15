@@ -33,7 +33,7 @@ use crate::{
     },
     identity::NodeRowId,
     math::{
-        AlignedVecN, BoxedVecN, d_non_negative, non_negative, open_unit_fraction, unit_fraction,
+        AlignedVecN, BoxedVecN, d_non_negative, non_negative, nz, open_unit_fraction, unit_fraction,
     },
     progress::{Batch, DescentIteration, NoProgress, Progress},
     random::normal_quantile,
@@ -351,7 +351,7 @@ fn fan_fixture(rows: usize, step: f32) -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
         .map(|index| {
             #[expect(
                 clippy::cast_precision_loss,
-                reason = "test indices are tiny exact integers"
+                reason = "fixture indices below 128 are exactly representable in f32"
             )]
             let angle = index as f32 * step;
             let mut row = [0.0; PROJECTOR_DIMENSIONS];
@@ -364,7 +364,7 @@ fn fan_fixture(rows: usize, step: f32) -> Vec<[f32; PROJECTOR_DIMENSIONS]> {
 
 /// Returns the neighbour width `2` for the small plane fixtures.
 fn two_neighbours() -> NonZero<usize> {
-    NonZero::new(2).expect("two is nonzero")
+    nz!(2)
 }
 
 /// Creates the fixed-seed generator for neighbour-construction fixtures.
@@ -479,8 +479,7 @@ fn from_lists_over_the_smallest_fixture_measures_the_miri_cost() {
     let lists = tiny_neighbour_lists();
 
     let start = std::time::Instant::now();
-    let knn = Knn::from_lists::<!>(&lists, NonZero::new(1).expect("one is nonzero"))
-        .expect("the fixture is well-formed");
+    let knn = Knn::from_lists::<!>(&lists, nz!(1)).expect("the fixture is well-formed");
     let elapsed = start.elapsed();
 
     assert_eq!(knn.view().rows(), 3);
@@ -567,15 +566,11 @@ fn build_rejects_unsatisfiable_shapes() {
 
     // Construction clamps the width to the corpus; the table's stored
     // count still must stay below the row domain.
-    let lists = lists_via(
-        ExactIndex::from_rows(&[]),
-        matrix.view(),
-        NonZero::new(4).expect("four is nonzero"),
-    )
-    .expect("the clamped construction succeeds");
+    let lists = lists_via(ExactIndex::from_rows(&[]), matrix.view(), nz!(4))
+        .expect("the clamped construction succeeds");
     assert_eq!(lists.width(), 3);
     assert_matches!(
-        Knn::from_lists::<!>(&lists, NonZero::new(4).expect("four is nonzero")),
+        Knn::from_lists::<!>(&lists, nz!(4)),
         Err(KnnError::Invalid(KnnValidationError::NeighbourBounds {
             neighbours: 4,
             rows: 4,
@@ -586,7 +581,7 @@ fn build_rejects_unsatisfiable_shapes() {
     let narrow = lists_via(ExactIndex::from_rows(&[]), matrix.view(), two_neighbours())
         .expect("the fixture is well-formed");
     assert_matches!(
-        Knn::from_lists::<!>(&narrow, NonZero::new(3).expect("three is nonzero")),
+        Knn::from_lists::<!>(&narrow, nz!(3)),
         Err(KnnError::ListsWidth {
             width: 2,
             neighbours: 3,
@@ -636,7 +631,7 @@ fn descent_converges_on_known_geometry() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
     let embeddings = matrix.view();
-    let width = NonZero::new(4).expect("four is nonzero");
+    let width = nz!(4);
 
     let lists = NnDescent::new(NnDescentOptions::default())
         .construct(embeddings, width, test_rng(), &NoProgress)
@@ -759,12 +754,7 @@ fn descent_clamps_the_width_to_the_corpus() {
     let matrix = Matrix::new(&rows);
 
     let lists = NnDescent::new(NnDescentOptions::default())
-        .construct(
-            matrix.view(),
-            NonZero::new(16).expect("sixteen is nonzero"),
-            test_rng(),
-            &NoProgress,
-        )
+        .construct(matrix.view(), nz!(16), test_rng(), &NoProgress)
         .expect("the clamped construction succeeds");
     assert_eq!(lists.width(), 3, "the width clamps to every non-self row");
 }
@@ -777,12 +767,7 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
 
     // The backend starts empty, and the construction fills it.
     IndexConstruction::new(ExactIndex::from_rows(&[]))
-        .construct(
-            matrix.view(),
-            NonZero::new(4).expect("four is nonzero"),
-            test_rng(),
-            &progress,
-        )
+        .construct(matrix.view(), nz!(4), test_rng(), &progress)
         .expect("the fixture is well-formed");
 
     // below the cadence, each loop reports exactly once at its last row. This backend names no
@@ -803,7 +788,7 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
 fn watching_a_construction_does_not_change_its_lists() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
-    let width = NonZero::new(4).expect("four is nonzero");
+    let width = nz!(4);
 
     let watched = IndexConstruction::new(ExactIndex::from_rows(&[]))
         .construct(
@@ -836,12 +821,7 @@ fn an_observed_descent_reports_every_iteration_it_ran() {
     let progress = RecordingProgress::default();
 
     NnDescent::new(options)
-        .construct(
-            matrix.view(),
-            NonZero::new(4).expect("four is nonzero"),
-            test_rng(),
-            &progress,
-        )
+        .construct(matrix.view(), nz!(4), test_rng(), &progress)
         .expect("the fixture is well-formed");
 
     let iterations: Vec<DescentIteration> = progress
@@ -1046,7 +1026,7 @@ fn spot_check_honours_configured_options() {
         &index,
         matrix.view(),
         recall::SpotCheckOptions {
-            neighbours: NonZero::new(3).expect("three is nonzero"),
+            neighbours: nz!(3),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
@@ -1090,10 +1070,7 @@ fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
     let check = recall::spot_check(
         &index,
         matrix.view(),
-        recall::SpotCheckOptions {
-            pilot: NonZero::new(4).expect("four is nonzero"),
-            ..
-        },
+        recall::SpotCheckOptions { pilot: nz!(4), .. },
         Xoshiro256PlusPlus::seed_from_u64(42),
     )
     .expect("the exact backend answers every query");
@@ -1121,7 +1098,7 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
         matrix.view(),
         recall::SpotCheckOptions {
             minimum_recall: unit_fraction!(0.93),
-            pilot: NonZero::new(4).expect("four is nonzero"),
+            pilot: nz!(4),
             ..
         },
         Xoshiro256PlusPlus::seed_from_u64(42),
@@ -1151,7 +1128,7 @@ fn spot_check_stops_at_the_sampling_budget() {
         matrix.view(),
         recall::SpotCheckOptions {
             minimum_recall: unit_fraction!(0.94),
-            pilot: NonZero::new(4).expect("four is nonzero"),
+            pilot: nz!(4),
             budget: Duration::ZERO,
             ..
         },
@@ -1465,7 +1442,7 @@ fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
     )
     .construct(
         matrix.view(),
-        NonZero::new(4).expect("four is nonzero"),
+        nz!(4),
         Xoshiro256PlusPlus::seed_from_u64(42),
         &progress,
     )

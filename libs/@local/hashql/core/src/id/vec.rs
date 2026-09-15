@@ -552,6 +552,22 @@ where
 
         self.raw.copy_within((start, end), dst.as_usize());
     }
+
+    /// Drains elements from the `range` of the vector.
+    ///
+    ///
+    /// See [`Vec::drain`](std::vec::Vec#method.drain) for details.
+    ///
+    /// # Returns
+    ///
+    /// An iterator over the drained elements.
+    #[inline]
+    pub fn drain(&mut self, range: impl RangeBounds<I>) -> alloc::vec::Drain<'_, T, A> {
+        let start = range.start_bound().copied().map(Id::as_usize);
+        let end = range.end_bound().copied().map(Id::as_usize);
+
+        self.raw.drain((start, end))
+    }
 }
 
 #[cfg(feature = "rayon")]

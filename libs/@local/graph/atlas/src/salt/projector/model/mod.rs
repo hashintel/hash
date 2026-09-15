@@ -206,8 +206,8 @@ pub(crate) enum NodeRole {
         not(any(test, feature = "bench")),
         expect(
             dead_code,
-            reason = "no production path constructs this role yet; the variant count sizes the \
-                      trained role table, so retiring it is a model-format change"
+            reason = "no production path constructs this role, and the variant count sizes the \
+                      trained role table, which makes retiring it a model-format change"
         )
     )]
     OntologyType,
@@ -219,8 +219,8 @@ pub(crate) enum NodeRole {
         not(any(test, feature = "bench")),
         expect(
             dead_code,
-            reason = "no production path constructs this role yet; the variant count sizes the \
-                      trained role table, so retiring it is a model-format change"
+            reason = "no production path constructs this role, and the variant count sizes the \
+                      trained role table, which makes retiring it a model-format change"
         )
     )]
     Other,
@@ -255,10 +255,10 @@ const PROJECTED_DIMENSIONS: usize = 2;
 
 /// Every dimension that gives a [`Projector`] its shape.
 ///
-/// All fields are construction-valid, so building a model from an architecture cannot fail. Width
-/// and depth are benchmark axes - the defaults are the candidate the quality and throughput
-/// criteria judge first, not validated optima.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// All fields are construction-valid, and building a model from an architecture cannot fail. Width
+/// and depth are benchmark axes: the defaults are the candidate the quality and throughput
+/// criteria judge first rather than validated optima.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Architecture {
     /// Hidden width of the stem and every residual block.
     pub width: NonZero<usize> = DEFAULT_WIDTH,

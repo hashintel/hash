@@ -239,7 +239,7 @@ impl LandmarkSkeletonArchive {
     /// Returns the landmark count `M`.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn landmarks(&self) -> u64 {
         self.file.landmarks()
     }
@@ -247,7 +247,7 @@ impl LandmarkSkeletonArchive {
     /// Returns the corpus row count `N` the assignment covers.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn rows(&self) -> u64 {
         self.file.rows()
     }
@@ -263,7 +263,7 @@ impl LandmarkSkeletonArchive {
 
     /// Views the assignment: every node row's landmark ordinal, inside the landmark domain.
     #[must_use]
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     pub(crate) fn assignment(&self) -> &IdSlice<NodeRowId, LandmarkOrdinal> {
         IdSlice::from_raw(
             <[LandmarkOrdinal]>::ref_from_bytes(self.file.assignment().as_bytes())
@@ -272,7 +272,7 @@ impl LandmarkSkeletonArchive {
     }
 
     /// Views the layout coordinates, finite, keyed by landmark ordinal.
-    #[cfg(test)] // The landmark, file, and fit tests read the archive cross-module.
+    #[cfg(test)]
     #[must_use]
     pub(crate) fn coordinates(&self) -> &IdSlice<LandmarkOrdinal, Vec2> {
         IdSlice::from_raw(self.file.coordinates())

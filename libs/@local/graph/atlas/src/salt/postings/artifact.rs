@@ -2,20 +2,23 @@
 //!
 //! The archive checks run ordering and domains before exposing membership and parent views.
 
-use core::ops::Range;
+use std::path::Path;
 
 use hashql_core::id::Id as _;
 
 use crate::{
-    bitset::{DenseBitSlice, RowsIn},
-    file::postings::read::PostingsFile,
+    bitset::DenseBitSlice,
+    file::{
+        ArtifactFile,
+        postings::read::{OpenPostingsError, PostingsFile},
+    },
     identity::{BasePosition, OntologyRowId},
     runs::{RunsError, RunsView},
 };
 
 /// A violation of the postings artifact's run or membership-count contract.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum InvalidPostingsFile {
+pub(crate) enum InvalidPostingsFile {
     /// The list fenceposts break anchoring, ordering, or coverage at `position`.
     ListPosts { position: usize },
     /// The parent fenceposts break anchoring, ordering, or coverage at `position`.
@@ -99,6 +102,50 @@ impl core::fmt::Display for InvalidPostingsFile {
 
 impl core::error::Error for InvalidPostingsFile {}
 
+/// A failure to open or validate a published postings artifact.
+#[derive(Debug)]
+pub(crate) enum OpenPostingsArchiveError {
+    /// The postings file failed to open.
+    Open(OpenPostingsError),
+    /// The file does not hold a valid postings artifact.
+    Invalid(InvalidPostingsFile),
+}
+
+const impl From<OpenPostingsError> for OpenPostingsArchiveError {
+    fn from(error: OpenPostingsError) -> Self {
+        Self::Open(error)
+    }
+}
+
+const impl From<InvalidPostingsFile> for OpenPostingsArchiveError {
+    fn from(error: InvalidPostingsFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl core::fmt::Display for OpenPostingsArchiveError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the postings file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(
+                    fmt,
+                    "the file does not hold a valid postings artifact: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl core::error::Error for OpenPostingsArchiveError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
 /// A published postings artifact opened over its mapped file.
 ///
 /// Construction validates fencepost anchoring, ordering and coverage in all three run regions. It
@@ -111,6 +158,15 @@ impl core::error::Error for InvalidPostingsFile {}
 #[derive(Debug)]
 pub(crate) struct PostingsArchive {
     file: PostingsFile,
+}
+
+impl ArtifactFile for PostingsArchive {
+    type Error = OpenPostingsArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
+        let file = PostingsFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl PostingsArchive {
@@ -247,6 +303,7 @@ impl PostingsArchive {
     // against the membership total, and that is the region's whole production use. The postings
     // tests read it to verify the written direct map restates the input type column.
     #[must_use]
+    #[cfg(test)]
     pub(crate) fn direct_types(&self, position: BasePosition) -> Option<&[OntologyRowId]> {
         let index = position.as_u64();
         if index >= self.file.points() {
@@ -267,6 +324,7 @@ impl PostingsArchive {
     }
 
     /// Re-borrows the direct-map regions construction validated.
+    #[cfg(test)] // Only `direct_types` re-borrows the region after validation.
     fn direct_runs(&self) -> RunsView<'_, BasePosition, OntologyRowId> {
         RunsView::from_parts_unchecked(self.file.direct_posts(), self.file.direct_ids())
     }
@@ -304,50 +362,6 @@ impl Membership<'_> {
         match self {
             Self::List(positions) => positions.binary_search(&position).is_ok(),
             Self::Dense(set) => set.contains(position),
-        }
-    }
-
-    /// Iterates the member positions inside `range`, ascending.
-    ///
-    /// The shape a delivered run's mask column interleaves from.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `range.start` exceeds `range.end`. Every caller supplies an ascending range
-    /// by construction.
-    pub(crate) fn positions_in(&self, range: Range<BasePosition>) -> MembershipPositions<'_> {
-        match self {
-            Self::List(positions) => {
-                assert!(
-                    range.start <= range.end,
-                    "an inverted position range matches no delivered run",
-                );
-                let start = positions.partition_point(|&position| position < range.start);
-                let end = positions.partition_point(|&position| position < range.end);
-
-                MembershipPositions::List(positions[start..end].iter())
-            }
-            Self::Dense(set) => MembershipPositions::Dense(set.iter_in(range)),
-        }
-    }
-}
-
-/// Iterator over one membership's positions inside a range.
-#[derive(Debug)]
-pub(crate) enum MembershipPositions<'map> {
-    /// The member slice of a list run.
-    List(core::slice::Iter<'map, BasePosition>),
-    /// The dense set's own range cursor.
-    Dense(RowsIn<'map, BasePosition>),
-}
-
-impl Iterator for MembershipPositions<'_> {
-    type Item = BasePosition;
-
-    fn next(&mut self) -> Option<BasePosition> {
-        match self {
-            Self::List(positions) => positions.next().copied(),
-            Self::Dense(rows) => rows.next(),
         }
     }
 }

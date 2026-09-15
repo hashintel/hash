@@ -13,8 +13,7 @@
     not(test),
     expect(
         dead_code,
-        reason = "hard-negative mining is the designed reader of the mapped evidence, not yet \
-                  implemented"
+        reason = "some mapped index inspection APIs are used only by tests"
     )
 )]
 

@@ -218,7 +218,7 @@ impl AcquiredClassifier {
                 corpus: source,
                 assembly: Box::new(*evidence),
                 fit: ClassifierFitSummary {
-                    folds: context.config.policy.classifier_fit.folds,
+                    folds: context.config.policy.classifier_fit.folds(),
                     regularization: fitted.evidence.regularization,
                     selection: fitted
                         .evidence

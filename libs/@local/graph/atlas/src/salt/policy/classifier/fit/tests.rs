@@ -3,19 +3,26 @@
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]
 
-use core::{assert_matches, num::NonZeroU64};
-use std::sync::Mutex;
+use alloc::sync::Arc;
+use core::{assert_matches, mem, time::Duration};
+use std::sync::{Condvar, Mutex};
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
+use tracing::{Dispatch, Event, Span, Subscriber, span::Id};
+use tracing_subscriber::{
+    Layer, Registry,
+    layer::{Context, SubscriberExt as _},
+    registry::LookupSpan,
+};
 
 use super::{
-    FitConfig, FitError, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError, applicability,
-    calibration, fit, grouped_folds,
+    FitConfig, FitError, FitOptions, FoldedTraining, TrainingRow, TrainingSet, TrainingSetError,
+    applicability, calibration, fit, grouped_folds,
     objective::{PARAMETER_COUNT, Parameters},
     regularization,
     solver::{
         Gram, PreparationError, PreparationSettings, SolverConfig, SolverConfigError,
-        SolverFailure, WorkCounters,
+        SolverFailure, SolverOptions, WorkCounters,
     },
     split_parameters,
 };
@@ -23,7 +30,7 @@ use crate::{
     dataset::CANONICAL_DIMENSIONS,
     identity::CardRow,
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN, DNonNegative, DPositive, d_positive},
+    math::{AlignedVecN, BoxedVecN, DNonNegative, DPositive, d_positive, nz},
     progress::{NoProgress, Progress},
     salt::policy::GeometryClass,
 };
@@ -93,9 +100,17 @@ fn digest(bytes: &[u8]) -> Sha256Digest {
     hasher.finalize()
 }
 
+/// Admits a fixture's raw solver options.
+fn solver_config(options: SolverOptions) -> SolverConfig {
+    SolverConfig::new(options).expect("the solver config is valid")
+}
+
+/// Builds a two-fold fit config at seed 17.
+///
+/// Regularisation `0.5`, default solver settings otherwise.
 fn config() -> FitConfig {
-    FitConfig {
-        solver: SolverConfig {
+    FitConfig::new(FitOptions {
+        solver: SolverOptions {
             preparation: PreparationSettings {
                 regularization: d_positive!(0.5),
                 ..
@@ -104,7 +119,8 @@ fn config() -> FitConfig {
         },
         folds: 2,
         seed: 17,
-    }
+    })
+    .expect("the fit config is valid")
 }
 
 /// Builds a two-row corpus with mixed targets and distinct groups.
@@ -278,10 +294,10 @@ fn stronger_regularization_shrinks_the_fitted_coefficients() {
     let training = corpus.training();
 
     let regularized = |regularization| FitConfig {
-        solver: SolverConfig {
+        solver: solver_config(SolverOptions {
             preparation: PreparationSettings { regularization, .. },
             ..
-        },
+        }),
         ..config()
     };
 
@@ -645,10 +661,10 @@ fn exhausted_outer_iteration_budget_is_an_error() {
     let error = fit(
         corpus.training(),
         FitConfig {
-            solver: SolverConfig {
-                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            solver: solver_config(SolverOptions {
+                maximum_outer_iterations: nz!(1),
                 ..
-            },
+            }),
             ..config()
         },
         &NoProgress,
@@ -658,33 +674,141 @@ fn exhausted_outer_iteration_budget_is_an_error() {
     assert_matches!(error, FitError::Solver(SolverFailure::OuterIterationBudget));
 }
 
+/// One solver diagnostic as the layer saw it.
+///
+/// The rayon worker that emitted it and the span ids from the root down.
+struct SolveEvent {
+    worker: usize,
+    scope: Vec<Id>,
+}
+
+/// A tracing layer that waits for two fit diagnostics and records their worker and span ids.
+struct SolveScopes {
+    events: Arc<Mutex<Vec<SolveEvent>>>,
+    another_worker: Condvar,
+}
+
+impl<S: Subscriber + for<'lookup> LookupSpan<'lookup>> Layer<S> for SolveScopes {
+    /// Records a fit-target event's worker and spans, waiting for a second matching event.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a matching event is not on a rayon pool worker, fewer than two matching events
+    /// have been recorded after ten seconds, or the fixture mutex is poisoned.
+    fn on_event(&self, event: &Event<'_>, context: Context<'_, S>) {
+        if event.metadata().target() != "hash_graph_atlas::salt::policy::classifier::fit" {
+            return;
+        }
+
+        let scope = context.event_scope(event).map_or_else(Vec::new, |scope| {
+            scope.from_root().map(|span| span.id()).collect()
+        });
+        let both_workers = {
+            let mut events = self.events.lock().expect("should lock the solve events");
+            events.push(SolveEvent {
+                worker: rayon::current_thread_index().expect("should execute on a pool worker"),
+                scope,
+            });
+            self.another_worker.notify_all();
+
+            // hold the first diagnostic until another worker emits one, before either solve returns
+            // its error. The timeout bounds a failed rendezvous.
+            self.another_worker
+                .wait_timeout_while(events, Duration::from_secs(10), |events| events.len() < 2)
+                .map(|(events, _)| events.len() >= 2)
+                .expect("should await another worker's diagnostic")
+        };
+        assert!(both_workers, "should observe both workers before returning");
+    }
+}
+
+/// Nested fold solves retain the active span and release it after a solver error.
+#[test]
+fn select_tracing_context() {
+    let corpus = soft_corpus();
+    let config = FitConfig {
+        solver: solver_config(SolverOptions {
+            maximum_outer_iterations: nz!(1),
+            ..
+        }),
+        ..config()
+    };
+    let folds = grouped_folds(&corpus.rows, config.folds, config.seed)
+        .expect("should assign the corpus groups");
+    let gram = Gram::assemble(corpus.embeddings().as_raw(), &mut WorkCounters::default());
+    let folded = FoldedTraining {
+        training: corpus.training(),
+        folds: &folds,
+        gram: &gram,
+    };
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let dispatch = Dispatch::new(Registry::default().with(SolveScopes {
+        events: Arc::clone(&events),
+        another_worker: Condvar::new(),
+    }));
+
+    tracing::dispatcher::with_default(&dispatch, || {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build_scoped(
+                |thread| tracing::dispatcher::with_default(&dispatch, || thread.run()),
+                |pool| {
+                    let requests = [
+                        tracing::info_span!("request"),
+                        tracing::info_span!("request"),
+                        Span::none(),
+                    ];
+                    for request in requests {
+                        let classifier = if request.is_none() {
+                            Span::none()
+                        } else {
+                            request.in_scope(|| tracing::info_span!("classifier-fit"))
+                        };
+                        let expected: Vec<_> = [request.id(), classifier.id()]
+                            .into_iter()
+                            .flatten()
+                            .collect();
+                        let result = pool
+                            .install(|| classifier.in_scope(|| folded.select(config, &NoProgress)));
+                        assert_eq!(
+                            result.err().expect("should exhaust the iteration budget"),
+                            FitError::Solver(SolverFailure::OuterIterationBudget)
+                        );
+
+                        let observed = mem::take(
+                            &mut *events.lock().expect("should lock the recorded diagnostics"),
+                        );
+                        let mut workers: Vec<_> =
+                            observed.iter().map(|event| event.worker).collect();
+                        workers.sort_unstable();
+                        workers.dedup();
+                        assert_eq!(workers, [0, 1]);
+                        for event in observed {
+                            assert_eq!(event.scope, expected);
+                        }
+                        assert_eq!(pool.broadcast(|_| Span::current().id()), [None, None]);
+                    }
+                },
+            )
+            .expect("should build and join the subscribed pool");
+    });
+}
+
+/// The constructor names a single fold and an inverted radius range.
 #[test]
 fn configuration_violations_are_named() {
-    let corpus = mixed_corpus();
-
-    let error = fit(
-        corpus.training(),
-        FitConfig {
-            folds: 1,
-            ..config()
-        },
-        &NoProgress,
-    )
-    .expect_err("one fold cannot hold anything out");
+    let error =
+        FitConfig::new(FitOptions { folds: 1, .. }).expect_err("one fold cannot hold anything out");
     assert_matches!(error, FitError::FoldCount { folds: 1 });
 
-    let error = fit(
-        corpus.training(),
-        FitConfig {
-            solver: SolverConfig {
-                radius_minimum: d_positive!(2.0),
-                radius_maximum: d_positive!(1.0),
-                ..
-            },
-            ..config()
+    let error = FitConfig::new(FitOptions {
+        solver: SolverOptions {
+            radius_minimum: d_positive!(2.0),
+            radius_maximum: d_positive!(1.0),
+            ..
         },
-        &NoProgress,
-    )
+        ..
+    })
     .expect_err("the radius ordering is violated");
     assert_matches!(
         error,
@@ -778,10 +902,10 @@ fn a_fit_that_never_converges_completes_no_fold() {
     fit(
         corpus.training(),
         FitConfig {
-            solver: SolverConfig {
-                maximum_outer_iterations: NonZeroU64::new(1).expect("one is nonzero"),
+            solver: solver_config(SolverOptions {
+                maximum_outer_iterations: nz!(1),
                 ..
-            },
+            }),
             ..config()
         },
         &progress,

@@ -14,6 +14,7 @@ use super::{error::ProjectorError, inputs::PublishInputs};
 use crate::{
     device::{Inference, PhysicalDevice},
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, ArrayVariant, Dim, SizedArrayWriter, SizedColumn},
         attraction::read::AttractionFile,
         generation::{ScratchDirectory, StagedGeneration},
@@ -127,7 +128,7 @@ impl<'fit> LadderPass<'fit> {
         );
 
         tracing::info!(
-            radius = %energy.proximal().radius(),
+            radius = %energy.proximal().radius,
             conditions = ?series.conditions,
             losses = ?series.losses,
             "measured the step relation losses"
@@ -259,8 +260,9 @@ impl<'fit> LadderPass<'fit> {
     /// rather than a data condition, and no persisted refusal names it.
     #[expect(
         clippy::panic_in_result_fn,
-        reason = "the Result carries fit-level failures; a row-count contradiction between two \
-                  artifacts of one fit is a pipeline contract violation, documented under Panics"
+        reason = "the Result carries fit-level failures, and a row-count contradiction between \
+                  two artifacts of one fit is a pipeline contract violation documented under \
+                  Panics"
     )]
     fn measure_paired_movement(
         &self,

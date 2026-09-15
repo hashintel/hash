@@ -400,7 +400,7 @@ pub(super) fn newton_step(
 
     let guard = gradient_norm
         * product_norm
-        * (DPositive::from_u32(config.curvature_guard_ulps) * DPositive::EPSILON);
+        * (DPositive::from_u32(config.curvature_guard_ulps()) * DPositive::EPSILON);
     let Ok(guard) = guard.finish() else {
         return Err(non_finite(NewtonStage::Dogleg));
     };

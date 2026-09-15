@@ -90,7 +90,7 @@ const DEFAULT_PILOT: NonZero<usize> = nz!(688);
 const DEFAULT_BUDGET: Duration = Duration::from_secs(600);
 
 /// Pinned sampling and admission settings for one recall spot check.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SpotCheckOptions {
     /// Exact neighbours compared per sampled row.
     ///

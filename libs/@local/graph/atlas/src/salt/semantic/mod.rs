@@ -49,8 +49,11 @@ pub(crate) type SemanticMatrixView<'view> = CsMatViewI<'view, f32, u32, u64>;
 
 /// Smooth-kNN convergence limits and the distance-scaled bandwidth floor.
 ///
-/// The defaults are the established UMAP fuzzy-set kernel constants.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// Calibration targets the membership-sum equation in [`bandwidth`]. The stopping tolerance applies
+/// before the bandwidth and stored-membership floors, which can raise the final sum. For validated
+/// k-NN distances in `[0, 2]`, the defaults keep both trial and returned bandwidths finite and
+/// positive. Custom settings must preserve that condition to implement the exponential model.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SmoothingOptions {
     /// Absolute membership-sum residual below which bisection stops early.
     ///
@@ -79,8 +82,7 @@ const impl Default for SmoothingOptions {
 /// Returns [`SemanticValidationError`] when the matrix violates a graph invariant.
 #[expect(
     clippy::float_cmp,
-    reason = "the union weight is computed from commutative operations, so the two directions of \
-              an edge are bit-equal by construction and validated exactly"
+    reason = "the graph requires exact equality between finite positive weights in both directions"
 )]
 fn validate(matrix: SemanticMatrixView<'_>) -> Result<(), SemanticValidationError> {
     if !matrix.is_csr() {
@@ -185,8 +187,8 @@ where
     #[expect(
         clippy::cast_precision_loss,
         clippy::cast_possible_truncation,
-        reason = "neighbour and entry counts stay far below exact f64 integer precision, and the \
-                  corpus mean is a bandwidth floor scale whose low f32 bits are irrelevant"
+        reason = "counts become f64 for calibration arithmetic, and the corpus mean rounds to the \
+                  f32 bandwidth scale"
     )]
     pub(crate) fn build(knn: &KnnView<'_, N>, options: SmoothingOptions) -> Self {
         let rows = knn.rows();

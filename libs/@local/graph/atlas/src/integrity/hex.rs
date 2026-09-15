@@ -5,7 +5,7 @@ use core::{array, error::Error, fmt, str::FromStr};
 
 /// A string that is not canonical lowercase hexadecimal of the expected width.
 #[derive(Debug)]
-pub enum ParseHexError {
+pub(crate) enum ParseHexError {
     /// The input contains a number of characters other than the encoded width.
     Length {
         /// The number of characters the encoded value occupies.
@@ -73,8 +73,6 @@ const fn nibble(byte: u8) -> (u8, u8) {
 #[derive(
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     PartialOrd,
     Ord,
     zerocopy::ByteHash,
@@ -85,7 +83,7 @@ const fn nibble(byte: u8) -> (u8, u8) {
     zerocopy::KnownLayout,
 )]
 #[repr(transparent)]
-pub struct HexBytes<const N: usize>([u8; N]);
+pub(crate) struct HexBytes<const N: usize>([u8; N]);
 
 impl<const N: usize> HexBytes<N> {
     /// Creates a value from its raw bytes.
@@ -155,6 +153,15 @@ const impl<const N: usize> AsMut<[u8]> for HexBytes<N> {
         &mut self.0
     }
 }
+
+const impl<const N: usize> PartialEq for HexBytes<N> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl<const N: usize> Eq for HexBytes<N> {}
 
 impl<const N: usize> fmt::Debug for HexBytes<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

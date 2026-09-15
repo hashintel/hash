@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{future::ready, num::NonZero};
+use core::future::ready;
 use std::{collections::HashMap, sync::Mutex};
 
 use camino::Utf8PathBuf;
@@ -19,14 +19,15 @@ use crate::{
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN, positive},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN, nz, positive},
     progress::{NoProgress, Progress},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
         fit::{ClassifierInput, FitConfig, PlacementOptions},
         landmark::select::SelectionOptions,
         policy::classifier::{
-            FitConfig as ClassifierFitConfig, TrainingRow, TrainingSet, fit as fit_classifier,
+            FitConfig as ClassifierFitConfig, FitOptions as ClassifierFitOptions, TrainingRow,
+            TrainingSet, fit as fit_classifier,
         },
         quality::{
             QualityMetric, probe::ProbeOptions, report::QualityThresholds,
@@ -211,9 +212,14 @@ fn classifier() -> ClassifierInput {
     .collect();
 
     let training = TrainingSet::new(embeddings, &rows).expect("the fixture corpus validates");
-    let classifier = fit_classifier(training, ClassifierFitConfig { folds: 2, .. }, &NoProgress)
-        .expect("the fixture classifier fits")
-        .classifier;
+    let classifier = fit_classifier(
+        training,
+        ClassifierFitConfig::new(ClassifierFitOptions { folds: 2, .. })
+            .expect("the fixture classifier fit config is valid"),
+        &NoProgress,
+    )
+    .expect("the fixture classifier fits")
+    .classifier;
 
     let mut hasher = Sha256::new();
     hasher.update(b"fixture classifier artifact");
@@ -229,26 +235,25 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
         fit: FitConfig {
             seed,
             selection: SelectionOptions {
-                maximum_count: NonZero::new(8).expect("the fixture capacity is nonzero"),
+                maximum_count: nz!(8),
                 ..
             },
             curve: AffinityCurve::fit(positive!(1.0), positive!(0.1))
                 .expect("the reference falloff is well-conditioned"),
-            neighbours: NonZero::new(4).expect("the fixture neighbour count is nonzero"),
-            // The runner fixtures probe the run protocol, not the
-            // placement: they opt out of the default's training run.
+            neighbours: nz!(4),
+            // the landmark baseline keeps these protocol fixtures independent of projector
+            // training.
             placement: PlacementOptions::LandmarkBaseline,
             ..
         },
         quality: QualityRunOptions {
             probe: ProbeOptions {
-                anchors: NonZero::new(8).expect("nonzero"),
-                comparisons: NonZero::new(16).expect("nonzero"),
-                // Step 2 is all-degenerate on this 8-node landmark-baseline fixture (coincident map
-                // placements zero the radii), and the verdict fails closed on absent density
-                // evidence. The quality tests pin the fail-closed arm itself, while the runner
-                // fixtures probe the run protocol, so they read the step where evidence exists.
-                neighbourhoods: Cow::Owned(vec![NonZero::new(4).expect("nonzero")]),
+                anchors: nz!(8),
+                comparisons: nz!(16),
+                // the fixture caps landmarks at eight for 48 rows. Coincident placements can
+                // remove density-spread evidence at small neighbourhood sizes. Size 4 is the
+                // selected neighbourhood for the passing admission case.
+                neighbourhoods: Cow::Owned(vec![nz!(4)]),
                 triplet_pairs: 8,
                 ..
             },
