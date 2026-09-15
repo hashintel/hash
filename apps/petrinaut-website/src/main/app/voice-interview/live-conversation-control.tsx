@@ -133,9 +133,9 @@ export const LiveConversationControl = ({
   useEffect(
     () =>
       subscribeToStopRequested?.(() => {
-        void end();
+        bridge.current?.stopResponse();
       }),
-    [end, subscribeToStopRequested],
+    [subscribeToStopRequested],
   );
 
   useEffect(() => {

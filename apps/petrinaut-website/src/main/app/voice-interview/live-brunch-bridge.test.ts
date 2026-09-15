@@ -733,6 +733,26 @@ test("a locally stopped or failed turn cannot turn earlier successful prose into
   expect(fixture.appendCommentary).not.toHaveBeenCalled();
 });
 
+test("repeated stopped snapshots retain a later turn", async () => {
+  const fixture = setup();
+  await fixture.bridge.accept({ id: "one", text: "First" });
+  fixture.update({ stopped: true });
+  await fixture.bridge.accept({ id: "two", text: "Second" });
+  fixture.update({ stopped: true });
+  fixture.bridge.responseStarted(started);
+  fixture.update({ status: "streaming" });
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    segment().text,
+    null,
+  );
+});
+
 test("a locally refused long commentary is offered intact once without truncation or replay", async () => {
   const fixture = setup();
   fixture.appendCommentary.mockReturnValue(false);

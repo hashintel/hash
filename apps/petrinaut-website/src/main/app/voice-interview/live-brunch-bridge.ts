@@ -80,6 +80,12 @@ export class LiveBrunchBridge {
     this.#unclaimedDelegations.clear();
   }
 
+  public stopResponse(): void {
+    if (this.#abort.signal.aborted) return;
+    this.#chat = { ...this.#chat, stopped: true };
+    this.#interruptTurns();
+  }
+
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
     const turn = [...this.#turns].findLast(
@@ -253,26 +259,32 @@ export class LiveBrunchBridge {
 
   public update(chat: Chat): void {
     if (this.#abort.signal.aborted) return;
+    const stopped = chat.stopped === true && this.#chat.stopped !== true;
     this.#chat = chat;
-    if (chat.stopped || chat.status === "error") {
-      for (const turn of this.#turns) {
-        logLiveDiagnostic("brunch.interrupted", {
-          inputId: turn.inputId,
-          submissionId: turn.submissionId,
-          stopped: chat.stopped === true,
-          status: chat.status,
-        });
-      }
-      if (!chat.stopped) {
-        for (const turn of this.#turns) this.#unserved(turn.delegationId);
-      }
-      this.#turns.clear();
+    if (stopped || chat.status === "error") {
+      this.#interruptTurns();
       return;
     }
     if (chat.status === "submitted" || chat.status === "streaming") {
       for (const turn of this.#turns) turn.sawBusy = true;
     }
     this.#settle();
+  }
+
+  #interruptTurns(): void {
+    for (const turn of this.#turns) {
+      logLiveDiagnostic("brunch.interrupted", {
+        inputId: turn.inputId,
+        submissionId: turn.submissionId,
+        stopped: this.#chat.stopped === true,
+        status: this.#chat.status,
+      });
+    }
+    if (!this.#chat.stopped) {
+      for (const turn of this.#turns) this.#unserved(turn.delegationId);
+    }
+    this.#turns.clear();
+    this.#waitingForComposer = undefined;
   }
 
   #settle(): void {

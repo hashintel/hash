@@ -495,9 +495,9 @@ test("final transcription enters the real admission helper and only its settled 
     "delegation-1",
   );
   act(() => tracker.recordStopRequested());
-  expect(session.stop).toHaveBeenCalled();
+  expect(session.stop).not.toHaveBeenCalled();
   await act(async () => call[2]({ id: "late", text: "Late transcription" }));
-  expect(props.submitVoiceInput).toHaveBeenCalledOnce();
+  expect(props.submitVoiceInput).toHaveBeenCalledTimes(2);
 });
 
 test.each(["answer", "folded-answer"])(
