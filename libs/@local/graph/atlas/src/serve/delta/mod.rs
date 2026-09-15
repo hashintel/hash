@@ -217,6 +217,7 @@ impl Delta {
             self.revision,
             entity,
         );
+
         changed |= self.edge.withdraw(
             NaiveIdentityProvider::from_ref(&self.world.topology.identity),
             self.revision,
