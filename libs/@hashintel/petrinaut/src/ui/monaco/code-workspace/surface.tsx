@@ -5,12 +5,10 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { GlassPanel } from "../../components/glass-panel";
 import { UI_MESSAGES } from "../../constants/ui-messages";
 import { CodeEditor } from "../code-editor";
 
-import type { CodeEditorPlacement } from "../../../react/state/user-settings-context";
 import type { CodeEntry } from "./entries";
 import type { editor } from "monaco-editor";
 
@@ -100,73 +98,30 @@ export const CodeWorkspaceSurface = ({
   onOpen,
   onClose,
   retainModel,
-  placements,
 }: {
   entry: CodeEntry;
   entries: CodeEntry[];
-  onOpen: (path: string, placement?: CodeEditorPlacement) => void;
+  onOpen: (path: string) => void;
   onClose: () => void;
   retainModel: (model: editor.ITextModel | null) => void;
-  placements: { value: CodeEditorPlacement; label: string }[];
 }) => {
-  const { codeEditorPlacement, setCodeEditorPlacement } =
-    use(UserSettingsContext);
-  const {
-    isLeftSidebarOpen,
-    leftSidebarWidth,
-    propertiesPanelWidth,
-    setPropertiesPanelWidth,
-  } = use(EditorContext);
+  const { isLeftSidebarOpen, leftSidebarWidth } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
-  const [dockHeight, setDockHeight] = useState(360);
   const [position, setPosition] = useState({ lineNumber: 1, column: 1 });
   const siblings = entries.filter(
     (candidate) => candidate.selection.id === entry.selection.id,
   );
-  const placement = placements.find(
-    (candidate) => candidate.value === codeEditorPlacement,
-  ) ?? { value: "fullscreen", label: "Full screen" };
-
-  const sideWidth = Math.max(360, propertiesPanelWidth);
-  const left = isLeftSidebarOpen ? leftSidebarWidth : 0;
-  const panel = placement.value === "properties";
-  const dock = placement.value === "bottom";
 
   return (
     <GlassPanel
       className={surfaceStyle}
       contentClassName={contentStyle}
-      style={{
-        left: panel ? undefined : left,
-        width: panel ? `min(${sideWidth}px, 100%)` : undefined,
-        top: dock ? "auto" : 0,
-        height: dock ? `min(${dockHeight}px, 65%)` : undefined,
-        maxWidth: "100%",
-      }}
-      resizable={
-        panel
-          ? {
-              edge: "left",
-              size: sideWidth,
-              onResize: setPropertiesPanelWidth,
-              minSize: 360,
-              maxSize: 900,
-            }
-          : dock
-            ? {
-                edge: "top",
-                size: dockHeight,
-                onResize: setDockHeight,
-                minSize: 200,
-                maxSize: 700,
-              }
-            : undefined
-      }
+      style={{ left: isLeftSidebarOpen ? leftSidebarWidth : 0 }}
     >
       <section
         className={contentStyle}
         aria-label={`${entry.owner} code editor`}
-        data-code-placement={placement.value}
+        data-code-placement="fullscreen"
       >
         <header className={headerStyle}>
           <Button
@@ -198,22 +153,6 @@ export const CodeWorkspaceSurface = ({
               }))}
             />
           </div>
-          <Menu
-            trigger={
-              <Button
-                size="xs"
-                variant="ghost"
-                iconName={panel ? "sidebar" : dock ? "bars" : "expand"}
-                aria-label="Code editor layout"
-                tooltip={`Layout: ${placement.label}`}
-              />
-            }
-            items={placements.map((candidate) => ({
-              id: candidate.value,
-              text: candidate.label,
-              onClick: () => setCodeEditorPlacement(candidate.value),
-            }))}
-          />
           <Button
             size="xs"
             variant="ghost"
@@ -250,7 +189,7 @@ export const CodeWorkspaceSurface = ({
               readOnly: isReadOnly,
               lineNumbers: "on",
               wordWrap: "on",
-              minimap: { enabled: !panel },
+              minimap: { enabled: true },
               automaticLayout: true,
               fontSize: 13,
               padding: { top: 16, bottom: 16 },

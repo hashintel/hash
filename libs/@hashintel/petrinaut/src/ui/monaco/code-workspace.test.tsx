@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { use, useState } from "react";
+import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -13,10 +13,16 @@ import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../react/state/user-settings-context";
-import { CodeWorkspaceProvider, useCodeWorkspace } from "./code-workspace";
+import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
+import {
+  CodeWorkspacePanel,
+  CodeWorkspaceProvider,
+  SourceCodeEditor,
+  useCodeWorkspace,
+} from "./code-workspace";
 import { getCodeEntries } from "./code-workspace/entries";
 
-import type { CodeEditorPlacement } from "../../react/state/user-settings-context";
+import type { CodeEditorProps } from "./code-editor";
 
 const mutations = vi.hoisted(() => ({
   updatePlace: vi.fn(),
@@ -24,6 +30,29 @@ const mutations = vi.hoisted(() => ({
   updateDifferentialEquation: vi.fn(),
 }));
 vi.mock("../../react", () => ({ usePetrinautMutations: () => mutations }));
+vi.mock("./code-editor", () => ({
+  CodeEditor: ({ path, value, options, onChange }: CodeEditorProps) => (
+    <textarea
+      aria-label={options?.ariaLabel ?? "Property code"}
+      data-path={path}
+      value={value}
+      readOnly={options?.readOnly}
+      onChange={(event) =>
+        onChange?.(event.target.value, {
+          changes: [],
+          eol: "\n",
+          versionId: 1,
+          isUndoing: false,
+          isRedoing: false,
+          isFlush: false,
+          isEolChange: false,
+          detailedReasonsChangeLengths: [],
+        })
+      }
+    />
+  ),
+}));
+const updateSubViewSection = vi.fn();
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -38,31 +67,35 @@ const selectItem = vi.fn();
 
 const Probe = () => {
   const workspace = useCodeWorkspace();
-  const settings = use(UserSettingsContext);
   return (
     <>
       <output data-testid="active">{workspace.activePath ?? "closed"}</output>
-      <output data-testid="placement">{settings.codeEditorPlacement}</output>
+      <output data-testid="placement">{workspace.placement}</output>
       <button
         type="button"
-        onClick={() => settings.setEnableCodeEditorWorkspace(false)}
-      >
-        Disable
-      </button>
-      <button
-        type="button"
-        onClick={() => settings.setCodeEditorPlacement("properties")}
+        onClick={() => {
+          if (workspace.activePath)
+            workspace.open(workspace.activePath, "properties");
+        }}
       >
         Change layout
       </button>
       <button type="button" onClick={workspace.close}>
         Close
       </button>
+      {workspace.entries.slice(0, 1).map((entry) => (
+        <SourceCodeEditor
+          key={entry.path}
+          path={entry.path}
+          value={entry.value}
+        />
+      ))}
+      <CodeWorkspacePanel />
       {workspace.entries.map((entry) => (
         <button
           type="button"
           key={entry.path}
-          onClick={() => workspace.open(entry.path, "bottom")}
+          onClick={() => workspace.open(entry.path, "fullscreen")}
         >
           {entry.owner} / {entry.label}
         </button>
@@ -74,16 +107,16 @@ const Probe = () => {
 const Harness = ({
   documentId = "one",
   empty = false,
-  enabled = true,
+  profile = "editor",
+  subnetId = null,
 }: {
   documentId?: string;
   empty?: boolean;
-  enabled?: boolean;
+  profile?: "editor" | "preview";
+  subnetId?: string | null;
 }) => {
   const defaults = use(SDCPNContext);
   const editorDefaults = use(EditorContext);
-  const [featureEnabled, setFeatureEnabled] = useState(enabled);
-  const [placement, setPlacement] = useState<CodeEditorPlacement>("fullscreen");
   const activeNet = empty
     ? { ...net, transitions: [], differentialEquations: [], places: [] }
     : net;
@@ -97,21 +130,24 @@ const Harness = ({
       }}
     >
       <ActiveNetContext
-        value={{ activeNet, activeSubnetId: null, setActiveSubnetId: () => {} }}
+        value={{
+          activeNet,
+          activeSubnetId: subnetId,
+          setActiveSubnetId: () => {},
+        }}
       >
         <EditorContext value={{ ...editorDefaults, selectItem }}>
           <UserSettingsContext
             value={{
               ...defaultUserSettingsContextValue,
-              enableCodeEditorWorkspace: featureEnabled,
-              setEnableCodeEditorWorkspace: setFeatureEnabled,
-              codeEditorPlacement: placement,
-              setCodeEditorPlacement: setPlacement,
+              updateSubViewSection,
             }}
           >
-            <CodeWorkspaceProvider>
-              <Probe />
-            </CodeWorkspaceProvider>
+            <PetrinautPresentationProvider profile={profile}>
+              <CodeWorkspaceProvider>
+                <Probe />
+              </CodeWorkspaceProvider>
+            </PetrinautPresentationProvider>
           </UserSettingsContext>
         </EditorContext>
       </ActiveNetContext>
@@ -130,7 +166,7 @@ describe("code workspace navigation", () => {
     fireEvent.click(firstCodeButton());
     expect(screen.getByTestId("active").textContent).not.toBe("closed");
     expect(selectItem).toHaveBeenCalledOnce();
-    expect(screen.getByTestId("placement").textContent).toBe("bottom");
+    expect(screen.getByTestId("placement").textContent).toBe("fullscreen");
     const path = screen.getByTestId("active").textContent;
     fireEvent.click(screen.getByText("Change layout"));
     expect(screen.getByTestId("active").textContent).toBe(path);
@@ -139,14 +175,57 @@ describe("code workspace navigation", () => {
     expect(screen.getByTestId("active").textContent).toBe("closed");
   });
 
-  it("does not open while disabled and closes when the flag is disabled", () => {
-    const view = render(<Harness enabled={false} />);
+  it("keeps source code hidden in the preview presentation", () => {
+    const view = render(<Harness profile="preview" />);
     fireEvent.click(firstCodeButton());
     expect(screen.getByTestId("active").textContent).toBe("closed");
-    view.unmount();
-    render(<Harness />);
+    view.rerender(<Harness />);
     fireEvent.click(firstCodeButton());
-    fireEvent.click(screen.getByText("Disable"));
+    view.rerender(<Harness profile="preview" />);
+    expect(screen.getByTestId("active").textContent).toBe("closed");
+  });
+
+  it("returns to the existing property editor and expands its section", () => {
+    render(<Harness />);
+    const propertyCode = screen.getByRole("textbox", { name: "Property code" });
+    const path = propertyCode.getAttribute("data-path");
+    fireEvent.click(screen.getByRole("button", { name: /Full screen/ }));
+    expect(screen.queryByRole("textbox", { name: "Property code" })).toBeNull();
+    expect(screen.getByRole("region", { name: /code editor$/ })).toBeTruthy();
+    expect(screen.getByRole("textbox").getAttribute("data-path")).toBe(path);
+    fireEvent.click(screen.getByRole("button", { name: "Back to properties" }));
+    expect(screen.queryByRole("region", { name: /code editor$/ })).toBeNull();
+    expect(
+      screen
+        .getByRole("textbox", { name: "Property code" })
+        .getAttribute("data-path"),
+    ).toBe(path);
+    expect(updateSubViewSection).toHaveBeenLastCalledWith(
+      "transition-properties",
+      "transition-firing-time",
+      { collapsed: false },
+    );
+  });
+
+  it("returns a transition kernel to its results section", () => {
+    render(<Harness />);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Production Success / Transition kernel",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Back to properties" }));
+    expect(updateSubViewSection).toHaveBeenLastCalledWith(
+      "transition-properties",
+      "transition-results",
+      { collapsed: false },
+    );
+  });
+
+  it("clears the function when changing the active subnet", () => {
+    const view = render(<Harness />);
+    fireEvent.click(firstCodeButton());
+    view.rerender(<Harness subnetId="another-subnet" />);
     expect(screen.getByTestId("active").textContent).toBe("closed");
   });
 

@@ -1,6 +1,6 @@
 import { createContext, use, useEffect, useRef, useState } from "react";
 
-import { Button, Menu, type MenuItem } from "@hashintel/ds-components";
+import { Button, type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../react";
@@ -13,9 +13,10 @@ import { CodeEditor, type CodeEditorProps } from "./code-editor";
 import { getCodeEntries, type CodeEntry } from "./code-workspace/entries";
 import { CodeWorkspaceSurface } from "./code-workspace/surface";
 
-import type { CodeEditorPlacement } from "../../react/state/user-settings-context";
 import type { editor } from "monaco-editor";
 import type { PropsWithChildren } from "react";
+
+export type CodeEditorPlacement = "fullscreen" | "properties";
 
 export const codeEditorPlacements: {
   value: CodeEditorPlacement;
@@ -23,13 +24,13 @@ export const codeEditorPlacements: {
 }[] = [
   { value: "fullscreen", label: "Full screen" },
   { value: "properties", label: "Properties panel" },
-  { value: "bottom", label: "Bottom dock" },
 ];
 
 type CodeWorkspace = {
   enabled: boolean;
   entries: CodeEntry[];
   activePath: string | null;
+  placement: CodeEditorPlacement;
   open: (path: string, placement?: CodeEditorPlacement) => void;
   close: () => void;
   retainModel: (model: editor.ITextModel | null) => void;
@@ -39,6 +40,7 @@ const CodeWorkspaceContext = createContext<CodeWorkspace>({
   enabled: false,
   entries: [],
   activePath: null,
+  placement: "properties",
   open: () => {},
   close: () => {},
   retainModel: () => {},
@@ -50,14 +52,11 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   const scope = `${petriNetId ?? "unsaved"}/${activeSubnetId ?? "root"}`;
   const [previousScope, setPreviousScope] = useState(scope);
   const { selectItem } = use(EditorContext);
-  const {
-    enableCodeEditorWorkspace,
-    setCodeEditorPlacement,
-    updateSubViewSection,
-  } = use(UserSettingsContext);
+  const { updateSubViewSection } = use(UserSettingsContext);
   const { showSourceCode } = usePetrinautPresentation();
   const mutations = usePetrinautMutations();
   const [activePath, setActivePath] = useState<string | null>(null);
+  const [placement, setPlacement] = useState<CodeEditorPlacement>("properties");
   const models = useRef(new Set<editor.ITextModel>());
   const entries = getCodeEntries(
     activeNet,
@@ -65,7 +64,7 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
     extensions,
     mutations,
   );
-  const enabled = enableCodeEditorWorkspace && showSourceCode;
+  const enabled = showSourceCode;
   const activeEntry = enabled
     ? entries.find((entry) => entry.path === activePath)
     : undefined;
@@ -78,6 +77,23 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   if (activePath !== null && !activeEntry) {
     setActivePath(null);
   }
+
+  const showProperties = (entry: CodeEntry) => {
+    if (entry.selection.type === "transition") {
+      updateSubViewSection(
+        "transition-properties",
+        entry.label === "Transition kernel"
+          ? "transition-results"
+          : "transition-firing-time",
+        { collapsed: false },
+      );
+    } else if (entry.selection.type === "place") {
+      updateSubViewSection("place-properties", "place-visualizer", {
+        collapsed: false,
+      });
+    }
+    selectItem(entry.selection);
+  };
 
   useEffect(() => {
     const retainedModels = models.current;
@@ -99,30 +115,19 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
         enabled,
         entries,
         activePath: activeEntry?.path ?? null,
-        open: (path, placement) => {
+        placement,
+        open: (path, nextPlacement = placement) => {
           const entry = entries.find((candidate) => candidate.path === path);
           if (!enabled || !entry) return;
-          if (placement) setCodeEditorPlacement(placement);
-          selectItem(entry.selection);
+          setPlacement(nextPlacement);
+          showProperties(entry);
           setActivePath(path);
         },
         close: () => {
           if (activeEntry) {
-            if (activeEntry.selection.type === "transition") {
-              updateSubViewSection(
-                "transition-properties",
-                activeEntry.label === "Transition kernel"
-                  ? "transition-results"
-                  : "transition-firing-time",
-                { collapsed: false },
-              );
-            } else if (activeEntry.selection.type === "place") {
-              updateSubViewSection("place-properties", "place-visualizer", {
-                collapsed: false,
-              });
-            }
-            selectItem(activeEntry.selection);
+            showProperties(activeEntry);
           }
+          setPlacement("properties");
           setActivePath(null);
         },
         retainModel: (model) => {
@@ -162,8 +167,12 @@ const inlineHeaderStyle = css({
 });
 
 export const SourceCodeEditor = (props: CodeEditorProps) => {
-  const { enabled, activePath, open, retainModel } = useCodeWorkspace();
-  const expanded = props.path !== undefined && props.path === activePath;
+  const { enabled, activePath, placement, open, retainModel } =
+    useCodeWorkspace();
+  const expanded =
+    placement === "fullscreen" &&
+    props.path !== undefined &&
+    props.path === activePath;
   if (expanded) return null;
   return (
     <div className={inlineStyle}>
@@ -174,14 +183,21 @@ export const SourceCodeEditor = (props: CodeEditorProps) => {
             variant="ghost"
             iconName="expand"
             onClick={() => {
-              if (props.path) open(props.path);
+              if (props.path) open(props.path, "fullscreen");
             }}
           >
-            Open code editor
+            Full screen
           </Button>
         </div>
       )}
-      <div className={css({ flex: "[1]", minHeight: "[0]" })}>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          flex: "[1]",
+          minHeight: "[0]",
+        })}
+      >
         <CodeEditor
           {...props}
           keepCurrentModel={enabled || props.keepCurrentModel}
@@ -201,38 +217,13 @@ export const CodeWorkspacePanel = () => {
   const entry = workspace.entries.find(
     (candidate) => candidate.path === workspace.activePath,
   );
-  return entry ? (
+  return entry && workspace.placement === "fullscreen" ? (
     <CodeWorkspaceSurface
       entry={entry}
       entries={workspace.entries}
       onOpen={workspace.open}
       onClose={workspace.close}
       retainModel={workspace.retainModel}
-      placements={codeEditorPlacements}
     />
   ) : null;
-};
-
-export const CodeWorkspaceMenu = () => {
-  const { enabled, entries, open } = useCodeWorkspace();
-  if (!enabled || entries.length === 0) return null;
-  return (
-    <Menu
-      trigger={
-        <Button
-          size="sm"
-          variant="subtle"
-          iconName="code"
-          aria-label="Open code"
-        >
-          Code
-        </Button>
-      }
-      items={entries.map((entry) => ({
-        id: entry.path,
-        text: `${entry.owner} / ${entry.label}`,
-        onClick: () => open(entry.path),
-      }))}
-    />
-  );
 };

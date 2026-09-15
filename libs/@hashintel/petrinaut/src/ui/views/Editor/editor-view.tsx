@@ -48,7 +48,6 @@ import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import {
-  CodeWorkspaceMenu,
   CodeWorkspacePanel,
   CodeWorkspaceProvider,
   useCodeWorkspace,
@@ -164,10 +163,8 @@ const EditorViewContent = ({
   titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
-  const { activePath } = useCodeWorkspace();
-  const { codeEditorPlacement } = use(UserSettingsContext);
-  const codeReplacesCanvas =
-    activePath !== null && codeEditorPlacement === "fullscreen";
+  const { activePath, placement } = useCodeWorkspace();
+  const codeReplacesCanvas = activePath !== null && placement === "fullscreen";
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
   const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
@@ -206,8 +203,6 @@ const EditorViewContent = ({
     setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
-    isLeftSidebarOpen,
-    leftSidebarWidth,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
 
@@ -615,9 +610,7 @@ const EditorViewContent = ({
               <LeftSideBar />
 
               {/* Properties Panel - Right Side */}
-              {!activePath || codeEditorPlacement === "bottom" ? (
-                <PropertiesPanel />
-              ) : null}
+              {!codeReplacesCanvas && <PropertiesPanel />}
 
               {/* SDCPN Visualization */}
               {!codeReplacesCanvas && (
@@ -645,26 +638,11 @@ const EditorViewContent = ({
               )}
 
               <CodeWorkspacePanel />
-              {!codeReplacesCanvas && (
-                <div
-                  className={css({
-                    position: "absolute",
-                    top: "3",
-                    zIndex: "[calc(var(--z-index-sticky) - 2)]",
-                  })}
-                  style={{
-                    left: (isLeftSidebarOpen ? leftSidebarWidth : 0) + 12,
-                  }}
-                >
-                  <CodeWorkspaceMenu />
-                </div>
-              )}
-
               {/* Bottom Panel */}
-              {!activePath && <BottomPanel />}
+              {!codeReplacesCanvas && <BottomPanel />}
             </Box>
           )}
-          {!activePath &&
+          {!codeReplacesCanvas &&
             (effectiveMode === "edit" || effectiveMode === "actual") && (
               <BottomBar
                 mode={effectiveMode}

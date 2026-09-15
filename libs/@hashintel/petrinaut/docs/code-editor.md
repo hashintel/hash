@@ -1,29 +1,19 @@
 # Code Editor
 
-Open a model’s code in a larger editor while keeping its place, transition, or differential equation in view.
+Edit a model’s functions in the Properties Panel or expand a code field to full screen.
 
-## Enable the layouts
+## Open code
 
-Open **Settings** using the canvas gear button. Under **Feature flags**, turn on **Code editor layouts**, or select a layout card:
+Select a place, transition, or differential equation in the canvas or left sidebar. Expand its code section in the Properties Panel, then use **Full screen** above the code to enlarge it.
 
-- **Full screen** replaces the canvas with code. The file’s left sidebar stays available.
-- **Properties panel** fills the right-hand panel with code and a compact header. Drag its left edge to resize it.
-- **Bottom dock** opens code below the canvas. Drag its top edge to resize it.
-
-Your chosen layout is remembered. Turn the feature off to return to the inline editors.
-
-## Open code directly
-
-Use the **Code** menu on the canvas to choose a transition’s predicate or stochastic rate (λ), its transition kernel, a differential equation, or an enabled place visualizer.
-
-You can also select an item in the canvas or left sidebar, then use the code section’s **More options** menu to open it in a specific layout. This works while the section is collapsed. Inside an expanded code section, **Open code editor** uses your preferred layout.
+The code section’s **More options** menu also offers **Open in full screen** and **Open in properties panel**. The Properties Panel keeps the selected item’s fields and controls alongside its code. Drag the panel’s left edge or the divider between sections to resize it.
 
 The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **Open equation code** beside its assigned differential equation opens that equation.
 
-## Navigate and edit
+## Full-screen editing
 
-The header shows the item’s kind and name. Open the name menu to jump to another function in the active net. Use the function buttons below the name to switch between a transition’s firing function and kernel.
+Full screen replaces the canvas with code and leaves the left sidebar available. The header shows the item’s kind and name. Open the name menu to jump to another function in the active net. Use the function buttons below the name to switch between a transition’s firing function and kernel.
 
-The **Code editor layout** button switches between layouts. Your code, undo history, cursor position, and diagnostics carry over. Enlarged editors show line numbers and wrap long lines; full screen and the bottom dock also show a code minimap.
+Use **Back to properties** or **Close code editor** to return to the same code section in the Properties Panel. Code, undo history, cursor position, and diagnostics carry over. Full-screen code shows line numbers, wrapped lines, and a minimap.
 
-Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Use **Back to properties** or **Close code editor** to return to the canvas and property fields. Changing the file or active subnet closes the editor.
+Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Changing the file or active subnet closes the editor.
