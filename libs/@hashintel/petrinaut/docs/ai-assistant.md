@@ -66,19 +66,22 @@ understand and selecting **Start voice mode**. Petrinaut remembers that acknowle
 browser for the current disclosure version, so later uses of **Start voice mode** start directly. If
 browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
-Some hosts offer a **GPT-Live · Experimental interview** instead. It uses the same
-Voice setup and dock, but is a standalone conversation: it does not add chat messages
-or edit the net. Consent and **Start voice** are required for each session. Its dock
-normally shows **Listening** or **Speaking**, with collapse/expand and **End voice
-mode**. Speaking reflects local audio activity, not a completed turn; the microphone
-stays open while it speaks. The input ribbon follows your microphone level where
-the browser supports it. The experimental label appears only during consent.
-If the browser blocks remote playback, the dock keeps the warning visible and
-offers **Play voice audio**; selecting it retries playback from that user gesture.
-Ending Voice stops microphone capture and playback; closing the panel ends
-the experiment rather than pausing it. A connection error returns to setup without
-retrying. The following turn-taking and playback controls apply to integrated
-Brunch Voice, not that experiment.
+Some hosts offer a Brunch-backed GPT-Live voice interview instead. It uses one
+GPT-Live session for conversational audio and a separate transcription session for
+canonical user messages. Brunch remains responsible for domain answers, chat history,
+and model operations; settled Brunch prose is supplied to Live for best-effort spoken
+delivery. Consent and **Start voice** are required for each session. The permission
+panel explains both OpenAI audio streams and text retention, with a permission
+checkbox, **Start voice**, and **Cancel**. Cancel returns to text without starting a
+session. Its dock provides collapse/expand and **End voice mode**; **Thinking** means
+Brunch is working, while **Speaking** reflects local audio activity rather than a
+completed turn. The microphone stays open during playback and the input ribbon follows
+its level where the browser supports it. If the browser blocks remote playback, the
+dock keeps the warning visible and offers **Play voice audio**; selecting it retries
+playback from that user gesture. Ending Voice stops both sessions, microphone capture,
+and playback; closing the panel ends the experiment rather than pausing it. A
+connection error returns to setup without retrying. The detailed turn-taking and
+playback controls below apply to Realtime-based Brunch Voice, not the Live experiment.
 
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
 a ribbon that fades out at both ends and one short state -- **Connecting**, **Listening**,
@@ -88,6 +91,11 @@ voice and settle back between phrases, so an ordinary speaking level is plainly 
 flicker above the line. While the assistant speaks the ribbon takes on a restrained self-driven
 motion instead, colour crossfading as the turn changes hands, so which side holds it is readable at a
 glance. It flattens to near a line whenever nobody holds the turn.
+
+For Brunch-backed Live sessions, **Thinking** follows an active submitted or streaming
+request, even without microphone activity. **Speaking** takes precedence during playback;
+once work and playback are idle, the dock returns to **Listening**. This status does not
+mute the microphone or announce progress aloud.
 
 Voice failures and recovery warnings, including unconfirmed submissions and input that was not
 retained, join the Voice warning indicator rather than appearing as global notifications. Hover to
