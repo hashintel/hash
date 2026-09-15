@@ -976,12 +976,14 @@ export const AiAssistantContents = ({
             className={panelContentStyle({ visible: isOpen })}
           >
             <LiveVoiceDock
+              assistantBusy={isBusy}
               collapsed={isVoiceDockCollapsed}
               errorIndicator={voiceAlertIndicator}
               onCollapsedEnd={onCollapsedVoiceEnd}
               onCollapsedToggle={() =>
                 onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
               }
+              onStop={onStop}
             />
           </div>
         ) : (
@@ -993,6 +995,7 @@ export const AiAssistantContents = ({
               >
                 <VoiceDock
                   actions={null}
+                  assistantBusy={isBusy}
                   canReadFullResponse={false}
                   canRepeatQuestion={false}
                   canTakeTurn={false}
@@ -1001,8 +1004,11 @@ export const AiAssistantContents = ({
                   indicator={<AiVoiceModeIcon size={16} />}
                   microphoneMuted={false}
                   onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
+                  onStop={onStop}
                   phase="connecting"
                   purpose="setup"
+                  speakerMuted={false}
+                  speakerVolume={1}
                 />
               </div>
             )}

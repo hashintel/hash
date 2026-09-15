@@ -5,6 +5,7 @@ import type {
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceModeSessionControls,
 } from "./ai-assistant-composer-control";
+import type { VoiceSessionActions } from "../../react/voice-session/store";
 
 test("keeps legacy Voice controls required while sessions advertise capabilities", () => {
   expectTypeOf<PetrinautAiVoiceModeControls["reconnect"]>().toEqualTypeOf<
@@ -42,4 +43,25 @@ test("accepts an existing context implementation with complete control registrat
   const currentContext: PetrinautAiVoiceModeContext = existingContext;
 
   expectTypeOf(currentContext).toEqualTypeOf<PetrinautAiVoiceModeContext>();
+});
+
+test("exposes optional provider-neutral speaker controls", () => {
+  expectTypeOf<
+    PetrinautAiVoiceModeControls["setSpeakerMuted"]
+  >().toEqualTypeOf<((muted: boolean) => void) | undefined>();
+  expectTypeOf<
+    PetrinautAiVoiceModeControls["setSpeakerVolume"]
+  >().toEqualTypeOf<((volume: number) => void) | undefined>();
+  expectTypeOf<
+    PetrinautAiVoiceModeSessionControls["setSpeakerMuted"]
+  >().toEqualTypeOf<((muted: boolean) => void) | undefined>();
+  expectTypeOf<
+    PetrinautAiVoiceModeSessionControls["setSpeakerVolume"]
+  >().toEqualTypeOf<((volume: number) => void) | undefined>();
+  expectTypeOf<VoiceSessionActions["setSpeakerMuted"]>().toEqualTypeOf<
+    ((muted: boolean) => void) | undefined
+  >();
+  expectTypeOf<VoiceSessionActions["setSpeakerVolume"]>().toEqualTypeOf<
+    ((volume: number) => void) | undefined
+  >();
 });

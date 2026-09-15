@@ -35,6 +35,10 @@ export type PetrinautAiVoiceSessionState = {
   /** Temporary operational status shown in place of the current phase. */
   notice?: string | null;
   phase: PetrinautAiVoiceSessionPhase;
+  /** Whether assistant audio is muted independently of its retained volume. */
+  speakerMuted?: boolean;
+  /** Normalized 0–1 assistant audio volume. */
+  speakerVolume?: number;
   /** Recoverable issue retained behind the Voice warning indicator. */
   warningMessage?: string | null;
 };

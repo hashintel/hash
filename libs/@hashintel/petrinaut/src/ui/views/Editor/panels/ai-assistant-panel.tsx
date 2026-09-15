@@ -723,6 +723,18 @@ const ConversationAiAssistantPanel = ({
                 controls.setMicrophoneMuted?.(muted),
             }
           : {}),
+        ...(controls.setSpeakerMuted
+          ? {
+              setSpeakerMuted: (muted: boolean) =>
+                controls.setSpeakerMuted?.(muted),
+            }
+          : {}),
+        ...(controls.setSpeakerVolume
+          ? {
+              setSpeakerVolume: (volume: number) =>
+                controls.setSpeakerVolume?.(volume),
+            }
+          : {}),
         ...(controls.takeTurn ? { takeTurn: () => controls.takeTurn?.() } : {}),
       });
 

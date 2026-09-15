@@ -28,20 +28,24 @@ export const voiceSessionStatusLabel = (
 };
 
 export const voiceSessionActionLabels = {
-  collapse: "Collapse voice session",
+  audioOptions: "Audio options",
+  collapse: "Hide conversation",
   end: "End voice mode",
-  expand: "Expand voice session",
+  expand: "Show conversation",
   interruptionBySpeaking: "Interruption by speaking",
   mute: "Mute microphone",
+  muteSpeaker: "Mute speaker",
   pause: "Pause voice mode",
-  playbackOptions: "Voice playback options",
   readFullResponse: "Read full response",
   reconnect: "Reconnect voice mode",
   repeatQuestion: "Repeat question",
   retryPlayback: "Play voice audio",
   resume: "Resume voice mode",
+  speakerVolume: "Speaker volume",
+  stop: "Stop AI response",
   takeTurn: "Your turn",
   unmute: "Unmute microphone",
+  unmuteSpeaker: "Unmute speaker",
 } as const;
 
 export const voiceSetupLabels = {
