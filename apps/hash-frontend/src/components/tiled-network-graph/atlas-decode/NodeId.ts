@@ -1,11 +1,11 @@
 import * as Result from "./Result";
-import { TaggedError } from "./TaggedError";
+import * as TaggedError from "./TaggedError";
 
-import type { U32 } from "./Decoder";
+import type * as Decoder from "./Decoder";
 import type { Brand } from "@blockprotocol/type-system";
 
 /** An opaque node identity within one generation. */
-export type NodeId = Brand<U32, "NodeId">;
+export type NodeId = Brand<Decoder.U32, "NodeId">;
 
 /** Invalid column storage or an index outside its rows. */
 export type NodeIdColumnErrorReason =
@@ -17,7 +17,7 @@ export type NodeIdColumnErrorReason =
     };
 
 /** A malformed node column or an invalid lookup. */
-export class NodeIdColumnError extends TaggedError<
+export class NodeIdColumnError extends TaggedError.TaggedError<
   "NodeIdColumnError",
   NodeIdColumnErrorReason
 > {

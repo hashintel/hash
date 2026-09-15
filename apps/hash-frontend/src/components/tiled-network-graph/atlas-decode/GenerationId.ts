@@ -1,7 +1,7 @@
 import * as Result from "./Result";
-import { TaggedError } from "./TaggedError";
+import * as TaggedError from "./TaggedError";
 
-import type { CborVisitor } from "./CborDecoder";
+import type * as CborDecoder from "./CborDecoder";
 
 /** A rejected generation identity byte length. */
 export interface GenerationIdErrorReason {
@@ -10,7 +10,7 @@ export interface GenerationIdErrorReason {
 }
 
 /** A generation identity whose byte length is not 32. */
-export class GenerationIdError extends TaggedError<
+export class GenerationIdError extends TaggedError.TaggedError<
   "GenerationIdError",
   GenerationIdErrorReason
 > {
@@ -54,17 +54,18 @@ export class GenerationId {
 }
 
 /** Constructs a generation identity from a CBOR byte string. */
-export const Visitor: CborVisitor<GenerationId, GenerationIdError> = {
-  expecting: "a 32-byte generation identity",
-  visitByteString: (value) =>
-    Result.catch(
-      () => Result.ok(new GenerationId(value)),
-      (cause) => {
-        if (cause instanceof GenerationIdError) {
-          return Result.err(cause);
-        }
+export const Visitor: CborDecoder.CborVisitor<GenerationId, GenerationIdError> =
+  {
+    expecting: "a 32-byte generation identity",
+    visitByteString: (value) =>
+      Result.catch(
+        () => Result.ok(new GenerationId(value)),
+        (cause) => {
+          if (cause instanceof GenerationIdError) {
+            return Result.err(cause);
+          }
 
-        throw cause;
-      },
-    ),
-};
+          throw cause;
+        },
+      ),
+  };
