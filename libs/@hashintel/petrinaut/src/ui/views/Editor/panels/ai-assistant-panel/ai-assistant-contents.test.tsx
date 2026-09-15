@@ -1062,7 +1062,10 @@ describe("AiAssistantContents", () => {
       screen.getByRole("button", { name: "Interruption by speaking" }),
     ).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Mute speaker" }));
+    const speakerMute = screen.getByRole("button", { name: "Mute speaker" });
+    expect(speakerMute.querySelector("svg")).not.toBeNull();
+    expect(within(speakerMute).queryByText("Mute speaker")).toBeNull();
+    fireEvent.click(speakerMute);
     expect(actions.setSpeakerMuted).toHaveBeenCalledWith(true);
     expect(actions.setSpeakerVolume).not.toHaveBeenCalled();
 
@@ -1097,9 +1100,11 @@ describe("AiAssistantContents", () => {
     });
 
     expect(within(dock).getByText("Speaking")).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Unmute speaker" }),
-    ).not.toBeNull();
+    const speakerUnmute = screen.getByRole("button", {
+      name: "Unmute speaker",
+    });
+    expect(speakerUnmute.querySelector("svg")).not.toBeNull();
+    expect(within(speakerUnmute).queryByText("Unmute speaker")).toBeNull();
     fireEvent.click(
       within(dock).getByRole("button", { name: "Unmute microphone" }),
     );

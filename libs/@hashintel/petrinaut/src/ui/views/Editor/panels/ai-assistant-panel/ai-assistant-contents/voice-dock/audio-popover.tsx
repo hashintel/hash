@@ -4,6 +4,7 @@ import { Button, Popover, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
+import { SpeakerIcon } from "./speaker-icon";
 
 import type { VoiceSessionActions } from "../../../../../../../react/voice-session/store";
 
@@ -22,10 +23,19 @@ const actionStyle = css({
   width: "full",
 });
 
-const volumeStyle = css({
+const speakerControlsStyle = css({
+  display: "flex",
   width: "full",
+  minWidth: "[0]",
+  alignItems: "flex-end",
+  gap: "2",
   paddingX: "2",
   paddingY: "1",
+});
+
+const volumeStyle = css({
+  flex: "1",
+  minWidth: "[0]",
 });
 
 export const AudioPopover = ({
@@ -67,6 +77,7 @@ export const AudioPopover = ({
       />
       {open && (
         <Popover
+          gapY={4}
           onClose={() => setOpen(false)}
           position="top-start"
           triggerRef={triggerRef}
@@ -79,32 +90,38 @@ export const AudioPopover = ({
                 className={controlsStyle}
                 role="group"
               >
-                {actions.setSpeakerMuted && (
-                  <Button
-                    className={actionStyle}
-                    disabled={speakerControlsDisabled}
-                    onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
-                    pressed={speakerMuted}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    {speakerMuteLabel}
-                  </Button>
-                )}
-                {actions.setSpeakerVolume && (
-                  <Slider
-                    className={volumeStyle}
-                    disabled={speakerControlsDisabled}
-                    label={voiceSessionActionLabels.speakerVolume}
-                    max={1}
-                    min={0}
-                    onChange={(volume) => actions.setSpeakerVolume?.(volume)}
-                    showValueText
-                    step={0.05}
-                    value={Math.min(1, Math.max(0, speakerVolume))}
-                    variant="plain"
-                  />
+                {(actions.setSpeakerMuted || actions.setSpeakerVolume) && (
+                  <div className={speakerControlsStyle}>
+                    {actions.setSpeakerMuted && (
+                      <Button
+                        aria-label={speakerMuteLabel}
+                        disabled={speakerControlsDisabled}
+                        onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
+                        prefix={<SpeakerIcon muted={speakerMuted} />}
+                        pressed={speakerMuted}
+                        size="sm"
+                        tooltip={speakerMuteLabel}
+                        type="button"
+                        variant="ghost"
+                      />
+                    )}
+                    {actions.setSpeakerVolume && (
+                      <Slider
+                        className={volumeStyle}
+                        disabled={speakerControlsDisabled}
+                        label={voiceSessionActionLabels.speakerVolume}
+                        max={1}
+                        min={0}
+                        onChange={(volume) =>
+                          actions.setSpeakerVolume?.(volume)
+                        }
+                        showValueText
+                        step={0.05}
+                        value={Math.min(1, Math.max(0, speakerVolume))}
+                        variant="plain"
+                      />
+                    )}
+                  </div>
                 )}
                 {actions.repeatQuestion && (
                   <Button

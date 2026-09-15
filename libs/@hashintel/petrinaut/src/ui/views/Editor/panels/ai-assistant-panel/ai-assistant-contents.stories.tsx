@@ -478,13 +478,16 @@ export const LiveSessionAudioOptions: Story = {
     await expect(
       microphone.closest('[data-scope="popover"][data-part="content"]'),
     ).toBeNull();
-    await userEvent.click(
-      within(dock).getByRole("button", { name: "Audio options" }),
-    );
+    const audioOptions = within(dock).getByRole("button", {
+      name: "Audio options",
+    });
+    await userEvent.click(audioOptions);
 
-    await expect(
-      await canvas.findByRole("button", { name: "Mute speaker" }),
-    ).toBeInTheDocument();
+    const speakerMute = await canvas.findByRole("button", {
+      name: "Mute speaker",
+    });
+    await expect(speakerMute.querySelector("svg")).not.toBeNull();
+    await expect(within(speakerMute).queryByText("Mute speaker")).toBeNull();
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
     ).toHaveAttribute("aria-valuenow", "0.65");
@@ -521,9 +524,10 @@ export const RealtimeSessionAudioOptions: Story = {
     const canvas = within(canvasElement);
     const dock = canvas.getByRole("region", { name: "Voice session" });
 
-    await userEvent.click(
-      within(dock).getByRole("button", { name: "Audio options" }),
-    );
+    const audioOptions = within(dock).getByRole("button", {
+      name: "Audio options",
+    });
+    await userEvent.click(audioOptions);
 
     await expect(
       await canvas.findByRole("button", { name: "Mute speaker" }),
@@ -954,9 +958,10 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
     const frame = canvas.getByTestId("ai-assistant-story-frame");
     const dock = canvas.getByRole("region", { name: "Voice session" });
 
-    await userEvent.click(
-      within(dock).getByRole("button", { name: "Audio options" }),
-    );
+    const audioOptions = within(dock).getByRole("button", {
+      name: "Audio options",
+    });
+    await userEvent.click(audioOptions);
     const volume = await canvas.findByRole("slider", {
       name: "Speaker volume",
     });
@@ -973,6 +978,17 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
       await expect(bounds.left).toBeGreaterThanOrEqual(frameBounds.left - 1);
       await expect(bounds.right).toBeLessThanOrEqual(frameBounds.right + 1);
     }
+    const triggerBounds = audioOptions.getBoundingClientRect();
+    const popoverBounds = popover.getBoundingClientRect();
+    await expect(
+      Math.abs(popoverBounds.left - triggerBounds.left),
+    ).toBeLessThan(2);
+    await expect(
+      triggerBounds.top - popoverBounds.bottom,
+    ).toBeGreaterThanOrEqual(3);
+    await expect(triggerBounds.top - popoverBounds.bottom).toBeLessThanOrEqual(
+      5,
+    );
   },
 };
 
