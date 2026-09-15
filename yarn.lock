@@ -36372,7 +36372,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:15.5.25":
+"next@npm:15.5.25, next@npm:>=12.0.10":
   version: 15.5.25
   resolution: "next@npm:15.5.25"
   dependencies:
