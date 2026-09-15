@@ -14,12 +14,34 @@ const handleStyle = cva({
     zIndex: "sticky",
     border: "none",
     padding: "[0]",
-    backgroundColor: "[transparent]",
+    backgroundColor: "[currentColor]",
+    color: "[transparent]",
+    overflow: "visible",
     touchAction: "none",
-    _hover: { backgroundColor: "neutral.a30" },
-    _active: { backgroundColor: "blue.a40" },
+    _hover: { color: "neutral.a30" },
+    _active: { color: "blue.a40" },
   },
   variants: {
+    corner: {
+      true: {
+        backgroundColor: "[transparent]",
+        _before: {
+          content: '""',
+          position: "absolute",
+          pointerEvents: "none",
+          boxSizing: "border-box",
+          width: "[calc(15px + 31px)]",
+          height: "[calc(15px + 31px)]",
+          borderStyle: "solid",
+          borderColor: "[currentColor]",
+          borderWidth: "[5px 0 0 5px]",
+          borderRadius: "[15px 0 0 0]",
+          maskImage:
+            "[linear-gradient(to right, #000 15px, transparent calc(15px + 31px)), linear-gradient(to bottom, #000 15px, transparent calc(15px + 31px))]",
+          maskComposite: "intersect",
+        },
+      },
+    },
     direction: {
       top: {
         left: "[12px]",
@@ -50,24 +72,40 @@ const handleStyle = cva({
         height: "[15px]",
         borderTopLeftRadius: "[15px]",
         cursor: "nwse-resize",
+        _before: { top: "[0]", left: "[0]" },
       },
       "top-right": {
         width: "[15px]",
         height: "[15px]",
         borderTopRightRadius: "[15px]",
         cursor: "nesw-resize",
+        _before: {
+          top: "[0]",
+          right: "[0]",
+          transform: "[rotate(90deg)]",
+        },
       },
       "bottom-left": {
         width: "[15px]",
         height: "[15px]",
         borderBottomLeftRadius: "[15px]",
         cursor: "nesw-resize",
+        _before: {
+          bottom: "[0]",
+          left: "[0]",
+          transform: "[rotate(270deg)]",
+        },
       },
       "bottom-right": {
         width: "[15px]",
         height: "[15px]",
         borderBottomRightRadius: "[15px]",
         cursor: "nwse-resize",
+        _before: {
+          bottom: "[0]",
+          right: "[0]",
+          transform: "[rotate(180deg)]",
+        },
       },
     },
   },
@@ -83,7 +121,7 @@ export const FloatingResizeHandle = ({
     tabIndex={-1}
     aria-label={`Resize AI assistant from ${direction}`}
     data-resize-edge={direction}
-    className={handleStyle({ direction })}
+    className={handleStyle({ direction, corner: direction.includes("-") })}
     style={{
       top: direction.includes("top") ? RESIZE_HANDLE_OFFSET : undefined,
       right: direction.includes("right") ? RESIZE_HANDLE_OFFSET : undefined,

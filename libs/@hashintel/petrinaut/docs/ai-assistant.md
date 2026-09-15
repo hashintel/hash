@@ -23,6 +23,8 @@ Choose **Float AI assistant** in the header to detach it into a rounded panel ov
 
 Choose **Dock AI assistant** to return it to the right sidebar. Switching between these layouts keeps your draft, conversation, and active response. Resize the sidebar from its left edge. When floating, drag the left or right edge to change its width, the top or bottom edge to change its height, or any corner to change both together. The opposite edge or corner stays fixed, and the panel stays inside the editor. Closing and reopening the assistant keeps your layout choice and floating height for the editor session.
 
+Hovering a floating corner highlights its rounded border and fades along the two adjoining edges. Drag it to resize both dimensions.
+
 The header icons animate on hover and click, respecting your reduced-motion preference.
 
 ## The conversation
