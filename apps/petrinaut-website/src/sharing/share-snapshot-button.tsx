@@ -41,9 +41,9 @@ const ShareSnapshotDialog = ({
 }) => {
   const [includeView, setIncludeView] = useState(true);
   const [prepared, setPrepared] = useState<PreparedLink>({ kind: "loading" });
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
-    "idle",
-  );
+  const [copyState, setCopyState] = useState<
+    "idle" | "copying" | "copied" | "failed"
+  >("idle");
   useEffect(() => {
     const controller = new AbortController();
     void prepareSnapshot(captured.snapshot, controller.signal).then(
@@ -71,7 +71,8 @@ const ShareSnapshotDialog = ({
         )
       : null;
   const copy = async () => {
-    if (url === null) return;
+    if (url === null || copyState === "copying") return;
+    setCopyState("copying");
     try {
       await navigator.clipboard.writeText(url);
       setCopyState("copied");
@@ -98,6 +99,7 @@ const ShareSnapshotDialog = ({
           <Checkbox
             label="Include current view"
             value={includeView}
+            disabled={copyState === "copying"}
             onChange={(value) => {
               setIncludeView(value);
               setCopyState("idle");
@@ -150,8 +152,15 @@ const ShareSnapshotDialog = ({
           </Button>
         }
         actions={
-          <Button disabled={url === null} onClick={() => void copy()}>
-            {copyState === "copied" ? "Copied" : "Copy snapshot link"}
+          <Button
+            disabled={url === null || copyState === "copying"}
+            onClick={() => void copy()}
+          >
+            {copyState === "copying"
+              ? "Copying…"
+              : copyState === "copied"
+                ? "Copied"
+                : "Copy snapshot link"}
           </Button>
         }
       />

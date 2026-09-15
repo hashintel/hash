@@ -1,5 +1,6 @@
 /** @vitest-environment jsdom */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { serializeSDCPN } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import { ShareSnapshotButton } from "./share-snapshot-button";
@@ -35,6 +37,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -79,7 +82,21 @@ test("captures a snapshot and copies its link with an optional current view", as
 
 test("offers a file instead of a copyable link when compression exceeds the limit", async () => {
   vi.mocked(prepareSnapshot).mockRejectedValue(new SnapshotError("too-large"));
-  open();
+  const createObjectURL = vi
+    .fn<(blob: Blob) => string>()
+    .mockReturnValue("blob:snapshot");
+  const revokeObjectURL = vi.fn();
+  vi.stubGlobal(
+    "URL",
+    class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = revokeObjectURL;
+    },
+  );
+  const download = vi
+    .spyOn(HTMLAnchorElement.prototype, "click")
+    .mockImplementation(() => {});
+  const captured = structuredClone(open());
   expect(await screen.findByRole("alert")).toHaveProperty(
     "textContent",
     "This snapshot is too large for a link. Share the downloaded file instead.",
@@ -87,9 +104,31 @@ test("offers a file instead of a copyable link when compression exceeds the limi
   expect(
     screen.getByRole("button", { name: "Copy snapshot link" }),
   ).toHaveProperty("disabled", true);
-  expect(screen.getByRole("button", { name: "Download file" })).toHaveProperty(
-    "disabled",
-    false,
+  fireEvent.click(screen.getByRole("button", { name: "Download file" }));
+  expect(download).toHaveBeenCalledOnce();
+  expect(download.mock.instances[0]).toHaveProperty("download", "SIR.yaml");
+  expect(download.mock.instances[0]).toHaveProperty("href", "blob:snapshot");
+  const blob = createObjectURL.mock.calls[0]?.[0];
+  expect(blob).toBeInstanceOf(Blob);
+  if (!blob) throw new Error("The snapshot download was not created");
+  expect(blob.type).toBe("application/yaml");
+  const content = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("The snapshot file could not be read as text"));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+  expect(content).toBe(
+    serializeSDCPN({
+      title: captured.title,
+      petriNetDefinition: captured.definition,
+    }),
+  );
+  await waitFor(() =>
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:snapshot"),
   );
 });
 
@@ -115,4 +154,33 @@ test("cancels preparation when the dialog unmounts", async () => {
   const signal = vi.mocked(prepareSnapshot).mock.calls[0]?.[1];
   cleanup();
   expect(signal?.aborted).toBe(true);
+});
+
+test("keeps the copied URL stable while clipboard access is pending", async () => {
+  let finishCopy: () => void = () => {};
+  writeText.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finishCopy = resolve;
+      }),
+  );
+  open();
+  const input = await screen.findByRole("textbox", { name: "Snapshot link" });
+  const originalUrl = input.getAttribute("value");
+  fireEvent.click(screen.getByRole("button", { name: "Copy snapshot link" }));
+  const checkbox = screen.getByRole("checkbox", {
+    name: "Include current view",
+  });
+  expect(checkbox).toHaveProperty("disabled", true);
+  const copying = screen.getByRole("button", { name: "Copying…" });
+  expect(copying).toHaveProperty("disabled", true);
+  fireEvent.click(copying);
+  expect(writeText).toHaveBeenCalledOnce();
+  expect(writeText).toHaveBeenCalledWith(originalUrl);
+  await act(async () => finishCopy());
+  expect(await screen.findByText("Link copied.")).toBeTruthy();
+  expect(checkbox).toHaveProperty("disabled", false);
+  fireEvent.click(checkbox);
+  await waitFor(() => expect(input.getAttribute("value")).not.toContain("?"));
+  expect(screen.queryByText("Link copied.")).toBeNull();
 });

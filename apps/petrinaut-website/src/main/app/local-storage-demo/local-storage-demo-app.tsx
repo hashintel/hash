@@ -1146,7 +1146,8 @@ export const LocalStorageDemoApp = ({
                   <ShareSnapshotButton
                     getSnapshot={() => ({
                       title: currentDocument.title,
-                      definition: activeHandle.handle.doc() ?? currentDocument.definition,
+                      definition:
+                        activeHandle.handle.doc() ?? currentDocument.definition,
                     })}
                     search={search}
                   />
