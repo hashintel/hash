@@ -50,6 +50,24 @@ export const text: CborDecoder.CborVisitor<string, never> = {
   visitTextString: Result.ok,
 };
 
+/** Accepts byte strings as borrowed views. */
+export const bytes: CborDecoder.CborVisitor<Uint8Array, never> = {
+  expecting: "a byte string",
+  visitByteString: Result.ok,
+};
+
+/** Accepts only single-precision CBOR floats. */
+export const float32: CborDecoder.CborVisitor<Decoder.F32, never> = {
+  expecting: "an f32 value",
+  visitFloat32: Result.ok,
+};
+
+/** Accepts only double-precision CBOR floats. */
+export const float64: CborDecoder.CborVisitor<Decoder.F64, never> = {
+  expecting: "an f64 value",
+  visitFloat64: Result.ok,
+};
+
 /**
  * Accepts null in addition to the element visitor's supported values.
  *
@@ -57,11 +75,33 @@ export const text: CborDecoder.CborVisitor<string, never> = {
  */
 export const nullable = <T, E>(
   element: Omit<CborDecoder.CborVisitor<T, E>, "visitNull">,
-): CborDecoder.CborVisitor<T | null, E> => ({
-  ...element,
-  expecting: `${element.expecting} or null`,
-  visitNull: () => Result.ok(null),
-});
+): CborDecoder.CborVisitor<T | null, E> => {
+  const visitor: CborDecoder.CborVisitor<T | null, E> = {
+    expecting: `${element.expecting} or null`,
+    visitNull: () => Result.ok(null),
+  };
+  const methods = [
+    "visitUnsignedInteger",
+    "visitNegativeInteger",
+    "visitFloat32",
+    "visitFloat64",
+    "visitByteString",
+    "visitTextString",
+    "visitBoolean",
+    "visitArray",
+    "visitMap",
+  ] as const;
+  for (const name of methods) {
+    const method = element[name];
+    if (method !== undefined) {
+      Object.defineProperty(visitor, name, {
+        value: method.bind(element),
+        enumerable: true,
+      });
+    }
+  }
+  return visitor;
+};
 
 /**
  * Collects array elements with their receiving visitor.
