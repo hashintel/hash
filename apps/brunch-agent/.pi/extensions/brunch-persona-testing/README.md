@@ -61,7 +61,7 @@ The browser displays successful `mutate_workpiece` revisions; `read_workpiece` q
 
 ### Read-only browser observation
 
-While the launcher remains running, an operator may attach `cdp-cli` to the Chrome instance it already launched for observation (`tabs`, `snapshot`, `console`, `screenshot`, or DOM-reading `eval`). AI/Workpiece tab switching is supported during persona turns. Keep the document and conversation fixed: do not navigate, reload, edit the model or submit concurrent human turns. The launcher alone drives the composer.
+While the launcher remains running, an operator may attach `cdp-cli` to the Chrome instance it already launched for observation (`tabs`, `snapshot`, `console`, `screenshot`, or DOM-reading `eval`). Chat/Ledger tab switching is supported during persona turns. Keep the document and conversation fixed: do not navigate, reload, edit the model or submit concurrent human turns. The launcher alone drives the composer.
 
 ```sh
 run=apps/brunch-agent/.data-wipe-me/persona-runs/run-XXXXXX
@@ -91,7 +91,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 
 - `run.json`: case/configuration paths, effective Brunch and persona model/effort settings, effective `personaVerbosity` and `personaDisclosure`, private socket path and owned process/pane identifiers; no credentials. Resume of older Sonnet-only runs still reads the legacy `model` field, and runs without persona axis fields use `default` for both.
 - `configuration-preflight.json`: request-free Brunch configuration checks. The launcher separately checks Pi's isolated configuration before startup.
-- `conversation.db` and adjacent capture files: this run's original local conversation/workpiece stores, retained for original-session reopening. Flue's canonical `assistant_message_completed` records retain provider usage and cost estimates in the conversation stream tables; the projected `evidence/snapshot.json` omits that usage.
+- `conversation.db`: this run's original local Flue database, including conversation history and persistent workpiece state, retained for original-session reopening. Flue's canonical `assistant_message_completed` records retain provider usage and cost estimates in the conversation stream tables; the projected `evidence/snapshot.json` omits that usage. Evidence exports do not replace the original database.
 - `session.json`: private native browser attachment, not a reusable template or public artifact.
 - `persona-input.md` and `pi/`: private actor input and native Pi session, including assistant usage records; `resume-input.md`, when present, is the latest private reconciliation notice.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, workpiece and bound `net.json`; refreshed after completed turns and net retention on shutdown.
