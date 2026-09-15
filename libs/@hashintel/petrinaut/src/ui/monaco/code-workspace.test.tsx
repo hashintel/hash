@@ -109,11 +109,13 @@ const Harness = ({
   empty = false,
   profile = "editor",
   subnetId = null,
+  sectionHeight,
 }: {
   documentId?: string;
   empty?: boolean;
   profile?: "editor" | "preview";
   subnetId?: string | null;
+  sectionHeight?: number;
 }) => {
   const defaults = use(SDCPNContext);
   const editorDefaults = use(EditorContext);
@@ -141,6 +143,17 @@ const Harness = ({
             value={{
               ...defaultUserSettingsContextValue,
               updateSubViewSection,
+              subViewPanels:
+                sectionHeight === undefined
+                  ? {}
+                  : {
+                      "transition-properties": {
+                        "transition-firing-time": {
+                          collapsed: true,
+                          height: sectionHeight,
+                        },
+                      },
+                    },
             }}
           >
             <PetrinautPresentationProvider profile={profile}>
@@ -204,6 +217,17 @@ describe("code workspace navigation", () => {
       "transition-properties",
       "transition-firing-time",
       { collapsed: false },
+    );
+  });
+
+  it("preserves a saved section height when returning from full screen", () => {
+    render(<Harness sectionHeight={420} />);
+    fireEvent.click(screen.getByRole("button", { name: /Full screen/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to properties" }));
+    expect(updateSubViewSection).toHaveBeenLastCalledWith(
+      "transition-properties",
+      "transition-firing-time",
+      { collapsed: false, height: 420 },
     );
   });
 

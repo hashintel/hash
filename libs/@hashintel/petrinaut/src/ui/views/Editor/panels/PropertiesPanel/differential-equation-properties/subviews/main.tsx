@@ -253,11 +253,13 @@ const DiffEqCodeAction: React.FC = () => {
     useDiffEqPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
+  const { showMutationActions } = usePetrinautPresentation();
+
   const codeEditorItems = useCodeEditorMenuItems(
     getDocumentUri("differential-equation", differentialEquation.id),
   );
 
-  if (isReadOnly && codeEditorItems.length === 0) {
+  if ((isReadOnly || !showMutationActions) && codeEditorItems.length === 0) {
     return null;
   }
 
@@ -274,43 +276,47 @@ const DiffEqCodeAction: React.FC = () => {
       }
       items={[
         ...codeEditorItems,
-        {
-          id: "load-default",
-          text: "Load default template",
-          disabled: isReadOnly,
-          onClick: () => {
-            const equationType = types.find(
-              (tp) => tp.id === differentialEquation.colorId,
-            );
+        ...(showMutationActions
+          ? [
+              {
+                id: "load-default",
+                text: "Load default template",
+                disabled: isReadOnly,
+                onClick: () => {
+                  const equationType = types.find(
+                    (tp) => tp.id === differentialEquation.colorId,
+                  );
 
-            updateDifferentialEquation({
-              equationId: differentialEquation.id,
-              update: {
-                code: equationType
-                  ? generateDefaultDifferentialEquationCode(equationType)
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+                  updateDifferentialEquation({
+                    equationId: differentialEquation.id,
+                    update: {
+                      code: equationType
+                        ? generateDefaultDifferentialEquationCode(equationType)
+                        : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+                    },
+                  });
+                },
               },
-            });
-          },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
+              {
+                id: "generate-ai",
+                text: (
+                  <Tooltip
+                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                    position="bottom"
+                  >
+                    <div className={aiMenuItemStyle}>
+                      <Icon name="sparkles" size="sm" />
+                      Generate with AI
+                    </div>
+                  </Tooltip>
+                ),
+                disabled: true,
+                onClick: () => {
+                  // TODO: Implement AI generation
+                },
+              },
+            ]
+          : []),
       ]}
     />
   );

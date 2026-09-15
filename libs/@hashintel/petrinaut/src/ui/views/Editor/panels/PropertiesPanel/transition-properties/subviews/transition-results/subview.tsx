@@ -14,6 +14,7 @@ import {
   SourceCodeEditor as CodeEditor,
 } from "../../../../../../../monaco/code-workspace";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
+import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { useTransitionPropertiesContext } from "../../context";
 
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -92,9 +93,13 @@ const ResultsHeaderAction: React.FC = () => {
   } = useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
+  const { showMutationActions } = usePetrinautPresentation();
+
   const codeEditorItems = useCodeEditorMenuItems(
     getDocumentUri("transition-kernel", transition.id),
   );
+
+  if (!showMutationActions && codeEditorItems.length === 0) return null;
 
   if (globalMode !== "edit" || !logicAvailability.transitionKernel) {
     return null;
@@ -113,85 +118,89 @@ const ResultsHeaderAction: React.FC = () => {
       }
       items={[
         ...codeEditorItems,
-        {
-          id: "load-default",
-          text: "Load default template",
-          disabled: isReadOnly,
-          onClick: () => {
-            const resolveArcPlace = createTransitionArcPlaceResolver(
-              sdcpn,
-              net,
-            );
-            const typeById = getTypeById({ sdcpn, types });
+        ...(showMutationActions
+          ? [
+              {
+                id: "load-default",
+                text: "Load default template",
+                disabled: isReadOnly,
+                onClick: () => {
+                  const resolveArcPlace = createTransitionArcPlaceResolver(
+                    sdcpn,
+                    net,
+                  );
+                  const typeById = getTypeById({ sdcpn, types });
 
-            const inputs = transition.inputArcs
-              .filter((arc) => arc.type !== "inhibitor")
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
+                  const inputs = transition.inputArcs
+                    .filter((arc) => arc.type !== "inhibitor")
+                    .map((arc) => {
+                      const resolved = resolveArcPlace(arc);
+                      const type = resolved?.place.colorId
+                        ? typeById.get(resolved.place.colorId)
+                        : undefined;
 
-                if (!resolved || !type) {
-                  return null;
-                }
+                      if (!resolved || !type) {
+                        return null;
+                      }
 
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((i) => i !== null);
+                      return {
+                        placeName: resolved.placeName,
+                        type,
+                        weight: arc.weight,
+                      };
+                    })
+                    .filter((i) => i !== null);
 
-            const outputs = transition.outputArcs
-              .map((arc) => {
-                const resolved = resolveArcPlace(arc);
-                const type = resolved?.place.colorId
-                  ? typeById.get(resolved.place.colorId)
-                  : undefined;
+                  const outputs = transition.outputArcs
+                    .map((arc) => {
+                      const resolved = resolveArcPlace(arc);
+                      const type = resolved?.place.colorId
+                        ? typeById.get(resolved.place.colorId)
+                        : undefined;
 
-                if (!resolved || !type) {
-                  return null;
-                }
+                      if (!resolved || !type) {
+                        return null;
+                      }
 
-                return {
-                  placeName: resolved.placeName,
-                  type,
-                  weight: arc.weight,
-                };
-              })
-              .filter((o) => o !== null);
+                      return {
+                        placeName: resolved.placeName,
+                        type,
+                        weight: arc.weight,
+                      };
+                    })
+                    .filter((o) => o !== null);
 
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                transitionKernelCode: generateDefaultTransitionKernelCode(
-                  inputs,
-                  outputs,
-                ),
+                  updateTransition({
+                    transitionId: transition.id,
+                    update: {
+                      transitionKernelCode: generateDefaultTransitionKernelCode(
+                        inputs,
+                        outputs,
+                      ),
+                    },
+                  });
+                },
               },
-            });
-          },
-        },
-        {
-          id: "generate-ai",
-          text: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              position="bottom"
-            >
-              <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" size="sm" />
-                Generate with AI
-              </div>
-            </Tooltip>
-          ),
-          disabled: true,
-          onClick: () => {
-            // TODO: Implement AI generation
-          },
-        },
+              {
+                id: "generate-ai",
+                text: (
+                  <Tooltip
+                    content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                    position="bottom"
+                  >
+                    <div className={aiMenuItemStyle}>
+                      <Icon name="sparkles" size="sm" />
+                      Generate with AI
+                    </div>
+                  </Tooltip>
+                ),
+                disabled: true,
+                onClick: () => {
+                  // TODO: Implement AI generation
+                },
+              },
+            ]
+          : []),
       ]}
     />
   );

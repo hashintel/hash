@@ -52,7 +52,7 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   const scope = `${petriNetId ?? "unsaved"}/${activeSubnetId ?? "root"}`;
   const [previousScope, setPreviousScope] = useState(scope);
   const { selectItem } = use(EditorContext);
-  const { updateSubViewSection } = use(UserSettingsContext);
+  const { subViewPanels, updateSubViewSection } = use(UserSettingsContext);
   const { showSourceCode } = usePetrinautPresentation();
   const mutations = usePetrinautMutations();
   const [activePath, setActivePath] = useState<string | null>(null);
@@ -80,15 +80,17 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
 
   const showProperties = (entry: CodeEntry) => {
     if (entry.selection.type === "transition") {
-      updateSubViewSection(
-        "transition-properties",
+      const sectionId =
         entry.label === "Transition kernel"
           ? "transition-results"
-          : "transition-firing-time",
-        { collapsed: false },
-      );
+          : "transition-firing-time";
+      updateSubViewSection("transition-properties", sectionId, {
+        ...subViewPanels["transition-properties"]?.[sectionId],
+        collapsed: false,
+      });
     } else if (entry.selection.type === "place") {
       updateSubViewSection("place-properties", "place-visualizer", {
+        ...subViewPanels["place-properties"]?.["place-visualizer"],
         collapsed: false,
       });
     }
