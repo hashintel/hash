@@ -1,3 +1,5 @@
+import * as TypeSystem from "@blockprotocol/type-system";
+
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
@@ -36,7 +38,11 @@ export class BinaryEntityIdError extends TaggedError.TaggedError<
   }
 }
 
-/** A web UUID followed by an entity UUID, borrowing 32 bytes. */
+/**
+ * A web UUID followed by an entity UUID, borrowing 32 bytes.
+ *
+ * Keep the buffer attached and unchanged while using the identity. Its string representation is the live {@link TypeSystem.EntityId}, without a draft component.
+ */
 export class BinaryEntityId {
   readonly #inner: Uint8Array;
 
@@ -54,6 +60,27 @@ export class BinaryEntityId {
     }
 
     this.#inner = inner;
+  }
+
+  /** Formats one UUID in lowercase, hyphenated hexadecimal. */
+  #uuidAt(offset: 0 | 16): string {
+    let uuid = "";
+    for (let index = 0; index < 16; index += 1) {
+      if (index === 4 || index === 6 || index === 8 || index === 10) {
+        uuid += "-";
+      }
+      uuid += this.#inner[offset + index]!.toString(16).padStart(2, "0");
+    }
+    return uuid;
+  }
+
+  /** Formats the live entity identity as lowercase `webUuid~entityUuid`. */
+  toString(): TypeSystem.EntityId {
+    // Each half is a complete UUID in byte order, with its role fixed by the binary representation.
+    return TypeSystem.entityIdFromComponents(
+      this.#uuidAt(0) as TypeSystem.WebId,
+      this.#uuidAt(16) as TypeSystem.EntityUuid,
+    );
   }
 
   /** The borrowed identity bytes in web/entity order. */

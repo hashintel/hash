@@ -57,6 +57,7 @@ export class PositionColumn<
         byteLength: view.byteLength,
       });
     }
+
     this.#view = view;
   }
 
@@ -83,6 +84,7 @@ export class PositionColumn<
         }),
       );
     }
+
     return Result.ok(this.#read(index));
   }
 
