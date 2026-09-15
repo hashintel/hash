@@ -28,6 +28,8 @@ export const validOptimizationInput = {
       parameters: [],
       subnets: [],
       componentInstances: [],
+      identities: [],
+      statusViews: [],
       scenarios: [
         {
           id: "baseline",
