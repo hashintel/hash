@@ -258,6 +258,7 @@ const EditorViewContent = ({
   const {
     brunchDemoMode,
     enableExperimentalIconPack,
+    enableStatusViews,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
@@ -587,7 +588,8 @@ const EditorViewContent = ({
     },
   ];
 
-  const hasStatusViews = (petriNetDefinition.statusViews ?? []).length > 0;
+  const showKanbanToggle =
+    enableStatusViews && (petriNetDefinition.statusViews ?? []).length > 0;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -668,10 +670,10 @@ const EditorViewContent = ({
 
                     {/* SDCPN Visualization, or the Kanban projection of a status
                         view over the same frame source. A net without status
-                        views always shows the canvas: the toggle is hidden then,
-                        so a stored "kanban" preference would otherwise be
-                        inescapable. */}
-                    {hasStatusViews && canvasViewMode === "kanban" ? (
+                        views, or with the Status views setting off, always
+                        shows the canvas: the toggle is hidden then, so a stored
+                        "kanban" preference would otherwise be inescapable. */}
+                    {showKanbanToggle && canvasViewMode === "kanban" ? (
                       <KanbanView />
                     ) : (
                       <SDCPNView
@@ -680,7 +682,7 @@ const EditorViewContent = ({
                       />
                     )}
 
-                    {hasStatusViews && (
+                    {showKanbanToggle && (
                       <div className={canvasViewToggleStyle}>
                         <SegmentedControl
                           value={canvasViewMode}
