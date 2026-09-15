@@ -175,7 +175,7 @@ Off by default. Adds an interval toggle to every numeric value of the experiment
 
 ### In-browser optimization (experimental)
 
-Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with an **Objective** and **Constraints** chosen in the form. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with the objective chosen on a metric in **Metrics & objective** and conditions added under **Constraints**. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ## Labs
 
