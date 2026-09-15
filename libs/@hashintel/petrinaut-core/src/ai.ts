@@ -104,6 +104,7 @@ export const petrinautDocNames = [
   "scenarios",
   "ad-hoc-scenarios",
   "experiments",
+  "simulation-panels",
   "actual-mode",
   "preview",
   "ai-assistant",
@@ -129,7 +130,9 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "ad-hoc-scenarios":
     "Inline initial state + parameters without saving a scenario: the shared form (scenario.<name> variables, fixed/dynamic/swept-count rows chosen from the row gutter's menu, shared columns, phantom row, place totals, live type checking), its three surfaces (quick simulation, experiments, scenario creation and editing with Scenario Parameter toggles), interval selections — Sweep or Optimize by setting — with generated adhoc_* parameter names, saved scenarios shown in run mode.",
   experiments:
-    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), Optimize toggles and an Objective section (metric, direction, steps) at creation, the drawer opening already optimizing, Stop on the Parameters card, one study per experiment, lifecycle/statuses, cancel/remove, header columns (Steps, Steps clear), metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
+    "Monte Carlo batches: configuration (runs, seed, dt, max time, scenario), parameter sweeps, constraints (parameter and state, pass threshold), Optimize toggles and an Objective section (metric, direction, steps) at creation, the panel opening already optimizing, Stop on the Parameters card, one study per experiment, lifecycle/statuses, cancel/remove, header columns (Steps, Steps clear), metric charts, the Constraints and Sensitivity analysis cards, the steps table, Objective by step, compute backend, active-experiments popover.",
+  "simulation-panels":
+    "Experiment and scenario panels, fullscreen controls, state preservation, docked and floating AI layout, links and browser history, session limits for experiments.",
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   preview:

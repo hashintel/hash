@@ -19,6 +19,7 @@ import {
 } from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
+import { PetrinautNavigationProvider } from "../../../../../react/navigation";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
@@ -268,17 +269,19 @@ const SimulateViewStory = ({
     typeof FakeExperimentsProvider
   >[0]["initialExperiments"];
 }) => (
-  <SDCPNContext value={sirSdcpnContextValue}>
-    <LanguageClientProvider>
-      <MonacoProvider>
-        <FakeEditorProvider>
-          <FakeExperimentsProvider initialExperiments={experiments}>
-            <SimulateViewStoryStage />
-          </FakeExperimentsProvider>
-        </FakeEditorProvider>
-      </MonacoProvider>
-    </LanguageClientProvider>
-  </SDCPNContext>
+  <PetrinautNavigationProvider initialState={{ mode: "simulate" }}>
+    <SDCPNContext value={sirSdcpnContextValue}>
+      <LanguageClientProvider>
+        <MonacoProvider>
+          <FakeEditorProvider>
+            <FakeExperimentsProvider initialExperiments={experiments}>
+              <SimulateViewStoryStage />
+            </FakeExperimentsProvider>
+          </FakeEditorProvider>
+        </MonacoProvider>
+      </LanguageClientProvider>
+    </SDCPNContext>
+  </PetrinautNavigationProvider>
 );
 
 export const None: Story = {

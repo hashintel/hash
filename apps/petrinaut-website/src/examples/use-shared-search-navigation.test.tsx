@@ -135,101 +135,84 @@ describe("useSharedSearchNavigation", () => {
       withClearedSharedLocation(controller.state).expandedSubView,
     ).toBeNull();
   });
-  it("keeps URL-unrepresentable state in memory and mirrors the shared subset", () => {
-    let controller!: PetrinautNavigationController;
-    const onSearchChange = vi.fn();
-    render(
-      <Probe
-        onController={(value) => {
-          controller = value;
-        }}
-        onSearchChange={onSearchChange}
-        search={{ scenario: "scenario-1" }}
-      />,
-    );
-
-    // The resource open inside Simulate is the one location field the URL does
-    // not carry: it applies in memory and produces no URL write.
-    act(() => {
-      controller.onNavigate(
-        (current) => ({
-          ...current,
-          simulateResource: { type: "experiment", id: "experiment-1" },
-        }),
-        {
-          history: "push",
-          intent: { cause: "user", action: "simulation-resource" },
-        },
+  it.each(["experiment", "scenario"] as const)(
+    "records the open %s and restores drawer/fullscreen with Back and Forward",
+    (resourceType) => {
+      let controller!: PetrinautNavigationController;
+      const onSearchChange = vi.fn();
+      const probe = (search: SharedExampleSearch) => (
+        <Probe
+          onController={(value) => {
+            controller = value;
+          }}
+          onSearchChange={onSearchChange}
+          search={search}
+        />
       );
-    });
-    expect(controller.state.simulateResource).toEqual({
-      type: "experiment",
-      id: "experiment-1",
-    });
-    expect(onSearchChange).not.toHaveBeenCalled();
-
-    // A subnet change is shared: it applies in memory AND writes the URL.
-    act(() => {
-      controller.onNavigate(
-        (current) => ({ ...current, subnetId: "subnet-1" }),
-        { history: "push", intent: { cause: "user", action: "subnet" } },
+      const view = render(probe({}));
+      act(() =>
+        controller.onNavigate(
+          (current) => ({
+            ...current,
+            mode: "simulate",
+            simulateView:
+              resourceType === "scenario" ? "scenarios" : "experiments",
+            simulateResource: { type: resourceType, id: "record-1" },
+          }),
+          {
+            history: "push",
+            intent: { cause: "user", action: "simulation-resource" },
+          },
+        ),
       );
-    });
-    expect(controller.state.subnetId).toBe("subnet-1");
-    expect(controller.state.simulateResource).toEqual({
-      type: "experiment",
-      id: "experiment-1",
-    });
-    expect(onSearchChange).toHaveBeenCalledOnce();
-    expect(onSearchChange).toHaveBeenCalledWith(
-      { scenario: "scenario-1", subnet: "subnet-1" },
-      "push",
-    );
-  });
-
-  it("merges an external URL change without resetting in-memory fields", () => {
-    let controller!: PetrinautNavigationController;
-    const onSearchChange = vi.fn();
-    const view = render(
-      <Probe
-        onController={(value) => {
-          controller = value;
-        }}
-        onSearchChange={onSearchChange}
-        search={{ scenario: "scenario-1" }}
-      />,
-    );
-
-    act(() => {
-      controller.onNavigate(
-        (current) => ({
-          ...current,
-          simulateResource: { type: "experiment", id: "experiment-1" },
-        }),
-        {
-          history: "push",
-          intent: { cause: "user", action: "simulation-resource" },
-        },
+      const drawerSearch: SharedExampleSearch = {
+        mode: "simulate",
+        view: resourceType === "scenario" ? "scenarios" : undefined,
+        resourceType,
+        resourceId: "record-1",
+      };
+      expect(onSearchChange).toHaveBeenLastCalledWith(
+        expect.objectContaining(drawerSearch),
+        "push",
       );
-    });
+      view.rerender(probe(drawerSearch));
 
-    // Back/Forward delivers a different shared search: URL-owned fields
-    // update, and the one field the URL cannot carry survives.
-    view.rerender(
-      <Probe
-        onController={(value) => {
-          controller = value;
-        }}
-        onSearchChange={onSearchChange}
-        search={{ scenario: "scenario-2" }}
-      />,
-    );
-    expect(controller.state.scenarioId).toBe("scenario-2");
-    expect(controller.state.simulateResource).toEqual({
-      type: "experiment",
-      id: "experiment-1",
-    });
-  });
+      act(() =>
+        controller.onNavigate(
+          (current) => ({ ...current, simulatePresentation: "fullscreen" }),
+          {
+            history: "push",
+            intent: { cause: "user", action: "simulation-presentation" },
+          },
+        ),
+      );
+      const fullscreenSearch = {
+        ...drawerSearch,
+        presentation: "fullscreen" as const,
+      };
+      expect(onSearchChange).toHaveBeenLastCalledWith(
+        expect.objectContaining(fullscreenSearch),
+        "push",
+      );
+      view.rerender(probe(fullscreenSearch));
+      view.rerender(probe(drawerSearch));
+      expect(controller.state.simulatePresentation ?? "panel").toBe("panel");
+      expect(controller.state.simulateResource).toEqual({
+        type: resourceType,
+        id: "record-1",
+      });
+      view.rerender(probe({}));
+      expect(controller.state.simulateResource).toBeNull();
+      view.rerender(probe(drawerSearch));
+      view.rerender(probe(fullscreenSearch));
+      expect(controller.state.simulatePresentation).toBe("fullscreen");
+      expect(controller.state.simulateResource).toEqual({
+        type: resourceType,
+        id: "record-1",
+      });
+      expect(onSearchChange).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("returns a URL-owned field to the baseline when Back drops it", () => {
     let controller!: PetrinautNavigationController;

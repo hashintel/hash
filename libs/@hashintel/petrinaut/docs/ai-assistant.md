@@ -17,7 +17,9 @@ The assistant stays available across **Edit** (Canvas or Definitions), **Simulat
 
 The assistant opens in a sidebar at the far right of the editor. It sits flush against the viewport, beside the canvas and its properties panel. Its left divider and resize highlight span the full panel height. The sidebar slides in at its full width while the canvas makes room. Closing it returns that space to the canvas.
 
-The bottom toolbar stays centered on the editor when the docked assistant opens, moving only as far as needed to avoid overlapping the panels.
+Experiment and Scenario panels make room for the docked assistant too. Their fullscreen presentation fills the main view beside it. Resizing or closing the assistant adjusts the available space; floating the assistant lets it sit above the open panel.
+
+The bottom toolbar stays centered on the remaining main view, moving when needed to avoid overlapping its panels.
 
 Choose **Float AI assistant** in the header to detach it into a rounded panel over the canvas. The canvas expands smoothly to reclaim the sidebar's space, and the floating panel reserves no space at the right edge. Drag anywhere in the header outside the tabs and action buttons to move it, or focus **Move AI assistant** and use the arrow keys. Hold **Shift** with an arrow key to move farther. The floating panel stays within the editor when the window changes size.
 
@@ -234,7 +236,7 @@ ranges to minimize or maximize a metric.
 The experiment appears in a compact card with its status, run count, and
 results. Simulation cards use blue; optimization cards use purple and glow
 while running. Select **View
-experiment** to inspect metric distributions in the Experiments drawer. The
+experiment** to inspect metric distributions in the Experiments panel. The
 heatmap shows how values spread across runs; click a time step to see its
 histogram. Select **Cancel**
 to stop its work. The assistant receives the
