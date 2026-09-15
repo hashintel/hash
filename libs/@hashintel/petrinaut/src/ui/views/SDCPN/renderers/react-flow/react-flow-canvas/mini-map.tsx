@@ -21,8 +21,6 @@ const miniMapClassName = css({
   },
 });
 
-const SHAPE_SIZE = 90;
-const TRANSITION_WIDTH_RATIO = 1.5;
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 /** Thick and solid: at map scale a ring has to carry the whole signal. */
@@ -37,7 +35,13 @@ const FOCUS_STROKE_WIDTH = 22;
  * The map is too small for the canvas's white band, so the box and the fade
  * carry it alone.
  */
-const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
+const MiniMapNode: React.FC<MiniMapNodeProps> = ({
+  id,
+  x,
+  y,
+  width,
+  height,
+}) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
     (state) => state.nodeLookup.get(id) as NodeType | undefined,
@@ -76,23 +80,9 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   if (node.data.kind === "place") {
     return (
       <circle
-        cx={x + SHAPE_SIZE / 2}
-        cy={y + SHAPE_SIZE / 2}
-        r={SHAPE_SIZE / 2}
-        className={shapeClass}
-        style={shapeStyle}
-      />
-    );
-  }
-
-  if (node.data.kind === "componentInstance") {
-    return (
-      <rect
-        x={x - SHAPE_SIZE}
-        y={y - SHAPE_SIZE / 2}
-        width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
-        height={SHAPE_SIZE}
-        rx={12}
+        cx={x + width / 2}
+        cy={y + height / 2}
+        r={Math.min(width, height) / 2}
         className={shapeClass}
         style={shapeStyle}
       />
@@ -101,10 +91,11 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
 
   return (
     <rect
-      x={x - SHAPE_SIZE}
-      y={y - SHAPE_SIZE / TRANSITION_WIDTH_RATIO}
-      width={SHAPE_SIZE * TRANSITION_WIDTH_RATIO}
-      height={SHAPE_SIZE}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={node.data.kind === "componentInstance" ? 12 : undefined}
       className={shapeClass}
       style={shapeStyle}
     />

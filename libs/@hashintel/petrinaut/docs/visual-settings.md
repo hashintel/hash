@@ -104,8 +104,12 @@ When enabled, node positions snap to a grid when placing new nodes or dragging e
 
 Switch between two node rendering styles:
 
-- **Compact** (enabled, the default) -- small card-style nodes that show just the place / transition name. Fits more of the net on screen at once; best for large or dense models where you mostly select-and-inspect via the Properties panel.
-- **Classic** (disabled) -- larger nodes with inline summary information (e.g. token counts, firing-rate type indicators). Easier to read at a glance for small models or when teaching / demoing.
+- **Classic** (disabled, the default) -- circular places show their names and token counts. Rectangular transitions show an icon on the left, a name wrapping over up to two lines, and the transition type below it. Easier to read at a glance for small models or when teaching / demoing.
+- **Compact** (enabled) -- shorter card-style nodes show an icon, a single-line name, and the place or transition type. Fits more of the net on screen at once; best for large or dense models where you mostly select-and-inspect via the Properties panel.
+
+Both styles use thin outlines and soft shadows. Places follow their token type's colour; classic nodes use softer, more muted outlines. Transitions have a white surface.
+
+Classic places and transitions use the same text size and weight for their names.
 
 Toggle freely -- this setting only affects rendering, not the underlying net.
 
