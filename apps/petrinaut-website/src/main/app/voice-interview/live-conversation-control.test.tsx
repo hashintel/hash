@@ -111,6 +111,34 @@ test("starts Live directly after the voice disclosure is acknowledged", () => {
   expect(createLiveConversation).toHaveBeenCalledOnce();
 });
 
+test("starts acknowledged Live after the previous session finishes stopping", () => {
+  window.localStorage.setItem(
+    VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const props = context();
+  const { rerender } = render(
+    <VoiceInterviewControl {...props} config={config} />,
+  );
+  const onState = vi.mocked(createLiveConversation).mock.calls[0]![0];
+  act(() => onState({ phase: "connected", message: null }));
+  rerender(
+    <VoiceInterviewControl {...props} inputMode="text" config={config} />,
+  );
+  act(() => onState({ phase: "stopping", message: null }));
+
+  rerender(<VoiceInterviewControl {...props} config={config} />);
+
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+  act(() =>
+    onState({
+      phase: "ended",
+      message: "Microphone and playback stopped.",
+    }),
+  );
+  expect(createLiveConversation).toHaveBeenCalledTimes(2);
+});
+
 test("records the voice disclosure acknowledgement when Live starts", async () => {
   render(<VoiceInterviewControl {...context()} config={config} />);
 

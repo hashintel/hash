@@ -140,7 +140,7 @@ export const LiveConversationControl = ({
     await closing;
   }, [setVoiceActive]);
   const start = useCallback(() => {
-    if (phase === "stopping" || sessionActive.current) return;
+    if (phase === "stopping" || sessionActive.current) return false;
     sessionActive.current = true;
     setConsented(false);
     setMicrophoneMutedState(false);
@@ -207,6 +207,7 @@ export const LiveConversationControl = ({
     session.current = next;
     setVoiceActive(true);
     void next.start();
+    return true;
   }, [connectionTimeoutMs, phase, setVoiceActive]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
@@ -214,9 +215,8 @@ export const LiveConversationControl = ({
       return;
     }
     if (handledVoiceSelection.current) return;
-    handledVoiceSelection.current = true;
     // eslint-disable-next-line react-hooks-js/set-state-in-effect -- input mode synchronizes persisted disclosure state with the Live session
-    if (isDisclosureAcknowledged()) start();
+    handledVoiceSelection.current = isDisclosureAcknowledged() ? start() : true;
   }, [inputMode, isAiAssistantOpen, isDisclosureAcknowledged, start]);
   const setMicrophoneMuted = useCallback((muted: boolean) => {
     if (!sessionActive.current || !session.current) return;
