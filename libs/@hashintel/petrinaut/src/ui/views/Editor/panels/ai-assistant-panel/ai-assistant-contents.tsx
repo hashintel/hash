@@ -412,7 +412,7 @@ const composerActionButtonStyle = css({
   width: "[30px]",
   height: "[30px]",
   minWidth: "[30px]",
-  borderRadius: "[calc({radii.lg} - {spacing.1} - 1px)]",
+  borderRadius: "[calc({radii.lg} - {spacing.1})]",
 });
 
 const composerStyle = css({
