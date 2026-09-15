@@ -37,6 +37,7 @@ export const LiveConversationControl = ({
   const session = useRef<ReturnType<typeof createLiveConversation> | null>(
     null,
   );
+  const sessionActive = useRef(false);
   const end = useCallback(async () => {
     const closing = session.current?.stop();
     setVoiceActive(false);
@@ -90,6 +91,7 @@ export const LiveConversationControl = ({
       window.removeEventListener("pagehide", leave);
       const current = session.current;
       session.current = null;
+      sessionActive.current = false;
       void current?.stop();
       setVoiceActive(false);
       reportVoiceSessionState(null);
@@ -112,11 +114,15 @@ export const LiveConversationControl = ({
             : ""
       }
       onStart={() => {
-        if (!consented || phase === "stopping") return;
+        if (!consented || phase === "stopping" || sessionActive.current) return;
+        sessionActive.current = true;
         setConsented(false);
         setState({ phase: "connecting", message: null });
         const next = createLiveConversation((nextState) => {
           if (session.current !== next) return;
+          if (nextState.phase === "ended" || nextState.phase === "error") {
+            sessionActive.current = false;
+          }
           setState(nextState);
           setVoiceActive(
             nextState.phase === "connecting" || nextState.phase === "connected",

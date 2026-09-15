@@ -60,6 +60,20 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Start voice" }));
 };
 
+test("starts only one Live session when Start is activated twice", async () => {
+  render(<VoiceInterviewControl {...context()} config={config} />);
+  fireEvent.click(screen.getByRole("checkbox"));
+  const startButton = await screen.findByRole("button", {
+    name: "Start voice",
+  });
+  await waitFor(() => expect(startButton.hasAttribute("disabled")).toBe(false));
+  act(() => {
+    startButton.click();
+    startButton.click();
+  });
+  expect(createLiveConversation).toHaveBeenCalledOnce();
+});
+
 test("reuses setup, reports listening and speaking to the host dock, and clears it on failure", async () => {
   const props = context();
   render(<VoiceInterviewControl {...props} config={config} />);
