@@ -23,6 +23,7 @@ import {
 import { getCodeEntries } from "./code-workspace/entries";
 
 import type { CodeEditorProps } from "./code-editor";
+import type { editor } from "monaco-editor";
 
 const mutations = vi.hoisted(() => ({
   updatePlace: vi.fn(),
@@ -52,6 +53,11 @@ vi.mock("./code-editor", () => ({
     />
   ),
 }));
+const retainedModel = {
+  dispose: vi.fn(),
+  isDisposed: () => false,
+  isAttachedToEditor: () => false,
+};
 const updateSubViewSection = vi.fn();
 afterEach(() => {
   cleanup();
@@ -79,6 +85,23 @@ const Probe = () => {
         }}
       >
         Change layout
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          workspace.retainModel(retainedModel as unknown as editor.ITextModel)
+        }
+      >
+        Retain model
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const entry = workspace.entries[0];
+          if (entry) workspace.open(entry.path);
+        }}
+      >
+        Open default
       </button>
       <button type="button" onClick={workspace.close}>
         Close
@@ -251,6 +274,8 @@ describe("code workspace navigation", () => {
     fireEvent.click(firstCodeButton());
     view.rerender(<Harness subnetId="another-subnet" />);
     expect(screen.getByTestId("active").textContent).toBe("closed");
+    fireEvent.click(screen.getByText("Open default"));
+    expect(screen.getByTestId("placement").textContent).toBe("properties");
   });
 
   it("clears the function when the document changes even with identical entity IDs", () => {
@@ -258,13 +283,34 @@ describe("code workspace navigation", () => {
     fireEvent.click(firstCodeButton());
     view.rerender(<Harness documentId="two" />);
     expect(screen.getByTestId("active").textContent).toBe("closed");
+    fireEvent.click(screen.getByText("Open default"));
+    expect(screen.getByTestId("placement").textContent).toBe("properties");
   });
+
+  it.each([{ documentId: "two" }, { subnetId: "another-subnet" }])(
+    "disposes retained models before mounting editors in the next scope (%j)",
+    (nextScope) => {
+      const view = render(<Harness />);
+      fireEvent.click(screen.getByText("Retain model"));
+      retainedModel.dispose.mockImplementationOnce(() => {
+        expect(screen.queryByRole("textbox")).toBeNull();
+      });
+      view.rerender(<Harness {...nextScope} />);
+      expect(retainedModel.dispose).toHaveBeenCalledOnce();
+      expect(
+        screen.getByRole("textbox", { name: "Property code" }),
+      ).toBeTruthy();
+    },
+  );
 
   it("clears the function when its entity disappears", () => {
     const view = render(<Harness />);
     fireEvent.click(firstCodeButton());
     view.rerender(<Harness empty />);
     expect(screen.getByTestId("active").textContent).toBe("closed");
+    view.rerender(<Harness />);
+    fireEvent.click(screen.getByText("Open default"));
+    expect(screen.getByTestId("placement").textContent).toBe("properties");
   });
 });
 

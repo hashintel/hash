@@ -28,6 +28,7 @@ export const codeEditorPlacements: {
 
 type CodeWorkspace = {
   enabled: boolean;
+  modelsReady: boolean;
   entries: CodeEntry[];
   activePath: string | null;
   placement: CodeEditorPlacement;
@@ -38,6 +39,7 @@ type CodeWorkspace = {
 
 const CodeWorkspaceContext = createContext<CodeWorkspace>({
   enabled: false,
+  modelsReady: true,
   entries: [],
   activePath: null,
   placement: "properties",
@@ -51,6 +53,7 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   const { petriNetDefinition, petriNetId, extensions } = use(SDCPNContext);
   const scope = `${petriNetId ?? "unsaved"}/${activeSubnetId ?? "root"}`;
   const [previousScope, setPreviousScope] = useState(scope);
+  const [modelScope, setModelScope] = useState(scope);
   const { selectItem } = use(EditorContext);
   const { subViewPanels, updateSubViewSection } = use(UserSettingsContext);
   const { showSourceCode } = usePetrinautPresentation();
@@ -72,10 +75,12 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   if (scope !== previousScope) {
     setPreviousScope(scope);
     setActivePath(null);
+    setPlacement("properties");
   }
 
   if (activePath !== null && !activeEntry) {
     setActivePath(null);
+    setPlacement("properties");
   }
 
   const showProperties = (entry: CodeEntry) => {
@@ -98,6 +103,16 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
   };
 
   useEffect(() => {
+    if (modelScope === scope) return;
+    for (const model of models.current) {
+      if (!model.isDisposed() && !model.isAttachedToEditor()) model.dispose();
+    }
+    models.current.clear();
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- mount new editors only after the previous scope's Monaco models are disposed
+    setModelScope(scope);
+  }, [modelScope, scope]);
+
+  useEffect(() => {
     const retainedModels = models.current;
     return () => {
       // Monaco's editor must detach before its retained model is disposed.
@@ -115,6 +130,7 @@ export const CodeWorkspaceProvider = ({ children }: PropsWithChildren) => {
     <CodeWorkspaceContext
       value={{
         enabled,
+        modelsReady: modelScope === scope,
         entries,
         activePath: activeEntry?.path ?? null,
         placement,
@@ -169,13 +185,13 @@ const inlineHeaderStyle = css({
 });
 
 export const SourceCodeEditor = (props: CodeEditorProps) => {
-  const { enabled, activePath, placement, open, retainModel } =
+  const { enabled, modelsReady, activePath, placement, open, retainModel } =
     useCodeWorkspace();
   const expanded =
     placement === "fullscreen" &&
     props.path !== undefined &&
     props.path === activePath;
-  if (expanded) return null;
+  if (expanded || !modelsReady) return null;
   return (
     <div className={inlineStyle}>
       {enabled && props.path && (
@@ -219,7 +235,9 @@ export const CodeWorkspacePanel = () => {
   const entry = workspace.entries.find(
     (candidate) => candidate.path === workspace.activePath,
   );
-  return entry && workspace.placement === "fullscreen" ? (
+  return entry &&
+    workspace.modelsReady &&
+    workspace.placement === "fullscreen" ? (
     <CodeWorkspaceSurface
       entry={entry}
       entries={workspace.entries}
