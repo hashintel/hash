@@ -68,6 +68,14 @@ pub(crate) struct IconSource {
 #[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
     /// Reflexive descendant reachability for each ontology row.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "closure map requires that the closure is correct, changing layout after \
+                      test is strictly worse."
+        )
+    )]
     bits: BitMatrix<OntologyRowId, OntologyRowId>,
     icon_sources: IdVec<OntologyRowId, Option<IconSource>>,
     memberships: IdVec<OntologyRowId, Option<Box<DenseBitSlice<BasePosition>>>>,
