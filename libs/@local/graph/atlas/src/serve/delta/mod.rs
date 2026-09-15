@@ -10,11 +10,15 @@
 )]
 
 pub(crate) mod epoch;
+mod feed;
 mod history;
 mod id;
 mod importance;
 pub(crate) mod layout;
 pub(crate) mod overlay;
+pub(crate) mod placement;
+mod projector;
+mod task;
 pub(crate) mod topology;
 
 use alloc::sync::Arc;
@@ -23,6 +27,11 @@ use hashql_core::id::Id as _;
 use rand::TryCryptoRng;
 use zerocopy::{NativeEndian, U64};
 
+pub(crate) use self::{
+    feed::DeltaFeedTaskOptions,
+    placement::{DeltaPlacementTaskOptions, EmbeddingWorkflow},
+    task::{DeltaReader, DeltaTask, DeltaTaskError, DeltaTaskOptions},
+};
 use self::{
     layout::{LayoutDelta, provider::NaiveLayoutProvider},
     overlay::{
@@ -208,6 +217,7 @@ impl Delta {
             self.revision,
             entity,
         );
+
         changed |= self.edge.withdraw(
             NaiveIdentityProvider::from_ref(&self.world.topology.identity),
             self.revision,
