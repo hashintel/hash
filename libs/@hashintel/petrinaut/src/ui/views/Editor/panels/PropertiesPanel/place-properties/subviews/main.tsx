@@ -38,6 +38,10 @@ const jumpButtonContainerStyle = css({
   textAlign: "right",
 });
 
+const sectionCheckboxStyle = css({
+  marginRight: "1",
+});
+
 const hintTextStyle = css({
   fontSize: "[12px]",
   color: "neutral.s95",
@@ -397,6 +401,9 @@ const PlaceMainContent: React.FC = () => {
           tooltip="Exposes this place as an arc endpoint when its subnet is instantiated as a component."
           renderHeaderLeading={() => (
             <Checkbox
+              size="sm"
+              className={sectionCheckboxStyle}
+              aria-label="Component port"
               value={!!place.isPort}
               disabled={isReadOnly}
               onChange={(checked) => {
@@ -420,6 +427,8 @@ const PlaceMainContent: React.FC = () => {
           renderHeaderLeading={() => (
             <Checkbox
               size="sm"
+              className={sectionCheckboxStyle}
+              aria-label="Token capacity"
               value={place.capacity !== undefined && place.capacity !== null}
               disabled={isReadOnly}
               onChange={(checked) => {
@@ -476,6 +485,8 @@ const PlaceMainContent: React.FC = () => {
           renderHeaderLeading={() => (
             <Checkbox
               size="sm"
+              className={sectionCheckboxStyle}
+              aria-label="Default starting place"
               value={!!place.showAsInitialState}
               disabled={isReadOnly}
               onChange={(checked) => {
