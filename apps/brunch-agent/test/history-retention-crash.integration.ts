@@ -129,6 +129,10 @@ const assertRevision = (
   revisionId: string,
   content: string,
   ordinal: number,
+  previous: {
+    readonly revisionId: string;
+    readonly markdown: string;
+  } | null,
 ) => {
   const pointer = {
     revisionId,
@@ -136,6 +140,26 @@ const assertRevision = (
     ordinal,
     markdown: content,
   };
+  const before = previous?.markdown ?? "";
+  let commonPrefixUtf16 = 0;
+  while (
+    commonPrefixUtf16 < before.length &&
+    commonPrefixUtf16 < content.length &&
+    before[commonPrefixUtf16] === content[commonPrefixUtf16]
+  )
+    commonPrefixUtf16 += 1;
+  let commonSuffixUtf16 = 0;
+  while (
+    commonSuffixUtf16 < before.length - commonPrefixUtf16 &&
+    commonSuffixUtf16 < content.length - commonPrefixUtf16 &&
+    before[before.length - commonSuffixUtf16 - 1] ===
+      content[content.length - commonSuffixUtf16 - 1]
+  )
+    commonSuffixUtf16 += 1;
+  const removedEnd = before.length - commonSuffixUtf16;
+  const insertedEnd = content.length - commonSuffixUtf16;
+  const removed = before.slice(commonPrefixUtf16, removedEnd);
+  const inserted = content.slice(commonPrefixUtf16, insertedEnd);
   const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
   assert(tool?.state === "output-available");
   assert.deepEqual(
@@ -143,14 +167,33 @@ const assertRevision = (
     { markdown: content },
     "Raw call input survives",
   );
-  const { mutation, ...settledPointer } = tool.output as Record<
-    string,
-    unknown
-  >;
-  assert(mutation, "The durable result retains its mutation summary");
   assert.deepEqual(
-    settledPointer,
-    pointer,
+    tool.output,
+    {
+      ...pointer,
+      mutation: {
+        baseRevisionId: previous?.revisionId ?? null,
+        beforeSha256:
+          previous === null
+            ? null
+            : createHash("sha256").update(previous.markdown).digest("hex"),
+        afterSha256: pointer.sha256,
+        commonPrefixUtf16,
+        commonSuffixUtf16,
+        removed: {
+          start: commonPrefixUtf16,
+          end: removedEnd,
+          utf16Length: removed.length,
+          sha256: createHash("sha256").update(removed).digest("hex"),
+        },
+        inserted: {
+          start: commonPrefixUtf16,
+          end: insertedEnd,
+          utf16Length: inserted.length,
+          sha256: createHash("sha256").update(inserted).digest("hex"),
+        },
+      },
+    },
     "Stable call/result identity, ordinal, and exact markdown",
   );
   const signal = snapshot.messages.findLast(
@@ -254,12 +297,13 @@ try {
       providerCalls: faux.state.callCount,
     });
     // Persist both observations before asserting, so failures retain the next ordinal too.
-    assertRevision(recovered, "a4-crash-revision", markdown, 1);
+    assertRevision(recovered, "a4-crash-revision", markdown, 1, null);
     assertRevision(
       next,
       "a4-next-revision",
       "# Next synthetic diagnostic revision",
       2,
+      { revisionId: "a4-crash-revision", markdown },
     );
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),

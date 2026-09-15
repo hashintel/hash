@@ -31,6 +31,7 @@ import { chromium } from "@playwright/test";
 
 import {
   observedArcInputSchema,
+  readPetrinautNetToolName,
   verifyMutationAttempt,
   type ArcMutationRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -270,7 +271,7 @@ const settle = (content: string, revisionId: string) => [
       scope: "operation",
     };
     completed++;
-    return tool("getLatestNetDefinition", {}, `${revisionId}-read`);
+    return tool(readPetrinautNetToolName, {}, `${revisionId}-read`);
   },
 ];
 try {
@@ -295,10 +296,11 @@ try {
   faux.setResponses([
     ...settle(quote, "construction-revision-one"),
     (context) => {
-      const result = browserResult(context, "getLatestNetDefinition");
+      const result = browserResult(context, readPetrinautNetToolName);
       const observation = result.metadata?.observation;
       assert(observation && basis);
-      const definition = observation.observed.definition as {
+      const definition = (result.output as { definition: unknown })
+        .definition as {
         places: { id: string; name: string }[];
         transitions: { id: string; name: string }[];
       };
@@ -314,7 +316,7 @@ try {
         placeId: place.id,
         arcDirection: "input",
         type: "standard",
-        weight: "1",
+        weight: 1,
         brunch: {
           basis,
           observationToolCallId: observation.toolCallId,
@@ -377,7 +379,7 @@ try {
   faux.setResponses([
     ...settle(corrected, "construction-revision-two"),
     (context) => {
-      const result = browserResult(context, "getLatestNetDefinition");
+      const result = browserResult(context, readPetrinautNetToolName);
       const observation = result.metadata?.observation;
       assert(observation && basis && firstCall);
       const { type: _type, brunch: _brunch, ...canonical } = firstCall;
@@ -399,10 +401,10 @@ try {
         "construction-correct",
       );
       completed++;
-      return tool("getLatestNetDefinition", {}, "construction-why-read");
+      return tool(readPetrinautNetToolName, {}, "construction-why-read");
     },
     (context) => {
-      const observation = browserResult(context, "getLatestNetDefinition")
+      const observation = browserResult(context, readPetrinautNetToolName)
         .metadata?.observation;
       assert(observation);
       return tool(
@@ -561,9 +563,9 @@ try {
   await show.click();
   let staleCall: Record<string, unknown> | undefined;
   faux.setResponses([
-    tool("getLatestNetDefinition", {}, "before-hand-edit"),
+    tool(readPetrinautNetToolName, {}, "before-hand-edit"),
     (context) => {
-      const observation = browserResult(context, "getLatestNetDefinition")
+      const observation = browserResult(context, readPetrinautNetToolName)
         .metadata?.observation;
       assert(observation && secondCall);
       staleCall = {
@@ -586,7 +588,9 @@ try {
   const weight = page.getByRole("spinbutton");
   await weight.fill("3");
   await weight.press("Tab");
-  await page.getByText(/Live document hash differs/).waitFor();
+  await page
+    .getByText(/Live document hash differs/)
+    .waitFor({ state: "attached" });
   faux.setResponses([
     tool("updateArcWeight", staleCall, "construction-stale"),
     (context) => {
@@ -634,9 +638,9 @@ try {
   for (const attempt of staleRecord.attempts)
     await verifyMutationAttempt(attempt);
   faux.setResponses([
-    tool("getLatestNetDefinition", {}, "hand-edit-why-read"),
+    tool(readPetrinautNetToolName, {}, "hand-edit-why-read"),
     (context) => {
-      const observation = browserResult(context, "getLatestNetDefinition")
+      const observation = browserResult(context, readPetrinautNetToolName)
         .metadata?.observation;
       assert(observation);
       return tool(
@@ -697,7 +701,7 @@ try {
   faux.setResponses([
     fauxAssistantMessage(
       [
-        fauxToolCall("getLatestNetDefinition", {}, { id: "batch-one" }),
+        fauxToolCall(readPetrinautNetToolName, {}, { id: "batch-one" }),
         fauxToolCall("updateArcWeight", staleCall, { id: "batch-two" }),
       ],
       { stopReason: "toolUse" },

@@ -323,10 +323,9 @@ between the second and third:
 
 ## Reconciliation with the Flue-vs-tilde analysis (2026-08-14)
 
-The comparative analysis last living at
-`69c02f69a9:libs/@hashintel/brunch-agent/docs/research/amp-analysis-flue-vs-tilde.md`
-read Flue's _source and changelog_, not only the guides, so where it speaks it carries higher
-evidence grade than this sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
+The removed comparative Flue-vs-tilde analysis read Flue's _source and changelog_, not only
+the guides, so where its conclusions survive here they carry higher evidence grade than this
+sheet's paraphrase-level doc reads. Reconciled 2026-08-17; no
 contradictions found — the analysis's verdict (keep Flue; Tilde is a hosted control plane, not
 a runtime; application-owned document state stays outside Flue's conversation store) matches
 this sheet's boundary summary independently. Capture envelopes were later rejected as that

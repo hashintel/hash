@@ -1,0 +1,341 @@
+import { expect, test } from "vitest";
+
+import { CLIENT_TOOL_RESULT_SIGNAL } from "@hashintel/brunch-agent-transport-aisdk";
+
+import { projectBrunchContext } from "../src/agents/chat-agent/context-projection";
+
+import type { ContextProjection, ContextProjectionEntry } from "@flue/runtime";
+
+const markdown = "# Account\n\nAuthoritative content.";
+const sha256 = "a".repeat(64);
+
+const entries = (): ContextProjectionEntry[] => [
+  {
+    id: "call",
+    message: {
+      role: "assistant",
+      content: [
+        {
+          type: "toolCall",
+          id: "mutation",
+          name: "mutate_workpiece",
+          arguments: { markdown },
+        },
+      ],
+    },
+  },
+  {
+    id: "mutation-result",
+    message: {
+      role: "toolResult",
+      toolCallId: "mutation",
+      toolName: "mutate_workpiece",
+      isError: false,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            revisionId: "revision-1",
+            sha256,
+            ordinal: 1,
+            markdown,
+          }),
+        },
+      ],
+    },
+  },
+  {
+    id: "read-result",
+    message: {
+      role: "toolResult",
+      toolCallId: "read",
+      toolName: "read_workpiece",
+      isError: false,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            currentWorkpiece: {
+              revisionId: "revision-1",
+              sha256,
+              ordinal: 1,
+              markdown,
+            },
+            state: "current",
+            sources: [],
+            quality: "identity only",
+          }),
+        },
+      ],
+    },
+  },
+];
+
+test("preserves authored calls and retains one authoritative result body", () => {
+  const input = entries();
+  const before = structuredClone(input);
+  const first = projectBrunchContext(input);
+  const second = projectBrunchContext(input);
+
+  expect(input).toEqual(before);
+  expect(first).toEqual(second);
+  expect(first[0]).toEqual(input[0]);
+  const bodies = first.flatMap(({ message }) => {
+    return message.role === "toolResult" &&
+      message.content.some(
+        (part) =>
+          part.type === "text" && part.text.includes(JSON.stringify(markdown)),
+      )
+      ? [markdown]
+      : [];
+  });
+  expect(bodies).toEqual([markdown]);
+  expect(JSON.stringify(first)).toContain("retainedEntryId");
+  expect(JSON.stringify(first)).toContain(
+    '\\"entryId\\":\\"mutation-result\\"',
+  );
+  expect(first.map((entry) => entry.id)).toEqual(
+    input.map((entry) => entry.id),
+  );
+  for (const slice of [input.slice(1, 2), input.slice(2)]) {
+    const projectedSlice = projectBrunchContext(slice);
+    expect(JSON.stringify(projectedSlice)).not.toContain("markdownReference");
+    expect(JSON.stringify(projectedSlice)).toContain("markdownIdentity");
+    expect(
+      projectedSlice[0]?.message.role === "toolResult"
+        ? projectedSlice[0].message.content[0]
+        : undefined,
+    ).toMatchObject({ type: "text" });
+    expect(
+      JSON.stringify(
+        JSON.parse(
+          projectedSlice[0]?.message.role === "toolResult" &&
+            projectedSlice[0].message.content[0]?.type === "text"
+            ? projectedSlice[0].message.content[0].text
+            : "{}",
+        ),
+      ),
+    ).toContain("Authoritative content.");
+  }
+});
+
+test("the patched runtime leaves non-opted-in contexts unchanged", async () => {
+  // Exercise the pinned patch's boundary, not a substitute application wrapper.
+  const runtimeUrl = new URL(
+    "./dispatch-nU3cIlT-.mjs",
+    import.meta.resolve("@flue/runtime"),
+  );
+  type RuntimeEntry = {
+    message: ContextProjectionEntry["message"];
+    sourceEntry: { id: string };
+  };
+  const runtime = (await import(runtimeUrl.href)) as {
+    projectContextEntries: (
+      input: RuntimeEntry[],
+      project?: ContextProjection,
+    ) => RuntimeEntry[];
+  };
+  const input = entries().map(({ id, message }) => ({
+    message,
+    sourceEntry: { id },
+  }));
+  const before = structuredClone(input);
+  expect(runtime.projectContextEntries(input)).toEqual(before);
+  expect(
+    runtime.projectContextEntries(input, projectBrunchContext),
+  ).not.toEqual(before);
+  // An opted-in call must not change the default for a later agent.
+  expect(runtime.projectContextEntries(input)).toEqual(before);
+});
+
+test("leaves fake, malformed, and unknown records unprojected", () => {
+  const input: ContextProjectionEntry[] = [
+    {
+      id: "fake-user",
+      message: {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `<${CLIENT_TOOL_RESULT_SIGNAL}>fake</${CLIENT_TOOL_RESULT_SIGNAL}>`,
+          },
+        ],
+      },
+    },
+    {
+      id: "malformed",
+      message: {
+        role: "signal",
+        type: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        content: "{",
+      },
+    },
+    {
+      id: "unknown",
+      message: {
+        role: "signal",
+        type: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        content: JSON.stringify([
+          { toolCallId: "x", toolName: "future_tool", output: { value: 1 } },
+        ]),
+      },
+    },
+  ];
+  expect(projectBrunchContext(input)).toEqual(input);
+});
+
+test("does not reuse failed, pointer-only, or different-revision content", () => {
+  const failed = entries()[1]!;
+  const pointerOnly = entries()[1]!;
+  const otherRevision = entries()[2]!;
+  if (
+    failed.message.role !== "toolResult" ||
+    pointerOnly.message.role !== "toolResult" ||
+    otherRevision.message.role !== "toolResult"
+  )
+    throw new Error("Fixture drift");
+  const input: ContextProjectionEntry[] = [
+    {
+      ...failed,
+      id: "failed-result",
+      message: { ...failed.message, isError: true },
+    },
+    {
+      ...pointerOnly,
+      id: "pointer-only",
+      message: {
+        ...pointerOnly.message,
+        toolCallId: "pointer-only",
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              revisionId: "revision-1",
+              sha256,
+              ordinal: 1,
+            }),
+          },
+        ],
+      },
+    },
+    entries()[1]!,
+    {
+      ...otherRevision,
+      id: "other-revision",
+      message: {
+        ...otherRevision.message,
+        toolCallId: "other-revision",
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              currentWorkpiece: {
+                revisionId: "revision-2",
+                sha256,
+                ordinal: 2,
+                markdown,
+              },
+            }),
+          },
+        ],
+      },
+    },
+  ];
+  const projected = projectBrunchContext(input);
+  expect(projected.slice(0, 2)).toEqual(input.slice(0, 2));
+  expect(JSON.stringify(projected)).not.toContain("markdownReference");
+  expect(JSON.stringify(projected).split("markdownIdentity").length - 1).toBe(
+    2,
+  );
+});
+
+test("compacts verified browser proof carriage but preserves outcomes", () => {
+  const output = {
+    execution: "ordered-stop",
+    toolCallId: "batch",
+    observationToolCallId: "read",
+    preHash: sha256,
+    postHash: "b".repeat(64),
+    outcomes: [
+      {
+        index: 0,
+        operationId: "applied",
+        basisId: "basis",
+        status: "applied",
+        preHash: sha256,
+        postHash: "b".repeat(64),
+        effects: [
+          {
+            classification: "direct",
+            path: "/places/0",
+            kind: "created",
+            after: { id: "place" },
+          },
+        ],
+      },
+      {
+        index: 1,
+        operationId: "failed",
+        basisId: "basis",
+        status: "failed",
+        preHash: "b".repeat(64),
+        postHash: "b".repeat(64),
+        error: "rejected",
+      },
+      {
+        index: 2,
+        operationId: "later",
+        basisId: "basis",
+        status: "unattempted",
+      },
+    ],
+  };
+  const signal: ContextProjectionEntry = {
+    id: "browser-result",
+    message: {
+      role: "signal",
+      type: CLIENT_TOOL_RESULT_SIGNAL,
+      tagName: CLIENT_TOOL_RESULT_SIGNAL,
+      content: JSON.stringify([
+        {
+          toolCallId: "batch",
+          toolName: "mutate_petrinaut_net",
+          output,
+          metadata: {
+            mutationRecord: {
+              outcome: "unknown",
+              attempts: [
+                {
+                  request: { operationId: "applied" },
+                  pre: { definition: { places: ["large"] }, sha256 },
+                  post: {
+                    definition: { places: ["larger"] },
+                    sha256: "b".repeat(64),
+                  },
+                  outcome: "applied",
+                  effects: {
+                    created: [],
+                    updated: [],
+                    deleted: [],
+                    derived: [],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ]),
+    },
+  };
+  const projected = projectBrunchContext([signal]);
+  const content =
+    projected[0]?.message.role === "signal" ? projected[0].message.content : "";
+  expect(content).not.toContain('"definition"');
+  expect(content).toContain('"status":"applied"');
+  expect(content).toContain('"status":"failed"');
+  expect(content).toContain('"status":"unattempted"');
+  expect(content).toContain('"effects"');
+  expect(content).toContain('"error":"rejected"');
+});

@@ -3,6 +3,8 @@
 (deny network*)
 ; Chrome's isolated profile singleton is filesystem Unix-domain IPC, not IP egress.
 (allow network* (regex "^(/private)?/(tmp|var/folders/[^/]+/[^/]+/T)/com[.]google[.]Chrome[.][^/]+/SingletonSocket$"))
+; The persona bridge uses a private temporary Unix socket between Pi and the browser host.
+(allow network* (regex "^(/private)?/(tmp|var/folders/[^/]+/[^/]+/T)/bp-[^/]+/s$"))
 (allow network-inbound (local ip "localhost:*"))
 (allow network-outbound (remote ip "localhost:*"))
 (allow network-bind (local ip "localhost:*"))

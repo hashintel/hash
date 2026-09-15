@@ -88,6 +88,8 @@ import {
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
+import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import {
@@ -875,11 +877,23 @@ export const LocalStorageDemoApp = ({
     mutationRecorder,
   ]);
 
-  const aiAssistant = useMemo(
-    () => ({
+  const aiAssistant = useMemo(() => {
+    const activityIdentities =
+      rootArcBrowser && flueHistory.ready
+        ? flueHistory.phase === "absent"
+          ? []
+          : flueHistory.snapshot === undefined
+            ? undefined
+            : foldBrunchWorkpieceHistory(
+                flueHistory.snapshot.messages,
+                rootArcBrowser.binding,
+              ).activityIdentities
+        : undefined;
+    return {
       additionalTab: rootArcBrowser
         ? {
-            label: "Workpiece",
+            label: "Ledger",
+            activityIdentities,
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
@@ -892,6 +906,13 @@ export const LocalStorageDemoApp = ({
             ),
           }
         : undefined,
+      ...(brunchSelected
+        ? {
+            primaryLabel: "Chat",
+            resolveToolPresentation: resolveBrunchToolPresentation,
+            workingLabel: "Brunch is working",
+          }
+        : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
       // Brunch's own tool names wrap canonical Petrinaut operations here, in
@@ -975,30 +996,32 @@ export const LocalStorageDemoApp = ({
             renderVoiceMode: brunchVoiceMode,
           }
         : {}),
-    }),
-    [
-      aiMessagesByNetId,
-      brunchVoiceMode,
-      batchedConstructionSelected,
-      constructionSelected,
-      observedLiveHash,
-      productConstructionSelected,
-      rootArcBrowser,
-      conversationTracker,
-      conversationId,
-      currentNetId,
-      currentNetTitle,
-      flueClientPromise,
-      flueHistory.messages,
-      flueHistory.snapshot,
-      petrinautAiChatTransport,
-      reportBrunchFailure,
-      mutationRecorder,
-      setAiMessagesByNetId,
-      currentDocument,
-      source.repository,
-    ],
-  );
+    };
+  }, [
+    aiMessagesByNetId,
+    brunchSelected,
+    brunchVoiceMode,
+    batchedConstructionSelected,
+    constructionSelected,
+    observedLiveHash,
+    productConstructionSelected,
+    rootArcBrowser,
+    conversationTracker,
+    conversationId,
+    currentNetId,
+    currentNetTitle,
+    flueClientPromise,
+    flueHistory.messages,
+    flueHistory.phase,
+    flueHistory.ready,
+    flueHistory.snapshot,
+    petrinautAiChatTransport,
+    reportBrunchFailure,
+    mutationRecorder,
+    setAiMessagesByNetId,
+    currentDocument,
+    source.repository,
+  ]);
 
   if (source.repository.status.state === "unavailable") {
     return (

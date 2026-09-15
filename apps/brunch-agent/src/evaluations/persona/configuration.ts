@@ -3,6 +3,8 @@ import { isAbsolute, join } from "node:path";
 
 import * as v from "valibot";
 
+import { PERSONA_DEFAULT_PERSONA_MODEL } from "../../chat-model.ts";
+
 const fail = (): never => {
   throw new Error(
     "Persona configuration refused; values withheld; check the isolated Pi configuration.",
@@ -19,6 +21,7 @@ const settingsSchema = v.object({
 /** Check the isolated Pi configuration before launch; never search another credential store. */
 export const checkPersonaConfiguration = (
   environment: NodeJS.ProcessEnv = process.env,
+  model = PERSONA_DEFAULT_PERSONA_MODEL,
 ) => {
   try {
     const directory = environment.PI_CODING_AGENT_DIR;
@@ -51,7 +54,12 @@ export const checkPersonaConfiguration = (
     ]) {
       if (environment[name]) return fail();
     }
-    const key = environment.ANTHROPIC_API_KEY;
+    const variable = model.startsWith("openai/")
+      ? "OPENAI_API_KEY"
+      : model.startsWith("anthropic/")
+        ? "ANTHROPIC_API_KEY"
+        : fail();
+    const key = environment[variable];
     if (
       !key?.trim() ||
       /dummy|placeholder|test-synthetic|your[-_ ]?(api[-_ ]?)?key|changeme|replace[-_ ]?me/i.test(
@@ -59,7 +67,7 @@ export const checkPersonaConfiguration = (
       )
     )
       return fail();
-    return key;
+    return { [variable]: key };
   } catch {
     return fail();
   }

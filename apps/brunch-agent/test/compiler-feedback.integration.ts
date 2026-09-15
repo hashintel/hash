@@ -334,9 +334,10 @@ try {
   );
   await composer.press("Enter");
   try {
-    const runningDiagnostics = page
-      .getByRole("button")
-      .filter({ hasText: /read_petrinaut_diagnostics.*Running…/su });
+    const runningDiagnostics = page.getByRole("button", {
+      name: "Checking model diagnostics",
+      exact: true,
+    });
     await runningDiagnostics.waitFor({ timeout: 30_000 });
     assert.equal(await runningDiagnostics.getAttribute("aria-busy"), "true");
     await page.screenshot({ path: join(output, "tool-running.png") });
@@ -449,10 +450,19 @@ try {
   assert(layout, "Flue history must carry the layout command result");
   assert(readAfterLayout, "Flue history must carry the post-layout read");
   assert.equal(layout.toolName, applyAutoLayoutToolName);
+  const layoutOutput = layout.output as {
+    applied?: unknown;
+    detail?: unknown;
+  };
   assert.deepEqual(
-    (layout.output as { applied?: unknown }).applied,
+    layoutOutput.applied,
     true,
     "Fresh construction lays out without confirmation",
+  );
+  assert.match(
+    String(layoutOutput.detail),
+    /Viewport frame: framed\./u,
+    "The real browser layout awaits a completed viewport frame",
   );
   const layoutRecord = parseClientToolResultMetadata(
     layout.metadata,

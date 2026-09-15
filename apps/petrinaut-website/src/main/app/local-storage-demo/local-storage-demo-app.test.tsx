@@ -493,6 +493,18 @@ describe("local storage demo Brunch voice integration", () => {
     ]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
+    expect(aiAssistant.additionalTab?.activityIdentities).toEqual([]);
+    expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
+    expect(aiAssistant.workingLabel).toBe("Brunch is working");
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "success",
+        input: {},
+        output: {},
+        error: undefined,
+      }),
+    ).toEqual({ title: "Laid out model", detail: undefined });
     expect(
       aiAssistant.interactiveTools?.some(
         ({ toolName }) => toolName === "brunch_ask",
@@ -509,6 +521,47 @@ describe("local storage demo Brunch voice integration", () => {
         "mutate_petrinaut_net",
       ],
     );
+
+    rendered.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  test("waits for a durable offset before baselining present Ledger history", async () => {
+    renderedPetrinaut.aiAssistant = null;
+    stubStorage();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({
+          conversation: {
+            conversationId: "present-without-offset",
+            settlements: [],
+            messages: [],
+          },
+          offset: undefined,
+          phase: "live",
+          error: undefined,
+        }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+
+    expect(
+      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).additionalTab
+        ?.activityIdentities,
+    ).toBeUndefined();
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -1359,7 +1412,17 @@ describe("local storage demo prepared fixture", () => {
         ({ toolName }) => toolName === "mutate_petrinaut_net",
       ),
     ).toBe(true);
-    expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
+    expect(aiAssistant.primaryLabel).toBe("Chat");
+    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "pending",
+        input: {},
+        output: undefined,
+        error: undefined,
+      }),
+    ).toEqual({ title: "Laying out model", detail: undefined });
     expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
@@ -1501,6 +1564,9 @@ describe("worked-model net-projection selection", () => {
         },
         handle,
         readDiagnosticsContext: async () => "",
+        viewport: {
+          frameSceneAfterRender: async () => "framed",
+        },
         toolCallId: "layout-1",
         signal: new AbortController().signal,
       }),

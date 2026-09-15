@@ -131,10 +131,16 @@ Before retaining run output, preparing a handoff or wrapping a run, read [run-di
 - **Linear and GitHub writing:** follow
   [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
   issue, pull request, or comment.
+- **Stable documentation references:** do not put exact Git commit hashes in live documentation,
+  skills, mission files, reference guides or planning records. Rebases and squash merges make
+  those references stale or unreachable. Use durable PR or issue links, named tags, current file
+  paths, or dated retained artifacts instead. Historical evidence and archive records may retain
+  an exact hash when it is part of the event or artifact provenance they record, but that hash is
+  never live authority.
 - **Plugin scope:** each plugin pairs one reusable domain typology with one target formalism; it may name concepts from that typology but never facts or nouns from a concrete domain, organization, situation, or scenario.
-- **Plugin freshness:** after core guidance changes, re-read roughed-in plugins before treating them as seam evidence. Classify each divergence as lag (realign) or intent (record why), then update the plugin's single `Aligned to core as of <commit>` marker to the reviewed core revision. Coordinate in-progress packages with their assigned owner rather than editing across ownership.
-- **Topology gates** (enforced by tests): core and plugins expose Flue-native production resources through dedicated `./flue` subpaths; plugins depend inward on core and never on bindings; transport packages never depend on a binding; suspended orchestration lives under a package's `src/_suspended/` and is never mounted; any retained contract from that tree names a current repository consumer; bindings translate generalized capture machinery into the selected substrate. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
-- **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
+- **Plugin freshness:** after core guidance changes, re-read roughed-in plugins before treating them as seam evidence. Classify each divergence as lag (realign) or intent (record why), and record the review outcome in the owning PR rather than a commit marker in the plugin. Coordinate in-progress packages with their assigned owner rather than editing across ownership.
+- **Topology gates** (enforced by tests): core and plugins expose Flue-native production resources through dedicated `./flue` subpaths; plugins and transport packages depend only inward on core, never on one another or an application; core depends on no sibling package; production source never imports test code. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
+- **Posture:** prototype · stakes high — persisted conversation data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.
 - **Flue:** when adding state, a loop, a route, or a test harness, consult
   [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md)

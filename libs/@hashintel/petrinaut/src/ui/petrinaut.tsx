@@ -52,13 +52,47 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
+
+export type PetrinautAiToolPresentationContext = {
+  toolName: string;
+  state: PetrinautAiToolPresentationState;
+  input: unknown;
+  output: unknown;
+  error: string | undefined;
+};
+
+export type PetrinautAiToolPresentation = {
+  title: string;
+  detail?: string;
+};
+
+export type PetrinautAiToolPresentationResolver = (
+  context: PetrinautAiToolPresentationContext,
+) => PetrinautAiToolPresentation | undefined;
+
 export type PetrinautAiAssistant = {
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls
    * available. Omitted: the stock assistant has its unchanged single view.
    */
-  additionalTab?: { label: string; content: React.ReactNode };
+  additionalTab?: {
+    label: string;
+    content: React.ReactNode;
+    /**
+     * Opaque, stable identities for host activity represented by this tab.
+     * `undefined` means history is not ready; the first defined collection is
+     * baseline hydration and does not attract attention.
+     */
+    activityIdentities?: readonly (number | string)[];
+  };
+  /** Label for the transcript tab/header. Defaults to "AI". */
+  primaryLabel?: string;
+  /** Status shown while a turn is submitted or streaming. */
+  workingLabel?: string;
+  /** Resolve host tool cards from their identity, lifecycle and payload. */
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   /** Whether the panel may clear this conversation. Defaults to true. */
   canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */

@@ -137,16 +137,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
         "addArc",
       ]),
     );
-    expect(result.captureIds.length).toBe(1);
-    expect(result.captureExcerpts).toEqual([
-      "Run the FE-1435 transport probe.",
-    ]);
-    expect(result.capturePayloads).toEqual([{}]);
-    expect(result.recaptureIds).toEqual(result.captureIds);
-    expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
-    expect(result.captureUserText).toContain(
-      "Run the FE-1435 transport probe.",
-    );
 
     const resumed = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),

@@ -27,7 +27,7 @@ yarn workspace @apps/brunch-agent runbook:headless
 
 `ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer (default `claude-sonnet-4-5` for this script only). Artifacts write under `apps/brunch-agent/.data-wipe-me/evaluations/vestera-runbook-headless/` unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set. The command prints the resulting path. Do not promote that directory into the repository.
 
-By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite file, named by the hashed instance id (`<instanceId>.json`). The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` and writes the capture file in that same directory. Flue history is the conversation log; the capture store is not a second transcript. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
+By default outside production, conversations persist in SQLite at `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH` overrides that local path. The hermetic browser-transport test uses `BRUNCH_CHAT_DB_PATH` to point at its own sqlite file. Flue history is the conversation log. The panel rehydrates from the SDK's canonical conversation observation and does not resubmit or replay settled turns.
 
 The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
@@ -73,7 +73,7 @@ yarn dev:brunch
 
 Local Postgres uses the same required fields and authentication validation as production (see below). TLS verification remains mandatory: the certificate must match `BRUNCH_POSTGRES_HOST` and chain to the supplied CA. IAM remains available with `BRUNCH_POSTGRES_AUTH_MODE=iam` and `BRUNCH_POSTGRES_AWS_REGION`, with the password unset. Missing or invalid required fields fail; there is no fallback to SQLite. Postgres rejects `DATABASE_URL` and both SQLite path overrides. SQLite rejects any supplied `BRUNCH_POSTGRES_*` field listed below, including empty values, rather than silently ignoring a missing or contradictory selector. To return to SQLite, unset those Postgres fields and unset `BRUNCH_DB_KIND` (or set it to `sqlite`).
 
-This selects the Flue conversation store only; it does not export/seed fixtures or make the separate filesystem capture/accounting stores portable. The usual provider configuration is independent; selecting Postgres grants no provider-call or target-write permission.
+This selects the Flue conversation store only; it does not export/seed fixtures or make the separate filesystem accounting store portable. The usual provider configuration is independent; selecting Postgres grants no provider-call or target-write permission.
 
 ## Production container
 
@@ -153,9 +153,7 @@ hashes are not authentication. Desired count remains one until same-conversation
 across replicas is separately proven.
 
 The deployed chat path stores Flue conversations, submissions, compaction records, attachments,
-claims, leases, and settlement state in Postgres. The separate Brunch capture store is not used by
-that path and remains local-development machinery; enabling capture in a deployment requires a new
-durability decision.
+claims, leases, and settlement state in Postgres.
 
 For a restricted remote turn, provide `BRUNCH_SMOKE_BASE_URL`,
 `BRUNCH_SMOKE_PRINCIPAL`, and a stable `BRUNCH_SMOKE_CONVERSATION_ID`;

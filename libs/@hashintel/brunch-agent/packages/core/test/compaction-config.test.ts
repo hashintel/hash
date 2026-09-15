@@ -28,9 +28,21 @@ test("leaves Flue model options unset by default", () => {
 
 test("forwards the compaction configuration through the single model declaration", () => {
   const compaction: CompactionConfig = { keepRecentTokens: 256 };
-  useBrunchAgent("anthropic/claude-sonnet-4-6", compaction);
+  useBrunchAgent("anthropic/claude-sonnet-4-6", { compaction });
   expect(useModel).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
     { compaction },
   );
+});
+
+test("forwards thinking level with compaction through the single model declaration", () => {
+  const compaction: CompactionConfig = { keepRecentTokens: 256 };
+  useBrunchAgent("openai/gpt-5.6-sol", {
+    compaction,
+    thinkingLevel: "low",
+  });
+  expect(useModel).toHaveBeenCalledExactlyOnceWith("openai/gpt-5.6-sol", {
+    compaction,
+    thinkingLevel: "low",
+  });
 });

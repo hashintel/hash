@@ -34,7 +34,7 @@ const extraNames = [
 ] as const;
 
 const sourceText =
-  "TEST synthetic original testimony control: When final inspection starts, reserve one available crew until sign-off.";
+  "TEST synthetic original testimony control: When final inspection starts, reserve one available crew until sign-off. At sign-off, verify that the reserved crew is still available.";
 
 interface JsonObject {
   [key: string]: unknown;
@@ -139,12 +139,12 @@ export const auditReopenedWhyRetention = (
     source.purpose === "user", "source authorized role/purpose");
   require(textOf(source) === sourceText, "source exact identity/content");
   const protectedTools = toolsOf(baseline).filter((part) =>
-    ["mutate_workpiece", "addArc", "getLatestNetDefinition"].includes(
+    ["mutate_workpiece", "addArc", "read_petrinaut_net"].includes(
       String(part.toolName),
     ),
   );
   require(protectedTools.length ===
-    6, "three revisions, two reads, one mutation; no tool reissue");
+    9, "three revisions, four reads, two mutations; no tool reissue");
   for (const number of [1, 2, 3]) {
     const revision = toolOf(baseline, `retention-revision-${number}`);
     const pointer = asObject(revision.output, "revision output");
@@ -159,19 +159,59 @@ export const auditReopenedWhyRetention = (
     require(JSON.stringify(pointer.evidence) ===
       JSON.stringify(seedGoverning.evidence) &&
       asArray(pointer.evidence, "revision evidence").length ===
-        2, "overlapping carried evidence exact");
+        4, "overlapping carried evidence exact");
     if (number > 1) {
       require(isJsonObject(revision.input) &&
         !("evidence" in revision.input), "raw carried input not rewritten");
     }
   }
-  const original = asObject(
-    toolOf(baseline, "retention-live-why").output,
-    "original why",
+  const witnesses = asArray(seed.witnesses, "seed witnesses").map(
+    (witness, index) => asObject(witness, `witness ${index}`),
   );
-  require(isJsonObject(original.reconciliation) &&
-    original.reconciliation.status ===
-      "live-observed", "creation actual live observation");
+  require(witnesses.length === 2, "two distinct consequential elements");
+  require(new Set(witnesses.map((witness) => witness.mutationToolCallId))
+    .size === 2 &&
+    new Set(witnesses.map((witness) => JSON.stringify(witness.locator)))
+      .size === 2 &&
+    new Set(witnesses.map((witness) => witness.quote)).size ===
+      2, "distinct mutation, passage and element identities");
+  const originals = witnesses.map((witness, index) =>
+    asObject(
+      toolOf(baseline, String(witness.whyToolCallId)).output,
+      `original why ${index}`,
+    ),
+  );
+  for (const [index, original] of originals.entries()) {
+    const witness = witnesses[index];
+    assert.ok(witness);
+    require(isJsonObject(original.reconciliation) &&
+      original.reconciliation.status ===
+        "live-observed", "creation actual live observation");
+    require(isJsonObject(original.recordedChange) &&
+      original.recordedChange.toolCallId ===
+        witness.mutationToolCallId, "exact mutation/call identity");
+    const governing = asObject(original.governing, "original governing");
+    const passages = asArray(governing.passages, "original passages");
+    require(passages.length === 1, "one exact governing passage per element");
+    const passage = asObject(passages[0], "original passage");
+    require(passage.text === witness.quote &&
+      JSON.stringify(passage.locator) ===
+        JSON.stringify(witness.locator), "exact governing workpiece passage");
+    require(asArray(passage.relations, "passage relations").some(
+      (relation) =>
+        isJsonObject(relation) &&
+        relation.kind === "elicited" &&
+        asArray(relation.messageIds, "elicited message IDs").includes(
+          seed.sourceId,
+        ) &&
+        asArray(relation.sources, "elicited sources").some(
+          (linkedSource) =>
+            isJsonObject(linkedSource) &&
+            linkedSource.id === seed.sourceId &&
+            linkedSource.text === sourceText,
+        ),
+    ), "exact authorized source link");
+  }
   for (const name of snapshotNames) {
     const snapshot = asObject(data[name], name);
     require(JSON.stringify(
@@ -181,7 +221,7 @@ export const auditReopenedWhyRetention = (
     ) === JSON.stringify([source]), "source exact identity/content");
     require(JSON.stringify(
       toolsOf(snapshot).filter((part) =>
-        ["mutate_workpiece", "addArc", "getLatestNetDefinition"].includes(
+        ["mutate_workpiece", "addArc", "read_petrinaut_net"].includes(
           String(part.toolName),
         ),
       ),
@@ -200,30 +240,55 @@ export const auditReopenedWhyRetention = (
   for (const name of queryNames) {
     const query = asObject(data[name], name);
     const read = asObject(query.read, `${name} read`);
-    require(JSON.stringify(read.currentWorkpiece) ===
-      JSON.stringify(original.currentWorkpiece), "actual current state exact");
-    for (const label of ["why", "oldObservationWhy"] as const) {
-      const answer = asObject(query[label], `${name} ${label}`);
-      require(JSON.stringify(answer.governing) ===
-        JSON.stringify(
-          original.governing,
-        ), "governing revision/hash/passages/relations exact");
-      require(JSON.stringify(answer.recordedChange) ===
-        JSON.stringify(
-          original.recordedChange,
-        ), "actual recorded effects exact");
+    assert.deepEqual(
+      read.currentWorkpiece,
+      originals[0]?.currentWorkpiece,
+      "actual current state exact",
+    );
+    const whyAnswers = asArray(query.why, `${name} why`);
+    require(whyAnswers.length === 2, "two retained provenance answers");
+    for (const [index, answerValue] of whyAnswers.entries()) {
+      const answer = asObject(answerValue, `${name} why ${index}`);
+      assert.deepEqual(
+        answer.governing,
+        originals[index]?.governing,
+        "governing revision/hash/passages/relations exact",
+      );
+      assert.deepEqual(
+        answer.recordedChange,
+        originals[index]?.recordedChange,
+        "actual recorded effects exact",
+      );
       require(isJsonObject(answer.reconciliation) &&
         answer.reconciliation.status ===
           "as-of", "restart is as-of, not fresh browser");
       require(answer.disposition === "partially-supported" &&
         answer.untrusted === true, "honest partial untrusted standing");
     }
+    const oldAnswer = asObject(
+      query.oldObservationWhy,
+      `${name} oldObservationWhy`,
+    );
+    assert.deepEqual(
+      oldAnswer.governing,
+      originals[0]?.governing,
+      "old governing exact",
+    );
+    assert.deepEqual(
+      oldAnswer.recordedChange,
+      originals[0]?.recordedChange,
+      "old effect exact",
+    );
     const oldWhy = asObject(query.oldObservationWhy, `${name} old why`);
     require(isJsonObject(oldWhy.reconciliation) &&
       oldWhy.reconciliation.observationScope ===
         "as-of", "old ID cannot earn freshness");
     require(asObject(query.refusedObservationWhy, `${name} refused`)
       .disposition === "refused", "unknown observation refuses");
+    require(asObject(query.missingElementWhy, `${name} missing`).disposition ===
+      "refused", "missing element refuses");
+    require(asObject(query.ambiguousElementWhy, `${name} ambiguous`)
+      .disposition === "refused", "ambiguous element refuses");
     if (name !== "process-restarted-before-fold") {
       require(asArray(read.sources, `${name} sources`).some(
         (item) => isJsonObject(item) && item.id === seed.sourceId,
@@ -461,13 +526,19 @@ export const falsifyReopenedWhyRetention = (
     }
     if (mode === "false-live") {
       asObject(
-        asObject(data["reopen-after-compaction"], "reopen query").why,
-        "reopen why",
+        asArray(
+          asObject(data["reopen-after-compaction"], "reopen query").why,
+          "reopen why",
+        )[0],
+        "first reopen why",
       ).reconciliation = {
         ...asObject(
           asObject(
-            asObject(data["reopen-after-compaction"], "reopen query").why,
-            "why",
+            asArray(
+              asObject(data["reopen-after-compaction"], "reopen query").why,
+              "why",
+            )[0],
+            "first why",
           ).reconciliation,
           "reconciliation",
         ),
@@ -506,7 +577,9 @@ export const falsifyReopenedWhyRetention = (
         "reopen request",
       );
       const context = asObject(request.context, "reopen context");
-      const answer = structuredClone(asObject(query.why, "reopen why"));
+      const answer = structuredClone(
+        asObject(asArray(query.why, "reopen why")[0], "first reopen why"),
+      );
       const governing = asObject(answer.governing, "governing");
       for (const passage of asArray(governing.passages, "passages")) {
         if (!isJsonObject(passage)) {

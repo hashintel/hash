@@ -110,5 +110,9 @@ export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiStopResult,
+  PetrinautAiToolPresentation,
+  PetrinautAiToolPresentationContext,
+  PetrinautAiToolPresentationResolver,
+  PetrinautAiToolPresentationState,
   PetrinautProps,
 } from "./ui/petrinaut";

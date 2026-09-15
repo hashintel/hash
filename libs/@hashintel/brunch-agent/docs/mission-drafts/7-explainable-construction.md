@@ -1,14 +1,14 @@
 # Draft — After-demo construction and explanation evaluation
 
-> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Mission 7b remains an engineering/product-seam PR; the substantial Inventory worked-model advance belongs to live [Mission 7c](../../MISSION.md). This broader cross-scenario evaluation programme is not a prerequisite to Mission 7b or a substitute for 7c's flagship readiness obligations.
+> Future evaluation cluster only. Not execution authority. This replaces the former Mission 7 Step B execution packet. Mission 7b remains an engineering/product-seam PR; Inventory worked-example completion belongs to live [Mission 7d](../../MISSION.md). This broader cross-scenario evaluation programme is not a prerequisite to Mission 7b or a substitute for the live mission's flagship readiness obligations.
 
 ## Purpose and boundaries
 
 Evaluate the effectiveness of Brunch's structurally checked but semantically model-led prompt/skill architecture separately from proving its end-to-end operation. Mechanical revision, construction and citation checks remain product contracts. A valid link does not establish relevance; model fidelity and useful explanation are evaluation judgments, not a mandate for a semantic runtime gate.
 
-The retained complex-case candidate is Vestera's multi-line production eligibility and changeovers: shared crew contention, asymmetric family changes, product/line restrictions and distinctions among staging, availability, occupancy and release. The original full-region and 100% useful ordinary behaviour-affecting explanation goals survive here as evaluation targets to re-evaluate with Lu before a campaign, not September execution prerequisites or permission to invent missing quantities. Broader cases remain with [Mission 9](9-traceable-projection.md).
+The retained complex-case candidate is Vestera's multi-line production eligibility and changeovers: shared crew contention, asymmetric family changes, product/line restrictions and distinctions among staging, availability, occupancy and release. The original full-region and 100% useful ordinary behaviour-affecting explanation goals survive here as evaluation targets to re-evaluate with Lu before a campaign, not September execution prerequisites or permission to invent missing quantities. General portfolio coverage belongs to [distribution and breadth](worked-example-distribution-and-breadth.md); [Mission 9](9-traceable-projection.md) selects additional cases/classes needed for its repeat/change/retirement claims.
 
-The former packet is recoverable at `8ee42f81b7:libs/@hashintel/brunch-agent/docs/mission-drafts/7-explainable-construction.md`. Its campaign sequencing, inherited budget/repair-count defaults, and mandatory predecessor gates are superseded by the demo recut. Its substantive unresolved obligations have the current homes below; historical test names and source paths must be re-resolved before use.
+The former packet's campaign sequencing, inherited budget/repair-count defaults, and mandatory predecessor gates are superseded by the demo recut. Its substantive unresolved obligations have the current homes below; historical test names and source paths must be re-resolved before use.
 
 ## Evaluation questions and credible oracles
 
@@ -40,7 +40,7 @@ Retain the genuine adversarial set: distinguishable passages and two declared-ba
 
 ### Lifecycle breadth
 
-Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
+Retain the unresolved matrices for real compaction, original-store recovery versus portability, historical/new/rolled-back code, mixed fenced/tool revisions, mixed browser/server versions, prepared-fixture mode, manifest restoration/rollback and eventual dual-read removal. Consume the completed [tooling-context remediation](../reference/architecture/flue-routing.md#model-context-projection) and [Mission 7d's live recovery disposition](../../MISSION.md#readiness-gate) rather than repeating the bounded synthetic proof. A local original-store result is verified evidence, not an oracle gap; it simply does not prove export, clone or arbitrary replacement.
 
 For any claim including Voice/exact resume, retain a genuine two-tab scenario with typed-origin and Voice-origin messages and a durably stopped assistant entry. Verify attribution and stopped presentation after reopening, and distinguish Exit voice mode from durable Stop. Mission 6's waiver and Mission 6b's narrower accepted results are not passes for the deferred properties.
 
@@ -49,17 +49,17 @@ For any claim including Voice/exact resume, retain a genuine two-tab scenario wi
 ## Product and maintenance allocation
 
 - Mission 7a owns its immediate workpiece UI merge blocker and compatibility with FE-1645/#9634.
-- Mission 7b owns the ordinary structural batch/correction seam. [Mission 7c](../../MISSION.md) owns the original Inventory persona run; [its successor](worked-example-distribution-and-breadth.md) owns fixture distribution and portfolio breadth.
+- Mission 7b owns the ordinary structural batch/correction seam. [Mission 7d](../../MISSION.md) owns Inventory persona demo completion; [distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope.
 - Additional revision list/diff, broad source navigation and per-field intention mapping re-enter when the review task needs them; no new graph or UI is selected here.
 - Retire orphaned ask/sweep handlers and subset-era fixtures only after inspecting current consumers. The historical inventory named website ask mappings/interactive tools, sweep filters/output, Voice speech/coverage references and suspended core ask contracts. Some may already be removed; do not recreate or delete by stale path lists.
-- Capture/archive-lane subtraction follows the real retention need. The named historical consumers are app `capture/apply-sweep.ts`, binding history reading and core evidence/capture exports. Keep only a required archive function, not rejected capture-envelope semantics or a second transcript store.
+- The disconnected capture/archive lane was removed during Mission 7d topology remediation. Do not restore it from historical consumer lists; canonical Flue retention is the current evidence source, and model-context projection introduces no second store.
 - Preserve native `readPetrinautDoc`, skill activation and necessary checks; broader tool breadth or batching is a separate construction-design decision, not evaluation infrastructure.
 
 ## Successor joins
 
-[Mission 9](9-traceable-projection.md) retains broader repeat/change/retirement/concurrency, schema and case breadth. [Mission 10](10-bounded-reviewer-revision.md) retains reviewer authority, qualification, coexistence, conflict and impact-widening portfolios beyond the selected demo correction. [Mission 11](11-optimisation-handoff.md) retains the consumer-defined experiment contract. Their broad acceptance programmes do not block the narrow slices explicitly brought into Mission 7c.
+[Mission 9](9-traceable-projection.md) retains broader repeat/change/retirement/concurrency, schema and case breadth. [Mission 10](10-bounded-reviewer-revision.md) retains reviewer authority, qualification, coexistence, conflict and impact-widening portfolios beyond the selected demo correction. [Mission 11](11-optimisation-handoff.md) retains the consumer-accepted optimization handoff beyond Mission 7d's configuration-only assistance. Their broad acceptance programmes do not block the narrow slices explicitly brought into the live mission.
 
-The [distribution draft](worked-example-distribution-and-breadth.md) owns template delivery; the [future spine](../../MISSION.next.md) routes source/plugin hypotheses and host policy; [Mission 7c's Fog-line](../../MISSION.md#fog-line) owns the pending assumption-based preview decision. Selecting a demonstration example does not authorize a general gap-filling or stochastic modelling policy.
+The [distribution draft](worked-example-distribution-and-breadth.md) owns template delivery; the [future spine](../../MISSION.next.md) routes source/plugin hypotheses and host policy; the [live Fog-line](../../MISSION.md#fog-line) owns the pending assumption-based preview decision. Selecting a demonstration example does not authorize a general gap-filling or stochastic modelling policy.
 
 ## Constraints and re-entry
 

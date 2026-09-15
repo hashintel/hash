@@ -5,6 +5,7 @@ import { parseArcId } from "@hashintel/petrinaut-core";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { getViewportRect, recenterToFitViewport } from "../canvas-viewport";
 
+import type { CanvasInsets } from "../../../hooks/use-canvas-insets";
 import type { CanvasController } from "../canvas-renderer";
 import type { CanvasNode } from "../canvas-scene";
 import type { Size } from "@hashintel/petrinaut-core";
@@ -20,16 +21,10 @@ export function useRecenterOnPanelOpen(
   controller: CanvasController,
   containerSize: Size,
   nodes: CanvasNode[],
+  insets: CanvasInsets,
 ) {
-  const {
-    isBottomPanelOpen,
-    isLeftSidebarOpen,
-    leftSidebarWidth,
-    bottomPanelHeight,
-    hasSelection,
-    selection,
-    propertiesPanelWidth,
-  } = use(EditorContext);
+  const { isBottomPanelOpen, isLeftSidebarOpen, hasSelection, selection } =
+    use(EditorContext);
 
   const prevLeftSidebarOpen = useRef(isLeftSidebarOpen);
   const prevBottomPanelOpen = useRef(isBottomPanelOpen);
@@ -64,11 +59,7 @@ export function useRecenterOnPanelOpen(
     if (selectedNodes.length === 0) return;
 
     const originalViewport = controller.getViewport();
-    const viewport = getViewportRect(containerSize, originalViewport, {
-      left: isLeftSidebarOpen ? leftSidebarWidth : 0,
-      bottom: isBottomPanelOpen ? bottomPanelHeight : 0,
-      right: hasSelection ? propertiesPanelWidth : 0,
-    });
+    const viewport = getViewportRect(containerSize, originalViewport, insets);
 
     const adjustment = recenterToFitViewport(viewport, selectedNodes);
 
@@ -95,13 +86,11 @@ export function useRecenterOnPanelOpen(
   }, [
     containerSize,
     isBottomPanelOpen,
-    bottomPanelHeight,
-    leftSidebarWidth,
     isLeftSidebarOpen,
     hasSelection,
     selection,
-    propertiesPanelWidth,
     nodes,
     controller,
+    insets,
   ]);
 }

@@ -4,21 +4,25 @@ import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 
-import { selectChatModel, STEP_A_MODEL_ID } from "./chat-model.ts";
+import { selectChatModelSpecifier } from "./chat-model.ts";
 
-const expectedModel = `anthropic/${STEP_A_MODEL_ID}`;
 const envFiles = [
   ".env",
   ".env.local",
   ".env.development",
   ".env.development.local",
 ];
-const authVariables = [
+const anthropicAuthVariables = [
   "ANTHROPIC_AUTH_TOKEN",
   "ANTHROPIC_OAUTH_TOKEN",
   "ANTHROPIC_API_KEY",
 ];
-const checkedVariables = [...authVariables, "BRUNCH_CHAT_MODEL"];
+const openaiAuthVariables = ["OPENAI_API_KEY"];
+const checkedVariables = [
+  ...anthropicAuthVariables,
+  ...openaiAuthVariables,
+  "BRUNCH_CHAT_MODEL",
+];
 const defaultRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 const credentialStatus = (value: string | undefined) => {
@@ -33,6 +37,13 @@ const credentialStatus = (value: string | undefined) => {
   return "non-placeholder; validity untested";
 };
 
+const parseSpecifier = (value: string) => {
+  const index = value.indexOf("/");
+  return index <= 0
+    ? { provider: "anthropic", id: value }
+    : { provider: value.slice(0, index), id: value.slice(index + 1) };
+};
+
 /** repoRoot is injectable only for synthetic fixtures, not a credential search path. */
 export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   // Vite's DEBUG output includes resolved values. Fail before importing the loader.
@@ -44,6 +55,8 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
   const { createModels } = await import("@earendil-works/pi-ai");
   const { anthropicProvider } =
     await import("@earendil-works/pi-ai/providers/anthropic");
+  const { openaiProvider } =
+    await import("@earendil-works/pi-ai/providers/openai");
   const appDirectory = join(repoRoot, "apps/brunch-agent");
   const declarations = new Map<string, string>();
   const files = envFiles.map((name) => {
@@ -69,33 +82,62 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
       ? "process environment"
       : (declarations.get(variable) ?? "absent");
   const apiKeySource = source("ANTHROPIC_API_KEY");
+  const openaiApiKeySource = source("OPENAI_API_KEY");
   const modelSource = source("BRUNCH_CHAT_MODEL");
   // Flue applyDevEnv uses loadEnv('development', server.config.envDir, '') and shell-wins injection.
   // Restrict returned variables here; parsing and interpolation still use Vite's actual loader.
   const environment = loadEnv("development", appDirectory, checkedVariables);
-  const selectedModel = selectChatModel(environment);
+  const specifier = selectChatModelSpecifier(environment);
+  const selected = parseSpecifier(specifier);
   const models = createModels();
   models.setProvider(anthropicProvider());
-  const knownModel = models.getModel("anthropic", selectedModel);
+  models.setProvider(openaiProvider());
+  const knownModel = models.getModel(selected.provider, selected.id);
   const model = knownModel
-    ? `anthropic/${knownModel.id}`
+    ? `${knownModel.provider}/${knownModel.id}`
     : "unrecognized model; value withheld";
   const apiKeyStatus = credentialStatus(environment.ANTHROPIC_API_KEY);
-  const higherPrioritySources = authVariables
+  const openaiApiKeyStatus = credentialStatus(environment.OPENAI_API_KEY);
+  const brunchProvider = knownModel?.provider ?? selected.provider;
+  const higherPrioritySources = anthropicAuthVariables
     .slice(0, 2)
     .filter((variable) => Boolean(environment[variable]?.trim()))
     .map((variable) => ({ variable, source: source(variable) }));
   let providerSelection =
-    "incomplete; higher-priority source present; alternate credential not resolved";
-  if (higherPrioritySources.length === 0) {
+    brunchProvider === "openai"
+      ? "incomplete; OpenAI credential not resolved"
+      : "incomplete; higher-priority source present; alternate credential not resolved";
+  if (brunchProvider === "openai") {
+    const previous = process.env.OPENAI_API_KEY;
+    try {
+      if (
+        process.env.OPENAI_API_KEY === undefined &&
+        environment.OPENAI_API_KEY !== undefined
+      ) {
+        process.env.OPENAI_API_KEY = environment.OPENAI_API_KEY;
+      }
+      const auth = await models.getAuth("openai");
+      providerSelection =
+        auth?.source === "OPENAI_API_KEY" &&
+        auth.auth.apiKey === environment.OPENAI_API_KEY
+          ? "verified: OPENAI_API_KEY matches Vite selection"
+          : "incomplete; provider did not select OPENAI_API_KEY";
+    } finally {
+      if (previous === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = previous;
+    }
+  } else if (higherPrioritySources.length === 0) {
     // Installed Flue creates Models with defaults (empty in-memory credentials, process-env context).
     // Its Anthropic API-key resolver only consults these three env vars: no I/O/request/refresh.
     // Do not use Pi CLI credential stores. Mirror Flue's shell-wins injection for this call only.
     const previous = new Map(
-      authVariables.map((variable) => [variable, process.env[variable]]),
+      anthropicAuthVariables.map((variable) => [
+        variable,
+        process.env[variable],
+      ]),
     );
     try {
-      for (const variable of authVariables) {
+      for (const variable of anthropicAuthVariables) {
         if (
           process.env[variable] === undefined &&
           environment[variable] !== undefined
@@ -117,11 +159,15 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
     }
   }
   const failures: string[] = [];
-  if (apiKeyStatus !== "non-placeholder; validity untested")
+  if (brunchProvider === "openai") {
+    if (openaiApiKeyStatus !== "non-placeholder; validity untested")
+      failures.push(`OPENAI_API_KEY: ${openaiApiKeyStatus}`);
+  } else if (apiKeyStatus !== "non-placeholder; validity untested") {
     failures.push(`ANTHROPIC_API_KEY: ${apiKeyStatus}`);
+  }
   if (!providerSelection.startsWith("verified:"))
     failures.push("credential-source verification incomplete");
-  if (model !== expectedModel) failures.push("model mismatch");
+  if (model.startsWith("unrecognized")) failures.push("unrecognized model");
   return {
     status: failures.length === 0 ? "PASS" : "FAIL",
     scope:
@@ -134,6 +180,7 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
       ? "present"
       : "absent",
     apiKey: { source: apiKeySource, status: apiKeyStatus },
+    openaiApiKey: { source: openaiApiKeySource, status: openaiApiKeyStatus },
     provenance:
       "File sources identify declarations; Vite owns interpolation. Root env contents not read.",
     providerSelection,
@@ -143,7 +190,9 @@ export const checkDevConfiguration = async (repoRoot = defaultRoot) => {
         ? modelSource
         : "ChatAgent default (BRUNCH_CHAT_MODEL absent or empty)",
       actual: model,
-      expected: expectedModel,
+      expected: knownModel
+        ? `${knownModel.provider}/${knownModel.id}`
+        : "recognized catalog model",
     },
     failures,
     result:

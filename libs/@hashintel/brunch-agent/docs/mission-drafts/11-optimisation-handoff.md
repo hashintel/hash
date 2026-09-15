@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7c](../../MISSION.md) owns the original Inventory worked example; [its successor](worked-example-distribution-and-breadth.md) owns distribution and portfolio breadth. Their exclusions do not await PM confirmation. Dynamics alone is not optimisation: this draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
+**Demo allocation:** [Mission 7d](../../MISSION.md) owns worked-example completion, assessment of Chris's experiment API and in-memory configuration-only assistance. Consume its evidence at cut time; configuration is not execution or consumer acceptance. [Distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope. This draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
 
 ## Cold-start reads
 
@@ -11,12 +11,12 @@
 A fresh builder must read these durable sources before deepening this cluster:
 
 - [`../../MISSION.md`](../../MISSION.md) — the current branch's live authority. Mission 4 is closed; later accepted mission archives and an owner-authorized Mission 11 cut become inherited authority before this draft can execute.
-- [`7-explainable-construction.md`](7-explainable-construction.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — the 2026-09-04 recut predecessors. Mission 11 consumes their genuine conversation, settled revisions, declared basis, mutation records, and the why operation; it does not inherit a capture store or derivation fixture, because neither exists.
+- Mission 7's accepted archives linked from [`../../MISSION.md`](../../MISSION.md), plus [`9-traceable-projection.md`](9-traceable-projection.md) and its eventual close evidence — the genuine conversation, settled revisions, declared basis, mutation records and why operation. [`7-explainable-construction.md`](7-explainable-construction.md) now owns after-demo evaluation, not the predecessor implementation contract. No capture store or derivation fixture is inherited.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
-- [`../../../petrinaut-core/src/file-format/serialize-sdcpn.ts`](../../../petrinaut-core/src/file-format/serialize-sdcpn.ts), [`../../../petrinaut-core/src/optimization/index.ts`](../../../petrinaut-core/src/optimization/index.ts), and [`../../../petrinaut/docs/optimization.md`](../../../petrinaut/docs/optimization.md) — existing Petrinaut terrain to inspect with the consumers, not a preselected handoff boundary.
-- [Mission 8 successor](../../MISSION.next.md#mission-8-successor) — locally verified application artifact after #9495/#9487/#9573 and explicit application-to-infrastructure stop; remote infrastructure, replacement, collector, rollback, and acceptance remain open. Historical stop: `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment`.
+- [`../../../petrinaut-core/src/file-format/serialize-sdcpn.ts`](../../../petrinaut-core/src/file-format/serialize-sdcpn.ts), [`../../../petrinaut-core/src/optimization/index.ts`](../../../petrinaut-core/src/optimization/index.ts), and [`../../../petrinaut/docs/experiments.md`](../../../petrinaut/docs/experiments.md) — existing Petrinaut terrain to inspect with the consumers, not a preselected handoff boundary.
+- [Mission 8 successor](../../MISSION.next.md#mission-8-successor) — locally verified application artifact after #9495/#9487/#9573 and explicit application-to-infrastructure stop; remote infrastructure, replacement, collector, rollback, and acceptance remain open. The historical deployment branch stopped at the application boundary.
 - The written Chris/Yannis consumer contract and accepted fixture, once they exist. Their absence is the fog-line, not permission to infer topology from current source.
 
 ## Visible product advance
@@ -94,8 +94,8 @@ This proves one working handoff throughline. It is not the completion bar. Missi
 
 Mission 11 consumes rather than repairs:
 
-- Mission 7's genuine constructed region with settled revisions, declared basis, verifiable mutation records, identity epochs, and the why operation past its safety and utility gates;
-- Mission 9's repeat, changed-input, and retirement behaviour and closed breadth stratum for the extended region;
+- Mission 7's genuine constructed region with settled revisions, declared basis, verifiable mutation records and accepted why/retention evidence; the configuration-only experiment result does not establish execution or portable delivery;
+- Mission 9's repeat, changed-input, retirement/epoch behaviour and closed breadth stratum for the extended region;
 - Mission 10's accepted reviewer-authority classes, retained evidence, semantic revision, scoped patch/refusal, and stable unrelated behavior; and
 - an actual deployment threshold sufficient for the consumers to use the path, with each claimed identity, durability, telemetry, access, and recovery property observed rather than inferred from the local image.
 

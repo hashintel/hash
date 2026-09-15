@@ -11,7 +11,7 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
@@ -43,7 +43,10 @@ import {
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
-import type { PetrinautAiAssistant } from "../../../../petrinaut";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiToolPresentationResolver,
+} from "../../../../petrinaut";
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
@@ -60,6 +63,14 @@ const errorNotification = (
 
 export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
+  attentionAnnouncement?: string;
+  hostAttentionCount?: number;
+  hostTabSelected?: boolean;
+  onHostTabSelectedChange?: (selected: boolean) => void;
+  primaryAttention?: boolean;
+  primaryLabel?: string;
+  resolveToolPresentation?: PetrinautAiAssistant["resolveToolPresentation"];
+  workingLabel?: string;
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
   composerFocusRequest?: number;
@@ -296,6 +307,17 @@ const userTextStyle = css({
   wordBreak: "break-word",
 });
 
+const workingStatusStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  alignSelf: "flex-start",
+  paddingX: "2",
+  color: "neutral.s80",
+  fontSize: "sm",
+  fontWeight: "medium",
+});
+
 const stoppedNoteStyle = css({
   alignSelf: "center",
   paddingY: "1",
@@ -431,13 +453,19 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
+    resolveToolPresentation,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
+    resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
-    const renderItems = getMessageRenderItems(message, interactiveTools);
+    const renderItems = getMessageRenderItems(
+      message,
+      interactiveTools,
+      resolveToolPresentation,
+    );
     const hasVoiceOrigin =
       role === "user" && message.metadata?.source === "voice";
     // The mark belongs in front of the words that were spoken. Only a message
@@ -507,6 +535,7 @@ AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
   additionalTab,
+  attentionAnnouncement,
   clearMessagesDisabled = false,
   composerControl,
   composerFocusRequest = 0,
@@ -515,12 +544,15 @@ export const AiAssistantContents = ({
   inputMode = "text",
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
+  hostAttentionCount = 0,
+  hostTabSelected: controlledHostTabSelected,
   messages,
   onClearMessages,
   onClose,
   onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
+  onHostTabSelectedChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -528,6 +560,8 @@ export const AiAssistantContents = ({
   onSubmit,
   onVoiceDockCollapsedChange,
   promptChips,
+  primaryAttention = false,
+  primaryLabel = "AI",
   rightOffset = 0,
   status,
   stopped = false,
@@ -535,11 +569,14 @@ export const AiAssistantContents = ({
   voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
+  resolveToolPresentation,
+  workingLabel,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
   const aiTabId = `${panelId}-ai`;
   const hostTabId = `${panelId}-host`;
-  const [hostTabSelected, setHostTabSelected] = useState(false);
+  const [internalHostTabSelected, setInternalHostTabSelected] = useState(false);
+  const hostTabSelected = controlledHostTabSelected ?? internalHostTabSelected;
   const showingHostTab = additionalTab !== undefined && hostTabSelected;
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
@@ -776,14 +813,27 @@ export const AiAssistantContents = ({
           {additionalTab ? (
             <HorizontalTabsHeader
               subViews={[
-                { id: aiTabId, title: "AI" },
-                { id: hostTabId, title: additionalTab.label },
+                {
+                  id: aiTabId,
+                  title: primaryLabel,
+                  attention: { marker: primaryAttention },
+                },
+                {
+                  id: hostTabId,
+                  title: additionalTab.label,
+                  attention: { count: hostAttentionCount },
+                },
               ]}
               activeTabId={showingHostTab ? hostTabId : aiTabId}
-              onTabChange={(tabId) => setHostTabSelected(tabId === hostTabId)}
+              announcement={attentionAnnouncement}
+              onTabChange={(tabId) => {
+                const selected = tabId === hostTabId;
+                setInternalHostTabSelected(selected);
+                onHostTabSelectedChange?.(selected);
+              }}
             />
           ) : (
-            <div className={headerLabelStyle}>AI</div>
+            <div className={headerLabelStyle}>{primaryLabel}</div>
           )}
           <div style={{ flex: 1 }} />
           <Button
@@ -835,6 +885,7 @@ export const AiAssistantContents = ({
               key={message.id}
               message={message}
               handlersRef={handlersRef}
+              resolveToolPresentation={resolveToolPresentation}
             />
           ))}
           {stopped && !error && !messages.at(-1)?.metadata?.stopped && (
@@ -852,6 +903,20 @@ export const AiAssistantContents = ({
             className={`${messagesStyle} ${panelContentStyle({ visible: isOpen && !isVoiceDockCollapsed && showingHostTab })}`}
           >
             {additionalTab.content}
+          </div>
+        )}
+
+        {isBusy && workingLabel && (
+          <div
+            className={`${workingStatusStyle} ${panelContentStyle({
+              visible: isOpen && !isVoiceDockCollapsed,
+            })}`}
+            role="status"
+            aria-live="polite"
+            data-testid="ai-working-status"
+          >
+            <LoadingSpinner aria-hidden="true" size="xs" variant="bars" />
+            <span>{workingLabel}</span>
           </div>
         )}
 

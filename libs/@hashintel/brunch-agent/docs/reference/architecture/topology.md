@@ -2,8 +2,7 @@
 
 **Status: living package-tree map.** Original ratification 2026-08-17 (ADR-0002); transport
 updated by Mission 5. This file records where code lives now. It is not a placement roadmap
-and not a capture-store or YAML-plugin plan. `✓` complies today; `○` exists but is unmounted
-or rejected as product provenance.
+and not a capture-store or YAML-plugin plan. `✓` complies today.
 
 ## Verification — the tree as it stands
 
@@ -13,32 +12,13 @@ packages/core                      CORE + Flue-native agent contribution
 ├─ skills/elicitation/ ✓ core's one capability skill: `SKILL.md` + `references/universal-elicitation.md`,
 │                        packaged through `skills/skill-markdown.ts` and mounted by `flue.ts`
 ├─ flue.ts            ✓ `useBrunchAgent()`: model, elicitation skill, returned core prompt (`./flue`)
-├─ evidence/          ○ capture-store code still exported; rejected as product provenance on
-│                        2026-09-04. Archived-session evidence remains the binding-owned archive lane.
-├─ conversation/      ✓ tool naming and the harness reply-event contract
-├─ _suspended/conversation/ ○ compiled ask/affordance and settlement protocols; not mounted;
-│                        re-exported only for contracts other packages still type against
+├─ conversation/      ✓ tool naming, ask contract, and the harness reply-event contract
 ├─ client-tools.ts    ✓ public browser/client contract subpath
-├─ storage.ts         ✓ binding-only public facade over archived-session evidence
-├─ index.ts           ✓ substrate-neutral evidence and contract facade
+├─ index.ts           ✓ substrate-neutral contract facade
 └─ json-value.ts,
    readonly-deep.ts   ✓ package-wide representation primitives, not a generic utility directory
    (plugin/, teaching/, interpretation/, prompts.ts, testing/, and schema/ — the YAML plugin
     definition, repertoire, and typed interpretation machinery — were removed 2026-09-02)
-
-packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
-├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
-├─ history-reader.ts  ✓  public SDK `history()` mapping over a host-injected URL resolver/fetch;
-│                        non-writing peek + binding-private archive refresh; no private
-│                        canonical/update-chunk vocabulary.
-├─ archive-capability.ts ✓ binding-private write capability; callers holding `CaptureStore`
-│                        cannot inject pre-classified archive entries.
-├─ capture-accounting.ts ✓ recovers active-session Flue ids from session-qualified archived
-│                        evidence pointers; contains no accounting policy.
-├─ index.ts           ✓  active public history, reply-projection, and local-store adapters only
-└─ local-capture-store.ts ✓ versioned storage-port implementation (capture store + session-log
-                         archive, legacy provisioning, parse-on-read, tmp+rename, per-path
-                         queue). One per deploy target per binding. Never: business rules.
 
 packages/transport-aisdk           BROWSER FLUE → AI SDK PROJECTION
 ├─ index.ts            ✓ adapts one caller-supplied public `FlueClient` to an AI SDK `ChatTransport`;
@@ -95,8 +75,6 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 │                              Postgres implementation stays beside it in its private subtree
 ├─ src/http/worked-models.ts ✓ legacy-path GET/POST/PUT API for resolving, refreshing and updating
 │                              principal-owned net projections
-├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
-│                        no elicitation policy
 ├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
 │                        not product runtime authority
 ├─ src/diagnostics/   ✓  operator-facing transcript CLI
@@ -174,12 +152,17 @@ YAML repertoire, plugin-assurance-for-symmetry) are history in [ADR-0002](../../
   `apps/petrinaut-website` owns the user-facing integration. Applications may compose public
   surfaces; reusable libraries may not know about one another.
 - **Flue-native contributions.** Core and plugins expose production resources through `./flue`
-  subpaths. Plugins depend inward on core, never on bindings. Transport never depends on a
-  binding. Suspended code stays under `src/_suspended/` and is never mounted.
+  subpaths. Plugins and transport depend only inward on core, never on one another or an
+  application; core depends on no sibling package. Production source never imports test code.
+  [`apps/brunch-agent/test/architecture/import-direction.test.ts`](../../../../../../apps/brunch-agent/test/architecture/import-direction.test.ts)
+  is the mechanical gate for these directions.
+- **Reachability audits.** Run
+  `yarn exec depcruise --no-config --ts-pre-compilation-deps --output-type json apps/brunch-agent/src apps/brunch-agent/test libs/@hashintel/brunch-agent/packages`
+  for an ad-hoc import graph. Process launches by filename and mission-named oracles are real edges
+  that this command does not model.
 - **Experiments.** Runners live under the consuming app, use the JS-API `observe()` pattern, and
   never enter `packages/`. Cases, oracles, and protocols stay in context-root `evaluations/`;
   observed output stays under `apps/brunch-agent/.data-wipe-me/evaluations/`.
 - **Durable state.** Workpiece revisions settle in per-conversation state; Flue `history()` is
-  the conversation log. Binding-owned storage ports may implement the session-log archive lane
-  per deploy target; they must not revive capture envelopes as the document of record. File-path
-  assumptions never leak above the binding.
+  the conversation log. A future archive or cross-conversation projection must name a current
+  consumer and owner; it must not revive capture envelopes as the document of record.
