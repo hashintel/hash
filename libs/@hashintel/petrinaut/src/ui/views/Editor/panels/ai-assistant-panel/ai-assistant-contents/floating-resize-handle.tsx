@@ -5,7 +5,7 @@ import {
   RESIZE_HANDLE_SIZE,
 } from "../../../../../constants/ui";
 
-import type { FloatingResizeDirection } from "./use-floating-position/resize-floating-panel";
+import type { FloatingResizeDirection } from "./use-floating-position";
 import type { ComponentProps } from "react";
 
 const handleStyle = cva({

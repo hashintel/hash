@@ -8,6 +8,8 @@ import {
 
 import type { KeyboardEvent, PointerEvent } from "react";
 
+export type { FloatingResizeDirection } from "./use-floating-position/resize-floating-panel";
+
 export const useFloatingPosition = (
   width: number,
   onWidthChange: (width: number) => void,
@@ -19,6 +21,8 @@ export const useFloatingPosition = (
     pointerId: number;
     x: number;
     y: number;
+    width: number;
+    height: number;
     bounds: FloatingPanelBounds;
     direction?: FloatingResizeDirection;
   } | null>(null);
@@ -62,6 +66,8 @@ export const useFloatingPosition = (
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      width,
+      height: position.height,
     };
     setIsInteracting(true);
   };
@@ -79,9 +85,14 @@ export const useFloatingPosition = (
       setPosition({
         right: resized.right,
         top: resized.top,
-        height: resized.height,
+        height:
+          resized.height === drag.bounds.height ? drag.height : resized.height,
       });
-      onWidthChange(resized.width);
+      const nextWidth =
+        resized.width === drag.bounds.width ? drag.width : resized.width;
+      if (nextWidth !== width) {
+        onWidthChange(nextWidth);
+      }
       return;
     }
     const { bounds } = drag;
