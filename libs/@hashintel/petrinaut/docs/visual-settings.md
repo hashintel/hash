@@ -181,7 +181,7 @@ Shown only when the host application provides an optimizer that runs in your bro
 
 ### Notebook view (experimental)
 
-Add a **Notebook** tab to explore the net as expandable, read-only cells. Off by default.
+Add a **Notebook** tab to explore the net as expandable, read-only cells. On by default when you have no saved preference for this setting. A saved choice to hide Notebook is preserved.
 
 ### Net Components (experimental)
 

@@ -167,7 +167,7 @@ export const defaultUserSettings: UserSettings = {
   highlightOnHover: true,
   partialSelection: true,
   enableNetComponents: false,
-  enableNotebookView: false,
+  enableNotebookView: true,
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
   showCompilationOutput: false,

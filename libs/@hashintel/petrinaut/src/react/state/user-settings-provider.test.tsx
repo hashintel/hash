@@ -58,7 +58,29 @@ const ArcConnectionsProbe = () => {
   );
 };
 
+const NotebookProbe = () => {
+  const { enableNotebookView } = use(UserSettingsContext);
+  return <span>Notebook: {enableNotebookView ? "on" : "off"}</span>;
+};
+
 describe("UserSettingsProvider", () => {
+  it.each([
+    { preferences: {}, expected: "on" },
+    { preferences: { compactNodes: false }, expected: "on" },
+    { preferences: { enableNotebookView: false }, expected: "off" },
+  ])(
+    "defaults Notebook on and respects saved preferences: %j",
+    ({ preferences, expected }) => {
+      localStorage.setItem(storageKey, JSON.stringify(preferences));
+      render(
+        <UserSettingsProvider>
+          <NotebookProbe />
+        </UserSettingsProvider>,
+      );
+      expect(screen.getByText(`Notebook: ${expected}`)).toBeTruthy();
+    },
+  );
+
   it("defaults automatic arcs off for saved preferences from before the experiment", () => {
     localStorage.setItem(
       "petrinaut:user-settings",
