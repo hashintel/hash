@@ -2371,6 +2371,8 @@ describe("AiAssistantPanel composer submissions", () => {
     const takeTurn = vi.fn();
     const repeatQuestion = vi.fn();
     const readFullResponse = vi.fn();
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
     const VoiceMode = ({
       context,
       replayAllowed,
@@ -2390,6 +2392,8 @@ describe("AiAssistantPanel composer submissions", () => {
             repeatQuestion,
             resume: vi.fn(),
             setMicrophoneMuted: vi.fn(),
+            setSpeakerMuted,
+            setSpeakerVolume,
             takeTurn,
           }),
         [registerVoiceModeControls],
@@ -2403,6 +2407,8 @@ describe("AiAssistantPanel composer submissions", () => {
           microphoneLevel: 0,
           microphoneMuted: false,
           phase: "speaking",
+          speakerMuted: false,
+          speakerVolume: 0.25,
         });
         return () => reportVoiceSessionState(null);
       }, [replayAllowed, reportVoiceSessionState]);
@@ -2424,61 +2430,67 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Your turn" }));
     expect(takeTurn).toHaveBeenCalledOnce();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Voice playback options" }),
+    const audioOptions = screen.getByRole("button", {
+      name: "Audio options",
+    });
+    expect(audioOptions.getAttribute("aria-haspopup")).toBe("dialog");
+    fireEvent.click(audioOptions);
+    await waitFor(() =>
+      expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(
+        true,
+      ),
     );
-    const repeatQuestionItem = await screen.findByRole("menuitem", {
+    const repeatQuestionItem = screen.getByRole("button", {
       name: "Repeat question",
     });
-    expect(repeatQuestionItem.getAttribute("aria-disabled")).not.toBe("true");
-    const repeatQuestionMenu = screen.getByRole("menu");
-    fireEvent.keyDown(repeatQuestionMenu, { key: "ArrowDown" });
-    await waitFor(() =>
-      expect(repeatQuestionMenu.getAttribute("aria-activedescendant")).toBe(
-        repeatQuestionItem.id,
-      ),
-    );
-    fireEvent.keyDown(repeatQuestionMenu, { key: "Enter" });
-    await waitFor(() => expect(repeatQuestion).toHaveBeenCalledOnce());
+    expect((repeatQuestionItem as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(repeatQuestionItem);
+    expect(repeatQuestion).toHaveBeenCalledOnce();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Voice playback options" }),
-    );
-    const readFullResponseItem = await screen.findByRole("menuitem", {
+    fireEvent.click(screen.getByRole("button", { name: "Mute speaker" }));
+    expect(setSpeakerMuted).toHaveBeenCalledWith(true);
+    const volume = screen.getByRole("slider", { name: "Speaker volume" });
+    volume.focus();
+    fireEvent.keyDown(volume, { key: "ArrowRight" });
+    await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.3));
+
+    const readFullResponseItem = screen.getByRole("button", {
       name: "Read full response",
     });
-    expect(readFullResponseItem.getAttribute("aria-disabled")).not.toBe("true");
-    const readFullResponseMenu = screen.getByRole("menu");
-    fireEvent.keyDown(readFullResponseMenu, { key: "End" });
-    await waitFor(() =>
-      expect(readFullResponseMenu.getAttribute("aria-activedescendant")).toBe(
-        readFullResponseItem.id,
-      ),
-    );
-    fireEvent.keyDown(readFullResponseMenu, { key: "Enter" });
-    await waitFor(() => expect(readFullResponse).toHaveBeenCalledOnce());
+    expect((readFullResponseItem as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(readFullResponseItem);
+    expect(readFullResponse).toHaveBeenCalledOnce();
 
+    fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
+    await waitFor(() => {
+      expect(audioOptions.getAttribute("aria-expanded")).toBe("false");
+      expect(document.activeElement).toBe(audioOptions);
+    });
     rendered.rerenderPanel(aiAssistant(false), editorContextValue);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Voice playback options" }),
-    );
+    fireEvent.click(audioOptions);
     expect(
       (
-        await screen.findByRole("menuitem", { name: "Repeat question" })
-      ).getAttribute("aria-disabled"),
-    ).toBe("true");
+        await screen.findByRole("button", { name: "Repeat question" })
+      ).hasAttribute("disabled"),
+    ).toBe(true);
     expect(
-      screen
-        .getByRole("menuitem", { name: "Read full response" })
-        .getAttribute("aria-disabled"),
-    ).toBe("true");
+      (
+        screen.getByRole("button", {
+          name: "Read full response",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
   });
 
   test("retires missing and unmounted optional host Voice actions", async () => {
+    const setSpeakerMuted = vi.fn();
+    const setSpeakerVolume = vi.fn();
     const VoiceMode = ({
       context,
+      speakerControls,
     }: {
       context: PetrinautAiVoiceModeContext;
+      speakerControls: boolean;
     }) => {
       const { registerVoiceModeSessionControls, reportVoiceSessionState } =
         context;
@@ -2488,8 +2500,9 @@ describe("AiAssistantPanel composer submissions", () => {
         return registerVoiceModeSessionControls({
           end: async () => undefined,
           pause: vi.fn(),
+          ...(speakerControls ? { setSpeakerMuted, setSpeakerVolume } : {}),
         });
-      }, [registerVoiceModeSessionControls]);
+      }, [registerVoiceModeSessionControls, speakerControls]);
       useEffect(() => {
         reportVoiceSessionState({
           canReadFullResponse: true,
@@ -2499,32 +2512,51 @@ describe("AiAssistantPanel composer submissions", () => {
           microphoneLevel: 0,
           microphoneMuted: false,
           phase: "speaking",
+          speakerMuted: false,
+          speakerVolume: 0.5,
         });
         return () => reportVoiceSessionState(null);
       }, [reportVoiceSessionState]);
 
       return null;
     };
-    const aiAssistant = (mounted: boolean): PetrinautAiAssistant => ({
+    const aiAssistant = (
+      mounted: boolean,
+      speakerControls: boolean,
+    ): PetrinautAiAssistant => ({
       renderVoiceMode: (context) =>
-        mounted ? <VoiceMode context={context} /> : null,
+        mounted ? (
+          <VoiceMode context={context} speakerControls={speakerControls} />
+        ) : null,
       transport: {
         reconnectToStream: () => Promise.resolve(null),
         sendMessages: vi.fn(),
       },
     });
-    const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
+    const rendered = renderTestPanel({
+      aiAssistant: aiAssistant(true, true),
+    });
 
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
     await screen.findByRole("region", { name: "Voice session" });
-    expect(
-      screen.queryByRole("button", { name: "Voice playback options" }),
-    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Mute speaker" }),
+    );
+    expect(setSpeakerMuted).toHaveBeenCalledWith(true);
+    fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
+
+    rendered.rerenderPanel(aiAssistant(true, false), editorContextValue);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Audio options" }),
+      ).toBeNull(),
+    );
     expect(
       screen.queryByRole("button", { name: "Mute microphone" }),
     ).toBeNull();
 
-    rendered.rerenderPanel(aiAssistant(false), editorContextValue);
+    rendered.rerenderPanel(aiAssistant(false, false), editorContextValue);
 
     await waitFor(() =>
       expect(

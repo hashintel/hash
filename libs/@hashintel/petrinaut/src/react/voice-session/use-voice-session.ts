@@ -43,6 +43,26 @@ export const useVoiceSessionMicrophoneMuted = (): boolean => {
   );
 };
 
+export const useVoiceSessionSpeakerMuted = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerMuted ?? false,
+    () => false,
+  );
+};
+
+export const useVoiceSessionSpeakerVolume = (): number => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.speakerVolume ?? 1,
+    () => 1,
+  );
+};
+
 export const useVoiceSessionErrorMessage = (): string | null => {
   const store = use(VoiceSessionContext);
 

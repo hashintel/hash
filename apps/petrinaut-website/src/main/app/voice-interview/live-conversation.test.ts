@@ -7,7 +7,15 @@ beforeEach(() => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
 });
 
-const setup = () => {
+const setup = ({
+  audioMuted = false,
+  audioVolume = 1,
+  inputEnabled = true,
+}: {
+  readonly audioMuted?: boolean;
+  readonly audioVolume?: number;
+  readonly inputEnabled?: boolean;
+} = {}) => {
   const sent = [[], []] as [string[], string[]];
   const createChannel = (events: string[]) =>
     Object.assign(new EventTarget(), {
@@ -16,9 +24,15 @@ const setup = () => {
       close: vi.fn(),
     });
   const channels = [createChannel(sent[0]), createChannel(sent[1])] as const;
-  const input = Object.assign(new EventTarget(), { stop: vi.fn() });
+  const input = Object.assign(new EventTarget(), {
+    enabled: inputEnabled,
+    stop: vi.fn(),
+  });
   const outputs = [{ stop: vi.fn() }, { stop: vi.fn() }];
-  const stream = { getTracks: () => [input] };
+  const stream = {
+    getAudioTracks: () => [input],
+    getTracks: () => [input],
+  };
   const peers = channels.map((channel, index) =>
     Object.assign(new EventTarget(), {
       connectionState: "new",
@@ -42,8 +56,9 @@ const setup = () => {
   const audio = {
     autoplay: false,
     srcObject: null,
-    muted: false,
+    muted: audioMuted,
     paused: false,
+    volume: audioVolume,
     play: vi.fn(async () => undefined),
     pause: vi.fn(),
   };
@@ -418,6 +433,105 @@ test("starts Live and transcription WebRTC from one consented capture and connec
   });
 });
 
+test("applies cached settings and fresh defaults to newly created Live media", async () => {
+  const cached = setup({
+    audioMuted: false,
+    audioVolume: 0.8,
+    inputEnabled: true,
+  });
+  cached.conversation.setMicrophoneMuted(true);
+  cached.conversation.setSpeakerMuted(true);
+  cached.conversation.setSpeakerVolume(0.3);
+
+  await connect(cached);
+
+  expect(cached.input.enabled).toBe(false);
+  expect(cached.audio).toMatchObject({ muted: true, volume: 0.3 });
+
+  const fresh = setup({
+    audioMuted: true,
+    audioVolume: 0.2,
+    inputEnabled: false,
+  });
+  await connect(fresh);
+
+  expect(fresh.input.enabled).toBe(true);
+  expect(fresh.audio).toMatchObject({ muted: false, volume: 1 });
+});
+
+test("mutes the one shared capture without disturbing output or finalized input", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const remoteStream = { getTracks: () => [fixture.outputs[0]!] };
+  fixture.peers[0]!.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.outputs[0]!,
+      streams: [remoteStream],
+    }),
+  );
+
+  fixture.conversation.setMicrophoneMuted(true);
+
+  expect(fixture.input.enabled).toBe(false);
+  expect(fixture.getUserMedia).toHaveBeenCalledOnce();
+  expect(fixture.peers[0]!.addTrack).toHaveBeenCalledWith(
+    fixture.input,
+    fixture.stream,
+  );
+  expect(fixture.peers[1]!.addTrack).toHaveBeenCalledWith(
+    fixture.input,
+    fixture.stream,
+  );
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.audio).toMatchObject({
+    muted: false,
+    paused: false,
+    srcObject: remoteStream,
+  });
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
+
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "started-before-mute",
+    previous_item_id: null,
+  });
+  const completion = {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "started-before-mute",
+    content_index: 0,
+    transcript: "Keep this finalized answer.",
+  };
+  fixture.emit(1, completion);
+  fixture.emit(1, completion);
+  expect(fixture.onFinalizedInput).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ text: "Keep this finalized answer." }),
+  );
+
+  fixture.conversation.setMicrophoneMuted(false);
+  expect(fixture.input.enabled).toBe(true);
+});
+
+test("keeps speaker mute and clamped volume local and independent", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  const sentBefore = fixture.sent.map((events) => [...events]);
+
+  fixture.conversation.setSpeakerVolume(2);
+  fixture.conversation.setSpeakerMuted(true);
+  fixture.conversation.setSpeakerVolume(-0.5);
+
+  expect(fixture.audio.volume).toBe(0);
+  expect(fixture.audio.muted).toBe(true);
+  expect(fixture.input.enabled).toBe(true);
+  expect(fixture.sent).toEqual(sentBefore);
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+
+  fixture.conversation.setSpeakerVolume(0.35);
+  fixture.conversation.setSpeakerMuted(false);
+  expect(fixture.audio).toMatchObject({ muted: false, volume: 0.35 });
+});
+
 test("emits only completed transcripts in committed provider order and deduplicates identical events", async () => {
   const fixture = setup();
   await connect(fixture);
@@ -766,6 +880,25 @@ test("Stop synchronously silences playback and capture, closes both transports, 
   );
 });
 
+test("late media settings cannot change a stopped session", async () => {
+  const fixture = setup();
+  await connect(fixture);
+
+  const stopped = fixture.conversation.stop();
+  expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
+  expect(fixture.input.enabled).toBe(true);
+
+  fixture.conversation.setMicrophoneMuted(true);
+  fixture.conversation.setSpeakerMuted(false);
+  fixture.conversation.setSpeakerVolume(0.2);
+
+  expect(fixture.input.enabled).toBe(true);
+  expect(fixture.audio).toMatchObject({ muted: true, volume: 1 });
+  expect(fixture.audio.pause).toHaveBeenCalledOnce();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
 test("a failure on either media connection stops both and remote audio remains native and unbuffered", async () => {
   const fixture = setup();
   await connect(fixture);
@@ -1048,6 +1181,8 @@ test("telemetry shows activity but silence and late samples never settle or revi
       streams: [fixture.stream],
     }),
   );
+  fixture.conversation.setSpeakerMuted(true);
+  fixture.conversation.setSpeakerVolume(0);
   await vi.advanceTimersByTimeAsync(100);
   expect(fixture.onState.mock.lastCall?.[0].activity).toEqual({
     microphoneLevel: 0.24,

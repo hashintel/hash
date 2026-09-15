@@ -14,6 +14,8 @@ export type VoiceSessionActions = {
   resume?: () => void;
   setInterruptionBySpeaking?: (enabled: boolean) => void;
   setMicrophoneMuted?: (muted: boolean) => void;
+  setSpeakerMuted?: (muted: boolean) => void;
+  setSpeakerVolume?: (volume: number) => void;
   takeTurn?: () => Promise<void> | void;
 };
 

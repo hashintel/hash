@@ -557,6 +557,26 @@ describe("voice interview control", () => {
     expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
   });
 
+  test("keeps idle speaker controls inert and retires them on unmount", async () => {
+    const setSpeakerMuted = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerMuted")
+      .mockImplementation(() => {});
+    const setSpeakerVolume = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerVolume")
+      .mockImplementation(() => {});
+    const { unmount } = render(<VoiceInterviewHarness />);
+    await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
+
+    registeredVoiceModeControls?.setSpeakerMuted?.(true);
+    registeredVoiceModeControls?.setSpeakerVolume?.(0.35);
+
+    expect(setSpeakerMuted).not.toHaveBeenCalled();
+    expect(setSpeakerVolume).not.toHaveBeenCalled();
+
+    unmount();
+    expect(registeredVoiceModeControls).toBeUndefined();
+  });
+
   test("restarts when Voice is reselected before teardown completes", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

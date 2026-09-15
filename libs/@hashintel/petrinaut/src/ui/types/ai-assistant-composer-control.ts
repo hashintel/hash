@@ -79,6 +79,10 @@ export type PetrinautAiVoiceModeControls = {
   setMicrophoneMuted: (muted: boolean) => void;
   /** Allows speech to interrupt assistant playback without clearing input. */
   setInterruptionBySpeaking?: (enabled: boolean) => void;
+  /** Mutes assistant audio without changing its retained volume. */
+  setSpeakerMuted?: (muted: boolean) => void;
+  /** Sets normalized 0–1 assistant audio volume without changing mute state. */
+  setSpeakerVolume?: (volume: number) => void;
   /** Cancels Voice output and hands the live microphone turn to the user. */
   takeTurn?: () => Promise<void> | void;
 };

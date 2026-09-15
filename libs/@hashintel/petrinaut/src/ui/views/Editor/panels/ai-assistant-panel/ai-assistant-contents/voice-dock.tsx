@@ -11,6 +11,8 @@ import {
   useVoiceSessionMicrophoneMuted,
   useVoiceSessionNotice,
   useVoiceSessionPhase,
+  useVoiceSessionSpeakerMuted,
+  useVoiceSessionSpeakerVolume,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
 import {
@@ -19,8 +21,9 @@ import {
   voiceSetupLabels,
 } from "../../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./footer-height";
+import { AudioPopover } from "./voice-dock/audio-popover";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
-import { VoicePlaybackMenu } from "./voice-dock/playback-menu";
+import { EndIcon, StopIcon } from "./voice-dock/session-action-icons";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
@@ -117,8 +120,7 @@ const visuallyHiddenStyle = css({
   borderWidth: "[0]",
 });
 
-export type VoiceDockProps = {
-  actions: VoiceSessionActions | null;
+type VoiceDockSharedProps = {
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   canRetryPlayback?: boolean;
@@ -133,8 +135,25 @@ export type VoiceDockProps = {
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
-  purpose?: "session" | "setup";
+  speakerMuted: boolean;
+  speakerVolume: number;
 };
+
+export type VoiceDockProps = VoiceDockSharedProps &
+  (
+    | {
+        actions: null;
+        assistantBusy?: never;
+        onStop?: never;
+        purpose: "setup";
+      }
+    | {
+        actions: VoiceSessionActions | null;
+        assistantBusy: boolean;
+        onStop: () => void;
+        purpose?: "session";
+      }
+  );
 
 /**
  * The compact Voice surface inside the assistant panel: one ribbon for setup
@@ -142,6 +161,7 @@ export type VoiceDockProps = {
  */
 export const VoiceDock = ({
   actions,
+  assistantBusy,
   canReadFullResponse,
   canRepeatQuestion,
   canRetryPlayback = false,
@@ -154,8 +174,11 @@ export const VoiceDock = ({
   notice,
   onCollapsedEnd,
   onCollapsedToggle,
+  onStop,
   phase,
   purpose = "session",
+  speakerMuted,
+  speakerVolume,
 }: VoiceDockProps) => {
   const collapseLabel =
     purpose === "setup"
@@ -172,6 +195,7 @@ export const VoiceDock = ({
     purpose === "setup"
       ? voiceSetupLabels.status
       : (notice ?? voiceSessionStatusLabel(phase));
+  const speakerControlsDisabled = phase === "connecting" || phase === "error";
 
   return (
     <section
@@ -196,12 +220,17 @@ export const VoiceDock = ({
         {actions !== null &&
           (actions.readFullResponse ||
             actions.repeatQuestion ||
-            actions.setInterruptionBySpeaking) && (
-            <VoicePlaybackMenu
+            actions.setInterruptionBySpeaking ||
+            actions.setSpeakerMuted ||
+            actions.setSpeakerVolume) && (
+            <AudioPopover
               actions={actions}
               canReadFullResponse={canReadFullResponse}
               canRepeatQuestion={canRepeatQuestion}
               interruptionBySpeaking={interruptionBySpeaking}
+              speakerControlsDisabled={speakerControlsDisabled}
+              speakerMuted={speakerMuted}
+              speakerVolume={speakerVolume}
             />
           )}
       </span>
@@ -238,57 +267,68 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
-            {phase === "error"
-              ? actions.reconnect && (
-                  <Button
-                    aria-label={voiceSessionActionLabels.reconnect}
-                    iconName="rotate"
-                    onClick={actions.reconnect}
-                    size="sm"
-                    tooltip="Reconnect"
-                    type="button"
-                    variant="ghost"
-                  />
-                )
-              : phase === "paused"
-                ? actions.resume && (
-                    <Button
-                      aria-label={voiceSessionActionLabels.resume}
-                      iconName="play"
-                      onClick={actions.resume}
-                      size="sm"
-                      tooltip="Resume"
-                      type="button"
-                      variant="ghost"
-                    />
-                  )
-                : actions.setMicrophoneMuted && (
-                    <Button
-                      aria-label={microphoneLabel}
-                      disabled={phase === "connecting"}
-                      onClick={() =>
-                        actions.setMicrophoneMuted?.(!microphoneMuted)
-                      }
-                      prefix={<MicrophoneIcon muted={microphoneMuted} />}
-                      pressed={microphoneMuted}
-                      size="sm"
-                      tooltip={microphoneLabel}
-                      type="button"
-                      variant="ghost"
-                    />
-                  )}
+            {phase === "error" && actions.reconnect && (
+              <Button
+                aria-label={voiceSessionActionLabels.reconnect}
+                iconName="rotate"
+                onClick={actions.reconnect}
+                size="sm"
+                tooltip="Reconnect"
+                type="button"
+                variant="ghost"
+              />
+            )}
+            {phase === "paused" && actions.resume && (
+              <Button
+                aria-label={voiceSessionActionLabels.resume}
+                iconName="play"
+                onClick={actions.resume}
+                size="sm"
+                tooltip="Resume"
+                type="button"
+                variant="ghost"
+              />
+            )}
+            {actions.setMicrophoneMuted && (
+              <Button
+                aria-label={microphoneLabel}
+                disabled={
+                  phase === "connecting" ||
+                  phase === "error" ||
+                  phase === "paused"
+                }
+                onClick={() => actions.setMicrophoneMuted?.(!microphoneMuted)}
+                prefix={<MicrophoneIcon muted={microphoneMuted} />}
+                pressed={microphoneMuted}
+                size="sm"
+                tooltip={microphoneLabel}
+                type="button"
+                variant="ghost"
+              />
+            )}
+            {assistantBusy && (
+              <Button
+                aria-label={voiceSessionActionLabels.stop}
+                onClick={onStop}
+                prefix={<StopIcon />}
+                size="sm"
+                tooltip={voiceSessionActionLabels.stop}
+                type="button"
+                variant="ghost"
+              />
+            )}
             <Button
               aria-label={voiceSessionActionLabels.end}
-              iconName="close"
               onClick={() => {
                 actions.end();
                 if (collapsed) {
                   onCollapsedEnd?.();
                 }
               }}
+              prefix={<EndIcon />}
               size="sm"
               tone="error"
-              tooltip="End voice mode"
+              tooltip={voiceSessionActionLabels.end}
               type="button"
               variant="ghost"
             />
@@ -311,15 +351,19 @@ export const VoiceDock = ({
 
 /** Reads the session straight from the store so the panel re-renders less. */
 export const LiveVoiceDock = ({
+  assistantBusy,
   collapsed,
   errorIndicator,
   onCollapsedEnd,
   onCollapsedToggle,
+  onStop,
 }: {
+  assistantBusy: boolean;
   collapsed: boolean;
   errorIndicator?: ReactNode;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
+  onStop: () => void;
 }) => {
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
@@ -330,6 +374,8 @@ export const LiveVoiceDock = ({
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
+  const speakerMuted = useVoiceSessionSpeakerMuted();
+  const speakerVolume = useVoiceSessionSpeakerVolume();
 
   if (phase === null) {
     return null;
@@ -338,6 +384,7 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      assistantBusy={assistantBusy}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
       canRetryPlayback={canRetryPlayback}
@@ -349,7 +396,10 @@ export const LiveVoiceDock = ({
       notice={notice}
       onCollapsedEnd={onCollapsedEnd}
       onCollapsedToggle={onCollapsedToggle}
+      onStop={onStop}
       phase={phase}
+      speakerMuted={speakerMuted}
+      speakerVolume={speakerVolume}
     />
   );
 };

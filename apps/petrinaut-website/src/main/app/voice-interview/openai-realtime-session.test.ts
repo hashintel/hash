@@ -56,9 +56,11 @@ const createHarness = ({
   }> = [];
   const remoteAudios: Array<{
     autoplay: boolean;
+    muted: boolean;
     pause: ReturnType<typeof vi.fn>;
     play: ReturnType<typeof vi.fn>;
     srcObject: MediaStream | null;
+    volume: number;
   }> = [];
   const peers: Array<{
     addTrack: ReturnType<typeof vi.fn>;
@@ -125,9 +127,11 @@ const createHarness = ({
     createRemoteAudio: () => {
       const audio = {
         autoplay: false,
+        muted: false,
         pause: vi.fn(),
         play: vi.fn(async () => undefined),
         srcObject: null as MediaStream | null,
+        volume: 1,
       };
       remoteAudios.push(audio);
       return audio;
@@ -621,6 +625,42 @@ describe("OpenAIRealtimeSession", () => {
     expect(remoteTrack.stop).toHaveBeenCalledOnce();
     expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("applies cached and live speaker settings only to remote audio", async () => {
+    const harness = createHarness();
+    harness.session.setSpeakerMuted(true);
+    harness.session.setSpeakerVolume(1.5);
+
+    await harness.session.connect();
+
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: true,
+      volume: 1,
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(sentEvents(harness.channels[0]!)).toEqual([]);
+
+    harness.session.setSpeakerMuted(false);
+    harness.session.setSpeakerVolume(-0.25);
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: false,
+      volume: 0,
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+    expect(sentEvents(harness.channels[0]!)).toEqual([]);
+
+    harness.session.setSpeakerMuted(true);
+    harness.session.setSpeakerVolume(0.35);
+    expect(harness.remoteAudios[0]).toMatchObject({
+      muted: true,
+      volume: 0.35,
+    });
+    expect(harness.remoteAudios[0]!.pause).not.toHaveBeenCalled();
+
+    await harness.session.disconnect();
+    expect(harness.remoteAudios[0]!.pause).toHaveBeenCalledOnce();
+    expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
   });
 
   test("keeps the microphone closed and rejects audio detected during playback", async () => {

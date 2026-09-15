@@ -85,7 +85,9 @@ export type OpenAIRealtimeSessionEvent =
 
 interface RemoteAudio {
   autoplay: boolean;
+  muted: boolean;
   srcObject: HTMLMediaElement["srcObject"];
+  volume: number;
   pause(): void;
   play(): Promise<void>;
 }
@@ -255,6 +257,8 @@ export class OpenAIRealtimeSession {
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
+  #speakerMuted = false;
+  #speakerVolume = 1;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
@@ -317,6 +321,8 @@ export class OpenAIRealtimeSession {
       this.#peerConnection = peerConnection;
       this.#remoteAudio = this.#dependencies.createRemoteAudio();
       this.#remoteAudio.autoplay = true;
+      this.#remoteAudio.muted = this.#speakerMuted;
+      this.#remoteAudio.volume = this.#speakerVolume;
       peerConnection.ontrack = (event) => {
         if (
           this.#activeEpoch !== connectionEpoch ||
@@ -425,6 +431,16 @@ export class OpenAIRealtimeSession {
   public setMicrophoneEnabled(enabled: boolean): void {
     this.#microphoneRequested = enabled && this.#connected;
     this.#syncMicrophoneTrack();
+  }
+
+  public setSpeakerMuted(muted: boolean): void {
+    this.#speakerMuted = muted;
+    if (this.#remoteAudio) this.#remoteAudio.muted = muted;
+  }
+
+  public setSpeakerVolume(volume: number): void {
+    this.#speakerVolume = Math.min(1, Math.max(0, volume));
+    if (this.#remoteAudio) this.#remoteAudio.volume = this.#speakerVolume;
   }
 
   public setInterruptionBySpeaking(enabled: boolean): void {
