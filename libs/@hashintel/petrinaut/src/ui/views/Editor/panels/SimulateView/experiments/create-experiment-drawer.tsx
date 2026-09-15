@@ -956,14 +956,13 @@ export const CreateExperimentDrawer = ({
     ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
     : null;
 
-  const footerError =
-    error ?? metricFormError ?? objectiveError ?? constraintLspError;
-  const canRun =
-    !isSubmitting &&
-    metricFormError === null &&
-    objectiveError === null &&
-    constraintLspError === null &&
-    sweepSummary?.error !== true;
+  const formError =
+    metricFormError ??
+    objectiveError ??
+    constraintLspError ??
+    (sweepSummary?.error ? sweepSummary.text : null);
+  const footerError = error ?? formError;
+  const canRun = !isSubmitting && formError === null;
   const submitLabel = objectiveEnabled
     ? isSubmitting
       ? "Starting"
@@ -1461,12 +1460,7 @@ export const CreateExperimentDrawer = ({
                   tone="neutral"
                   size="sm"
                   disabled={!canRun}
-                  tooltip={
-                    metricFormError ??
-                    objectiveError ??
-                    constraintLspError ??
-                    undefined
-                  }
+                  tooltip={formError ?? undefined}
                   prefix={
                     isSubmitting ? (
                       <LoadingSpinner size="sm" variant="bars" />
