@@ -139,9 +139,6 @@ const shellStyle = cva({
     },
   },
   variants: {
-    setupOverlay: {
-      true: { overflow: "visible" },
-    },
     floating: {
       true: {
         top: "[12px]",
@@ -201,6 +198,9 @@ const cardStyle = cva({
     },
   },
   variants: {
+    setupOverlay: {
+      true: { overflow: "visible" },
+    },
     floating: {
       true: {
         borderLeftColor: "[transparent]",
@@ -1023,7 +1023,9 @@ export const AiAssistantContents = ({
               }
               tooltip={placementLabel}
             />
-            {!isVoiceDockCollapsed && !isVoiceSessionLive && voiceAlertIndicator}
+            {!isVoiceDockCollapsed &&
+              !isVoiceSessionLive &&
+              voiceAlertIndicator}
             {messages.length > 0 && (
               <Button
                 size="xs"
@@ -1132,7 +1134,10 @@ export const AiAssistantContents = ({
               {isVoiceDockCollapsed && (
                 <div
                   ref={voiceDockRef}
-                  className={css({ borderRadius: "[inherit]", overflow: "hidden" })}
+                  className={css({
+                    borderRadius: "[inherit]",
+                    overflow: "hidden",
+                  })}
                 >
                   <VoiceDock
                     actions={null}
