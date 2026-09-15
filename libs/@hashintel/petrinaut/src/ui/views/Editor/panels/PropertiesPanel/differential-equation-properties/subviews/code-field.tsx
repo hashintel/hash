@@ -3,7 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { SourceCodeEditor as CodeEditor } from "../../../../../../monaco/code-workspace";
+import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useDiffEqPropertiesContext } from "../context";
 

@@ -8,13 +8,12 @@ import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../react/state/user-settings-provider";
 import { PetrinautStoryProvider } from "../petrinaut-story-provider";
 
-import type { CodeEditorPlacement } from "./code-workspace";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const LayoutExample = ({
   readonly = false,
 }: {
-  placement: CodeEditorPlacement;
+  expanded: boolean;
   readonly?: boolean;
 }) => {
   const settings = use(UserSettingsContext);
@@ -37,7 +36,7 @@ const LayoutExample = ({
 };
 
 const meta = {
-  title: "Petrinaut / Code editor layouts",
+  title: "Petrinaut / Expandable code sections",
   component: LayoutExample,
   parameters: { layout: "fullscreen" },
   decorators: [
@@ -57,19 +56,20 @@ const meta = {
       ),
     );
     const resultsToggle = await canvas.findByRole("button", {
-      name: /Transition Results/,
+      name: "Transition Results",
+      exact: true,
     });
     if (resultsToggle.getAttribute("aria-expanded") !== "true") {
       await userEvent.click(resultsToggle);
     }
-    if (args.placement === "fullscreen") {
+    if (args.expanded) {
       const section = canvasElement.querySelector<HTMLElement>(
         '[id="transition-results"]',
       );
       if (!section) throw new Error("Transition results section is missing");
       await userEvent.click(
         await within(section).findByRole("button", {
-          name: /Full screen/,
+          name: "Expand Transition Results",
         }),
       );
     }
@@ -77,8 +77,8 @@ const meta = {
 } satisfies Meta<typeof LayoutExample>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const FullScreen: Story = { args: { placement: "fullscreen" } };
-export const PropertiesPanel: Story = { args: { placement: "properties" } };
+export const ExpandedSection: Story = { args: { expanded: true } };
+export const PropertiesPanel: Story = { args: { expanded: false } };
 export const ReadOnly: Story = {
-  args: { placement: "properties", readonly: true },
+  args: { expanded: true, readonly: true },
 };

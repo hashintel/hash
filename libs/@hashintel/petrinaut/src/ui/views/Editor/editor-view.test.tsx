@@ -20,7 +20,6 @@ const lifecycle = vi.hoisted(() => ({
 
 vi.mock("../../../react", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
-  usePetrinautMutations: () => ({}),
 }));
 vi.mock("../../../react/state/use-selection-cleanup", () => ({
   useSelectionCleanup: () => {},
