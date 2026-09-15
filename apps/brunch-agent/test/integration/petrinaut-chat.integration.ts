@@ -10,6 +10,7 @@ import {
   fauxText,
   fauxThinking,
   fauxToolCall,
+  type Provider,
 } from "@earendil-works/pi-ai";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
@@ -21,7 +22,7 @@ import {
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
 import {
   BRUNCH_QUESTION_DATA_NAME,
-  BRUNCH_QUESTION_TOOL_NAME,
+  BRUNCH_QUESTION_TOOL_NAMES,
 } from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
@@ -113,13 +114,22 @@ const questionToolVisibleInHistory = (
 ): boolean =>
   messages
     .flatMap((message) => message.parts)
-    .some((part) => part.type === `tool-${BRUNCH_QUESTION_TOOL_NAME}`);
+    .some((part) =>
+      BRUNCH_QUESTION_TOOL_NAMES.some((name) => part.type === `tool-${name}`),
+    );
 
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
 });
-installFauxProvider(faux.provider);
+let providerCallCount = 0;
+installFauxProvider({
+  ...faux.provider,
+  streamSimple(model, context, options) {
+    providerCallCount += 1;
+    return faux.provider.streamSimple(model, context, options);
+  },
+} satisfies Provider);
 const application = await loadBuiltBrunchApplication();
 
 try {
@@ -134,14 +144,14 @@ try {
   const panelTransport = createFlueChatTransport({
     client: historyClient,
     clientToolNames,
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
   const projectHistory = (
     snapshot: Awaited<ReturnType<typeof historyClient.history>>,
   ) =>
     snapshotToUiMessages(snapshot, {
       clientToolNames,
-      hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+      hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
     });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
@@ -233,16 +243,6 @@ try {
             READ_PETRINAUT_DOC_TOOL_NAME,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-      fauxAssistantMessage(
-        [
-          fauxToolCall(
-            BRUNCH_QUESTION_TOOL_NAME,
-            { question },
-            { id: "tool-question-1" },
           ),
         ],
         { stopReason: "toolUse" },
@@ -343,6 +343,7 @@ try {
         ],
       },
     ] as UIMessage[];
+    const questionResponseCallStart = providerCallCount;
     const resumedChunks = await chunksFrom(
       await panelTransport.sendMessages({
         trigger: "submit-message",
@@ -451,12 +452,14 @@ try {
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
+      questionResponseProviderCalls:
+        providerCallCount - questionResponseCallStart,
       questionMarkerLive: questionMarkerFromChunks(resumedChunks),
       questionMarkerHistory: questionMarkerFromHistory(historyMessages),
       questionToolVisibleLive: resumedChunks.some(
         (chunk) =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === BRUNCH_QUESTION_TOOL_NAME,
+          BRUNCH_QUESTION_TOOL_NAMES.some((name) => name === chunk.toolName),
       ),
       questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       historyUserEntryCount: userEntryIds.length,

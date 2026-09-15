@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expect, test } from "vitest";
 
 import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { runNodeScript } from "./run-node-script";
 
@@ -74,15 +75,13 @@ test("the browser transport streams the mounted Flue agent through server and cl
       type: "finish",
       finishReason: "stop",
     });
-    expect(result.questionMarkerLive).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
+    expect(result.resumedText).toContain(
+      "Which documentation page should we inspect next?",
+    );
+    expect(result.questionResponseProviderCalls).toBe(1);
+    expect(result.questionMarkerLive).toBeUndefined();
     expect(result.questionToolVisibleLive).toBe(false);
-    expect(result.questionMarkerHistory).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
+    expect(result.questionMarkerHistory).toBeUndefined();
     expect(result.questionToolVisibleHistory).toBe(false);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
@@ -123,7 +122,9 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain(
       READ_PETRINAUT_DOCS_TOOL_NAME,
     );
-    expect(result.interviewerToolNames).toContain("brunch_mark_question");
+    expect(result.interviewerToolNames).not.toEqual(
+      expect.arrayContaining([...BRUNCH_QUESTION_TOOL_NAMES]),
+    );
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
@@ -168,10 +169,7 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(resumeResult.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-    expect(resumeResult.questionMarkerHistory).toEqual({
-      question: "Which documentation page should we inspect next?",
-      toolCallId: "tool-question-1",
-    });
+    expect(resumeResult.questionMarkerHistory).toBeUndefined();
     expect(resumeResult.questionToolVisibleHistory).toBe(false);
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain(
@@ -179,7 +177,9 @@ test("the browser transport streams the mounted Flue agent through server and cl
     );
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");
-    expect(resumeResult.transcript).toContain("tool brunch_mark_question");
+    for (const markerName of BRUNCH_QUESTION_TOOL_NAMES) {
+      expect(resumeResult.transcript).not.toContain(`tool ${markerName}`);
+    }
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

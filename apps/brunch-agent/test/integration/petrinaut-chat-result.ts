@@ -21,6 +21,7 @@ export interface PetrinautChatResult {
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
+  readonly questionResponseProviderCalls: number;
   readonly questionMarkerLive: unknown;
   readonly questionMarkerHistory: unknown;
   readonly questionToolVisibleLive: boolean;

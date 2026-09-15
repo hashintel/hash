@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { brunchClientToolNames } from "./brunch-client-tools";
 
@@ -46,7 +46,7 @@ const projectPetrinautMessages = (
     dynamicClientToolNames,
     validatedClientToolNames,
     ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (

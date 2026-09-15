@@ -39,6 +39,11 @@ type StandardItem = ItemBase &
       }
     | {
         subItems: Array<ItemOrGroup<Item>>;
+        /**
+         * Applied to this item's submenu content, composed with the list's
+         * own class, for styling that only that submenu should carry.
+         */
+        menuClassName?: string;
       }
   >;
 

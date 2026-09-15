@@ -20,7 +20,7 @@ import {
   snapshotToUiMessages,
   CLIENT_TOOL_RESULT_SIGNAL,
 } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import {
   agentOwnershipHeaders,
@@ -350,7 +350,7 @@ const tools = (name: string, input: Record<string, unknown>, id: string) =>
 const project = (snapshot: FlueConversationSnapshot) =>
   snapshotToUiMessages(snapshot, {
     clientToolNames: new Set([READ_PETRINAUT_DOCS_TOOL_NAME]),
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
 const status = async (operation: () => Promise<unknown>) => {
   try {
@@ -432,11 +432,6 @@ try {
     responses.push(
       tools("ping", { note: "a4-early-ping" }, "a4-ping-early"),
       tools(
-        BRUNCH_QUESTION_TOOL_NAME,
-        { question: "Which synthetic record follows?" },
-        "a4-question",
-      ),
-      tools(
         READ_PETRINAUT_DOCS_TOOL_NAME,
         { doc: "ai-assistant" },
         "a4-doc-early",
@@ -515,13 +510,7 @@ try {
       .filter((part) => part.type === "dynamic-tool");
     assert.deepEqual(
       publicTools.map((part) => part.toolCallId),
-      [
-        "a4-ping-early",
-        "a4-question",
-        "a4-doc-early",
-        "a4-ping-middle",
-        "a4-doc-late",
-      ],
+      ["a4-ping-early", "a4-doc-early", "a4-ping-middle", "a4-doc-late"],
     );
     for (const suffix of ["early", "middle"]) {
       const ping = publicTools.find(
@@ -531,15 +520,11 @@ try {
       assert.deepEqual(ping.input, { note: `a4-${suffix}-ping` });
       assert.deepEqual(ping.output, { ok: true, note: `a4-${suffix}-ping` });
     }
-    const marker = publicTools.find(
-      (part) => part.toolCallId === "a4-question",
-    );
-    assert(marker?.state === "output-available");
-    assert.deepEqual(marker.output, { marked: true });
     assert(
-      before.messages
+      !before.messages
         .flatMap((message) => message.parts)
         .some((part) => part.type === "data-brunch-question"),
+      "New responses must not create question markers",
     );
     const clientResults = clientToolHistoryFrom(before.messages).results;
     assert.deepEqual(
@@ -702,7 +687,7 @@ try {
           ? compactions.some(
               (event) =>
                 !event.isError &&
-                event.messagesBefore === 20 &&
+                event.messagesBefore === 18 &&
                 event.messagesAfter === 3,
             )
           : compactions.some(
@@ -710,7 +695,7 @@ try {
                 !event.isError && event.messagesAfter < event.messagesBefore,
             ),
         silentOverflow
-          ? "Silent overflow must fold the known 20-message window to 3"
+          ? "Silent overflow must fold the known 18-message window to 3"
           : "Actual successful folding must reduce runtime context messages",
       );
       assert(

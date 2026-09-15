@@ -30,8 +30,11 @@ export {
 export {
   BRUNCH_QUESTION_DATA_NAME,
   BRUNCH_QUESTION_TOOL_NAME,
+  BRUNCH_QUESTION_TOOL_NAMES,
   BrunchQuestionDataSchema,
   BrunchQuestionInputSchema,
+  LEGACY_BRUNCH_QUESTION_TOOL_NAME,
+  LEGACY_QUESTION_REPLAY_TOOL_NAME,
   parseBrunchQuestionData,
   type BrunchQuestionData,
 } from "./question-marker";

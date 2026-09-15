@@ -3,7 +3,7 @@ import {
   FlueChatAdmissionError,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
 import { brunchClientToolNames } from "./brunch-client-tools";
@@ -373,7 +373,7 @@ export const createBrunchPanelTransport = (
           ...(options?.mapClientToolInput === undefined
             ? {}
             : { mapClientToolInput: options.mapClientToolInput }),
-          hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+          hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);
