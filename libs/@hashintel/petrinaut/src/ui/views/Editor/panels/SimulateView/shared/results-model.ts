@@ -47,7 +47,7 @@ export type ResultsStat = {
 };
 
 export type ResultsHeader = {
-  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
+  /** One line: `SIR transmission sweep`. */
   title: string;
   /** The title line's right side while at rest: a study's progress line. */
   headline: ReactNode | null;

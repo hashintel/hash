@@ -401,7 +401,7 @@ export const FrameStatusPill = ({
 );
 
 export type FrameHeaderProps = {
-  /** One line, ellipsized when narrow: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
+  /** One line, ellipsized when narrow: `SIR transmission sweep`. */
   title: string;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */
   headline?: ReactNode | null;

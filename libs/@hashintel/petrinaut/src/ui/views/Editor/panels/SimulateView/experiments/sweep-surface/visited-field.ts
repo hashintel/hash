@@ -115,36 +115,15 @@ export const computingSurfaceField = ({
 export const describeVisitedSurface = ({
   visitedCount,
   computing,
-  pointSelection,
-  runsCompleted,
-  runTarget,
   following,
 }: {
   visitedCount: number;
   computing: boolean;
-  /** Whether the selection is a single point on every axis. */
-  pointSelection: boolean;
-  runsCompleted: number;
-  runTarget: number | null;
   following: boolean;
 }): string => {
-  const points =
-    visitedCount === 0
-      ? "no points yet"
-      : `${visitedCount} ${visitedCount === 1 ? "point" : "points"}`;
-  const runs =
-    runTarget === null
-      ? `${runsCompleted} runs`
-      : `${runsCompleted} of ${runTarget} runs`;
-  const refining = computing
-    ? `${pointSelection ? "computing the selected point" : "sampling across the selected ranges"}: ${runs}`
-    : null;
-  if (following) {
-    return `${points} · ${refining ?? "the optimizer is choosing the next point"}`;
+  const points = `${visitedCount} ${visitedCount === 1 ? "point" : "points"} sampled`;
+  if (computing) {
+    return `${points} · sampling`;
   }
-  return [
-    points,
-    ...(refining === null ? [] : [refining]),
-    "drag or click to compute a point",
-  ].join(" · ");
+  return following ? `${points} · choosing next point` : points;
 };

@@ -5,7 +5,6 @@ import { renderHook } from "@testing-library/react";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { formatNumber } from "../shared/format-value";
 import {
   type ExperimentResultsDependencies,
   experimentMetricTiles,
@@ -27,6 +26,8 @@ import {
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
+import type { ComputeBatch } from "../shared/drawer-frame";
+import type { ResultsStat } from "../shared/results-model";
 
 // uPlot reads `matchMedia` as it loads, which jsdom lacks; the model builds
 // the tiles but never renders a timeline.
@@ -72,14 +73,24 @@ const model = (
     ...overrides,
   });
 
-const statTexts = (experiment: ExperimentRecord) =>
-  Object.fromEntries(
-    model(experiment).header.stats.map((stat) => [stat.label, stat.value.text]),
-  );
-
 /** The props of the element a model slot holds. */
 const propsOf = <Props,>(node: ReactNode): Props =>
   (node as ReactElement<Props>).props;
+
+const detailsOf = (result: ReturnType<typeof model>) =>
+  propsOf<{
+    stats: readonly Pick<ResultsStat, "id" | "label" | "value">[];
+    batches: readonly ComputeBatch[];
+    children: ReactNode;
+  }>(result.header.headline);
+
+const statTexts = (experiment: ExperimentRecord) =>
+  Object.fromEntries(
+    detailsOf(model(experiment)).stats.map((stat) => [
+      stat.label,
+      stat.value.text,
+    ]),
+  );
 
 /** The navigator's props inside the Parameters card. */
 const navigatorOf = (result: ReturnType<typeof model>) =>
@@ -140,14 +151,12 @@ const idleSweep: ExperimentRecord = {
 describe("experimentResultsModel for a running sweep", () => {
   const result = model(sweep);
 
-  it("titles the experiment in one line with no headline", () => {
-    expect(result.header.title).toBe(
-      "SIR transmission sweep · Seasonal Flu · 100 runs",
-    );
-    expect(result.header.headline).toBeNull();
+  it("titles the experiment with details available separately", () => {
+    expect(result.header.title).toBe("SIR transmission sweep");
+    expect(isValidElement(result.header.headline)).toBe(true);
   });
 
-  it("reads Running with the selection, errors and time columns, the batches computing and the backend", () => {
+  it("keeps the sweep header to its status and moves sampling and compute into details", () => {
     expect(result.header.status).toEqual({
       label: "Running",
       tone: "active",
@@ -155,25 +164,17 @@ describe("experimentResultsModel for a running sweep", () => {
     });
     // A sweep never finishes and its runs are per batch: no Runs, no Elapsed.
     expect(Object.keys(statTexts(sweep))).toEqual([
-      "Selection",
+      "Runs sampled",
       "Errors",
-      "Time",
+      "Simulation time",
     ]);
-    expect(statTexts(sweep).Time).toMatch(/ \/ 180$/u);
-    expect(statTexts(sweep).Selection).toMatch(/^\d+ \/ 100 runs$/u);
-    expect(result.header.activity?.length).toBe(sweep.sweepBatches.length);
-    expect(result.header.compute).toBe(sweep);
+    expect(statTexts(sweep)["Simulation time"]).toMatch(/ \/ 180$/u);
+    expect(statTexts(sweep)["Runs sampled"]).toMatch(/^\d+ \/ 100 runs$/u);
+    expect(detailsOf(result).batches.length).toBe(sweep.sweepBatches.length);
+    expect(result.header.compute).toBeNull();
+    expect(result.header.activity).toBeNull();
+    expect(result.header.stats).toEqual([]);
     expect(result.header.note).toBeNull();
-    expect(result.header.stats.every((stat) => stat.widest.length > 0)).toBe(
-      true,
-    );
-    // Selection carries a short form for a narrow header.
-    expect(
-      result.header.stats.find((stat) => stat.id === "selection")?.short,
-    ).toEqual({
-      text: `${sweep.sweep!.runsSampled} / 100`,
-      widest: "100 / 100",
-    });
   });
 
   it("labels the selection's batch Selection and lets the sliders move", () => {
@@ -183,7 +184,7 @@ describe("experimentResultsModel for a running sweep", () => {
         { id: 1, kind: "selection", runCount: 8, completedRuns: 3 },
       ],
     });
-    expect(computing.header.activity).toEqual([
+    expect(detailsOf(computing).batches).toEqual([
       {
         id: "1",
         label: "Selection",
@@ -202,7 +203,7 @@ describe("experimentResultsModel for a running sweep", () => {
   it("lays the Parameters card, the surface and one tile per metric out, with no steps", () => {
     expect(result.bands.map((band) => band.title)).toEqual(["Parameters"]);
     expect(result.bands[0]).toMatchObject({
-      subtitle: `${sweep.parameterAxes.length} swept`,
+      subtitle: "",
       trailing: null,
       more: null,
       tone: "default",
@@ -231,14 +232,14 @@ describe("experimentResultsModel for a running sweep", () => {
 describe("experimentResultsModel for an idle sweep", () => {
   const result = model(idleSweep);
 
-  it("reads Idle with every run at the end of the simulated time and nothing computing", () => {
+  it("reads Ready with completed simulation time in details", () => {
     expect(result.header.status).toMatchObject({
-      label: "Idle",
+      label: "Ready",
       tone: "neutral",
     });
-    expect(statTexts(idleSweep).Time).toBe("180 / 180");
-    expect(statTexts(idleSweep).Selection).toBe("100 / 100 runs");
-    expect(result.header.activity).toEqual([]);
+    expect(statTexts(idleSweep)["Simulation time"]).toBe("180 / 180");
+    expect(statTexts(idleSweep)["Runs sampled"]).toBe("100 / 100 runs");
+    expect(detailsOf(result).batches).toEqual([]);
     expect(result.header.progress).toBe(100);
     expect(isValidElement(footerButtonsOf(result)[0])).toBe(false);
   });
@@ -249,22 +250,22 @@ describe("experimentResultsModel for an idle sweep", () => {
       finishedAt: null,
       sweep: { ...idleSweep.sweep!, runsCompleted: 0, runsSampled: 0 },
     };
-    expect(statTexts(fresh).Time).toBe("0 / 180");
-    expect(statTexts(fresh).Selection).toBe("0 / 100 runs");
+    expect(statTexts(fresh)["Simulation time"]).toBe("0 / 180");
+    expect(statTexts(fresh)["Runs sampled"]).toBe("0 / 100 runs");
     expect(model(fresh).header.progress).toBe(0);
   });
 
   it("keeps every run at the end of the simulated time once the sweep is cancelled, and at zero when it computed nothing", () => {
-    expect(statTexts({ ...idleSweep, status: "cancelled" }).Time).toBe(
-      "180 / 180",
-    );
+    expect(
+      statTexts({ ...idleSweep, status: "cancelled" })["Simulation time"],
+    ).toBe("180 / 180");
     const fresh: ExperimentRecord = {
       ...idleSweep,
       status: "cancelled",
       finishedAt: null,
       sweep: { ...idleSweep.sweep!, runsCompleted: 0, runsSampled: 0 },
     };
-    expect(statTexts(fresh).Time).toBe("0 / 180");
+    expect(statTexts(fresh)["Simulation time"]).toBe("0 / 180");
   });
 
   it("locks the sliders and the surface once the sweep is cancelled, not after a failed selection", () => {
@@ -312,25 +313,41 @@ describe("experimentResultsModel for a plain experiment", () => {
     expect(Object.keys(statTexts(plain))).toEqual([
       "Runs",
       "Errors",
-      "Time",
-      "Elapsed",
+      "Simulation time",
+      "Elapsed time",
     ]);
     expect(statTexts(plain).Runs).toMatch(/^\d+ active, \d+ complete$/u);
     // The clock ticks in a leaf of its own, so the model is not rebuilt with it.
-    expect(isValidElement(statTexts(plain).Elapsed)).toBe(true);
-    // Runs carries a short form for a narrow header.
-    expect(
-      result.header.stats.find((stat) => stat.id === "runs")?.short,
-    ).toEqual({
-      text: `${plain.progress!.completedRuns} complete`,
-      widest: "1,000 complete",
-    });
+    expect(isValidElement(statTexts(plain)["Elapsed time"])).toBe(true);
     expect(result.metrics?.tiles).toHaveLength(sweep.metricSpecs.length);
     expect(result.metrics?.contentEpoch).toBe("");
   });
 
   it("has no metrics grid without configured metrics", () => {
     expect(model(makeExperiment(1)).metrics).toBeNull();
+  });
+});
+
+describe("result header progress", () => {
+  it("shows completed runs and keeps failed runs visible", () => {
+    const plain = makeExperiment(1);
+    const result = model({
+      ...plain,
+      progress: { ...plain.progress!, completedRuns: 640, erroredRuns: 2 },
+    });
+    expect(result.header.stats.map((stat) => stat.value.text)).toEqual([
+      "640 / 1,000 runs",
+      "2 failed runs",
+    ]);
+  });
+
+  it("shows the full count for completed experiments without a progress snapshot", () => {
+    const result = model(
+      makeExperiment(1, { status: "complete", progress: null }),
+    );
+    expect(result.header.stats.map((stat) => stat.value.text)).toEqual([
+      "1,000 / 1,000 runs",
+    ]);
   });
 });
 
@@ -449,7 +466,7 @@ describe("experimentResultsModel with the optimizer", () => {
       },
       { optimizer: withStudy(study, driving) },
     );
-    expect(result.header.activity?.map((batch) => batch.label)).toEqual([
+    expect(detailsOf(result).batches.map((batch) => batch.label)).toEqual([
       "Step 5",
     ]);
     expect(navigatorOf(result)).toMatchObject({
@@ -511,13 +528,13 @@ describe("experimentResultsModel with the optimizer", () => {
       completedTrials: 29,
     };
     const result = model(idleSweep, { optimizer: withStudy(finished) });
-    expect(result.header.status.label).toBe("Idle");
+    expect(result.header.status.label).toBe("Ready");
     expect(result.bands[0]!.tone).toBe("default");
     expect(navigatorOf(result)).toMatchObject({
       status: {
         following: {
           kind: "settled",
-          summary: `Finished 30 steps · best step so far: step 3 (${formatNumber(650.5)})`,
+          summary: "Optimization complete",
         },
       },
       disabled: false,
@@ -584,11 +601,11 @@ describe("experimentResultsModel with a study", () => {
 
   it("shows nothing of a study for a sweep created without one", () => {
     const result = model(sweep);
-    expect(result.header.headline).toBeNull();
+    expect(isValidElement(result.header.headline)).toBe(true);
     expect(Object.keys(statTexts(sweep))).toEqual([
-      "Selection",
+      "Runs sampled",
       "Errors",
-      "Time",
+      "Simulation time",
     ]);
     expect(result.metrics?.cards).toBeNull();
     expect(result.after).toBeNull();
@@ -596,16 +613,14 @@ describe("experimentResultsModel with a study", () => {
 
   it("fills the headline, the Steps column, the Sensitivity card and the steps table from the study", () => {
     expect(isValidElement(running.header.headline)).toBe(true);
-    expect(running.header.stats.map((stat) => stat.label)).toEqual([
-      "Selection",
+    expect(detailsOf(running).stats.map((stat) => stat.label)).toEqual([
+      "Runs sampled",
       "Errors",
-      "Time",
+      "Simulation time",
       "Steps",
     ]);
-    const steps = running.header.stats.find((stat) => stat.id === "steps")!;
+    const steps = detailsOf(running).stats.find((stat) => stat.id === "steps")!;
     expect(steps.value.text).toBe("4 / 30");
-    expect(steps.widest).toBe("30 / 30");
-    expect(steps.short).toEqual({ text: "4 / 30", widest: "30 / 30" });
     expect(running.header.stats.some((stat) => stat.id === "best")).toBe(false);
     const cards = propsOf<{ children: ReactNode[] }>(
       running.metrics!.cards,
@@ -637,20 +652,20 @@ describe("experimentResultsModel with a study", () => {
         driving,
       ),
     });
-    expect(constrained.header.stats.map((stat) => stat.label)).toEqual([
-      "Selection",
+    expect(detailsOf(constrained).stats.map((stat) => stat.label)).toEqual([
+      "Runs sampled",
       "Errors",
-      "Time",
+      "Simulation time",
       "Steps",
       "Steps clear",
     ]);
-    const stepsClear = constrained.header.stats.find(
+    const stepsClear = detailsOf(constrained).stats.find(
       (stat) => stat.id === "steps-clear",
     )!;
     expect(stepsClear.value.text).toMatch(/^\d+ \/ \d+ · \d+%$/u);
-    expect(stepsClear.widest).toBe("30 / 30 · 100%");
     expect(
-      constrained.header.stats.find((stat) => stat.id === "steps")?.value.text,
+      detailsOf(constrained).stats.find((stat) => stat.id === "steps")?.value
+        .text,
     ).toBe("4 / 30 · 60 runs each");
     const cards = propsOf<{ children: ReactNode[] }>(
       constrained.metrics!.cards,

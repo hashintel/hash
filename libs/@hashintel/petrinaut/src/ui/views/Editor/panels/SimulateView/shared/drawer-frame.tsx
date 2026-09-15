@@ -137,7 +137,7 @@ const noteRowStyle = css({
 });
 
 export type DrawerFrameProps = {
-  /** One line: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
+  /** One line: `SIR transmission sweep`. */
   title: string;
   /** The title line's right side while at rest: the study's progress line. */
   headline?: ReactNode | null;
