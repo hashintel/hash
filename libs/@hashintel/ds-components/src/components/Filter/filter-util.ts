@@ -290,11 +290,8 @@ export const normalizeSlots = (
   });
 
 /**
- * Whether any select segment's dropdown is open, derived from the DOM (the
- * segment's trigger carries zag's `data-state`) rather than tracked in a
+ * Derived from the DOM (the segment's trigger carries zag's `data-state`) rather than tracked in a
  * ref: an open select can unmount without ever firing `onOpenChange(false)`
- * — an external value reset, a switch to another operator — which would
- * strand any tracked state as permanently "open".
  */
 export const isSelectDropdownOpen = (
   segments: Array<HTMLElement | null>,
@@ -307,11 +304,9 @@ export const isSelectDropdownOpen = (
 
 /**
  * Focus a segment on the chip's behalf without surfacing the focus ring:
- * programmatic focus following a click often still matches `:focus-visible`
- * (and text inputs always do), which flashes a keyboard ring the user never
- * asked for. A marker on the chip root blanks `--filter-ring` (see the
- * recipe) until the next real interaction — a key press, pointer press, or
- * focus moving on — each of which lifts it.
+ * programmatic focus following a click often still matches `:focus-visible`,
+ * which flashes a keyboard ring the user never asked for. A marker on
+ * the chip root blanks `--filter-ring` until the next real interaction.
  */
 export const focusWithoutRing = (
   chipRoot: HTMLElement,
@@ -330,13 +325,9 @@ export const focusWithoutRing = (
   target.focus();
 };
 
-// ── Abandoned-chip dismissal (FilterGroup's `dismissAbandoned`) ──────────────
-
 /** How long the group sits untouched before abandoned chips start fading. */
 export const ABANDONED_GRACE_MS = 1000;
-/** How long the abandoned fade-out runs before the chips are removed. */
 export const ABANDONED_FADE_MS = 2000;
-
 /** How long a chip's width-collapse removal runs before onRemove fires. */
 export const CHIP_COLLAPSE_MS = 200;
 
@@ -346,22 +337,13 @@ export const abandonedFadeStyle: CSSProperties = {
   transition: `opacity ${ABANDONED_FADE_MS}ms ease-out`,
 };
 
-/**
- * Whether removing this chip should animate: inside a FilterGroup, removal
- * reflows the sibling chips, so a width collapse keeps the row from
- * snapping; a standalone chip leaves nothing behind to reflow. Reduced
- * motion always removes instantly.
- */
 export const shouldAnimateChipRemoval = (root: HTMLElement | null): boolean =>
   !!root?.closest("[data-part=filter-group]") &&
   !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
  * Kick off the chip's width collapse: pin the measured width, then
- * transition it to zero over {@link CHIP_COLLAPSE_MS}. Inline styles (not
- * the React style prop) so the measure→transition sequence is not at the
- * mercy of commit timing; a collapse always ends in the chip unmounting, so
- * the styles are never undone.
+ * transition it to zero over.
  */
 export const startChipCollapse = (root: HTMLElement): void => {
   const { style } = root;
@@ -378,11 +360,8 @@ export const startChipCollapse = (root: HTMLElement): void => {
  * Whether the chip currently counts as abandonable: it is removeable and its
  * draft is incomplete — no operator chosen, or at least one input empty. The
  * committed value is deliberately not consulted: emptying an input of a
- * previously committed chip makes it abandonable again. An operator without
- * inputs has nothing left to fill in, so it is never "abandoned" (its commit
- * is the parent's responsibility); a disabled chip cannot be interacted
- * with, so it is never dismissed out from under the user either.
- */
+ * previously committed chip makes it abandonable again.
+ * */
 export const isAbandonable = ({
   removeable,
   disabled,
@@ -403,26 +382,11 @@ export const isAbandonable = ({
     inputConfigsOf(selectedOperator).length === 0
   );
 
-/** A member chip's registration handle with its dismissing FilterGroup. */
 export interface AbandonableChip {
-  /** Whether the chip currently counts as abandoned (see {@link isAbandonable}). */
   isAbandonable: () => boolean;
-  /**
-   * Remove the chip (width collapse, then `removeable.onRemove`). Called on
-   * every registered chip when the group's fade completes; a chip that is no
-   * longer abandonable — e.g. completed mid-fade by an external value commit
-   * — ignores it.
-   */
   dismiss: () => void;
 }
 
-/**
- * What a `FilterGroup` with `dismissAbandoned` provides to its member chips:
- * the shared fade phase — each abandonable chip renders
- * {@link abandonedFadeStyle} while `fading` is set — and registration for
- * the final dismissal call. `null` (the default) for standalone chips and
- * non-dismissing groups, which skip all abandonment work.
- */
 export interface FilterGroupAbandonment {
   fading: boolean;
   register: (chip: AbandonableChip) => () => void;
@@ -433,24 +397,8 @@ export const FilterGroupAbandonmentContext =
 
 /**
  * Drives a FilterGroup's abandoned-chip countdown: once the user focuses or
- * clicks outside the group while a member chip is abandonable, waits
- * {@link ABANDONED_GRACE_MS}, fades via `onFadingChange(true)`, and after
- * {@link ABANDONED_FADE_MS} dismisses every registered chip. Each chip
- * re-checks its own eligibility for both the fade and the dismissal, so one
- * rescued mid-countdown (e.g. by an external value commit) is spared without
- * notifying the controller. Any pointer or focus interaction back inside the
- * group cancels the countdown and undoes an in-progress fade; because
- * dismissal only ever fires with the user outside the group, it can never
- * disturb an interaction — no held/deferred removal is needed.
- *
- * "Inside" is decided against the group root after the triggering event's
- * fallout settles (a deferred tick): the chips' dropdowns render in portals,
- * so their interactions land outside the root DOM-wise, but while one is
- * open its trigger inside the root is flagged via
- * `data-state="open"`/`aria-expanded="true"` — an open overlay therefore
- * counts as inside, as does focus resting anywhere in the root.
- *
- * Installs the document listeners on call; returns cleanup that also cancels.
+ * clicks outside the group while a member chip is abandonable, waits, then fades
+ * out any chips with empty input.
  */
 export const attachAbandonmentController = ({
   getRoot,
