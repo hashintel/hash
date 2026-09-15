@@ -2081,6 +2081,11 @@ const ConversationAiAssistantPanel = ({
     submitVoiceInput,
   });
   /* eslint-enable react-hooks-js/refs */
+  const hiddenAutomaticToolNames = new Set(
+    aiAssistant.automaticTools
+      ?.filter(({ visibility }) => visibility === "hidden")
+      .map(({ toolName }) => toolName),
+  );
 
   return (
     <AiAssistantContents
@@ -2098,6 +2103,7 @@ const ConversationAiAssistantPanel = ({
       isOpen={isAiAssistantOpen}
       hostAttentionCount={hostAttentionCount}
       hostTabSelected={hostTabSelected}
+      hiddenToolNames={hiddenAutomaticToolNames}
       messages={messages}
       onClearMessages={() => {
         abortAutomaticTools();

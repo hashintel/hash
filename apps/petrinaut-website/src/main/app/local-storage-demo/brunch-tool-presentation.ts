@@ -17,7 +17,6 @@ export const visibleOrdinaryBrunchToolNames = [
   "read_petrinaut_docs",
   "read_petrinaut_net",
   "read_petrinaut_diagnostics",
-  "layout_petrinaut_net",
   "mutate_petrinaut_net",
   "read_workpiece",
   "query_workpiece",
@@ -43,9 +42,9 @@ const lifecycleTitles = {
     error: "Could not activate skill",
   },
   read_skill_resource: {
-    pending: "Reading skill resource",
-    success: "Read skill resource",
-    error: "Could not read skill resource",
+    pending: "Reviewing modelling guidance",
+    success: "Reviewed modelling guidance",
+    error: "Could not review modelling guidance",
   },
   mutate_workpiece: {
     pending: "Updating ledger",
@@ -66,11 +65,6 @@ const lifecycleTitles = {
     pending: "Checking model diagnostics",
     success: "Checked model diagnostics",
     error: "Could not check model diagnostics",
-  },
-  layout_petrinaut_net: {
-    pending: "Laying out model",
-    success: "Laid out model",
-    error: "Could not lay out model",
   },
   mutate_petrinaut_net: {
     pending: "Updating model",
@@ -162,9 +156,9 @@ const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
   }
   if (record.includeContent === false && !includesSources) {
     return {
-      pending: "Checking workpiece revision",
-      success: "Checked workpiece revision",
-      error: "Could not check workpiece revision",
+      pending: "Checking Ledger revision",
+      success: "Checked Ledger revision",
+      error: "Could not check Ledger revision",
     };
   }
   return {

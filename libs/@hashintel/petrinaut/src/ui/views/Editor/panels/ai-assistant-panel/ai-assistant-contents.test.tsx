@@ -2209,6 +2209,16 @@ describe("AiAssistantContents", () => {
             state: "output-available",
             output: { applied: false, reason: "Nothing changed" },
           },
+          {
+            type: "dynamic-tool",
+            toolName: "six",
+            toolCallId: "preserved-detail",
+            state: "output-available",
+            output: {
+              title: "Default result title",
+              detail: "Viewport frame: framed.",
+            },
+          },
         ],
       },
     ] as PetrinautAiMessage[];
@@ -2223,6 +2233,7 @@ describe("AiAssistantContents", () => {
         status="streaming"
         resolveToolPresentation={({ error, output, state, toolName }) => {
           if (toolName === "unknown-tool") return undefined;
+          if (toolName === "six") return { title: "Completed six" };
           const verb =
             state === "pending"
               ? toolName === "one"
@@ -2267,6 +2278,59 @@ describe("AiAssistantContents", () => {
     expect(screen.getByText("Not applied")).not.toBeNull();
     expect(screen.getByText("Nothing changed")).not.toBeNull();
     expect(screen.queryByText("Completed five")).toBeNull();
+    expect(
+      within(screen.getByText("Completed six").closest("button")!).getByTestId(
+        "tool-detail",
+      ).textContent,
+    ).toBe("Viewport frame: framed.");
+  });
+
+  test("hides configured tool rows without removing their message parts", () => {
+    const hiddenPart = {
+      type: "dynamic-tool" as const,
+      toolName: "layout_petrinaut_net",
+      toolCallId: "hidden-layout",
+      state: "input-available" as const,
+      input: {},
+    };
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-hidden-tool",
+        role: "assistant",
+        parts: [
+          hiddenPart,
+          {
+            type: "dynamic-tool",
+            toolName: "read_petrinaut_diagnostics",
+            toolCallId: "visible-diagnostics",
+            state: "input-available",
+            input: {},
+          },
+        ],
+      },
+    ];
+
+    render(
+      <AiAssistantContents
+        hiddenToolNames={new Set(["layout_petrinaut_net"])}
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        resolveToolPresentation={({ toolName }) => ({
+          title: `Rendered ${toolName}`,
+        })}
+        status="streaming"
+      />,
+    );
+
+    expect(screen.queryByText("Rendered layout_petrinaut_net")).toBeNull();
+    expect(
+      screen.getByText("Rendered read_petrinaut_diagnostics"),
+    ).not.toBeNull();
+    expect(messages[0]?.parts[0]).toBe(hiddenPart);
   });
 
   test("keeps completed changes as individual rows", () => {

@@ -504,7 +504,7 @@ describe("local storage demo Brunch voice integration", () => {
         output: {},
         error: undefined,
       }),
-    ).toEqual({ title: "Laid out model", detail: undefined });
+    ).toBeUndefined();
     expect(
       aiAssistant.interactiveTools?.some(
         ({ toolName }) => toolName === "brunch_ask",
@@ -1422,7 +1422,7 @@ describe("local storage demo prepared fixture", () => {
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Laying out model", detail: undefined });
+    ).toBeUndefined();
     expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),

@@ -82,6 +82,7 @@ const readDiagnosticsTool: PetrinautAiAutomaticTool = {
  */
 const layoutNetTool: PetrinautAiAutomaticTool = {
   toolName: layoutPetrinautNetToolName,
+  visibility: "hidden",
   inputSchema: aiCommandActionInputSchemas.applyAutoLayout,
   outputSchema: passthrough,
   execute: async ({ input, commands, viewport }) => {
