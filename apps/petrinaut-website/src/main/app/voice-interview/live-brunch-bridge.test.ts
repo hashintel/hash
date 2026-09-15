@@ -858,6 +858,108 @@ test("repeated stopped snapshots retain a later turn", async () => {
   );
 });
 
+test("entering error interrupts pending work once and suppresses its late result", async () => {
+  const fixture = setup();
+  let release = () => {};
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    input.onAdmission("root");
+    return { kind: "message", messageId: "user", submissionId: "root" };
+  });
+  fixture.bridge.acceptDelegation("pending");
+  const pending = fixture.bridge.accept({ id: "one", text: "First" });
+  fixture.bridge.acceptDelegation("unclaimed");
+
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions.mock.calls).toEqual([
+    [expect.stringContaining("Ask the person to continue"), "pending"],
+    [expect.stringContaining("Ask the person to continue"), "unclaimed"],
+  ]);
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions).toHaveBeenCalledTimes(2);
+
+  release();
+  await pending;
+  fixture.bridge.responseStarted(started);
+  fixture.bridge.responseCompleted({
+    ...started,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({ segments: [segment()], settlements: completed });
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  expect(fixture.appendInstructions).toHaveBeenCalledTimes(2);
+  expect(fixture.submit).toHaveBeenCalledOnce();
+});
+
+test("repeated error snapshots retain a pending recovery turn until ready settlement", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("original");
+  await fixture.bridge.accept({ id: "one", text: "First" });
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Ask the person to continue"),
+    "original",
+  );
+  fixture.appendInstructions.mockClear();
+
+  let release = () => {};
+  fixture.submit.mockImplementationOnce(async (input) => {
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    input.onAdmission("recovery");
+    return { kind: "message", messageId: "two", submissionId: "recovery" };
+  });
+  fixture.bridge.acceptDelegation("recovery-delegation");
+  const recovery = fixture.bridge.accept({ id: "two", text: "Try again" });
+  fixture.update({ status: "error" });
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+
+  release();
+  await recovery;
+  const response = {
+    ...started,
+    messageId: "recovery-answer",
+    submissionId: "recovery",
+  };
+  fixture.bridge.responseStarted(response);
+  fixture.bridge.responseCompleted({
+    ...response,
+    position: { batch: 2, index: 0 },
+  });
+  const chat = {
+    segments: [
+      {
+        ...segment("Recovery answer"),
+        messageId: "recovery-answer",
+        submissionIds: ["recovery"],
+      },
+    ],
+    settlements: [{ submissionId: "recovery", outcome: "completed" as const }],
+  };
+  fixture.update({ ...chat, status: "error" });
+  expect(fixture.appendInstructions).not.toHaveBeenCalled();
+  expect(fixture.appendCommentary).not.toHaveBeenCalled();
+  fixture.update(chat);
+  fixture.update(chat);
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Recovery answer",
+    "recovery-delegation",
+  );
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+
+  fixture.bridge.acceptDelegation("next");
+  await fixture.bridge.accept({ id: "three", text: "Next question" });
+  fixture.update({ status: "error" });
+  expect(fixture.appendInstructions).toHaveBeenCalledExactlyOnceWith(
+    expect.stringContaining("Ask the person to continue"),
+    "next",
+  );
+});
+
 test("a locally refused long commentary is offered intact once without truncation or replay", async () => {
   const fixture = setup();
   fixture.appendCommentary.mockReturnValue(false);
