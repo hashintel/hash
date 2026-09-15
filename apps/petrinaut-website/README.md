@@ -115,6 +115,25 @@ With Brunch configured, `/?brunchTracer=construction` opens a separately identif
 
 This candidate proves only root arc/weight progression. Other root classes, deletion/recreation, arc connectivity changes, layout/title, components and subnets are unavailable, not silently approximated. The why result keeps origin separate from subsequent recorded changes and attempts; weight corrections resolve their own governing revision. Basis remains operation-level and semantic utility unassessed. Unrecorded intervening content prevents attribution; failed, stale, no-op and conflicting results are not causes. `test:construction-progression` uses actual Chrome with synthetic native SDK responses, not paid or genuine/provider-class admission.
 
+## Snapshot links
+
+**Share** in the top bar captures a document for a self-contained `/share#v1.br.<payload>`
+link. The optional current view uses the same validated query parameters as example
+and local-document routes. View navigation preserves the fragment, and browser
+history can move between snapshots.
+
+Snapshots use compact canonical JSON, Brotli quality 11, and unpadded base64url.
+The codec loads in a dedicated worker when needed. Encoding and decoding cap the
+document at 2 MiB and the fragment at 16,000 characters; decoding enforces its
+output limit incrementally. Each worker is terminated on completion, cancellation,
+or a 30-second timeout. Larger documents can be downloaded from the Share dialog.
+
+A snapshot opens read-only without writing a saved document. **Make a local copy**
+creates a new UUID and preserves the current view. Snapshot fragments are removed
+from Sentry events, transactions, spans, and breadcrumbs before transmission.
+
+See the [sharing guide](../../libs/@hashintel/petrinaut/docs/sharing.md) for the user flow.
+
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
