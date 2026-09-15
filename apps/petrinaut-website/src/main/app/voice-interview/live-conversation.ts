@@ -158,6 +158,7 @@ export const createLiveConversation = (
     );
     try {
       audio = new Audio();
+      audio.autoplay = true;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (abort.signal.aborted) {
         stream.getTracks().forEach((track) => track.stop());
@@ -240,13 +241,11 @@ export const createLiveConversation = (
         }
         if (!audio) return;
         audio.srcObject = event.streams[0] ?? new MediaStream([event.track]);
-        void audio
-          .play()
-          .catch(() =>
-            fail(
-              "Browser blocked Live playback. Start a new session after checking audio permissions.",
-            ),
-          );
+        try {
+          void audio.play().catch(() => undefined);
+        } catch {
+          // Autoplay remains enabled; the media element will retry on audio.
+        }
       });
       stream.getTracks().forEach((track) => {
         track.addEventListener(

@@ -358,6 +358,7 @@ test("plays the remote track while microphone remains attached, then stops both"
     }),
   );
   expect(fixture.audio.srcObject).toBe(remoteStream);
+  expect(fixture.audio.autoplay).toBe(true);
   expect(fixture.audio.play).toHaveBeenCalledOnce();
   expect(fixture.peer.addTrack).toHaveBeenCalledWith(
     fixture.input,
@@ -369,6 +370,24 @@ test("plays the remote track while microphone remains attached, then stops both"
   await stopped;
   expect(fixture.audio.pause).toHaveBeenCalled();
   expect(fixture.input.stop).toHaveBeenCalled();
+});
+
+test("keeps the Live session connected when browser playback is initially blocked", async () => {
+  const fixture = setup();
+  fixture.audio.play.mockRejectedValueOnce(new Error("Playback blocked"));
+  await fixture.conversation.start();
+  fixture.emit({ type: "session.started" });
+  fixture.peer.dispatchEvent(
+    Object.assign(new Event("track"), {
+      track: fixture.output,
+      streams: [{ getTracks: () => [fixture.output] }],
+    }),
+  );
+  await Promise.resolve();
+
+  expect(fixture.input.stop).not.toHaveBeenCalled();
+  expect(fixture.output.stop).not.toHaveBeenCalled();
+  expect(fixture.onState.mock.lastCall?.[0].phase).toBe("connected");
 });
 
 test("reports local audio activity without treating silence or transcripts as turn completion", async () => {
