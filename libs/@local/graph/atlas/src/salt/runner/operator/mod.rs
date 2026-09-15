@@ -222,12 +222,12 @@ enum RunErrorKind {
 /// the underlying failure, including runner errors whose concrete type is crate-private.
 #[derive(Debug)]
 pub struct RunError {
-    kind: RunErrorKind,
+    kind: Box<RunErrorKind>,
 }
 
 impl core::fmt::Display for RunError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match &self.kind {
+        match &*self.kind {
             RunErrorKind::Snapshot(_) => {
                 fmt.write_str("the store could not open a snapshot transaction")
             }
@@ -256,7 +256,7 @@ impl core::fmt::Display for RunError {
 
 impl core::error::Error for RunError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match &self.kind {
+        match &*self.kind {
             RunErrorKind::Snapshot(error) => Some(error),
             RunErrorKind::Dump(error) => Some(error),
             RunErrorKind::DumpEmbedder(error) => Some(error),
@@ -270,74 +270,74 @@ impl core::error::Error for RunError {
     }
 }
 
-const impl From<PostgresDatasetError> for RunError {
+impl From<PostgresDatasetError> for RunError {
     fn from(error: PostgresDatasetError) -> Self {
         Self {
-            kind: RunErrorKind::Snapshot(error),
+            kind: Box::new(RunErrorKind::Snapshot(error)),
         }
     }
 }
 
-const impl From<OpenDumpError> for RunError {
+impl From<OpenDumpError> for RunError {
     fn from(error: OpenDumpError) -> Self {
         Self {
-            kind: RunErrorKind::Dump(error),
+            kind: Box::new(RunErrorKind::Dump(error)),
         }
     }
 }
 
-const impl From<OfflineDatasetError> for RunError {
+impl From<OfflineDatasetError> for RunError {
     fn from(error: OfflineDatasetError) -> Self {
         Self {
-            kind: RunErrorKind::DumpEmbedder(error),
+            kind: Box::new(RunErrorKind::DumpEmbedder(error)),
         }
     }
 }
 
-const impl From<VerdictSupplyError> for RunError {
+impl From<VerdictSupplyError> for RunError {
     fn from(error: VerdictSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Verdicts(error),
+            kind: Box::new(RunErrorKind::Verdicts(error)),
         }
     }
 }
 
-const impl From<ThresholdSupplyError> for RunError {
+impl From<ThresholdSupplyError> for RunError {
     fn from(error: ThresholdSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Thresholds(error),
+            kind: Box::new(RunErrorKind::Thresholds(error)),
         }
     }
 }
 
-const impl From<AnnotationSupplyError> for RunError {
+impl From<AnnotationSupplyError> for RunError {
     fn from(error: AnnotationSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Annotations(error),
+            kind: Box::new(RunErrorKind::Annotations(error)),
         }
     }
 }
 
-const impl From<ClassifierSupplyError> for RunError {
+impl From<ClassifierSupplyError> for RunError {
     fn from(error: ClassifierSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Classifier(error),
+            kind: Box::new(RunErrorKind::Classifier(error)),
         }
     }
 }
 
-const impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
+impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
     fn from(error: RunnerError<PostgresDatasetError, ExternalEmbeddingError>) -> Self {
         Self {
-            kind: RunErrorKind::Run(error),
+            kind: Box::new(RunErrorKind::Run(error)),
         }
     }
 }
 
-const impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
+impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
     fn from(error: RunnerError<OfflineDatasetError, MissingCardText>) -> Self {
         Self {
-            kind: RunErrorKind::OfflineRun(error),
+            kind: Box::new(RunErrorKind::OfflineRun(error)),
         }
     }
 }

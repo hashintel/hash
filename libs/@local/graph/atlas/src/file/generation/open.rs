@@ -52,7 +52,6 @@ impl Generation {
 
     /// Returns the verified metadata and its original JSON encoding.
     #[must_use]
-    #[cfg(test)]
     pub(crate) const fn document(&self) -> &GenerationDocument {
         &self.document
     }
