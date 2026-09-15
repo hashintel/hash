@@ -25,7 +25,7 @@ Choose **Dock AI assistant** to return it to the right sidebar. Switching betwee
 
 Hovering a floating side highlights its straight border, fading out before each corner. Hovering a corner highlights its rounded border and fades along the two adjoining edges. Drag the corner to resize both dimensions.
 
-The header icons animate on hover and click, respecting your reduced-motion preference.
+The header text is not selectable. Its icons animate on hover and click, respecting your reduced-motion preference.
 
 ## The conversation
 

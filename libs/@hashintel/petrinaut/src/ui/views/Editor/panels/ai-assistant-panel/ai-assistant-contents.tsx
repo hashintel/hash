@@ -244,6 +244,7 @@ const voiceModeStyle = cva({
 
 const headerStyle = css({
   position: "relative",
+  userSelect: "none",
   display: "flex",
   alignItems: "center",
   gap: "1",
