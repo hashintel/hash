@@ -280,11 +280,12 @@ export class LiveBrunchBridge {
         stopped: this.#chat.stopped === true,
         status: this.#chat.status,
       });
+      this.#unserved(turn.delegationId);
     }
-    if (!this.#chat.stopped) {
-      for (const turn of this.#turns) this.#unserved(turn.delegationId);
-    }
+    for (const delegationId of this.#unclaimedDelegations)
+      this.#unserved(delegationId);
     this.#turns.clear();
+    this.#unclaimedDelegations.clear();
     this.#waitingForComposer = undefined;
   }
 

@@ -756,6 +756,70 @@ test("Stop withdraws only unsubmitted input and suppresses late settlements and 
   expect(fixture.submit).toHaveBeenCalledOnce();
 });
 
+test("response-only Stop resolves attached and unclaimed delegations before a later utterance", async () => {
+  const fixture = setup();
+  fixture.bridge.acceptDelegation("attached");
+  await fixture.bridge.accept({ id: "one", text: "First" });
+  fixture.bridge.acceptDelegation("unclaimed");
+
+  fixture.bridge.stopResponse();
+
+  expect(fixture.appendInstructions.mock.calls).toEqual([
+    [
+      expect.stringContaining(
+        "Ask the person to continue. Do not claim the work completed",
+      ),
+      "attached",
+    ],
+    [
+      expect.stringContaining(
+        "Ask the person to continue. Do not claim the work completed",
+      ),
+      "unclaimed",
+    ],
+  ]);
+
+  fixture.submit.mockImplementationOnce(async (input) => {
+    input.onAdmission("second");
+    return {
+      kind: "message",
+      messageId: "second-input",
+      submissionId: "second",
+    };
+  });
+  await fixture.bridge.accept({ id: "two", text: "Continue" });
+  const secondResponse = {
+    ...started,
+    messageId: "second-answer",
+    submissionId: "second",
+  };
+  fixture.bridge.responseStarted(secondResponse);
+  fixture.bridge.update({
+    status: "streaming",
+    canAcceptVoiceInput: true,
+    segments: [],
+    settlements: [],
+  });
+  fixture.bridge.responseCompleted({
+    ...secondResponse,
+    position: { batch: 2, index: 0 },
+  });
+  fixture.update({
+    segments: [
+      {
+        ...segment("Continue with the next question."),
+        messageId: "second-answer",
+        submissionIds: ["second"],
+      },
+    ],
+    settlements: [{ submissionId: "second", outcome: "completed" }],
+  });
+  expect(fixture.appendCommentary).toHaveBeenCalledExactlyOnceWith(
+    "Continue with the next question.",
+    null,
+  );
+});
+
 test("a locally stopped or failed turn cannot turn earlier successful prose into success speech", async () => {
   const fixture = setup();
   await fixture.bridge.accept({ id: "one", text: "First" });
