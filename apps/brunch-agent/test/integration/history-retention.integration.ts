@@ -948,7 +948,14 @@ try {
       originalRevision?.type === "dynamic-tool" &&
         originalRevision.state === "output-available",
     );
-    const reconciledMarkdown = `${seed.markdown}\n\nA4 reconciled after fresh-process reopen.`;
+    const reconciledSentence = "A4 reconciled after fresh-process reopen.";
+    const reconciledMarkdown = `${seed.markdown}\n\n${reconciledSentence}`;
+    // The model cites the snapshot message id it sees as `[message <id>]`; both
+    // must be the same id or every evidence declaration would be refused.
+    const trueUserSource = reopened.messages.find(
+      (message) => message.role === "user" && message.purpose === "user",
+    );
+    assert(trueUserSource);
     responses.push(
       tools("read_workpiece", {}, "a4-reopened-workpiece-read"),
       tools(
@@ -957,6 +964,13 @@ try {
           markdown: reconciledMarkdown,
           baseRevisionId: (originalRevision.output as { revisionId: string })
             .revisionId,
+          evidence: [
+            {
+              text: reconciledSentence,
+              messageIds: [trueUserSource.id],
+              kind: "elicited",
+            },
+          ],
         },
         "a4-reopened-workpiece-mutation",
       ),
@@ -977,7 +991,21 @@ try {
       countExactString(rereadContext.context, seed.markdown) > 0,
       "The fresh-process provider must receive the exact reread Markdown",
     );
+    const projectedIds = [
+      ...JSON.stringify(rereadContext.context.messages).matchAll(
+        /\[message ([^\]]+)\]/g,
+      ),
+    ].map((match) => match[1]);
     const continued = await client.history();
+    const rereadRequest = continued.messages.findLast(
+      (message) => message.role === "user" && message.purpose === "user",
+    );
+    assert(rereadRequest);
+    assert.deepEqual(
+      projectedIds,
+      [rereadRequest.id],
+      "The projected context labels the in-context true-user message with its snapshot id (earlier ones sit inside the compaction summary)",
+    );
     const reread = continued.messages
       .flatMap((message) => message.parts)
       .find(
@@ -1011,6 +1039,25 @@ try {
     assert(
       !("markdown" in (reconciled.output as Record<string, unknown>)),
       "Reconciled canonical output remains pointer-only",
+    );
+    const reconciledOutput = reconciled.output as {
+      evidenceValidated?: true;
+      evidence?: {
+        locator: { start: number; end: number };
+        messageIds: string[];
+      }[];
+    };
+    assert.equal(reconciledOutput.evidenceValidated, true);
+    assert.deepEqual(
+      reconciledOutput.evidence?.map((relation) => ({
+        messageIds: relation.messageIds,
+        span: reconciledMarkdown.slice(
+          relation.locator.start,
+          relation.locator.end,
+        ),
+      })),
+      [{ messageIds: [trueUserSource.id], span: reconciledSentence }],
+      "Text-declared evidence resolves to a locator against the cited snapshot message id",
     );
     await save("projection-reopened.json", continued);
   } else if (phase === "create") {

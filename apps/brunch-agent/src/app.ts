@@ -23,6 +23,7 @@ import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
 import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
 import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
+import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
 import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
@@ -35,6 +36,7 @@ import {
   WORKED_MODELS_ROUTE,
 } from "./http/routes.ts";
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
+import { logger } from "./logger.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
@@ -63,6 +65,20 @@ instrument({
     liveToolObserver.dispose();
     liveToolBroadcaster.close();
   },
+});
+// One line per settled submission: every model request with its time to
+// first event and each tool call's argument-streaming profile, so a provider
+// stall reads differently from slow generation. Ids and durations only.
+const turnChronologyObserver = createTurnChronologyObserver(
+  ChatAgent.agentName,
+  (chronology) =>
+    logger.info("[brunch] flue.submission chronology", chronology),
+);
+instrument({
+  key: Symbol.for("brunch.turn-chronology"),
+  observe: turnChronologyObserver.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose: turnChronologyObserver.dispose,
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is an async execution flag, never a proposal/state ledger.

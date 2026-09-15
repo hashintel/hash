@@ -94,11 +94,17 @@ test("accepts retained pointer-only update output", () => {
 
 test("persists Markdown with the pointer", async () => {
   await run("# First", "first");
+  const result = await run(
+    "# Second",
+    "second",
+    [{ text: "# Second", messageIds: [], kind: "default" }],
+    "first",
+  );
+  const { mutation: _mutation, ...pointer } = result.output;
   const evidence = [
     { locator: { start: 0, end: 8 }, messageIds: [], kind: "default" },
   ];
-  const result = await run("# Second", "second", evidence, "first");
-  const { mutation: _mutation, ...pointer } = result.output;
+  expect(pointer).toMatchObject({ evidence, evidenceValidated: true });
   expect(current).toEqual({
     ...pointer,
     markdown: "# Second",
@@ -183,27 +189,39 @@ test("captures the persistent-state setter at render and writes from run", async
   );
   expect(revisionTool).toBeDefined();
   expect(prompt).toContain(
-    "call `mutate_workpiece` with the full next Markdown account",
+    "Settlement is one direct `mutate_workpiece` call with the full next Markdown account",
   );
   expect(prompt).toContain("as soon as one consequential distinction exists");
-  expect(prompt).toContain("after each useful stretch or correction");
   expect(prompt).toContain(
-    "Use a full `read_workpiece` only when content changed",
+    "ask at most one focused follow-up on the same thread before settling",
+  );
+  expect(prompt).toContain("Do not read before settling.");
+  expect(prompt).toContain(
+    "cited by the literal text of the passage it supports plus the `[message <id>]` ids",
   );
   expect(prompt).toContain(
-    "draft the full candidate first, then combine source discovery and candidate locator lookup in one `read_workpiece` call",
+    "read a user message by id only to check a correction or conflict",
   );
   expect(elicitationSkill.instructions).toContain(
-    "`includeContent: false`, `includeSources: true`, candidate `markdown`, and `locateTexts` in one call",
+    "Declare new evidence inside the same settlement.",
   );
-  const cadence =
-    "Create a first partial workpiece as soon as one consequential distinction exists, then update after each useful stretch or correction and before delivery.";
-  expect(revisionTool?.description).toContain(cadence);
-  expect(prompt).toContain(cadence);
-  expect(elicitationSkill.instructions).toContain(cadence);
+  expect(elicitationSkill.instructions).toContain(
+    "each true-user message is prefixed with a `[message <id>]` line",
+  );
   expect(revisionTool?.description).toContain(
-    "update after each useful stretch or correction",
+    "Declare evidence by literal text copied from this submitted Markdown",
   );
+  expect(revisionTool?.description).toContain("no read precedes a settlement");
+  for (const retired of [
+    "useful stretch",
+    "includeSources",
+    "candidate Markdown",
+    "unsettled-candidate",
+  ]) {
+    expect(prompt).not.toContain(retired);
+    expect(elicitationSkill.instructions).not.toContain(retired);
+    expect(revisionTool?.description).not.toContain(retired);
+  }
   expect(revisionTool?.description).toContain(
     "Never combine it with browser construction in one batch",
   );
@@ -265,11 +283,7 @@ test("rejects unstructured or unauthorized evidence before writing state", async
   ).rejects.toThrow(/array/iu);
   await expect(
     run("# Current", "bad-source", [
-      {
-        locator: { start: 0, end: 9 },
-        kind: "elicited",
-        messageIds: ["not-authorized"],
-      },
+      { text: "# Current", kind: "elicited", messageIds: ["not-authorized"] },
     ]),
   ).rejects.toThrow("authorized true-user");
   expect(current).toBeNull();
@@ -338,8 +352,16 @@ test.each([
           ...(failure === "later-explicit-span"
             ? {
                 evidence: [
-                  elicited,
-                  { ...formalism, locator: { start: 0, end: 1000 } },
+                  {
+                    text: "Reserve one crew.",
+                    messageIds: ["user-1"],
+                    kind: "elicited",
+                  },
+                  {
+                    text: "Not in this Markdown.",
+                    messageIds: ["user-2"],
+                    kind: "formalism-constraint",
+                  },
                 ],
               }
             : {}),
@@ -354,7 +376,7 @@ test.each([
         },
       }),
     ).rejects.toThrow(
-      /authorized true-user|outside the immutable revision|abort|changed while this revision was prepared/iu,
+      /authorized true-user|must occur exactly once|abort|changed while this revision was prepared/iu,
     );
     expect(current).toBe(expectedState);
     expect(current.evidence).toEqual(evidence);
@@ -425,7 +447,7 @@ test("an acquisition refusal or cancellation cannot settle even an evidence-abse
   expect(current).toBeNull();
 });
 
-test("discovers every authorized true-user source ID and truncates long excerpts", async () => {
+test("reads only requested authorized user sources by id, truncates excerpts and lists refused ids", async () => {
   const long = "x".repeat(8193);
   const sources = [
     ...Array.from({ length: 21 }, (_, index) => ({
@@ -452,87 +474,70 @@ test("discovers every authorized true-user source ID and truncates long excerpts
     readSources: async () => sources,
   });
   const result = await reader.run({
-    data: { includeSources: true },
+    data: {
+      includeContent: false,
+      sourceIds: ["user-0", "user-7", "assistant-1", "missing"],
+    },
     toolCallId: "read-1",
     log: { info: () => {}, warn: () => {}, error: () => {} },
   });
-  expect(result).toMatchObject({
+  expect(result).toEqual({
     terminate: false,
     output: {
+      currentWorkpiece: null,
+      currentWorkpiecePointer: {
+        revisionId: "rev-1",
+        sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+        ordinal: 1,
+      },
       state: "current",
-      sources: sources
-        .filter((source) => source.role === "user")
-        .map((source, index) => ({
-          id: source.id,
+      sources: [
+        {
+          id: "user-0",
           role: "user",
           purpose: "user",
-          text: index === 0 ? "x".repeat(8192) : source.text,
-          textTruncated: index === 0,
+          text: "x".repeat(8192),
+          textTruncated: true,
           untrusted: true,
-        })),
+        },
+        {
+          id: "user-7",
+          role: "user",
+          purpose: "user",
+          text: "turn 7",
+          textTruncated: false,
+          untrusted: true,
+        },
+      ],
+      refusedSourceIds: ["assistant-1", "missing"],
+      quality:
+        "Source identity and authorship only; relevance, template completeness and utility are unassessed.",
     },
   });
-  expect(result.output).not.toHaveProperty("earlierSourcesOmitted");
 });
 
-test("one focused read carries sources and unsettled-candidate locators without current Markdown", async () => {
-  const currentMarkdown = "# Existing account\nAn earlier claim.";
-  const candidateMarkdown = "# Revised account\nReserve one crew. 👷";
-  const currentRevision = {
-    revisionId: "rev-combined",
-    sha256: createHash("sha256").update(currentMarkdown, "utf8").digest("hex"),
-    ordinal: 3,
-    markdown: currentMarkdown,
-  };
-  const readSources = vi.fn<
-    Parameters<typeof createWorkpieceReadTool>[0]["readSources"]
-  >(async () => [
-    {
-      id: "user-source",
-      role: "user" as const,
-      purpose: "user" as const,
-      text: "Reserve one crew.",
-    },
-  ]);
-  const reader = createWorkpieceReadTool({ currentRevision, readSources });
-
-  const result = await reader.run({
-    data: {
+test("read input rejects the retired candidate and enumeration fields and bounds sourceIds", () => {
+  const reader = createWorkpieceReadTool({
+    currentRevision: null,
+    readSources: async () => [],
+  });
+  for (const rejected of [
+    { includeSources: true },
+    { markdown: "# Candidate", locateTexts: ["Candidate"] },
+    { sourceIds: Array.from({ length: 9 }, (_, index) => `user-${index}`) },
+    { sourceIds: [""] },
+  ])
+    expect(v.safeParse(reader.input, rejected).success).toBe(false);
+  expect(
+    v.safeParse(reader.input, {
       includeContent: false,
-      includeSources: true,
-      markdown: candidateMarkdown,
-      locateTexts: ["Reserve one crew. 👷"],
-    },
-    toolCallId: "combined-read",
-    log: { info: () => {}, warn: () => {}, error: () => {} },
-  });
-
-  expect(readSources).toHaveBeenCalledOnce();
-  expect(result.output.currentWorkpiece).toBeNull();
-  expect(result.output.currentWorkpiecePointer).toMatchObject({
-    revisionId: currentRevision.revisionId,
-    sha256: currentRevision.sha256,
-  });
-  expect(result.output.sources).toMatchObject([
-    { id: "user-source", text: "Reserve one crew." },
-  ]);
-  expect(result.output.locatorLookup).toMatchObject({
-    subject: { kind: "unsettled-candidate" },
-    queries: [
-      {
-        occurrences: [
-          {
-            start: candidateMarkdown.indexOf("Reserve"),
-            end: candidateMarkdown.length,
-          },
-        ],
-      },
-    ],
-  });
-  expect(JSON.stringify(result.output)).not.toContain(currentMarkdown);
+      sourceIds: ["user-1"],
+      locateTexts: ["text"],
+    }).success,
+  ).toBe(true);
 });
 
-test("defaults to current content without source excerpts", async () => {
+test("defaults to current content and never enumerates sources", async () => {
   const markdown = "# Current account";
   const currentRevision = {
     revisionId: "rev-defaults",
@@ -563,56 +568,25 @@ test("defaults to current content without source excerpts", async () => {
     sha256: currentRevision.sha256,
   });
   expect(result.output.sources).toEqual([]);
+  expect(result.output.refusedSourceIds).toEqual([]);
   expect(readSources).not.toHaveBeenCalled();
 
-  const withSources = await reader.run({
+  const empty = await reader.run({ ...context, data: { sourceIds: [] } });
+  expect(empty.output.sources).toEqual([]);
+  expect(readSources).not.toHaveBeenCalled();
+
+  const byId = await reader.run({
     ...context,
-    data: { includeSources: true },
+    data: { sourceIds: ["user-source"] },
   });
-  expect(withSources.output.currentWorkpiece).toEqual(currentRevision);
-  expect(withSources.output.sources).toMatchObject([
+  expect(byId.output.sources).toMatchObject([
     { id: "user-source", text: "Source excerpt" },
   ]);
+  expect(byId.output.refusedSourceIds).toEqual([]);
   expect(readSources).toHaveBeenCalledOnce();
 });
 
-test("refuses candidate Markdown without locator texts as an ordinary result", async () => {
-  const markdown = "# Settled";
-  const currentRevision = {
-    revisionId: "rev-current",
-    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
-    ordinal: 1,
-    markdown,
-  };
-  const readSources = vi.fn<
-    Parameters<typeof createWorkpieceReadTool>[0]["readSources"]
-  >(async () => []);
-  const reader = createWorkpieceReadTool({ currentRevision, readSources });
-
-  const result = await reader.run({
-    data: {
-      includeContent: false,
-      markdown: "# Unsettled candidate",
-    },
-    toolCallId: "invalid-candidate",
-    log: { info: () => {}, warn: () => {}, error: () => {} },
-  });
-
-  expect(result.terminate).toBe(false);
-  expect(result.output.currentWorkpiece).toBeNull();
-  expect(result.output.currentWorkpiecePointer).toMatchObject({
-    revisionId: currentRevision.revisionId,
-  });
-  expect(result.output.locatorLookup).toEqual({
-    subject: { kind: "unsettled-candidate" },
-    reason:
-      "Unsettled candidate Markdown was refused: omit markdown when no locator lookup is needed, or supply locateTexts for the candidate.",
-  });
-  expect(result.output.sources).toEqual([]);
-  expect(readSources).not.toHaveBeenCalled();
-});
-
-test("focused reads return settled identity without retransmitting Markdown", async () => {
+test("focused reads return settled identity and locators without retransmitting Markdown", async () => {
   const markdown = "# Account\nReserve one crew.";
   const currentRevision = {
     revisionId: "rev-focused",
@@ -630,10 +604,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
       text: "Reserve one crew.",
     },
   ]);
-  const reader = createWorkpieceReadTool({
-    currentRevision,
-    readSources,
-  });
+  const reader = createWorkpieceReadTool({ currentRevision, readSources });
   const context = {
     toolCallId: "focused-read",
     log: { info: () => {}, warn: () => {}, error: () => {} },
@@ -641,7 +612,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
 
   const sources = await reader.run({
     ...context,
-    data: { includeContent: false, includeSources: true },
+    data: { includeContent: false, sourceIds: ["user-source"] },
   });
   expect(sources.output).toMatchObject({
     currentWorkpiece: null,
@@ -658,11 +629,7 @@ test("focused reads return settled identity without retransmitting Markdown", as
 
   const locators = await reader.run({
     ...context,
-    data: {
-      includeContent: false,
-      includeSources: false,
-      locateTexts: ["Reserve one crew."],
-    },
+    data: { includeContent: false, locateTexts: ["Reserve one crew."] },
   });
   expect(readSources).toHaveBeenCalledOnce();
   expect(locators.output.sources).toEqual([]);
@@ -674,16 +641,153 @@ test("focused reads return settled identity without retransmitting Markdown", as
     queries: [
       {
         occurrences: [
-          {
-            start: markdown.indexOf("Reserve"),
-            end: markdown.length,
-          },
+          { start: markdown.indexOf("Reserve"), end: markdown.length },
         ],
       },
     ],
   });
   expect(JSON.stringify(locators.output)).not.toContain(markdown);
   await expect(
-    reader.run({ ...context, data: { includeSources: true } }),
+    reader.run({ ...context, data: { sourceIds: ["user-source"] } }),
   ).rejects.toThrow("History is unavailable");
+});
+
+// Evidence by text: the server resolves literal passages of the submitted
+// body; the persisted and returned relations stay locator-form.
+
+test("resolves unique text, selected repeated text and astral-plane text to UTF-16 locators", async () => {
+  const markdown = "# 👷 Crew\n\nReserve one crew.\nReserve one crew.\n";
+  const result = await run(markdown, "by-text", [
+    { text: "👷 Crew", messageIds: [], kind: "inference" },
+    {
+      text: "Reserve one crew.",
+      occurrence: 1,
+      messageIds: [],
+      kind: "default",
+    },
+    { text: "Reserve one crew.\nReserve", messageIds: [], kind: "inference" },
+  ]);
+  const evidence = result.output.evidence!;
+  expect(
+    evidence.map(({ locator }) => markdown.slice(locator.start, locator.end)),
+  ).toEqual(["👷 Crew", "Reserve one crew.", "Reserve one crew.\nReserve"]);
+  expect(evidence[0]!.locator).toEqual({ start: 2, end: 9 });
+  expect(evidence[1]!.locator.start).toBe(
+    markdown.lastIndexOf("Reserve one crew."),
+  );
+  expect(evidence.map((relation) => Object.keys(relation).sort())).toEqual(
+    Array.from({ length: 3 }, () => ["kind", "locator", "messageIds"]),
+  );
+  expect(current).toMatchObject({ evidence, evidenceValidated: true });
+});
+
+test("refuses the whole settlement naming every absent, ambiguous or out-of-range text and writes nothing", async () => {
+  await run("# Base", "base");
+  const before = current;
+  const markdown = "# Base\n\nTwice.\nTwice.\nOnce.";
+  const attempt = run(
+    markdown,
+    "refused",
+    [
+      { text: "Once.", messageIds: [], kind: "default" },
+      { text: "Twice.", messageIds: [], kind: "default" },
+      { text: "Never.", messageIds: [], kind: "default" },
+      { text: "Twice.", occurrence: 2, messageIds: [], kind: "default" },
+      { text: "Once.", occurrence: 0, messageIds: [], kind: "default" },
+    ],
+    "base",
+  );
+  await expect(attempt).rejects.toThrow(
+    /evidence\[1\] matched 2 occurrence\(s\); set occurrence to select one; evidence\[2\] matched 0 occurrence\(s\); evidence\[3\] matched 2 occurrence\(s\); occurrence 2 is out of range\. Nothing was written/u,
+  );
+  await expect(attempt).rejects.not.toThrow(/evidence\[0\]|evidence\[4\]/u);
+  expect(current).toBe(before);
+  expect(
+    v.safeParse(updateWorkpieceInputSchema, {
+      markdown,
+      evidence: [{ text: "", messageIds: [], kind: "default" }],
+    }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(updateWorkpieceInputSchema, {
+      markdown,
+      evidence: [
+        { text: "Once.", occurrence: -1, messageIds: [], kind: "default" },
+      ],
+    }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(updateWorkpieceInputSchema, {
+      markdown,
+      evidence: [
+        {
+          text: "Once.",
+          locator: { start: 0, end: 1 },
+          messageIds: [],
+          kind: "default",
+        },
+      ],
+    }).success,
+  ).toBe(false);
+});
+
+test("an insertion above a cited passage drops the carried relation until it is re-declared by text", async () => {
+  // Carry needs the render's current revision, as the production mount supplies it.
+  const settle = (
+    markdown: string,
+    toolCallId: string,
+    evidence: unknown,
+    baseRevisionId: string | null,
+  ) =>
+    createMutateWorkpieceTool(setRevision, {
+      currentRevision: current,
+      readSources: async () => [],
+    }).run({
+      data: { markdown, evidence, baseRevisionId } as Parameters<
+        typeof tool.run
+      >[0]["data"],
+      toolCallId,
+      log: { info: () => {}, warn: () => {}, error: () => {} },
+      step: {
+        do: () => {
+          throw new Error("No separate state checkpoint");
+        },
+      },
+    });
+  const passage = "Reserve one crew.";
+  const relation = (start: number) => ({
+    locator: { start, end: start + passage.length },
+    messageIds: [],
+    kind: "inference",
+  });
+  const first = "# Account\n\nReserve one crew.";
+  await settle(
+    first,
+    "first",
+    [{ text: passage, messageIds: [], kind: "inference" }],
+    null,
+  );
+  expect(current?.evidence).toEqual([relation(11)]);
+
+  const second = "# Account\n\nContext first.\n\nReserve one crew.";
+  await settle(second, "second", undefined, "first");
+  expect(current?.evidence).toBeUndefined();
+
+  const third = `${second}\n\nMore.`;
+  const result = await settle(
+    third,
+    "third",
+    [{ text: passage, messageIds: [], kind: "inference" }],
+    "second",
+  );
+  expect(result.output.evidence).toEqual([relation(third.indexOf(passage))]);
+  expect(current).toMatchObject({
+    revisionId: "third",
+    evidence: result.output.evidence,
+    evidenceValidated: true,
+  });
+
+  // Unchanged unique text at the same span carries without a declaration.
+  await settle(`${third}\nTail.`, "fourth", undefined, "third");
+  expect(current?.evidence).toEqual(result.output.evidence);
 });

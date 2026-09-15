@@ -19,7 +19,7 @@ export const evidenceRelationSchema = v.strictObject({
       v.integer(),
       v.minValue(0),
       v.description(
-        "Inclusive UTF-16 offset from read_workpiece locateTexts for the exact Markdown being submitted.",
+        "Inclusive UTF-16 offset of the cited passage in this revision's Markdown, resolved by the server from the declared text.",
       ),
     ),
     end: v.pipe(
@@ -27,14 +27,14 @@ export const evidenceRelationSchema = v.strictObject({
       v.integer(),
       v.minValue(1),
       v.description(
-        "Exclusive UTF-16 end offset from the same match; greater than start and within the submitted Markdown.",
+        "Exclusive UTF-16 end offset of the same passage; greater than start and within the revision's Markdown.",
       ),
     ),
   }),
   messageIds: v.pipe(
     v.array(v.pipe(v.string(), v.minLength(1))),
     v.description(
-      "Authorized true-user source IDs returned by read_workpiece. Elicited evidence requires at least one; never substitute assistant or tool-call IDs.",
+      "Authorized true-user message ids, copied from the `[message <id>]` line above each user message in the conversation. Elicited evidence requires at least one; never substitute assistant or tool-call ids.",
     ),
   ),
   kind: v.pipe(

@@ -2,14 +2,98 @@ import { createHash } from "node:crypto";
 
 import * as v from "valibot";
 
-import { isJsonValue } from "./json-value";
 import { evidenceRelationSchema } from "./workpiece";
 
 import type { WorkpieceEvidenceSource, WorkpieceRevision } from "./workpiece";
 
+/** Model-facing evidence declaration: the passage is cited by its literal text, never by offsets. */
+export const evidenceDeclarationSchema = v.strictObject({
+  text: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Literal passage copied exactly from the submitted Markdown (no trimming or normalisation; line breaks allowed). It must occur exactly once unless occurrence selects one of several matches.",
+    ),
+  ),
+  occurrence: v.optional(
+    v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(0),
+      v.description(
+        "Zero-based index among the literal occurrences of text in the submitted Markdown, required only when text occurs more than once.",
+      ),
+    ),
+  ),
+  messageIds: evidenceRelationSchema.entries.messageIds,
+  kind: evidenceRelationSchema.entries.kind,
+});
+
+export type WorkpieceEvidenceDeclaration = v.InferOutput<
+  typeof evidenceDeclarationSchema
+>;
+
+/** Every literal start offset, advancing one code unit so overlapping occurrences stay visible. */
+const literalOccurrences = (content: string, text: string): number[] => {
+  const starts: number[] = [];
+  let start = content.indexOf(text);
+  while (start !== -1) {
+    starts.push(start);
+    start = content.indexOf(text, start + 1);
+  }
+  return starts;
+};
+
+/**
+ * Resolve text-cited declarations to immutable locators in the submitted
+ * Markdown. Every failing declaration is reported in one refusal so the model
+ * corrects the whole settlement at once; nothing is resolved partially.
+ */
+export const resolveEvidenceDeclarations = (
+  markdown: string,
+  declarations: readonly WorkpieceEvidenceDeclaration[],
+): v.InferOutput<typeof evidenceRelationSchema>[] => {
+  const failures: string[] = [];
+  const relations = declarations.flatMap((declaration, index) => {
+    const starts = literalOccurrences(markdown, declaration.text);
+    const selected =
+      declaration.occurrence === undefined
+        ? starts.length === 1
+          ? starts[0]
+          : undefined
+        : starts[declaration.occurrence];
+    if (selected === undefined) {
+      failures.push(
+        `evidence[${index}] matched ${starts.length} occurrence(s)${
+          declaration.occurrence === undefined
+            ? starts.length === 0
+              ? ""
+              : "; set occurrence to select one"
+            : `; occurrence ${declaration.occurrence} is out of range`
+        }`,
+      );
+      return [];
+    }
+    return [
+      {
+        locator: { start: selected, end: selected + declaration.text.length },
+        messageIds: declaration.messageIds,
+        kind: declaration.kind,
+      },
+    ];
+  });
+  if (failures.length > 0)
+    throw new Error(
+      `Evidence text must occur exactly once in the submitted Markdown (or name an occurrence): ${failures.join("; ")}. Nothing was written; resubmit the settlement with corrected evidence.`,
+    );
+  return relations;
+};
+
 /**
  * Validation earns structural linkage and authorship only, never relevance or
- * template quality. Returns the parsed (mutable) relations so they can be
+ * template quality. Takes locator-form relations (persisted or already
+ * resolved) and returns the parsed (mutable) relations so they can be
  * reported through a tool output; consumers read them as `WorkpieceEvidenceRelation`.
  */
 export const settleWorkpieceEvidence = async (
@@ -105,9 +189,9 @@ export const updateWorkpieceInputSchema = v.object({
     ),
   ),
   evidence: v.pipe(
-    v.optional(v.array(evidenceRelationSchema)),
+    v.optional(v.array(evidenceDeclarationSchema)),
     v.description(
-      "Optional relations from immutable UTF-16 [start,end) spans in this submitted Markdown to authorized true-user messageIds from read_workpiece, with kind declaring the relation's evidential standing. Valid linkage does not establish relevance.",
+      "Optional relations from literal passages of this submitted Markdown to the authorized true-user message ids shown as `[message <id>]` in the conversation, with kind declaring each relation's evidential standing. The server resolves each text to an immutable UTF-16 span; a text that is absent or ambiguous refuses the whole settlement. Evidence displaced by an edit above it, or overlapped by a new declaration, must be re-declared. Valid linkage does not establish relevance.",
     ),
   ),
 });
@@ -186,7 +270,7 @@ export const workpieceLocatorTextsSchema = v.pipe(
   v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
   v.maxLength(16),
   v.description(
-    "Literal text passages to locate. Results are UTF-16 [start,end) spans in the supplied unsettled candidate, or in the current settled revision when candidate markdown is omitted.",
+    "Literal text passages to locate in the current settled revision. Results are UTF-16 [start,end) spans valid only for that revision.",
   ),
 );
 
@@ -215,21 +299,15 @@ export const lookupWorkpieceLocators = (
     markdown,
   );
   const queries = v.parse(workpieceLocatorTextsSchema, texts).map((text) => {
-    const occurrences: { start: number; end: number }[] = [];
-    let matchedCount = 0;
-    let start = content.indexOf(text);
-    while (start !== -1) {
-      matchedCount += 1;
-      if (occurrences.length < 32)
-        occurrences.push({ start, end: start + text.length });
-      // Increment one code unit, so overlapping literal occurrences remain visible.
-      start = content.indexOf(text, start + 1);
-    }
+    const starts = literalOccurrences(content, text);
+    const occurrences = starts
+      .slice(0, 32)
+      .map((start) => ({ start, end: start + text.length }));
     return {
       text,
       occurrences,
-      matchedCount,
-      omittedCount: matchedCount - occurrences.length,
+      matchedCount: starts.length,
+      omittedCount: starts.length - occurrences.length,
     };
   });
   return {
@@ -243,15 +321,18 @@ export const lookupWorkpieceLocators = (
 export const prepareWorkpieceRevision = (
   input: v.InferOutput<typeof updateWorkpieceInputSchema>,
   toolCallId: string,
-): Omit<WorkpieceRevision, "ordinal"> => {
+): Omit<WorkpieceRevision, "ordinal" | "evidence" | "evidenceValidated"> & {
+  readonly evidence: v.InferOutput<typeof evidenceRelationSchema>[] | undefined;
+} => {
   const { markdown, evidence } = v.parse(updateWorkpieceInputSchema, input);
-  if (evidence !== undefined && !isJsonValue(evidence)) {
-    throw new Error("Workpiece evidence must be JSON-compatible.");
-  }
   return {
     revisionId: toolCallId,
     sha256: sha256(markdown),
     markdown,
-    ...(evidence === undefined ? {} : { evidence }),
+    // Declarations resolve against the body they cite before anything else runs.
+    evidence:
+      evidence === undefined
+        ? undefined
+        : resolveEvidenceDeclarations(markdown, evidence),
   };
 };

@@ -119,24 +119,22 @@ const resourceName = (path: string | undefined): string | undefined => {
     : decoded.split("/").at(-1);
 };
 
+/**
+ * Arguments may be a partial object while they stream; only a present,
+ * non-empty `sourceIds` earns the sources label, and an unreadable input
+ * keeps the neutral Ledger label.
+ */
 const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
   const record = asRecord(input) ?? {};
   const hasPassages = Array.isArray(record.locateTexts);
-  const hasDraft = hasPassages && typeof record.markdown === "string";
-  const includesSources = record.includeSources !== false;
+  const hasSources =
+    Array.isArray(record.sourceIds) && record.sourceIds.length > 0;
 
-  if (hasDraft && includesSources) {
+  if (hasPassages && hasSources) {
     return {
-      pending: "Reading conversation sources and draft passages",
-      success: "Read conversation sources and draft passages",
-      error: "Could not read conversation sources and draft passages",
-    };
-  }
-  if (hasDraft) {
-    return {
-      pending: "Reading draft passages",
-      success: "Read draft passages",
-      error: "Could not read draft passages",
+      pending: "Reading settled passages and conversation sources",
+      success: "Read settled passages and conversation sources",
+      error: "Could not read settled passages and conversation sources",
     };
   }
   if (hasPassages) {
@@ -146,14 +144,14 @@ const readWorkpiecePurpose = (input: unknown): LifecycleTitles => {
       error: "Could not read settled passages",
     };
   }
-  if (record.includeContent === false && includesSources) {
+  if (hasSources) {
     return {
       pending: "Reading conversation sources",
       success: "Read conversation sources",
       error: "Could not read conversation sources",
     };
   }
-  if (record.includeContent === false && !includesSources) {
+  if (record.includeContent === false) {
     return {
       pending: "Checking Ledger revision",
       success: "Checked Ledger revision",

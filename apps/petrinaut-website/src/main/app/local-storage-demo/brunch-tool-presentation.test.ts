@@ -54,41 +54,19 @@ describe("Brunch tool presentation", () => {
 
   test.each([
     [
-      {
-        includeContent: false,
-        includeSources: true,
-        markdown: "draft",
-        locateTexts: ["claim"],
-      },
-      "Read conversation sources and draft passages",
+      { includeContent: false, sourceIds: ["m1"], locateTexts: ["claim"] },
+      "Read settled passages and conversation sources",
     ],
     [
-      {
-        includeContent: false,
-        includeSources: false,
-        markdown: "draft",
-        locateTexts: ["claim"],
-      },
-      "Read draft passages",
-    ],
-    [
-      {
-        includeContent: false,
-        includeSources: false,
-        locateTexts: ["claim"],
-      },
+      { includeContent: false, locateTexts: ["claim"] },
       "Read settled passages",
     ],
-    [
-      { includeContent: false, includeSources: true },
-      "Read conversation sources",
-    ],
-    [
-      { includeContent: false, includeSources: false },
-      "Checked Ledger revision",
-    ],
-    [{ includeContent: true, includeSources: true }, "Read ledger"],
+    [{ includeContent: false, sourceIds: ["m1"] }, "Read conversation sources"],
+    [{ includeContent: false, sourceIds: [] }, "Checked Ledger revision"],
+    [{ includeContent: false }, "Checked Ledger revision"],
+    [{ includeContent: true, sourceIds: ["m1"] }, "Read conversation sources"],
     [{}, "Read ledger"],
+    [undefined, "Read ledger"],
   ])(
     "distinguishes a production-shaped read_workpiece purpose",
     (input, title) => {

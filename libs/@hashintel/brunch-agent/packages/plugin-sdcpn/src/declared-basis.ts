@@ -13,10 +13,10 @@ export const sha256Schema = z.string().regex(sha256Pattern);
 // schemas; the `satisfies` pins them to core's shapes so drift fails to compile.
 const revisionCitation = z.strictObject({
   revisionId: nonempty.describe(
-    "Copy the settled revisionId from read_workpiece without candidate markdown. An unsettled candidate has no revision ID.",
+    "Copy the revisionId from the successful mutate_workpiece result that settled the cited revision (or a read_workpiece of it). A failed or pointer-only result has no reusable revision ID.",
   ),
   sha256: sha256Schema.describe(
-    "Copy that same settled workpiece revision's sha256, not the browser net hash or an unsettled candidate hash.",
+    "Copy that same settled workpiece revision's sha256 from the same result, not the browser net hash.",
   ),
 }) satisfies z.ZodType<Pick<WorkpieceRevision, "revisionId" | "sha256">>;
 const locator = z.strictObject({
@@ -25,7 +25,7 @@ const locator = z.strictObject({
     .int()
     .min(0)
     .describe(
-      "Inclusive UTF-16 offset returned by read_workpiece locateTexts for this settled revision. Do not count offsets yourself.",
+      "Inclusive UTF-16 offset copied from the settlement output's evidence[] locators, or from read_workpiece locateTexts against this settled revision when that output did not return the span. Do not count offsets yourself.",
     ),
   end: z
     .number()
@@ -45,7 +45,7 @@ export const declaredBasisSchema = z.discriminatedUnion("kind", [
       .array(locator)
       .min(1)
       .describe(
-        "Passages supporting this representation. Use read_workpiece with locateTexts and no candidate markdown; select relevant returned matches, not every match.",
+        "Passages supporting this representation. Copy locators from the settlement output's evidence[]; use read_workpiece locateTexts only for a span that output did not return, selecting relevant matches, not every match.",
       ),
     rationale: nonempty.describe(
       "Explain how the cited operational meaning supports this operation; distinguish representational inference from user testimony.",
