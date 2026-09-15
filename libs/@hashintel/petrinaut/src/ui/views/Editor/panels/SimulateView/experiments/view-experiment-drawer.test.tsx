@@ -258,34 +258,46 @@ describe("ViewExperimentDrawer in the frame", () => {
 
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByText("Running")).toBeTruthy();
-    expect(screen.getByText("CPU")).toBeTruthy();
+    expect(screen.queryByText("CPU")).toBeNull();
   });
 
-  it("titles the drawer in one line and puts the stats and the badge in the header", () => {
-    renderDrawer(sweep);
-
-    expect(
-      screen.getByText(/^SIR transmission sweep · Seasonal Flu · 100 runs$/u),
-    ).toBeTruthy();
+  it("keeps configuration in Details and closes it when switching experiments", () => {
+    const view = renderDrawer(sweep);
+    expect(screen.getByText("SIR transmission sweep")).toBeTruthy();
     expect(screen.getByText("Running")).toBeTruthy();
-    // A sweep's strip carries its selection's sampling, not a run budget.
-    expect(screen.queryByText("Runs")).toBeNull();
+    expect(screen.queryByText("Seasonal Flu")).toBeNull();
+    expect(screen.queryByText("Sampling limit")).toBeNull();
+    expect(screen.queryByText("CPU")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Experiment details" }));
+
+    expect(screen.getByText("Seasonal Flu")).toBeTruthy();
+    expect(screen.getByText("Sampling limit")).toBeTruthy();
+    expect(screen.getByText("Simulation time")).toBeTruthy();
+    expect(screen.getByText("CPU")).toBeTruthy();
+    expect(screen.getByText(/The sampling limit applies/u)).toBeTruthy();
+
+    view.rerender(
+      drawerElement({
+        ...sweep,
+        id: "another-experiment",
+        scenarioName: "Another scenario",
+      }),
+    );
+    expect(screen.queryByText("Sampling limit")).toBeNull();
     expect(
       screen
-        .getByText("Selection")
-        .nextElementSibling?.querySelector("[data-frame-stat-value]")
-        ?.textContent,
-    ).toMatch(/^\d+ \/ 100 runs$/u);
-    expect(screen.queryByText("Elapsed")).toBeNull();
-    expect(screen.getByText("CPU")).toBeTruthy();
+        .getByRole("button", { name: "Experiment details" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
-  it("names the dialog after its one-line title", () => {
+  it("names the panel after its one-line title", () => {
     renderDrawer(sweep);
 
     expect(
       screen.getByRole("region", {
-        name: "SIR transmission sweep · Seasonal Flu · 100 runs",
+        name: "SIR transmission sweep",
       }),
     ).toBeTruthy();
   });
@@ -432,35 +444,38 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawerWithStudy({ ...sweep, status: "idle" }, "running");
 
     expect(screen.getByText("Optimizing")).toBeTruthy();
-    expect(screen.queryByText("Idle")).toBeNull();
+    expect(screen.queryByText("Ready")).toBeNull();
     // The ds Button seats a zero-width space before its icon's label.
     expect(
       screen.getByRole("button", { name: /Stop$/u }).dataset.sweepOptimizing,
     ).toBeDefined();
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.getByRole("button", { name: /Cancel$/u })).toBeTruthy();
-    expect(screen.getByText(/^Following step 5 of 30/u)).toBeTruthy();
+    expect(screen.getByText(/^Testing step 5/u)).toBeTruthy();
     expect(selectionModeButtons().every((button) => button.disabled)).toBe(
       true,
     );
   });
 
   it("keeps the settled outcome on the status line with no card control", () => {
-    renderDrawerWithStudy({ ...sweep, status: "idle" }, "cancelled");
+    renderDrawerWithStudy(
+      {
+        ...sweep,
+        status: "idle",
+        sweep: { ...sweep.sweep!, computing: false },
+      },
+      "cancelled",
+    );
 
-    expect(screen.getByText("Idle")).toBeTruthy();
+    expect(screen.getByText("Ready")).toBeTruthy();
     expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.queryByRole("button", { name: /Stop$/u })).toBeNull();
     expect(selectionModeButtons().some((button) => button.disabled)).toBe(
       false,
     );
-    // The headline and the navigator's status line read the same outcome.
-    const outcome = screen.getAllByText(/^Stopped after 4 of 30 steps/u);
-    expect(outcome).toHaveLength(2);
-    expect(
-      outcome.some((line) => line.closest("[data-study-header]") !== null),
-    ).toBe(true);
+    expect(screen.getByText("Optimization stopped")).toBeTruthy();
+    expect(document.querySelector("[data-study-header]")).toBeNull();
   });
 
   it("shows no objective strip for a sweep created without a study", () => {
@@ -532,7 +547,14 @@ describe("ViewExperimentDrawer in the frame", () => {
   });
 
   it("folds the objective chart away from its row and brings it back, the chart staying mounted", () => {
-    renderDrawerWithStudy({ ...sweep, status: "idle" }, "cancelled");
+    renderDrawerWithStudy(
+      {
+        ...sweep,
+        status: "idle",
+        sweep: { ...sweep.sweep!, computing: false },
+      },
+      "cancelled",
+    );
     const row = screen.getByRole("button", { name: /^Objective by step/u });
     const clip = document.querySelector<HTMLElement>("[data-sweep-objective]")!;
     expect(row.getAttribute("aria-controls")).toBe(clip.id);
@@ -561,8 +583,8 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.queryByText("Parameters")).toBeNull();
     expect(screen.queryByTestId("sweep-surface")).toBeNull();
     expect(screen.queryByText("Selection")).toBeNull();
-    expect(screen.getByText("Runs")).toBeTruthy();
-    expect(screen.getByText("Elapsed")).toBeTruthy();
+    expect(screen.getByText("Completed runs")).toBeTruthy();
+    expect(screen.queryByText("Elapsed time")).toBeNull();
     expect(screen.getAllByTestId("metric-timeline").length).toBe(
       sweep.metricSpecs.length,
     );
@@ -612,7 +634,7 @@ describe("the Stop control", () => {
     const row = screen.getByRole("button", { name: /^Objective by step/u });
     expect(row.textContent).toMatch(/ · 3 steps · best 700\.250$/u);
     expect(screen.getByTestId("objective-history").dataset.xMax).toBe("30");
-    expect(screen.getByText(/^Following step 4 of 30/u)).toBeTruthy();
+    expect(screen.getByText(/^Testing step 4/u)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Stop$/u }));
 
@@ -633,18 +655,12 @@ describe("ViewExperimentDrawer with a study", () => {
     expect(document.querySelector("[data-steps-table]")).toBeNull();
   });
 
-  it("puts the study's progress line in the headline, Steps in the strip, the Sensitivity card after the tiles and the steps table beneath", () => {
+  it("shows optimization progress in the header and keeps the detailed study summary in Details", () => {
     renderDrawerWithStudy(idleSweep, "running");
 
-    expect(document.querySelector("[data-study-header]")?.textContent).toMatch(
-      /^Step 5 of 30 · best step so far: step 3/u,
-    );
-    expect(
-      screen
-        .getByText("Steps")
-        .nextElementSibling?.querySelector("[data-frame-stat-value]")
-        ?.textContent,
-    ).toBe("4 / 30");
+    expect(document.querySelector("[data-study-header]")).toBeNull();
+    expect(screen.getByText("Optimization steps")).toBeTruthy();
+    expect(screen.getByText("4 / 30 steps")).toBeTruthy();
     expect(screen.queryByText("Best step so far")).toBeNull();
     expect(screen.getByText("Sensitivity analysis")).toBeTruthy();
     expect(screen.getByRole("table")).toBeTruthy();
@@ -659,6 +675,10 @@ describe("ViewExperimentDrawer with a study", () => {
       "Sensitivity analysis",
     ]);
     expect(cards.at(-1)![1]).toBe("220px");
+    fireEvent.click(screen.getByRole("button", { name: "Experiment details" }));
+    expect(document.querySelector("[data-study-header]")?.textContent).toMatch(
+      /^Step 5 of 30 · best step so far: step 3/u,
+    );
   });
 });
 
@@ -697,9 +717,11 @@ describe("ViewExperimentDrawer with a constrained study", () => {
     );
   });
 
-  it("puts the steps clear in the strip and a Runs passed column in the table, greying the infeasible draws", () => {
+  it("keeps constraint totals in Details and pass counts in the steps table", () => {
     renderDrawerWithStudies(constrainedSweep, settled);
 
+    expect(screen.queryByText("Steps clear")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Experiment details" }));
     expect(screen.getByText("Steps clear")).toBeTruthy();
     expect(screen.getByText("Runs passed")).toBeTruthy();
     expect(screen.getAllByText(/^\d+ \/ 60 · \d+%$/u).length).toBeGreaterThan(
@@ -757,9 +779,7 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
     expect(card.getAttribute("data-tone")).toBe("default");
     expect(
       card.querySelector("[data-chart-card-subtitle]")?.textContent,
-    ).toMatch(
-      /^PED-ANOVA importance estimated from \d+ completed steps · how much/u,
-    );
+    ).toMatch(/^Based on \d+ completed steps/u);
     expect(card.textContent).not.toContain("floor");
     const rows = card.querySelectorAll<HTMLElement>("[data-importance-row]");
     expect([...rows].map((row) => row.dataset.importanceRow)).toEqual([
@@ -795,7 +815,7 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
     expect(card.getAttribute("data-tone")).toBe("muted");
     expect(
       card.querySelector("[data-chart-card-subtitle]")?.textContent,
-    ).toContain("below the 50-step floor, treat as a hint");
+    ).toContain("Preliminary");
     expect(
       card
         .querySelector("[data-importance-panel]")
@@ -855,9 +875,7 @@ describe("ViewExperimentDrawer's Sensitivity analysis card", () => {
     expect(card.getAttribute("data-tone")).toBe("default");
     expect(
       card.querySelector("[data-chart-card-subtitle]")?.textContent,
-    ).toMatch(
-      /^PED-ANOVA ranks two or more parameters · \d+ completed steps · correlation only$/u,
-    );
+    ).toMatch(/^Correlation only · one parameter$/u);
     expect(card.textContent).not.toContain("floor");
     expect(card.querySelectorAll("[data-importance-row]")).toHaveLength(1);
     expect(card.textContent).toMatch(/[+−]\d\.\d\d/u);

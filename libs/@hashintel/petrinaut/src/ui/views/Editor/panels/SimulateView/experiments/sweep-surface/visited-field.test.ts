@@ -127,24 +127,16 @@ describe("describeVisitedSurface", () => {
       describeVisitedSurface({
         visitedCount: 0,
         computing: false,
-        pointSelection: false,
-        runsCompleted: 0,
-        runTarget: null,
         following: false,
       }),
-    ).toBe("no points yet · drag or click to compute a point");
+    ).toBe("0 points sampled");
     expect(
       describeVisitedSurface({
         visitedCount: 3,
         computing: true,
-        pointSelection: true,
-        runsCompleted: 8,
-        runTarget: 25,
         following: false,
       }),
-    ).toBe(
-      "3 points · computing the selected point: 8 of 25 runs · drag or click to compute a point",
-    );
+    ).toBe("3 points sampled · sampling");
   });
 
   it("words a range compute as the navigator does", () => {
@@ -152,14 +144,9 @@ describe("describeVisitedSurface", () => {
       describeVisitedSurface({
         visitedCount: 3,
         computing: true,
-        pointSelection: false,
-        runsCompleted: 8,
-        runTarget: null,
         following: false,
       }),
-    ).toBe(
-      "3 points · sampling across the selected ranges: 8 runs · drag or click to compute a point",
-    );
+    ).toBe("3 points sampled · sampling");
   });
 
   it("names the step's point computing while the optimizer drives, and the optimizer choosing between steps", () => {
@@ -167,21 +154,15 @@ describe("describeVisitedSurface", () => {
       describeVisitedSurface({
         visitedCount: 1,
         computing: true,
-        pointSelection: true,
-        runsCompleted: 5,
-        runTarget: 8,
         following: true,
       }),
-    ).toBe("1 point · computing the selected point: 5 of 8 runs");
+    ).toBe("1 point sampled · sampling");
     expect(
       describeVisitedSurface({
         visitedCount: 1,
         computing: false,
-        pointSelection: true,
-        runsCompleted: 8,
-        runTarget: null,
         following: true,
       }),
-    ).toBe("1 point · the optimizer is choosing the next point");
+    ).toBe("1 point sampled · choosing next point");
   });
 });
