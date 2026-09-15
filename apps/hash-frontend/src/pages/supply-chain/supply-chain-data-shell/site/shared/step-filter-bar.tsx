@@ -142,7 +142,7 @@ export const StepFilterBar = ({
   }
 
   return (
-    <FilterGroup>
+    <FilterGroup dismissAbandoned>
       {filters.map((filter) => {
         const definition = STEP_FILTER_DEFINITIONS.find(
           (candidate) => candidate.key === filter.filterKey,
@@ -171,7 +171,6 @@ export const StepFilterBar = ({
                     (candidate) => candidate.filterKey !== filter.filterKey,
                   ),
                 ),
-              dismissAbandoned: true,
             }}
           />
         );

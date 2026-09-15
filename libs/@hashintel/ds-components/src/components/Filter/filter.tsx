@@ -1,7 +1,14 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -27,11 +34,10 @@ import {
   type InputFor,
   abandonedFadeStyle,
   CHIP_COLLAPSE_MS,
+  FilterGroupAbandonmentContext,
   focusWithoutRing,
   shouldAnimateChipRemoval,
   startChipCollapse,
-  type AbandonmentPhase,
-  createAbandonmentController,
   isAbandonable,
   isIntegerConfig,
   isSelectDropdownOpen,
@@ -50,7 +56,7 @@ import {
   type CommittedValue,
   type SlotValue,
 } from "./filter-util";
-import { abandonedGhost, filterRecipe } from "./filter.recipe";
+import { filterRecipe } from "./filter.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
 import type { MultiSelectItem } from "../Select/select";
@@ -225,17 +231,9 @@ const FilterSelectInput = ({
  * input held when it received focus; Escape on a closed dropdown does
  * nothing.
  *
- * With `removeable.dismissAbandoned`, a chip left with an incomplete draft
- * (no operator, or any empty input) after the user focuses or clicks
- * elsewhere waits 1s, fades over 2s, then removes itself; returning to it
- * during the countdown (including via its portaled dropdowns) rescues it.
- * Once fully faded, the removal itself waits for a quiet moment: while a
- * sibling control's overlay is open within the chip's enclosing FilterGroup
- * (or its parent, when standalone) or the pointer rests over it, the chip
- * holds its space as a faint inert placeholder — so nothing shifts or closes
- * under the user — and then leaves with a width collapse once the
- * interaction ends. A never-held chip is removed instantly, with no
- * placeholder or animation.
+ * Inside a `FilterGroup` with `dismissAbandoned`, a removeable chip whose
+ * draft is left incomplete (no operator, or any empty input) when the user
+ * leaves the group fades out and removes itself — see `FilterGroup`.
  */
 export const Filter = <
   ValueMap extends Record<string, unknown> = Record<string, unknown>,
@@ -273,20 +271,15 @@ export const Filter = <
    * lands inside the new chip.
    */
   autoFocus?: boolean;
+  /**
+   * `onRemove` fires when the user removes the chip via its ✕ button — and,
+   * inside a `FilterGroup` with `dismissAbandoned`, when the group dismisses
+   * the chip as abandoned.
+   */
   removeable?:
     | false
     | {
         onRemove: () => void;
-        /**
-         * Auto-dismiss an abandoned chip: once the user focuses or clicks
-         * outside the filter while its draft is incomplete — no operator
-         * chosen, or any input empty, even if a value was committed before —
-         * wait 1s, fade out over another 2s, then call `onRemove`. Any
-         * interaction with the chip — including its portaled dropdowns —
-         * rescues it. Chips whose selected operator takes no input are never
-         * abandoned.
-         */
-        dismissAbandoned?: boolean;
       };
 }) => {
   const looseOperators = operators as unknown as Array<
@@ -300,13 +293,13 @@ export const Filter = <
   const selectEscapedRef = useRef(false);
   // The value the focused text/number input held when it received focus
   const inputFocusValueRef = useRef<SlotValue>(null);
-  // Abandoned-chip dismissal (removeable.dismissAbandoned). The listeners and
-  // timers live in a mount effect below; these refs let render-scope handlers
-  // (dropdown open/close) reach them without stale closures.
-  const [abandonPhase, setAbandonPhase] = useState<AbandonmentPhase>("idle");
-  const abandonEligibleRef = useRef(false);
-  const abandonEvaluateRef = useRef<() => void>(() => {});
-  const abandonCancelRef = useRef<() => void>(() => {});
+  // Abandoned-chip dismissal is owned by the enclosing FilterGroup (its
+  // dismissAbandoned prop); the context is null for standalone chips and
+  // non-dismissing groups. The chip's part: register a handle with the group,
+  // render the shared fade while abandonable, and — once the group decides —
+  // collapse and remove itself (`dismissing`).
+  const abandonment = useContext(FilterGroupAbandonmentContext);
+  const [dismissing, setDismissing] = useState(false);
   // Mount-only by design: `autoFocus` is a creation-time request, not a
   // reactive control (mirroring the DOM attribute).
   const autoFocusOnMountRef = useRef(autoFocus);
@@ -610,12 +603,8 @@ export const Filter = <
   const handleSelectOpenChange = (open: boolean) => {
     if (open) {
       selectEscapedRef.current = false;
-      abandonCancelRef.current();
       return;
     }
-    // A close can mean the user clicked away entirely; re-evaluate once the
-    // commit below and the dropdown's focus restoration have settled.
-    window.setTimeout(() => abandonEvaluateRef.current(), 0);
     if (selectEscapedRef.current) {
       selectEscapedRef.current = false;
       return;
@@ -674,63 +663,28 @@ export const Filter = <
     selectedOperator !== undefined &&
     isDraftComplete(normalizeSlots(selectedOperator, slots));
 
-  const dismissAbandoned = removeable ? !!removeable.dismissAbandoned : false;
   const onRemove = removeable ? removeable.onRemove : null;
-  const onRemoveRef = useRef(onRemove);
-  useLayoutEffect(() => {
-    onRemoveRef.current = onRemove;
-    abandonEligibleRef.current = isAbandonable({
-      dismissAbandoned,
-      disabled: !!disabled,
-      draftComplete: complete,
-      selectedOperator,
-    });
+  const abandonable = isAbandonable({
+    removeable: !!onRemove,
+    disabled: !!disabled,
+    draftComplete: complete,
+    selectedOperator,
   });
+  // The group-registered handle below reads through these refs, so
+  // eligibility and callbacks are always current when the group's
+  // mount-scoped countdown fades or fires.
+  const onRemoveRef = useRef(onRemove);
+  const abandonableRef = useRef(abandonable);
+  const dismissRef = useRef<() => void>(() => {});
 
-  useEffect(() => {
-    if (!dismissAbandoned) {
-      abandonEvaluateRef.current = () => {};
-      abandonCancelRef.current = () => {};
-      return;
-    }
-    const controller = createAbandonmentController({
-      isEligible: () => abandonEligibleRef.current,
-      hasOpenDropdown: () =>
-        operatorDropdownOpenRef.current ||
-        isSelectDropdownOpen(inputRefs.current),
-      getRoot: () => rootRef.current,
-      onPhaseChange: setAbandonPhase,
-      onDismiss: () => onRemoveRef.current?.(),
-    });
-    abandonEvaluateRef.current = controller.evaluate;
-    abandonCancelRef.current = controller.cancel;
-    const detach = controller.attach();
-    return () => {
-      detach();
-      abandonEvaluateRef.current = () => {};
-      abandonCancelRef.current = () => {};
-    };
-  }, [dismissAbandoned]);
-
-  // A committed value can rescue the chip even when it arrives from outside
-  // (e.g. the parent adopting a change) rather than via an interaction.
-  // Re-evaluate rather than cancel: a cleared-draft commit round-trips as
-  // `{key, value: null}`, and such a chip is still abandoned.
-  useEffect(() => {
-    if (value !== null) {
-      abandonEvaluateRef.current();
-    }
-  }, [value]);
-
-  // Manual removal matches the abandoned dismissal: inside a FilterGroup the
-  // chip collapses its width before onRemove so the row closes up smoothly;
-  // standalone chips are removed instantly. `removingRef` guards
-  // double-clicks during the animation. The delayed call goes through
-  // `onRemoveRef` — the click-time callback closes over the parent's state
-  // snapshot from that render, and firing it after later changes (a second
-  // remove, a clear, an add) would clobber them — and the timer is cleared
-  // on unmount so it can never fire against a chip the parent already
-  // removed some other way.
+  // Removal — manual (the ✕ button) and abandoned dismissal alike — collapses
+  // the chip's width before onRemove inside a FilterGroup, so the row closes
+  // up smoothly; standalone chips are removed instantly. `removingRef` guards
+  // re-entry during the animation. The delayed call goes through `onRemoveRef`
+  // — the call-time callback closes over the parent's state snapshot from
+  // that render, and firing it after later changes (a second remove, a clear,
+  // an add) would clobber them — and the timer is cleared on unmount so it
+  // can never fire against a chip the parent already removed some other way.
   const removingRef = useRef(false);
   const removeTimerRef = useRef<number | null>(null);
   useEffect(
@@ -741,13 +695,10 @@ export const Filter = <
     },
     [],
   );
-  const handleRemove = () => {
-    if (!removeable || removingRef.current) {
-      return;
-    }
+  const collapseThenRemove = () => {
     const root = rootRef.current;
     if (!root || !shouldAnimateChipRemoval(root)) {
-      removeable.onRemove();
+      onRemoveRef.current?.();
       return;
     }
     removingRef.current = true;
@@ -757,9 +708,41 @@ export const Filter = <
       onRemoveRef.current?.();
     }, CHIP_COLLAPSE_MS);
   };
+  const handleRemove = () => {
+    if (!removeable || removingRef.current) {
+      return;
+    }
+    collapseThenRemove();
+  };
 
-  const abandonGhosted =
-    abandonPhase === "held" || abandonPhase === "collapsing";
+  const dismiss = () => {
+    // Rescued since the fade began (e.g. an external value commit), or
+    // already leaving via the ✕ button: nothing to dismiss.
+    if (!abandonableRef.current || removingRef.current) {
+      return;
+    }
+    setDismissing(true);
+    collapseThenRemove();
+  };
+
+  useLayoutEffect(() => {
+    onRemoveRef.current = onRemove;
+    abandonableRef.current = abandonable;
+    dismissRef.current = dismiss;
+  });
+
+  const registerAbandonable = abandonment?.register;
+  useEffect(() => {
+    if (!registerAbandonable) {
+      return;
+    }
+    return registerAbandonable({
+      isAbandonable: () => abandonableRef.current,
+      dismiss: () => dismissRef.current(),
+    });
+  }, [registerAbandonable]);
+
+  const fading = !dismissing && !!abandonment?.fading && abandonable;
   const classes = filterRecipe({
     size,
     invalid,
@@ -776,24 +759,22 @@ export const Filter = <
       }
       onOpenChange={({ open }) => {
         operatorDropdownOpenRef.current = open;
-        if (open) {
-          abandonCancelRef.current();
-        } else {
-          window.setTimeout(() => abandonEvaluateRef.current(), 0);
-        }
       }}
       disabled={disabled}
       loopFocus={false}
       lazyMount
       unmountOnExit
       ref={rootRef as React.Ref<HTMLDivElement>}
-      className={cx(classes.root, className, abandonGhosted && abandonedGhost)}
-      style={abandonPhase === "fading" ? abandonedFadeStyle : undefined}
-      // A condemned placeholder is fully inert: no pointer target, no tab
-      // stops, no accessibility-tree entries — otherwise Tab would focus its
-      // invisible controls and rescue it, trapping keyboard users in a
-      // rescue/re-countdown loop.
-      inert={abandonGhosted}
+      className={cx(classes.root, className)}
+      style={
+        // A dismissing chip stays invisible (the fade already reached 0)
+        // while its width collapses; until then, abandonable chips render
+        // the group's shared fade, dropped instantly on rescue.
+        dismissing ? { opacity: 0 } : fading ? abandonedFadeStyle : undefined
+      }
+      // Dismissal is committed once the collapse starts: inert keeps a stray
+      // click or Tab from landing in a control about to unmount.
+      inert={dismissing}
       onBlur={handleRootBlur}
       onKeyDownCapture={handleArrowKeyCapture}
       role="group"
