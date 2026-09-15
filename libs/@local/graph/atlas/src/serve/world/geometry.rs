@@ -1,0 +1,166 @@
+//! Wire-frame coordinates and spatial indexes for a fitted layout.
+//!
+//! Coordinate access uses [`BasePosition`], the shared order of the geometry artifacts.
+
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
+
+use super::{OpenOptions, error::WorldError};
+use crate::{
+    file::{morton::read::MortonFile, quad::read::QuadFile},
+    identity::{BasePosition, Column},
+    math::{Bounds2, Vec2},
+    salt::lod::stage::WIRE_FRAME,
+};
+
+/// Fitted coordinates with their wire-frame bounds and spatial indexes.
+#[derive(Debug)]
+pub(crate) struct Geometry {
+    /// The recorded world frame's image in the wire frame.
+    ///
+    /// `open` derives this from the generation's frame metadata and leaves it [`None`] when the
+    /// Morton order holds no code. It neither measures the coordinate column nor checks the column
+    /// against the frame. For canonical fit output, a column produced by normalizing that world
+    /// frame onto the wire frame, the image is the column's tight extent up to the normalization's
+    /// rounding.
+    bounds: Option<Bounds2>,
+    /// The wire-frame coordinate of every point, in base-position order.
+    positions: Column<BasePosition, Vec2>,
+
+    /// The quadtree over the fitted points.
+    ///
+    /// When the quadtree has a root, `open` checks the root's point count against the coordinate
+    /// column's length. A quadtree without nodes passes that check unexamined.
+    spatial_index: QuadFile,
+    /// The Morton codes and bucket fenceposts in base delivery order.
+    morton_order: MortonFile,
+}
+
+impl Geometry {
+    /// Opens the geometry artifacts and checks their point counts.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`WorldError`] for artifact opening or mismatched point counts.
+    pub(crate) fn open(
+        OpenOptions { generation, .. }: OpenOptions<'_>,
+    ) -> Result<Self, Report<[WorldError]>> {
+        let files = &generation.repository().files;
+
+        let positions = files
+            .wire_coordinates
+            .open(generation)
+            .change_context(WorldError::Open {
+                file: files.wire_coordinates.name(),
+            });
+
+        let spatial_index = files
+            .quad
+            .open(generation)
+            .change_context(WorldError::Open {
+                file: files.quad.name(),
+            });
+
+        let morton_order: Result<MortonFile, _> =
+            files
+                .morton
+                .open(generation)
+                .change_context(WorldError::Open {
+                    file: files.morton.name(),
+                });
+
+        let (positions, spatial_index, morton_order) =
+            (positions, spatial_index, morton_order).try_collect()?;
+
+        let world = generation.repository().metadata.evidence.lod.world;
+        let bounds = (morton_order.count() > 0).then(|| world.image_in(WIRE_FRAME));
+
+        let this = Self {
+            bounds,
+            positions,
+            spatial_index,
+            morton_order,
+        };
+
+        let mut errors = ReportSink::new_armed();
+
+        if this.positions.len() as u64 != this.morton_order.count() {
+            errors.capture(WorldError::GeometryCountMismatch {
+                positions: this.positions.len(),
+                morton_order: this.morton_order.count(),
+            });
+        }
+
+        if let Some(root) = this.spatial_index.nodes().first()
+            && root.points() as usize != this.positions.len()
+        {
+            errors.capture(WorldError::SpatialIndexCountMismatch {
+                root: root.points(),
+                positions: this.positions.len(),
+            });
+        }
+
+        errors.finish_ok(this)
+    }
+
+    /// Returns the Morton codes and bucket fenceposts in base delivery order.
+    pub(crate) const fn morton_order(&self) -> &MortonFile {
+        &self.morton_order
+    }
+
+    /// Returns the recorded world frame's image in the wire frame.
+    ///
+    /// The value is [`None`] when the Morton order holds no code. It comes from the generation's
+    /// frame metadata, not from measuring the coordinate column. For canonical fit output it is
+    /// the column's tight extent up to the normalization's rounding.
+    pub(super) const fn bounds(&self) -> Option<Bounds2> {
+        self.bounds
+    }
+
+    /// Returns the wire-frame coordinate at `position`, [`None`] outside the point domain.
+    pub(super) fn position(&self, position: BasePosition) -> Option<Vec2> {
+        self.positions.view().get(position).copied()
+    }
+
+    /// Returns the number of fitted points, the length of the coordinate column.
+    pub(super) fn node_count(&self) -> usize {
+        self.positions.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use super::Geometry;
+    use crate::serve::{
+        tests::fixture::{NODES, TamperFixture, retarget_quad_root, secret},
+        world::{OpenOptions, error::WorldError},
+    };
+
+    /// Open refuses a spatial index root with fewer points than the wire coordinate column.
+    ///
+    /// Returns [`WorldError::SpatialIndexCountMismatch`].
+    #[test]
+    fn quad_root_subtree_short() {
+        let fixture = TamperFixture::publish("geometry-quad-root");
+        let positions = usize::try_from(NODES).expect("fixture node counts fit usize");
+        let points = u32::try_from(NODES - 1).expect("fixture point counts fit u32");
+        let files = &fixture.generation().repository().files;
+
+        let tampered = fixture.tamper(&files.quad.name(), |path| {
+            retarget_quad_root(path, points);
+        });
+
+        let report = Geometry::open(OpenOptions {
+            generation: &tampered,
+            secret: &secret(),
+        })
+        .expect_err("open refuses a root point count below the coordinate column's");
+
+        assert_matches!(
+            report.current_contexts().collect::<Vec<_>>().as_slice(),
+            [WorldError::SpatialIndexCountMismatch { root, positions: counted }]
+                if *root == points && *counted == positions,
+        );
+    }
+}
