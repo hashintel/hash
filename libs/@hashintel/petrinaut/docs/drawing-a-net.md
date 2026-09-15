@@ -124,7 +124,7 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 | **Pan**    | H        | Click and drag to pan the canvas. This is the default. |
 | **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
-The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen.
+The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen. Camera movement is view state: panning, zooming, and fitting the net do not create a document change or an undo/redo entry.
 
 With a selection, you can:
 
@@ -230,4 +230,6 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 ## Auto-layout
 
-From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes. Useful after importing a net without positions or when a net has become cluttered. This will not always be an improvement! The item is hidden on a read-only net, which cannot accept the move.
+From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. Importing a net without positions also lays it out and fits it after the new canvas appears.
+
+Layout changes node positions and therefore creates an ordinary document change when positions move. The following fit changes only the saved viewport, not the document, mutation history, or provenance. This is useful after importing a net without positions or when a net has become cluttered, but it will not always be an improvement. The item is hidden on a read-only net, which cannot accept the move.

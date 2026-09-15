@@ -493,6 +493,49 @@ describe("local storage demo Brunch voice integration", () => {
     ]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
+    expect(aiAssistant.additionalTab?.activityIdentities).toEqual([]);
+    expect(aiAssistant.toolStateLabels).toEqual({
+      mutate_workpiece: {
+        pending: "Updating ledger",
+        success: "Updated ledger",
+        error: "Could not update ledger",
+      },
+      read_workpiece: {
+        pending: "Reading ledger",
+        success: "Read ledger",
+        error: "Could not read ledger",
+      },
+      query_workpiece: {
+        pending: "Checking recorded basis",
+        success: "Checked recorded basis",
+        error: "Could not check recorded basis",
+      },
+      read_petrinaut_docs: {
+        pending: "Reading Petrinaut guidance",
+        success: "Read Petrinaut guidance",
+        error: "Could not read Petrinaut guidance",
+      },
+      read_petrinaut_net: {
+        pending: "Reading current model",
+        success: "Read current model",
+        error: "Could not read current model",
+      },
+      read_petrinaut_diagnostics: {
+        pending: "Checking model diagnostics",
+        success: "Checked model diagnostics",
+        error: "Could not check model diagnostics",
+      },
+      layout_petrinaut_net: {
+        pending: "Laying out model",
+        success: "Laid out model",
+        error: "Could not lay out model",
+      },
+      mutate_petrinaut_net: {
+        pending: "Updating model",
+        success: "Updated model",
+        error: "Could not update model",
+      },
+    });
     expect(
       aiAssistant.interactiveTools?.some(
         ({ toolName }) => toolName === "brunch_ask",
@@ -509,6 +552,47 @@ describe("local storage demo Brunch voice integration", () => {
         "mutate_petrinaut_net",
       ],
     );
+
+    rendered.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  test("waits for a durable offset before baselining present Ledger history", async () => {
+    renderedPetrinaut.aiAssistant = null;
+    stubStorage();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({
+          conversation: {
+            conversationId: "present-without-offset",
+            settlements: [],
+            messages: [],
+          },
+          offset: undefined,
+          phase: "live",
+          error: undefined,
+        }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+
+    expect(
+      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).additionalTab
+        ?.activityIdentities,
+    ).toBeUndefined();
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -1359,7 +1443,13 @@ describe("local storage demo prepared fixture", () => {
         ({ toolName }) => toolName === "mutate_petrinaut_net",
       ),
     ).toBe(true);
-    expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
+    expect(aiAssistant.primaryLabel).toBe("Chat");
+    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
+    expect(aiAssistant.toolStateLabels?.layout_petrinaut_net).toEqual({
+      pending: "Laying out model",
+      success: "Laid out model",
+      error: "Could not lay out model",
+    });
     expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
@@ -1501,6 +1591,9 @@ describe("worked-model net-projection selection", () => {
         },
         handle,
         readDiagnosticsContext: async () => "",
+        viewport: {
+          frameSceneAfterRender: async () => "framed",
+        },
         toolCallId: "layout-1",
         signal: new AbortController().signal,
       }),

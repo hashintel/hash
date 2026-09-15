@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 
+import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 
 const binding = {
@@ -232,4 +233,23 @@ test("does not reconstruct current state from historical revision input", () => 
   );
   expect(html).not.toContain("History is not state");
   expect(html).toContain("Current state has not been queried");
+});
+
+test("folds unique validated settlement identities without treating queries as activity", () => {
+  const settlement = settlementMessage("settled-call", "# Settled account");
+  const history = foldBrunchWorkpieceHistory(
+    [settlement, settlement, ...messages],
+    binding,
+  );
+  expect(history.activityIdentities).toEqual(["settled-call"]);
+  expect(history.report?.source).toBe("query");
+});
+
+test("does not count incomplete settlement pointers as activity", () => {
+  const history = foldBrunchWorkpieceHistory(
+    [settlementMessage("pointer-only")],
+    binding,
+  );
+  expect(history.activityIdentities).toEqual([]);
+  expect(history.stateChangedSinceReport).toBe(true);
 });

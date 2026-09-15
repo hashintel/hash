@@ -125,6 +125,48 @@ describe("AiAssistantContents", () => {
     expect(contentMounted).toHaveBeenCalledOnce();
   });
 
+  test("keeps tab names stable and one live region mounted across announcements", () => {
+    const props = {
+      additionalTab: { label: "Ledger", content: <p>Saved account</p> },
+      hostAttentionCount: 2,
+      input: "",
+      messages: [],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      primaryAttention: true,
+      primaryLabel: "Chat",
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <AiAssistantContents
+        {...props}
+        attentionAnnouncement="2 unseen Ledger updates"
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: "Chat" })).not.toBeNull();
+    expect(screen.getByRole("tab", { name: "Ledger" })).not.toBeNull();
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status").textContent).toBe(
+      "2 unseen Ledger updates",
+    );
+
+    rerender(<AiAssistantContents {...props} attentionAnnouncement="" />);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByRole("status").textContent).toBe("");
+    rerender(
+      <AiAssistantContents
+        {...props}
+        attentionAnnouncement="2 unseen Ledger updates"
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toBe(
+      "2 unseen Ledger updates",
+    );
+  });
+
   test("returns to chat when the host withdraws its additional tab", () => {
     const props = {
       input: "",
@@ -2071,6 +2113,115 @@ describe("AiAssistantContents", () => {
       expect(groupHeader.getAttribute("aria-expanded")).toBe("false");
     });
     expect(groupHeader.textContent).toContain("Running…");
+  });
+
+  test("uses per-tool host labels as titles at every lifecycle site", () => {
+    const messages = [
+      {
+        id: "assistant-labels",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "one",
+            toolCallId: "one",
+            state: "input-streaming",
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "two",
+            toolCallId: "two",
+            state: "input-available",
+            input: {},
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "three",
+            toolCallId: "three",
+            state: "output-available",
+            output: { title: "Stable result title" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "four",
+            toolCallId: "four",
+            state: "output-error",
+            errorText: "Host tool failed",
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "unknown-tool",
+            toolCallId: "unknown",
+            state: "output-available",
+            output: { title: "Unknown result title" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "five",
+            toolCallId: "not-applied",
+            state: "output-available",
+            output: { applied: false, reason: "Nothing changed" },
+          },
+        ],
+      },
+    ] as PetrinautAiMessage[];
+    render(
+      <AiAssistantContents
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+        toolStateLabels={{
+          one: {
+            pending: "Preparing one",
+            success: "Completed one",
+            error: "Could not complete one",
+          },
+          two: {
+            pending: "Running two",
+            success: "Completed two",
+            error: "Could not complete two",
+          },
+          three: {
+            pending: "Running three",
+            success: "Completed three",
+            error: "Could not complete three",
+          },
+          four: {
+            pending: "Running four",
+            success: "Completed four",
+            error: "Could not complete four",
+          },
+          five: {
+            pending: "Running five",
+            success: "Completed five",
+            error: "Could not complete five",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Preparing one")).not.toBeNull();
+    expect(screen.getByText("Running two")).not.toBeNull();
+    expect(screen.getByText("Completed three")).not.toBeNull();
+    expect(screen.getByText("Could not complete four")).not.toBeNull();
+    expect(
+      within(
+        screen.getByText("Completed three").closest("button")!,
+      ).getByTestId("tool-detail").textContent,
+    ).toBe("Stable result title");
+    expect(
+      within(
+        screen.getByText("Could not complete four").closest("button")!,
+      ).getByTestId("tool-detail").textContent,
+    ).toBe("Host tool failed");
+    expect(screen.getByText("Unknown result title")).not.toBeNull();
+    expect(screen.getByText("Not applied")).not.toBeNull();
+    expect(screen.getByText("Nothing changed")).not.toBeNull();
+    expect(screen.queryByText("Completed five")).toBeNull();
   });
 
   test("auto-collapses grouped changes once every tool is complete", () => {

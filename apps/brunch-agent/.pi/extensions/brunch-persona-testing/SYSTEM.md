@@ -16,7 +16,7 @@ Enact the interaction posture supplied by the situation pack. Treat these as ind
 - **Communication style:** directness, formality, vocabulary, confidence, emotional tone, and comfort asking for clarification.
 - **Epistemic and disclosure posture:** what the person knows, believes, recalls imprecisely, volunteers, holds as tacit, or shares only after appropriate probing.
 
-Use the situation pack and launch task to ground these traits without turning the person into a caricature or inferring one axis from another. Case-specific posture guides the portrayal; the governing character and gradual-disclosure rules above still apply. When an axis is unspecified, act as a moderately busy but cooperative person: concise at first, more informative when a clear and relevant question earns it, and briefer when progress feels repetitive or unfocused.
+Use the situation pack and launch task to ground these traits without turning the person into a caricature or inferring one axis from another. Case-specific posture guides the portrayal; the governing character and gradual-disclosure rules above still apply. When an axis is unspecified, act as a moderately busy person: concise at first, more informative when a clear and relevant question earns it, and briefer when progress feels repetitive or unfocused.
 
 Write like that person typing into a chat, not an informant filling in a form:
 

@@ -43,7 +43,10 @@ import {
 import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
-import type { PetrinautAiAssistant } from "../../../../petrinaut";
+import type {
+  PetrinautAiAssistant,
+  PetrinautAiToolStateLabels,
+} from "../../../../petrinaut";
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
@@ -60,6 +63,13 @@ const errorNotification = (
 
 export type AiAssistantContentsProps = {
   additionalTab?: PetrinautAiAssistant["additionalTab"];
+  attentionAnnouncement?: string;
+  hostAttentionCount?: number;
+  hostTabSelected?: boolean;
+  onHostTabSelectedChange?: (selected: boolean) => void;
+  primaryAttention?: boolean;
+  primaryLabel?: string;
+  toolStateLabels?: PetrinautAiAssistant["toolStateLabels"];
   clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
   composerFocusRequest?: number;
@@ -431,13 +441,19 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
+    toolStateLabels,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
+    toolStateLabels: PetrinautAiToolStateLabels;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
-    const renderItems = getMessageRenderItems(message, interactiveTools);
+    const renderItems = getMessageRenderItems(
+      message,
+      interactiveTools,
+      toolStateLabels,
+    );
     const hasVoiceOrigin =
       role === "user" && message.metadata?.source === "voice";
     // The mark belongs in front of the words that were spoken. Only a message
@@ -507,6 +523,7 @@ AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
   additionalTab,
+  attentionAnnouncement,
   clearMessagesDisabled = false,
   composerControl,
   composerFocusRequest = 0,
@@ -515,12 +532,15 @@ export const AiAssistantContents = ({
   inputMode = "text",
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
+  hostAttentionCount = 0,
+  hostTabSelected: controlledHostTabSelected,
   messages,
   onClearMessages,
   onClose,
   onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
+  onHostTabSelectedChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -528,6 +548,8 @@ export const AiAssistantContents = ({
   onSubmit,
   onVoiceDockCollapsedChange,
   promptChips,
+  primaryAttention = false,
+  primaryLabel = "AI",
   rightOffset = 0,
   status,
   stopped = false,
@@ -535,12 +557,15 @@ export const AiAssistantContents = ({
   voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
+  toolStateLabels,
 }: AiAssistantContentsProps) => {
   const panelId = useId();
   const aiTabId = `${panelId}-ai`;
   const hostTabId = `${panelId}-host`;
-  const [hostTabSelected, setHostTabSelected] = useState(false);
+  const [internalHostTabSelected, setInternalHostTabSelected] = useState(false);
+  const hostTabSelected = controlledHostTabSelected ?? internalHostTabSelected;
   const showingHostTab = additionalTab !== undefined && hostTabSelected;
+  const resolvedToolStateLabels = toolStateLabels ?? {};
   const { addNotification } = use(NotificationsContext);
   const voiceSessionPhase = useVoiceSessionPhase();
   const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
@@ -776,14 +801,27 @@ export const AiAssistantContents = ({
           {additionalTab ? (
             <HorizontalTabsHeader
               subViews={[
-                { id: aiTabId, title: "AI" },
-                { id: hostTabId, title: additionalTab.label },
+                {
+                  id: aiTabId,
+                  title: primaryLabel,
+                  attention: { marker: primaryAttention },
+                },
+                {
+                  id: hostTabId,
+                  title: additionalTab.label,
+                  attention: { count: hostAttentionCount },
+                },
               ]}
               activeTabId={showingHostTab ? hostTabId : aiTabId}
-              onTabChange={(tabId) => setHostTabSelected(tabId === hostTabId)}
+              announcement={attentionAnnouncement}
+              onTabChange={(tabId) => {
+                const selected = tabId === hostTabId;
+                setInternalHostTabSelected(selected);
+                onHostTabSelectedChange?.(selected);
+              }}
             />
           ) : (
-            <div className={headerLabelStyle}>AI</div>
+            <div className={headerLabelStyle}>{primaryLabel}</div>
           )}
           <div style={{ flex: 1 }} />
           <Button
@@ -835,6 +873,7 @@ export const AiAssistantContents = ({
               key={message.id}
               message={message}
               handlersRef={handlersRef}
+              toolStateLabels={resolvedToolStateLabels}
             />
           ))}
           {stopped && !error && !messages.at(-1)?.metadata?.stopped && (

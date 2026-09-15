@@ -6,6 +6,7 @@ import {
 
 import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
 
+import type { PetrinautAiToolStateLabels } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { PetrinautAiMessage } from "../types";
 
@@ -29,6 +30,7 @@ export const isPartActive = (
 export const getMessageRenderItems = (
   message: PetrinautAiMessage,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
+  toolStateLabels: PetrinautAiToolStateLabels = {},
 ): MessageRenderItem[] => {
   const items: MessageRenderItem[] = [];
   let pendingTools: ToolRenderItem[] = [];
@@ -68,7 +70,12 @@ export const getMessageRenderItems = (
     }
 
     if (isToolPart(part)) {
-      const tool = toToolRenderItem(message, part, interactiveTools);
+      const tool = toToolRenderItem(
+        message,
+        part,
+        interactiveTools,
+        toolStateLabels,
+      );
 
       if (
         tool.toolName === getLatestNetDefinitionToolName ||

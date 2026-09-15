@@ -1,8 +1,13 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { css } from "@hashintel/ds-helpers/css";
+
+import {
+  foldBrunchWorkpieceHistory,
+  isRecord as record,
+  type BrunchWorkpieceHistoryMessage,
+} from "./brunch-workpiece-history";
 
 const documentStyle = css({
   fontSize: "sm",
@@ -38,21 +43,6 @@ const noticeStyle = css({
   marginBottom: "3",
 });
 
-const record = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-const workpieceMutationToolNames: ReadonlySet<string> = new Set([
-  "mutate_workpiece",
-  "update_workpiece",
-]);
-const workpieceReadToolNames: ReadonlySet<string> = new Set([
-  "read_workpiece",
-  "brunch_workpiece",
-]);
-const workpieceQueryToolNames: ReadonlySet<string> = new Set([
-  "query_workpiece",
-  "brunch_why",
-]);
-
 /** A view of actual model-facing results, never a second current-state authority. */
 export const BrunchWorkpiecePane = ({
   messages,
@@ -61,11 +51,7 @@ export const BrunchWorkpiecePane = ({
   construction = false,
 }: {
   construction?: boolean;
-  messages: readonly {
-    readonly role: string;
-    readonly purpose: string;
-    readonly parts: readonly unknown[];
-  }[];
+  messages: readonly BrunchWorkpieceHistoryMessage[];
   binding: {
     conversationId: string;
     documentId: string;
@@ -73,71 +59,8 @@ export const BrunchWorkpiecePane = ({
   };
   liveHash: string | undefined;
 }) => {
-  let report:
-    | {
-        toolCallId: string;
-        source: "settlement" | "query";
-        workpiece: Record<string, unknown> | undefined;
-      }
-    | undefined;
-  let why: { toolCallId: string; output: Record<string, unknown> } | undefined;
-  let whyPredatesSettlement = false;
-  let stateChangedSinceReport = false;
-  for (const message of messages) {
-    if (message.role !== "assistant" || message.purpose !== "assistant")
-      continue;
-    for (const part of message.parts) {
-      if (
-        !record(part) ||
-        part.type !== "dynamic-tool" ||
-        part.state !== "output-available" ||
-        typeof part.toolCallId !== "string" ||
-        typeof part.toolName !== "string"
-      )
-        continue;
-      if (workpieceMutationToolNames.has(part.toolName)) {
-        stateChangedSinceReport = true;
-        if (why) whyPredatesSettlement = true;
-        if (
-          record(part.output) &&
-          part.output.revisionId === part.toolCallId &&
-          typeof part.output.sha256 === "string" &&
-          typeof part.output.ordinal === "number" &&
-          typeof part.output.markdown === "string"
-        ) {
-          report = {
-            toolCallId: part.toolCallId,
-            source: "settlement",
-            workpiece: part.output,
-          };
-          stateChangedSinceReport = false;
-        }
-      }
-      if (
-        (workpieceReadToolNames.has(part.toolName) ||
-          workpieceQueryToolNames.has(part.toolName)) &&
-        record(part.output)
-      ) {
-        if (
-          workpieceQueryToolNames.has(part.toolName) &&
-          canonicalContent(part.output.binding) !== canonicalContent(binding)
-        )
-          continue;
-        report = {
-          toolCallId: part.toolCallId,
-          source: "query",
-          workpiece: record(part.output.currentWorkpiece)
-            ? part.output.currentWorkpiece
-            : undefined,
-        };
-        stateChangedSinceReport = false;
-        if (workpieceQueryToolNames.has(part.toolName)) {
-          why = { toolCallId: part.toolCallId, output: part.output };
-          whyPredatesSettlement = false;
-        }
-      }
-    }
-  }
+  const { report, stateChangedSinceReport, why, whyPredatesSettlement } =
+    foldBrunchWorkpieceHistory(messages, binding);
   const workpiece = report?.workpiece;
   const mutation =
     workpiece && record(workpiece.mutation) ? workpiece.mutation : undefined;

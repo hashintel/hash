@@ -1,6 +1,5 @@
 import { use } from "react";
 
-import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
@@ -12,7 +11,9 @@ import { useIsReadOnly } from "../../../react/state/use-is-read-only";
  * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
  * the keyboard handler still binds the keys.
  */
-function useEditorCommands(): void {
+function useEditorCommands(
+  applyAutoLayoutAndFrame: () => Promise<unknown>,
+): void {
   const {
     setCursorMode,
     setEditionMode,
@@ -22,7 +23,6 @@ function useEditorCommands(): void {
     setLeftSidebarOpen,
   } = use(EditorContext);
   const undoRedo = use(UndoRedoContext);
-  const { applyAutoLayout } = usePetrinautCommands();
   const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
   const canEditNet = mode === "edit" && !isReadOnly;
@@ -100,7 +100,7 @@ function useEditorCommands(): void {
       label: "Auto-layout the net",
       category: "Net",
       keywords: ["arrange", "tidy", "layout"],
-      run: () => void applyAutoLayout(),
+      run: () => void applyAutoLayoutAndFrame(),
     },
     { when: canEditNet },
   );
@@ -134,7 +134,9 @@ function useEditorCommands(): void {
  * subscriptions behind them (undo/redo changes on every document mutation)
  * re-render this leaf and not the `EditorView` tree.
  */
-export const EditorCommands: React.FC = () => {
-  useEditorCommands();
+export const EditorCommands: React.FC<{
+  applyAutoLayoutAndFrame: () => Promise<unknown>;
+}> = ({ applyAutoLayoutAndFrame }) => {
+  useEditorCommands(applyAutoLayoutAndFrame);
   return null;
 };

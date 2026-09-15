@@ -11,7 +11,7 @@ import {
   SelectionMode,
   useStore,
 } from "@xyflow/react";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -23,6 +23,7 @@ import { CanvasViewportContext } from "../../../../../react/state/canvas-viewpor
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
+import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
 import { readDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import {
@@ -101,6 +102,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   scene,
   containerSize,
   viewportActions,
+  registerController,
 }) => {
   const presentation = usePetrinautPresentation();
   const { compactNodes, showMinimap, partialSelection } =
@@ -111,20 +113,29 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
 
   const interactions = useCanvasInteractions(scene);
-  const controller = useReactFlowController();
   const { nodes, edges } = useReactFlowElements(scene);
   const applyChanges = useApplyNodeChanges(interactions);
-
-  useRecenterOnPanelOpen(controller, containerSize, scene.nodes);
-  useMonacoKeyboardIsolation();
-
+  const insets = useCanvasInsets();
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
+  const controller = useReactFlowController({
+    bounds,
+    containerSize,
+    insets,
+  });
+
+  useEffect(() => {
+    registerController(controller);
+    return () => registerController(null);
+  }, [controller, registerController]);
+
+  useRecenterOnPanelOpen(controller, containerSize, scene.nodes, insets);
+  useMonacoKeyboardIsolation();
 
   // The viewport at mount: where this net was last left, or centered on the
   // net. ReactFlow owns the viewport from then on, so later bounds or
   // container changes must not recompute it.
   const [initialViewport] = useState(
-    () => savedViewport ?? getInitialViewport(bounds, containerSize),
+    () => savedViewport ?? getInitialViewport(bounds, containerSize, insets),
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable
