@@ -995,7 +995,6 @@ export const AiAssistantContents = ({
               >
                 <VoiceDock
                   actions={null}
-                  assistantBusy={isBusy}
                   canReadFullResponse={false}
                   canRepeatQuestion={false}
                   canTakeTurn={false}
@@ -1004,7 +1003,6 @@ export const AiAssistantContents = ({
                   indicator={<AiVoiceModeIcon size={16} />}
                   microphoneMuted={false}
                   onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
-                  onStop={onStop}
                   phase="connecting"
                   purpose="setup"
                   speakerMuted={false}

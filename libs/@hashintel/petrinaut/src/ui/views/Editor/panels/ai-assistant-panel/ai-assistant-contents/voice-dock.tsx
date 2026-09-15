@@ -119,9 +119,7 @@ const visuallyHiddenStyle = css({
   borderWidth: "[0]",
 });
 
-export type VoiceDockProps = {
-  actions: VoiceSessionActions | null;
-  assistantBusy: boolean;
+type VoiceDockSharedProps = {
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   canRetryPlayback?: boolean;
@@ -135,12 +133,26 @@ export type VoiceDockProps = {
   notice?: string | null;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
-  onStop: () => void;
   phase: PetrinautAiVoiceSessionPhase;
-  purpose?: "session" | "setup";
   speakerMuted: boolean;
   speakerVolume: number;
 };
+
+export type VoiceDockProps = VoiceDockSharedProps &
+  (
+    | {
+        actions: null;
+        assistantBusy?: never;
+        onStop?: never;
+        purpose: "setup";
+      }
+    | {
+        actions: VoiceSessionActions | null;
+        assistantBusy: boolean;
+        onStop: () => void;
+        purpose?: "session";
+      }
+  );
 
 /**
  * The compact Voice surface inside the assistant panel: one ribbon for setup
@@ -278,9 +290,7 @@ export const VoiceDock = ({
               <Button
                 aria-label={microphoneLabel}
                 disabled={phase === "connecting"}
-                onClick={() =>
-                  actions.setMicrophoneMuted?.(!microphoneMuted)
-                }
+                onClick={() => actions.setMicrophoneMuted?.(!microphoneMuted)}
                 prefix={<MicrophoneIcon muted={microphoneMuted} />}
                 pressed={microphoneMuted}
                 size="sm"

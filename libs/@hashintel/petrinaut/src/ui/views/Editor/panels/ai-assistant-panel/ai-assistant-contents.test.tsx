@@ -114,23 +114,21 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
   expect(microphone).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Hide conversation" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "Hide conversation" }));
   expect(collapse).toHaveBeenCalledOnce();
   fireEvent.click(microphone);
   expect(setMicrophoneMuted).toHaveBeenCalledWith(true);
 
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(await screen.findByRole("button", { name: "Mute speaker" })).toBeTruthy();
+  expect(
+    await screen.findByRole("button", { name: "Mute speaker" }),
+  ).toBeTruthy();
   expect(
     screen
       .getByRole("slider", { name: "Speaker volume" })
       .getAttribute("aria-valuenow"),
   ).toBe("1");
-  expect(
-    screen.queryByRole("button", { name: "Repeat question" }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Repeat question" })).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Read full response" }),
   ).toBeNull();
@@ -169,6 +167,52 @@ test("offers a user-gesture retry while session audio is blocked", () => {
   rendered.rerender(<VoiceDock {...commonProps} canRetryPlayback={false} />);
   expect(screen.queryByRole("button", { name: "Play voice audio" })).toBeNull();
 });
+
+test.each([
+  {
+    absentAction: "Resume voice mode",
+    phase: "error" as const,
+    recoveryAction: "Reconnect voice mode",
+  },
+  {
+    absentAction: "Reconnect voice mode",
+    phase: "paused" as const,
+    recoveryAction: "Resume voice mode",
+  },
+])(
+  "keeps direct microphone beside $phase recovery controls",
+  ({ absentAction, phase, recoveryAction }) => {
+    render(
+      <VoiceDock
+        actions={{
+          end: vi.fn(),
+          pause: noop,
+          reconnect: vi.fn(),
+          resume: vi.fn(),
+          setMicrophoneMuted: vi.fn(),
+        }}
+        assistantBusy={false}
+        canReadFullResponse={false}
+        canRepeatQuestion={false}
+        canTakeTurn={false}
+        collapsed={false}
+        indicator={<span />}
+        microphoneMuted={false}
+        onCollapsedToggle={noop}
+        onStop={noop}
+        phase={phase}
+        speakerMuted={false}
+        speakerVolume={1}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: recoveryAction })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Mute microphone" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: absentAction })).toBeNull();
+  },
+);
 
 describe("AiAssistantContents", () => {
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {
@@ -738,9 +782,7 @@ describe("AiAssistantContents", () => {
       </VoiceSessionContext.Provider>,
     );
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Audio options" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
     const preference = await screen.findByRole("button", {
       name: "Interruption by speaking",
     });
@@ -869,7 +911,9 @@ describe("AiAssistantContents", () => {
     });
 
     expect(within(dock).getByText("Speaking")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Unmute speaker" })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Unmute speaker" }),
+    ).not.toBeNull();
     fireEvent.click(
       within(dock).getByRole("button", { name: "Unmute microphone" }),
     );
@@ -984,17 +1028,20 @@ describe("AiAssistantContents", () => {
       phase: "connected",
     });
     render(
-      <VoiceSessionContext.Provider value={store}>
-        <AiAssistantContents
-          input=""
-          messages={[]}
-          onClose={noop}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          status="ready"
-        />
-      </VoiceSessionContext.Provider>,
+      <>
+        <VoiceSessionContext.Provider value={store}>
+          <AiAssistantContents
+            input=""
+            messages={[]}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            status="ready"
+          />
+        </VoiceSessionContext.Provider>
+        <button type="button">Outside audio options</button>
+      </>,
     );
 
     const trigger = screen.getByRole("button", { name: "Audio options" });
@@ -1009,11 +1056,12 @@ describe("AiAssistantContents", () => {
 
     volume.focus();
     fireEvent.keyDown(volume, { key: "ArrowLeft" });
-    await waitFor(() =>
-      expect(setSpeakerVolume).toHaveBeenCalledWith(0.95),
-    );
+    await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.95));
     expect(setSpeakerMuted).not.toHaveBeenCalled();
 
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    });
     fireEvent.keyDown(volume, { key: "Escape" });
     await waitFor(() =>
       expect(
@@ -1027,7 +1075,19 @@ describe("AiAssistantContents", () => {
       name: "Speaker volume",
     });
     expect(reopenedVolume).not.toBeNull();
-    fireEvent.pointerDown(document.body);
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    });
+    fireEvent.pointerDown(
+      screen.getByRole("button", { name: "Outside audio options" }),
+      {
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+        isPrimary: true,
+        pointerType: "mouse",
+      },
+    );
     await waitFor(() =>
       expect(
         screen.queryByRole("slider", { name: "Speaker volume" }),

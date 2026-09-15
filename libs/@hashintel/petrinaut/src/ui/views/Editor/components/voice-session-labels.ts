@@ -28,6 +28,7 @@ export const voiceSessionStatusLabel = (
 };
 
 export const voiceSessionActionLabels = {
+  audioControls: "Audio controls",
   audioOptions: "Audio options",
   collapse: "Hide conversation",
   end: "End voice mode",

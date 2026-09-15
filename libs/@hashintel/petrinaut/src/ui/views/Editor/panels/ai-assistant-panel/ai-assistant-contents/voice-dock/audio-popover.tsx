@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Button, Popover, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -44,38 +44,10 @@ export const AudioPopover = ({
   speakerVolume: number;
 }) => {
   const [open, setOpen] = useState(false);
-  const controlsRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const speakerMuteLabel = speakerMuted
     ? voiceSessionActionLabels.unmuteSpeaker
     : voiceSessionActionLabels.muteSpeaker;
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const closeOnOutsideInteraction = (event: PointerEvent) => {
-      const popoverContent = controlsRef.current?.closest(
-        '[data-scope="popover"][data-part="content"]',
-      );
-      if (
-        !(event.target instanceof Node) ||
-        popoverContent?.contains(event.target) ||
-        triggerRef.current?.contains(event.target)
-      ) {
-        return;
-      }
-
-      setOpen(false);
-      triggerRef.current?.focus();
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsideInteraction);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideInteraction);
-    };
-  }, [open]);
 
   return (
     <>
@@ -83,7 +55,6 @@ export const AudioPopover = ({
         ref={triggerRef}
         aria-expanded={open}
         aria-label={voiceSessionActionLabels.audioOptions}
-        data-state={open ? "open" : "closed"}
         iconName="sliders"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
         size="sm"
@@ -101,26 +72,14 @@ export const AudioPopover = ({
             <Popover.Header title={voiceSessionActionLabels.audioOptions} />
             <Popover.Body>
               <div
-                ref={controlsRef}
-                aria-label="Audio controls"
+                aria-label={voiceSessionActionLabels.audioControls}
                 className={controlsStyle}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    setOpen(false);
-                    triggerRef.current?.focus();
-                  }
-                }}
                 role="group"
               >
                 {actions.setSpeakerMuted && (
                   <Button
-                    aria-label={speakerMuteLabel}
                     className={actionStyle}
-                    onClick={() =>
-                      actions.setSpeakerMuted?.(!speakerMuted)
-                    }
+                    onClick={() => actions.setSpeakerMuted?.(!speakerMuted)}
                     pressed={speakerMuted}
                     size="sm"
                     type="button"
@@ -144,7 +103,6 @@ export const AudioPopover = ({
                 )}
                 {actions.repeatQuestion && (
                   <Button
-                    aria-label={voiceSessionActionLabels.repeatQuestion}
                     className={actionStyle}
                     disabled={!canRepeatQuestion}
                     onClick={actions.repeatQuestion}
@@ -157,7 +115,6 @@ export const AudioPopover = ({
                 )}
                 {actions.readFullResponse && (
                   <Button
-                    aria-label={voiceSessionActionLabels.readFullResponse}
                     className={actionStyle}
                     disabled={!canReadFullResponse}
                     onClick={actions.readFullResponse}
@@ -170,9 +127,6 @@ export const AudioPopover = ({
                 )}
                 {actions.setInterruptionBySpeaking && (
                   <Button
-                    aria-label={
-                      voiceSessionActionLabels.interruptionBySpeaking
-                    }
                     className={actionStyle}
                     onClick={() =>
                       actions.setInterruptionBySpeaking?.(

@@ -2430,9 +2430,7 @@ describe("AiAssistantPanel composer submissions", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Your turn" }));
     expect(takeTurn).toHaveBeenCalledOnce();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Audio options" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
     const repeatQuestionItem = await screen.findByRole("button", {
       name: "Repeat question",
     });
@@ -2465,9 +2463,11 @@ describe("AiAssistantPanel composer submissions", () => {
       ).hasAttribute("disabled"),
     ).toBe(true);
     expect(
-      (screen.getByRole("button", {
-        name: "Read full response",
-      }) as HTMLButtonElement).disabled,
+      (
+        screen.getByRole("button", {
+          name: "Read full response",
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
   });
 
@@ -2529,7 +2529,9 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
     await screen.findByRole("region", { name: "Voice session" });
     fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Mute speaker" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Mute speaker" }),
+    );
     expect(setSpeakerMuted).toHaveBeenCalledWith(true);
     fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" });
 
@@ -2539,9 +2541,6 @@ describe("AiAssistantPanel composer submissions", () => {
         screen.queryByRole("button", { name: "Audio options" }),
       ).toBeNull(),
     );
-    expect(
-      screen.queryByRole("button", { name: "Audio options" }),
-    ).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Mute microphone" }),
     ).toBeNull();
