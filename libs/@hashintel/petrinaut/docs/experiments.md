@@ -93,9 +93,9 @@ Two consequences worth knowing:
 - Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
 - Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
 
-Use arrow keys to move between the form's sections, fields, scenario tables, metrics, and footer actions. Left collapses an expanded section or place; Right expands it. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
-
 ### Keyboard navigation
+
+Use arrow keys to move between the form's sections, fields, scenario tables, metrics, and footer actions. Left collapses an expanded section or place; Right expands it. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
 
 The creation panel opens with **Name** focused. Use **Tab** and **Shift+Tab** to move through fields and actions. Use the arrow keys in dropdowns and radio groups, and **Enter** or **Space** to activate buttons and section toggles.
 

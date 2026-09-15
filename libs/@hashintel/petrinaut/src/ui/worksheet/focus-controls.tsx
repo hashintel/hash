@@ -59,6 +59,7 @@ export const FocusControls: React.FC<{
           !(target instanceof HTMLElement) ||
           target.closest("[data-focus-controls]") !== root ||
           target.closest('.monaco-editor, [contenteditable="true"]') ||
+          target.matches('input[type="radio"], [role="radio"]') ||
           event.altKey ||
           event.metaKey ||
           event.ctrlKey ||
