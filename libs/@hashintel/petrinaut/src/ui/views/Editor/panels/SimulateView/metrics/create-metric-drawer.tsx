@@ -1,5 +1,6 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -102,7 +103,7 @@ const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
   const form = useMetricForm(
     EMPTY_METRIC_FORM_STATE,
     (value, ctx) => {
-      const metric = buildMetricFromFormState(value, crypto.randomUUID());
+      const metric = buildMetricFromFormState(value, generateUuid());
       const result = metricSchema.safeParse(metric);
       if (!result.success) {
         return;

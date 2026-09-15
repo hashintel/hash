@@ -3,6 +3,7 @@
  * @role Tracks the studies driving parameter sweeps: connects the host's in-browser optimizer, folds each study's event stream into a record, and routes its trials to the sweep that evaluates them
  */
 import { use, useCallback, useEffect, useRef, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
@@ -381,7 +382,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       }
       const { capability } = connection;
       const input = petrinautOptimizationInputSchema.parse(rawInput);
-      const optimizationId = crypto.randomUUID();
+      const optimizationId = generateUuid();
       const abortController = new AbortController();
       sweepEvaluatorsRef.current.set(
         optimizationId,

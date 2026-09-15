@@ -7,6 +7,7 @@
  * mid-typing moves nothing.
  */
 import { use, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import {
   Button,
@@ -218,7 +219,7 @@ export const ConstraintsSection = ({
     DEFAULT_OPTIMIZATION_CONSTRAINT_ALPHA;
 
   const addRow = (space: ConstraintSpace) => {
-    const id = crypto.randomUUID();
+    const id = generateUuid();
     setFocusRowId(id);
     onChange(addConstraintDraft(drafts, { id, space, code: "" }));
   };
