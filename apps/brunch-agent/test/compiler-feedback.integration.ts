@@ -34,7 +34,8 @@ import { openBrowserFixture } from "./browser-fixture.ts";
 import { browserResultFrom } from "./browser-result.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
-const cleanCompilation = "No errors or warnings found in net function code.";
+const cleanCompilation =
+  "No errors or warnings found in net function code. Scenario and metric compilation is checked when creating an experiment.";
 const output = mkdtempSync(join(tmpdir(), "m7c-compiler-feedback-"));
 const save = (name: string, value: unknown) =>
   writeFileSync(join(output, `${name}.json`), JSON.stringify(value, null, 2));

@@ -18,6 +18,10 @@ import {
 
 import {
   aiCommandActionInputSchemas,
+  createExperimentToolName,
+  petrinautExperimentRequestSchema,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentResult,
   type AiCommandActionName,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -31,6 +35,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
+import { ExperimentHostContext } from "../../../../react/experiment-host/context";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
@@ -507,9 +512,32 @@ const ConversationAiAssistantPanel = ({
 
   const { requestDiagnostics } = use(LanguageClientContext);
   const requestDiagnosticsRef = useLatest(requestDiagnostics);
+  const experimentHost = use(ExperimentHostContext);
+  const experimentControllersRef = useRef(new Map<string, AbortController>());
+  const [experimentStates, setExperimentStates] = useState<
+    Record<
+      string,
+      {
+        active: boolean;
+        progress?: PetrinautExperimentProgress;
+        result?: PetrinautExperimentResult;
+      }
+    >
+  >({});
+  const cancelExperiment = useCallback((toolCallId: string) => {
+    experimentControllersRef.current.get(toolCallId)?.abort();
+  }, []);
+  useEffect(() => {
+    const controllers = experimentControllersRef.current;
+    return () => {
+      for (const controller of controllers.values()) controller.abort();
+      controllers.clear();
+    };
+  }, []);
 
   const {
     hasSelection,
+    globalMode,
     isAiAssistantOpen,
     navigateTo,
     propertiesPanelWidth,
@@ -590,9 +618,6 @@ const ConversationAiAssistantPanel = ({
     return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
   }, [instance, requestDiagnosticsRef]);
 
-  /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
-     above: the refs are only read when the wrapped transport runs, never during
-     render. The lint rule can't see that. */
   // The wrapper is render-derived from the host transport. Delaying this to an
   // effect leaves useChat on the previous host for one committed render.
   // Timing stays outside diagnostics so it tags receipt of the response chunks.
@@ -606,7 +631,6 @@ const ConversationAiAssistantPanel = ({
       ),
     [aiAssistant.transport, readDiagnosticsContext],
   );
-  /* eslint-enable react-hooks-js/refs */
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
   // are otherwise opaque to the user — `useChat` resets `status` to `"ready"`
@@ -878,6 +902,61 @@ const ConversationAiAssistantPanel = ({
         toolCall.input,
         aiAssistant.interactiveTools ?? [],
       );
+      return;
+    }
+
+    if (toolCall.toolName === createExperimentToolName) {
+      const request = petrinautExperimentRequestSchema.parse(toolCall.input);
+      const controller = new AbortController();
+      experimentControllersRef.current.set(toolCall.toolCallId, controller);
+      setExperimentStates((states) => ({
+        ...states,
+        [toolCall.toolCallId]: { active: true },
+      }));
+      const isCurrentRequest = () =>
+        generation === submissionGenerationRef.current &&
+        executionConversationId === toolHostIdentityRef.current &&
+        experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller;
+      try {
+        const result = await experimentHost.runExperiment(request, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            if (!isCurrentRequest()) return;
+            setExperimentStates((states) => ({
+              ...states,
+              [toolCall.toolCallId]: { active: true, progress },
+            }));
+          },
+        });
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: { active: false, result },
+          }));
+        }
+        await addAutomaticToolOutput({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: result,
+        });
+      } finally {
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: {
+              ...states[toolCall.toolCallId],
+              active: false,
+            },
+          }));
+        }
+        if (
+          experimentControllersRef.current.get(toolCall.toolCallId) ===
+          controller
+        ) {
+          experimentControllersRef.current.delete(toolCall.toolCallId);
+        }
+      }
       return;
     }
 
@@ -1253,6 +1332,10 @@ const ConversationAiAssistantPanel = ({
   const submissionConversationIdRef = useRef(conversationId);
   useLayoutEffect(() => {
     if (submissionConversationIdRef.current === conversationId) return;
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
+    experimentControllersRef.current.clear();
+    setExperimentStates({});
     submissionConversationIdRef.current = conversationId;
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
@@ -1751,6 +1834,8 @@ const ConversationAiAssistantPanel = ({
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
     abortAutomaticTools();
+    for (const controller of experimentControllersRef.current.values())
+      controller.abort();
     stopRequestedRef.current = true;
     if (requestStop !== undefined) {
       try {
@@ -1962,9 +2047,6 @@ const ConversationAiAssistantPanel = ({
     stop: stopComposer,
     submitText,
   };
-  /* eslint-disable react-hooks-js/refs -- The public render prop receives
-     stable event callbacks that read their refs only when the host invokes
-     them from an event handler or effect. */
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
@@ -1979,7 +2061,6 @@ const ConversationAiAssistantPanel = ({
     setVoiceActive,
     submitVoiceInput,
   });
-  /* eslint-enable react-hooks-js/refs */
 
   return (
     <AiAssistantContents
@@ -1990,6 +2071,8 @@ const ConversationAiAssistantPanel = ({
       composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
+      experimentStates={experimentStates}
+      onCancelExperiment={cancelExperiment}
       input={input}
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
@@ -1997,6 +2080,10 @@ const ConversationAiAssistantPanel = ({
       messages={messages}
       onClearMessages={() => {
         abortAutomaticTools();
+        for (const controller of experimentControllersRef.current.values())
+          controller.abort();
+        experimentControllersRef.current.clear();
+        setExperimentStates({});
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this
@@ -2108,7 +2195,11 @@ const ConversationAiAssistantPanel = ({
       onSubmit={submitComposerInput}
       onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
-      rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
+      rightOffset={
+        globalMode === "edit" && hasSelection
+          ? propertiesPanelWidth + PANEL_MARGIN
+          : 0
+      }
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
