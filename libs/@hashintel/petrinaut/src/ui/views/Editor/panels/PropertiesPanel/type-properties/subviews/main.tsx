@@ -18,6 +18,7 @@ import {
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
@@ -198,6 +199,7 @@ const TypeMainContent: React.FC = () => {
   const isDisabled = useIsReadOnly();
   const presentation = usePetrinautPresentation();
   const { petriNetDefinition } = use(SDCPNContext);
+  const { enableStatusViews } = use(UserSettingsContext);
   const { addIdentity } = usePetrinautMutations();
   const identities = petriNetDefinition.identities ?? [];
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -563,25 +565,27 @@ const TypeMainContent: React.FC = () => {
                       />
                     </Tooltip>
 
-                    <Tooltip
-                      content={
-                        isDisabled
-                          ? UI_MESSAGES.READ_ONLY_MODE
-                          : "Identity whose key this attribute carries. Keyed tokens are tracked as instances by status views."
-                      }
-                    >
-                      <Select
-                        required
-                        value={element.identityRef ?? NO_IDENTITY_VALUE}
-                        onChange={(value) => {
-                          handleUpdateElementIdentity(element, value);
-                        }}
-                        items={getIdentityOptionsForElement(element)}
-                        disabled={isDisabled}
-                        size="sm"
-                        className={dimensionIdentitySelectStyle}
-                      />
-                    </Tooltip>
+                    {enableStatusViews && (
+                      <Tooltip
+                        content={
+                          isDisabled
+                            ? UI_MESSAGES.READ_ONLY_MODE
+                            : "Identity whose key this attribute carries. Keyed tokens are tracked as instances by status views."
+                        }
+                      >
+                        <Select
+                          required
+                          value={element.identityRef ?? NO_IDENTITY_VALUE}
+                          onChange={(value) => {
+                            handleUpdateElementIdentity(element, value);
+                          }}
+                          items={getIdentityOptionsForElement(element)}
+                          disabled={isDisabled}
+                          size="sm"
+                          className={dimensionIdentitySelectStyle}
+                        />
+                      </Tooltip>
+                    )}
                   </div>
 
                   {/* Delete button */}

@@ -187,6 +187,10 @@ Add a **Notebook** tab to explore the net as expandable, read-only cells. Off by
 
 Enable subnet definitions and component instances for hierarchical nets. This option appears when the net supports subnets. Off by default.
 
+### Status views (experimental)
+
+Off by default. Derives per-instance statuses from where each instance's token sits: adds a **Status views** tab to the Simulate panel, an identity picker to token type attributes, a Kanban board toggle above a net that has status views, and a **Status changes** column to Actual mode's Events tab. See [Status Views](status-views.md).
+
 ### Compilation output (experimental)
 
 Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom panel.

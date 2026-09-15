@@ -7,6 +7,7 @@ import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
@@ -78,10 +79,17 @@ const views = {
 export const SimulateView = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
+  const { enableStatusViews } = use(UserSettingsContext);
   const visibleModeOptions = modeOptions.filter(
-    (option) => option.value !== "metrics",
+    (option) =>
+      option.value !== "metrics" &&
+      (option.value !== "status-views" || enableStatusViews),
   );
-  const visibleMode = mode === "metrics" ? "experiments" : mode;
+  // A stored mode whose tab is not offered falls back to Experiments.
+  const visibleMode =
+    mode === "metrics" || (mode === "status-views" && !enableStatusViews)
+      ? "experiments"
+      : mode;
   const ActiveView = views[visibleMode];
 
   return (
