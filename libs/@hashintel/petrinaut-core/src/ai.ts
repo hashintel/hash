@@ -4,12 +4,12 @@ import {
   mutationActionInputSchemas,
   type MutationActionName,
 } from "./action-schemas";
-import { petrinautExperimentRequestSchema } from "./ai/experiments";
 import {
   aiCommandActionInputSchemas,
   type AiCommandActionName,
 } from "./command-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples";
+import { petrinautExperimentRequestSchema } from "./experiments";
 import { typedKeys } from "./lib/typed-entries";
 
 import type { Petrinaut } from "./instance";

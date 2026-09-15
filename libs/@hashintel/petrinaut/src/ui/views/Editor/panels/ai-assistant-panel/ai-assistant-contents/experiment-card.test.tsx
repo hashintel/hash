@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { ExperimentCard } from "./experiment-card";
 
@@ -41,7 +41,9 @@ it("reports actual run progress and removes active indicators when finished", ()
     runsCompleted: 3,
     runsTarget: 8,
   };
-  const view = render(<ExperimentCard part={part} state={{ progress }} />);
+  const view = render(
+    <ExperimentCard part={part} state={{ active: true, progress }} />,
+  );
   const card = screen.getByRole("region", { name: "Experiment: Population" });
   expect(card.getAttribute("data-tone")).toBe("simulation");
   expect(card.getAttribute("aria-busy")).toBe("true");
@@ -54,7 +56,7 @@ it("reports actual run progress and removes active indicators when finished", ()
   view.rerender(
     <ExperimentCard
       part={part}
-      state={{ progress: { ...progress, runsCompleted: 5 } }}
+      state={{ active: true, progress: { ...progress, runsCompleted: 5 } }}
     />,
   );
   expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
@@ -85,14 +87,19 @@ it("keeps optimization identity while validating and after cancellation", () => 
       },
     },
   };
-  const view = render(<ExperimentCard part={optimizationPart} />);
+  const view = render(
+    <ExperimentCard part={optimizationPart} state={{ active: true }} />,
+  );
   const card = screen.getByRole("region", { name: "Experiment: Population" });
   expect(card.getAttribute("data-tone")).toBe("optimization");
   expect(screen.getByRole("status").textContent).toBe("Validating");
   view.rerender(
     <ExperimentCard
       part={optimizationPart}
-      state={{ result: { ...result, status: "cancelled", metrics: [] } }}
+      state={{
+        active: false,
+        result: { ...result, status: "cancelled", metrics: [] },
+      }}
     />,
   );
   expect(card.getAttribute("data-tone")).toBe("optimization");
@@ -113,4 +120,33 @@ it("shows a failed tool without a pending validation label or progress", () => {
   expect(screen.getByRole("status").textContent).toBe("Failed");
   expect(screen.queryByText("Checking the model")).toBeNull();
   expect(screen.queryByRole("progressbar")).toBeNull();
+});
+
+it("only offers cancellation while this panel owns a running request", () => {
+  const onCancel = vi.fn();
+  const view = render(<ExperimentCard part={part} onCancel={onCancel} />);
+  const card = screen.getByRole("region", { name: "Experiment: Population" });
+  expect(card.getAttribute("aria-busy")).toBe("false");
+  expect(screen.getByRole("status").textContent).toBe("Not running");
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  expect(
+    screen.getByText(/Ask the assistant to run a new experiment/),
+  ).not.toBeNull();
+
+  view.rerender(
+    <ExperimentCard part={part} state={{ active: true }} onCancel={onCancel} />,
+  );
+  expect(screen.getByRole("status").textContent).toBe("Validating");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(onCancel).toHaveBeenCalledWith(part.toolCallId);
+
+  view.rerender(
+    <ExperimentCard
+      part={part}
+      state={{ active: false }}
+      onCancel={onCancel}
+    />,
+  );
+  expect(card.getAttribute("aria-busy")).toBe("false");
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 });

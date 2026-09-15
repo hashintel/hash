@@ -34,8 +34,8 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
-import { AiExperimentsContext } from "../../../../react/ai-experiments/context";
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
+import { ExperimentHostContext } from "../../../../react/experiment-host/context";
 import { useLatest } from "../../../../react/hooks/use-latest";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
@@ -512,17 +512,21 @@ const ConversationAiAssistantPanel = ({
 
   const { requestDiagnostics } = use(LanguageClientContext);
   const requestDiagnosticsRef = useLatest(requestDiagnostics);
-  const experimentHost = use(AiExperimentsContext);
+  const experimentHost = use(ExperimentHostContext);
   const experimentControllersRef = useRef(new Map<string, AbortController>());
   const [experimentStates, setExperimentStates] = useState<
     Record<
       string,
       {
+        active: boolean;
         progress?: PetrinautExperimentProgress;
         result?: PetrinautExperimentResult;
       }
     >
   >({});
+  const cancelExperiment = useCallback((toolCallId: string) => {
+    experimentControllersRef.current.get(toolCallId)?.abort();
+  }, []);
   useEffect(() => {
     const controllers = experimentControllersRef.current;
     return () => {
@@ -905,26 +909,30 @@ const ConversationAiAssistantPanel = ({
       const request = petrinautExperimentRequestSchema.parse(toolCall.input);
       const controller = new AbortController();
       experimentControllersRef.current.set(toolCall.toolCallId, controller);
+      setExperimentStates((states) => ({
+        ...states,
+        [toolCall.toolCallId]: { active: true },
+      }));
       const isCurrentRequest = () =>
         generation === submissionGenerationRef.current &&
         executionConversationId === toolHostIdentityRef.current &&
         experimentControllersRef.current.get(toolCall.toolCallId) ===
           controller;
       try {
-        const result = await experimentHost.createExperiment(request, {
+        const result = await experimentHost.runExperiment(request, {
           signal: controller.signal,
           onProgress: (progress) => {
             if (!isCurrentRequest()) return;
             setExperimentStates((states) => ({
               ...states,
-              [toolCall.toolCallId]: { progress },
+              [toolCall.toolCallId]: { active: true, progress },
             }));
           },
         });
         if (isCurrentRequest()) {
           setExperimentStates((states) => ({
             ...states,
-            [toolCall.toolCallId]: { result },
+            [toolCall.toolCallId]: { active: false, result },
           }));
         }
         await addAutomaticToolOutput({
@@ -933,6 +941,15 @@ const ConversationAiAssistantPanel = ({
           output: result,
         });
       } finally {
+        if (isCurrentRequest()) {
+          setExperimentStates((states) => ({
+            ...states,
+            [toolCall.toolCallId]: {
+              ...states[toolCall.toolCallId],
+              active: false,
+            },
+          }));
+        }
         if (
           experimentControllersRef.current.get(toolCall.toolCallId) ===
           controller
@@ -2055,9 +2072,7 @@ const ConversationAiAssistantPanel = ({
       composerControl={composerControl}
       error={streamError ?? error}
       experimentStates={experimentStates}
-      onCancelExperiment={(toolCallId) =>
-        experimentControllersRef.current.get(toolCallId)?.abort()
-      }
+      onCancelExperiment={cancelExperiment}
       input={input}
       inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}

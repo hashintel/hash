@@ -198,6 +198,10 @@ parameters again; the result already recorded in chat stays unchanged.
 Experiments run in your current browser session, so keep the page open until
 they finish. See [Experiments](experiments.md#experiments-created-by-the-assistant).
 
+A request with no saved result and no active run shows **Not running**.
+Ask the assistant to run a new experiment. **Cancel** is available only for
+experiments running in this panel.
+
 ## Read-only behaviour
 
 Whether the assistant can change the net depends on the editor state:

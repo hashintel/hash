@@ -18,6 +18,7 @@ export type ExperimentToolPart = Extract<
 >;
 
 export type AiExperimentState = {
+  active: boolean;
   progress?: PetrinautExperimentProgress;
   result?: PetrinautExperimentResult;
 };
@@ -222,26 +223,30 @@ export const ExperimentCard = ({
   const name =
     result?.name ?? progress?.name ?? part.input?.name ?? "Experiment";
   const errorText = part.state === "output-error" ? part.errorText : undefined;
-  const pending = !result && !errorText;
+  const pending = state?.active === true && !result && !errorText;
   const optimization =
     part.input?.execution?.mode === "optimize" ||
     result?.optimization !== undefined ||
     progress?.phase === "optimizing" ||
     progress?.phase === "refining";
-  const statusKind = errorText ? "error" : (result?.status ?? "pending");
+  const statusKind = errorText
+    ? "error"
+    : (result?.status ?? (pending ? "pending" : "unavailable"));
   const status = errorText
     ? "Failed"
     : result
       ? { complete: "Finished", cancelled: "Cancelled", error: "Failed" }[
           result.status
         ]
-      : progress?.phase === "optimizing"
-        ? "Optimizing"
-        : progress?.phase === "refining"
-          ? "Refining"
-          : progress?.phase === "running"
-            ? "Running"
-            : "Validating";
+      : !pending
+        ? "Not running"
+        : progress?.phase === "optimizing"
+          ? "Optimizing"
+          : progress?.phase === "refining"
+            ? "Refining"
+            : progress?.phase === "running"
+              ? "Running"
+              : "Validating";
   const progressValue = progress
     ? Math.min(progress.runsTarget, Math.max(0, progress.runsCompleted))
     : 0;
@@ -339,6 +344,12 @@ export const ExperimentCard = ({
             <span className={detailStyle}>Refining the best result</span>
           )}
         </div>
+      )}
+      {!pending && !result && !errorText && (
+        <p className={detailStyle}>
+          No result is available for this request. Ask the assistant to run a
+          new experiment.
+        </p>
       )}
       {(result?.message ?? errorText) && (
         <p
