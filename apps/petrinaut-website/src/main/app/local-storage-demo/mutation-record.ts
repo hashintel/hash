@@ -10,6 +10,8 @@ import {
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
   isReadPetrinautNetToolName,
+  mutatePetrinetAttemptOperationId,
+  mutatePetrinetOutputSchema,
   mutatePetrinautNetToolName,
   observedMutationOutcome,
   parseJoinedRootArcInput,
@@ -437,13 +439,12 @@ export const createJoinedBrowserMutationRecorder = (input: {
       } satisfies ClientToolResultMetadata;
     }
     if (isMutatePetrinautNetToolName(result.toolName)) {
-      const reported =
-        typeof result.output === "object" &&
-        result.output !== null &&
-        "postHash" in result.output
-          ? result.output.postHash
-          : undefined;
-      if (reported !== observeBrowserDefinition(input.handle).sha256)
+      const output = mutatePetrinetOutputSchema.parse(result.output);
+      if (output.toolCallId !== result.toolCallId)
+        throw new Error(
+          "The mutate_petrinaut_net result belongs to another tool call.",
+        );
+      if (output.postHash !== observeBrowserDefinition(input.handle).sha256)
         throw new Error(
           "The document changed after the mutate_petrinaut_net result reported its final hash.",
         );
@@ -457,6 +458,49 @@ export const createJoinedBrowserMutationRecorder = (input: {
       if (attempts.length === 0)
         throw new Error(
           "A mutate_petrinaut_net result requires observed browser mutation records.",
+        );
+      const attemptedOutcomes = output.outcomes.filter(
+        (operation) => operation.status !== "unattempted",
+      );
+      const operationIds = output.outcomes.map(
+        (operation) => operation.operationId,
+      );
+      let stopped = false;
+      const invalidOutcomeOrder = output.outcomes.some((operation) => {
+        if (stopped) return operation.status !== "unattempted";
+        stopped =
+          operation.status === "failed" ||
+          operation.status === "unknown" ||
+          operation.status === "unattempted";
+        return false;
+      });
+      let previousPostHash = output.preHash;
+      const inconsistent =
+        new Set(operationIds).size !== operationIds.length ||
+        invalidOutcomeOrder ||
+        attempts.length !== attemptedOutcomes.length ||
+        attempts.some((attempt, index) => {
+          const operationId = mutatePetrinetAttemptOperationId(
+            result.toolCallId,
+            attempt.request.toolCallId,
+          );
+          const reported = attemptedOutcomes[index];
+          const reportedPostHash =
+            reported && "postHash" in reported ? reported.postHash : undefined;
+          const contradictsAttempt =
+            reported === undefined ||
+            reported.operationId !== operationId ||
+            reported.status !== attempt.outcome ||
+            reported.preHash !== attempt.pre.sha256 ||
+            reported.preHash !== previousPostHash ||
+            reportedPostHash !== attempt.post?.sha256;
+          previousPostHash = attempt.post?.sha256 ?? previousPostHash;
+          return contradictsAttempt;
+        }) ||
+        previousPostHash !== output.postHash;
+      if (inconsistent)
+        throw new Error(
+          "The mutate_petrinaut_net output contradicts the observed browser mutation record.",
         );
       const outcome = attempts.some((attempt) => attempt.outcome === "unknown")
         ? "unknown"
