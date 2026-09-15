@@ -31,7 +31,7 @@ The provider reaches the source through `useOptimizationSource()`, which
 returns a connected source only while the experimental **In-browser
 optimization** user setting is on. Off, the hook returns `null`: the
 experiment form's interval toggles read Sweep, the Create Experiment drawer's
-Objective and Constraints sections hide, and the provider disposes the
+objective controls and Constraints section hide, and the provider disposes the
 connection, which cancels every run made through it. A remote capability passes through the hook unchanged, and the
 provider refuses to start a study on it.
 
@@ -42,7 +42,7 @@ provider refuses to start a study on it.
 1. **Create Experiment drawer → provider.** `useStartSweepStudy` builds
    the manifest with `buildSweepOptimizationInput` from the experiment
    record (model snapshot, the scenario the record compiled from, the
-   Objective section's metric, direction and steps, one range domain per
+   selected objective metric, direction and step count, one range domain per
    swept axis, the record's `scenarioParameterValues` as the fixed bindings,
    the experiment's constraints and pass threshold, `seedsPerTrial` at the
    run ladder's first rung) and calls `createOptimization(input, { sweep })`

@@ -1,9 +1,3 @@
-/**
- * The Create Experiment drawer's Objective section as data: the draft the
- * section edits, the metric it resolves to, the budget pre-check that mirrors
- * the manifest schema's caps before anything is created, and the objective
- * the study starts with.
- */
 import {
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
