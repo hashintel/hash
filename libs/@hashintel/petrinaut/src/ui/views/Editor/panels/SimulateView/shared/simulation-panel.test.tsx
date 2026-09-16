@@ -261,7 +261,7 @@ it("keeps canvas shortcuts from handling keys pressed in the panel", () => {
 
 it.each([
   { mode: "edit", editView: "canvas" },
-  { mode: "edit", editView: "notebook" },
+  { mode: "edit", editView: "definitions" },
   { mode: "actual" },
 ] as const)(
   "keeps the main view interactive when leaving fullscreen results for $mode/$editView",
