@@ -171,11 +171,11 @@ Off by default. Offers a GPU option when creating an experiment; each experiment
 
 ### Parameter sweeps (experimental)
 
-Off by default. Adds an interval toggle to every numeric value of the experiment form -- **Sweep**, or **Optimize** when In-browser optimization is on -- so an experiment explores an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
+Off by default. Adds a **Sweep** interval toggle to every numeric value of the experiment form so an experiment explores an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
 
 ### In-browser optimization (experimental)
 
-Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with the objective chosen on a metric in **Metrics & objective** and conditions added under **Constraints**. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. Adds **Start optimizer immediately**, unchecked by default, to experiment creation and **Optimize** to the results' Parameters header. You can explore a sweep manually before starting its optimizer. Turning this setting off hides the optimizer controls and cancels any running in-browser optimization. The interval toggles continue to read **Sweep**. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ## Labs
 

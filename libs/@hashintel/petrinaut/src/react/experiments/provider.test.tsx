@@ -623,6 +623,7 @@ describe("ExperimentsProvider", () => {
       ]);
       expect(experiment).toMatchObject({
         name: "Initializing experiment",
+        definition: EMPTY_SDCPN,
         status: "initializing",
         sweep: null,
       });

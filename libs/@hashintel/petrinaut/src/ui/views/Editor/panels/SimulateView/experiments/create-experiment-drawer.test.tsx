@@ -604,7 +604,7 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     ).toBeInstanceOf(HTMLElement);
   });
 
-  it("reads Optimize on the toggle when the in-browser optimizer can drive the sweep", async () => {
+  it("keeps Sweep on the toggle when the in-browser optimizer is available", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -615,10 +615,10 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     );
 
     expect(
-      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     ).toBeInstanceOf(HTMLElement);
     expect(
-      screen.queryByRole("button", { name: "Sweep transmission_rate" }),
+      screen.queryByRole("button", { name: "Optimize transmission_rate" }),
     ).toBeNull();
   });
 
@@ -635,15 +635,13 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
     // The word follows the settings and the source, never the toggle count:
     // the first toggle relabels nothing.
     fireEvent.click(
-      await screen.findByRole("button", { name: "Optimize transmission_rate" }),
+      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Optimize recovery_days" }),
+      screen.getByRole("button", { name: "Sweep recovery_days" }),
     );
-    expect(screen.getAllByRole("button", { name: /^Optimize / })).toHaveLength(
-      2,
-    );
-    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /^Sweep / })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /^Optimize / })).toBeNull();
   });
 
   it("tells a saved scenario without parameters apart from an empty form", async () => {
@@ -715,7 +713,7 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     );
   });
 
-  it("reads Optimize on the ad-hoc form's toggle when the in-browser optimizer can drive the sweep", async () => {
+  it("keeps Sweep on the ad-hoc toggle when the in-browser optimizer is available", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -725,10 +723,10 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
       />,
     );
 
-    expect(await screen.findByLabelText("Optimize Rate")).toBeInstanceOf(
+    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
       HTMLElement,
     );
-    expect(screen.queryByLabelText("Sweep Rate")).toBeNull();
+    expect(screen.queryByLabelText("Optimize Rate")).toBeNull();
   });
 
   it("offers no interval toggle on the ad-hoc form while sweeps are off", async () => {
@@ -876,8 +874,11 @@ const openConstrainedSweep = async (
       {...props}
     />,
   );
-  flipInterval("transmission_rate", "Optimize");
+  flipInterval("transmission_rate", "Sweep");
   expect(await screen.findByText("Constraints")).toBeTruthy();
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+  );
   return rendered;
 };
 
@@ -895,7 +896,7 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
-  it("offers no Constraints section until an Optimize toggle flips", async () => {
+  it("offers Constraints for a manual sweep before opting into optimization", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -906,17 +907,17 @@ describe("CreateExperimentDrawer constraints", () => {
     );
     expect(screen.queryByText("Constraints")).toBeNull();
 
-    flipInterval("transmission_rate", "Optimize");
+    flipInterval("transmission_rate", "Sweep");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.getByText(
         "No constraints — the optimizer may try any point of the sweep.",
       ),
     ).toBeTruthy();
-    expect(footerButton("Optimize")).toBeTruthy();
+    expect(footerButton("Create sweep")).toBeTruthy();
 
     // Flipping it back hides the section with the sweep.
-    flipInterval("transmission_rate", "Optimize");
+    flipInterval("transmission_rate", "Sweep");
     await waitFor(() => {
       expect(screen.queryByText("Constraints")).toBeNull();
     });
@@ -945,9 +946,8 @@ describe("CreateExperimentDrawer constraints", () => {
         optimizationSource={connectedSource}
       />,
     );
-    // The ad-hoc form's Optimize toggle is a button of its own.
-    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
-    expect(await findFooterButton("Optimize")).toBeTruthy();
+    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
+    expect(await findFooterButton("Create sweep")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
   });
 
@@ -1283,7 +1283,7 @@ describe("CreateExperimentDrawer constraints", () => {
     });
     // The other scenario's sweep has to be turned on again, as its inputs reset.
     expect(screen.queryByText("Constraints")).toBeNull();
-    flipInterval("recovery_days", "Optimize");
+    flipInterval("recovery_days", "Sweep");
     expect(await screen.findByText("Constraints")).toBeTruthy();
     expect(
       screen.queryByRole("group", { name: "Parameter constraint 1" }),
@@ -1416,6 +1416,55 @@ const objectiveHelper = () =>
   );
 
 describe("CreateExperimentDrawer objective", () => {
+  it.each([false, true])(
+    "creates a manual sweep without starting the optimizer (opted in then out=%s)",
+    async (optedInThenOut) => {
+      const createExperiment = vi.fn((input: CreateExperimentInput) =>
+        createdSweep(input, "manual-sweep"),
+      );
+      const createOptimization = vi.fn(() => Promise.resolve("study"));
+      render(
+        <TestProviders
+          webGpuEnabled={false}
+          enableParameterSweeps
+          sdcpnContextValue={sweptContextValue}
+          optimizationSource={connectedSource}
+          createExperiment={createExperiment}
+          createOptimization={createOptimization}
+        />,
+      );
+      flipInterval("transmission_rate", "Sweep");
+      const automatic = screen.getByRole("checkbox", {
+        name: "Start optimizer immediately",
+      }) as HTMLInputElement;
+      expect(automatic.checked).toBe(false);
+      fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+      if (optedInThenOut) {
+        fireEvent.click(
+          screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+        );
+        fireEvent.change(await screen.findByLabelText("Optimization steps"), {
+          target: { value: "1001" },
+        });
+        expect(submitButton().disabled).toBe(true);
+        fireEvent.click(
+          screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+        );
+      }
+      await waitFor(() =>
+        expect(screen.queryByLabelText("Optimization steps")).toBeNull(),
+      );
+      expect(footerButton("Create sweep").disabled).toBe(false);
+      fireEvent.click(footerButton("Create sweep"));
+      await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+      expect(createOptimization).not.toHaveBeenCalled();
+      expect(
+        createExperiment.mock.calls[0]?.[0].scenarioParameterValues
+          .transmission_rate?.mode,
+      ).toBe("range");
+    },
+  );
+
   it("offers no objective controls for a plain experiment", async () => {
     render(
       <TestProviders
@@ -1455,7 +1504,7 @@ describe("CreateExperimentDrawer objective", () => {
     expect(screen.queryByText("Metrics & objective")).toBeNull();
   });
 
-  it("unifies metrics and the objective before Constraints at the first Optimize on a saved scenario", async () => {
+  it("unifies metrics and the objective after opting into immediate optimization", async () => {
     render(
       <TestProviders
         webGpuEnabled={false}
@@ -1464,17 +1513,19 @@ describe("CreateExperimentDrawer objective", () => {
         optimizationSource={connectedSource}
       />,
     );
-    await screen.findByRole("button", { name: "Optimize transmission_rate" });
+    await screen.findByRole("button", { name: "Sweep transmission_rate" });
     expect(screen.queryByText("Metrics & objective")).toBeNull();
     expect(footerButton("Run")).toBeTruthy();
 
-    flipInterval("transmission_rate", "Optimize");
+    flipInterval("transmission_rate", "Sweep");
+    expect(screen.queryByText("Metrics & objective")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+    );
     expect(await screen.findByText("Metrics & objective")).toBeTruthy();
     expect(screen.getByText("Constraints")).toBeTruthy();
     expect(
-      screen.getByText(
-        /transmission_rate optimized over its interval — the study picks the points/,
-      ),
+      screen.getByText(/transmission_rate swept over its interval/),
     ).toBeTruthy();
     expect(footerButton("Optimize")).toBeTruthy();
     expect(
@@ -1510,11 +1561,14 @@ describe("CreateExperimentDrawer objective", () => {
         optimizationSource={connectedSource}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+    );
 
     expect(await screen.findByText("Metrics & objective")).toBeTruthy();
     expect(screen.queryByText("Constraints")).toBeNull();
-    expect(screen.getByText(/Rate optimized over its interval/)).toBeTruthy();
+    expect(screen.getByText(/Rate swept over its interval/)).toBeTruthy();
     expect(footerButton("Optimize")).toBeTruthy();
   });
 
@@ -1527,7 +1581,10 @@ describe("CreateExperimentDrawer objective", () => {
         optimizationSource={connectedSource}
       />,
     );
-    fireEvent.click(await screen.findByLabelText("Optimize Rate"));
+    fireEvent.click(await screen.findByLabelText("Sweep Rate"));
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Start optimizer immediately" }),
+    );
     expect(await screen.findByText("Metrics & objective")).toBeTruthy();
 
     // Blanking Max leaves the definition unable to synthesize: the form

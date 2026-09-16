@@ -34,6 +34,7 @@ import { ParameterImportancePanel } from "./experiment-results/parameter-importa
 import { StudyConstraintsCard } from "./experiment-results/study-constraints-card";
 import { StudyHeader } from "./experiment-results/study-header";
 import { StudySteps } from "./experiment-results/study-steps";
+import { SweepOptimizeControl } from "./experiment-results/sweep-optimize-control";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import {
@@ -242,7 +243,7 @@ export type ExperimentResultsDependencies = {
     ExperimentsActionsValue,
     "cancelExperiment" | "removeExperiment" | "setSweepSelection"
   >;
-  /** The study the sweep was created with, which its Parameters card follows. */
+  /** The current study and controls for starting or stopping its search. */
   optimizer: SweepOptimizer;
   /** Leaves the record: after Remove, and from the Close button. */
   onClose: () => void;
@@ -272,8 +273,7 @@ export const experimentResultsModel = (
     following !== null ||
     experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
-  // The study's displays are there from the drawer's first frame for an
-  // experiment created with Optimize, whatever the study's status.
+  // Keep the study's displays after its search stops or completes.
   const { study } = optimizer;
   const rates = studyRates(study);
 
@@ -379,6 +379,12 @@ export const experimentResultsModel = (
               >
                 Stop
               </Button>
+            ) : optimizer.start !== null && !locked ? (
+              <SweepOptimizeControl
+                key={experiment.id}
+                experiment={experiment}
+                onStart={optimizer.start}
+              />
             ) : null,
             content: (
               <SweepNavigator

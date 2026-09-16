@@ -46,6 +46,7 @@ vi.mock("./sweep-objective-strip", () => ({
 const idleOptimizer: ExperimentResultsDependencies["optimizer"] = {
   study: null,
   driving: null,
+  start: null,
   stop: () => {},
   discard: () => {},
 };
@@ -410,6 +411,23 @@ const withStudy = (
 describe("experimentResultsModel with the optimizer", () => {
   const study = sweepStudy("running");
   const driving = { step: 5, total: 30 };
+  it("offers manual optimization for an eligible sweep and hides it while locked", () => {
+    const start = vi.fn(() => Promise.resolve());
+    const optimizer = { ...idleOptimizer, start };
+    expect(
+      propsOf<{ onStart: unknown }>(
+        model(idleSweep, { optimizer }).bands[0]!.trailing,
+      ).onStart,
+    ).toBe(start);
+    expect(
+      model({ ...idleSweep, requestActive: true }, { optimizer }).bands[0]!
+        .trailing,
+    ).toBeNull();
+    expect(
+      model({ ...idleSweep, status: "cancelled" }, { optimizer }).bands[0]!
+        .trailing,
+    ).toBeNull();
+  });
   /** The record between two steps: the session idles until the next point. */
   const betweenSteps = model(idleSweep, {
     optimizer: withStudy(study, driving),

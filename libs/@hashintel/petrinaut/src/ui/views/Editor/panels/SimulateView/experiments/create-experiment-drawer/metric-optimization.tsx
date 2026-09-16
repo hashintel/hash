@@ -2,12 +2,12 @@ import { NumberInput, Radio, SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { PETRINAUT_OPTIMIZATION_MAX_TRIALS } from "@hashintel/petrinaut-core/optimization";
 
-import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "../sweep-optimizer";
-import { labelStyle } from "./form-field-styles";
 import {
   describeSweepObjective,
   SWEEP_OPTIMIZATION_DEFAULT_STEPS,
-} from "./sweep-objective";
+} from "../shared/sweep-objective";
+import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "../sweep-optimizer";
+import { labelStyle } from "./form-field-styles";
 
 import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";
 

@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Simplify experiment creation with automatic metric names, highlighted objective metrics, compact objective controls and constraint editors, and keyboard navigation throughout the form. Explain invalid sweep intervals beside the creation button. Fix switching between custom model metrics and display their saved names as read-only text.
+Streamline experiment creation with automatic metric names, compact constraints, keyboard controls, and explicit optimizer startup. Simplify results with manual optimizer controls, compact details, single-value parameter sliders, and sensitivity estimates ordered by importance.
