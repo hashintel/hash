@@ -12,12 +12,12 @@ import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization"
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
   currentTrialNumber,
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
-import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { directionWord } from "../shared/study-labels";
 
@@ -180,7 +180,7 @@ export const useSweepOptimizer = (
 ): SweepOptimizer => {
   const { optimizations, cancelOptimization, removeOptimization } =
     use(OptimizationsContext);
-  const source = useOptimizationSource();
+  const source = use(PetrinautOptimizationContext);
   const startStudy = useStartSweepStudy();
 
   const study =

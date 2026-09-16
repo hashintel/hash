@@ -40,12 +40,7 @@ export const sharedOverlays = [
   "create-experiment",
 ] as const;
 
-export const sharedSettingsSections = [
-  "general",
-  "viewport",
-  "simulation",
-  "labs",
-] as const;
+export const sharedSettingsSections = ["general", "viewport", "labs"] as const;
 
 export const sharedResourceTypes = [
   "scenario",

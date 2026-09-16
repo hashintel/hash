@@ -114,46 +114,63 @@ describe("UserSettingsProvider", () => {
     expect(screen.getByRole("button", { name: "probe: on" })).toBe(probe);
   });
 
-  it("loads saved preferences and drops retired experiment keys on the next write", () => {
-    // An in-memory store: some Node versions expose a global `localStorage`
-    // whose methods are missing, so the test owns the storage it inspects.
-    const entries = new Map<string, string>([
-      [
-        storageKey,
-        JSON.stringify({
-          enableAdHocScenarios: true,
-          enableNotebookView: false,
-          showWalkthroughOnInit: false,
-        }),
-      ],
-    ]);
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => entries.get(key) ?? null,
-      setItem: (key: string, value: string) => entries.set(key, value),
-      removeItem: (key: string) => entries.delete(key),
-    });
+  it.each([false, true])(
+    "drops retired simulation flags from saved settings (legacy value=%s)",
+    (enabled) => {
+      // An in-memory store: some Node versions expose a global `localStorage`
+      // whose methods are missing, so the test owns the storage it inspects.
+      const entries = new Map<string, string>([
+        [
+          storageKey,
+          JSON.stringify({
+            enableAdHocScenarios: true,
+            enableNotebookView: enabled,
+            webGpuEnabled: enabled,
+            enableParameterSweeps: enabled,
+            enableInBrowserOptimization: enabled,
+            computeBackend: "webgpu",
+            showWalkthroughOnInit: false,
+          }),
+        ],
+      ]);
+      vi.stubGlobal("localStorage", {
+        getItem: (key: string) => entries.get(key) ?? null,
+        setItem: (key: string, value: string) => entries.set(key, value),
+        removeItem: (key: string) => entries.delete(key),
+      });
 
-    try {
-      render(
-        <UserSettingsProvider>
-          <WalkthroughProbe />
-        </UserSettingsProvider>,
-      );
+      try {
+        render(
+          <UserSettingsProvider>
+            <WalkthroughProbe />
+          </UserSettingsProvider>,
+        );
 
-      fireEvent.click(screen.getByRole("button", { name: "walkthrough: off" }));
+        fireEvent.click(
+          screen.getByRole("button", { name: "walkthrough: off" }),
+        );
 
-      const persisted = JSON.parse(entries.get(storageKey) ?? "{}") as Record<
-        string,
-        unknown
-      >;
-      expect("enableAdHocScenarios" in persisted).toBe(false);
-      expect("enableNotebookView" in persisted).toBe(false);
-      expect(persisted.showWalkthroughOnInit).toBe(false);
-      expect(persisted.brunchDemoMode).toBe(true);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
+        const persisted = JSON.parse(entries.get(storageKey) ?? "{}") as Record<
+          string,
+          unknown
+        >;
+        for (const key of [
+          "enableAdHocScenarios",
+          "enableNotebookView",
+          "webGpuEnabled",
+          "enableParameterSweeps",
+          "enableInBrowserOptimization",
+          "computeBackend",
+        ]) {
+          expect(key in persisted).toBe(false);
+        }
+        expect(persisted.showWalkthroughOnInit).toBe(false);
+        expect(persisted.brunchDemoMode).toBe(true);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
 
   it("reuses an ancestor provider, so a host and the editor share one state", () => {
     // The host mounts the provider above the editor and reads the settings

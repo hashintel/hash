@@ -41,6 +41,6 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
-- [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, Simulation, and Labs.
+- [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, and Labs.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.

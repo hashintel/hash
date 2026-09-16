@@ -136,9 +136,7 @@ use provider-pattern discovery instead.
 The demo at [http://localhost:5173](http://localhost:5173) runs the optimizer
 in the browser: the Optuna study runs in a Pyodide web worker and each
 optimization step runs on Petrinaut's own experiments backend, so no Python
-service is involved. With the experimental **Parameter sweeps** and
-**In-browser optimization** settings on, under **Viewport controls > Settings >
-Simulation**, a sweep's Parameters card in the Experiments tab offers
+service is involved. A sweep's Parameters card in the Experiments tab offers
 **Optimize**. The first optimization in a browser downloads the Python runtime
 from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 

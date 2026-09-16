@@ -22,6 +22,7 @@ import { ExperimentsActionsContext } from "../experiments/context";
 import { errorMessage } from "../experiments/shared/error-message";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
+import { PetrinautOptimizationContext } from "../optimization-context";
 import {
   foldBestTrial,
   type OptimizationBest,
@@ -35,7 +36,6 @@ import {
   createSweepTrialEvaluator,
   type SweepTrialEvaluator,
 } from "./provider/create-sweep-trial-evaluator";
-import { useOptimizationSource } from "./use-optimization-source";
 
 import type { PropsWithChildren } from "react";
 
@@ -92,7 +92,7 @@ const connectOptimizationSource = (
 };
 
 export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
-  const source = useOptimizationSource();
+  const source = use(PetrinautOptimizationContext);
   const experimentsActionsRef = useLatest(use(ExperimentsActionsContext));
   const connectionRef = useRef<OptimizationConnection | null>(null);
   const abortControllersRef = useRef(new Map<string, AbortController>());

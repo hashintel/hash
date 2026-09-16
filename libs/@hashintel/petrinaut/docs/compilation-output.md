@@ -1,6 +1,6 @@
 # Compilation Output
 
-The **Compilation** tab explains what Petrinaut's compiler made of your net's code: which conditions, kernels, differential equations and metrics were understood, and what stops the net running on the [GPU backend](experiments.md#compute-backend-experimental).
+The **Compilation** tab explains what Petrinaut's compiler made of your net's code: which conditions, kernels, differential equations and metrics were understood, and what stops the net running on the [GPU backend](experiments.md#compute-backend).
 
 It is a diagnostic view about the compiler, not about your model — for errors in your code, use [Diagnostics](petri-net-extensions.md#diagnostics) instead.
 

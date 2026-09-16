@@ -8,7 +8,6 @@ import {
   screen,
   within,
 } from "@testing-library/react";
-import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
@@ -18,7 +17,6 @@ import {
   type OptimizationsContextValue,
 } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { frameLayoutSignature } from "../shared/drawer-frame.test-helpers";
 import {
   makeConstrainedSweepExperiment,
@@ -46,7 +44,6 @@ import { ViewExperimentDrawer } from "./view-experiment-drawer";
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { SweepOptimizer } from "./sweep-optimizer";
 import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
-import type { ReactNode } from "react";
 
 /** The optimizer the drawer's Parameters card reads; idle unless a test sets it. */
 const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
@@ -160,17 +157,6 @@ const connectedOptimizer: PetrinautConnectedOptimization = {
   },
 };
 
-const WithInBrowserOptimizer = ({ children }: { children: ReactNode }) => {
-  const value = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...value, enableInBrowserOptimization: true }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 /** A study started from `experiment`: the shared fake study unless the options say otherwise. */
 const sweepStudy = (
   experiment: ExperimentRecord,
@@ -199,21 +185,19 @@ const renderDrawerWithStudies = (
   overrides: Partial<OptimizationsContextValue> = {},
 ) =>
   render(
-    <WithInBrowserOptimizer>
-      <PetrinautOptimizationContext value={connectedOptimizer}>
-        <SDCPNContext value={sirSdcpnContextValue}>
-          <OptimizationsContext
-            value={makeOptimizationsContextValue(study, overrides)}
-          >
-            <ViewExperimentDrawer
-              open
-              onClose={() => {}}
-              experiment={experiment}
-            />
-          </OptimizationsContext>
-        </SDCPNContext>
-      </PetrinautOptimizationContext>
-    </WithInBrowserOptimizer>,
+    <PetrinautOptimizationContext value={connectedOptimizer}>
+      <SDCPNContext value={sirSdcpnContextValue}>
+        <OptimizationsContext
+          value={makeOptimizationsContextValue(study, overrides)}
+        >
+          <ViewExperimentDrawer
+            open
+            onClose={() => {}}
+            experiment={experiment}
+          />
+        </OptimizationsContext>
+      </SDCPNContext>
+    </PetrinautOptimizationContext>,
   );
 
 /** The sweep's drawer with the study it was created with, four steps landed (one pruned), driving or settled. */

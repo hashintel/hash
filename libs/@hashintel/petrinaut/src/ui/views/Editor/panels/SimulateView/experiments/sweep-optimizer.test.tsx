@@ -6,10 +6,6 @@ import { PetrinautOptimizationContext } from "../../../../../../react/optimizati
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
-  defaultUserSettingsContextValue,
-  UserSettingsContext,
-} from "../../../../../../react/state/user-settings-context";
-import {
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
   sweepFixtureScenario,
@@ -53,37 +49,28 @@ const renderOptimizer = ({
   record = experiment,
   study = null,
   source = connectedSource,
-  enabled = true,
 }: {
   record?: ExperimentRecord;
   study?: OptimizationRecord | null;
   source?: PetrinautOptimizationSource | null;
-  enabled?: boolean;
 } = {}) => {
   const createOptimization = vi.fn(() => Promise.resolve("new-study"));
   const removeOptimization = vi.fn();
   const cancelOptimization = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <SDCPNContext value={sirSdcpnContextValue}>
-      <UserSettingsContext
-        value={{
-          ...defaultUserSettingsContextValue,
-          enableInBrowserOptimization: enabled,
-        }}
-      >
-        <PetrinautOptimizationContext value={source}>
-          <OptimizationsContext
-            value={{
-              optimizations: study ? [study] : [],
-              createOptimization,
-              removeOptimization,
-              cancelOptimization,
-            }}
-          >
-            {children}
-          </OptimizationsContext>
-        </PetrinautOptimizationContext>
-      </UserSettingsContext>
+      <PetrinautOptimizationContext value={source}>
+        <OptimizationsContext
+          value={{
+            optimizations: study ? [study] : [],
+            createOptimization,
+            removeOptimization,
+            cancelOptimization,
+          }}
+        >
+          {children}
+        </OptimizationsContext>
+      </PetrinautOptimizationContext>
     </SDCPNContext>
   );
   return {
@@ -97,7 +84,6 @@ const renderOptimizer = ({
 describe("useSweepOptimizer", () => {
   it.each([
     { source: null },
-    { enabled: false },
     { record: { ...experiment, requestActive: true } },
     { record: { ...experiment, status: "cancelled" as const } },
     { record: { ...experiment, sweep: null } },

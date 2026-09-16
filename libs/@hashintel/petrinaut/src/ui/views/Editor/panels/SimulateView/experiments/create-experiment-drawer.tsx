@@ -35,7 +35,7 @@ import {
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -98,7 +98,6 @@ import {
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
-import type { AdHocFormSelection } from "../../../../../components/ad-hoc-scenario-form/form-context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
@@ -866,12 +865,9 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
-  // Read here, not in ExperimentsProvider: that provider is mounted outside
-  // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
-  const optimizationSource = useOptimizationSource();
+  const optimizationSource = use(PetrinautOptimizationContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -928,13 +924,9 @@ export const CreateExperimentDrawer = ({
     places: petriNetDefinition.places,
     types: extensions.colors ? petriNetDefinition.types : [],
   };
-  const adHocSweeping =
-    enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const adHocSweeping = effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
   const optimizerConnected =
     optimizationSource !== null && isConnectedOptimization(optimizationSource);
-  const selection: AdHocFormSelection = enableParameterSweeps
-    ? "sweep"
-    : "none";
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -1062,7 +1054,7 @@ export const CreateExperimentDrawer = ({
 
   const webGpuAvailable = isWebGpuAvailable();
   const gpu = useGpuAvailability({
-    enabled: open && webGpuEnabled && webGpuAvailable,
+    enabled: open && webGpuAvailable,
     sdcpn: petriNetDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
@@ -1360,7 +1352,7 @@ export const CreateExperimentDrawer = ({
                       {/* A labelled cell in the same grid as Runs / Time step / Max time:
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
-                      {webGpuEnabled && webGpuAvailable && (
+                      {webGpuAvailable && (
                         <div className={fieldStyle}>
                           <span className={labelStyle}>Backend</span>
                           <ComputeBackendToggle
@@ -1423,7 +1415,7 @@ export const CreateExperimentDrawer = ({
                         scenario={selectedScenario}
                         context={adHocFormContext}
                         inputs={paramInputs}
-                        selection={selection}
+                        selection="sweep"
                         onInputsChange={(updates) =>
                           setParamInputs((prev) => {
                             const next = { ...prev };
@@ -1446,7 +1438,7 @@ export const CreateExperimentDrawer = ({
                         state={adHocState ?? EMPTY_AD_HOC_STATE}
                         onChange={setAdHocState}
                         context={adHocFormContext}
-                        selection={selection}
+                        selection="sweep"
                       />
                       {sweepSummaryLine}
                     </>

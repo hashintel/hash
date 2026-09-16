@@ -14,7 +14,7 @@ const introduction: PetrinautAiMessage[] = [
     parts: [
       {
         type: "text",
-        text: "Let's explore an illustrative outbreak model. Ask how to compare its runs or search different starting infection levels.\n\nFor optimization, enable **Parameter sweeps** and **In-browser optimization** in Settings → Simulation.",
+        text: "Let's explore an illustrative outbreak model. Ask how to compare its runs or search different starting infection levels.",
       },
     ],
   },

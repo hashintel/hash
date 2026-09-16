@@ -23,11 +23,10 @@ const STORAGE_KEY = "petrinaut:user-settings";
 
 /** The persisted blob, including keys no longer part of `UserSettings`. */
 type PersistedUserSettings = Partial<UserSettings> & {
-  /**
-   * Replaced by `webGpuEnabled` when the backend became a per-experiment choice.
-   * Still present in blobs written before that.
-   */
   computeBackend?: "cpu" | "webgpu";
+  webGpuEnabled?: boolean;
+  enableParameterSweeps?: boolean;
+  enableInBrowserOptimization?: boolean;
   /**
    * Chose between the entities tree and a stack of lists in the left panel.
    * The tree is the only rendering, so the key is dropped on the next write.
@@ -53,7 +52,10 @@ const loadSettings = (): UserSettings => {
       // Destructured rather than read through the spread, so the dead key is
       // dropped from storage on the next write instead of persisting forever.
       const {
-        computeBackend,
+        computeBackend: _computeBackend,
+        webGpuEnabled: _webGpuEnabled,
+        enableParameterSweeps: _enableParameterSweeps,
+        enableInBrowserOptimization: _enableInBrowserOptimization,
         useEntitiesTreeView: _useEntitiesTreeView,
         enableOptimizationSurface: _enableOptimizationSurface,
         enableAdHocScenarios: _enableAdHocScenarios,
@@ -63,8 +65,6 @@ const loadSettings = (): UserSettings => {
       return {
         ...defaultUserSettings,
         ...parsed,
-        // Someone who had selected the GPU globally keeps it available.
-        webGpuEnabled: parsed.webGpuEnabled ?? computeBackend === "webgpu",
       };
     }
   } catch {
@@ -134,12 +134,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
-    setWebGpuEnabled: (value: boolean) =>
-      setState((prev) => ({ ...prev, webGpuEnabled: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
-    setEnableParameterSweeps: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableParameterSweeps: value })),
     setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) => {
       // Stamped out here: an updater runs more than once and has to be pure.
       const savedAt = Date.now();
@@ -153,8 +149,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
         ),
       }));
     },
-    setEnableInBrowserOptimization: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
     setBrunchDemoMode: (value: boolean) =>
       setState((prev) => ({ ...prev, brunchDemoMode: value })),
     updateSubViewSection: (

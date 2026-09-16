@@ -12,12 +12,11 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section        | Settings                                                             |
-| -------------- | -------------------------------------------------------------------- |
-| **General**    | Animations, panel loading, and the welcome guide.                    |
-| **Viewport**   | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Simulation** | Experimental compute, parameter sweeps, and optimization options.    |
-| **Labs**       | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                             |
+| ------------ | -------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, and the welcome guide.                    |
+| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
+| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
 
 ## General
 
@@ -162,20 +161,6 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 - **Enabled** -- nodes that are only partially inside the selection box are selected.
 - **Disabled** -- nodes must be fully enclosed to be selected.
-
-## Simulation
-
-### WebGPU (experimental)
-
-Off by default. Offers a GPU option when creating an experiment; each experiment then chooses its own backend. See [Compute backend](experiments.md#compute-backend-experimental).
-
-### Parameter sweeps (experimental)
-
-Off by default. Adds a **Sweep** interval toggle to every numeric value of the experiment form so an experiment explores an interval instead of one value. See [Parameter sweeps](experiments.md#parameter-sweeps).
-
-### In-browser optimization (experimental)
-
-Shown only when the host application provides an optimizer that runs in your browser. Off by default. Adds **Start optimizer immediately**, unchecked by default, to experiment creation and **Optimize** to the results' Parameters header. You can explore a sweep manually before starting its optimizer. Turning this setting off hides the optimizer controls and cancels any running in-browser optimization. The interval toggles continue to read **Sweep**. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ## Labs
 
