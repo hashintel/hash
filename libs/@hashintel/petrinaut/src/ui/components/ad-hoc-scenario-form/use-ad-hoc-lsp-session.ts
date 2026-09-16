@@ -1,4 +1,5 @@
 import { use, useEffect, useRef, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import { useLatest } from "../../../react/hooks/use-latest";
 import { LanguageClientContext } from "../../../react/lsp/context";
@@ -29,7 +30,7 @@ export function useAdHocLspSession(
     LanguageClientContext,
   );
   // useState (not useRef/useMemo) — needed for a stable per-mount value.
-  const [generatedSessionId] = useState(() => crypto.randomUUID());
+  const [generatedSessionId] = useState(() => generateUuid());
   const sessionId = externalSessionId ?? generatedSessionId;
   const initializedRef = useRef(false);
   // The content key; the effect reads the state itself through the ref so

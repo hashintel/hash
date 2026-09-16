@@ -522,7 +522,37 @@ export const UserSettingsDialog = ({
                           value={settings.enableAutomaticArcConnections}
                           onChange={settings.setEnableAutomaticArcConnections}
                         />
-                        {!settings.enableAutomaticArcConnections && (
+                        {settings.enableAutomaticArcConnections ? (
+                          <>
+                            <SettingRow
+                              label="Automatic arc shape"
+                              description="Choose curved or square paths."
+                              wideControl
+                            >
+                              {(aria) => (
+                                <Select
+                                  {...aria}
+                                  size="sm"
+                                  required
+                                  value={settings.automaticArcRendering}
+                                  onChange={settings.setAutomaticArcRendering}
+                                  items={[
+                                    { value: "curved", text: "Curved" },
+                                    { value: "square", text: "Square" },
+                                  ]}
+                                />
+                              )}
+                            </SettingRow>
+                            {settings.automaticArcRendering === "square" && (
+                              <SettingToggle
+                                label="Avoid nodes"
+                                description="Route square arcs around nearby nodes. Overlapping nodes can still block a route."
+                                value={settings.avoidArcObstacles}
+                                onChange={settings.setAvoidArcObstacles}
+                              />
+                            )}
+                          </>
+                        ) : (
                           <SettingRow
                             label="Arc rendering"
                             description="Choose the shape of connections between nodes."

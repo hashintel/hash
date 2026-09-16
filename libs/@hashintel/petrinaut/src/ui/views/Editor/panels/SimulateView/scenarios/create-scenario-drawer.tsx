@@ -1,4 +1,5 @@
 import { use, useState } from "react";
+import { v4 as generateUuid } from "uuid";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { scenarioSchema } from "@hashintel/petrinaut-core";
@@ -28,7 +29,7 @@ const CreateScenarioContent = ({ onClose }: { onClose: () => void }) => {
   const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
 
   const save = () => {
-    const scenario = authoring.buildScenario(crypto.randomUUID());
+    const scenario = authoring.buildScenario(generateUuid());
     if (!scenario) {
       return;
     }
