@@ -86,7 +86,7 @@ const probe = async () => {
         [
           fauxToolCall(
             "mutate_workpiece",
-            { markdown },
+            { markdown, baseRevisionId: null },
             { id: "settled-revision" },
           ),
         ],

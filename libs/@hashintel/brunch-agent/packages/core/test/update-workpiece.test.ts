@@ -40,13 +40,13 @@ const run = (
   markdown: string,
   toolCallId = "actual-tool-call",
   evidence?: unknown,
-  baseRevisionId?: string | null,
+  baseRevisionId: string | null = current?.revisionId ?? null,
 ) =>
   tool.run({
     data: {
       markdown,
       evidence,
-      ...(baseRevisionId === undefined ? {} : { baseRevisionId }),
+      baseRevisionId,
     } as Parameters<typeof tool.run>[0]["data"],
     toolCallId,
     log: { info: () => {}, warn: () => {}, error: () => {} },
@@ -141,6 +141,18 @@ test("records the exact changed window and refuses a stale cited base", async ()
     ordinal: 2,
     markdown: "# Account\n\nOne changed fact.",
   });
+});
+
+test("requires an explicit base for every workpiece mutation", () => {
+  expect(
+    v.safeParse(updateWorkpieceInputSchema, { markdown: "# First" }).success,
+  ).toBe(false);
+  expect(
+    v.safeParse(updateWorkpieceInputSchema, {
+      markdown: "# First",
+      baseRevisionId: null,
+    }).success,
+  ).toBe(true);
 });
 
 test("refuses empty Markdown", async () => {
@@ -253,7 +265,7 @@ test("captures the persistent-state setter at render and writes from run", async
     throw new Error("Hook invoked outside render");
   });
   await revisionTool!.run({
-    data: { markdown: "# Captured setter" },
+    data: { markdown: "# Captured setter", baseRevisionId: null },
     toolCallId: "from-run",
     log: { info: () => {}, warn: () => {}, error: () => {} },
   });
@@ -348,6 +360,7 @@ test.each([
     await expect(
       guarded.run({
         data: {
+          baseRevisionId: "previous",
           markdown: `${markdown}\nUnrelated context.`,
           ...(failure === "later-explicit-span"
             ? {
@@ -376,7 +389,7 @@ test.each([
         },
       }),
     ).rejects.toThrow(
-      /authorized true-user|must occur exactly once|abort|changed while this revision was prepared/iu,
+      /authorized true-user|must occur exactly once|abort|baseRevisionId|changed while this revision was prepared/iu,
     );
     expect(current).toBe(expectedState);
     expect(current.evidence).toEqual(evidence);
@@ -400,7 +413,7 @@ test("refuses an evidence-absent revision when another update wins first", async
   });
   await expect(
     guarded.run({
-      data: { markdown: "# Candidate" },
+      data: { markdown: "# Candidate", baseRevisionId: "previous" },
       toolCallId: "candidate",
       log: { info: () => {}, warn: () => {}, error: () => {} },
       step: {
@@ -409,7 +422,7 @@ test("refuses an evidence-absent revision when another update wins first", async
         },
       },
     }),
-  ).rejects.toThrow(/changed while this revision was prepared/iu);
+  ).rejects.toThrow(/baseRevisionId/iu);
   expect(current.revisionId).toBe("concurrent");
 });
 
@@ -423,7 +436,7 @@ test("an acquisition refusal or cancellation cannot settle even an evidence-abse
     },
   });
   const context = {
-    data: { markdown: "# Do not settle" },
+    data: { markdown: "# Do not settle", baseRevisionId: null },
     toolCallId: "cancelled",
     signal: controller.signal,
     log: { info: () => {}, warn: () => {}, error: () => {} },
@@ -704,12 +717,14 @@ test("refuses the whole settlement naming every absent, ambiguous or out-of-rang
   expect(current).toBe(before);
   expect(
     v.safeParse(updateWorkpieceInputSchema, {
+      baseRevisionId: "base",
       markdown,
       evidence: [{ text: "", messageIds: [], kind: "default" }],
     }).success,
   ).toBe(false);
   expect(
     v.safeParse(updateWorkpieceInputSchema, {
+      baseRevisionId: "base",
       markdown,
       evidence: [
         { text: "Once.", occurrence: -1, messageIds: [], kind: "default" },
@@ -718,6 +733,7 @@ test("refuses the whole settlement naming every absent, ambiguous or out-of-rang
   ).toBe(false);
   expect(
     v.safeParse(updateWorkpieceInputSchema, {
+      baseRevisionId: "base",
       markdown,
       evidence: [
         {

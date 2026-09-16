@@ -167,7 +167,7 @@ export const settleWorkpieceEvidence = async (
 export const workpieceMarkdownByteCeiling = 262_144;
 export const updateWorkpieceInputSchema = v.object({
   baseRevisionId: v.pipe(
-    v.optional(v.nullable(v.string())),
+    v.nullable(v.string()),
     v.description(
       "Revision ID of the current settled workpiece. Use null only for the first revision. Reuse the latest authoritative successful mutate/read result; call read_workpiece only when the current identity or content is unknown or stale.",
     ),

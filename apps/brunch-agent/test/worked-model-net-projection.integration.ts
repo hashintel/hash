@@ -160,7 +160,7 @@ const locateBasis = (context: Context) => {
 
 try {
   faux.setResponses([
-    tool("mutate_workpiece", { markdown }, "revision-1"),
+    tool("mutate_workpiece", { markdown, baseRevisionId: null }, "revision-1"),
     () =>
       tool(
         "read_workpiece",

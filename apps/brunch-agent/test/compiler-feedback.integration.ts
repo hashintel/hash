@@ -233,7 +233,7 @@ try {
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
   faux.setResponses([
-    tool("mutate_workpiece", { markdown }, "revision-1"),
+    tool("mutate_workpiece", { markdown, baseRevisionId: null }, "revision-1"),
     (context: Context) => {
       const revision = context.messages.findLast(
         (message) =>

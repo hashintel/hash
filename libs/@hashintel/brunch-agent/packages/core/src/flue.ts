@@ -94,7 +94,7 @@ export const createMutateWorkpieceTool = (
   defineTool({
     name: MUTATE_WORKPIECE_TOOL_NAME,
     description:
-      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and cite the current baseRevisionId when one exists; no read precedes a settlement. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. The result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. Never combine it with browser construction in one batch. Valid linkage does not prove relevance or template quality.",
+      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and the current baseRevisionId, using null only for the first revision; no read precedes a settlement. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. The result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. Never combine it with browser construction in one batch. Valid linkage does not prove relevance or template quality.",
     input: updateWorkpieceInputSchema,
     output: updateWorkpieceOutputSchema,
     durable: true,
@@ -123,10 +123,7 @@ export const createMutateWorkpieceTool = (
       // Buffered state commits with the tool batch, not an external effect. A
       // separate step checkpoint could skip an uncommitted write on replay.
       setRevision((previous) => {
-        if (
-          data.baseRevisionId !== undefined &&
-          data.baseRevisionId !== (previous?.revisionId ?? null)
-        )
+        if (data.baseRevisionId !== (previous?.revisionId ?? null))
           throw new Error(
             "Workpiece baseRevisionId does not name the current revision. Call read_workpiece, reconcile the intended changes against its current Markdown, then resubmit the full document with the current revisionId as baseRevisionId.",
           );
