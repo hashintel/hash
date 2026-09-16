@@ -71,10 +71,43 @@ enum CustomerRejection {
     NotPending { customer_id: String },
 }
 
+enum CustomerChange {
+    Queue {
+        customer_id: String,
+        customer: Customer,
+    },
+    Sync {
+        customer_id: String,
+        remote_id: String,
+    },
+}
+
+impl CustomerChange {
+    fn from_event(event: &SyncEvent) -> Self {
+        match event {
+            SyncEvent::CustomerQueued { customer_id, name } => Self::Queue {
+                customer_id: customer_id.clone(),
+                customer: Customer { name: name.clone() },
+            },
+            SyncEvent::CustomerSynced {
+                customer_id,
+                remote_id,
+            } => Self::Sync {
+                customer_id: customer_id.clone(),
+                remote_id: remote_id.clone(),
+            },
+        }
+    }
+}
+
 impl Fold<SyncEvent> for CustomerSync {
     type Rejection = CustomerRejection;
+    type Validated = CustomerChange;
 
-    fn validate(&self, event: &SyncEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
+    fn validate(
+        &self,
+        event: &SyncEvent,
+    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
         match event {
             SyncEvent::CustomerQueued { customer_id, .. }
                 if self.pending.contains_key(customer_id)
@@ -91,25 +124,32 @@ impl Fold<SyncEvent> for CustomerSync {
                     customer_id: customer_id.clone(),
                 }))
             }
-            SyncEvent::CustomerQueued { .. } | SyncEvent::CustomerSynced { .. } => Ok(()),
+            SyncEvent::CustomerQueued { .. } | SyncEvent::CustomerSynced { .. } => {
+                Ok(CustomerChange::from_event(event))
+            }
         }
     }
 
-    fn apply(&mut self, event: &SyncEvent) {
-        match event {
-            SyncEvent::CustomerQueued { customer_id, name } => {
-                self.pending
-                    .entry(customer_id.clone())
-                    .or_insert_with(|| Customer { name: name.clone() });
+    fn apply(&mut self, validated: Self::Validated) {
+        match validated {
+            CustomerChange::Queue {
+                customer_id,
+                customer,
+            } => {
+                self.pending.entry(customer_id).or_insert(customer);
             }
-            SyncEvent::CustomerSynced {
+            CustomerChange::Sync {
                 customer_id,
                 remote_id,
             } => {
-                self.pending.remove(customer_id);
-                self.synced.insert(customer_id.clone(), remote_id.clone());
+                self.pending.remove(&customer_id);
+                self.synced.insert(customer_id, remote_id);
             }
         }
+    }
+
+    fn replay(&mut self, event: &SyncEvent) {
+        self.apply(CustomerChange::from_event(event));
     }
 }
 

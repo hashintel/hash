@@ -53,20 +53,25 @@ pub trait DomainEvent: Serialize + DeserializeOwned + Clone + Send + Sync + 'sta
 /// Maintains application state for all partitions on one shard.
 ///
 /// [`validate`](Self::validate) checks new submissions before they are appended.
-/// [`apply`](Self::apply) updates state after an append and during recovery. It must be
-/// deterministic and accept every stored event, including events accepted under older
-/// validation rules.
+/// [`apply`](Self::apply) consumes the prepared change after a durable append.
+/// [`replay`](Self::replay) must produce the same state change from the accepted event,
+/// without rerunning admission rules. Both paths must be deterministic.
 ///
 /// State is serialized into snapshots. Its serialization must also be deterministic.
 pub trait Fold<E>: Default + Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
     /// The application error reported when validation rejects an event.
     type Rejection: Error + Send + Sync + 'static;
 
+    /// The state change prepared by validation and consumed after the event is durable.
+    type Validated: Send;
+
     /// # Errors
     ///
     /// Returns a rejection when the event violates the domain’s validation rules.
-    fn validate(&self, event: &E) -> Result<(), Report<Self::Rejection>>;
-    fn apply(&mut self, event: &E);
+    fn validate(&self, event: &E) -> Result<Self::Validated, Report<Self::Rejection>>;
+    fn apply(&mut self, validated: Self::Validated);
+    /// Applies an accepted historical event without rerunning admission rules.
+    fn replay(&mut self, event: &E);
 }
 
 /// Connects an application’s event and state types.
@@ -684,12 +689,20 @@ pub fn register<S: SimpleDomain>() -> Result<(), DeclarationError> {
     Ok(())
 }
 
+/// A validated application change and the metadata recorded after a durable append.
+pub struct PreparedEvent<S: SimpleDomain> {
+    event_id: EventId,
+    partition: PartitionKey,
+    digest: JournalRecordDigest,
+    change: <S::Projection as Fold<S::Event>>::Validated,
+}
+
 impl<S: SimpleDomain> Domain for Hosted<S> {
     type ControlOutcome = Never;
     type ControlRejection = Never;
     type ControlRequest = Never;
     type ControlSnapshot = Never;
-    type Delta = EventRecordV1<S::Event>;
+    type Delta = PreparedEvent<S>;
     type FoldError = FoldError<<S::Projection as Fold<S::Event>>::Rejection>;
     type Projection = KernelProjection<S::Projection>;
     type Query = ReadQuery<S::Projection>;
@@ -741,14 +754,19 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                 })
             };
         }
-        projection
+        let change = projection
             .domain
             .validate(&record.event)
             .map_err(|rejection| FoldError::Rejected {
                 event_id: record.event_id,
                 rejection,
             })?;
-        Ok(Prepared::Mutation(record.clone()))
+        Ok(Prepared::Mutation(PreparedEvent {
+            event_id: record.event_id,
+            partition: record.partition.clone(),
+            digest,
+            change,
+        }))
     }
 
     fn finalize(
@@ -756,6 +774,12 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         delta: Self::Delta,
         shard_sequence: u64,
     ) -> Result<(), Self::FoldError> {
+        let PreparedEvent {
+            event_id,
+            partition,
+            digest,
+            change,
+        } = delta;
         if projection
             .through_log_sequence
             .is_some_and(|through| shard_sequence <= through)
@@ -767,15 +791,10 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                 ),
             });
         }
-        let digest = delta.digest().map_err(|error| FoldError::Invalid {
-            message: error.to_string(),
-        })?;
-        projection.seen.insert(delta.event_id, digest);
-        projection
-            .partitions
-            .insert(delta.partition.clone(), shard_sequence);
+        projection.seen.insert(event_id, digest);
+        projection.partitions.insert(partition, shard_sequence);
         projection.through_log_sequence = Some(shard_sequence);
-        projection.domain.apply(&delta.event);
+        projection.domain.apply(change);
         Ok(())
     }
 
@@ -923,7 +942,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                     .insert(record.partition.clone(), sequence);
                 projection.through_log_sequence = Some(sequence);
                 // Replay uses the validation decision made when the event was accepted.
-                projection.domain.apply(&record.event);
+                projection.domain.replay(&record.event);
                 Ok(())
             }
         }
@@ -991,6 +1010,7 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
+    use core::num::NonZeroUsize;
 
     use error_stack::Report;
     use serde::{Deserialize, Serialize};
@@ -1008,9 +1028,10 @@ mod tests {
         },
         routing::Shard,
         shard_log::{
-            OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandOutcome, ShardLogLocation,
-            StartedShard,
+            OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandErrorKind,
+            ShardCommandOutcome, ShardLogLocation, StartedShard,
         },
+        sim::{SimAppendOutcome, SimKey, SimLogHandle},
     };
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1043,6 +1064,30 @@ mod tests {
         totals: BTreeMap<String, u64>,
     }
 
+    struct CounterChange {
+        counter: String,
+        total: Option<u64>,
+    }
+
+    impl Counters {
+        fn change_for(&self, event: &CounterEvent) -> CounterChange {
+            let total = match event {
+                CounterEvent::Incremented { counter, amount } => Some(
+                    self.totals
+                        .get(counter)
+                        .copied()
+                        .unwrap_or(0)
+                        .saturating_add(*amount),
+                ),
+                CounterEvent::Reset { .. } => None,
+            };
+            CounterChange {
+                counter: event.counter().to_owned(),
+                total,
+            }
+        }
+    }
+
     #[derive(Debug, derive_more::Display, derive_more::Error)]
     enum CounterRejection {
         #[display("increment must be nonzero")]
@@ -1053,8 +1098,12 @@ mod tests {
 
     impl Fold<CounterEvent> for Counters {
         type Rejection = CounterRejection;
+        type Validated = CounterChange;
 
-        fn validate(&self, event: &CounterEvent) -> Result<(), Report<Self::Rejection>> {
+        fn validate(
+            &self,
+            event: &CounterEvent,
+        ) -> Result<Self::Validated, Report<Self::Rejection>> {
             match event {
                 CounterEvent::Incremented { amount: 0, .. } => {
                     Err(Report::new(CounterRejection::ZeroIncrement))
@@ -1067,23 +1116,27 @@ mod tests {
                             increment: *amount,
                         }))
                     } else {
-                        Ok(())
+                        Ok(self.change_for(event))
                     }
                 }
-                CounterEvent::Reset { .. } => Ok(()),
+                CounterEvent::Reset { .. } => Ok(self.change_for(event)),
             }
         }
 
-        fn apply(&mut self, event: &CounterEvent) {
-            match event {
-                CounterEvent::Incremented { counter, amount } => {
-                    let total = self.totals.entry(counter.clone()).or_default();
-                    *total = total.saturating_add(*amount);
+        fn apply(&mut self, validated: Self::Validated) {
+            let CounterChange { counter, total } = validated;
+            match total {
+                Some(total) => {
+                    self.totals.insert(counter, total);
                 }
-                CounterEvent::Reset { counter } => {
-                    self.totals.remove(counter);
+                None => {
+                    self.totals.remove(&counter);
                 }
             }
+        }
+
+        fn replay(&mut self, event: &CounterEvent) {
+            self.apply(self.change_for(event));
         }
     }
 
@@ -1234,6 +1287,25 @@ mod tests {
     }
 
     #[test]
+    fn replay_preserves_historical_admission() {
+        let event = CounterEvent::Incremented {
+            counter: "orders".to_owned(),
+            amount: 0,
+        };
+        assert!(
+            Counters::default().validate(&event).is_err(),
+            "current admission should reject zero"
+        );
+        let record =
+            EventRecordV1::new(event).expect("historical record should have a valid identity");
+        let shard = shard_of(record.partition());
+        let mut projection = KernelProjection::<Counters>::default();
+        Toy::replay(&mut projection, shard, 0, EventRecord::V1(record))
+            .expect("historical replay should bypass current admission rules");
+        assert_eq!(projection.domain().totals.get("orders"), Some(&0));
+    }
+
+    #[test]
     fn record_from_parts_matching_fields() {
         let event = CounterEvent::Incremented {
             counter: "orders".to_owned(),
@@ -1327,7 +1399,9 @@ mod tests {
         );
 
         let rejected = incremented("orders", 0);
-        let error = Toy::prepare(&projection, &rejected).expect_err("validation should reject");
+        let error = Toy::prepare(&projection, &rejected)
+            .err()
+            .expect("validation should reject");
         assert!(error.to_string().contains("increment must be nonzero"));
     }
 
@@ -1438,6 +1512,88 @@ mod tests {
             .await
             .expect("loop task should join")
             .expect("loop should stop cleanly");
+    }
+
+    #[tokio::test]
+    async fn prepared_change_append_failure() {
+        register::<ToyDomain>().expect("toy name should register");
+        let journal = SimLogHandle::new(42, Vec::new());
+        let first = incremented("orders", 5);
+        let location = ShardLogLocation::simulated(shard_of(first.partition()), journal.clone());
+        let recovered: RecoveredShard<Toy> = OpenedShard::open(location.clone())
+            .await
+            .expect("shard should open")
+            .recover()
+            .await
+            .expect("shard should recover");
+        let started = recovered.enable(ShardCommandConfig::new(NonZeroUsize::MIN, 0));
+        let handle = &started.handle;
+        handle
+            .propose(first)
+            .await
+            .expect("first event should apply");
+
+        let retry = incremented("orders", 7);
+        journal.force_outcomes([SimAppendOutcome::DefinitelyNotCommitted]);
+        let error = handle
+            .propose(retry.clone())
+            .await
+            .expect_err("the injected append failure should be returned");
+        assert_eq!(error.kind, ShardCommandErrorKind::DefinitelyNotCommitted);
+        let after_failure = handle
+            .read(|projection| projection.domain().clone())
+            .await
+            .expect("state should remain readable after a failed append");
+        assert_eq!(
+            after_failure.totals.get("orders"),
+            Some(&5),
+            "a failed append should leave the prepared total unapplied"
+        );
+
+        handle
+            .propose(incremented("orders", 3))
+            .await
+            .expect("another event should apply before the retry");
+        assert!(
+            matches!(
+                handle.propose(retry).await.expect("retry should succeed"),
+                ShardCommandOutcome::Applied { .. }
+            ),
+            "the failed event should apply on retry"
+        );
+        let live = handle
+            .read(|projection| projection.domain().clone())
+            .await
+            .expect("state should be readable after the retry");
+        assert_eq!(
+            live.totals.get("orders"),
+            Some(&15),
+            "retry should prepare from the new total of 8"
+        );
+        assert_eq!(
+            journal.durable_entries(SimKey::Events).len(),
+            3,
+            "each accepted event should be stored once"
+        );
+        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .task
+            .await
+            .expect("loop task should join")
+            .expect("loop should shut down");
+
+        let (handle, restarted) = start(location).await;
+        let replayed = handle
+            .read(|projection| projection.domain().clone())
+            .await
+            .expect("replayed state should be readable");
+        assert_eq!(replayed, live, "replay should reproduce the live state");
+        handle.shutdown().await.expect("shutdown should succeed");
+        restarted
+            .task
+            .await
+            .expect("loop task should join")
+            .expect("loop should shut down");
     }
 
     #[tokio::test]

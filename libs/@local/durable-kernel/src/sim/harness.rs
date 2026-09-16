@@ -103,14 +103,18 @@ pub enum CounterRejection {
 
 impl Fold<DstEvent> for DstCounters {
     type Rejection = CounterRejection;
+    type Validated = DstEvent;
 
-    fn validate(&self, event: &DstEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
+    fn validate(
+        &self,
+        event: &DstEvent,
+    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
         match event {
             DstEvent::Increment { amount, .. } => {
                 if *amount == 0 {
                     return Err(error_stack::Report::new(CounterRejection::ZeroIncrement));
                 }
-                Ok(())
+                Ok(event.clone())
             }
             DstEvent::Archive {
                 counter,
@@ -122,12 +126,16 @@ impl Fold<DstEvent> for DstCounters {
                         counter: counter.clone(),
                     }));
                 }
-                Ok(())
+                Ok(event.clone())
             }
         }
     }
 
-    fn apply(&mut self, event: &DstEvent) {
+    fn apply(&mut self, validated: Self::Validated) {
+        self.replay(&validated);
+    }
+
+    fn replay(&mut self, event: &DstEvent) {
         match event {
             DstEvent::Increment {
                 counter, amount, ..

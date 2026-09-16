@@ -673,8 +673,12 @@ mod tests {
 
     impl Fold<RtEvent> for RtCounters {
         type Rejection = CounterRejection;
+        type Validated = RtEvent;
 
-        fn validate(&self, event: &RtEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
+        fn validate(
+            &self,
+            event: &RtEvent,
+        ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
             match event {
                 RtEvent::Incremented {
                     counter, amount: 0, ..
@@ -683,11 +687,15 @@ mod tests {
                         counter: counter.clone(),
                     })
                     .attach(RejectedCounter(counter.clone()))),
-                RtEvent::Incremented { .. } | RtEvent::Archived { .. } => Ok(()),
+                RtEvent::Incremented { .. } | RtEvent::Archived { .. } => Ok(event.clone()),
             }
         }
 
-        fn apply(&mut self, event: &RtEvent) {
+        fn apply(&mut self, validated: Self::Validated) {
+            self.replay(&validated);
+        }
+
+        fn replay(&mut self, event: &RtEvent) {
             match event {
                 RtEvent::Incremented {
                     counter, amount, ..
