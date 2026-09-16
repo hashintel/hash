@@ -316,10 +316,10 @@ const contextualizeError = <E1, E2 extends Error>(
 /**
  * Replaces an error while retaining it as the new error's cause.
  *
- * The factory runs only on failure. Its returned error is used directly, and its `cause` is overwritten with the original error. See {@link changeContextIf} for conditional replacement.
+ * The factory runs only on failure. Its returned error receives the original error as its `cause`, replacing any existing cause. See {@link changeContextIf} for conditional replacement.
  *
  * @returns The new error or the unchanged success value.
- * @throws If the factory throws, returns the original error, or returns an error whose cause cannot be assigned.
+ * @throws If the factory or cause assignment throws. Returning the original error throws a {@link TypeError}.
  */
 export const changeContext: {
   <E1, E2 extends Error>(
@@ -343,24 +343,28 @@ export const changeContext: {
   },
 );
 
+/** An error type supplied to a callback without inference from that callback. */
+// The conditional blocks parameter inference but resolves to a plain union for discriminant extraction.
+type Source<E> = E extends infer Plain ? Plain : never;
+
 /**
  * Replaces selected error variants while preserving other error values.
  *
  * The refinement is a two-sided type guard: false must exclude its entire target type. Use discriminated error variants, rather than message predicates or structurally indistinguishable classes. Matched errors follow {@link changeContext}.
  *
- * The data-last form infers the source error type inside {@link ResultBase.pipe}. A separately stored partial application needs an explicit source type to retain that precision.
+ * The source error type comes from the result argument or the surrounding {@link ResultBase.pipe}. A stored partial application needs an explicit source type to retain that precision.
  *
  * @returns The replacement error, an unmatched error value, or the unchanged success value.
  * @throws If the refinement or error replacement throws.
  */
 export const changeContextIf: {
-  <E1, E2 extends E1, E3 extends Error>(
-    refinement: (error: E1) => error is E2,
+  <E1, E2 extends Source<E1>, E3 extends Error>(
+    refinement: (error: Source<E1>) => error is E2,
     context: (error: E2) => E3,
   ): <T>(result: Result<T, E1>) => Result<T, Exclude<E1, E2> | E3>;
-  <T, E1, E2 extends E1, E3 extends Error>(
+  <T, E1, E2 extends Source<E1>, E3 extends Error>(
     result: Result<T, E1>,
-    refinement: (error: E1) => error is E2,
+    refinement: (error: Source<E1>) => error is E2,
     context: (error: E2) => E3,
   ): Result<T, Exclude<E1, E2> | E3>;
 } = dual(
@@ -397,28 +401,52 @@ type Values<Items extends readonly Result<unknown, unknown>[]> = {
   -readonly [Index in keyof Items]: ValueOf<Items[Index]>;
 };
 
+/** A typed aggregate retaining each failure in input order, including repeated errors and nested aggregates. */
+export class All<out E> extends AggregateError {
+  /** The original error values in a new array. Members are neither cloned nor flattened. */
+  declare readonly errors: E[];
+
+  /** Copies the supplied errors using {@link AggregateError}'s iterable constructor. */
+  constructor(errors: Iterable<E>) {
+    super(errors, "independent computations failed");
+    this.name = "All";
+  }
+}
+
+/** An aggregate error only when the inputs can fail. */
+type AllErrors<E> = [E] extends [never] ? never : All<E>;
+
 /**
  * Assembles successful results into a tuple or array in input order.
  *
- * @returns The values, or the first {@link Err} error value in input order. An empty input succeeds with an empty tuple. Inputs are already evaluated results: this function does not schedule or short-circuit their computation.
+ * @returns The values, or an {@link All} containing every failure in input order. Even a single failure receives an aggregate. Empty input succeeds with an empty tuple. Inputs are already evaluated results: this function does not schedule or short-circuit their computation.
  *
  * @example
  * ```ts
  * const pair = Result.all([Result.ok(12), Result.ok("ready")]);
  * // Result.isOk(pair) && pair.value[0] === 12 && pair.value[1] === "ready"
+ *
+ * const rejected = Result.all([Result.err("missing name"), Result.err("missing age")]);
+ * // Result.isErr(rejected) && rejected.error.errors.length === 2
  * ```
  */
 export const all = <const Items extends readonly Result<unknown, unknown>[]>(
   items: Items,
-): Result<Values<Items>, FailureOf<Items[number]>> => {
+): Result<Values<Items>, AllErrors<FailureOf<Items[number]>>> => {
   const values: unknown[] = [];
+  const errors: unknown[] = [];
 
   for (const item of items) {
     if (isErr(item)) {
-      return err(item.error as FailureOf<Items[number]>);
+      errors.push(item.error);
+    } else {
+      values.push(item.value);
     }
+  }
 
-    values.push(item.value);
+  if (errors.length > 0) {
+    // Every member came from a failed input, which also rules out the never case.
+    return err(new All(errors) as AllErrors<FailureOf<Items[number]>>);
   }
 
   // every input succeeded, with one value appended at its corresponding tuple position.

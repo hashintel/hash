@@ -20,13 +20,7 @@ export class ArrayVisitorError extends TaggedError.TaggedError<
 > {
   /** Describes the expected and encoded array lengths. */
   constructor(reason: ArrayVisitorErrorReason) {
-    let message: string;
-
-    switch (reason._tag) {
-      case "length":
-        message = `${reason.field} requires ${reason.expected} entries, received ${reason.actual}`;
-        break;
-    }
+    const message = `${reason.field} requires ${reason.expected} entries, received ${reason.actual}`;
 
     super("ArrayVisitorError", reason, message);
   }
