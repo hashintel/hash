@@ -91,7 +91,7 @@ jobs:
 
           CATALOG=$(jq -nc '[
             {
-              package:    "@apps/hash-graph",
+              package:    "hash-graph",
               service:    "graph",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-graph/docker/Dockerfile",
