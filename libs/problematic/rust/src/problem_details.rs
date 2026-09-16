@@ -120,6 +120,29 @@ pub struct ProblemDetails<'a, E = NoExtensions> {
 
 impl<'a, E> ProblemDetails<'a, E> {
     /// Sets the human-readable explanation of this occurrence.
+    ///
+    /// # Examples
+    ///
+    /// Pass a reference to borrow an explanation assembled at runtime:
+    ///
+    /// ```
+    /// use std::borrow::Cow;
+    ///
+    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    ///
+    /// const INVALID_PARAMETERS: ProblemType = ProblemType {
+    ///     type_uri: Cow::Borrowed("https://example.com/problems/invalid-parameters"),
+    ///     title: Cow::Borrowed("Invalid parameters"),
+    ///     status: StatusCode::BAD_REQUEST,
+    /// };
+    ///
+    /// let parameter = "limit";
+    /// let explanation = format!("The {parameter} parameter must be positive.");
+    /// let details = ProblemDetails::from(&INVALID_PARAMETERS).detail(&explanation);
+    ///
+    /// assert_eq!(details.detail.as_deref(), Some(explanation.as_str()));
+    /// # core::assert_matches!(details.detail, Some(Cow::Borrowed(_)));
+    /// ```
     #[must_use]
     pub const fn detail(mut self, detail: impl [const] Into<Cow<'a, str>>) -> Self {
         self.detail = Some(detail.into());
@@ -127,6 +150,29 @@ impl<'a, E> ProblemDetails<'a, E> {
     }
 
     /// Sets the URI reference identifying this occurrence.
+    ///
+    /// # Examples
+    ///
+    /// Move a URI built at runtime into the occurrence:
+    ///
+    /// ```
+    /// use std::borrow::Cow;
+    ///
+    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    ///
+    /// const WRONG_ACTOR_TYPE: ProblemType = ProblemType {
+    ///     type_uri: Cow::Borrowed("https://example.com/problems/wrong-actor-type"),
+    ///     title: Cow::Borrowed("Wrong actor type"),
+    ///     status: StatusCode::FORBIDDEN,
+    /// };
+    ///
+    /// let occurrence_id = 42;
+    /// let details = ProblemDetails::from(&WRONG_ACTOR_TYPE)
+    ///     .instance(format!("/problem-occurrences/{occurrence_id}"));
+    ///
+    /// assert_eq!(details.instance.as_deref(), Some("/problem-occurrences/42"));
+    /// # core::assert_matches!(details.instance, Some(Cow::Owned(_)));
+    /// ```
     #[must_use]
     pub const fn instance(mut self, instance: impl [const] Into<Cow<'a, str>>) -> Self {
         self.instance = Some(instance.into());
@@ -134,6 +180,42 @@ impl<'a, E> ProblemDetails<'a, E> {
     }
 
     /// Replaces the extension members, changing their type.
+    ///
+    /// # Examples
+    ///
+    /// Extension members serialize alongside the standard fields:
+    ///
+    /// ```
+    /// use std::borrow::Cow;
+    ///
+    /// use problematic::{ProblemDetails, ProblemType, StatusCode};
+    ///
+    /// #[derive(serde::Serialize)]
+    /// struct WrongActorType {
+    ///     required_actor_type: &'static str,
+    /// }
+    ///
+    /// const WRONG_ACTOR_TYPE: ProblemType = ProblemType {
+    ///     type_uri: Cow::Borrowed("https://example.com/problems/wrong-actor-type"),
+    ///     title: Cow::Borrowed("Wrong actor type"),
+    ///     status: StatusCode::FORBIDDEN,
+    /// };
+    ///
+    /// let details = ProblemDetails::from(&WRONG_ACTOR_TYPE)
+    ///     .detail("This operation requires a machine actor.")
+    ///     .extensions(WrongActorType {
+    ///         required_actor_type: "machine",
+    ///     });
+    ///
+    /// assert_eq!(serde_json::to_value(&details)?, serde_json::json!({
+    ///     "type": "https://example.com/problems/wrong-actor-type",
+    ///     "title": "Wrong actor type",
+    ///     "status": 403,
+    ///     "detail": "This operation requires a machine actor.",
+    ///     "required_actor_type": "machine"
+    /// }));
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
     #[must_use]
     pub const fn extensions<F>(self, extensions: F) -> ProblemDetails<'a, F>
     where

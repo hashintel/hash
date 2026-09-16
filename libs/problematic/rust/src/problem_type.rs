@@ -4,11 +4,34 @@ use crate::{NoExtensions, ProblemDetails, StatusCode};
 
 /// Metadata shared by occurrences of a problem type.
 ///
-/// Occurrences created from this definition borrow its type URI and title.
-/// Use [`Cow::Borrowed`] for string literals in const contexts.
+/// The [`detail()`](Self::detail), [`instance()`](Self::instance), and
+/// [`extensions()`](Self::extensions) methods borrow the definition's type URI and title.
 ///
 /// ```
-/// # #![feature(const_convert, const_trait_impl)]
+/// use std::borrow::Cow;
+///
+/// use problematic::{ProblemType, StatusCode};
+///
+/// const WRONG_ACTOR_TYPE: ProblemType = ProblemType {
+///     type_uri: Cow::Borrowed("https://example.com/problems/wrong-actor-type"),
+///     title: Cow::Borrowed("Wrong actor type"),
+///     status: StatusCode::FORBIDDEN,
+/// };
+///
+/// let details = WRONG_ACTOR_TYPE
+///     .detail("This operation requires a machine actor.")
+///     .instance("/problem-occurrences/42");
+/// ```
+///
+/// Use [`ProblemDetails::from`] to create an occurrence with only the shared metadata.
+/// Add typed extension members with [`extensions()`](Self::extensions).
+///
+/// For const construction, enable the const trait features and pass string literals as
+/// [`Cow::Borrowed`]:
+///
+/// ```
+/// #![feature(const_convert, const_trait_impl)]
+///
 /// use std::borrow::Cow;
 ///
 /// use problematic::{ProblemDetails, ProblemType, StatusCode};
@@ -22,22 +45,6 @@ use crate::{NoExtensions, ProblemDetails, StatusCode};
 /// const DETAILS: ProblemDetails<'static> = WRONG_ACTOR_TYPE
 ///     .detail(Cow::Borrowed("This operation requires a machine actor."))
 ///     .instance(Cow::Borrowed("/problem-occurrences/42"));
-///
-/// let details = WRONG_ACTOR_TYPE
-///     .detail("This operation requires a machine actor.")
-///     .instance("/problem-occurrences/42");
-///
-/// let details = ProblemDetails::from(&WRONG_ACTOR_TYPE);
-///
-/// struct WrongActorType {
-///     required_actor_type: &'static str,
-/// }
-///
-/// let details = WRONG_ACTOR_TYPE
-///     .detail("This operation requires a machine actor.")
-///     .extensions(WrongActorType {
-///         required_actor_type: "machine",
-///     });
 /// ```
 #[derive(Debug)]
 pub struct ProblemType {
@@ -51,6 +58,9 @@ pub struct ProblemType {
 
 impl ProblemType {
     /// Creates an occurrence with a human-readable explanation.
+    ///
+    /// See [`ProblemDetails::detail()`] for an example borrowing an explanation assembled
+    /// at runtime.
     #[must_use]
     pub const fn detail<'a>(
         &'a self,
@@ -60,6 +70,8 @@ impl ProblemType {
     }
 
     /// Creates an occurrence identified by the supplied URI reference.
+    ///
+    /// See [`ProblemDetails::instance()`] for an example using a URI built at runtime.
     #[must_use]
     pub const fn instance<'a>(
         &'a self,
@@ -69,9 +81,24 @@ impl ProblemType {
     }
 
     /// Creates an occurrence with the supplied extension members.
+    ///
+    /// See [`ProblemDetails::extensions()`] for an example serializing typed extension members.
     #[must_use]
     pub const fn extensions<E>(&self, extensions: E) -> ProblemDetails<'_, E> {
         ProblemDetails::from(self).extensions(extensions)
+    }
+}
+
+const impl<'a> From<ProblemType> for ProblemDetails<'a> {
+    fn from(definition: ProblemType) -> Self {
+        Self {
+            type_uri: definition.type_uri,
+            title: definition.title,
+            status: definition.status.as_u16(),
+            detail: None,
+            instance: None,
+            extensions: NoExtensions {},
+        }
     }
 }
 
@@ -97,7 +124,7 @@ const impl<'a> From<&'a ProblemType> for ProblemDetails<'a> {
 #[cfg(test)]
 mod tests {
     use alloc::{borrow::Cow, string::String};
-    use core::ptr;
+    use core::{assert_matches, ptr};
 
     use crate::{ProblemDetails, ProblemType, StatusCode};
 
@@ -112,13 +139,13 @@ mod tests {
         };
         let details = ProblemDetails::from(&definition);
 
-        assert!(
-            ptr::eq(details.type_uri.as_ref(), definition.type_uri.as_ref()),
-            "the type URI should reuse the definition's allocation"
+        assert_matches!(
+            details.type_uri, Cow::Borrowed(uri) if ptr::eq(uri, definition.type_uri.as_ref()),
+            "the type URI should borrow the definition's allocation"
         );
-        assert!(
-            ptr::eq(details.title.as_ref(), definition.title.as_ref()),
-            "the title should reuse the definition's allocation"
+        assert_matches!(
+            details.title, Cow::Borrowed(title) if ptr::eq(title, definition.title.as_ref()),
+            "the title should borrow the definition's allocation"
         );
     }
 }

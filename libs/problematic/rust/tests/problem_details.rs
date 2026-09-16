@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use alloc::{borrow::Cow, string::String, vec::Vec};
+use core::{assert_matches, ptr};
 
 use problematic::{NoExtensions, ProblemDetails, ProblemType, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -55,7 +56,7 @@ fn details_default_type() {
     let details: ProblemDetails<'_, NoExtensions> =
         serde_json::from_str(encoded).expect("the response should deserialize without a type");
 
-    assert!(matches!(details.type_uri, Cow::Borrowed("about:blank")));
+    assert_matches!(details.type_uri, Cow::Borrowed("about:blank"));
     assert_eq!(
         serde_json::to_value(details).expect("the details should serialize"),
         json!({"type": "about:blank", "title": "Internal Server Error", "status": 500})
@@ -116,6 +117,23 @@ fn details_static_metadata() {
     let instance = String::from("https://example.com/problem-occurrences/42");
     let details = INVALID_PARAMETERS.detail(&detail).instance(&instance);
 
+    assert_matches!(
+        details,
+        ProblemDetails {
+            type_uri: Cow::Borrowed(_),
+            title: Cow::Borrowed(_),
+            ..
+        },
+        "the metadata should be borrowed from the definition"
+    );
+    assert_matches!(
+        details.detail, Some(Cow::Borrowed(value)) if ptr::eq(value, detail.as_str()),
+        "the detail should borrow the original string"
+    );
+    assert_matches!(
+        details.instance, Some(Cow::Borrowed(value)) if ptr::eq(value, instance.as_str()),
+        "the instance should borrow the original string"
+    );
     assert_eq!(
         serde_json::to_value(&details).expect("the mixed-lifetime details should serialize"),
         json!({
@@ -145,11 +163,15 @@ fn details_borrowed_deserialize() {
         .expect("the response should deserialize from a byte slice");
 
     for details in [from_string, from_slice] {
-        assert!(
-            matches!(details.type_uri, Cow::Borrowed(_))
-                && matches!(details.title, Cow::Borrowed(_))
-                && matches!(details.detail, Some(Cow::Borrowed(_)))
-                && matches!(details.instance, Some(Cow::Borrowed(_))),
+        assert_matches!(
+            details,
+            ProblemDetails {
+                type_uri: Cow::Borrowed(_),
+                title: Cow::Borrowed(_),
+                detail: Some(Cow::Borrowed(_)),
+                instance: Some(Cow::Borrowed(_)),
+                ..
+            },
             "the strings should be borrowed from the input"
         );
         for text in [
@@ -196,11 +218,15 @@ fn details_escaped_deserialize() {
     let details: ProblemDetails<'_, NoExtensions> =
         serde_json::from_str(encoded).expect("the escaped response should deserialize");
 
-    assert!(
-        matches!(details.type_uri, Cow::Owned(_))
-            && matches!(details.title, Cow::Owned(_))
-            && matches!(details.detail, Some(Cow::Owned(_)))
-            && matches!(details.instance, Some(Cow::Owned(_))),
+    assert_matches!(
+        details,
+        ProblemDetails {
+            type_uri: Cow::Owned(_),
+            title: Cow::Owned(_),
+            detail: Some(Cow::Owned(_)),
+            instance: Some(Cow::Owned(_)),
+            ..
+        },
         "the decoded strings should be owned"
     );
     assert_eq!(
@@ -233,11 +259,15 @@ fn details_owned_deserialize() {
     drop(encoded);
 
     for details in [from_value, from_reader] {
-        assert!(
-            matches!(details.type_uri, Cow::Owned(_))
-                && matches!(details.title, Cow::Owned(_))
-                && matches!(details.detail, Some(Cow::Owned(_)))
-                && matches!(details.instance, Some(Cow::Owned(_))),
+        assert_matches!(
+            details,
+            ProblemDetails {
+                type_uri: Cow::Owned(_),
+                title: Cow::Owned(_),
+                detail: Some(Cow::Owned(_)),
+                instance: Some(Cow::Owned(_)),
+                ..
+            },
             "the deserialized strings should be owned"
         );
         assert_eq!(
@@ -322,15 +352,14 @@ fn details_extensions_invalid_types() {
 
 #[test]
 fn details_extensions_non_object_serialize() {
+    const BAD_REQUEST: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Bad Request"),
+        status: StatusCode::BAD_REQUEST,
+    };
+
     for extensions in [json!(42), json!("invalid"), json!(["invalid"])] {
-        let details = ProblemDetails {
-            type_uri: Cow::Borrowed("about:blank"),
-            title: Cow::Borrowed("Bad Request"),
-            status: 400,
-            detail: None,
-            instance: None,
-            extensions,
-        };
+        let details = BAD_REQUEST.extensions(extensions);
         let error = serde_json::to_value(&details)
             .expect_err("the non-object extensions should fail to serialize");
 
