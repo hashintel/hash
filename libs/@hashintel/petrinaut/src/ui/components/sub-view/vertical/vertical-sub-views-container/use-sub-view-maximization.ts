@@ -30,10 +30,19 @@ const keyframe = (bounds: Bounds) => ({
   height: `${bounds.height}px`,
 });
 
-const focusHeader = (section: HTMLElement, selector: string) => {
-  requestAnimationFrame(() =>
-    section.querySelector<HTMLButtonElement>(selector)?.focus(),
-  );
+const focusHeader = (
+  section: HTMLElement,
+  selector: string,
+  fallbackSelector?: string,
+) => {
+  requestAnimationFrame(() => {
+    const target =
+      section.querySelector<HTMLElement>(selector) ??
+      (fallbackSelector
+        ? section.querySelector<HTMLElement>(fallbackSelector)
+        : null);
+    target?.focus();
+  });
 };
 
 const animationOptions = {
@@ -120,7 +129,11 @@ export const useSubViewMaximization = (
     const container = containerRef.current;
     if (!maximization) {
       if (restoreFocusRef.current) {
-        focusHeader(restoreFocusRef.current, "[data-expand-subview]");
+        focusHeader(
+          restoreFocusRef.current,
+          "[data-expand-subview]",
+          "[data-toggle-subview]",
+        );
         restoreFocusRef.current = null;
       }
       return;

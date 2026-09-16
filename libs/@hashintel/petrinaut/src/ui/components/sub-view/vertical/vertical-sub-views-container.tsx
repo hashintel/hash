@@ -501,6 +501,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
       </div>
     ) : (
       <div
+        data-toggle-subview
         onClick={onToggle}
         role="button"
         tabIndex={0}

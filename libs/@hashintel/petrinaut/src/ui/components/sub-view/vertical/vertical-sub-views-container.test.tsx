@@ -377,6 +377,72 @@ const mockAnimations = () => {
   return animations;
 };
 
+it.each([
+  { showAnimations: true, reducedMotion: false },
+  { showAnimations: false, reducedMotion: false },
+  { showAnimations: true, reducedMotion: true },
+])(
+  "returns focus to the collapsed header after closing a deep link (%j)",
+  async ({ showAnimations, reducedMotion }) => {
+    const animations = mockAnimations();
+    vi.stubGlobal("matchMedia", () => ({
+      matches: reducedMotion,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    const state = {
+      ...defaultPetrinautNavigationState,
+      expandedSubView: { container: "test", id: "code" },
+    };
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    const view = render(
+      <Harness
+        codeCollapsed
+        showAnimations={showAnimations}
+        navigation={{ state, onNavigate }}
+      />,
+    );
+    const back = screen.getByRole("button", {
+      name: "Back to Transition Collision",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(back));
+    fireEvent.click(back);
+    const returnRequest = onNavigate.mock.calls.at(-1);
+    expect(returnRequest).toBeDefined();
+    const restoredState = returnRequest![0](state);
+    expect(restoredState.expandedSubView).toBeNull();
+    view.rerender(
+      <Harness
+        codeCollapsed
+        showAnimations={showAnimations}
+        navigation={{ state: restoredState, onNavigate }}
+      />,
+    );
+
+    if (showAnimations && !reducedMotion) {
+      const restoration = animations.find((animation) =>
+        animation.element.hasAttribute("data-subview-section"),
+      );
+      expect(restoration).toBeDefined();
+      expect(document.activeElement).toBe(back);
+      await act(async () => restoration?.finish());
+    } else {
+      expect(animations).toHaveLength(0);
+    }
+
+    const header = screen.getByRole("button", {
+      name: "Firing Time",
+    });
+    expect(header.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      screen.queryByRole("button", { name: "Expand Firing Time" }),
+    ).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(header));
+    expect(updateSubViewSection).not.toHaveBeenCalled();
+  },
+);
+
 it("animates the section bounds in both directions and can reverse an unfinished expansion", async () => {
   const animations = mockAnimations();
   render(<Harness />);

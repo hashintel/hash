@@ -23,6 +23,8 @@ Expanding and returning animate within the section container. These transitions 
 
 On hosts with app navigation enabled, expanding a section updates the URL and browser history. **Back** closes the expanded view and **Forward** reopens it. Reloading or opening that URL restores the selected item and expanded section.
 
+Returning restores keyboard focus to **Fill panel**, or to the section header if the section was collapsed before opening the link. The section keeps its saved collapsed state.
+
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
 Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
