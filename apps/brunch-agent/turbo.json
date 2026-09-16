@@ -45,8 +45,10 @@
       "dependsOn": ["build", "codegen", "^build"],
       "env": ["TEST_COVERAGE"]
     },
+    // The product tests read the Petrinaut docs; the `manifest` edge keeps the package in a
+    // pruned tree, the input glob names the files.
     "test:unit": {
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["codegen", "^build", "@hashintel/petrinaut#manifest"],
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",
