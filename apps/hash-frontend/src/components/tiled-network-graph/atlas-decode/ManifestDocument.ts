@@ -94,7 +94,11 @@ export interface DecodeOptions {
   readonly generation: GenerationId.GenerationId;
 }
 
-/** Decodes a supported manifest against the requested generation. */
+/**
+ * Decodes a supported manifest against the requested generation.
+ *
+ * Schema failures retain complete Zod errors. Output is readonly without runtime freezing.
+ */
 export const decode = (
   input: unknown,
   { generation }: DecodeOptions,

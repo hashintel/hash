@@ -221,7 +221,9 @@ describe("EdgeDocument.decode geometry", () => {
       ]),
     });
 
-    const doc = expectOk(runDecode(buffer, { ...decodeOptions, detail: "auxiliary" }));
+    const doc = expectOk(
+      runDecode(buffer, { ...decodeOptions, detail: "auxiliary" }),
+    );
 
     expect(doc.trailer).not.toBeNull();
     expect(doc.trailer?.typeTable).toEqual(typeTable);
@@ -265,7 +267,9 @@ describe("EdgeDocument.decode geometry", () => {
       ]),
     });
 
-    const doc = expectOk(runDecode(buffer, { ...decodeOptions, detail: "auxiliary" }));
+    const doc = expectOk(
+      runDecode(buffer, { ...decodeOptions, detail: "auxiliary" }),
+    );
 
     expect(doc.trailer).toEqual({
       typeTable: [],
@@ -547,13 +551,17 @@ describe("EdgeDocument.decode request", () => {
       new Uint8Array(32).fill(255),
     ).pipe(Result.unwrap);
     const errors = expectSectionErrors(
-      runDecode(edgesResponse(), { generation, variant: 8n as u64, detail: "auxiliary" }),
+      runDecode(edgesResponse(), {
+        generation,
+        variant: 8n as u64,
+        detail: "auxiliary",
+      }),
       "request",
     );
     expect(errors.map((error) => error.reason._tag)).toEqual([
-      "detail-mismatch",
       "generation-mismatch",
       "variant-mismatch",
+      "detail-mismatch",
     ]);
     expect(errors[1]?.reason).toEqual({
       _tag: "variant-mismatch",
@@ -974,9 +982,9 @@ describe("EdgeDocument.decode real fixture", () => {
       runDecode(buffer, {
         generation: GenerationId.GenerationId.fromHex(
           sidecar.head.generation,
-        detail: "auxiliary",
         ).pipe(Result.unwrap),
         variant: BigInt(sidecar.head.variant) as u64,
+        detail: "auxiliary",
       }),
     );
 

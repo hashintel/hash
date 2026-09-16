@@ -352,7 +352,20 @@ describe("fetchEdgesForTiles", () => {
         detail: "auxiliary",
       }),
     ).rejects.toMatchObject({
-      cause: { message: expect.stringContaining("detail") },
+      cause: {
+        reason: { _tag: "section", section: "request" },
+        cause: {
+          errors: [
+            {
+              reason: {
+                _tag: "detail-mismatch",
+                expected: "auxiliary",
+                actual: "minimal",
+              },
+            },
+          ],
+        },
+      },
     });
   });
 
