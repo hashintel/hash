@@ -515,7 +515,11 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
-    expect(aiAssistant.interactiveTools).toEqual([]);
+    // The only interactive tool is the session experiment draft card; the
+    // voice-only brunch_ask widget is never mounted here.
+    expect(
+      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual(["draft_petrinaut_experiment"]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
