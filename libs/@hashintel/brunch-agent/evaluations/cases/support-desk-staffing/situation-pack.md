@@ -103,9 +103,9 @@ Surface these when asked about the decision or what the model should support:
 
 - The weekday morning peak is **10:00 to 12:00**, a two-hour window. That is
   the block you want to decide staffing for.
-- In that window the phone-system export shows about **90 calls an hour**,
-  or one and a half a minute, arriving unevenly. Off-peak is closer to
-  30 an hour.
+- In that window the phone-system export shows about **50 calls an hour**,
+  a little under one a minute, arriving unevenly. Off-peak is closer to
+  15 an hour.
 - Average handle time, from answer to wrap-up, is about **six minutes** in the
   export, with plenty of spread: short bill queries under two minutes, moving
   or complaint calls past fifteen.
