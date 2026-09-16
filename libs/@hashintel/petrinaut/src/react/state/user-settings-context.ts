@@ -18,6 +18,25 @@ import type {
 
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
+/**
+ * How the bottom toolbar is laid out. `split` keeps the edit tools and the
+ * playback controls in two glass segments; `modes` is the single segment from
+ * the design file, which shows either face behind an Edit / Simulate switch;
+ * `single` is one segment holding every control.
+ */
+export type BottomBarVariant = "split" | "modes" | "single";
+
+const bottomBarVariants: readonly BottomBarVariant[] = [
+  "split",
+  "modes",
+  "single",
+];
+
+/** Whether a persisted value names a layout this build has. */
+export const isBottomBarVariant = (value: unknown): value is BottomBarVariant =>
+  typeof value === "string" &&
+  (bottomBarVariants as readonly string[]).includes(value);
+
 export type SubViewSectionSettings = {
   collapsed: boolean;
   /** Last known panel height in pixels */
@@ -37,6 +56,7 @@ export type UserSettings = {
   enableExperimentalIconPack: boolean;
   enableAutomaticArcConnections: boolean;
   arcRendering: ArcRendering;
+  bottomBarVariant: BottomBarVariant;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
   leftSidebarWidth: number;
@@ -117,6 +137,7 @@ export type UserSettingsActions = {
   setEnableExperimentalIconPack: (value: boolean) => void;
   setEnableAutomaticArcConnections: (value: boolean) => void;
   setArcRendering: (value: ArcRendering) => void;
+  setBottomBarVariant: (value: BottomBarVariant) => void;
   setIsLeftSidebarOpen: (value: boolean) => void;
   setLeftSidebarWidth: (value: number) => void;
   setPropertiesPanelWidth: (value: number) => void;
@@ -154,6 +175,7 @@ export const defaultUserSettings: UserSettings = {
   enableExperimentalIconPack: false,
   enableAutomaticArcConnections: false,
   arcRendering: "custom",
+  bottomBarVariant: "split",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
   leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
@@ -190,6 +212,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setEnableExperimentalIconPack: () => {},
   setEnableAutomaticArcConnections: () => {},
   setArcRendering: () => {},
+  setBottomBarVariant: () => {},
   setIsLeftSidebarOpen: () => {},
   setLeftSidebarWidth: () => {},
   setPropertiesPanelWidth: () => {},

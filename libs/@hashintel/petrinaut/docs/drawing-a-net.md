@@ -18,6 +18,12 @@ viewport controls. Where even that leaves too little room it shrinks to the
 cursor, the panel toggle, the diagnostics status and Play; point at it, or tab
 into it, and the rest comes back for as long as you stay on it.
 
+The toolbar is drawn as frosted glass over the canvas. Chromium-based browsers
+refract the canvas through it, and settle into that refraction over a moment
+after the bar appears; Safari and Firefox show a plain blur instead. How its
+controls are grouped is a choice: see [Bottom toolbar](visual-settings.md#bottom-toolbar-experimental)
+in the settings dialog.
+
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
 
 ## Top bar

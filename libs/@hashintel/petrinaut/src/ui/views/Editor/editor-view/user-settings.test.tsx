@@ -333,12 +333,17 @@ describe("user settings", () => {
       name: "Show welcome guide",
     });
     expect(document.activeElement).toBe(welcome);
-    fireEvent.keyDown(welcome, { key: "ArrowLeft" });
+    fireEvent.keyDown(welcome, { key: "ArrowDown" });
+    const toolbar = screen.getByRole("combobox", {
+      name: "Bottom toolbar (Experimental)",
+    });
+    expect(document.activeElement).toBe(toolbar);
+    fireEvent.keyDown(toolbar, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(general);
     fireEvent.keyDown(general, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(toolbar);
+    fireEvent.keyDown(toolbar, { key: "ArrowUp" });
     expect(document.activeElement).toBe(welcome);
-    fireEvent.keyDown(welcome, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(panels);
   });
 
   it("keeps one content panel and lets dropdowns own their open keyboard interaction", async () => {

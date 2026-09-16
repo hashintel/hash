@@ -24,7 +24,8 @@ const groupStyle = cva({
   base: {
     display: "grid",
     gridTemplateColumns: "[1fr]",
-    transition: "[grid-template-columns 160ms ease-in, opacity 160ms ease-in]",
+    transition:
+      "[grid-template-columns 180ms cubic-bezier(0.4, 0, 0.2, 1), opacity 140ms cubic-bezier(0.4, 0, 1, 1)]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
@@ -36,7 +37,9 @@ const groupStyle = cva({
         opacity: "[0]",
         pointerEvents: "none",
         // Revealing answers the pointer, so it runs shorter and decelerates;
-        // folding is not a response to anything and eases in. The selector
+        // folding is not a response to anything and runs on the standard
+        // curve, with the opacity leading the width so nothing is read while
+        // it is being clipped. The selector
         // stays on one line: Panda writes the key into the class name, and a
         // wrapped one stops matching the rule it generated.
         '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar]:has([data-state="open"]) &':
@@ -45,7 +48,7 @@ const groupStyle = cva({
             opacity: "[1]",
             pointerEvents: "auto",
             transition:
-              "[grid-template-columns 120ms ease-out, opacity 120ms ease-out]",
+              "[grid-template-columns 140ms cubic-bezier(0, 0, 0.2, 1), opacity 140ms cubic-bezier(0, 0, 0.2, 1) 40ms]",
           },
       },
     },
