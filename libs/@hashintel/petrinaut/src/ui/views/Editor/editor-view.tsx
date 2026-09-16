@@ -597,7 +597,7 @@ const EditorViewContent = ({
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
         <Stack direction="row" className={rowContainerStyle}>
-          {effectiveMode === "simulate" && <SimulateViewTabs />}
+          {globalMode === "simulate" && <SimulateViewTabs />}
           <SimulationWorkspace>
             {globalMode === "simulate" ? (
               <SimulateView />
