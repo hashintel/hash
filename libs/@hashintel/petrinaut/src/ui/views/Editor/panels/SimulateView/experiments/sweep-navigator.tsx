@@ -88,6 +88,16 @@ const sliderStyle = css({
   },
 });
 
+const boundsStyle = css({
+  display: "flex",
+  justifyContent: "space-between",
+  marginTop: "1",
+  fontSize: "[11px]",
+  lineHeight: "[14px]",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s90",
+});
+
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
@@ -217,6 +227,10 @@ export const SweepNavigator = ({
               <span className={readoutStyle}>
                 {formatAxisValue(axisValueAt(axis, position), axisStep(axis))}
               </span>
+              <div className={boundsStyle}>
+                <span>{formatAxisValue(axis.min, axisStep(axis))}</span>
+                <span>{formatAxisValue(axis.max, axisStep(axis))}</span>
+              </div>
             </div>
           );
         })}
