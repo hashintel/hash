@@ -111,6 +111,19 @@ Start with the stable heading structure already taught by the Ledger template. U
 
 The recovery source is deliberately unresolved. `history-retention`, not preference, chooses whether the successful output, persistent state or both carry the reconstructed body. Stop if canonical records alone cannot reconstruct every revision and validated locator after fold and fresh-process reopen; do not add a full-body fallback. Required proof includes operation/full-replacement sha256 equivalence, all current text-evidence cases over reconstructed bodies, unambiguous duplicate-heading behavior, explicit lossy removal, unaffected-evidence preservation under insert/replace/remove above and beside cited passages, current-basis explanation after recorded layout, and create/fold/reopen recovery.
 
+This successor also absorbs Mission 7e's open workpiece acceptance leaves: prove live recovery from one invalid evidence declaration without dropping valid relations, and prove authorized retraction provenance through the revised product path and a fresh-process reopen. Those obligations change with the mutation contract and must not be certified only against the retired whole-body input.
+
+### Residual lifecycle and evaluation acceptance after 7e
+
+Mission 7e implemented bounded provider-idle recovery and graceful launcher Stop but closed before accepting every presentation and race oracle. These leaves are not an automatic next mission and do not justify work on the closed branch. Re-enter them after the Ledger successor makes the long-run product path viable, or earlier only for a named product-release consumer:
+
+- publish a content-free recovering disposition through the existing live-tool SSE path and visibly distinguish pending, recovering, settled and terminal-error rows;
+- add the dedicated acknowledged-cancellation late-completion case proving cancelled-attempt events cannot alter live or canonical state;
+- capture and review rendered gold/green/red behavior for representative server and browser tools without restoring the retired Voice question marker;
+- make persona evidence capture include manual turns added after the persona bridge exits, or explicitly prevent that unsupported split lifecycle, so the hashed evidence bundle and canonical database close over the same requested observation.
+
+The existing deterministic recovery, launcher, Voice and history suites remain the carried baseline. A successor changes only the proof needed by its named consumer; it must not reopen the upstream cause of `run-Ft8Q17` merely to complete this list.
+
 ### Beyond the demo — distribution and portfolio breadth, unscheduled
 
 The [future draft](docs/mission-drafts/worked-example-distribution-and-breadth.md) consumes an accepted original example. It owns fixture extraction/distribution, connected-bundle copying and tiered portfolio breadth, including their carried capability gaps and proof obligations. These are deferred beyond the demo, not automatically next after Mission 7d. Numbering, priority, issue and branch assignment remain for an owner-authorized cut; collecting readable review artifacts does not activate this scope.
@@ -270,7 +283,7 @@ Retain the thin architecture unless observed product strain earns more. Do not i
 ## Detailed planning homes
 
 - [Worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) — deferred beyond the demo, with no automatic next-mission priority; consumes an accepted original example before delivering reusable copies and proving broader construction capability.
-- [Mission 7e](MISSION.md) — live Stage 1 authority for no-silent-shrink protection, net-read economy, refusal-recovery guidance, tool-row lifecycle colour and the carried engineering obligations needed for a fresh long-run observation. [Section-keyed operations](#section-keyed-ledger-operations-after-stage-1) remain future until its discriminator and recut.
+- [Mission 7e](MISSION.md) — closed engineering partial establishing abrupt-loss protection, net-read economy and bounded idle recovery without product-scale Ledger or provenance acceptance. [Proportional Ledger operations](#section-keyed-ledger-operations-after-stage-1) own the successor mutation/evidence contract; [residual lifecycle and evaluation acceptance](#residual-lifecycle-and-evaluation-acceptance-after-7e) owns the remaining recovery presentation, cancellation-race and evidence-capture leaves.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) — cross-scenario acquisition/conservation/construction quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle breadth.
 - [Mission 9](docs/mission-drafts/9-traceable-projection.md) — repeat, change, retirement, concurrency, expanded schema classes and current-state explanation.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) — reviewer authority, attributed revision, conflict, qualification, bounded patching and refusal.
