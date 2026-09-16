@@ -402,7 +402,7 @@ impl Driver<'_> {
         kind: SubmitKind,
         coverage: &mut ScheduleCoverage,
     ) {
-        self.proposed.insert(record.event_id.clone());
+        self.proposed.insert(record.event_id);
         let outcome_index = self.journal.outcomes_drawn();
         let result = self.handle().propose(record.clone()).await;
         let window = self.journal.outcomes_since(outcome_index);
@@ -481,8 +481,8 @@ impl Driver<'_> {
             request: self.next_request,
         };
         let record = EventRecordV1::new(event).expect("invalid-amount event should encode");
-        let event_id = record.event_id.clone();
-        self.proposed.insert(event_id.clone());
+        let event_id = record.event_id;
+        self.proposed.insert(event_id);
         match self.handle().propose(record).await {
             Ok(ShardCommandOutcome::Rejected { .. }) => {
                 self.rejected.insert(event_id);
@@ -616,7 +616,7 @@ impl Driver<'_> {
         let event = self.fresh_event(counter, amount);
         let record =
             EventRecordV1::new(event).expect("event should encode before the injected crash");
-        self.proposed.insert(record.event_id.clone());
+        self.proposed.insert(record.event_id);
         let handle = self.handle();
         let gated_record = record.clone();
         let in_flight = tokio::spawn(async move { handle.propose(gated_record).await });
@@ -668,7 +668,7 @@ impl Driver<'_> {
                 .expect("durable simulation entries should decode")
                 .normalize()
                 .expect("durable simulation entries should normalize");
-            if !reference.event_ids.insert(record.event_id.clone()) {
+            if !reference.event_ids.insert(record.event_id) {
                 continue;
             }
             match record.event {

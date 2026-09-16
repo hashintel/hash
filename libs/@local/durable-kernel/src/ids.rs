@@ -4,6 +4,8 @@
 //! [`content_digest`] hashes a domain label with the serialized bytes. Application executors
 //! use [`crate::domain::effect_id`] to identify external operations.
 
+use core::str::FromStr;
+
 use serde::Serialize;
 use sha2::{Digest as _, Sha256};
 
@@ -23,46 +25,56 @@ impl InvalidId {
     }
 }
 
-/// Defines a SHA-256 ID type that accepts exactly 64 lowercase hexadecimal characters.
-#[macro_export]
 macro_rules! digest_id {
     ($name:ident, $label:literal) => {
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        pub struct $name(String);
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $name([u8; 32]);
 
         impl $name {
             /// # Errors
             ///
             /// Returns an error unless the value contains exactly 64 lowercase hexadecimal
             /// characters.
-            pub fn parse(value: impl Into<String>) -> Result<Self, $crate::ids::InvalidId> {
-                let value = value.into();
-                if value.len() != $crate::ids::SHA256_HEX_BYTES
+            pub fn parse(value: impl AsRef<str>) -> Result<Self, InvalidId> {
+                Self::from_str(value.as_ref())
+            }
+
+            pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+                Self(bytes)
+            }
+
+            pub const fn as_bytes(&self) -> &[u8; 32] {
+                &self.0
+            }
+        }
+
+        impl FromStr for $name {
+            type Err = InvalidId;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                if value.len() != SHA256_HEX_BYTES
                     || !value
                         .bytes()
                         .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
                 {
-                    return Err($crate::ids::InvalidId::new(
+                    return Err(InvalidId::new(
                         $label,
                         "must be exactly 64 lowercase hexadecimal SHA-256 characters",
                     ));
                 }
-                Ok(Self(value))
-            }
-
-            pub(crate) fn from_digest(digest: String) -> Self {
-                debug_assert_eq!(digest.len(), $crate::ids::SHA256_HEX_BYTES);
-                Self(digest)
-            }
-
-            pub fn as_str(&self) -> &str {
-                &self.0
+                let mut bytes = [0; 32];
+                hex::decode_to_slice(value, &mut bytes)
+                    .map_err(|_invalid| InvalidId::new($label, "must contain hexadecimal bytes"))?;
+                Ok(Self(bytes))
             }
         }
 
         impl ::core::fmt::Display for $name {
             fn fmt(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                formatter.write_str(self.as_str())
+                for byte in self.0 {
+                    write!(formatter, "{byte:02x}")?;
+                }
+                Ok(())
             }
         }
 
@@ -71,7 +83,7 @@ macro_rules! digest_id {
             where
                 S: ::serde::Serializer,
             {
-                serializer.serialize_str(self.as_str())
+                serializer.collect_str(self)
             }
         }
 
@@ -102,9 +114,41 @@ pub fn content_digest<T: Serialize>(
     domain: &str,
     projection: &T,
 ) -> Result<String, serde_json::Error> {
+    Ok(hex::encode(content_digest_bytes(domain, projection)?))
+}
+
+pub(crate) fn content_digest_bytes<T: Serialize>(
+    domain: &str,
+    projection: &T,
+) -> Result<[u8; 32], serde_json::Error> {
     let mut digest = Sha256::new();
     digest.update(domain.as_bytes());
     digest.update([0]);
     digest.update(serde_json::to_vec(projection)?);
-    Ok(hex::encode(digest.finalize()))
+    Ok(digest.finalize().into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::EventId;
+
+    #[test]
+    fn digest_hex_roundtrip() {
+        let text = "0123456789abcdef".repeat(4);
+        let id: EventId = text.parse().expect("lowercase digest should parse");
+        assert_eq!(core::mem::size_of::<EventId>(), 32);
+        assert_eq!(id.to_string(), text);
+        let encoded = serde_json::to_string(&id).expect("digest should serialize");
+        assert_eq!(encoded, format!("\"{text}\""));
+        assert_eq!(
+            serde_json::from_str::<EventId>(&encoded).expect("digest should deserialize"),
+            id
+        );
+        for invalid in [text.to_uppercase(), "0".repeat(63), "g".repeat(64)] {
+            assert!(
+                EventId::parse(invalid).is_err(),
+                "noncanonical digest should fail"
+            );
+        }
+    }
 }
