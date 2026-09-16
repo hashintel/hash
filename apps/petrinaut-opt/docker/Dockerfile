@@ -23,7 +23,7 @@ RUN apt-get update && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked npm:turbo yq
+    mise install --locked npm:turbo
 
 
 FROM bindings-tools AS bindings-pruner
@@ -33,7 +33,7 @@ WORKDIR /repo
 COPY . .
 
 RUN mise trust && \
-    turbo prune $(.github/scripts/prune-scopes.sh '@local/petrinaut-python') --docker
+    turbo prune '@local/petrinaut-python' --docker
 
 
 FROM bindings-tools AS bindings-builder
