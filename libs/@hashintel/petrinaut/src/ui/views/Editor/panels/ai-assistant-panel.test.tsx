@@ -114,6 +114,7 @@ const editorContextValue: EditorContextValue = {
   isAiAssistantOpen: true,
   navigateTo: () => {},
   setGlobalMode: () => {},
+  setEditViewMode: () => {},
   setEditionMode: () => {},
   setAddComponentMode: () => {},
   setCursorMode: () => {},

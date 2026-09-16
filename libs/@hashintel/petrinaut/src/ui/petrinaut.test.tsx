@@ -26,7 +26,6 @@ vi.mock("./views/Editor/editor-view", async () => {
         >
           <TopBar
             actualModeAvailable={false}
-            notebookViewAvailable={false}
             menuItems={[]}
             title={title}
             onTitleChange={setTitle}

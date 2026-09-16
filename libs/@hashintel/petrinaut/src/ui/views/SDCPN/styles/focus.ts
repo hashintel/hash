@@ -6,7 +6,7 @@
  * neighbour both — and the rest of the net fades back whole, by a rule on
  * the canvas pane that applies while a focus is active. The rings here are
  * the only styles a highlighted item itself changes. This matches the
- * Notebook's net graph.
+ * Definitions' net graph.
  *
  * Panda reads the styles below statically, so the ring declarations are
  * spelled out rather than composed from the colour constants.

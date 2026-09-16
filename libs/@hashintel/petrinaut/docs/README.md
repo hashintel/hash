@@ -23,13 +23,13 @@ A quick map of the things you'll encounter:
 
 Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
 
-- **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
+- **Edit** -- Canvas and Definitions views for editing the same net, plus single-run simulation playback on Canvas.
 - **Simulate** -- a separate management surface for scenarios and experiments.
 - **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
 
 ## Contents
 
-- [Drawing a Net](drawing-a-net.md) -- Top bar, canvas, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
+- [Drawing a Net](drawing-a-net.md) -- Top bar, Canvas and Definitions views, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
 - [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
@@ -39,6 +39,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
+- [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
 - [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, Simulation, and Labs.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.

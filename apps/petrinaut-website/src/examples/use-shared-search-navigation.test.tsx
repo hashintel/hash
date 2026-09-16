@@ -3,7 +3,10 @@
 import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { useSharedSearchNavigation } from "./use-shared-search-navigation";
+import {
+  useSharedSearchNavigation,
+  withClearedSharedLocation,
+} from "./use-shared-search-navigation";
 
 import type { SharedExampleSearch } from "./example-search";
 import type {
@@ -34,6 +37,104 @@ const Probe = ({
 };
 
 describe("useSharedSearchNavigation", () => {
+  it("pushes Edit view switches and follows Back and Forward without changing selection", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const parent = { itemType: "transition", itemId: "collision" } as const;
+    const notebook = { ...parent, editView: "definitions" } as const;
+    const onController = (value: PetrinautNavigationController) => {
+      controller = value;
+    };
+    const props = { onController, onSearchChange };
+    const view = render(<Probe {...props} search={parent} />);
+    act(() =>
+      controller.onNavigate(
+        (current) => ({ ...current, editView: "definitions" }),
+        { history: "push", intent: { cause: "user", action: "edit-view" } },
+      ),
+    );
+    expect(onSearchChange).toHaveBeenCalledWith(
+      expect.objectContaining(notebook),
+      "push",
+    );
+    view.rerender(<Probe {...props} search={notebook} />);
+    view.rerender(<Probe {...props} search={parent} />);
+    expect(controller.state.editView).toBe("canvas");
+    view.rerender(<Probe {...props} search={notebook} />);
+    expect(controller.state.editView).toBe("definitions");
+    expect(controller.state.mode).toBe("edit");
+    expect(controller.state.selection).toEqual([
+      { type: "transition", id: "collision" },
+    ]);
+    expect(onSearchChange).toHaveBeenCalledOnce();
+  });
+
+  it("writes section expansion to history and follows Back, Forward, and document replacement", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const parent = { itemType: "transition", itemId: "collision" } as const;
+    const expanded = {
+      ...parent,
+      expandedPanel: "transition-properties",
+      expandedSection: "transition-results",
+    };
+    const onController = (value: PetrinautNavigationController) => {
+      controller = value;
+    };
+    const view = render(
+      <Probe
+        onController={onController}
+        onSearchChange={onSearchChange}
+        search={parent}
+      />,
+    );
+    act(() =>
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          expandedSubView: {
+            container: "transition-properties",
+            id: "transition-results",
+          },
+        }),
+        { history: "push", intent: { cause: "user", action: "subview" } },
+      ),
+    );
+    expect(onSearchChange).toHaveBeenCalledWith(
+      expect.objectContaining(expanded),
+      "push",
+    );
+    view.rerender(
+      <Probe
+        onController={onController}
+        onSearchChange={onSearchChange}
+        search={expanded}
+      />,
+    );
+    view.rerender(
+      <Probe
+        onController={onController}
+        onSearchChange={onSearchChange}
+        search={parent}
+      />,
+    );
+    expect(controller.state.expandedSubView).toBeNull();
+    view.rerender(
+      <Probe
+        onController={onController}
+        onSearchChange={onSearchChange}
+        search={expanded}
+      />,
+    );
+    expect(controller.state.expandedSubView).toEqual({
+      container: "transition-properties",
+      id: "transition-results",
+    });
+    expect(onSearchChange).toHaveBeenCalledOnce();
+    expect(
+      withClearedSharedLocation(controller.state).expandedSubView,
+    ).toBeNull();
+  });
   it("keeps URL-unrepresentable state in memory and mirrors the shared subset", () => {
     let controller!: PetrinautNavigationController;
     const onSearchChange = vi.fn();

@@ -219,7 +219,7 @@ describe("user settings", () => {
     },
   );
 
-  it.each(["edit", "simulate", "actual", "notebook"] as const)(
+  it.each(["edit", "simulate", "actual"] as const)(
     "opens from the shortcut and palette in %s mode",
     async (mode) => {
       const { registry } = renderSettings({ mode });
@@ -414,6 +414,12 @@ describe("user settings", () => {
 });
 
 describe("experimental simulation settings", () => {
+  it("offers Notebook directly in Edit without a Labs setting", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(screen.queryByText("Notebook view")).toBeNull();
+  });
+
   it("hides the optimization group when the host has no in-browser optimizer", async () => {
     renderSettings({
       overlay: { type: "user-settings", section: "simulation" },

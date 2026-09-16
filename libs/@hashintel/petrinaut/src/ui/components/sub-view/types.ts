@@ -77,6 +77,7 @@ export interface SubView {
    * Defaults to false.
    */
   alwaysShowHeaderAction?: boolean;
+  canMaximize?: boolean;
   /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.

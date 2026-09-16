@@ -19,6 +19,7 @@ import { ActualModeContext } from "../actual-mode-context";
 
 import type {
   EditorGlobalMode,
+  EditViewMode,
   SimulateDrawerState,
   SimulateViewMode,
 } from "../state/editor-context";
@@ -52,21 +53,25 @@ export type PetrinautNavigationOverlay =
  */
 export type PetrinautNavigationState = {
   mode: EditorGlobalMode;
+  editView: EditViewMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
+  expandedSubView: { container: string; id: string } | null;
   overlay: PetrinautNavigationOverlay;
 };
 
 export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   mode: "edit",
+  editView: "canvas",
   simulateView: "experiments",
   simulateResource: null,
   scenarioId: undefined,
   subnetId: null,
   selection: [],
+  expandedSubView: null,
   overlay: null,
 };
 
@@ -74,11 +79,13 @@ export type PetrinautNavigationHistory = "push" | "replace";
 
 export type PetrinautNavigationAction =
   | "mode"
+  | "edit-view"
   | "simulation-view"
   | "simulation-resource"
   | "scenario"
   | "subnet"
   | "selection"
+  | "subview"
   | "overlay";
 
 export type PetrinautNavigationIntent =
@@ -171,12 +178,15 @@ export const petrinautNavigationStatesMatch = (
   right: Readonly<PetrinautNavigationState>,
 ) =>
   left.mode === right.mode &&
+  left.editView === right.editView &&
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
+  left.expandedSubView?.container === right.expandedSubView?.container &&
+  left.expandedSubView?.id === right.expandedSubView?.id &&
   left.overlay?.type === right.overlay?.type &&
   (left.overlay?.type !== "user-settings" ||
     right.overlay?.type !== "user-settings" ||
@@ -189,10 +199,18 @@ const resolveNavigationUpdate = (
 ): PetrinautNavigationState => {
   const updated =
     typeof update === "function" ? update(current) : { ...current, ...update };
+  const selection = canonicalizeSelection(updated.selection);
+  const scopeChanged =
+    updated.subnetId !== current.subnetId ||
+    !selectionsMatch(selection, current.selection);
 
   return {
     ...updated,
-    selection: canonicalizeSelection(updated.selection),
+    selection,
+    expandedSubView:
+      scopeChanged && updated.expandedSubView === current.expandedSubView
+        ? null
+        : updated.expandedSubView,
   };
 };
 

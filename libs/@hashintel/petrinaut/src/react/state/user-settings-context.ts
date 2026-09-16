@@ -54,7 +54,6 @@ export type UserSettings = {
   highlightOnHover: boolean;
   partialSelection: boolean;
   enableNetComponents: boolean;
-  enableNotebookView: boolean;
   /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
@@ -130,7 +129,6 @@ export type UserSettingsActions = {
   setHighlightOnHover: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
-  setEnableNotebookView: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
@@ -167,7 +165,6 @@ export const defaultUserSettings: UserSettings = {
   highlightOnHover: true,
   partialSelection: true,
   enableNetComponents: false,
-  enableNotebookView: false,
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
   showCompilationOutput: false,
@@ -203,7 +200,6 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setHighlightOnHover: () => {},
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
-  setEnableNotebookView: () => {},
   setShowWalkthroughOnInit: () => {},
   setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},
