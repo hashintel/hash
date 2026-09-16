@@ -62,6 +62,34 @@ export const float64: CborDecoder.CborVisitor<Decoder.F64, never> = {
   visitFloat64: Result.ok,
 };
 
+const ignored = (): Result.Result<void> => Result.ok(undefined);
+
+/** Consumes and discards a CBOR value under the decoder's encoding profile. */
+export const ignore: CborDecoder.CborVisitor<void, never> = {
+  expecting: "a CBOR value",
+  visitUnsignedInteger: ignored,
+  visitNegativeInteger: ignored,
+  visitByteString: ignored,
+  visitTextString: ignored,
+  visitBoolean: ignored,
+  visitNull: ignored,
+  visitFloat32: ignored,
+  visitFloat64: ignored,
+  visitArray: Result.fn(function* ignoreArray(
+    access: CborDecoder.CborArrayAccess,
+  ) {
+    while (access.remaining > 0) {
+      yield* access.readElement(ignore);
+    }
+  }),
+  visitMap: Result.fn(function* ignoreMap(access: CborDecoder.CborMapAccess) {
+    while (access.remaining > 0) {
+      yield* access.readKey();
+      yield* access.readValue(ignore);
+    }
+  }),
+};
+
 /**
  * Accepts null in addition to the element visitor's supported values.
  *

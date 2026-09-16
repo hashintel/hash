@@ -113,20 +113,16 @@ export class TypeMask<T extends ArrayBufferLike> implements Iterable<number> {
         }),
       );
     }
+
     return Result.ok(this.#has(type));
   }
 
-  /** Yields matching type indexes without including padding bits. */
-  *iter(): Generator<number, void, unknown> {
+  *[Symbol.iterator]() {
     for (let type = 0; type < this.#typeCount; type += 1) {
       if (this.#has(type)) {
         yield type;
       }
     }
-  }
-
-  [Symbol.iterator](): Generator<number, void, unknown> {
-    return this.iter();
   }
 }
 

@@ -53,6 +53,8 @@ import * as TileDocument from "../atlas-decode/TileDocument";
 import { ATLAS_TILE_MAX_ZOOM, atlasTileKey } from "./atlas-tile-coordinate";
 import { WORLD_SIZE } from "./tile-geometry";
 
+import type * as Detail from "../atlas-decode/Detail";
+
 /**
  * The atlas surface as a browser addresses it: hash-api's `/atlas` mount.
  *
@@ -147,7 +149,7 @@ export interface FetchTileOptions {
    * geometry-only response). The detailed view sends `"auxiliary"` for the
    * tiles it draws.
    */
-  readonly detail?: SaltileDetail;
+  readonly detail?: Detail.Detail;
   /**
    * Versioned type URLs conditioning the response's `TYPE_MASK` column, in the
    * order their bit index is assigned. When non-empty each decoded

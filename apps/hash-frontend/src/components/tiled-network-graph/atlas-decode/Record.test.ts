@@ -3,6 +3,30 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import * as Record from "./Record";
 
 describe("Record", () => {
+  it("omit_undefined_proto_key", () => {
+    const value = { marker: true };
+    const copy = Record.omitUndefined({
+      ["__proto__"]: value,
+      absent: undefined,
+    });
+    expect(Object.hasOwn(copy, "__proto__")).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(copy, "__proto__")?.value).toBe(
+      value,
+    );
+    expect(Object.getPrototypeOf(copy)).toBe(Object.prototype);
+    expect(Object.hasOwn(copy, "absent")).toBe(false);
+  });
+
+  it("omit_undefined_symbol_keys", () => {
+    const metadata = Symbol("metadata");
+    const copy = Record.omitUndefined({
+      [metadata]: "hidden",
+      0: "row",
+      visible: true,
+    });
+    expect(copy).toEqual({ 0: "row", visible: true });
+    expectTypeOf(copy).toEqualTypeOf<{ 0: string; visible: boolean }>();
+  });
   it("omit_undefined_drops_keys", () => {
     const stripped = Record.omitUndefined({
       id: 1,

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { BinaryEntityIdError } from "./BinaryEntityId";
 import { CborDecoderError } from "./CborDecoder";
-import { Decoder, DecoderError } from "./Decoder";
+import { Decoder, DecoderError, type U64 } from "./Decoder";
 import * as EdgeDocument from "./EdgeDocument";
 import * as Envelope from "./Envelope";
 import {
@@ -23,7 +23,6 @@ import {
 import * as GenerationId from "./GenerationId";
 import { NodeIdColumnError } from "./NodeId";
 import * as Result from "./Result";
-import { DIRECTORY_ENTRY_BYTES, PAYLOAD_ALIGNMENT, PREFIX_BYTES } from "./wire";
 
 const generationBytes = Array.from({ length: 32 }, (_, index) => index);
 const sourcesDefault = [7, 11, 13];
@@ -82,7 +81,7 @@ const decodeOptions: EdgeDocument.DecodeOptions = {
   generation: GenerationId.GenerationId.make(
     new Uint8Array(generationBytes),
   ).pipe(Result.unwrap),
-  variant: 7n,
+  variant: 7n as U64,
 };
 
 const runDecode = (
@@ -127,7 +126,7 @@ type SectionMember = EdgeDocument.EdgeDocumentError | Envelope.EnvelopeError;
 /** Returns every error retained under a section's aggregate. */
 const expectSectionErrors = (
   result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
-  section: "head" | "columns" | "trailer",
+  section: "head" | "columns" | "trailer" | "request",
 ): SectionMember[] => {
   const error = expectError(result);
   expect(error.reason).toEqual({ _tag: "section", section });
@@ -149,7 +148,7 @@ const expectSectionErrors = (
 /** Checks that a section retains exactly one failure, still inside an aggregate. */
 const expectSingleSectionError = (
   result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
-  section: "head" | "columns" | "trailer",
+  section: "head" | "columns" | "trailer" | "request",
 ): SectionMember => {
   const errors = expectSectionErrors(result, section);
   expect(errors).toHaveLength(1);
@@ -162,7 +161,8 @@ const expectSingleSectionError = (
  * without re-deriving the wire's alignment rule. `-1` marks an absent slot.
  */
 const slotStarts = (payloads: readonly (number[] | null)[]): number[] => {
-  const base = PREFIX_BYTES + payloads.length * DIRECTORY_ENTRY_BYTES;
+  const base =
+    Envelope.PREFIX_BYTES + payloads.length * Envelope.DIRECTORY_ENTRY_BYTES;
   let cursor = base;
   return payloads.map((payload) => {
     if (payload === null) {
@@ -170,8 +170,8 @@ const slotStarts = (payloads: readonly (number[] | null)[]): number[] => {
     }
     const start = cursor;
     cursor =
-      Math.ceil((cursor + payload.length) / PAYLOAD_ALIGNMENT) *
-      PAYLOAD_ALIGNMENT;
+      Math.ceil((cursor + payload.length) / Envelope.PAYLOAD_ALIGNMENT) *
+      Envelope.PAYLOAD_ALIGNMENT;
     return start;
   });
 };
@@ -468,40 +468,63 @@ describe("EdgeDocument.decode request", () => {
     const generation = GenerationId.GenerationId.make(
       new Uint8Array(32).fill(255),
     ).pipe(Result.unwrap);
-    const error = expectError(
+    const error = expectSingleSectionError(
       runDecode(edgesResponse(), { ...decodeOptions, generation }),
+      "request",
     );
-    expect(error.reason).toEqual({
-      _tag: "invalid-field",
-      field: "head.generation",
-      detail: `expected ${generation}, received ${decodeOptions.generation}`,
-    });
+    expect(error.reason._tag).toBe("generation-mismatch");
+    if (error.reason._tag !== "generation-mismatch") {
+      throw error;
+    }
+    expect(error.reason.expected).toBe(generation);
+    expect(error.reason.actual.equals(decodeOptions.generation)).toBe(true);
   });
 
   it("variant_mismatch", () => {
-    const error = expectError(
-      runDecode(edgesResponse(), { ...decodeOptions, variant: 8n }),
+    const error = expectSingleSectionError(
+      runDecode(edgesResponse(), { ...decodeOptions, variant: 8n as U64 }),
+      "request",
     );
     expect(error.reason).toEqual({
-      _tag: "invalid-field",
-      field: "head.variant",
-      detail: "expected 8, received 7",
+      _tag: "variant-mismatch",
+      expected: 8n,
+      actual: 7n,
     });
   });
 
   it("variant_u64_exact", () => {
-    const variant = (1n << 64n) - 1n;
+    const variant = 0xffff_ffff_ffff_ffffn as U64;
     const buffer = edgesResponse({
       head: defaultHeadEntries({ 1: cborUint(variant) }),
     });
     expectOk(runDecode(buffer, { ...decodeOptions, variant }));
-    const error = expectError(
-      runDecode(buffer, { ...decodeOptions, variant: variant - 1n }),
+    const error = expectSingleSectionError(
+      runDecode(buffer, { ...decodeOptions, variant: (variant - 1n) as U64 }),
+      "request",
     );
     expect(error.reason).toEqual({
-      _tag: "invalid-field",
-      field: "head.variant",
-      detail: `expected ${variant - 1n}, received ${variant}`,
+      _tag: "variant-mismatch",
+      expected: variant - 1n,
+      actual: variant,
+    });
+  });
+
+  it("independent_request_failures", () => {
+    const generation = GenerationId.GenerationId.make(
+      new Uint8Array(32).fill(255),
+    ).pipe(Result.unwrap);
+    const errors = expectSectionErrors(
+      runDecode(edgesResponse(), { generation, variant: 8n as U64 }),
+      "request",
+    );
+    expect(errors.map((error) => error.reason._tag)).toEqual([
+      "generation-mismatch",
+      "variant-mismatch",
+    ]);
+    expect(errors[1]?.reason).toEqual({
+      _tag: "variant-mismatch",
+      expected: 8n,
+      actual: 7n,
     });
   });
 });
@@ -918,7 +941,7 @@ describe("EdgeDocument.decode real fixture", () => {
         generation: GenerationId.GenerationId.fromHex(
           sidecar.head.generation,
         ).pipe(Result.unwrap),
-        variant: BigInt(sidecar.head.variant),
+        variant: BigInt(sidecar.head.variant) as U64,
       }),
     );
 

@@ -9,6 +9,13 @@ export const SALTILE_MEDIA_TYPE = "application/vnd.hash.saltile-v1";
 /** The supported binary envelope version. */
 export const SALTILE_WIRE_VERSION = 1;
 
+/** Bytes in the magic and four u16 header fields. */
+export const PREFIX_BYTES = 16;
+/** Bytes in a directory entry's two u32 offsets. */
+export const DIRECTORY_ENTRY_BYTES = 8;
+/** Byte alignment of each payload's start. */
+export const PAYLOAD_ALIGNMENT = 8;
+
 /** A rejected envelope prefix, directory or payload boundary. */
 export type EnvelopeErrorReason =
   | {
@@ -157,7 +164,7 @@ const readEnvelope = Result.fn(function* readEnvelope<
 
   const chunks: Chunk<T>[] = [];
 
-  let nextStart = 16 + 8 * slots;
+  let nextStart = PREFIX_BYTES + DIRECTORY_ENTRY_BYTES * slots;
   for (let slot = 0; slot < slots; slot += 1) {
     const start = yield* decoder.nextU32();
     const end = yield* decoder.nextU32();
@@ -178,7 +185,7 @@ const readEnvelope = Result.fn(function* readEnvelope<
     }
 
     const bytes = yield* decoder.uint8Array(start, end - start);
-    nextStart = Math.ceil(end / 8) * 8;
+    nextStart = Math.ceil(end / PAYLOAD_ALIGNMENT) * PAYLOAD_ALIGNMENT;
 
     const padding = yield* decoder.uint8Array(end, nextStart - end);
     if (padding.some((byte) => byte !== 0)) {

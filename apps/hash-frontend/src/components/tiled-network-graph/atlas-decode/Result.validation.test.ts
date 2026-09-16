@@ -145,6 +145,62 @@ describe("Result.fromNullable", () => {
   });
 });
 
+describe("Result.fromUndefined", () => {
+  it("absence_call_forms", () => {
+    const error = new Error("missing");
+    expect(Result.fromUndefined(undefined, () => error)).toMatchObject({
+      _tag: "err",
+      error,
+    });
+    expect(Result.fromUndefined(() => error)(undefined)).toMatchObject({
+      _tag: "err",
+      error,
+    });
+  });
+
+  it.each([null, false, 0, "", NaN])("present_%s", (value) => {
+    const onUndefined = vi.fn(() => "missing");
+    expect(Result.fromUndefined(value, onUndefined)).toMatchObject({
+      _tag: "ok",
+      value,
+    });
+    expect(Result.fromUndefined(onUndefined)(value)).toMatchObject({
+      _tag: "ok",
+      value,
+    });
+    expect(onUndefined).not.toHaveBeenCalled();
+  });
+
+  it("nullable_types", () => {
+    const value = null as { readonly id: number } | null | undefined;
+    const error = () => "missing" as const;
+    expectTypeOf(Result.fromUndefined(value, error)).toEqualTypeOf<
+      Result.Result<{ readonly id: number } | null, "missing">
+    >();
+    expectTypeOf(Result.fromUndefined(error)(value)).toEqualTypeOf<
+      Result.Result<{ readonly id: number } | null, "missing">
+    >();
+  });
+
+  it("value_identity", () => {
+    const value = new Map([[0, null]]);
+    expect(
+      Result.fromUndefined(value, () => "missing").pipe(
+        Result.match({ onOk: (present) => present, onErr: () => null }),
+      ),
+    ).toBe(value);
+  });
+
+  it("factory_exception", () => {
+    const error = new Error("factory failed");
+    expect(() =>
+      Result.fromUndefined(undefined, () => {
+        throw error;
+      }),
+    ).toThrow(error);
+  });
+});
+
 describe("flow", () => {
   it("ordered_composition", () => {
     const parse = flow(

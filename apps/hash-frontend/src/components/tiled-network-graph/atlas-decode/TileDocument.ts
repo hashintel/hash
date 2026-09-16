@@ -129,7 +129,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,
-  { generation, variant, coloredTypeCount, coordinate }: DecodeOptions,
+  { generation, variant, coloredTypeCount, coordinate, mode }: DecodeOptions,
 ): Result.gen.Return<TileDocument<T>, TileError.DecodeError> {
   yield* checkContext("coloredTypeCount", coloredTypeCount);
 
@@ -167,7 +167,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
   const [positions, rowIds, typeMask] = yield* Result.all([
     decodePositions(positionsChunk, head.delivered),
     decodeRowIds(rowIdsChunk, head.delivered),
-    decodeTypeMask(typeMaskChunk, head.delivered, context.coloredTypeCount),
+    decodeTypeMask(typeMaskChunk, head.delivered, coloredTypeCount),
   ]).pipe(
     Result.changeContext(() => TileError.TileDocumentError.rejected("columns")),
   );
@@ -185,10 +185,32 @@ const decodeDocument = Result.fn(function* decodeDocument<
     );
   }
 
-  yield* Result.assert(head.generation.equals(generation), () => {});
-  yield* Result.assert(head.variant === variant, () => {});
-  yield* Result.assert(head.mode === mode, () => {});
-  yield* Result.assert(head.coordinate === coordinate, () => {}); // TODO: needs proper thing
+  yield* Result.all([
+    Result.assert(head.generation.equals(generation), () =>
+      TileError.TileDocumentError.generationMismatch(
+        generation,
+        head.generation,
+      ),
+    ),
+    Result.assert(head.variant === variant, () =>
+      TileError.TileDocumentError.variantMismatch(variant, head.variant),
+    ),
+    Result.assert(head.mode === mode, () =>
+      TileError.TileDocumentError.modeMismatch(mode, head.mode),
+    ),
+    Result.assert(
+      head.coordinate.z === coordinate.z &&
+        head.coordinate.x === coordinate.x &&
+        head.coordinate.y === coordinate.y,
+      () =>
+        TileError.TileDocumentError.coordinateMismatch(
+          coordinate,
+          head.coordinate,
+        ),
+    ),
+  ]).pipe(
+    Result.changeContext(() => TileError.TileDocumentError.rejected("request")),
+  );
 
   return {
     generation: head.generation,
@@ -212,7 +234,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
  *
  * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. Slots this decoder has no table entry for stay encoded, populated or not.
  *
- * The context supplies the requested colored-type count. The caller must match generation, variant, coordinate, mode and trailer presence to its request.
+ * The options supply the requested colored-type count and the expected generation, variant, coordinate and mode. A {@link Result.All} retains request mismatches under the request section's error. The caller decides whether a declared trailer satisfies its detail request.
  *
  * @returns The complete document or a {@link TileError.TileDocumentError} whose causes preserve underlying errors and unexpected exceptions. Failure may advance the decoder.
  */

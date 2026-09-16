@@ -1,7 +1,7 @@
 /**
  * Lazy combinators over synchronous iterables.
  *
- * Every function returns a re-iterable {@link Iterable}: each `for...of` opens fresh iterators on the sources, and nothing is consumed until iteration begins.
+ * Combinators acquire their sources' iterators only when iteration begins. Reusable sources permit repeated traversal. One-shot sources remain one-shot. {@link collect} consumes its source immediately.
  *
  * @module
  */
@@ -83,7 +83,7 @@ export const repeat = <T>(value: T, count = Infinity): Iterable<T> => ({
 /**
  * Pairs elements by position, ending with the shortest source.
  *
- * Once any source is exhausted, or the consumer stops early, every remaining iterator is closed with `return` so generators run their cleanup. Zipping no sources yields nothing.
+ * On exhaustion, early stopping or an exception, calls `return` on every acquired iterator that has not finished. Cleanup continues after a failure. A single exception propagates unchanged. Multiple exceptions form an {@link AggregateError} in iteration-then-cleanup order. Zipping no sources yields nothing.
  *
  * @example
  * ```ts
@@ -100,10 +100,16 @@ export const zip = <Sources extends readonly Iterable<unknown>[]>(
       return;
     }
 
-    const iterators = sources.map((source) => source[Symbol.iterator]());
-    const open = new Set(iterators);
+    const iterators: Iterator<unknown>[] = [];
+    const open = new Set<Iterator<unknown>>();
+    let failures: unknown[] | undefined;
 
     try {
+      for (const source of sources) {
+        const iterator = source[Symbol.iterator]();
+        iterators.push(iterator);
+        open.add(iterator);
+      }
       for (;;) {
         const tuple: unknown[] = [];
         for (const iterator of iterators) {
@@ -116,9 +122,23 @@ export const zip = <Sources extends readonly Iterable<unknown>[]>(
         }
         yield tuple as Zipped<Sources>;
       }
+    } catch (error) {
+      failures = [error];
     } finally {
       for (const iterator of open) {
-        iterator.return?.();
+        try {
+          iterator.return?.();
+        } catch (error) {
+          (failures ??= []).push(error);
+        }
+      }
+      if (failures?.length === 1) {
+        // eslint-disable-next-line no-unsafe-finally -- Report a captured failure even when the consumer calls return.
+        throw failures[0];
+      }
+      if (failures !== undefined) {
+        // eslint-disable-next-line no-unsafe-finally -- Preserve the iteration failure together with every cleanup failure.
+        throw new AggregateError(failures, "zip iteration or cleanup failed");
       }
     }
   },

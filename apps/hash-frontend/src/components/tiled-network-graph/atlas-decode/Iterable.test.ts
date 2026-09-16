@@ -3,6 +3,92 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import * as Iterable from "./Iterable";
 
 describe("Iterable", () => {
+  it("zip_acquisition_failure", () => {
+    const cause = new Error("acquisition failed");
+    const close = vi.fn(() => ({ done: true, value: undefined }) as const);
+    const first: Iterable<number> = {
+      [Symbol.iterator]: () => ({
+        next: () => ({ done: false, value: 1 }),
+        return: close,
+      }),
+    };
+    const second: Iterable<number> = {
+      [Symbol.iterator]: () => {
+        throw cause;
+      },
+    };
+    expect(() => [...Iterable.zip(first, second)]).toThrow(cause);
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it("zip_cleanup_failures", () => {
+    const firstCause = new Error("first close failed");
+    const thirdCause = new Error("third close failed");
+    const closeFirst = vi.fn(() => {
+      throw firstCause;
+    });
+    const closeThird = vi.fn(() => {
+      throw thirdCause;
+    });
+    const source = (close: () => never): Iterable<number> => ({
+      [Symbol.iterator]: () => ({
+        next: () => ({ done: false, value: 1 }),
+        return: close,
+      }),
+    });
+    let failure: unknown;
+    try {
+      Array.from(Iterable.zip(source(closeFirst), [], source(closeThird)));
+    } catch (error) {
+      failure = error;
+    }
+    expect(closeFirst).toHaveBeenCalledTimes(1);
+    expect(closeThird).toHaveBeenCalledTimes(1);
+    expect(failure).toBeInstanceOf(AggregateError);
+    if (!(failure instanceof AggregateError)) {
+      throw new Error("expected cleanup failures");
+    }
+    expect(failure.errors).toHaveLength(2);
+    expect(failure.errors[0]).toBe(firstCause);
+    expect(failure.errors[1]).toBe(thirdCause);
+  });
+
+  it("zip_iteration_and_cleanup_failures", () => {
+    const iteration = new Error("iteration failed");
+    const cleanup = new Error("cleanup failed");
+    const closeOther = vi.fn(() => ({ done: true, value: undefined }) as const);
+    const first: Iterable<number> = {
+      [Symbol.iterator]: () => ({
+        next: () => {
+          throw iteration;
+        },
+        return: () => {
+          throw cleanup;
+        },
+      }),
+    };
+    const second: Iterable<number> = {
+      [Symbol.iterator]: () => ({
+        next: () => ({ done: false, value: 2 }),
+        return: closeOther,
+      }),
+    };
+    let failure: unknown;
+    try {
+      Array.from(Iterable.zip(first, second));
+    } catch (error) {
+      failure = error;
+    }
+    expect(closeOther).toHaveBeenCalledTimes(1);
+    expect(failure).toBeInstanceOf(AggregateError);
+    if (!(failure instanceof AggregateError)) {
+      throw new Error("expected iteration and cleanup failures");
+    }
+    expect(failure.errors).toHaveLength(2);
+    expect(failure.errors[0]).toBe(iteration);
+    expect(failure.errors[1]).toBe(cleanup);
+  });
+
   it("map_call_forms", () => {
     const length = (text: string) => text.length;
     expect([...Iterable.map(["a", "bb"], length)]).toEqual([1, 2]);
