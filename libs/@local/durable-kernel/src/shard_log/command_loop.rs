@@ -15,6 +15,7 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use chrono::{DateTime, Utc};
 #[cfg(any(test, feature = "test-util"))]
 use tokio::sync::Notify;
 use tokio::sync::{mpsc, oneshot};
@@ -470,19 +471,13 @@ impl OpenedShard {
             }
         };
         if let Some(context) = context {
-            let latest_snapshot_created_at =
-                recovered.snapshot_created_at.as_deref().and_then(|value| {
-                    chrono::DateTime::parse_from_rfc3339(value)
-                        .ok()
-                        .map(chrono::DateTime::<chrono::Utc>::from)
-                });
             D::note_snapshot_recovery(
                 context,
                 &SnapshotRecoveryStats {
                     replayed_events: recovered.replayed_events,
                     replay_elapsed: replay_started.elapsed(),
                     corruption_fallbacks: recovered.corruption_fallbacks,
-                    latest_snapshot_created_at,
+                    latest_snapshot_created_at: recovered.snapshot_created_at,
                 },
             );
         }
@@ -1125,7 +1120,7 @@ impl<D: Domain> CommandLoop<D> {
 struct RecoveredProjection<D: Domain> {
     projection: D::Projection,
     snapshot_through_log_sequence: Option<u64>,
-    snapshot_created_at: Option<String>,
+    snapshot_created_at: Option<DateTime<Utc>>,
     replayed_events: u64,
     corruption_fallbacks: u64,
 }
