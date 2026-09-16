@@ -73,7 +73,7 @@ const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
   .reduce((widest, label) => (label.length > widest.length ? label : widest));
 
 const PARAMETERS_HELP =
-  "Choose a value or range for each parameter. Results update as you move the controls. During optimization, the controls follow the values being tested.";
+  "Move a slider to choose a parameter value. Results update as you move. During optimization, the sliders follow the values being tested.";
 
 // The ds Button has no purple tone; the optimizer's Stop wears the
 // optimizing purple over the subtle variant.
