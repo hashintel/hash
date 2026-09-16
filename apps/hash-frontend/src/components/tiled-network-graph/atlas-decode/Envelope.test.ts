@@ -3,16 +3,19 @@ import { describe, expect, it } from "vitest";
 import { Decoder, DecoderError } from "./Decoder";
 import {
   decode,
+  DIRECTORY_ENTRY_BYTES,
   EnvelopeError,
   getChunk,
   indexChunk,
+  PREFIX_BYTES,
   SALTILE_WIRE_VERSION,
   type Chunk,
 } from "./Envelope";
 import { buildResponse } from "./fixtures";
 import * as Option from "./Option";
 import * as Result from "./Result";
-import { DIRECTORY_ENTRY_BYTES, PREFIX_BYTES, type SaltileKind } from "./wire";
+
+type SaltileKind = Parameters<typeof buildResponse>[0];
 
 const align8 = (value: number): number => Math.ceil(value / 8) * 8;
 
