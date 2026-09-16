@@ -8,6 +8,8 @@
 //! Use this trait with [`crate::shard_log::OpenedShard`] for custom runtimes. Application code
 //! can instead implement [`crate::domain::SimpleDomain`], which supplies this adapter.
 
+use chrono::{DateTime, Utc};
+
 use crate::{
     ids::EventId,
     registry::{DurableRecord, UntrimmedJournalRecord},
@@ -29,7 +31,7 @@ pub struct SnapshotRecoveryStats {
     pub replayed_events: u64,
     pub replay_elapsed: core::time::Duration,
     pub corruption_fallbacks: u64,
-    pub latest_snapshot_created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub latest_snapshot_created_at: Option<DateTime<Utc>>,
 }
 
 /// Defines record validation, state updates, reads, and recovery for one shard.
@@ -146,7 +148,7 @@ pub trait Domain: Send + Sync + 'static {
     /// Returns an error when the snapshot’s shard or journal position is invalid.
     fn snapshot_bounds(snapshot: &Self::Snapshot) -> Result<(Shard, u64), String>;
     /// Timestamp recorded in the snapshot and reported during recovery.
-    fn snapshot_created_at(snapshot: &Self::Snapshot) -> String;
+    fn snapshot_created_at(snapshot: &Self::Snapshot) -> DateTime<Utc>;
     /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the
     /// full journal.
     ///

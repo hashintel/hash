@@ -594,7 +594,7 @@ async fn maybe_snapshot<S: SimpleDomain>(
     }
     match handle.capture_snapshot(every_events).await {
         Ok(Some(payload)) => {
-            let record = payload.into_record(chrono::Utc::now().to_rfc3339());
+            let record = payload.into_record(chrono::Utc::now());
             if let Err(error) = handle.commit_snapshot(record).await {
                 tracing::warn!(error = %error, "snapshot save failed; recovery will replay more events");
             }

@@ -10,6 +10,7 @@
 use alloc::collections::BTreeMap;
 use core::{any::Any, error::Error, fmt, marker::PhantomData};
 
+use chrono::{DateTime, Utc};
 use error_stack::Report;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::json;
@@ -556,12 +557,12 @@ pub enum ProjectionSnapshot<S: SimpleDomain> {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields, bound = "")]
 pub struct ProjectionSnapshotV1<S: SimpleDomain> {
-    pub shard: Shard,
-    pub through_log_sequence: u64,
-    pub created_at: String,
-    pub seen: BTreeMap<EventId, JournalRecordDigest>,
-    pub partitions: BTreeMap<PartitionKey, u64>,
-    pub domain: S::Projection,
+    shard: Shard,
+    through_log_sequence: u64,
+    created_at: DateTime<Utc>,
+    seen: BTreeMap<EventId, JournalRecordDigest>,
+    partitions: BTreeMap<PartitionKey, u64>,
+    domain: S::Projection,
 }
 
 /// State captured by the command loop for a snapshot. The driver adds the timestamp outside the
@@ -575,7 +576,7 @@ pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
 }
 
 impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
-    pub fn into_record(self, created_at: String) -> ProjectionSnapshot<S> {
+    pub fn into_record(self, created_at: DateTime<Utc>) -> ProjectionSnapshot<S> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
             shard: self.shard,
             through_log_sequence: self.through_log_sequence,
@@ -849,9 +850,9 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         Ok((shard, record.through_log_sequence))
     }
 
-    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> String {
+    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> DateTime<Utc> {
         let ProjectionSnapshot::V1(record) = snapshot;
-        record.created_at.clone()
+        record.created_at
     }
 
     #[expect(
@@ -997,6 +998,7 @@ mod tests {
     use alloc::collections::BTreeMap;
     use core::num::NonZeroUsize;
 
+    use chrono::{DateTime, Utc};
     use error_stack::Report;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
@@ -1016,7 +1018,7 @@ mod tests {
             OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandErrorKind,
             ShardCommandOutcome, ShardLogLocation, StartedShard,
         },
-        sim::{SimAppendOutcome, SimKey, SimLogHandle},
+        sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
     };
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1220,33 +1222,35 @@ mod tests {
         assert!(format!("{error:?}").contains("maximum"));
     }
 
-    fn toy_snapshot(shard: &str, created_at: String) -> ProjectionSnapshot<ToyDomain> {
+    fn toy_snapshot(shard: &str, padding: usize) -> ProjectionSnapshot<ToyDomain> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
             shard: shard.parse().expect("test shard should parse"),
             through_log_sequence: 0,
-            created_at,
+            created_at: DateTime::UNIX_EPOCH,
             seen: BTreeMap::new(),
             partitions: BTreeMap::new(),
-            domain: Counters::default(),
+            domain: Counters {
+                totals: BTreeMap::from([(format!("counter{}", "x".repeat(padding)), 0)]),
+            },
         })
     }
 
     #[test]
     fn snapshots_encode_and_decode_at_the_size_boundary() {
         assert_eq!(MAX_SNAPSHOT_BYTES, 0x00F0_0000);
-        let base = toy_snapshot("00f", String::new())
+        let base = toy_snapshot("00f", 0)
             .encode()
-            .expect("empty snapshot should encode")
+            .expect("snapshot without padding should encode")
             .len();
 
-        let encoded = toy_snapshot("00f", "x".repeat(MAX_SNAPSHOT_BYTES - base))
+        let encoded = toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base)
             .encode()
             .expect("a snapshot of exactly the maximum should encode");
         assert_eq!(encoded.len(), MAX_SNAPSHOT_BYTES);
         ProjectionSnapshot::<ToyDomain>::decode(&encoded)
             .expect("maximum-size snapshot should decode");
 
-        let error = toy_snapshot("00f", "x".repeat(MAX_SNAPSHOT_BYTES - base + 1))
+        let error = toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base + 1)
             .encode()
             .expect_err("an oversized snapshot should be refused at encode");
         assert!(format!("{error:?}").contains("maximum"));
@@ -1266,7 +1270,7 @@ mod tests {
             "data": {
                 "shard": "00f",
                 "through_log_sequence": 0,
-                "created_at": "",
+                "created_at": "1970-01-01T00:00:00Z",
                 "seen": {},
                 "partitions": {},
                 "domain": { "totals": {} }
@@ -1300,11 +1304,103 @@ mod tests {
 
     #[tokio::test]
     async fn snapshot_restore_foreign_shard() {
-        let snapshot = toy_snapshot("00f", String::new());
+        let snapshot = toy_snapshot("00f", 0);
         let error = Toy::load_snapshot_projection(&(), Shard::from_u8(16), &snapshot)
             .await
             .expect_err("a snapshot should only restore to its own shard");
         assert_eq!(error, "snapshot for shard 00f was offered to shard 010");
+    }
+
+    #[test]
+    fn snapshot_timestamp_decode() {
+        let mut fixture = serde_json::to_value(toy_snapshot("00f", 0))
+            .expect("snapshot fixture should serialize");
+        for timestamp in [
+            "1970-01-01T00:00:00Z",
+            "1970-01-01T00:00:00+00:00",
+            "1970-01-01T01:00:00+01:00",
+        ] {
+            fixture["data"]["created_at"] = json!(timestamp);
+            let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
+            let snapshot = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
+                .expect("RFC 3339 timestamp should decode");
+            assert_eq!(Toy::snapshot_created_at(&snapshot), DateTime::UNIX_EPOCH);
+        }
+
+        for invalid in ["", "sim-step-1", "2026-13-01T00:00:00Z"] {
+            fixture["data"]["created_at"] = json!(invalid);
+            let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
+            let error = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
+                .err()
+                .expect("an invalid timestamp should fail snapshot decoding");
+            assert!(
+                matches!(error, CompatError::Malformed { .. }),
+                "timestamp {invalid:?} should make the snapshot malformed: {error}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn snapshot_timestamp_recovery() {
+        let journal = SimLogHandle::new(42, Vec::new());
+        let record = incremented("orders", 5);
+        let location = ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+        let (handle, started) = start(location.clone()).await;
+        handle.propose(record).await.expect("event should apply");
+        let snapshot = handle
+            .capture_snapshot(1)
+            .await
+            .expect("capture should succeed")
+            .expect("snapshot should be due")
+            .into_record(DateTime::UNIX_EPOCH);
+        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .task
+            .await
+            .expect("loop task should join")
+            .expect("loop should shut down");
+
+        let mut fixture = serde_json::to_value(snapshot).expect("snapshot should serialize");
+        fixture["data"]["created_at"] = json!("sim-step-1");
+        let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
+        assert!(
+            matches!(
+                journal.open_writer().append(SimKey::Snapshots, bytes),
+                SimAppendResult::Acked(_)
+            ),
+            "snapshot with an invalid timestamp should be stored for recovery"
+        );
+
+        let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+            .await
+            .expect("shard should reopen")
+            .recover_with_snapshots(&())
+            .await
+            .expect("recovery should fall back to the journal");
+        assert!(
+            recovered
+                .startup_recovery()
+                .snapshot_through_log_sequence
+                .is_none(),
+            "recovery should skip the snapshot with an invalid timestamp"
+        );
+        let restarted = recovered.enable(ShardCommandConfig::default());
+        let totals = restarted
+            .handle
+            .read(|projection| projection.domain().totals.clone())
+            .await
+            .expect("replayed state should be readable");
+        assert_eq!(totals.get("orders"), Some(&5));
+        restarted
+            .handle
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
+        restarted
+            .task
+            .await
+            .expect("loop task should join")
+            .expect("loop should shut down");
     }
 
     #[test]
@@ -1751,7 +1847,7 @@ mod tests {
             .await
             .expect("snapshot capture should succeed")
             .expect("a span of two events should be snapshot-worthy");
-        let snapshot = payload.into_record(chrono::Utc::now().to_rfc3339());
+        let snapshot = payload.into_record(Utc::now());
         handle
             .commit_snapshot(snapshot)
             .await
@@ -1867,7 +1963,7 @@ mod tests {
             .await
             .expect("capture should succeed")
             .expect("snapshot should be due")
-            .into_record(chrono::Utc::now().to_rfc3339());
+            .into_record(Utc::now());
         journal.force_outcomes([outcome]);
         let error = started
             .handle
@@ -1968,12 +2064,16 @@ mod tests {
             .propose(record)
             .await
             .expect("event should be applied");
-        let payload = handle
+        let mut payload = handle
             .capture_snapshot(1)
             .await
             .expect("capture should succeed")
             .expect("snapshot should be due");
-        let snapshot = payload.into_record("x".repeat(MAX_SNAPSHOT_BYTES));
+        payload
+            .domain
+            .totals
+            .insert("x".repeat(MAX_SNAPSHOT_BYTES), 0);
+        let snapshot = payload.into_record(Utc::now());
         handle
             .commit_snapshot(snapshot)
             .await
