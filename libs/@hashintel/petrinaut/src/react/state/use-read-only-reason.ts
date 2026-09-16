@@ -1,8 +1,8 @@
 import { use } from "react";
 
 import { SimulationContext } from "../simulation/context";
+import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
-import { useEffectiveGlobalMode } from "./use-effective-global-mode";
 
 /**
  * Why the editor currently disallows mutations, or `null` when mutations
@@ -26,10 +26,7 @@ export type ReadOnlyReason =
  */
 export const useReadOnlyReason = (): ReadOnlyReason | null => {
   const { readonly } = use(SDCPNContext);
-  // The effective mode, not the stored one — the stored mode can say
-  // "notebook" while the flag is off, in which case the edit canvas renders
-  // and mutations must be allowed.
-  const globalMode = useEffectiveGlobalMode();
+  const { globalMode } = use(EditorContext);
   const { state: simulationState } = use(SimulationContext);
 
   if (readonly) {

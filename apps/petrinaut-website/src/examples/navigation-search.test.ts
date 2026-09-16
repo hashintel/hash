@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { sharedOverlays, sharedSimulateViews } from "./example-search";
+import {
+  sharedOverlays,
+  sharedSimulateViews,
+  validateSharedExampleSearch,
+} from "./example-search";
 import {
   applyPreviewNavigationUpdate,
   navigationStateToSharedSearch,
@@ -8,6 +12,64 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it("routes Definitions within Edit and preserves the selection in shared links", () => {
+    const search = {
+      editView: "definitions",
+      itemType: "transition",
+      itemId: "collision",
+    } as const;
+    const state = sharedSearchToNavigationState(search);
+    expect(state.mode).toBe("edit");
+    expect(state.editView).toBe("definitions");
+    expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+    expect(
+      applyPreviewNavigationUpdate(search, (current) => current),
+    ).toMatchObject(search);
+    expect(sharedSearchToNavigationState({}).editView).toBe("canvas");
+  });
+
+  it.each([{ mode: "notebook" }, { editView: "notebook" }])(
+    "opens legacy Notebook links in the Edit workspace: %s",
+    (legacy) => {
+      const search = validateSharedExampleSearch({
+        ...legacy,
+        itemType: "place",
+        itemId: "space",
+      });
+      expect(search).toMatchObject({
+        editView: "definitions",
+        itemId: "space",
+      });
+      expect(sharedSearchToNavigationState(search)).toMatchObject({
+        mode: "edit",
+        editView: "definitions",
+      });
+    },
+  );
+
+  it("round-trips an expanded Properties Panel section with its selected item", () => {
+    const search = {
+      itemType: "transition",
+      itemId: "collision",
+      expandedPanel: "transition-properties",
+      expandedSection: "transition-results",
+    } as const;
+    const state = sharedSearchToNavigationState(search);
+    expect(state.expandedSubView).toEqual({
+      container: search.expandedPanel,
+      id: search.expandedSection,
+    });
+    expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+    expect(
+      sharedSearchToNavigationState({
+        itemType: "transition",
+        itemId: "collision",
+      }).expandedSubView,
+    ).toBeNull();
+    expect(
+      applyPreviewNavigationUpdate(search, (current) => current),
+    ).toMatchObject(search);
+  });
   it.each(["general", "viewport", "simulation", "labs"] as const)(
     "round-trips the %s settings section in Simulate",
     (settings) => {

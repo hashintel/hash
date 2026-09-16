@@ -310,6 +310,7 @@ const DiffEqCodeAction: React.FC = () => {
 
 export const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
+  canMaximize: true,
   title: "Differential Equation",
   icon: DifferentialEquationIcon,
   main: true,

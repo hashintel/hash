@@ -286,7 +286,6 @@ const TestProviders = ({
     setSnapToGrid: () => {},
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
-    setEnableNotebookView: () => {},
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},

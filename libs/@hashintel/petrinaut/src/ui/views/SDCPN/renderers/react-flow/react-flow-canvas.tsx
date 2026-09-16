@@ -174,8 +174,8 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
 
   // The viewport at mount: where this net was last left, or centered on the
-  // net. ReactFlow owns the viewport from then on, so later bounds or
-  // container changes must not recompute it.
+  // net. Bounds and container changes must not recompute it. The saved
+  // viewport also restores the camera when the canvas resumes from Activity.
   const [initialViewport] = useState(
     () => savedViewport ?? getInitialViewport(bounds, containerSize),
   );
@@ -263,7 +263,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           onMoveEnd={(_event, viewport) => rememberViewport(viewport)}
           onDrop={interactions.readonly ? undefined : onDrop}
           onDragOver={interactions.readonly ? undefined : onDragOver}
-          defaultViewport={initialViewport}
+          defaultViewport={savedViewport ?? initialViewport}
           proOptions={{ hideAttribution: true }}
           panOnDrag={
             interactions.isPanMode

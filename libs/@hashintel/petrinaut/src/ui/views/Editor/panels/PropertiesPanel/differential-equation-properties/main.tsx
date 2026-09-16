@@ -19,8 +19,6 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
-const subViews: SubView[] = [diffEqMainContentSubView];
-
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
@@ -31,6 +29,12 @@ interface DifferentialEquationPropertiesProps {
 export const DifferentialEquationProperties: React.FC<
   DifferentialEquationPropertiesProps
 > = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
+  const subViews: SubView[] = [
+    {
+      ...diffEqMainContentSubView,
+      title: `${diffEqMainContentSubView.title} ${differentialEquation.name}`,
+    },
+  ];
   const value = {
     differentialEquation,
     types,
@@ -42,6 +46,7 @@ export const DifferentialEquationProperties: React.FC<
     <div className={containerStyle}>
       <DiffEqPropertiesContext value={value}>
         <VerticalSubViewsContainer
+          key={differentialEquation.id}
           name="diff-eq-properties"
           subViews={subViews}
         />

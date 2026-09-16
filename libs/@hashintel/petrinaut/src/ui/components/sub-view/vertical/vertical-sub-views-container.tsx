@@ -2,6 +2,7 @@ import React, { Fragment, use, useRef, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import {
+  Button,
   HelpTooltip,
   Icon,
   useAvoidScrollWidthChange,
@@ -11,6 +12,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
 import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
+import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 
 import type { SubView } from "../types";
 
@@ -22,8 +24,16 @@ const HEADER_ICON_SIZE = 16;
 const DEFAULT_MIN_PANEL_HEIGHT = 100;
 
 const containerStyle = css({
+  position: "relative",
   flex: "[1]",
   minHeight: "[0]",
+});
+
+const expandedSectionStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  zIndex: "[1]",
+  backgroundColor: "neutral.s00",
 });
 
 /**
@@ -57,6 +67,65 @@ const sectionWrapperStyle = css({
   "&:hover [data-info-tooltip], &:focus-within [data-info-tooltip]": {
     opacity: "[1]",
   },
+});
+
+const sectionMotionStyle = css({
+  transition: "[opacity 180ms ease-out]",
+  "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+});
+
+const breadcrumbStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "1",
+  minWidth: "0",
+  pl: "1",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s100",
+  lineHeight: "[20px]",
+});
+
+const parentTitleStyle = css({
+  appearance: "none",
+  border: "[0]",
+  backgroundColor: "[transparent]",
+  padding: "0",
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[0 1 auto]",
+  minWidth: "0",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textAlign: "left",
+  font: "[inherit]",
+  color: "[inherit]",
+  cursor: "pointer",
+  transition: "[color 140ms ease]",
+  _hover: {
+    textDecoration: "underline",
+    textUnderlineOffset: "[3px]",
+  },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[3px]",
+    borderRadius: "[2px]",
+  },
+});
+
+const breadcrumbSeparatorStyle = css({
+  display: "flex",
+  color: "neutral.s65",
+  flexShrink: 0,
+});
+
+const breadcrumbCurrentStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
+  whiteSpace: "nowrap",
 });
 
 const sectionContentStyle = css({
@@ -141,6 +210,7 @@ const resizeHandleStyle = css({
 const headerRowStyle = cva({
   base: {
     height: "11",
+    flexShrink: 0,
     pl: "0.5",
     pr: "2",
 
@@ -163,6 +233,7 @@ const headerRowStyle = cva({
 const mainHeaderRowStyle = css({
   p: "3",
   h: "11",
+  flexShrink: 0,
 
   display: "flex",
   justifyContent: "space-between",
@@ -213,9 +284,9 @@ const sectionToggleStyle = css({
 });
 
 const sectionToggleLabelStyle = css({
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  display: "flex",
+  alignItems: "center",
+  minWidth: "0",
 });
 
 const sectionToggleIconStyle = css({
@@ -233,6 +304,9 @@ const sectionToggleIconExpandedStyle = css({
 });
 
 const infoTooltipWrapperStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
   opacity: "[0]",
   transition: "[opacity 150ms ease-out]",
 });
@@ -256,13 +330,27 @@ const headerIconStyle = css({
   color: "neutral.s85",
 });
 
-const mainTitleStyle = css({
-  fontWeight: "medium",
-  fontSize: "sm",
-  color: "neutral.s100",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+const mainTitleStyle = cva({
+  base: {
+    fontWeight: "medium",
+    fontSize: "sm",
+    lineHeight: "[20px]",
+    color: "neutral.s100",
+    minWidth: "0",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+  },
+  variants: {
+    fadeOverflow: {
+      true: {
+        paddingRight: "3",
+        maskImage:
+          "[linear-gradient(to right, black calc(100% - 12px), transparent)]",
+      },
+      false: { textOverflow: "ellipsis" },
+    },
+  },
+  defaultVariants: { fadeOverflow: false },
 });
 
 /**
@@ -327,6 +415,10 @@ interface SubViewHeaderProps {
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
   alwaysShowHeaderAction?: boolean;
+  onExpand?: () => void;
+  onRestore?: () => void;
+  parentTitle: string;
+  parentIcon?: SubView["icon"];
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
@@ -340,23 +432,71 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   onToggle,
   renderHeaderAction,
   alwaysShowHeaderAction,
+  onExpand,
+  onRestore,
+  parentTitle,
+  parentIcon: ParentIcon,
 }) => (
   <div
+    data-subview-header
     className={
       main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
     }
   >
-    {main ? (
-      <div className={mainHeaderContentStyle}>
+    {onRestore ? (
+      <nav
+        aria-label="Properties path"
+        data-subview-title
+        className={breadcrumbStyle}
+      >
+        <button
+          type="button"
+          data-restore-subview
+          aria-label={`Back to ${parentTitle}`}
+          title={parentTitle}
+          className={parentTitleStyle}
+          onClick={onRestore}
+        >
+          {ParentIcon && (
+            <span aria-hidden="true" className={headerIconStyle}>
+              <ParentIcon size={HEADER_ICON_SIZE} />
+            </span>
+          )}
+          <span className={mainTitleStyle({ fadeOverflow: true })}>
+            {parentTitle}
+          </span>
+        </button>
+        {parentTitle !== title && (
+          <>
+            <span aria-hidden="true" className={breadcrumbSeparatorStyle}>
+              <Icon name="chevronRight" size="xxs" />
+            </span>
+            <span
+              aria-current="page"
+              title={title}
+              className={breadcrumbCurrentStyle}
+            >
+              {title}
+              {tooltip && (
+                <span data-info-tooltip className={infoTooltipWrapperStyle}>
+                  <HelpTooltip align="center" content={tooltip} />
+                </span>
+              )}
+            </span>
+          </>
+        )}
+      </nav>
+    ) : main ? (
+      <div data-subview-title className={mainHeaderContentStyle}>
         {HeaderIcon && (
-          <span className={headerIconStyle}>
+          <span aria-hidden="true" className={headerIconStyle}>
             <HeaderIcon size={HEADER_ICON_SIZE} />
           </span>
         )}
         {renderTitle ? (
           renderTitle()
         ) : (
-          <span className={mainTitleStyle}>{title}</span>
+          <span className={mainTitleStyle()}>{title}</span>
         )}
       </div>
     ) : (
@@ -384,23 +524,34 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
           <Icon name="chevronRight" size="xxs" />
         </div>
         <span className={sectionToggleLabelStyle}>
-          {title}
+          <span className={mainTitleStyle()}>{title}</span>
           {tooltip && (
             <span data-info-tooltip className={infoTooltipWrapperStyle}>
-              <HelpTooltip content={tooltip} />
+              <HelpTooltip align="center" content={tooltip} />
             </span>
           )}
         </span>
       </div>
     )}
-    {isExpanded && renderHeaderAction && (
+    {isExpanded && (renderHeaderAction || onExpand) && (
       <div
         {...(!alwaysShowHeaderAction && { "data-header-action": true })}
         className={
           alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle
         }
       >
-        {renderHeaderAction()}
+        {onExpand && (
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="expand"
+            data-expand-subview
+            aria-label={`Expand ${title}`}
+            tooltip="Fill panel"
+            onClick={onExpand}
+          />
+        )}
+        {renderHeaderAction?.()}
       </div>
     )}
   </div>
@@ -426,6 +577,10 @@ export const VerticalSubViewsContainer: React.FC<
   const presentation = usePetrinautPresentation();
   const { showAnimations, subViewPanels, updateSubViewSection } =
     use(UserSettingsContext);
+  const { containerRef, maximizedId, isRestoring, maximize, restore } =
+    useSubViewMaximization(name, subViews, showAnimations);
+  const parentSubView = subViews.find((subView) => subView.main);
+  const parentTitle = parentSubView?.title ?? "Properties";
 
   const containerSettings = subViewPanels[name];
 
@@ -472,10 +627,24 @@ export const VerticalSubViewsContainer: React.FC<
 
   return (
     <Group
+      elementRef={containerRef}
       orientation="vertical"
       className={cx(containerStyle, isAnimating && panelTransitionStyle)}
+      onKeyDown={(event) => {
+        if (
+          maximizedId !== null &&
+          event.key === "Escape" &&
+          !event.defaultPrevented
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          restore();
+        }
+      }}
     >
       {subViews.map((subView, index) => {
+        const fillsContainer = maximizedId === subView.id;
+        const isHidden = maximizedId !== null && !fillsContainer;
         const isMain = subView.main ?? false;
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
@@ -492,15 +661,27 @@ export const VerticalSubViewsContainer: React.FC<
               minSize={isExpanded ? minSize : HEADER_HEIGHT}
               maxSize={isExpanded ? undefined : HEADER_HEIGHT}
             >
-              <div className={sectionWrapperStyle}>
+              <div
+                className={cx(
+                  sectionWrapperStyle,
+                  showAnimations && sectionMotionStyle,
+                  fillsContainer && expandedSectionStyle,
+                )}
+                style={isHidden && !isRestoring ? { opacity: 0 } : undefined}
+                data-subview-section
+                data-subview-id={subView.id}
+                inert={isHidden}
+                aria-hidden={isHidden || undefined}
+                data-expanded-subview={fillsContainer || undefined}
+              >
                 <SubViewHeader
                   id={subView.id}
                   title={subView.title}
                   tooltip={subView.tooltip}
                   icon={subView.icon}
-                  main={isMain}
+                  main={isMain || fillsContainer}
                   renderTitle={subView.renderTitle}
-                  isExpanded={isExpanded}
+                  isExpanded={fillsContainer || isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={
                     subView.headerActionMutates &&
@@ -509,10 +690,21 @@ export const VerticalSubViewsContainer: React.FC<
                       : subView.renderHeaderAction
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
+                  parentTitle={parentTitle}
+                  parentIcon={parentSubView?.icon}
+                  onRestore={fillsContainer ? restore : undefined}
+                  onExpand={
+                    subView.canMaximize && !fillsContainer
+                      ? () => maximize(subView.id)
+                      : undefined
+                  }
                 />
 
-                {isExpanded && (
-                  <div className={sectionContentStyle}>
+                {(fillsContainer || isExpanded) && (
+                  <div
+                    id={`subview-content-${subView.id}`}
+                    className={sectionContentStyle}
+                  >
                     <ScrollableContent>
                       <Component />
                     </ScrollableContent>
@@ -522,7 +714,13 @@ export const VerticalSubViewsContainer: React.FC<
             </Panel>
 
             {index < subViews.length - 1 && (
-              <Separator className={resizeHandleStyle} />
+              <Separator
+                className={resizeHandleStyle}
+                style={
+                  maximizedId !== null ? { visibility: "hidden" } : undefined
+                }
+                disabled={maximizedId !== null}
+              />
             )}
           </Fragment>
         );

@@ -43,6 +43,7 @@ const editorContextValue = (
   globalMode,
   navigateTo: () => {},
   setGlobalMode: () => {},
+  setEditViewMode: () => {},
   setEditionMode: () => {},
   setAddComponentMode: () => {},
   setCursorMode: () => {},
