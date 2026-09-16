@@ -114,7 +114,7 @@ describe("UserSettingsProvider", () => {
     expect(screen.getByRole("button", { name: "probe: on" })).toBe(probe);
   });
 
-  it("loads a blob written with the retired Ad-hoc scenarios key and drops the key on the next write", () => {
+  it("loads saved preferences and drops retired experiment keys on the next write", () => {
     // An in-memory store: some Node versions expose a global `localStorage`
     // whose methods are missing, so the test owns the storage it inspects.
     const entries = new Map<string, string>([
@@ -122,6 +122,7 @@ describe("UserSettingsProvider", () => {
         storageKey,
         JSON.stringify({
           enableAdHocScenarios: true,
+          enableNotebookView: false,
           showWalkthroughOnInit: false,
         }),
       ],
@@ -146,6 +147,7 @@ describe("UserSettingsProvider", () => {
         unknown
       >;
       expect("enableAdHocScenarios" in persisted).toBe(false);
+      expect("enableNotebookView" in persisted).toBe(false);
       expect(persisted.showWalkthroughOnInit).toBe(false);
       expect(persisted.brunchDemoMode).toBe(true);
     } finally {

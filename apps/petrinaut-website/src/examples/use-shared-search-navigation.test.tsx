@@ -37,6 +37,38 @@ const Probe = ({
 };
 
 describe("useSharedSearchNavigation", () => {
+  it("pushes Edit view switches and follows Back and Forward without changing selection", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const parent = { itemType: "transition", itemId: "collision" } as const;
+    const notebook = { ...parent, editView: "notebook" } as const;
+    const onController = (value: PetrinautNavigationController) => {
+      controller = value;
+    };
+    const props = { onController, onSearchChange };
+    const view = render(<Probe {...props} search={parent} />);
+    act(() =>
+      controller.onNavigate(
+        (current) => ({ ...current, editView: "notebook" }),
+        { history: "push", intent: { cause: "user", action: "edit-view" } },
+      ),
+    );
+    expect(onSearchChange).toHaveBeenCalledWith(
+      expect.objectContaining(notebook),
+      "push",
+    );
+    view.rerender(<Probe {...props} search={notebook} />);
+    view.rerender(<Probe {...props} search={parent} />);
+    expect(controller.state.editView).toBe("canvas");
+    view.rerender(<Probe {...props} search={notebook} />);
+    expect(controller.state.editView).toBe("notebook");
+    expect(controller.state.mode).toBe("edit");
+    expect(controller.state.selection).toEqual([
+      { type: "transition", id: "collision" },
+    ]);
+    expect(onSearchChange).toHaveBeenCalledOnce();
+  });
+
   it("writes section expansion to history and follows Back, Forward, and document replacement", () => {
     let controller!: PetrinautNavigationController;
     const onSearchChange = vi.fn();

@@ -61,7 +61,6 @@ const titleStyles = css({
 
 interface TopBarProps {
   actualModeAvailable: boolean;
-  notebookViewAvailable: boolean;
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
@@ -75,7 +74,6 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({
   actualModeAvailable,
-  notebookViewAvailable,
   menuItems,
   title,
   onTitleChange,
@@ -152,7 +150,6 @@ export const TopBar: React.FC<TopBarProps> = ({
       {/* Center section - mode switcher */}
       <ModeSelector
         actualModeAvailable={actualModeAvailable}
-        notebookViewAvailable={notebookViewAvailable}
         mode={mode}
         onChange={onModeChange}
       />

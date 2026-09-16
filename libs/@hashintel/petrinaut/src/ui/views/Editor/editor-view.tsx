@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { use, useState } from "react";
+import { Activity, use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -31,7 +31,6 @@ import { formatShortcutKeys } from "../../../react/commands/format-shortcut";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -60,6 +59,7 @@ import {
   createNewNetMenuItem,
   shouldShowBrunchCreateNew,
 } from "./editor-view/create-new-net-menu";
+import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
@@ -117,8 +117,17 @@ const rowContainerStyle = css({
 
 const canvasContainerStyle = css({
   minWidth: "[0]",
+  minHeight: "[0]",
   position: "relative",
   flex: "[1]",
+});
+
+const workspaceStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minWidth: "[0]",
+  minHeight: "[0]",
 });
 
 // `white-space` inherits down to the item text, whose `overflow: hidden;
@@ -185,6 +194,8 @@ const EditorViewContent = ({
 
   // Get editor context
   const {
+    globalMode,
+    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
@@ -211,7 +222,6 @@ const EditorViewContent = ({
 
   const {
     brunchDemoMode,
-    enableNotebookView,
     enableExperimentalIconPack,
     showAnimations,
     showWalkthroughOnInit,
@@ -222,10 +232,6 @@ const EditorViewContent = ({
     hasAiAssistant: aiAssistant !== undefined,
   });
   const walkthrough = use(WalkthroughContext);
-
-  // Shared with useReadOnlyReason so the rendered view and the mutation
-  // rules never disagree.
-  const effectiveMode = useEffectiveGlobalMode();
 
   const toggleAiAssistant = () => {
     if (isAiAssistantOpen) {
@@ -576,13 +582,12 @@ const EditorViewContent = ({
       {/* Top Bar - always visible */}
       <TopBar
         actualModeAvailable={actualMode.available}
-        notebookViewAvailable={enableNotebookView}
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
         titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
-        mode={effectiveMode}
+        mode={globalMode}
         onModeChange={setGlobalMode}
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
@@ -594,55 +599,84 @@ const EditorViewContent = ({
           the session and the toolbar segment that controls it. */}
       <VoiceSessionProvider>
         <Stack direction="row" className={rowContainerStyle}>
-          {effectiveMode === "simulate" ? (
+          {globalMode === "simulate" ? (
             <SimulateView />
-          ) : effectiveMode === "notebook" ? (
-            <NotebookView key={petriNetId ?? "no-net"} />
           ) : (
-            <Box className={canvasContainerStyle}>
-              {/* Left Sidebar - Tools and content panels */}
-              <LeftSideBar />
+            <div className={workspaceStyle}>
+              {globalMode === "edit" && <EditViewSelector />}
+              <Activity
+                mode={
+                  globalMode === "actual" || editViewMode === "canvas"
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <Box className={canvasContainerStyle}>
+                  {/* Left Sidebar - Tools and content panels */}
+                  <LeftSideBar />
 
-              {/* Properties Panel - Right Side */}
-              <PropertiesPanel />
+                  {/* Properties Panel - Right Side */}
+                  <PropertiesPanel />
 
-              {/* SDCPN Visualization */}
-              <SDCPNView
-                onControllerChange={registerController}
-                viewportActions={viewportActions}
-              />
+                  {/* SDCPN Visualization */}
+                  <SDCPNView
+                    onControllerChange={registerController}
+                    viewportActions={viewportActions}
+                  />
 
-              {showEmptyAiHero && (
-                <AiCtaModal
-                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                  onDismiss={() => setIsAiCtaDismissed(true)}
-                  onStartVoiceMode={() => {
-                    setPendingAiInteractionMode("voice");
-                    setAiAssistantOpen(true);
-                  }}
-                  onSubmit={(message) => {
-                    setPendingAiAssistantMessage(message);
-                    setPendingAiInteractionMode("text");
-                    setAiAssistantOpen(true);
-                  }}
-                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
-                />
-              )}
+                  {showEmptyAiHero && (
+                    <AiCtaModal
+                      bottomClearance={
+                        isBottomPanelOpen ? bottomPanelHeight : 0
+                      }
+                      onDismiss={() => setIsAiCtaDismissed(true)}
+                      onStartVoiceMode={() => {
+                        setPendingAiInteractionMode("voice");
+                        setAiAssistantOpen(true);
+                      }}
+                      onSubmit={(message) => {
+                        setPendingAiAssistantMessage(message);
+                        setPendingAiInteractionMode("text");
+                        setAiAssistantOpen(true);
+                      }}
+                      voiceModeAvailable={
+                        aiAssistant.renderVoiceMode !== undefined
+                      }
+                    />
+                  )}
 
-              {/* Bottom Panel */}
-              <BottomPanel />
-            </Box>
+                  {/* Bottom Panel */}
+                  <BottomPanel />
+                </Box>
+              </Activity>
+              <Activity
+                mode={
+                  globalMode === "edit" && editViewMode === "notebook"
+                    ? "visible"
+                    : "hidden"
+                }
+              >
+                <NotebookView key={petriNetId ?? "no-net"} />
+              </Activity>
+            </div>
           )}
-          {(effectiveMode === "edit" || effectiveMode === "actual") && (
+          <Activity
+            mode={
+              globalMode === "actual" ||
+              (globalMode === "edit" && editViewMode === "canvas")
+                ? "visible"
+                : "hidden"
+            }
+          >
             <BottomBar
-              mode={effectiveMode}
+              mode={globalMode}
               editionMode={editionMode}
               onEditionModeChange={setEditionMode}
               cursorMode={cursorMode}
               onCursorModeChange={setCursorMode}
               hasAiAssistant={aiAssistant !== undefined}
             />
-          )}
+          </Activity>
           {aiAssistant && (
             <AiAssistantPanel
               /** Reset state (e.g. initial messages) when the active net changes */

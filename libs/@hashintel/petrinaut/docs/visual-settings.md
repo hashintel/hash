@@ -2,7 +2,7 @@
 
 Open **User settings** from the menu in the top-left corner, press **Cmd+,** on macOS or **Ctrl+,** on Windows/Linux, or run **Open user settings** in the Command Palette.
 
-Settings are available from every workspace tab, including **Simulate → Experiments**, **Actual**, and **Notebook** when those modes are available. The **gear icon** in the bottom-right viewport controls opens the **Viewport** section directly.
+Settings are available in **Edit** (Canvas or Notebook), **Simulate**, and **Actual** when that mode is available. The **gear icon** in the bottom-right viewport controls opens the **Viewport** section directly.
 
 Use the vertical tabs to browse the sections. With a tab focused, use **Up/Down** to switch sections and **Home/End** to jump to the first or last section. **Right** moves into the section's settings, **Up/Down** moves between controls, and **Left** returns to the selected tab. Moving back into the same section restores the last focused control. **Tab** and **Shift+Tab** also reach every control. Use **Space** to toggle a switch and **Enter** to open a dropdown; an open dropdown uses its own arrow keys. Press **Escape**, click the close button, or click outside the dialog to close it.
 
@@ -178,10 +178,6 @@ Off by default. Adds an interval toggle to every numeric value of the experiment
 Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, the experiment form's interval toggles read **Optimize**: creating the experiment starts a study over the selected intervals, with an **Objective** and **Constraints** chosen in the form. Off, the toggles read **Sweep** and the sweep waits for your selection; any running in-browser optimization is cancelled. See [Optimizing a sweep](experiments.md#optimizing-a-sweep).
 
 ## Labs
-
-### Notebook view (experimental)
-
-Add a **Notebook** tab to explore the net as expandable, read-only cells. Off by default.
 
 ### Net Components (experimental)
 

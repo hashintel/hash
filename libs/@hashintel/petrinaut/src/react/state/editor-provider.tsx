@@ -294,6 +294,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       (current) => ({
         ...current,
         ...(target.globalMode !== undefined ? { mode: target.globalMode } : {}),
+        ...(target.editViewMode !== undefined
+          ? { editView: target.editViewMode }
+          : {}),
         ...(target.simulateViewMode !== undefined
           ? {
               simulateView: target.simulateViewMode,
@@ -342,7 +345,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
                 : "simulation-resource"
               : target.simulateViewMode !== undefined
                 ? "simulation-view"
-                : "mode",
+                : target.editViewMode !== undefined
+                  ? "edit-view"
+                  : "mode",
       },
     );
 
@@ -360,6 +365,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const actions: Omit<EditorActions, "isSelected"> = {
     navigateTo,
     setGlobalMode: (mode) => navigateTo({ globalMode: mode }),
+    setEditViewMode: (view) => navigateTo({ editViewMode: view }),
     setEditionMode: (mode) =>
       setState((prev) => ({
         ...prev,
@@ -562,6 +568,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const effectiveState: EditorState = {
     ...state,
     globalMode: navigation.state.mode,
+    editViewMode: navigation.state.editView,
     simulateViewMode: navigation.state.simulateView,
     simulateDrawer: navigationResourceToSimulateDrawer(
       navigation.state.simulateResource,

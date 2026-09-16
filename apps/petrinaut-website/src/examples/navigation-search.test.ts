@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { sharedOverlays, sharedSimulateViews } from "./example-search";
+import {
+  sharedOverlays,
+  sharedSimulateViews,
+  validateSharedExampleSearch,
+} from "./example-search";
 import {
   applyPreviewNavigationUpdate,
   navigationStateToSharedSearch,
@@ -8,6 +12,39 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it("routes Notebook within Edit and preserves the selection in shared links", () => {
+    const search = {
+      editView: "notebook",
+      itemType: "transition",
+      itemId: "collision",
+    } as const;
+    const state = sharedSearchToNavigationState(search);
+    expect(state.mode).toBe("edit");
+    expect(state.editView).toBe("notebook");
+    expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+    expect(
+      applyPreviewNavigationUpdate(search, (current) => current),
+    ).toMatchObject(search);
+    expect(sharedSearchToNavigationState({}).editView).toBe("canvas");
+  });
+
+  it("opens legacy Notebook links in the Edit workspace", () => {
+    const search = validateSharedExampleSearch({
+      mode: "notebook",
+      itemType: "place",
+      itemId: "space",
+    });
+    expect(search).toMatchObject({
+      mode: "edit",
+      editView: "notebook",
+      itemId: "space",
+    });
+    expect(sharedSearchToNavigationState(search)).toMatchObject({
+      mode: "edit",
+      editView: "notebook",
+    });
+  });
+
   it("round-trips an expanded Properties Panel section with its selected item", () => {
     const search = {
       itemType: "transition",

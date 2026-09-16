@@ -19,6 +19,7 @@ import { ActualModeContext } from "../actual-mode-context";
 
 import type {
   EditorGlobalMode,
+  EditViewMode,
   SimulateDrawerState,
   SimulateViewMode,
 } from "../state/editor-context";
@@ -52,6 +53,7 @@ export type PetrinautNavigationOverlay =
  */
 export type PetrinautNavigationState = {
   mode: EditorGlobalMode;
+  editView: EditViewMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
   scenarioId: string | null | undefined;
@@ -63,6 +65,7 @@ export type PetrinautNavigationState = {
 
 export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   mode: "edit",
+  editView: "canvas",
   simulateView: "experiments",
   simulateResource: null,
   scenarioId: undefined,
@@ -76,6 +79,7 @@ export type PetrinautNavigationHistory = "push" | "replace";
 
 export type PetrinautNavigationAction =
   | "mode"
+  | "edit-view"
   | "simulation-view"
   | "simulation-resource"
   | "scenario"
@@ -174,6 +178,7 @@ export const petrinautNavigationStatesMatch = (
   right: Readonly<PetrinautNavigationState>,
 ) =>
   left.mode === right.mode &&
+  left.editView === right.editView &&
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&

@@ -188,6 +188,23 @@ describe("EditorProvider selection gestures", () => {
     );
   });
 
+  it("records Edit view switches without changing the mode or selection", () => {
+    act(() => editor.setSelection(selectionOf("place-a")));
+    recorded.length = 0;
+    act(() => editor.setEditViewMode("notebook"));
+    expect(editor.globalMode).toBe("edit");
+    expect(editor.editViewMode).toBe("notebook");
+    expect(editor.selection).toEqual(selectionOf("place-a"));
+    expect(recorded).toEqual([
+      { history: "push", intent: { cause: "user", action: "edit-view" } },
+    ]);
+    act(() => editor.setGlobalMode("simulate"));
+    act(() => editor.setGlobalMode("edit"));
+    expect(editor.editViewMode).toBe("notebook");
+    act(() => editor.setEditViewMode("canvas"));
+    expect(editor.selection).toEqual(selectionOf("place-a"));
+  });
+
   const flushMicrotasks = () => act(async () => {});
 
   it("coalesces react-flow batched updates and records one entry per gesture", async () => {

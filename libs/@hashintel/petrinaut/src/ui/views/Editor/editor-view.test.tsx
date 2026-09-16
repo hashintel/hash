@@ -1,13 +1,13 @@
 /** @vitest-environment jsdom */
-import { cleanup, render, screen } from "@testing-library/react";
-import { use, useEffect } from "react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { use, useEffect, useState } from "react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import {
   EditorContext,
   type EditorGlobalMode,
+  type EditViewMode,
 } from "../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -42,9 +42,29 @@ vi.mock("./panels/SimulateView/simulate-view", () => ({
   ),
 }));
 vi.mock("../Notebook/notebook-view", () => ({
-  NotebookView: () => <section aria-label="Notebook" />,
+  NotebookView: () => {
+    const [query, setQuery] = useState("");
+    return (
+      <section aria-label="Notebook">
+        <input
+          aria-label="Notebook search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </section>
+    );
+  },
 }));
-vi.mock("../SDCPN/sdcpn-view", () => ({ SDCPNView: () => null }));
+vi.mock("../SDCPN/sdcpn-view", () => ({
+  SDCPNView: () => {
+    const [zoom, setZoom] = useState(1);
+    return (
+      <button type="button" onClick={() => setZoom(zoom + 1)}>
+        Canvas zoom {zoom}
+      </button>
+    );
+  },
+}));
 vi.mock("./panels/LeftSideBar/panel", () => ({ LeftSideBar: () => null }));
 vi.mock("./panels/PropertiesPanel/panel", () => ({
   PropertiesPanel: () => null,
@@ -78,25 +98,55 @@ const aiAssistant: PetrinautAiAssistant = {
   },
 };
 
-const EditorAtMode = ({ mode }: { mode: EditorGlobalMode }) => {
+const EditorAtMode = ({
+  mode,
+  view = "canvas",
+}: {
+  mode: EditorGlobalMode;
+  view?: EditViewMode;
+}) => {
   const editor = use(EditorContext);
-  const settings = use(UserSettingsContext);
   return (
-    <UserSettingsContext.Provider
-      value={{ ...settings, enableNotebookView: true }}
+    <EditorContext.Provider
+      value={{
+        ...editor,
+        globalMode: mode,
+        editViewMode: view,
+        isAiAssistantOpen: true,
+      }}
     >
-      <EditorContext.Provider
-        value={{ ...editor, globalMode: mode, isAiAssistantOpen: true }}
-      >
-        <EditorView aiAssistant={aiAssistant} titleEditable />
-      </EditorContext.Provider>
-    </UserSettingsContext.Provider>
+      <EditorView aiAssistant={aiAssistant} titleEditable />
+    </EditorContext.Provider>
   );
 };
+
+const EditableWorkspace = () => {
+  const editor = use(EditorContext);
+  const [editViewMode, setEditViewMode] = useState<EditViewMode>("canvas");
+  return (
+    <EditorContext.Provider
+      value={{ ...editor, editViewMode, setEditViewMode }}
+    >
+      <EditorView titleEditable />
+    </EditorContext.Provider>
+  );
+};
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+});
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("EditorView assistant lifecycle", () => {
@@ -111,7 +161,7 @@ describe("EditorView assistant lifecycle", () => {
       assistant,
     );
 
-    rerender(<EditorAtMode mode="notebook" />);
+    rerender(<EditorAtMode mode="edit" view="notebook" />);
     expect(screen.getByRole("region", { name: "Notebook" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "AI assistant" })).toBe(
       assistant,
@@ -127,4 +177,46 @@ describe("EditorView assistant lifecycle", () => {
     unmount();
     expect(lifecycle.cancelPendingRequest).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("Edit workspace views", () => {
+  test("switches views without losing local state or scroll position", async () => {
+    render(<EditableWorkspace />);
+    const canvas = screen.getByRole("button", { name: "Canvas zoom 1" });
+    fireEvent.click(canvas);
+    fireEvent.click(screen.getByRole("radio", { name: "Notebook" }));
+    const notebook = await screen.findByRole("region", { name: "Notebook" });
+    expect(screen.queryByRole("button", { name: "Canvas zoom 2" })).toBeNull();
+    fireEvent.change(screen.getByRole("textbox", { name: "Notebook search" }), {
+      target: { value: "collision" },
+    });
+    notebook.scrollTop = 240;
+    fireEvent.click(screen.getByRole("radio", { name: "Canvas" }));
+    expect(await screen.findByRole("button", { name: "Canvas zoom 2" })).toBe(
+      canvas,
+    );
+    expect(screen.queryByRole("region", { name: "Notebook" })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Notebook" }));
+    expect(await screen.findByRole("region", { name: "Notebook" })).toBe(
+      notebook,
+    );
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Notebook search",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("collision");
+    expect(notebook.scrollTop).toBe(240);
+  });
+
+  test.each(["simulate", "actual"] as const)(
+    "does not offer Edit views in %s",
+    (mode) => {
+      render(<EditorAtMode mode={mode} />);
+      expect(
+        screen.queryByRole("radiogroup", { name: "Edit view" }),
+      ).toBeNull();
+    },
+  );
 });

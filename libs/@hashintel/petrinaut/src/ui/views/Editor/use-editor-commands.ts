@@ -4,7 +4,6 @@ import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
-import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
 /**
@@ -20,6 +19,8 @@ const useEditorCommands = ({
   onToggleAiAssistant?: () => void;
 }): void => {
   const {
+    globalMode,
+    editViewMode,
     setCursorMode,
     setEditionMode,
     setSearchOpen,
@@ -29,9 +30,9 @@ const useEditorCommands = ({
   } = use(EditorContext);
   const undoRedo = use(UndoRedoContext);
   const { applyAutoLayout } = usePetrinautCommands();
-  const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
-  const canEditNet = mode === "edit" && !isReadOnly;
+  const canEditNet =
+    globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
 
   useCommand(
     {

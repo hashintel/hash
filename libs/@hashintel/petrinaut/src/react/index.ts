@@ -63,6 +63,7 @@ export type {
 // either gains a member.
 export type {
   EditorGlobalMode,
+  EditViewMode,
   SimulateViewMode,
 } from "./state/editor-context";
 export {

@@ -22,7 +22,9 @@ import {
  * `navigation-search.ts` maps each of these onto the editor's own vocabulary
  * with an exhaustive switch, so a rename on either side fails to compile.
  */
-export const sharedModes = ["edit", "simulate", "actual", "notebook"] as const;
+export const sharedModes = ["edit", "simulate", "actual"] as const;
+
+export const sharedEditViews = ["canvas", "notebook"] as const;
 
 export const sharedSimulateViews = [
   "scenarios",
@@ -45,6 +47,7 @@ export const sharedSettingsSections = [
   "labs",
 ] as const;
 
+export type SharedEditView = (typeof sharedEditViews)[number];
 export type SharedMode = (typeof sharedModes)[number];
 export type SharedSimulateView = (typeof sharedSimulateViews)[number];
 export type SharedOverlay = (typeof sharedOverlays)[number];
@@ -64,6 +67,7 @@ export type SharedExampleSearch = {
   itemType?: SelectionItemType;
   itemId?: string;
   mode?: SharedMode;
+  editView?: SharedEditView;
   view?: SharedSimulateView;
   overlay?: SharedOverlay;
   settings?: (typeof sharedSettingsSections)[number];
@@ -78,6 +82,7 @@ const sharedSearchKeys = [
   "itemType",
   "itemId",
   "mode",
+  "editView",
   "view",
   "overlay",
   "settings",
@@ -94,6 +99,7 @@ const optionalSelectionItemType = z
   .optional()
   .catch(undefined);
 
+const optionalEditView = z.enum(sharedEditViews).optional().catch(undefined);
 const optionalMode = z.enum(sharedModes).optional().catch(undefined);
 const optionalSimulateView = z
   .enum(sharedSimulateViews)
@@ -128,7 +134,11 @@ export const validateSharedExampleSearch = (
 ): SharedExampleSearch => ({
   scenario: optionalNonEmptyString.parse(input.scenario),
   subnet: optionalNonEmptyString.parse(input.subnet),
-  mode: optionalMode.parse(input.mode),
+  mode: input.mode === "notebook" ? "edit" : optionalMode.parse(input.mode),
+  editView:
+    input.mode === "notebook"
+      ? "notebook"
+      : optionalEditView.parse(input.editView),
   view: optionalSimulateView.parse(input.view),
   overlay: optionalOverlay.parse(input.overlay),
   expandedPanel: optionalNonEmptyString.parse(input.expandedSection)
