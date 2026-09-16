@@ -86,7 +86,7 @@ const probe = async () => {
         [
           fauxToolCall(
             "mutate_workpiece",
-            { markdown },
+            { markdown, baseRevisionId: null },
             { id: "settled-revision" },
           ),
         ],
@@ -114,7 +114,10 @@ const probe = async () => {
         [
           fauxToolCall(
             "mutate_workpiece",
-            { markdown: "# Second synthetic account" },
+            {
+              markdown: "# Second synthetic account",
+              baseRevisionId: "settled-revision",
+            },
             { id: "second-revision" },
           ),
         ],
@@ -146,12 +149,10 @@ const probe = async () => {
       const generated = names.map((name) =>
         fauxToolCall(
           name,
-          name === "addType"
-            ? typeInput
-            : name === "mutate_workpiece"
-              ? { markdown }
-              : { question: "What remains unknown?" },
-          { id: `${caseId}-${name}` },
+          name === "addType" ? typeInput : { markdown, baseRevisionId: null },
+          {
+            id: `${caseId}-${name}`,
+          },
         ),
       );
       const contextStart = contexts.length;

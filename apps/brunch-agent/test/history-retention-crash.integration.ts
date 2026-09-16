@@ -14,10 +14,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import {
-  CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
-  validatedFixtureMutationMode,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import {
   agentOwnershipHeaders,
@@ -96,15 +93,19 @@ installFauxProvider({
 });
 const markdown =
   "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
-const response = (id: string, content: string) =>
+const response = (id: string, content: string, baseRevisionId: string | null) =>
   fauxAssistantMessage(
-    fauxToolCall("mutate_workpiece", { markdown: content }, { id }),
+    fauxToolCall(
+      "mutate_workpiece",
+      { markdown: content, baseRevisionId },
+      { id },
+    ),
     { stopReason: "toolUse" },
   );
 faux.setResponses(
   phase === "create"
     ? [
-        response("a4-crash-revision", markdown),
+        response("a4-crash-revision", markdown, null),
         fauxAssistantMessage("Synthetic revision acknowledged."),
       ]
     : Array.from({ length: 6 }, () =>
@@ -129,43 +130,71 @@ const assertRevision = (
   revisionId: string,
   content: string,
   ordinal: number,
+  previous: {
+    readonly revisionId: string;
+    readonly markdown: string;
+  } | null,
 ) => {
   const pointer = {
     revisionId,
     sha256: createHash("sha256").update(content).digest("hex"),
     ordinal,
-    markdown: content,
   };
+  const before = previous?.markdown ?? "";
+  let commonPrefixUtf16 = 0;
+  while (
+    commonPrefixUtf16 < before.length &&
+    commonPrefixUtf16 < content.length &&
+    before[commonPrefixUtf16] === content[commonPrefixUtf16]
+  )
+    commonPrefixUtf16 += 1;
+  let commonSuffixUtf16 = 0;
+  while (
+    commonSuffixUtf16 < before.length - commonPrefixUtf16 &&
+    commonSuffixUtf16 < content.length - commonPrefixUtf16 &&
+    before[before.length - commonSuffixUtf16 - 1] ===
+      content[content.length - commonSuffixUtf16 - 1]
+  )
+    commonSuffixUtf16 += 1;
+  const removedEnd = before.length - commonSuffixUtf16;
+  const insertedEnd = content.length - commonSuffixUtf16;
+  const removed = before.slice(commonPrefixUtf16, removedEnd);
+  const inserted = content.slice(commonPrefixUtf16, insertedEnd);
   const tool = tools(snapshot).find((part) => part.toolCallId === revisionId);
   assert(tool?.state === "output-available");
   assert.deepEqual(
     tool.input,
-    { markdown: content },
+    { markdown: content, baseRevisionId: previous?.revisionId ?? null },
     "Raw call input survives",
   );
-  const { mutation, ...settledPointer } = tool.output as Record<
-    string,
-    unknown
-  >;
-  assert(mutation, "The durable result retains its mutation summary");
   assert.deepEqual(
-    settledPointer,
-    pointer,
-    "Stable call/result identity, ordinal, and exact markdown",
-  );
-  const signal = snapshot.messages.findLast(
-    (message) => message.signal?.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE,
-  );
-  assert(signal);
-  const context = JSON.parse(
-    signal.parts
-      .flatMap((part) => (part.type === "text" ? [part.text] : []))
-      .join(""),
-  ) as { currentWorkpiece: unknown };
-  assert.deepEqual(
-    context.currentWorkpiece,
-    pointer,
-    "A successful result must retain its exact current state, not only historical JSON",
+    tool.output,
+    {
+      ...pointer,
+      mutation: {
+        baseRevisionId: previous?.revisionId ?? null,
+        beforeSha256:
+          previous === null
+            ? null
+            : createHash("sha256").update(previous.markdown).digest("hex"),
+        afterSha256: pointer.sha256,
+        commonPrefixUtf16,
+        commonSuffixUtf16,
+        removed: {
+          start: commonPrefixUtf16,
+          end: removedEnd,
+          utf16Length: removed.length,
+          sha256: createHash("sha256").update(removed).digest("hex"),
+        },
+        inserted: {
+          start: commonPrefixUtf16,
+          end: insertedEnd,
+          utf16Length: inserted.length,
+          sha256: createHash("sha256").update(inserted).digest("hex"),
+        },
+      },
+    },
+    "Stable call/result identity, ordinal, and pointer-only receipt",
   );
 };
 try {
@@ -173,14 +202,13 @@ try {
     const receipt = await client.send({
       uid: null,
       initialData: {
-        mode: validatedFixtureMutationMode,
-        browser: {
+        mode: batchedConstructionMode,
+        construction: {
           binding: {
             conversationId: identity.conversationId,
             documentId: "a4-no-browser-crash-diagnostic",
             incarnationId: basename(directory),
           },
-          requestedBaseHash: "a".repeat(64),
         },
       },
       message: {
@@ -206,30 +234,17 @@ try {
     ) as { receipt: AgentSendResult; pid: number };
     assert.notEqual(process.pid, original.pid);
     await client.read(original.receipt, { signal: AbortSignal.timeout(60000) });
-    save("history-before-state-render", await client.history());
     save("store-after-recovery", inspect());
-    // Construction context is render-captured at submission entry, not a live state getter.
-    // A new real, prose-only submission observes the current state without writing it.
-    const renderCurrentState = async () => {
-      faux.setResponses([
-        fauxAssistantMessage("Read-only state observation acknowledged."),
-      ]);
-      await client.read(
-        await client.send({
-          uid: original.receipt.uid,
-          message: {
-            kind: "user",
-            body: "Observe the current synthetic revision without changing it or calling tools.",
-          },
-        }),
-        { signal: AbortSignal.timeout(30000) },
-      );
-      return client.history();
-    };
-    const recovered = await renderCurrentState();
+    // The recovered state is observed at the product boundary: the next
+    // settlement must carry ordinal 2 and the recovered revision as previous.
+    const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response("a4-next-revision", "# Next synthetic diagnostic revision"),
+      response(
+        "a4-next-revision",
+        "# Next synthetic diagnostic revision",
+        "a4-crash-revision",
+      ),
       fauxAssistantMessage("Next revision acknowledged."),
     ]);
     await client.read(
@@ -242,8 +257,7 @@ try {
       }),
       { signal: AbortSignal.timeout(30000) },
     );
-    save("next-history-before-state-render", await client.history());
-    const next = await renderCurrentState();
+    const next = await client.history();
     save("next-history", next);
     save("result", {
       outcome: "observations-before-safety-assertions",
@@ -254,12 +268,13 @@ try {
       providerCalls: faux.state.callCount,
     });
     // Persist both observations before asserting, so failures retain the next ordinal too.
-    assertRevision(recovered, "a4-crash-revision", markdown, 1);
+    assertRevision(recovered, "a4-crash-revision", markdown, 1, null);
     assertRevision(
       next,
       "a4-next-revision",
       "# Next synthetic diagnostic revision",
       2,
+      { revisionId: "a4-crash-revision", markdown },
     );
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),

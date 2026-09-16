@@ -14,9 +14,9 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  applyAutoLayoutToolName,
+  layoutPetrinautNetToolName,
   batchedConstructionMode,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   parseClientToolResultMetadata,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
@@ -31,7 +31,10 @@ import {
 import { installFauxProvider } from "../src/evaluations/install-faux-provider.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import { browserResultFrom } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+} from "./browser-result.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 const cleanCompilation =
@@ -195,18 +198,19 @@ const mutateCall = (
   operations: readonly MutatePetrinetOperation[],
   id: string,
 ) => {
-  const observation = browserResultFrom(
-    textsFrom(context),
-    readPetrinautNetToolName,
-    "Missing observation",
-  ).metadata?.observation;
-  assert(observation);
+  const observation = modelVisibleObservationFrom(
+    browserResultFrom(
+      textsFrom(context),
+      readPetrinautNetToolName,
+      "Missing observation",
+    ),
+  );
   return tool(
-    mutatePetrinetToolName,
+    mutatePetrinautNetToolName,
     {
       observation: {
         toolCallId: observation.toolCallId,
-        baseHash: observation.observed.sha256,
+        baseHash: observation.sha256,
       },
       bases: [{ basisId: "decay-basis", basis: locateBasis(context) }],
       operations,
@@ -223,13 +227,13 @@ const mutationPostHash = (output: unknown) => {
 };
 
 try {
-  await page.goto(`${origin}/?brunchTracer=root-creation`);
+  await page.goto(`${origin}/`);
   await page.getByRole("button", { name: "Skip tour" }).click();
   await page
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
   faux.setResponses([
-    tool("mutate_workpiece", { markdown }, "revision-1"),
+    tool("mutate_workpiece", { markdown, baseRevisionId: null }, "revision-1"),
     (context: Context) => {
       const revision = context.messages.findLast(
         (message) =>
@@ -307,7 +311,7 @@ try {
       );
       assert.equal(clean.output, cleanCompilation);
       return tool(
-        applyAutoLayoutToolName,
+        layoutPetrinautNetToolName,
         { askUserFirst: false },
         "layout-after-repair",
       );
@@ -315,7 +319,7 @@ try {
     (context: Context) => {
       browserResultFrom(
         textsFrom(context),
-        applyAutoLayoutToolName,
+        layoutPetrinautNetToolName,
         "Missing layout result",
       );
       return tool(readPetrinautNetToolName, {}, "read-after-layout");
@@ -335,9 +339,10 @@ try {
   );
   await composer.press("Enter");
   try {
-    const runningDiagnostics = page
-      .getByRole("button")
-      .filter({ hasText: /read_petrinaut_diagnostics.*Running…/su });
+    const runningDiagnostics = page.getByRole("button", {
+      name: "Checking model diagnostics",
+      exact: true,
+    });
     await runningDiagnostics.waitFor({ timeout: 30_000 });
     assert.equal(await runningDiagnostics.getAttribute("aria-busy"), "true");
     await page.screenshot({ path: join(output, "tool-running.png") });
@@ -359,7 +364,25 @@ try {
     save("fixture-errors", { errors, blocked, deliveries: deliveries.length });
     throw error;
   }
-  const stored = await page.evaluate(() => {
+  // The ordinary route binds the conversation itself; the first delivered
+  // request names the document and conversation the browser actually used.
+  const firstRequest = JSON.parse(deliveries[0]!.body) as {
+    kind: string;
+    initialData: {
+      mode: string;
+      construction: {
+        binding: {
+          conversationId: string;
+          documentId: string;
+          incarnationId: string;
+        };
+      };
+    };
+  };
+  assert.equal(firstRequest.kind, "user");
+  assert.equal(firstRequest.initialData.mode, batchedConstructionMode);
+  const binding = firstRequest.initialData.construction.binding;
+  const stored = await page.evaluate((documentId) => {
     const document = (
       JSON.parse(localStorage.getItem("petrinaut-sdcpn") ?? "{}") as Record<
         string,
@@ -371,7 +394,7 @@ try {
           };
         }
       >
-    )["synthetic-root-creation-v1"];
+    )[documentId];
     const key = Object.keys(localStorage).find((entry) =>
       entry.includes("principal"),
     );
@@ -381,17 +404,12 @@ try {
       document,
       principalKey: raw.startsWith('"') ? (JSON.parse(raw) as string) : raw,
     };
-  });
+  }, binding.documentId);
+  assert.equal(stored.document.incarnationId, binding.incarnationId);
   const identity = {
     principalKey: stored.principalKey,
-    conversationId: `root-creation-candidate-v1:${stored.document.incarnationId}`,
+    conversationId: binding.conversationId,
   };
-  const firstRequest = JSON.parse(deliveries[0]!.body) as {
-    kind: string;
-    initialData: { mode: string };
-  };
-  assert.equal(firstRequest.kind, "user");
-  assert.equal(firstRequest.initialData.mode, batchedConstructionMode);
   const client = createFlueClient({
     url: `${origin}/agents/chat/${flueConversationIdFrom(identity)}`,
     headers: agentOwnershipHeaders(identity),
@@ -449,11 +467,20 @@ try {
   );
   assert(layout, "Flue history must carry the layout command result");
   assert(readAfterLayout, "Flue history must carry the post-layout read");
-  assert.equal(layout.toolName, applyAutoLayoutToolName);
+  assert.equal(layout.toolName, layoutPetrinautNetToolName);
+  const layoutOutput = layout.output as {
+    applied?: unknown;
+    detail?: unknown;
+  };
   assert.deepEqual(
-    (layout.output as { applied?: unknown }).applied,
+    layoutOutput.applied,
     true,
     "Fresh construction lays out without confirmation",
+  );
+  assert.match(
+    String(layoutOutput.detail),
+    /Viewport frame: framed\./u,
+    "The real browser layout awaits a completed viewport frame",
   );
   const layoutRecord = parseClientToolResultMetadata(
     layout.metadata,
@@ -470,7 +497,7 @@ try {
   assert.equal(
     layoutRecord.post.sha256,
     observedAfterLayout,
-    "The layout's reported final hash equals a fresh getLatestNetDefinition",
+    "The layout's reported final hash equals a fresh read_petrinaut_net",
   );
   assert.notEqual(layoutRecord.post.sha256, layoutRecord.pre.sha256);
   const positionEffects = layoutRecord.effects as {

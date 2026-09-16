@@ -184,7 +184,6 @@ const partsFrom = (
       continue;
     }
     if (part.type === "dynamic-tool") {
-      if (options.hiddenToolNames?.has(part.toolName) === true) continue;
       parts.push(toolPartFrom(part, options, clientResults));
       continue;
     }

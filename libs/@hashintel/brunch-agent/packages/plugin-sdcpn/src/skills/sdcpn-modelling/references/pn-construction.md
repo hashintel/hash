@@ -32,8 +32,8 @@ A physical location becomes target structure only through its recorded operation
 
 When `mutate_petrinaut_net` is mounted, names such as `addPlace` and `addArc` are operation types inside that tool's `operations` array, not separate tools. Use this sequence, waiting for each proposal's results before the next:
 
-1. Settle the supported account with `mutate_workpiece`. Use `read_workpiece` with `locateTexts` and no candidate Markdown to obtain the settled revision/hash and relevant passage spans. Complete required skill-resource reads here, before browser tools.
-2. Call only `read_petrinaut_net`. Copy `metadata.observation.toolCallId` and `metadata.observation.observed.sha256` into the next batch's `observation`. Inspect `extensions` before authoring extension-specific content.
+1. Settle the supported account with one `mutate_workpiece` call that declares its evidence by literal text, and reuse the submitted Markdown with the returned `revisionId`, `sha256` and `evidence[]` locators; do not reread the body. Only when a basis needs a span that output did not return, call `read_workpiece` with `includeContent: false` and `locateTexts` against the settled revision. Complete required skill-resource reads here, before browser tools.
+2. Call only `read_petrinaut_net`. Copy `output.observation.toolCallId` and `output.observation.sha256` into the next batch's `observation`. Inspect `extensions` before authoring extension-specific content.
 3. Call only `mutate_petrinaut_net` with a bounded, ordered chunk for the next supported connected fragment. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Each operation has its own `operationId` and references an entry in `bases` by `basisId`. Several operations may share one supported basis.
 4. After code or code-dependency changes, call only `read_petrinaut_diagnostics`. Repeat a pending read until settled; repair reported errors from a fresh net observation. Structural acceptance is not compiler success.
 5. After adding or restructuring nodes, call only `layout_petrinaut_net` once diagnostics are settled. Use `askUserFirst: false` only if this conversation built the net from an empty canvas; otherwise request confirmation. Type/parameter/dynamics-only changes do not need layout.
@@ -43,7 +43,7 @@ If a different runtime mounts individual mutation tools instead, use those exact
 
 ### Minimal batch example
 
-Illustrative values only: suppose the settled account says “Items wait until processing consumes them.” `read_workpiece` returned revision `workpiece-1`, hash `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`, and span `[0,42)`. A subsequent browser read returned call `net-read-1` and hash `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`. The flat batch shape is:
+Illustrative values only: suppose the settled account says “Items wait until processing consumes them.” `mutate_workpiece` returned revision `workpiece-1`, hash `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`, and span `[0,42)`. A subsequent browser read returned call `net-read-1` and hash `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`. The flat batch shape is:
 
 ```json
 {

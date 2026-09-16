@@ -4,8 +4,14 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
-import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
+import {
+  getToolName,
+  isToolPart,
+  toToolRenderItem,
+  type ToolRenderItem,
+} from "./tool-list";
 
+import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { PetrinautAiMessage } from "../types";
 import type { ExperimentToolPart } from "./experiment-card";
@@ -20,6 +26,8 @@ export type MessageRenderItem =
   | { type: "experiment"; key: string; part: ExperimentToolPart }
   | { type: "tools"; key: string; tools: ToolRenderItem[] };
 
+const emptyHiddenToolNames: ReadonlySet<string> = new Set();
+
 export const isPartActive = (
   part: PetrinautAiMessage["parts"][number],
 ): boolean =>
@@ -31,6 +39,8 @@ export const isPartActive = (
 export const getMessageRenderItems = (
   message: PetrinautAiMessage,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver,
+  hiddenToolNames: ReadonlySet<string> = emptyHiddenToolNames,
 ): MessageRenderItem[] => {
   const items: MessageRenderItem[] = [];
   let pendingTools: ToolRenderItem[] = [];
@@ -49,6 +59,11 @@ export const getMessageRenderItems = (
   };
 
   message.parts.forEach((part, index) => {
+    if (part.type === "step-start") {
+      flushTools();
+      return;
+    }
+
     if (part.type === "text") {
       flushTools();
       items.push({
@@ -76,7 +91,15 @@ export const getMessageRenderItems = (
     }
 
     if (isToolPart(part)) {
-      const tool = toToolRenderItem(message, part, interactiveTools);
+      if (hiddenToolNames.has(getToolName(part))) {
+        return;
+      }
+      const tool = toToolRenderItem(
+        message,
+        part,
+        interactiveTools,
+        resolveToolPresentation,
+      );
 
       if (
         tool.toolName === getLatestNetDefinitionToolName ||

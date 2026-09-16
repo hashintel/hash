@@ -20,19 +20,15 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  batchedConstructionMode,
   queryWorkpieceInputSchema,
-  joinedRootArcInputSchema,
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
   parseConstructionWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
-  conversationConstructionMode,
-  validatedFixtureMutationMode,
+  batchedConstructionMode,
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { ordinaryBrunchToolCatalogue } from "../../src/agents/chat-agent/tool-catalogue.ts";
 import {
@@ -97,141 +93,6 @@ try {
         principalKey: "native-synthetic",
         conversationId: `native-${method}-${crypto.randomUUID()}`,
       };
-      const client = createFlueClient({
-        url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
-        headers: agentOwnershipHeaders(identity),
-        fetch: async (input, init) =>
-          mounted.fetch(
-            input instanceof Request ? input : new Request(input, init),
-          ),
-      });
-      const initialData = {
-        mode: validatedFixtureMutationMode,
-        browser: {
-          binding: {
-            conversationId: identity.conversationId,
-            documentId: "synthetic-document",
-            incarnationId: "synthetic-incarnation",
-          },
-          requestedBaseHash: "a".repeat(64),
-        },
-      };
-      const arc = {
-        transitionId: "transition",
-        placeId: "place",
-        arcDirection: "input",
-        type: "standard",
-        weight: "2",
-        brunch: {
-          basis: {
-            kind: "absent",
-            reason: "Synthetic validation control, no construction claim.",
-          },
-          requestedBaseHash: "a".repeat(64),
-        },
-      };
-      faux.setResponses([
-        fauxAssistantMessage(
-          [
-            fauxToolCall(
-              "mutate_workpiece",
-              {
-                markdown:
-                  "# Synthetic native validation controls\n\nNo operational testimony or construction claim.",
-              },
-              { id: `${method}-revision` },
-            ),
-          ],
-          { stopReason: "toolUse" },
-        ),
-        fauxAssistantMessage([fauxText("Synthetic workpiece settled.")]),
-      ]);
-      await client.wait(
-        await client.send({
-          initialData,
-          message: {
-            kind: "user",
-            body: "Settle this labelled synthetic workpiece before the root-arc controls.",
-          },
-        }),
-      );
-      for (const [label, invalid] of [
-        ["boolean", { ...arc, weight: true }],
-        [
-          "endpoints",
-          { ...arc, endpoint: { kind: "place", placeId: "other" } },
-        ],
-        ["output-type", { ...arc, arcDirection: "output", type: "read" }],
-      ] as const) {
-        const id = `${method}-${label}`;
-        faux.setResponses([
-          fauxAssistantMessage([fauxToolCall("addArc", invalid, { id })], {
-            stopReason: "toolUse",
-          }),
-          fauxAssistantMessage([fauxText("Synthetic invalid input refused.")]),
-        ]);
-        await client.wait(
-          await client.send({
-            initialData,
-            message: {
-              kind: "user",
-              body: "Synthetic native refusal control.",
-            },
-          }),
-        );
-        const history = await client.history();
-        histories.push(history);
-        const part = history.messages
-          .flatMap((message) => message.parts)
-          .find(
-            (entry) => entry.type === "dynamic-tool" && entry.toolCallId === id,
-          );
-        assert(part?.type === "dynamic-tool");
-        assert.equal(part.state, "output-error");
-        assert(
-          !JSON.stringify(part).includes("Tool addArc not found"),
-          "Refusal must come from native validation, not an absent tool",
-        );
-        assert.deepEqual(part.input, invalid);
-      }
-      const beforeValid = captures.length;
-      faux.setResponses([
-        fauxAssistantMessage(
-          [fauxToolCall("addArc", arc, { id: `${method}-valid` })],
-          { stopReason: "toolUse" },
-        ),
-      ]);
-      await client.wait(
-        await client.send({
-          message: {
-            kind: "user",
-            body: "Synthetic numeric-string normalization control.",
-          },
-        }),
-      );
-      assert.equal(
-        captures.length,
-        beforeValid + 1,
-        "Terminating native arc must await a correlated browser result",
-      );
-      const history = await client.history();
-      histories.push(history);
-      const valid = history.messages
-        .flatMap((message) => message.parts)
-        .find(
-          (entry) =>
-            entry.type === "dynamic-tool" &&
-            entry.toolCallId === `${method}-valid`,
-        );
-      assert(valid?.type === "dynamic-tool");
-      assert.equal(valid.state, "output-available");
-      assert.deepEqual(
-        valid.input,
-        arc,
-        "Normalization must not rewrite raw history/basis",
-      );
-      assert.deepEqual(valid.output, { awaiting: "client" });
-
       const typeIdentity = {
         ...identity,
         conversationId: `${identity.conversationId}-type`,
@@ -280,10 +141,7 @@ try {
       assert.deepEqual(issuedType.input, nested);
       assert.deepEqual(issuedType.output, { awaiting: "client" });
 
-      for (const mode of [
-        batchedConstructionMode,
-        conversationConstructionMode,
-      ]) {
+      for (const mode of [batchedConstructionMode]) {
         const batchIdentity = {
           ...identity,
           conversationId: `${identity.conversationId}-${mode}`,
@@ -369,7 +227,7 @@ try {
     }
     const ordinaryRequest = requests.find((request) =>
       request.serialized.tools.some(
-        (tool) => tool.name === mutatePetrinetToolName,
+        (tool) => tool.name === mutatePetrinautNetToolName,
       ),
     );
     assert(ordinaryRequest, `${method} must carry ordinary Brunch tools`);
@@ -462,41 +320,16 @@ try {
         ),
       );
     }
-    for (const name of ["addArc", "addType", mutatePetrinetToolName] as const) {
-      const expected = (
-        name === "addArc"
-          ? joinedRootArcInputSchema
-          : name === "addType"
-            ? petrinautAiTools.addType.inputSchema
-            : mutatePetrinetInputSchema
-      )["~standard"].jsonSchema.input({ target: "draft-2020-12" });
-      // The candidate has observation-bearing wrappers for addArc/addType;
-      // nativeSchemaProvider checks those against their actual mounted source.
-      const tools = requests
-        .filter(
-          (request) =>
-            name === mutatePetrinetToolName ||
-            !request.serialized.tools.some(
-              (tool) => tool.name === "read_petrinaut_net",
-            ),
-        )
-        .flatMap((request) =>
-          request.serialized.tools.filter((tool) => tool.name === name),
-        );
-      assert(tools.length > 0);
-      // Headless mode also mounts its unchanged legacy addArc; inspect native joined arcs only.
-      const nativeTools = tools.filter(
-        (tool) =>
-          name !== "addArc" ||
-          JSON.stringify(tool.input_schema).includes('"brunch"'),
-      );
-      assert(
-        nativeTools.length > 0,
-        `${method} must carry mounted native ${name}, not just a legacy tool`,
-      );
-      for (const tool of nativeTools)
-        assert.deepEqual(tool.input_schema, expected);
-    }
+    const expected = mutatePetrinetInputSchema["~standard"].jsonSchema.input({
+      target: "draft-2020-12",
+    });
+    const tools = requests.flatMap((request) =>
+      request.serialized.tools.filter(
+        (tool) => tool.name === mutatePetrinautNetToolName,
+      ),
+    );
+    assert(tools.length > 0);
+    for (const tool of tools) assert.deepEqual(tool.input_schema, expected);
   }
   assert.equal(networkAttempts, 0);
   process.stdout.write(

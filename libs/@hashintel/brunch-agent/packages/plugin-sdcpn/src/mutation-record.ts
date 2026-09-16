@@ -34,14 +34,14 @@ import type { PetrinautAiToolInput } from "@hashintel/petrinaut-core/ai";
 /** The bound document incarnation a mutation was authorized against. */
 export type BrowserBinding = v.InferOutput<typeof browserBindingSchema>;
 
-/** Retained arc request contract; root node requests extend it without changing legacy consumers. */
+/** Arc request contract; root node requests extend it. */
 export type ArcMutationRequest = {
   toolCallId: string;
   toolName: ObservedArcMutationName;
   input: PetrinautAiToolInput<ObservedArcMutationName>;
   binding: BrowserBinding;
   requestedBaseHash: string;
-  /** Required only in the distinct conversation-bound mode; legacy history is unchanged. */
+  /** The verified browser read this request cites as its base. */
   observationToolCallId?: string;
 };
 
@@ -748,9 +748,35 @@ export const classifyMutationOutcome = (
     return { outcome: "unknown" };
   if (attempt.request.requestedBaseHash !== attempt.pre.sha256)
     return { outcome: unchanged ? "stale" : "unknown" };
-  if (unchanged) return { outcome: "no-op" };
+  if (unchanged) {
+    // Unchanged observations are a no-op only when the canonical action can
+    // derive that result; an invalid target must not be laundered as success.
+    try {
+      return {
+        outcome:
+          canonicalContent(
+            expectedNodeDefinition(attempt.request, attempt.pre.definition),
+          ) === canonicalContent(attempt.post.definition)
+            ? "no-op"
+            : "unknown",
+      };
+    } catch (error) {
+      return {
+        outcome: "unknown",
+        reason: `expected definition unavailable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  }
+  if (
+    attempt.request.toolName === "updateArcWeight" ||
+    attempt.request.toolName === "updateArcType"
+  )
+    return { outcome: observedArcUpdateEffectOutcome(attempt) };
   if (
     isBatchedNodeMutation(attempt.request.toolName) ||
+    attempt.request.toolName === "addArc" ||
     attempt.request.toolName === "removeArc" ||
     isObservedStateMutation(attempt.request.toolName) ||
     isBatchedStateMutation(attempt.request.toolName)
@@ -773,10 +799,11 @@ export const classifyMutationOutcome = (
       };
     }
   }
-  return { outcome: observedArcEffectOutcome(attempt) };
+  attempt.request.toolName satisfies never;
+  return { outcome: "unknown" };
 };
 
-const observedArcEffectOutcome = (
+const observedArcUpdateEffectOutcome = (
   attempt: Omit<ConstructionMutationAttempt, "outcome">,
 ): ConstructionMutationAttempt["outcome"] => {
   const effects = attempt.effects;
@@ -799,35 +826,10 @@ const observedArcEffectOutcome = (
     );
     return singleFieldUpdate("weight", input.weight);
   }
-  if (attempt.request.toolName === "updateArcType") {
-    const input = mutationActionInputSchemas.updateArcType.parse(
-      attempt.request.input,
-    );
-    return singleFieldUpdate("type", input.type);
-  }
-  if (
-    effects.derived.length ||
-    effects.updated.length ||
-    effects.deleted.length ||
-    effects.created.length !== 1
-  )
-    return "unknown";
-  const {
-    transitionId: _transitionId,
-    targetSubnetId: _targetSubnetId,
-    arcDirection,
-    type,
-    ...endpointAndWeight
-  } = mutationActionInputSchemas.addArc.parse(attempt.request.input);
-  const expectedArc = {
-    ...endpointAndWeight,
-    ...(arcDirection === "input" ? { type: type ?? "standard" } : {}),
-  };
-  const created = effects.created[0];
-  return created?.kind === "created" &&
-    canonicalContent(created.after) === canonicalContent(expectedArc)
-    ? "applied"
-    : "unknown";
+  const input = mutationActionInputSchemas.updateArcType.parse(
+    attempt.request.input,
+  );
+  return singleFieldUpdate("type", input.type);
 };
 
 export const verifyDefinitionObservation = async (

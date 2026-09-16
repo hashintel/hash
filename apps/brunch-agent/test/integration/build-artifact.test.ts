@@ -85,7 +85,7 @@ describe("the emitted server bundle", () => {
       `createPostgresRunner(config, shutdownBrunchTelemetry)`,
     );
     expect(bundle).toContain(`createPostgresWorkedModelStore(runner)`);
-    expect(bundle).toContain(`postgres(runner)`);
+    expect(bundle).toContain(`database: postgres(runner)`);
     expect(bundle).toContain("Postgres database configuration requires");
     expect(bundle).toContain(
       String.raw`BRUNCH_DB_KIND must be \"postgres\" in production.`,

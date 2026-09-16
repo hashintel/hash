@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { expect, test } from "vitest";
 
 import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { runNodeScript } from "./run-node-script";
 
@@ -79,10 +78,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
       "Which documentation page should we inspect next?",
     );
     expect(result.questionResponseProviderCalls).toBe(1);
-    expect(result.questionMarkerLive).toBeUndefined();
-    expect(result.questionToolVisibleLive).toBe(false);
-    expect(result.questionMarkerHistory).toBeUndefined();
-    expect(result.questionToolVisibleHistory).toBe(false);
     expect(result.historyUserEntryCount).toBe(1);
     expect(result.historyClientToolResultCount).toBe(1);
 
@@ -122,9 +117,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(result.interviewerToolNames).toContain(
       READ_PETRINAUT_DOCS_TOOL_NAME,
     );
-    expect(result.interviewerToolNames).not.toEqual(
-      expect.arrayContaining([...BRUNCH_QUESTION_TOOL_NAMES]),
-    );
     expect(result.interviewerToolNames).not.toContain("brunch_ask");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
@@ -137,16 +129,6 @@ test("the browser transport streams the mounted Flue agent through server and cl
         "addTransition",
         "addArc",
       ]),
-    );
-    expect(result.captureIds.length).toBe(1);
-    expect(result.captureExcerpts).toEqual([
-      "Run the FE-1435 transport probe.",
-    ]);
-    expect(result.capturePayloads).toEqual([{}]);
-    expect(result.recaptureIds).toEqual(result.captureIds);
-    expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
-    expect(result.captureUserText).toContain(
-      "Run the FE-1435 transport probe.",
     );
 
     const resumed = await runNodeScript(
@@ -169,17 +151,12 @@ test("the browser transport streams the mounted Flue agent through server and cl
     expect(resumeResult.historyUserText).toContain(
       "Run the FE-1435 transport probe.",
     );
-    expect(resumeResult.questionMarkerHistory).toBeUndefined();
-    expect(resumeResult.questionToolVisibleHistory).toBe(false);
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain(
       `tool ${READ_PETRINAUT_DOCS_TOOL_NAME}`,
     );
     expect(resumeResult.transcript).toContain("tool activate_skill");
     expect(resumeResult.transcript).toContain("tool read_skill_resource");
-    for (const markerName of BRUNCH_QUESTION_TOOL_NAMES) {
-      expect(resumeResult.transcript).not.toContain(`tool ${markerName}`);
-    }
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

@@ -40,10 +40,6 @@ import {
   withLocalStorageDemoIdentity,
   type LocalStorageDemoSearch,
 } from "./local-storage-demo-search";
-import {
-  crewReservationConversationId,
-  crewReservationFixtureId,
-} from "./prepared-crew-reservation-fixture";
 
 import type {
   DocumentRecord,
@@ -511,12 +507,20 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual([
-      "read_petrinaut_docs",
-      "readPetrinautDoc",
-    ]);
+    expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
     expect(aiAssistant.interactiveTools).toEqual([]);
+    expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
+    expect(aiAssistant.workingLabel).toBe("Brunch is working");
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "success",
+        input: {},
+        output: {},
+        error: undefined,
+      }),
+    ).toBeUndefined();
     expect(
       aiAssistant.interactiveTools?.some(
         ({ toolName }) => toolName === "brunch_ask",
@@ -533,6 +537,47 @@ describe("local storage demo Brunch voice integration", () => {
         "mutate_petrinaut_net",
       ],
     );
+
+    rendered.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  test("waits for a durable offset before baselining present Ledger history", async () => {
+    renderedPetrinaut.aiAssistant = null;
+    stubStorage();
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({
+          conversation: {
+            conversationId: "present-without-offset",
+            settlements: [],
+            messages: [],
+          },
+          offset: undefined,
+          phase: "live",
+          error: undefined,
+        }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+
+    expect(
+      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).additionalTab
+        ?.activityIdentities,
+    ).toBeUndefined();
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -1234,7 +1279,7 @@ describe("local document revision persistence", () => {
   });
 });
 
-describe("local storage demo prepared fixture", () => {
+describe("local storage demo Brunch controls", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
@@ -1256,106 +1301,6 @@ describe("local storage demo prepared fixture", () => {
       ).not.toBeNull();
     },
   );
-
-  test("shows the fixture selector only while Brunch demo mode is on", () => {
-    seedStoredNet();
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    const selector = () =>
-      document.querySelector<HTMLElement>(
-        '[aria-label="Prepared fixture selector"]',
-      );
-
-    // Never displayed by default, even on a Brunch-configured build.
-    expect(selector()).toBeNull();
-
-    // The palette command flips the persisted setting.
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
-    );
-    const shown = selector();
-    expect(shown).not.toBeNull();
-    // Clear of Petrinaut's 64px top bar, so the panel is usable.
-    expect(shown!.style.position).toBe("fixed");
-    expect(shown!.style.top).toBe("80px");
-
-    fireEvent.keyDown(window, { key: "k", metaKey: true });
-    fireEvent.click(
-      screen.getByRole("button", { name: /Toggle Brunch demo mode/ }),
-    );
-    expect(selector()).toBeNull();
-  });
-
-  test("mounts the recorder only on the opt-in incarnation-scoped root-arc route and keeps it stable across renders", async () => {
-    seedStoredNet();
-    flueClientMock.current = {
-      history: async () => {
-        throw new Error("Test preparation unavailable");
-      },
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    const search = {
-      "brunch-fixture": crewReservationFixtureId,
-      brunchTracer: "root-arc" as const,
-    };
-    const view = render(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
-    );
-    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(first.executeMutation).toBeTypeOf("function");
-    expect(first.conversationId).toMatch(/^prepared-root-arc:/u);
-    expect(first.conversationId).not.toBe(crewReservationConversationId);
-    await waitFor(() =>
-      expect(document.body.textContent).toContain(
-        "Test preparation unavailable",
-      ),
-    );
-    view.rerender(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={search} />,
-    );
-    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(next.executeMutation).toBe(first.executeMutation);
-    expect(next.conversationId).toBe(first.conversationId);
-    view.unmount();
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ "brunch-fixture": crewReservationFixtureId }}
-      />,
-    );
-    const legacy = editorProps.current?.aiAssistant as PetrinautAiAssistant;
-    expect(legacy.conversationId).toBe(crewReservationConversationId);
-    expect(legacy.executeMutation).toBeUndefined();
-  });
-
-  test("neither advertises nor opens the fixture while Brunch is unconfigured", () => {
-    brunchPreviewConfig.isBrunchConfigured = false;
-    // With Brunch disabled there is no Flue client to prepare the fixture conversation. Opening the fixture URL
-    // anyway once left the banner on "preparing" forever with every send
-    // unavailable; the URL now falls back to the ordinary per-net demo.
-    seedStoredNet();
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{ "brunch-fixture": crewReservationFixtureId }}
-      />,
-    );
-
-    expect(
-      document.querySelector('[aria-label="Prepared fixture status"]'),
-    ).toBeNull();
-    const aiAssistant = editorProps.current?.aiAssistant as
-      | { conversationId?: string; executeMutation?: unknown }
-      | undefined;
-    expect(aiAssistant?.conversationId).not.toBe(crewReservationConversationId);
-    expect(aiAssistant?.executeMutation).toBeUndefined();
-  });
 
   test("mounts the batched construction catalogue on ordinary configured Brunch", async () => {
     const incarnationId = "ordinary-incarnation";
@@ -1399,7 +1344,17 @@ describe("local storage demo prepared fixture", () => {
         ({ toolName }) => toolName === "mutate_petrinaut_net",
       ),
     ).toBe(true);
-    expect(aiAssistant.additionalTab?.label).toBe("Workpiece");
+    expect(aiAssistant.primaryLabel).toBe("Chat");
+    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
+    expect(
+      aiAssistant.resolveToolPresentation?.({
+        toolName: "layout_petrinaut_net",
+        state: "pending",
+        input: {},
+        output: undefined,
+        error: undefined,
+      }),
+    ).toBeUndefined();
     expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
@@ -1407,13 +1362,8 @@ describe("local storage demo prepared fixture", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
-      "applyAutoLayout",
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
-      "mutate_petrinet",
-      "readPetrinautDoc",
       "read_petrinaut_diagnostics",
       "read_petrinaut_docs",
       "read_petrinaut_net",
@@ -1541,6 +1491,9 @@ describe("worked-model net-projection selection", () => {
         },
         handle,
         readDiagnosticsContext: async () => "",
+        viewport: {
+          frameSceneAfterRender: async () => "framed",
+        },
         toolCallId: "layout-1",
         signal: new AbortController().signal,
       }),
@@ -1723,31 +1676,6 @@ describe("worked-model net-projection selection", () => {
       <LocalStorageDemoApp
         onSearchChange={() => {}}
         search={{ bundle: "inventory-purchasing" }}
-      />,
-    );
-
-    expect(
-      screen.getByRole("heading", {
-        name: "Worked-model document unavailable",
-      }),
-    ).toBeDefined();
-    expectNoFallbackStorageReads(getItem);
-    expect(editorProps.current).toBeNull();
-  });
-
-  test("selects the remote document when leftover fixture parameters accompany a bundle", () => {
-    seedStoredNet();
-    const getItem = vi.spyOn(localStorage, "getItem");
-    getItem.mockClear();
-    brunchPreviewConfig.isBrunchConfigured = false;
-
-    render(
-      <LocalStorageDemoApp
-        onSearchChange={() => {}}
-        search={{
-          bundle: "inventory-purchasing",
-          brunchTracer: "construction",
-        }}
       />,
     );
 

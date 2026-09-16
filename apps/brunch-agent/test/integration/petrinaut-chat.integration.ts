@@ -14,19 +14,14 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { READ_PETRINAUT_DOCS_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import {
   createFlueChatTransport,
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
-import {
-  BRUNCH_QUESTION_DATA_NAME,
-  BRUNCH_QUESTION_TOOL_NAMES,
-} from "@hashintel/brunch-agent/question-marker";
 
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
-import { applyCaptureSweep } from "../../src/capture/apply-sweep.ts";
 import {
   clientToolNames,
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -87,37 +82,6 @@ const userTextFromHistory = (
     .map((part) => part.text)
     .join("");
 
-const questionMarkerFromHistory = (
-  messages: ReturnType<typeof snapshotToUiMessages>,
-): unknown => {
-  const marker = messages
-    .flatMap((message) => message.parts)
-    .find(
-      (part) =>
-        part.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in part,
-    );
-  return marker !== undefined && "data" in marker ? marker.data : undefined;
-};
-
-const questionMarkerFromChunks = (
-  chunks: readonly UIMessageChunk[],
-): unknown => {
-  const marker = chunks.find(
-    (chunk) =>
-      chunk.type === `data-${BRUNCH_QUESTION_DATA_NAME}` && "data" in chunk,
-  );
-  return marker !== undefined && "data" in marker ? marker.data : undefined;
-};
-
-const questionToolVisibleInHistory = (
-  messages: ReturnType<typeof snapshotToUiMessages>,
-): boolean =>
-  messages
-    .flatMap((message) => message.parts)
-    .some((part) =>
-      BRUNCH_QUESTION_TOOL_NAMES.some((name) => part.type === `tool-${name}`),
-    );
-
 const faux = fauxProvider({
   provider: "anthropic",
   models: [{ id: CHAT_MODEL_ID, reasoning: true }],
@@ -144,14 +108,12 @@ try {
   const panelTransport = createFlueChatTransport({
     client: historyClient,
     clientToolNames,
-    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
   const projectHistory = (
     snapshot: Awaited<ReturnType<typeof historyClient.history>>,
   ) =>
     snapshotToUiMessages(snapshot, {
       clientToolNames,
-      hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
     });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
@@ -160,8 +122,6 @@ try {
     const result: PetrinautResumeResult = {
       historyGetStatus: 200,
       historyUserText: userTextFromHistory(historyMessages),
-      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
-      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       transcript: formatFlueTranscript(snapshot),
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
@@ -240,7 +200,7 @@ try {
         [
           fauxThinking("The ping returned. Read the user guide next."),
           fauxToolCall(
-            READ_PETRINAUT_DOC_TOOL_NAME,
+            READ_PETRINAUT_DOCS_TOOL_NAME,
             { doc: "ai-assistant" },
             { id: "tool-doc-1" },
           ),
@@ -311,7 +271,7 @@ try {
           chunk,
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
-          chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
+          chunk.toolName === READ_PETRINAUT_DOCS_TOOL_NAME,
       ) ?? null;
 
     const pendingHistory = projectHistory(await historyClient.history());
@@ -333,7 +293,7 @@ try {
         role: "assistant" as const,
         parts: [
           {
-            type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
+            type: `tool-${READ_PETRINAUT_DOCS_TOOL_NAME}`,
             toolCallId: clientToolCall.toolCallId,
             state: "output-available",
             input: { doc: "ai-assistant" },
@@ -364,16 +324,6 @@ try {
         message.purpose === "dispatch" &&
         message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
     ).length;
-    const firstSweep = await applyCaptureSweep(
-      identity,
-      userEntryIds,
-      appTransport,
-    );
-    const secondSweep = await applyCaptureSweep(
-      identity,
-      userEntryIds,
-      appTransport,
-    );
     const interviewerToolNames = [
       ...new Set(
         snapshot.messages.flatMap((message) =>
@@ -454,14 +404,6 @@ try {
       resumedFinish: resumedChunks.at(-1),
       questionResponseProviderCalls:
         providerCallCount - questionResponseCallStart,
-      questionMarkerLive: questionMarkerFromChunks(resumedChunks),
-      questionMarkerHistory: questionMarkerFromHistory(historyMessages),
-      questionToolVisibleLive: resumedChunks.some(
-        (chunk) =>
-          chunk.type === "tool-input-available" &&
-          BRUNCH_QUESTION_TOOL_NAMES.some((name) => name === chunk.toolName),
-      ),
-      questionToolVisibleHistory: questionToolVisibleInHistory(historyMessages),
       historyUserEntryCount: userEntryIds.length,
       historyClientToolResultCount: clientToolResultCount,
       historyGetStatus: 200,
@@ -475,12 +417,6 @@ try {
       activateSkillCall,
       readSkillResourceCall,
       interviewerToolNames,
-      captureUserText: userTextFromHistory(historyMessages),
-      captureIds: firstSweep.captures.map((capture) => capture.id),
-      recaptureIds: secondSweep.captures.map((capture) => capture.id),
-      skippedDedupKeys: secondSweep.skippedDedupKeys,
-      capturePayloads: firstSweep.captures.map((capture) => capture.payload),
-      captureExcerpts: firstSweep.captures.map((capture) => capture.excerpt),
     };
     process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
   }

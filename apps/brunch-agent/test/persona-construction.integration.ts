@@ -33,15 +33,23 @@ import {
 } from "../src/evaluations/persona/launch/resume.ts";
 import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
 import { openBrowserFixture } from "./browser-fixture.ts";
-import { browserResultFrom } from "./browser-result.ts";
+import {
+  browserResultFrom,
+  modelVisibleObservationFrom,
+} from "./browser-result.ts";
+import { nativeOpenaiProvider } from "./native-openai-provider.ts";
 import { nativeSchemaProvider } from "./native-schema-provider.ts";
 
 import type { BrunchTurnTool } from "../src/evaluations/persona/brunch-turn.ts";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const output = mkdtempSync(join(tmpdir(), "persona-construction-"));
+const openai = process.argv.includes("--openai");
+const provider = openai ? "openai" : "anthropic";
+const model = openai ? "gpt-5.6-sol" : "claude-sonnet-4-6";
 process.env.NODE_ENV = "test";
-process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
+process.env.BRUNCH_CHAT_MODEL = `${provider}/${model}`;
+process.env.BRUNCH_CHAT_THINKING = "low";
 process.env.BRUNCH_DEV_DB_PATH = join(output, "conversation.db");
 delete process.env.HASH_OTLP_ENDPOINT;
 const originalFetch = globalThis.fetch;
@@ -53,23 +61,40 @@ globalThis.fetch = (input, init) => {
   return originalFetch(input, init);
 };
 const faux = fauxProvider({
-  provider: "anthropic",
-  models: [{ id: "claude-sonnet-4-6", reasoning: true }],
+  provider,
+  models: [{ id: model, reasoning: true }],
 });
 let finishBarrier: ReturnType<typeof Promise.withResolvers<void>> | undefined;
+const requests: Record<string, unknown>[] = [];
+const beforeFinish = async () => {
+  await finishBarrier?.promise;
+};
 installFauxProvider(
-  nativeSchemaProvider(faux.provider, [], [], "streamSimple", async () => {
-    await finishBarrier?.promise;
-  }),
+  openai
+    ? nativeOpenaiProvider(faux.provider, requests, beforeFinish)
+    : nativeSchemaProvider(faux.provider, [], [], "streamSimple", beforeFinish),
 );
 let app = await loadBuiltBrunchApplication();
 let fixture: Awaited<ReturnType<typeof openBrowserFixture>> | undefined;
 let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
 const text = (value: string) => fauxAssistantMessage([fauxText(value)]);
+const toolId = (id: string) => (openai ? `${id}|fc_${id}` : id);
 const call = (name: string, args: Record<string, unknown>, id: string) =>
-  fauxAssistantMessage([fauxToolCall(name, args, { id })], {
+  fauxAssistantMessage([fauxToolCall(name, args, { id: toolId(id) })], {
     stopReason: "toolUse",
   });
+/** The Ledger pane renders Markdown; assert the heading and body it produces. */
+const expectLedgerDocument = async (
+  page: Awaited<ReturnType<typeof openBrowserFixture>>["page"],
+  heading: string,
+  body: string,
+) => {
+  const document = page.getByTestId("brunch-workpiece-document");
+  await expect(
+    document.getByRole("heading", { level: 1, name: heading }),
+  ).toBeVisible();
+  await expect(document.getByRole("paragraph")).toHaveText(body);
+};
 try {
   fixture = await openBrowserFixture(
     { fetch: (request) => app.fetch(request), stop: () => app.stop() },
@@ -142,7 +167,7 @@ try {
     [],
     "Ordinary route starts with an empty net",
   );
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveCount(0);
+  await expect(page.getByTestId("brunch-workpiece-document")).toHaveCount(0);
   writeFileSync(
     join(output, "initial-snapshot.json"),
     JSON.stringify(opened.snapshot, null, 2),
@@ -187,26 +212,30 @@ try {
           ),
           fauxToolCall(
             "mutate_workpiece",
-            { markdown, baseRevisionId: index === 1 ? null : "workpiece-1" },
-            { id: `workpiece-${index}` },
+            {
+              markdown,
+              baseRevisionId: index === 1 ? null : toolId("workpiece-1"),
+            },
+            { id: toolId(`workpiece-${index}`) },
           ),
         ],
         { stopReason: "toolUse" },
       ),
       call("read_petrinaut_net", {}, `read-${index}`),
       async (context: Context) => {
-        const observation = browserResultFrom(
-          context.messages.flatMap((message) =>
-            typeof message.content === "string"
-              ? [message.content]
-              : message.content.flatMap((part) =>
-                  part.type === "text" ? [part.text] : [],
-                ),
+        const observation = modelVisibleObservationFrom(
+          browserResultFrom(
+            context.messages.flatMap((message) =>
+              typeof message.content === "string"
+                ? [message.content]
+                : message.content.flatMap((part) =>
+                    part.type === "text" ? [part.text] : [],
+                  ),
+            ),
+            "read_petrinaut_net",
+            "Missing browser observation",
           ),
-          "read_petrinaut_net",
-          "Missing browser observation",
-        ).metadata?.observation;
-        assert(observation);
+        );
         reachedRead.resolve();
         await continueRead.promise;
         return call(
@@ -214,7 +243,7 @@ try {
           {
             observation: {
               toolCallId: observation.toolCallId,
-              baseHash: observation.observed.sha256,
+              baseHash: observation.sha256,
             },
             bases: [
               {
@@ -268,7 +297,8 @@ try {
           .flatMap((message) => message.parts)
           .some(
             (part) =>
-              part.type === "dynamic-tool" && part.toolCallId === "workpiece-1",
+              part.type === "dynamic-tool" &&
+              part.toolCallId === toolId("workpiece-1"),
           ),
         "No tool input is admitted before provider completion",
       );
@@ -278,19 +308,16 @@ try {
     }
     await reachedRead.promise;
     if (index === 1) {
-      await page
-        .getByRole("button", { name: "2 operations", exact: true })
-        .click();
       await expect(
-        page.getByText("mutate_workpiece", { exact: true }),
+        page.getByRole("button", { name: /Updated ledger/u }),
       ).toBeVisible();
-      await page.screenshot({
-        path: join(output, "tools.png"),
-        animations: "disabled",
-      });
+      await expect(
+        page.getByRole("button", { name: /Read current model/u }).last(),
+      ).toBeVisible();
+      await page.screenshot({ path: join(output, "tools.png") });
     }
     // Switch during the client continuation, not merely between turns.
-    await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
+    await page.getByRole("tab", { name: /^Ledger/u }).click();
     continueRead.resolve();
     const result = await pending;
     assert.equal(
@@ -301,11 +328,14 @@ try {
       result.details.submissionIds.length >= 3,
       "Must wait across read and mutation continuations",
     );
-    await expect(
-      page.getByRole("tab", { name: "Workpiece", exact: true }),
-    ).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-      markdown,
+    await expect(page.getByRole("tab", { name: /^Ledger/u })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expectLedgerDocument(
+      page,
+      "Synthetic operation",
+      `There are ${index} waiting stages. Timing is unknown.`,
     );
     const history = await client.history();
     const workpiece = history.messages
@@ -313,18 +343,22 @@ try {
       .find(
         (part) =>
           part.type === "dynamic-tool" &&
-          part.toolCallId === `workpiece-${index}`,
+          part.toolCallId === toolId(`workpiece-${index}`),
       );
     assert(workpiece?.type === "dynamic-tool");
     assert.equal(workpiece.state, "output-available");
     assert.partialDeepStrictEqual(workpiece.output, {
-      revisionId: `workpiece-${index}`,
+      revisionId: toolId(`workpiece-${index}`),
       ordinal: index,
-      mutation: { baseRevisionId: index === 1 ? null : "workpiece-1" },
+      mutation: { baseRevisionId: index === 1 ? null : toolId("workpiece-1") },
     });
     const results = clientToolHistoryFrom(history.messages).results;
-    assert(results.some((entry) => entry.toolCallId === `read-${index}`));
-    assert(results.some((entry) => entry.toolCallId === `batch-${index}`));
+    assert(
+      results.some((entry) => entry.toolCallId === toolId(`read-${index}`)),
+    );
+    assert(
+      results.some((entry) => entry.toolCallId === toolId(`batch-${index}`)),
+    );
     assert.deepEqual(
       (await readNet()).places.map((place) => ({
         id: place.id,
@@ -341,7 +375,7 @@ try {
     await page.screenshot({ path: join(output, `stage-${index}.png`) });
   }
   await page.screenshot({ path: join(output, "workpiece.png") });
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   await page.screenshot({ path: join(output, "conversation.png") });
   const before = fixture.deliveries.length;
   const net = await page.evaluate(() =>
@@ -388,16 +422,19 @@ try {
     .flatMap((message) => message.parts)
     .find(
       (part) =>
-        part.type === "dynamic-tool" && part.toolCallId === "stale-empty-base",
+        part.type === "dynamic-tool" &&
+        part.toolCallId === toolId("stale-empty-base"),
     );
   assert(stale?.type === "dynamic-tool");
   assert.equal(stale.state, "output-error");
   assert.match(stale.errorText, /baseRevisionId/);
-  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  await page.getByRole("tab", { name: /^Ledger/u }).click();
+  await expectLedgerDocument(
+    page,
+    "Synthetic operation",
+    "There are 2 waiting stages. Timing is unknown.",
   );
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   finishBarrier = Promise.withResolvers<void>();
   faux.setResponses([
     fauxAssistantMessage(
@@ -407,9 +444,9 @@ try {
           "mutate_workpiece",
           {
             markdown: "# Must not apply after Stop",
-            baseRevisionId: "workpiece-2",
+            baseRevisionId: toolId("workpiece-2"),
           },
-          { id: "cancelled-write" },
+          { id: toolId("cancelled-write") },
         ),
       ],
       { stopReason: "toolUse" },
@@ -445,7 +482,8 @@ try {
       .flatMap((message) => message.parts)
       .some(
         (part) =>
-          part.type === "dynamic-tool" && part.toolCallId === "cancelled-write",
+          part.type === "dynamic-tool" &&
+          part.toolCallId === toolId("cancelled-write"),
       ),
     "Stop must not admit buffered tool input",
   );
@@ -487,11 +525,13 @@ try {
     await page.evaluate(() => localStorage.getItem("petrinaut-sdcpn")),
     net,
   );
-  await page.getByRole("tab", { name: "Workpiece", exact: true }).click();
-  await expect(page.getByTestId("brunch-current-workpiece")).toHaveText(
-    "# Synthetic operation\n\nThere are 2 waiting stages. Timing is unknown.",
+  await page.getByRole("tab", { name: /^Ledger/u }).click();
+  await expectLedgerDocument(
+    page,
+    "Synthetic operation",
+    "There are 2 waiting stages. Timing is unknown.",
   );
-  await page.getByRole("tab", { name: "AI", exact: true }).click();
+  await page.getByRole("tab", { name: /^Chat/u }).click();
   faux.setResponses([
     call("read_petrinaut_net", {}, "resumed-read"),
     text("Resumed against the existing two-stage model."),
@@ -530,8 +570,30 @@ try {
     net,
   );
   assert.deepEqual(fixture.errors, []);
+  if (openai) {
+    assert(requests.length > 0, "The registered OpenAI provider must execute");
+    const inputs = requests.flatMap(
+      (request) => request.input as Record<string, unknown>[],
+    );
+    assert(
+      inputs.some(
+        (item) => item.type === "function_call" && item.call_id === "batch-2",
+      ),
+    );
+    assert(
+      inputs.some(
+        (item) =>
+          item.type === "function_call_output" && item.call_id === "batch-2",
+      ),
+      "Browser mutation results must return through native OpenAI history serialization",
+    );
+    writeFileSync(
+      join(output, "openai-requests.json"),
+      JSON.stringify(requests, null, 2),
+    );
+  }
   process.stdout.write(
-    `PASS persona browser streaming, admitted tools, construction, workpiece, tab independence, panel Stop and no replay: ${output}\n`,
+    `PASS ${provider} persona browser streaming, admitted tools, construction, workpiece, tab independence, panel Stop and no replay: ${output}\n`,
   );
 } catch (error) {
   await fixture?.page.screenshot({ path: join(output, "failure.png") });

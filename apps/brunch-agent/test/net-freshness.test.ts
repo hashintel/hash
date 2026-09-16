@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 import { expect, test } from "vitest";
 
 import {
-  applyAutoLayoutToolName,
+  layoutPetrinautNetToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
-  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
+  readPetrinautNetToolName,
   type ConstructionMutationAttempt,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { AWAITING_CLIENT } from "../src/conversation/client-tools.ts";
 import { deriveNetFreshness } from "../src/conversation/net-freshness.ts";
@@ -28,7 +28,7 @@ const binding = {
   documentId: "document-freshness",
   incarnationId: "incarnation-freshness",
 };
-const browser: BrowserContext = { binding, construction: true };
+const browser: BrowserContext = { binding };
 
 const emptyNet: SDCPN = {
   places: [],
@@ -108,10 +108,10 @@ const readTurn = (
   definition: SDCPN,
   revisionId?: string,
 ): FlueConversationMessage[] => [
-  assistantCall(toolCallId, getLatestNetDefinitionToolName),
+  assistantCall(toolCallId, readPetrinautNetToolName),
   resultDelivery(
     toolCallId,
-    getLatestNetDefinitionToolName,
+    readPetrinautNetToolName,
     { title: "Net", definition },
     {
       observation: {
@@ -134,8 +134,18 @@ const mutationTurn = (
     ? "unknown"
     : "applied",
   omittedOperationStatus?: "applied" | "unattempted",
+  operation: {
+    readonly operationId: string;
+    readonly basisId: string;
+    readonly type: "addPlace" | "updatePlace";
+    readonly input: unknown;
+  } = {
+    operationId: "add-place",
+    basisId: "absent-basis",
+    type: "addPlace",
+    input: oneHopPlace,
+  },
 ): FlueConversationMessage[] => {
-  const operationId = "add-place";
   const batch = mutatePetrinetInputSchema.parse({
     observation: { toolCallId: "read-1", baseHash: sha256Of(pre) },
     bases: [
@@ -145,12 +155,7 @@ const mutationTurn = (
       },
     ],
     operations: [
-      {
-        operationId,
-        basisId: "absent-basis",
-        type: "addPlace",
-        input: oneHopPlace,
-      },
+      operation,
       ...(omittedOperationStatus
         ? [
             {
@@ -165,14 +170,15 @@ const mutationTurn = (
   });
   const attempts: ConstructionMutationAttempt[] = [];
   if (post !== undefined) {
-    const request: ConstructionMutationRequest = {
-      toolCallId: `${toolCallId}:${operationId}`,
-      toolName: "addPlace",
-      input: oneHopPlace,
+    const issuedOperation = batch.operations[0]!;
+    const request = {
+      toolCallId: `${toolCallId}:${issuedOperation.operationId}`,
+      toolName: issuedOperation.type,
+      input: issuedOperation.input,
       binding,
-      requestedBaseHash: sha256Of(pre),
       observationToolCallId: batch.observation.toolCallId,
-    };
+      requestedBaseHash: batch.observation.baseHash,
+    } as ConstructionMutationRequest;
     const attempt: ConstructionMutationAttempt = {
       request,
       binding,
@@ -184,10 +190,10 @@ const mutationTurn = (
     attempts.push(alterAttempt?.(attempt) ?? attempt);
   }
   return [
-    assistantCall(toolCallId, mutatePetrinetToolName, batch),
+    assistantCall(toolCallId, mutatePetrinautNetToolName, batch),
     resultDelivery(
       toolCallId,
-      mutatePetrinetToolName,
+      mutatePetrinautNetToolName,
       {
         execution: "ordered-stop",
         toolCallId,
@@ -198,8 +204,8 @@ const mutationTurn = (
           outcome === "applied" || outcome === "no-op"
             ? {
                 index: 0,
-                operationId,
-                basisId: "absent-basis",
+                operationId: operation.operationId,
+                basisId: operation.basisId,
                 status: outcome,
                 preHash: sha256Of(pre),
                 postHash: sha256Of(post ?? pre),
@@ -208,8 +214,8 @@ const mutationTurn = (
             : outcome === "failed"
               ? {
                   index: 0,
-                  operationId,
-                  basisId: "absent-basis",
+                  operationId: operation.operationId,
+                  basisId: operation.basisId,
                   status: outcome,
                   preHash: sha256Of(pre),
                   postHash: sha256Of(post ?? pre),
@@ -217,8 +223,8 @@ const mutationTurn = (
                 }
               : {
                   index: 0,
-                  operationId,
-                  basisId: "absent-basis",
+                  operationId: operation.operationId,
+                  basisId: operation.basisId,
                   status: "unknown",
                   preHash: sha256Of(pre),
                   ...(post === undefined ? {} : { postHash: sha256Of(post) }),
@@ -294,6 +300,20 @@ test("a caller-reported direct edit makes an otherwise hash-invisible revision s
     lastReadRevisionId: "read-revision",
     lastKnownRevisionId: "read-revision",
     reportedRevisionId: "direct-edit-revision",
+  });
+});
+
+test("an edit and undo to the same hash is stale at its new revision", async () => {
+  const snapshot = snapshotOf(readTurn("read-1", emptyNet, "revision-before"));
+  expect(
+    await deriveNetFreshness(snapshot, browser, "revision-after-undo"),
+  ).toEqual({
+    kind: "stale",
+    lastReadHash: sha256Of(emptyNet),
+    lastKnownHash: sha256Of(emptyNet),
+    lastReadRevisionId: "revision-before",
+    lastKnownRevisionId: "revision-before",
+    reportedRevisionId: "revision-after-undo",
   });
 });
 
@@ -404,10 +424,19 @@ test("a mutation whose declared effects do not verify leaves the current net unr
 test.each([
   {
     outcome: "no-op" as const,
+    definition: oneHopNet,
+    operation: {
+      operationId: "keep-place-name",
+      basisId: "absent-basis",
+      type: "updatePlace" as const,
+      input: { placeId: oneHopPlace.id, update: { name: oneHopPlace.name } },
+    },
     alterAttempt: (attempt: ConstructionMutationAttempt) => attempt,
   },
   {
     outcome: "failed" as const,
+    definition: emptyNet,
+    operation: undefined,
     alterAttempt: (attempt: ConstructionMutationAttempt) => ({
       ...attempt,
       error: "Browser rejected the mutation.",
@@ -415,22 +444,24 @@ test.each([
   },
 ])(
   "a verified $outcome mutation retains its unchanged post as the current net",
-  async ({ outcome, alterAttempt }) => {
+  async ({ outcome, definition, operation, alterAttempt }) => {
     expect(
       await deriveNetFreshness(
         snapshotOf([
-          ...readTurn("read-1", emptyNet),
+          ...readTurn("read-1", definition),
           ...mutationTurn(
             "mutate-1",
-            emptyNet,
-            emptyNet,
+            definition,
+            definition,
             alterAttempt,
             outcome,
+            undefined,
+            operation,
           ),
         ]),
         browser,
       ),
-    ).toEqual({ kind: "current", hash: sha256Of(emptyNet) });
+    ).toEqual({ kind: "current", hash: sha256Of(definition) });
   },
 );
 
@@ -447,7 +478,6 @@ test("an impossible stale batch record leaves the current net unrecorded", async
             ...attempt,
             request: {
               ...attempt.request,
-              requestedBaseHash: "f".repeat(64),
             },
           }),
           "stale",
@@ -532,10 +562,10 @@ test("an unverifiable observation is not a read", async () => {
   expect(
     await deriveNetFreshness(
       snapshotOf([
-        assistantCall(toolCallId, getLatestNetDefinitionToolName),
+        assistantCall(toolCallId, readPetrinautNetToolName),
         resultDelivery(
           toolCallId,
-          getLatestNetDefinitionToolName,
+          readPetrinautNetToolName,
           { title: "Net", definition: emptyNet },
           {
             observation: {
@@ -557,10 +587,12 @@ test("a recorded layout is a known change, not an unrecorded one", async () => {
     places: [{ ...oneHopNet.places[0]!, x: 120, y: 40 }],
   };
   const layoutTurn: FlueConversationMessage[] = [
-    assistantCall("layout-1", applyAutoLayoutToolName, { askUserFirst: false }),
+    assistantCall("layout-1", layoutPetrinautNetToolName, {
+      askUserFirst: false,
+    }),
     resultDelivery(
       "layout-1",
-      applyAutoLayoutToolName,
+      layoutPetrinautNetToolName,
       { commitCount: 1 },
       {
         layoutRecord: {
@@ -599,7 +631,20 @@ test("a read belonging to another document incarnation is not a read", async () 
   expect(
     await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), {
       binding: { ...binding, incarnationId: "another-incarnation" },
-      construction: true,
     }),
   ).toEqual({ kind: "never-read" });
 });
+
+test.each([
+  { documentId: "another-document" },
+  { incarnationId: "another-incarnation" },
+])(
+  "equal content from another document identity does not establish freshness",
+  async (bindingChange) => {
+    expect(
+      await deriveNetFreshness(snapshotOf(readTurn("read-1", emptyNet)), {
+        binding: { ...binding, ...bindingChange },
+      }),
+    ).toEqual({ kind: "never-read" });
+  },
+);

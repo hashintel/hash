@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-test("the built ChatAgent carries native root-arc/addType input through both real SDK entrypoints and refuses invalid raw input", async () => {
+test("the built ChatAgent carries native mutate_petrinaut_net/addType input through both real SDK entrypoints and refuses invalid raw input", async () => {
   const { exitCode, stdout, stderr } = await runNodeScript(
     new URL("./native-schema-carriage.integration.ts", import.meta.url)
       .pathname,

@@ -20,6 +20,7 @@ vi.mock(
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
   useInstruction: () => undefined,
+  useContextProjection: () => undefined,
   useInitialData: () => undefined,
   useDelivery: () => ({ kind: "user", body: "test" }),
   useAgentStart: () => undefined,
@@ -42,7 +43,7 @@ test("the production ChatAgent passes the local configuration to its core hook",
   expect(renderChatAgent({ id: "test-instance" })).toBe("core prompt");
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
-    { keepRecentTokens: 256 },
+    { compaction: { keepRecentTokens: 256 } },
     expect.any(Function),
   );
   expect(renderChatAgent.agentName).toBe("brunch-chat-agent");
@@ -55,6 +56,19 @@ test("the production ChatAgent supplies no compaction override when unset", asyn
   expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
     "anthropic/claude-sonnet-4-6",
     undefined,
+    expect.any(Function),
+  );
+});
+
+test("the production ChatAgent forwards an independent OpenAI specifier and thinking level", async () => {
+  vi.stubEnv("BRUNCH_CHAT_MODEL", "openai/gpt-5.6-sol");
+  vi.stubEnv("BRUNCH_CHAT_THINKING", "low");
+  const { ChatAgent: renderChatAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderChatAgent({ id: "test-instance" });
+  expect(useBrunchAgent).toHaveBeenCalledExactlyOnceWith(
+    "openai/gpt-5.6-sol",
+    { thinkingLevel: "low" },
     expect.any(Function),
   );
 });

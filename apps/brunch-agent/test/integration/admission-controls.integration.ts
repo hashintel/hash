@@ -21,11 +21,10 @@ import {
 
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -65,12 +64,11 @@ const recordWire = (chunk: ConversationStreamChunk) => {
 const unobserve = observe((event) => record("runtime", event));
 const browserNames: ReadonlySet<string> = new Set([
   ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
 ]);
 const project = (history: FlueConversationSnapshot) =>
   snapshotToUiMessages(history, {
     clientToolNames: browserNames,
-    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   });
 const faux = fauxProvider({
   provider: "anthropic",
@@ -123,13 +121,13 @@ const typeInput = {
 const question = "What remains unknown?";
 const privateMarkdown =
   "# Workpiece payload must not be spoken\nUnknown timing.";
-const makeCall = (name: string) =>
+const makeCall = (name: string, baseRevisionId: string | null) =>
   fauxToolCall(
     name,
     name === "addType"
       ? typeInput
       : name === "mutate_workpiece"
-        ? { markdown: privateMarkdown }
+        ? { markdown: privateMarkdown, baseRevisionId }
         : { question },
     { id: `${caseId}-${name}` },
   );
@@ -156,6 +154,7 @@ const run = async () => {
       ["addType", "mutate_workpiece"],
       ["addType", "unmounted_admission_probe"],
       ["addType"],
+      ["mutate_workpiece"],
     ]) {
       caseId = names.join("-");
       const client = clientFor();
@@ -181,7 +180,10 @@ const run = async () => {
           [
             fauxToolCall(
               "mutate_workpiece",
-              { markdown: "# Synthetic settled account\nUnknown timing." },
+              {
+                markdown: "# Synthetic settled account\nUnknown timing.",
+                baseRevisionId: null,
+              },
               { id: `${caseId}-old-revision` },
             ),
           ],
@@ -195,7 +197,8 @@ const run = async () => {
       });
       const seeded = await client.history();
       const requestStart = requests.length;
-      const generated = names.map(makeCall);
+      const baseRevisionId = `${caseId}-old-revision`;
+      const generated = names.map((name) => makeCall(name, baseRevisionId));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
@@ -300,7 +303,9 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          ...(abort ? [makeCall("addType")] : [makeCall("mutate_workpiece")]),
+          ...(abort
+            ? [makeCall("addType", null)]
+            : [makeCall("mutate_workpiece", null)]),
         ],
         { stopReason: "toolUse" },
       );

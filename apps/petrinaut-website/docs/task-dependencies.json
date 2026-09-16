@@ -121,7 +121,6 @@
         "@blockprotocol/graph",
         "@blockprotocol/type-system",
         "@blockprotocol/type-system-rs",
-        "@hashintel/brunch-agent-binding-flue",
         "@local/advanced-types",
         "@local/harpc-client",
         "@local/hash-backend-utils",

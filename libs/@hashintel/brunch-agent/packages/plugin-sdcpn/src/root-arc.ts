@@ -1,24 +1,12 @@
 import * as v from "valibot";
 import { z } from "zod";
 
-import {
-  normalizePetrinautAiToolInput,
-  petrinautAiTools,
-} from "@hashintel/petrinaut-core/ai";
-
-import { declaredBasisSchema, sha256Schema } from "./declared-basis";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-export const conversationConstructionMode =
-  "conversation-construction-candidate";
-
 export const observedArcMutationNames = ["addArc", "updateArcWeight"] as const;
 export type ObservedArcMutationName = (typeof observedArcMutationNames)[number];
-export const isObservedArcMutation = (
-  name: string,
-): name is ObservedArcMutationName =>
-  observedArcMutationNames.some((entry) => entry === name);
 export const batchedArcMutationNames = [
   ...observedArcMutationNames,
   "removeArc",
@@ -47,7 +35,7 @@ export const rootArcWhyInputSchema = z.strictObject({
     .string()
     .optional()
     .describe(
-      "Copy metadata.observation.toolCallId from a fresh read_petrinaut_net result. Omit only for an explicitly historical, as-of explanation, not a claim about the live canvas.",
+      "Copy output.observation.toolCallId from a fresh read_petrinaut_net result. Omit only for an explicitly historical, as-of explanation, not a claim about the live canvas.",
     ),
 });
 export type RootArcWhyInput = z.output<typeof rootArcWhyInputSchema>;
@@ -101,53 +89,3 @@ export const browserBindingSchema = v.strictObject({
   documentId: v.pipe(v.string(), v.minLength(1)),
   incarnationId: v.pipe(v.string(), v.minLength(1)),
 });
-
-export const rootArcEnvelopeSchema = z.strictObject({
-  basis: declaredBasisSchema,
-  requestedBaseHash: sha256Schema,
-});
-
-const canonical = petrinautAiTools.addArc.inputSchema;
-/** safeExtend retains Petrinaut's runtime .check rules; no canonical fields are copied. */
-export const joinedRootArcInputSchema = canonical
-  .safeExtend({ brunch: rootArcEnvelopeSchema })
-  .refine(
-    (input) => !input.targetSubnetId && typeof input.placeId === "string",
-    {
-      message: "Only root place arcs are admitted.",
-    },
-  )
-  .describe(petrinautAiTools.addArc.description);
-
-export const observedArcEnvelopeSchema = rootArcEnvelopeSchema.extend({
-  observationToolCallId: z.string().min(1),
-});
-const rootPlaceArc = (input: {
-  targetSubnetId?: string | null;
-  placeId?: string;
-}) => !input.targetSubnetId && typeof input.placeId === "string";
-const observedArcSchemas = {
-  addArc: petrinautAiTools.addArc.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootPlaceArc, { message: "Only root place arcs are admitted." })
-    .describe(petrinautAiTools.addArc.description),
-  updateArcWeight: petrinautAiTools.updateArcWeight.inputSchema
-    .safeExtend({ brunch: observedArcEnvelopeSchema })
-    .refine(rootPlaceArc, { message: "Only root place arcs are admitted." })
-    .describe(petrinautAiTools.updateArcWeight.description),
-};
-export const observedArcInputSchema = (name: ObservedArcMutationName) =>
-  observedArcSchemas[name];
-export const parseObservedArcInput = (
-  name: ObservedArcMutationName,
-  input: unknown,
-) =>
-  observedArcInputSchema(name).parse(
-    normalizePetrinautAiToolInput(name, input),
-  );
-
-/** Shared explicit compatibility boundary for retained raw calls and browser execution. */
-export const parseJoinedRootArcInput = (input: unknown) =>
-  joinedRootArcInputSchema.parse(
-    normalizePetrinautAiToolInput("addArc", input),
-  );

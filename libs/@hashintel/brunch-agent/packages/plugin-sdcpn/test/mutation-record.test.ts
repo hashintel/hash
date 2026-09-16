@@ -38,7 +38,7 @@ import {
   READ_PETRINAUT_DOCS_TOOL_NAME,
 } from "../src/tools/read-petrinaut-doc";
 
-test("uses the selected Brunch Petrinaut family and recognizes retained names", () => {
+test("uses the selected Brunch Petrinaut family and recognizes only canonical names", () => {
   expect([
     readPetrinautNetToolName,
     READ_PETRINAUT_DOCS_TOOL_NAME,
@@ -52,20 +52,22 @@ test("uses the selected Brunch Petrinaut family and recognizes retained names", 
     "layout_petrinaut_net",
     "mutate_petrinaut_net",
   ]);
-  expect(isReadPetrinautNetToolName("getLatestNetDefinition")).toBe(true);
-  expect(isReadPetrinautDocsToolName("readPetrinautDoc")).toBe(true);
+  expect(isReadPetrinautNetToolName(readPetrinautNetToolName)).toBe(true);
+  expect(isMutatePetrinautNetToolName(mutatePetrinautNetToolName)).toBe(true);
+  expect(isReadPetrinautNetToolName("getLatestNetDefinition")).toBe(false);
+  expect(isReadPetrinautDocsToolName("readPetrinautDoc")).toBe(false);
   expect(isReadPetrinautDiagnosticsToolName("getNetCompilationErrors")).toBe(
-    true,
+    false,
   );
-  expect(isLayoutPetrinautNetToolName("applyAutoLayout")).toBe(true);
-  expect(isMutatePetrinautNetToolName("mutate_petrinet")).toBe(true);
+  expect(isLayoutPetrinautNetToolName("applyAutoLayout")).toBe(false);
+  expect(isMutatePetrinautNetToolName("mutate_petrinet")).toBe(false);
 });
 
 const pre: SDCPN = {
   places: [
     {
       id: "a3-place",
-      name: "Crew",
+      name: "Buffer",
       colorId: null,
       dynamicsEnabled: false,
       differentialEquationId: null,
@@ -145,6 +147,111 @@ describe("root addArc transition semantics", () => {
     expect(() => assertMutationEffects(duplicated)).toThrow(
       /complete canonical diff/u,
     );
+  });
+
+  test("rejects a no-op record whose arc names a missing transition", async () => {
+    const missingTransitionRequest: ArcMutationRequest = {
+      ...request,
+      toolCallId: "missing-transition-call",
+      input: { ...request.input, transitionId: "missing-transition" },
+    };
+    const unchanged = observe(pre);
+    const attempt: ArcMutationAttempt = {
+      request: missingTransitionRequest,
+      binding: missingTransitionRequest.binding,
+      pre: unchanged,
+      post: unchanged,
+      outcome: "no-op",
+      effects: deriveMutationEffects(
+        missingTransitionRequest,
+        pre,
+        unchanged.definition,
+      ),
+    };
+
+    await expect(verifyMutationAttempt(attempt)).rejects.toThrow(
+      "not supported by its observations",
+    );
+  });
+
+  test("accepts the exact canonical colored output-arc footprint including generated kernel code", async () => {
+    const before: SDCPN = {
+      ...structuredClone(pre),
+      places: [{ ...pre.places[0]!, colorId: "item" }],
+      types: [
+        {
+          id: "item",
+          name: "Item",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [],
+        },
+      ],
+    };
+    const outputRequest: ArcMutationRequest = {
+      ...request,
+      requestedBaseHash: observe(before).sha256,
+      input: {
+        transitionId: "a3-transition",
+        arcDirection: "output",
+        placeId: "a3-place",
+        weight: 1,
+      },
+    };
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: before,
+        capabilities: { disabledExtensions: [] },
+      }),
+    });
+    instance.mutations.addArc(outputRequest.input);
+    const post = observe(instance.definition.get());
+    instance.dispose();
+    const effects = deriveMutationEffects(
+      outputRequest,
+      before,
+      post.definition,
+    );
+    const attempt: ArcMutationAttempt = {
+      request: outputRequest,
+      binding: outputRequest.binding,
+      pre: observe(before),
+      post,
+      outcome: "applied",
+      effects,
+    };
+
+    expect(post.definition.transitions[0]?.transitionKernelCode).not.toBe("");
+    expect(effects.created).toEqual([
+      expect.objectContaining({
+        path: "/transitions/0/outputArcs/0",
+        kind: "created",
+      }),
+    ]);
+    expect(effects.derived).toEqual([
+      expect.objectContaining({
+        path: "/transitions/0/transitionKernelCode",
+        kind: "updated",
+      }),
+    ]);
+    expect(observedMutationOutcome(attempt)).toBe("applied");
+    await expect(verifyMutationAttempt(attempt)).resolves.toMatchObject({
+      outcome: "applied",
+    });
+
+    const unrelated = structuredClone(attempt);
+    unrelated.post!.definition.transitions[0]!.name = "Unaccounted rename";
+    unrelated.post = observe(unrelated.post!.definition);
+    unrelated.effects = deriveMutationEffects(
+      outputRequest,
+      before,
+      unrelated.post.definition,
+    );
+    unrelated.outcome = "unknown";
+    expect(observedMutationOutcome(unrelated)).toBe("unknown");
+    await expect(verifyMutationAttempt(unrelated)).resolves.toMatchObject({
+      outcome: "unknown",
+    });
   });
 
   test("accounts for updated, deleted and unmapped fields without granting them the request's basis", () => {
@@ -228,10 +335,20 @@ describe("root addArc transition semantics", () => {
 
   test("does not attribute failed, no-op, stale or unknown attempts as applied changes", () => {
     const attempt = applied();
+    const duplicateRequest = {
+      ...request,
+      requestedBaseHash: attempt.post!.sha256,
+    };
     const unchanged = {
       ...attempt,
-      post: attempt.pre,
-      effects: deriveMutationEffects(request, pre, pre),
+      request: duplicateRequest,
+      pre: attempt.post!,
+      post: attempt.post!,
+      effects: deriveMutationEffects(
+        duplicateRequest,
+        attempt.post!.definition,
+        attempt.post!.definition,
+      ),
     };
     expect(observedMutationOutcome(unchanged)).toBe("no-op");
     expect(observedMutationOutcome({ ...unchanged, error: "Rejected" })).toBe(

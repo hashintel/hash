@@ -1,156 +1,45 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  isCrewReservationFixtureSelected,
   localStorageDemoRouteIdentity,
   validateLocalStorageDemoSearch,
   withLocalStorageDemoIdentity,
 } from "./local-storage-demo-search";
-import { crewReservationFixtureId } from "./prepared-crew-reservation-fixture";
 
 describe("local storage demo search", () => {
-  test("keeps conversation construction distinct from retained prepared and ordinary modes", () => {
-    const search = validateLocalStorageDemoSearch({
-      brunchTracer: "construction",
-    });
-    expect(localStorageDemoRouteIdentity(search)).toBe(
-      "construction-candidate",
-    );
-    expect(
-      localStorageDemoRouteIdentity({
-        "brunch-fixture": crewReservationFixtureId,
-        brunchTracer: "root-arc",
-      }),
-    ).toBe("root-arc-tracer");
-    expect(
-      withLocalStorageDemoIdentity(search, {
-        itemType: "arc",
-        itemId: "arc",
-      }).brunchTracer,
-    ).toBe("construction");
-    expect(isCrewReservationFixtureSelected(search)).toBe(false);
-  });
-  test("owns the fixture key beside the shared contract", () => {
-    expect(
-      validateLocalStorageDemoSearch({
-        "brunch-fixture": crewReservationFixtureId,
-        itemType: "place",
-        itemId: "place-1",
-      }),
-    ).toEqual({
-      "brunch-fixture": crewReservationFixtureId,
-      itemType: "place",
-      itemId: "place-1",
-    });
-    expect(validateLocalStorageDemoSearch({ "brunch-fixture": 7 })).toEqual({});
-  });
-
-  test("carries the fixture key across a shared-contract write", () => {
-    expect(
-      withLocalStorageDemoIdentity(
-        { "brunch-fixture": crewReservationFixtureId, subnet: "subnet-1" },
-        { itemType: "place", itemId: "place-1" },
-      ),
-    ).toEqual({
-      "brunch-fixture": crewReservationFixtureId,
-      itemType: "place",
-      itemId: "place-1",
-    });
-  });
-
-  test("changes route identity only when fixture mode changes", () => {
+  test("keeps ordinary and worked-model-bundle as the only route identities", () => {
     expect(localStorageDemoRouteIdentity({})).toBe("ordinary");
     expect(localStorageDemoRouteIdentity({ subnet: "subnet-1" })).toBe(
       "ordinary",
     );
     expect(
-      localStorageDemoRouteIdentity({
-        "brunch-fixture": crewReservationFixtureId,
-      }),
-    ).toBe(crewReservationFixtureId);
+      localStorageDemoRouteIdentity({ bundle: "inventory-purchasing" }),
+    ).toBe("worked-model-bundle");
   });
 
-  test("treats inventory-purchasing as a document scenario location, not a catalogue bundle", () => {
-    const search = validateLocalStorageDemoSearch({
-      scenario: "inventory-purchasing",
-    });
-    expect(search.scenario).toBe("inventory-purchasing");
-    expect(localStorageDemoRouteIdentity(search)).toBe("ordinary");
-  });
-
-  test("treats bundle as a distinct validated worked-model route identity", () => {
+  test("validates and carries the bundle across shared-location writes", () => {
     const search = validateLocalStorageDemoSearch({
       bundle: "inventory-purchasing",
+      itemType: "place",
+      itemId: "on-hand",
     });
-    expect(search.bundle).toBe("inventory-purchasing");
-    expect(localStorageDemoRouteIdentity(search)).toBe("worked-model-bundle");
-    expect(
-      withLocalStorageDemoIdentity(search, {
-        itemType: "place",
-        itemId: "on-hand",
-      }),
-    ).toMatchObject({
+    expect(search).toMatchObject({
       bundle: "inventory-purchasing",
       itemType: "place",
       itemId: "on-hand",
     });
     expect(
+      withLocalStorageDemoIdentity(search, {
+        itemType: "transition",
+        itemId: "purchase",
+      }),
+    ).toMatchObject({
+      bundle: "inventory-purchasing",
+      itemType: "transition",
+      itemId: "purchase",
+    });
+    expect(
       validateLocalStorageDemoSearch({ bundle: "Inventory_Purchasing" }).bundle,
     ).toBeUndefined();
   });
-
-  test("selects a valid bundle over leftover fixture or tracer parameters", () => {
-    expect(
-      localStorageDemoRouteIdentity({
-        bundle: "inventory-purchasing",
-        brunchTracer: "construction",
-      }),
-    ).toBe("worked-model-bundle");
-    expect(
-      localStorageDemoRouteIdentity({
-        bundle: "inventory-purchasing",
-        brunchTracer: "root-creation",
-      }),
-    ).toBe("worked-model-bundle");
-    expect(
-      localStorageDemoRouteIdentity({
-        bundle: "inventory-purchasing",
-        "brunch-fixture": crewReservationFixtureId,
-        brunchTracer: "root-arc",
-      }),
-    ).toBe("worked-model-bundle");
-    expect(
-      localStorageDemoRouteIdentity({
-        bundle: "inventory-purchasing",
-        "brunch-fixture": crewReservationFixtureId,
-      }),
-    ).toBe("worked-model-bundle");
-  });
-
-  test("selects only the explicit stable fixture value", () => {
-    expect(
-      isCrewReservationFixtureSelected({
-        "brunch-fixture": crewReservationFixtureId,
-      }),
-    ).toBe(true);
-    expect(
-      isCrewReservationFixtureSelected({ "brunch-fixture": "another-fixture" }),
-    ).toBe(false);
-    expect(isCrewReservationFixtureSelected({})).toBe(false);
-  });
-});
-
-test("clears bundle, fixture, and tracer identity when opening a local document", () => {
-  const next = withLocalStorageDemoIdentity(
-    {
-      bundle: "inventory-purchasing",
-      "brunch-fixture": crewReservationFixtureId,
-      brunchTracer: "construction",
-      itemId: "remote-place",
-      itemType: "place",
-    },
-    { bundle: undefined, "brunch-fixture": undefined, brunchTracer: undefined },
-  );
-  expect(localStorageDemoRouteIdentity(next)).toBe("ordinary");
-  expect(next.itemId).toBeUndefined();
 });

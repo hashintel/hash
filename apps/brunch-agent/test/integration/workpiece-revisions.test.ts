@@ -25,20 +25,40 @@ beforeAll(async () => {
 });
 
 test("the built agent settles a revision over the mounted route", () => {
-  expect(
-    result.settled.find((part) => part.toolName === "mutate_workpiece"),
-  ).toMatchObject({
-    toolName: "mutate_workpiece",
-    state: "output-available",
-    output: {
-      revisionId: "settled-revision",
-      sha256: createHash("sha256")
-        .update(result.markdown, "utf8")
-        .digest("hex"),
-      ordinal: 1,
-      markdown: result.markdown,
-    },
-  });
+  const markdownSha256 = createHash("sha256")
+    .update(result.markdown, "utf8")
+    .digest("hex");
+  const emptySha256 = createHash("sha256").update("", "utf8").digest("hex");
+  expect(result.settled).toContainEqual(
+    expect.objectContaining({
+      toolName: "mutate_workpiece",
+      state: "output-available",
+      output: {
+        revisionId: "settled-revision",
+        sha256: markdownSha256,
+        ordinal: 1,
+        mutation: {
+          baseRevisionId: null,
+          beforeSha256: null,
+          afterSha256: markdownSha256,
+          commonPrefixUtf16: 0,
+          commonSuffixUtf16: 0,
+          removed: {
+            start: 0,
+            end: 0,
+            utf16Length: 0,
+            sha256: emptySha256,
+          },
+          inserted: {
+            start: 0,
+            end: result.markdown.length,
+            utf16Length: result.markdown.length,
+            sha256: markdownSha256,
+          },
+        },
+      },
+    }),
+  );
   expect(
     result.second.find((part) => part.toolCallId === "second-revision")?.output,
   ).toMatchObject({ revisionId: "second-revision", ordinal: 2 });

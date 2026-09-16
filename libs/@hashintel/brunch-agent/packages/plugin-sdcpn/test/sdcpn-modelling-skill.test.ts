@@ -55,6 +55,27 @@ describe("the authored sdcpn-modelling skill directory", () => {
     expect(construction).toContain("read_petrinaut_net");
   });
 
+  test("reuses settlement carriage and limits settled locator reads to spans the settlement did not return", () => {
+    const instructions = sdcpnModellingSkill.instructions;
+    const construction = readSkillFile("references/pn-construction.md");
+
+    expect(instructions).toContain(
+      "returned `revisionId`, `sha256` and `evidence[]` locators as authoritative",
+    );
+    for (const text of [instructions, construction]) {
+      expect(text).toContain("evidence by literal text");
+      expect(text).toContain(
+        "Only when a basis needs a span that output did not return",
+      );
+      expect(text).not.toMatch(
+        /includeSources|candidate Markdown|unsettled candidate|useful stretch/u,
+      );
+    }
+    expect(construction).not.toContain(
+      "obtain the settled revision/hash and relevant passage spans",
+    );
+  });
+
   test("the always-on append routes to the job skill and stays compact", () => {
     const append = readFileSync(
       new URL("../src/prompts/APPEND_SYSTEM.md", import.meta.url),

@@ -466,6 +466,165 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
+  test("baselines, deduplicates, caps and acknowledges host activity", async () => {
+    const transport = {
+      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
+      reconnectToStream: async () => null,
+    };
+    const config = (activityIdentities: readonly string[]) => ({
+      conversationId: "host-attention",
+      primaryLabel: "Chat",
+      additionalTab: {
+        label: "Ledger",
+        content: <p>Ledger body</p>,
+        activityIdentities,
+      },
+      transport,
+    });
+    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
+    expect(screen.queryByText("9+")).toBeNull();
+
+    mounted.rerenderPanel(
+      config([
+        "baseline",
+        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
+      ]),
+    );
+    expect(await screen.findByText("9+")).not.toBeNull();
+    mounted.rerenderPanel(
+      config([
+        "baseline",
+        ...Array.from({ length: 11 }, (_, index) => `revision-${index}`),
+      ]),
+    );
+    const ledgerTab = screen.getByRole("tab", { name: "Ledger" });
+    expect(ledgerTab.querySelector('[aria-hidden="true"]')).not.toBeNull();
+
+    fireEvent.click(ledgerTab);
+    await waitFor(() => expect(screen.queryByText("9+")).toBeNull());
+
+    mounted.rerenderPanel(config(["baseline", "revision-0"]), {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    });
+    mounted.rerenderPanel(
+      config(["baseline", "revision-0", "closed-revision"]),
+      {
+        ...editorContextValue,
+        isAiAssistantOpen: false,
+      },
+    );
+    expect(await screen.findByText("1")).not.toBeNull();
+    expect(
+      document.querySelector('[role="tab"][aria-label="Ledger"]'),
+    ).not.toBeNull();
+  });
+
+  test("clears live text after a tick so an identical announcement can fire later", async () => {
+    const transport = {
+      sendMessages: vi.fn<PetrinautAiTransport["sendMessages"]>(),
+      reconnectToStream: async () => null,
+    };
+    const config = (activityIdentities: readonly string[]) => ({
+      conversationId: "repeat-announcement",
+      primaryLabel: "Chat",
+      additionalTab: {
+        label: "Ledger",
+        content: <p>Ledger body</p>,
+        activityIdentities,
+      },
+      transport,
+    });
+    const mounted = renderTestPanel({ aiAssistant: config(["baseline"]) });
+
+    mounted.rerenderPanel(config(["baseline", "revision-1"]));
+    const attentionAnnouncement = screen.getByText("1 unseen Ledger update");
+    expect(attentionAnnouncement.getAttribute("role")).toBe("status");
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(attentionAnnouncement.textContent).toBe("");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Chat" }));
+    mounted.rerenderPanel(config(["baseline", "revision-1", "revision-2"]));
+    expect(screen.getByText("1 unseen Ledger update")).toBe(
+      attentionAnnouncement,
+    );
+  });
+
+  test("marks the labelled chat when a response terminates behind the host tab", async () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: async () => null,
+      sendMessages: async () =>
+        streamChunks([
+          { type: "start-step" },
+          { type: "text-start", id: "reply" },
+          { type: "text-delta", id: "reply", delta: "Finished" },
+          { type: "text-end", id: "reply" },
+          { type: "finish-step" },
+        ]),
+    };
+    renderTestPanel({
+      aiAssistant: {
+        primaryLabel: "Chat",
+        additionalTab: {
+          label: "Ledger",
+          content: <p>Ledger body</p>,
+          activityIdentities: [],
+        },
+        transport,
+      },
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Continue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    const chatTab = await screen.findByRole("tab", { name: "Chat" });
+    await waitFor(() =>
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+    );
+    fireEvent.click(chatTab);
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("tab", { name: "Chat" })
+          .querySelector('[aria-hidden="true"]'),
+      ).toBeNull(),
+    );
+  });
+
+  test("marks the labelled chat when a response errors behind the host tab", async () => {
+    renderTestPanel({
+      aiAssistant: {
+        primaryLabel: "Chat",
+        additionalTab: {
+          label: "Ledger",
+          content: <p>Ledger body</p>,
+          activityIdentities: [],
+        },
+        transport: {
+          reconnectToStream: async () => null,
+          sendMessages: async () => {
+            throw new Error("Response failed");
+          },
+        },
+      },
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Continue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    const chatTab = await screen.findByRole("tab", { name: "Chat" });
+    await waitFor(() =>
+      expect(chatTab.querySelector('[aria-hidden="true"]')).not.toBeNull(),
+    );
+  });
+
   test("reports a failed submission stream to the host error tracker at its source", async () => {
     const captureException = vi.fn<ErrorTracker["captureException"]>();
     const failure = new Error("Brunch rejected the message before admission.");
@@ -3186,6 +3345,12 @@ describe("AiAssistantPanel composer submissions", () => {
 
     renderTestPanel({
       aiAssistant: {
+        primaryLabel: "Chat",
+        additionalTab: {
+          label: "Ledger",
+          content: <p>Ledger body</p>,
+          activityIdentities: [],
+        },
         renderComposerControl: ({ stop }) => (
           <button
             type="button"
@@ -3201,6 +3366,7 @@ describe("AiAssistantPanel composer submissions", () => {
       initialMessage: "Start a long response",
     });
     await screen.findByText("Partial response");
+    fireEvent.click(screen.getByRole("tab", { name: "Ledger" }));
 
     fireEvent.click(
       screen.getByRole("button", { name: "Stop from host control" }),
@@ -3208,6 +3374,13 @@ describe("AiAssistantPanel composer submissions", () => {
 
     await waitFor(() => expect(aborted).toHaveBeenCalledOnce());
     expect(await screen.findByText("Response stopped")).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("tab", { name: "Chat" })
+          .querySelector('[aria-hidden="true"]'),
+      ).not.toBeNull(),
+    );
   });
 
   test("records a durable Stop before cancelling the local stream", async () => {
@@ -5266,6 +5439,11 @@ describe("AiAssistantPanel host interactive tools", () => {
         commands: instance.commands,
         handle: instance.handle,
         readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
+        viewport: {
+          frameSceneAfterRender: expect.any(
+            Function,
+          ) as () => Promise<"no-renderer">,
+        },
         toolCallId: "automatic-call-1",
         signal: expect.any(AbortSignal) as AbortSignal,
       });

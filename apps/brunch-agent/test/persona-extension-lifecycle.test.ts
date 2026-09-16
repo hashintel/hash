@@ -73,6 +73,16 @@ export default async (pi) => {
               "brunch_turn",
               "--extension",
               wrapper,
+              "--append-system-prompt",
+              resolve(".pi/extensions/brunch-persona-testing/SYSTEM.md"),
+              "--append-system-prompt",
+              resolve(
+                ".pi/extensions/brunch-persona-testing/axes/verbosity-terse.md",
+              ),
+              "--append-system-prompt",
+              resolve(
+                ".pi/extensions/brunch-persona-testing/axes/disclosure-forthcoming.md",
+              ),
               "--brunch-browser-bridge",
               bridge.socketPath,
               "--approve",

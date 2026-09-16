@@ -3,8 +3,6 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { CONSTRUCTION_CONTEXT_SIGNAL_TYPE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-
 export type CrashRecoveryKind =
   | "plain"
   | "observe"
@@ -46,31 +44,6 @@ const asArray = (value: unknown, label: string): readonly unknown[] => {
     throw new Error(`${label} must be an array`);
   }
   return value;
-};
-
-const lastRevision = (snapshot: JsonObject): unknown => {
-  const messages = asArray(snapshot.messages, "history messages").filter(
-    (message): message is JsonObject => {
-      if (!isJsonObject(message) || !isJsonObject(message.signal)) {
-        return false;
-      }
-      return message.signal.tagName === CONSTRUCTION_CONTEXT_SIGNAL_TYPE;
-    },
-  );
-  const lastMessage = messages.at(-1);
-  if (lastMessage === undefined) {
-    throw new Error("Successful recovered result without exact current state");
-  }
-  const text = asArray(lastMessage.parts, "construction-context parts")
-    .filter(
-      (part): part is JsonObject =>
-        isJsonObject(part) &&
-        part.type === "text" &&
-        typeof part.text === "string",
-    )
-    .map((part) => part.text)
-    .join("");
-  return asObject(JSON.parse(text), "construction context").currentWorkpiece;
 };
 
 const loadBatches = (path: string): readonly StoreBatch[] =>
@@ -139,11 +112,37 @@ export const assertCrashRecovery = (
   if (typeof receipt.markdown !== "string") {
     throw new Error("receipt markdown must be a string");
   }
-  const expected = {
+  const expectedPointer = {
     revisionId: "a4-crash-revision",
     sha256: createHash("sha256").update(receipt.markdown).digest("hex"),
     ordinal: 1,
+  };
+  const expected = {
+    ...expectedPointer,
     markdown: receipt.markdown,
+  };
+  const emptySha256 = createHash("sha256").update("").digest("hex");
+  const expectedOutput = {
+    ...expectedPointer,
+    mutation: {
+      baseRevisionId: null,
+      beforeSha256: null,
+      afterSha256: expected.sha256,
+      commonPrefixUtf16: 0,
+      commonSuffixUtf16: 0,
+      removed: {
+        start: 0,
+        end: 0,
+        utf16Length: 0,
+        sha256: emptySha256,
+      },
+      inserted: {
+        start: 0,
+        end: receipt.markdown.length,
+        utf16Length: receipt.markdown.length,
+        sha256: expected.sha256,
+      },
+    },
   };
   const result = asObject(
     readJson(join(directory, "recover-plain-result.json")),
@@ -163,31 +162,19 @@ export const assertCrashRecovery = (
   }
   assert.deepEqual(
     recovered.input,
-    { markdown: receipt.markdown },
+    { markdown: receipt.markdown, baseRevisionId: null },
     "Recovered tool input must match the crashed markdown",
   );
-  assert.ok(
-    isJsonObject(recovered.output),
-    "Recovered tool output must remain structured",
-  );
-  const { mutation, ...recoveredPointer } = recovered.output;
-  assert.ok(
-    isJsonObject(mutation),
-    "Recovered tool output must retain its mutation summary",
-  );
   assert.deepEqual(
-    recoveredPointer,
-    expected,
-    "Recovered tool output must match the crashed pointer and markdown",
+    recovered.output,
+    expectedOutput,
+    "Recovered tool output must match the crashed pointer",
   );
-  assert.deepEqual(
-    lastRevision(
-      asObject(
-        readJson(join(directory, "recover-plain-history.json")),
-        "recovered history",
-      ),
-    ),
-    expected,
+  assert.ok(
+    isJsonObject(nextRevision.output) &&
+      isJsonObject(nextRevision.output.mutation) &&
+      nextRevision.output.mutation.baseRevisionId === "a4-crash-revision" &&
+      nextRevision.output.mutation.beforeSha256 === expected.sha256,
     "Successful recovered result without exact current state",
   );
   assert.equal(

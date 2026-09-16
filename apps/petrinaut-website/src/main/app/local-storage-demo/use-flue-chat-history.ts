@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { brunchClientToolNames } from "./brunch-client-tools";
 
@@ -19,8 +18,7 @@ const noSettlements: readonly FlueConversationSettlement[] = [];
 
 /**
  * The observed canonical conversation together with the durable-stream offset
- * it was read at. Fixture consumers use the offset to tell a settled bundle
- * from a stale one; they never interpret it.
+ * it was read at.
  */
 export type FlueHistorySnapshot = FlueConversationState & {
   readonly offset: string;
@@ -46,7 +44,6 @@ const projectPetrinautMessages = (
     dynamicClientToolNames,
     validatedClientToolNames,
     ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
-    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (

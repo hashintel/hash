@@ -5,6 +5,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
@@ -12,12 +13,17 @@ import { Hono } from "hono";
 import {
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
-  observedConstructionBrowserToolNames,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { createLiveToolBroadcaster } from "./agents/chat-agent/live/live-tool-broadcaster.ts";
+import { createLiveToolRoute } from "./agents/chat-agent/live/live-tool-route.ts";
+import { createLiveToolObserver } from "./agents/chat-agent/live/observe-live-tools.ts";
+import { createTurnChronologyObserver } from "./agents/chat-agent/live/observe-turn-chronology.ts";
 import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
 import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
@@ -30,9 +36,12 @@ import {
   WORKED_MODELS_ROUTE,
 } from "./http/routes.ts";
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
+import { logger } from "./logger.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import { withBufferedToolAdmission } from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
+
+import type { Provider } from "@earendil-works/pi-ai";
 
 // Failed runtime events (tools, turns, tasks, compaction, operations,
 // settlement, recovery) reach the server log with their runtime IDs; the
@@ -42,6 +51,34 @@ instrument({
   observe: diagnostics.observe,
   interceptor: (_operation, _context, next) => next(),
   dispose() {},
+});
+const liveToolBroadcaster = createLiveToolBroadcaster();
+const liveToolObserver = createLiveToolObserver(
+  liveToolBroadcaster,
+  ChatAgent.agentName,
+);
+instrument({
+  key: Symbol.for("brunch.live-pending-tools"),
+  observe: liveToolObserver.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose() {
+    liveToolObserver.dispose();
+    liveToolBroadcaster.close();
+  },
+});
+// One line per settled submission: every model request with its time to
+// first event and each tool call's argument-streaming profile, so a provider
+// stall reads differently from slow generation. Ids and durations only.
+const turnChronologyObserver = createTurnChronologyObserver(
+  ChatAgent.agentName,
+  (chronology) =>
+    logger.info("[brunch] flue.submission chronology", chronology),
+);
+instrument({
+  key: Symbol.for("brunch.turn-chronology"),
+  observe: turnChronologyObserver.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose: turnChronologyObserver.dispose,
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is an async execution flag, never a proposal/state ledger.
@@ -77,23 +114,26 @@ if (accounting) {
 // Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
-const nativeProvider = anthropicProvider();
-setProvider(
-  withBufferedToolAdmission(
-    accounting?.wrap(
-      nativeProvider,
+const browserToolNames = new Set([
+  ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  readPetrinautNetToolName,
+  readPetrinautDiagnosticsToolName,
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+]);
+const registerAdmittedProvider = (provider: Provider) => {
+  setProvider(
+    withBufferedToolAdmission(
+      accounting?.wrap(provider, () => admissionScope.getStore() === true) ??
+        provider,
       () => admissionScope.getStore() === true,
-    ) ?? nativeProvider,
-    () => admissionScope.getStore() === true,
-    new Set([
-      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-      ...observedConstructionBrowserToolNames,
-      layoutPetrinautNetToolName,
-      mutatePetrinautNetToolName,
-      READ_PETRINAUT_DOCS_TOOL_NAME,
-    ]),
-  ),
-);
+      browserToolNames,
+    ),
+  );
+};
+registerAdmittedProvider(anthropicProvider());
+registerAdmittedProvider(openaiProvider());
 
 const app = new Hono();
 
@@ -109,6 +149,7 @@ app.use(
   `${chatAgentMount}/*`,
   agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
 );
+app.get(`${chatAgentMount}/:id/live`, createLiveToolRoute(liveToolBroadcaster));
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.use(
   `${WORKED_MODELS_ROUTE}/*`,

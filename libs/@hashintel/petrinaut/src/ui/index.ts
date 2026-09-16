@@ -194,6 +194,10 @@ export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiStopResult,
+  PetrinautAiToolPresentation,
+  PetrinautAiToolPresentationContext,
+  PetrinautAiToolPresentationResolver,
+  PetrinautAiToolPresentationState,
   PetrinautProps,
 } from "./petrinaut";
 export type {
@@ -224,6 +228,7 @@ export type {
 export type {
   PetrinautAiAutomaticTool,
   PetrinautAiAutomaticToolExecuteParams,
+  PetrinautAiViewportFrameResult,
 } from "./types/ai-automatic-tool";
 export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 export type {

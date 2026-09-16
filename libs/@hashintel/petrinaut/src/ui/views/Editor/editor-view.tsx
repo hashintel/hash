@@ -53,12 +53,14 @@ import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
+import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
 import {
   createNewNetMenuItem,
   shouldShowBrunchCreateNew,
 } from "./editor-view/create-new-net-menu";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -172,6 +174,13 @@ export const EditorView = ({
     setTitle,
   } = use(SDCPNContext);
   const { applyAutoLayout } = usePetrinautCommands();
+  const {
+    frameSceneAfterRender,
+    registerController,
+    requestFrameOnNextRegistration,
+  } = useCanvasControllerRegistration();
+  const runAutoLayoutAndFrame = () =>
+    applyAutoLayoutAndFrame({ applyAutoLayout, frameSceneAfterRender });
 
   // Get editor context
   const {
@@ -333,6 +342,9 @@ export const EditorView = ({
       }
     }
 
+    if (hadMissingPositions) {
+      requestFrameOnNextRegistration();
+    }
     createNewNet({
       title: loadedSDCPN.title,
       petriNetDefinition: sdcpnToLoad,
@@ -415,7 +427,7 @@ export const EditorView = ({
             id: "layout",
             text: "Layout",
             onClick: () => {
-              void applyAutoLayout();
+              void runAutoLayoutAndFrame();
             },
           },
         ]),
@@ -537,6 +549,7 @@ export const EditorView = ({
       motion={showAnimations ? "auto" : "none"}
     >
       <EditorCommands
+        applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
       <UserSettings />
@@ -593,7 +606,10 @@ export const EditorView = ({
               <PropertiesPanel />
 
               {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+              <SDCPNView
+                onControllerChange={registerController}
+                viewportActions={viewportActions}
+              />
 
               {showEmptyAiHero && (
                 <AiCtaModal
@@ -631,7 +647,9 @@ export const EditorView = ({
               /** Reset state (e.g. initial messages) when the active net changes */
               key={`ai-assistant-${petriNetId ?? "no-net"}`}
               aiAssistant={aiAssistant}
+              applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
               focusRequest={aiAssistantFocusRequest}
+              frameSceneAfterRender={frameSceneAfterRender}
               initialMessage={pendingAiAssistantMessage}
               initialInteractionMode={pendingAiInteractionMode}
               offerStartPosture={offerStartPosture}

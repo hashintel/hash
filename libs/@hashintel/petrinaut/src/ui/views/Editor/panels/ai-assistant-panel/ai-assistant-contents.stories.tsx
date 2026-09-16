@@ -1,4 +1,10 @@
-import { type ComponentProps, type ReactNode, use, useState } from "react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  use,
+  useEffect,
+  useState,
+} from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { Button } from "@hashintel/ds-components";
@@ -14,6 +20,7 @@ import {
 } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
+import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -330,12 +337,15 @@ const Frame = ({
   initialVoiceDockCollapsed = false,
   inputMode = "text",
   messages,
+  primaryLabel,
+  resolveToolPresentation,
   status = "ready",
   stopped = false,
   voiceMode,
   voiceModeAvailable = false,
   voiceProvider = "live",
   voiceSession,
+  workingLabel,
 }: {
   additionalTab?: ComponentProps<typeof AiAssistantContents>["additionalTab"];
   error?: Error;
@@ -344,12 +354,15 @@ const Frame = ({
   initialVoiceDockCollapsed?: boolean;
   inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
+  primaryLabel?: string;
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver;
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
   voiceProvider?: VoiceProvider;
   voiceSession?: PetrinautAiVoiceSessionState;
+  workingLabel?: string;
 }) => {
   const editor = use(EditorContext);
   const [placement, setPlacement] = useState(initialPlacement);
@@ -387,17 +400,20 @@ const Frame = ({
             inputMode={inputMode}
             messages={messages}
             isOpen={isOpen}
+            primaryLabel={primaryLabel}
             onClose={() => setOpen(false)}
             onInputChange={setInput}
             onInputModeChange={() => {}}
             onStop={() => {}}
             onSubmit={() => setInput("")}
             onVoiceDockCollapsedChange={setVoiceDockCollapsed}
+            resolveToolPresentation={resolveToolPresentation}
             status={status}
             stopped={stopped}
             voiceDockCollapsed={voiceDockCollapsed}
             voiceMode={voiceMode}
             voiceModeAvailable={voiceModeAvailable}
+            workingLabel={workingLabel}
           />
         </div>
       </VoiceSessionContext.Provider>
@@ -1058,6 +1074,86 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
       5,
     );
   },
+};
+
+const toolLifecycleResolver: PetrinautAiToolPresentationResolver = ({
+  state,
+}) => ({
+  title:
+    state === "pending"
+      ? "Checking model diagnostics"
+      : state === "success"
+        ? "Checked model diagnostics"
+        : "Could not check model diagnostics",
+});
+
+const PendingToolLifecycleHarness = () => {
+  const [running, setRunning] = useState(true);
+
+  useEffect(() => {
+    if (!running) return;
+    const timer = window.setTimeout(() => setRunning(false), 3_000);
+    return () => window.clearTimeout(timer);
+  }, [running]);
+
+  const toolMessage: PetrinautAiMessage = {
+    id: "assistant-visible-tool-lifecycle",
+    role: "assistant",
+    parts: running
+      ? [
+          {
+            type: "dynamic-tool",
+            toolName: "read_petrinaut_diagnostics",
+            state: "input-available",
+            toolCallId: "visible-tool-lifecycle",
+            input: {},
+          },
+        ]
+      : [
+          {
+            type: "dynamic-tool",
+            toolName: "read_petrinaut_diagnostics",
+            state: "output-available",
+            toolCallId: "visible-tool-lifecycle",
+            input: {},
+            output: {
+              title: "No model diagnostics",
+              detail: "No errors or warnings found.",
+            },
+          },
+        ],
+  };
+
+  return (
+    <>
+      <div className={css({ padding: "4" })}>
+        <Button
+          disabled={running}
+          onClick={() => setRunning(true)}
+          size="sm"
+          type="button"
+          variant="solid"
+        >
+          {running ? "Faux tool running…" : "Run faux tool"}
+        </Button>
+      </div>
+      <Frame
+        messages={[userMessage, toolMessage]}
+        primaryLabel="Chat"
+        resolveToolPresentation={toolLifecycleResolver}
+        status={running ? "streaming" : "ready"}
+        workingLabel="Brunch is working"
+      />
+    </>
+  );
+};
+
+/**
+ * Manual, no-provider harness: run the 3-second faux tool to inspect the same
+ * pending → completed row transition used by the production panel.
+ */
+export const VisiblePendingToolLifecycle: Story = {
+  render: () => <PendingToolLifecycleHarness />,
 };
 
 const applyAutoLayoutPendingMessage: PetrinautAiMessage = {

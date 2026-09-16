@@ -9,6 +9,7 @@
 
 import {
   useAgentStart,
+  useContextProjection,
   useDelivery,
   useInitialData,
   useInstruction,
@@ -22,7 +23,6 @@ import {
   isReadPetrinautNetToolName,
   parseClientToolResultMetadata,
   readPetrinautNetToolName,
-  type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   SDCPN_MODELLING_SKILL_NAME,
@@ -37,7 +37,11 @@ import {
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
 
-import { selectChatModel } from "../../chat-model.ts";
+import {
+  selectChatModel,
+  selectChatModelSpecifier,
+  selectChatThinking,
+} from "../../chat-model.ts";
 import {
   ACTIVATE_SKILL_TOOL_NAME,
   isClientToolResultDelivery,
@@ -45,6 +49,7 @@ import {
 import { diagnostics } from "../../runtime-diagnostics.ts";
 
 export { ACTIVATE_SKILL_TOOL_NAME };
+import { verifyMutationResults } from "../../conversation/mutation-delivery.ts";
 import {
   deriveNetFreshness,
   NET_STALE_SIGNAL,
@@ -52,32 +57,43 @@ import {
 } from "../../conversation/net-freshness.ts";
 import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
 import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
-import {
-  verifyRootArcResults,
-  assertConstructionIdentity,
-} from "../../conversation/root-arc.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
 } from "../../conversation/workpiece.ts";
+import { projectBrunchContext } from "./context-projection.ts";
 import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
 export const CHAT_MODEL_ID = selectChatModel();
+export const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
+const chatThinkingLevel = selectChatThinking();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 const testCompactionConfig = loadTestCompactionConfig();
+const chatModelOptions =
+  testCompactionConfig === undefined && chatThinkingLevel === undefined
+    ? undefined
+    : {
+        ...(testCompactionConfig === undefined
+          ? {}
+          : { compaction: testCompactionConfig }),
+        ...(chatThinkingLevel === undefined
+          ? {}
+          : { thinkingLevel: chatThinkingLevel }),
+      };
 
 export function ChatAgent({ id }: AgentProps) {
+  useContextProjection(projectBrunchContext);
   const initialData = useInitialData<SdcpnInitialData>();
   const delivery = useDelivery();
   const browserContext: BrowserContext | undefined = initialData?.construction
-    ? { ...initialData.construction, construction: true }
-    : initialData?.browser;
+    ? { binding: initialData.construction.binding }
+    : undefined;
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.
   const history = () => {
@@ -110,8 +126,8 @@ export function ChatAgent({ id }: AgentProps) {
     }
   }
   const coreSystemPrompt = useBrunchAgent(
-    `anthropic/${CHAT_MODEL_ID}`,
-    testCompactionConfig,
+    CHAT_MODEL_SPECIFIER,
+    chatModelOptions,
     (currentRevision) => {
       useSdcpnPlugin({
         currentRevision,
@@ -119,33 +135,13 @@ export function ChatAgent({ id }: AgentProps) {
           retainedSettledRevision(await history(), revisionId),
         ...(initialData?.construction
           ? {
-              observationFor: async (
-                callId: string,
-                mutation?: Pick<
-                  ConstructionMutationRequest,
-                  "toolName" | "input"
-                >,
-              ) => {
+              observationFor: async (callId: string) => {
                 const snapshot = await history();
-                const observed = await recordedBrowserObservation(
+                return recordedBrowserObservation(
                   snapshot,
                   initialData.construction!,
                   callId,
                 );
-                if (mutation)
-                  await assertConstructionIdentity(
-                    snapshot,
-                    observed,
-                    mutation,
-                    initialData.construction!.binding,
-                    (id) =>
-                      recordedBrowserObservation(
-                        snapshot,
-                        initialData.construction!,
-                        id,
-                      ),
-                  );
-                return observed;
               },
             }
           : {}),
@@ -198,7 +194,7 @@ export function ChatAgent({ id }: AgentProps) {
           recordedBrowserObservation(snapshot, browser, callId),
         ),
       );
-      await verifyRootArcResults({
+      await verifyMutationResults({
         body: delivery.body,
         snapshot,
         ...browserContext,
@@ -237,7 +233,7 @@ A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Take two turns. Turn one: call read_petrinaut_net and nothing else, then end your response; query_workpiece is a server tool and cannot share a proposal with it. Turn two, after that client result has arrived: call query_workpiece citing that result's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified read_petrinaut_net result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls read_petrinaut_net and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece citing that read's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

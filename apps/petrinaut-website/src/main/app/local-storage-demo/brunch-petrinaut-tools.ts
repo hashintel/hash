@@ -59,12 +59,18 @@ const createReadNetTool = (
   toolName: readPetrinautNetToolName,
   inputSchema: passthrough,
   outputSchema: passthrough,
-  execute: ({ handle }) => ({
-    title: readTitle(),
-    definition: observeBrowserDefinition(handle).definition,
-    extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-      .extensions,
-  }),
+  execute: ({ handle, toolCallId }) => {
+    const observed = observeBrowserDefinition(handle);
+    return {
+      title: readTitle(),
+      definition: observed.definition,
+      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+        .extensions,
+      // Model-required freshness identity belongs in output. The fuller
+      // binding/definition observation remains a host-only metadata sidecar.
+      observation: { toolCallId, sha256: observed.sha256 },
+    };
+  },
 });
 
 const readDiagnosticsTool: PetrinautAiAutomaticTool = {
@@ -82,12 +88,22 @@ const readDiagnosticsTool: PetrinautAiAutomaticTool = {
  */
 const layoutNetTool: PetrinautAiAutomaticTool = {
   toolName: layoutPetrinautNetToolName,
+  visibility: "hidden",
   inputSchema: aiCommandActionInputSchemas.applyAutoLayout,
   outputSchema: passthrough,
-  execute: async ({ input, commands }) => {
+  execute: async ({ input, commands, viewport }) => {
     const { askUserFirst } =
       aiCommandActionInputSchemas.applyAutoLayout.parse(input);
     const { commitCount } = await commands.applyAutoLayout();
+    const frameStatus = await viewport.frameSceneAfterRender();
+    const detail = [
+      askUserFirst
+        ? "Applied without confirmation: this host has no inline prompt for layout."
+        : undefined,
+      `Viewport frame: ${frameStatus}.`,
+    ]
+      .filter((item): item is string => item !== undefined)
+      .join(" ");
     return {
       applied: true,
       commitCount,
@@ -95,12 +111,7 @@ const layoutNetTool: PetrinautAiAutomaticTool = {
         commitCount === 0
           ? "Auto-layout had no effect"
           : `Auto-laid out ${commitCount} node${commitCount === 1 ? "" : "s"}`,
-      ...(askUserFirst
-        ? {
-            detail:
-              "Applied without confirmation: this host has no inline prompt for layout.",
-          }
-        : {}),
+      detail,
     };
   },
 };

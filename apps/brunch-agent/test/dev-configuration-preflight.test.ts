@@ -4,7 +4,10 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { selectChatModel } from "../src/chat-model.ts";
+import {
+  selectChatModel,
+  selectChatModelSpecifier,
+} from "../src/chat-model.ts";
 import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
 
 const syntheticKey = "synthetic-config-fixture-not-a-real-credential";
@@ -21,6 +24,7 @@ beforeEach(() => {
     "ANTHROPIC_AUTH_TOKEN",
     "ANTHROPIC_OAUTH_TOKEN",
     "BRUNCH_CHAT_MODEL",
+    "OPENAI_API_KEY",
   ]) {
     vi.stubEnv(variable, undefined);
   }
@@ -147,6 +151,38 @@ describe("development configuration preflight (synthetic only)", () => {
     expect(report.model.actual).toBe("unrecognized model; value withheld");
   });
 
+  it("verifies OpenAI selection without requiring Anthropic for Brunch", async () => {
+    writeFileSync(
+      join(app, ".env.local"),
+      `OPENAI_API_KEY=${syntheticKey}\nBRUNCH_CHAT_MODEL=openai/gpt-5.6-sol\n`,
+    );
+    const report = await check();
+    expect(report.status).toBe("PASS");
+    expect(report.model.actual).toBe("openai/gpt-5.6-sol");
+    expect(report.openaiApiKey).toEqual({
+      source: "apps/brunch-agent/.env.local",
+      status: "non-placeholder; validity untested",
+    });
+    expect(report.providerSelection).toBe(
+      "verified: OPENAI_API_KEY matches Vite selection",
+    );
+    expect(report.apiKey.status).toBe("missing/empty");
+    expect(process.env.OPENAI_API_KEY).toBeUndefined();
+  });
+
+  it("rejects a placeholder OpenAI key when Brunch is OpenAI", async () => {
+    writeFileSync(
+      join(app, ".env.local"),
+      "OPENAI_API_KEY=dummy\nBRUNCH_CHAT_MODEL=openai/gpt-5.6-sol\n",
+    );
+    const report = await check();
+    expect(report.status).toBe("FAIL");
+    expect(report.openaiApiKey).toEqual({
+      source: "apps/brunch-agent/.env.local",
+      status: "placeholder rejected",
+    });
+  });
+
   it("refuses DEBUG before Vite can expose configuration", async () => {
     vi.stubEnv("DEBUG", "vite:env");
     await expect(checkDevConfiguration(root)).rejects.toThrow(
@@ -162,4 +198,8 @@ it("preserves canonical ChatAgent default semantics", () => {
   expect(selectChatModel({ BRUNCH_CHAT_MODEL: "claude-sonnet-4-6" })).toBe(
     "claude-sonnet-4-6",
   );
+  expect(selectChatModelSpecifier({})).toBe("anthropic/claude-haiku-4-5");
+  expect(
+    selectChatModelSpecifier({ BRUNCH_CHAT_MODEL: "openai/gpt-5.6-sol" }),
+  ).toBe("openai/gpt-5.6-sol");
 });

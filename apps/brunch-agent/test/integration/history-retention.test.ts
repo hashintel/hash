@@ -30,6 +30,35 @@ const overflowContinuations = (directory: string) => {
   return trace.filter((event) => event.boundary === "continueRebuilt");
 };
 
+test("built app projects provider context without changing retained history", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "brunch-a4-projection-"));
+  try {
+    for (const phase of ["create", "reopen"]) {
+      // oxlint-disable-next-line no-await-in-loop -- Reopen must use the store after the first process has stopped.
+      const result = await runNodeScript(
+        join(import.meta.dirname, "history-retention.integration.ts"),
+        join(import.meta.dirname, "../../../.."),
+        {
+          A4_OUTPUT_DIRECTORY: directory,
+          A4_PROJECTION_ORACLE: "1",
+          A4_PHASE: phase,
+        },
+      );
+      expect(result.exitCode, result.stderr + result.stdout).toBe(0);
+      expect(result.stdout).toContain(`A4_${phase.toUpperCase()}_PASS`);
+    }
+    if (process.env.A4_REPORT_METRICS === "1")
+      process.stdout.write(
+        readFileSync(
+          join(directory, "projection-payload-metrics.json"),
+          "utf8",
+        ),
+      );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 30000);
+
 test.each(["threshold", "silent", "explicit", "cancelled"])(
   "existing-tool history survives folding or active Stop (%s)",
   async (kind) => {

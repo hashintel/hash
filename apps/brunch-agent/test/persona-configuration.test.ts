@@ -27,7 +27,32 @@ const setup = () => {
 };
 
 test("isolated Pi configuration needs no accounting allocation", () => {
-  expect(checkPersonaConfiguration(setup())).toBe("TEST-configuration-key");
+  expect(checkPersonaConfiguration(setup())).toEqual({
+    ANTHROPIC_API_KEY: "TEST-configuration-key",
+  });
+});
+
+test("OpenAI persona requires and transfers only its selected provider credential", () => {
+  const { ANTHROPIC_API_KEY: _unused, ...environment } = setup();
+  expect(
+    checkPersonaConfiguration(
+      { ...environment, OPENAI_API_KEY: "TEST-openai-key" },
+      "openai/gpt-5.6-sol",
+    ),
+  ).toEqual({ OPENAI_API_KEY: "TEST-openai-key" });
+  expect(() =>
+    checkPersonaConfiguration(setup(), "openai/gpt-5.6-sol"),
+  ).toThrow(/configuration refused/);
+});
+
+test("an unrelated provider credential does not satisfy an Anthropic persona", () => {
+  const { ANTHROPIC_API_KEY: _unused, ...environment } = setup();
+  expect(() =>
+    checkPersonaConfiguration({
+      ...environment,
+      OPENAI_API_KEY: "TEST-openai-key",
+    }),
+  ).toThrow(/configuration refused/);
 });
 
 test.each(["auth.json", "models.json"])(

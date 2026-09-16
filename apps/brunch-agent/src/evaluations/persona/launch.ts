@@ -21,7 +21,6 @@ import { loadEnv } from "vite";
 
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
-import { STEP_A_MODEL_ID } from "../../chat-model.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
@@ -29,12 +28,22 @@ import {
 import { openPersonaBrowserBridge } from "./browser-bridge.ts";
 import { submitPersonaBrowserTurn } from "./browser-turn.ts";
 import { checkPersonaConfiguration } from "./configuration.ts";
+import {
+  axisSettingsFromRun,
+  resolvePersonaAxisSettings,
+  type PersonaAxisSettings,
+} from "./launch/axis-settings.ts";
 import { openPersonaConversation } from "./launch/browser.ts";
 import {
   openRetainedPersonaBrowser,
   readPersonaResume,
   reconcilePersonaResume,
 } from "./launch/resume.ts";
+import {
+  resolvePersonaRoleSettings,
+  roleSettingsFromRun,
+  type PersonaRoleSettings,
+} from "./launch/role-settings.ts";
 import {
   refreshProofManifest,
   writeProofArtifacts,
@@ -92,48 +101,67 @@ export const readPersonaCase = async (directory: string) => {
 
 export const personaArguments = (
   run: string,
-  model: string,
+  roles: PersonaRoleSettings,
+  axes: PersonaAxisSettings,
   socketPath: string,
   piSession?: string,
-) => [
-  "--model",
-  `anthropic/${model}`,
-  "--thinking",
-  "medium",
-  "--no-extensions",
-  "--extension",
-  join(appRoot, ".pi/extensions/brunch-persona-testing.ts"),
-  "--no-builtin-tools",
-  "--tools",
-  "brunch_turn",
-  "--no-skills",
-  "--no-prompt-templates",
-  "--no-context-files",
-  "--append-system-prompt",
-  join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
-  "--brunch-browser-bridge",
-  socketPath,
-  "--session-dir",
-  join(run, "pi/sessions"),
-  ...(piSession ? ["--session", piSession] : []),
-  "--approve",
-  "--",
-  `@${join(run, piSession ? "resume-input.md" : "persona-input.md")}`,
-];
+) => {
+  const axisDirectory = join(
+    appRoot,
+    ".pi/extensions/brunch-persona-testing/axes",
+  );
+  const axisPromptPaths = [
+    ...(axes.personaVerbosity === "default"
+      ? []
+      : [join(axisDirectory, `verbosity-${axes.personaVerbosity}.md`)]),
+    ...(axes.personaDisclosure === "default"
+      ? []
+      : [join(axisDirectory, `disclosure-${axes.personaDisclosure}.md`)]),
+  ];
+  return [
+    "--model",
+    roles.personaModel,
+    "--thinking",
+    roles.personaThinking,
+    "--no-extensions",
+    "--extension",
+    join(appRoot, ".pi/extensions/brunch-persona-testing.ts"),
+    "--no-builtin-tools",
+    "--tools",
+    "brunch_turn",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-context-files",
+    "--append-system-prompt",
+    join(appRoot, ".pi/extensions/brunch-persona-testing/SYSTEM.md"),
+    ...axisPromptPaths.flatMap((path) => ["--append-system-prompt", path]),
+    "--brunch-browser-bridge",
+    socketPath,
+    "--session-dir",
+    join(run, "pi/sessions"),
+    ...(piSession ? ["--session", piSession] : []),
+    "--approve",
+    "--",
+    `@${join(run, piSession ? "resume-input.md" : "persona-input.md")}`,
+  ];
+};
 
 const save = (path: string, value: unknown) =>
   writeFile(path, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const chromeExecutable =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-export const personaEnvironment = () => {
+export const personaEnvironment = (
+  roles: PersonaRoleSettings = resolvePersonaRoleSettings(),
+) => {
   // Same loader and shell precedence as the normal development app.
   if (process.env.DEBUG)
     throw new Error(
       "Unset DEBUG before persona launch; environment values must not be logged",
     );
   const loaded = { ...loadEnv("development", appRoot, ""), ...process.env };
-  loaded.BRUNCH_CHAT_MODEL = STEP_A_MODEL_ID;
+  loaded.BRUNCH_CHAT_MODEL = roles.brunchModel;
+  loaded.BRUNCH_CHAT_THINKING = roles.brunchThinking;
   // An explicit empty value also overrides Vite env files on backend startup.
   // Historical campaign ledgers must not gate persona requests or resumed runs.
   loaded.BRUNCH_STEP_A_ACCOUNTING = "";
@@ -157,22 +185,83 @@ export const paneIdFrom = (stdout: string) => {
   throw new Error("herdr pane split did not return a pane id");
 };
 
+export const recordingReadySummary = ({
+  title,
+  url,
+  browserProfile,
+  roles,
+  axes,
+  resume,
+}: {
+  title: string;
+  url: string;
+  browserProfile: string;
+  roles: PersonaRoleSettings;
+  axes: PersonaAxisSettings;
+  resume: boolean;
+}) =>
+  `Chrome window: ${title}\nURL: ${url}\nProfile: ${browserProfile}\nModels: Brunch ${roles.brunchModel} (${roles.brunchThinking}) + Pi ${roles.personaModel} (${roles.personaThinking})\nPersona axes: verbosity ${axes.personaVerbosity}; disclosure ${axes.personaDisclosure}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`;
+
+export const personaSettingsRecord = (
+  roles: PersonaRoleSettings,
+  axes: PersonaAxisSettings,
+) => ({
+  brunchModel: roles.brunchModel,
+  brunchThinking: roles.brunchThinking,
+  personaModel: roles.personaModel,
+  personaThinking: roles.personaThinking,
+  personaVerbosity: axes.personaVerbosity,
+  personaDisclosure: axes.personaDisclosure,
+});
+
 const runPersona = async (run: string) => {
-  const config = JSON.parse(await readFile(join(run, "run.json"), "utf8")) as {
-    model: string;
-    socketPath: string;
-    piSession?: string;
-  };
-  if (config.model !== STEP_A_MODEL_ID)
-    throw new Error("Persona run must use the selected Sonnet model");
+  const config: unknown = JSON.parse(
+    await readFile(join(run, "run.json"), "utf8"),
+  );
+  const roles = roleSettingsFromRun(config);
+  const axes = axisSettingsFromRun(config);
+  const fields =
+    typeof config === "object" && config !== null && !Array.isArray(config)
+      ? (config as Record<string, unknown>)
+      : {};
+  const socketPath =
+    typeof fields.socketPath === "string" ? fields.socketPath : undefined;
+  const piSession =
+    typeof fields.piSession === "string" ? fields.piSession : undefined;
+  if (!socketPath) throw new Error("Persona run is missing its private socket");
+  const credentials = checkPersonaConfiguration(
+    {
+      ...process.env,
+      PI_CODING_AGENT_DIR: join(run, "pi"),
+      PI_OFFLINE: "1",
+    },
+    roles.personaModel,
+  );
   const child = spawn(
     "pi",
-    personaArguments(run, config.model, config.socketPath, config.piSession),
+    personaArguments(run, roles, axes, socketPath, piSession),
     {
       cwd: appRoot,
       stdio: "inherit",
       env: {
-        ...personaEnvironment(),
+        // The pane supplies the selected credential; do not reload app env files
+        // or inherit server credentials and executable configuration into Pi.
+        ...Object.fromEntries(
+          [
+            "PATH",
+            "HOME",
+            "USER",
+            "LOGNAME",
+            "SHELL",
+            "TERM",
+            "COLORTERM",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "TMPDIR",
+          ].map((name) => [name, process.env[name]]),
+        ),
+        ...credentials,
         PI_CODING_AGENT_DIR: join(run, "pi"),
         PI_SUBAGENT_NAME: basename(run),
         PI_OFFLINE: "1",
@@ -283,6 +372,8 @@ export const launchPersona = async (
   route = "/",
   initialNetPath?: string,
   resume?: Awaited<ReturnType<typeof readPersonaResume>>,
+  roles: PersonaRoleSettings = resolvePersonaRoleSettings(),
+  axes: PersonaAxisSettings = resolvePersonaAxisSettings(),
 ) => {
   const { pack, opening } = resume
     ? { pack: "", opening: "" }
@@ -297,8 +388,9 @@ export const launchPersona = async (
     throw new Error(
       `Resume requires the original panel origin ${resume.config.panelOrigin}; set BRUNCH_PANEL_PORT accordingly`,
     );
-  const env = personaEnvironment();
-  const model = STEP_A_MODEL_ID;
+  const settings = resume ? roleSettingsFromRun(resume.config) : roles;
+  const axisSettings = resume ? axisSettingsFromRun(resume.config) : axes;
+  const env = personaEnvironment(settings);
   const initialNet =
     initialNetPath === undefined
       ? undefined
@@ -331,14 +423,17 @@ export const launchPersona = async (
       retry: { enabled: false, provider: { maxRetries: 0 } },
     });
   }
-  const key = checkPersonaConfiguration({
-    ...env,
-    PI_CODING_AGENT_DIR: join(run, "pi"),
-    PI_OFFLINE: "1",
-  });
+  const credentials = checkPersonaConfiguration(
+    {
+      ...env,
+      PI_CODING_AGENT_DIR: join(run, "pi"),
+      PI_OFFLINE: "1",
+    },
+    settings.personaModel,
+  );
   const record = {
     caseDirectory,
-    model,
+    ...personaSettingsRecord(settings, axisSettings),
     databasePath: env.BRUNCH_DEV_DB_PATH,
     browserProfile,
     panelOrigin,
@@ -386,7 +481,7 @@ export const launchPersona = async (
       { mode: 0o600 },
     );
     report(
-      "Sonnet configuration verified; credential validity untested. Pi verifies its native selection again on startup.",
+      `Brunch ${settings.brunchModel} (${settings.brunchThinking}) configuration verified; credential validity untested. Pi verifies ${settings.personaModel} (${settings.personaThinking}) on startup.`,
     );
     const services = [
       { url: `${defaultChatOrigin}/health`, script: "dev:brunch:server" },
@@ -489,7 +584,14 @@ export const launchPersona = async (
       }, title);
       await personaPage.bringToFront();
       report(
-        `Chrome window: ${title}\nURL: ${personaPage.url()}\nProfile: ${browserProfile}\nModels: Brunch + Pi ${model}\nUsage is retained in native records; no automatic budget cutoff.\n${resume ? "Original document retained. Backend recovery and Pi have not started." : "No message has been sent."} Start your screen recording, then press Enter here.`,
+        recordingReadySummary({
+          title,
+          url: personaPage.url(),
+          browserProfile,
+          roles: settings,
+          axes: axisSettings,
+          resume: resume !== undefined,
+        }),
       );
       const terminal = createInterface({
         input: process.stdin,
@@ -598,10 +700,9 @@ export const launchPersona = async (
     // Credentials stay in a run-private env file, never in Herdr/process argv.
     await writeFile(
       join(run, "pane.env"),
-      [
-        `export ANTHROPIC_API_KEY=${shellQuote(key)}`,
-        `export BRUNCH_CHAT_MODEL=${shellQuote(model)}`,
-      ].join("\n") + "\n",
+      Object.entries(credentials)
+        .map(([variable, value]) => `export ${variable}=${shellQuote(value)}`)
+        .join("\n") + "\n",
       { mode: 0o600 },
     );
     await execute("herdr", [
@@ -673,6 +774,12 @@ if (
       objective: { type: "string" },
       "initial-net": { type: "string" },
       route: { type: "string" },
+      "brunch-model": { type: "string" },
+      "brunch-thinking": { type: "string" },
+      "persona-model": { type: "string" },
+      "persona-thinking": { type: "string" },
+      "persona-verbosity": { type: "string" },
+      "persona-disclosure": { type: "string" },
       resume: { type: "string" },
       "run-persona": { type: "string" },
       help: { type: "boolean", short: "h" },
@@ -680,10 +787,10 @@ if (
   });
   if (values.help) {
     report(
-      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Both models use claude-sonnet-4-6. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT and the app's normal Anthropic configuration. Ctrl-C stops owned resources; run data is retained.",
+      "Usage: yarn brunch:persona --case <name-or-directory> [--objective <private objective>] [--route </path?search>] [--initial-net <sdcpn.json>] [--brunch-model <provider/id>] [--brunch-thinking <level>] [--persona-model <provider/id>] [--persona-thinking <level>] [--persona-verbosity terse|default|expansive] [--persona-disclosure reticent|default|forthcoming]\nDiscover cases: yarn brunch:persona --list-cases\nDefault: empty net on /; optional --initial-net stages a model and is not a from-scratch run. --objective is fresh-run-only and is neither retained nor reapplied on resume. Starts owned services and a fresh headed Chrome window; pauses for Enter before sending anything. Defaults: Brunch openai/gpt-5.6-sol low, persona anthropic/claude-sonnet-4-6 low, persona verbosity default, persona disclosure default. Native usage is retained; there is no automatic budget cutoff. Requires macOS Chrome, Pi, Herdr, unused BRUNCH_CHAT_PORT/BRUNCH_PANEL_PORT, and each selected provider's API key (OPENAI_API_KEY or ANTHROPIC_API_KEY). Ctrl-C stops owned resources; run data is retained.",
     );
     report(
-      "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database and Pi session. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
+      "Resume: yarn brunch:persona --resume <run-directory>\nReuses the original profile, database, exact Pi session, and retained effective persona axes. Fresh axis flags and all other fresh-run options are rejected. --objective is neither retained nor reapplied. Set the original BRUNCH_PANEL_PORT; choose an unused BRUNCH_CHAT_PORT. Pauses before backend recovery. Old accounting ledgers are preserved but not consulted.\nOperator guide: apps/brunch-agent/.pi/extensions/brunch-persona-testing/README.md",
     );
   } else if (values["list-cases"]) {
     const cases = await listPersonaCases();
@@ -704,6 +811,12 @@ if (
         values.objective ||
         values.route ||
         values["initial-net"] ||
+        values["brunch-model"] ||
+        values["brunch-thinking"] ||
+        values["persona-model"] ||
+        values["persona-thinking"] ||
+        values["persona-verbosity"] ||
+        values["persona-disclosure"] ||
         values["run-persona"]
       )
         throw new Error(
@@ -735,6 +848,17 @@ if (
                     values["initial-net"],
                   )
                 : undefined,
+              undefined,
+              resolvePersonaRoleSettings({
+                brunchModel: values["brunch-model"],
+                brunchThinking: values["brunch-thinking"],
+                personaModel: values["persona-model"],
+                personaThinking: values["persona-thinking"],
+              }),
+              resolvePersonaAxisSettings({
+                personaVerbosity: values["persona-verbosity"],
+                personaDisclosure: values["persona-disclosure"],
+              }),
             )
           : Promise.reject(new Error("Supply --case <name-or-directory>"));
     await task.catch((error: unknown) => {

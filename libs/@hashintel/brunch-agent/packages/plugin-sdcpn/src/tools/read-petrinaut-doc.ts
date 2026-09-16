@@ -26,6 +26,3 @@ export const readPetrinautDocs = defineTool({
     return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
   },
 });
-
-/** @deprecated Use `readPetrinautDocs`. */
-export const readPetrinautDoc = readPetrinautDocs;

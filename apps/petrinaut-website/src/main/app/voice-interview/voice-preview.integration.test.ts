@@ -76,13 +76,6 @@ const initialMessages = [
     id: "initial-question-message",
     parts: [
       {
-        data: {
-          question: "What happens after approval?",
-          toolCallId: "tool-initial-question",
-        },
-        type: "data-brunch-question",
-      },
-      {
         state: "done",
         text: "What happens after approval?",
         type: "text",
@@ -102,13 +95,6 @@ const responseMessages = [
   {
     id: "next-question-message",
     parts: [
-      {
-        data: {
-          question: canonicalQuestion,
-          toolCallId: "tool-next-question",
-        },
-        type: "data-brunch-question",
-      },
       {
         state: "done",
         text: canonicalQuestion,

@@ -9,13 +9,9 @@ import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
 export const batchedConstructionMode = "batched-construction";
 export const mutatePetrinautNetToolName = "mutate_petrinaut_net";
-/** @deprecated Use `mutatePetrinautNetToolName`. */
-export const mutatePetrinetToolName = mutatePetrinautNetToolName;
-export const legacyMutatePetrinautNetToolName = "mutate_petrinet";
 
 export const isMutatePetrinautNetToolName = (name: string): boolean =>
-  name === mutatePetrinautNetToolName ||
-  name === legacyMutatePetrinautNetToolName;
+  name === mutatePetrinautNetToolName;
 
 /** Per-operation attempt identity retained under one outer `mutate_petrinaut_net` call. */
 export const mutatePetrinetAttemptCallId = (
@@ -376,10 +372,10 @@ export const mutatePetrinetInputSchema = z
           .string()
           .min(1)
           .describe(
-            "Copy metadata.observation.toolCallId from the preceding read_petrinaut_net browser result.",
+            "Copy output.observation.toolCallId from the preceding read_petrinaut_net browser result.",
           ),
         baseHash: sha256Schema.describe(
-          "Copy metadata.observation.observed.sha256 from that same read. This is the net-definition hash, not a workpiece hash; never calculate or guess it.",
+          "Copy output.observation.sha256 from that same read. This is the net-definition hash, not a workpiece hash; never calculate or guess it.",
         ),
       })
       .meta({
