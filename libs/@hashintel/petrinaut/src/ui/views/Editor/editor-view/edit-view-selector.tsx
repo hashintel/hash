@@ -7,27 +7,31 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
 const selectorStyle = css({
+  display: "flex",
   position: "absolute",
   width: "[var(--edit-view-selector-width)]",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
-  borderRadius: "[8px]",
+  borderRadius: "[6px]",
   backgroundColor: "white.a95",
+  opacity: "[0.8]",
+  _hover: { opacity: "[1]" },
+  _focusWithin: { opacity: "[1]" },
 });
 
 const controlStyle = css({
-  "&&": { width: "full", boxSizing: "border-box" },
+  "&&": { width: "full", height: "[24px]", boxSizing: "border-box" },
 });
 
 const placementStyle = cva({
   base: {},
   variants: {
     floating: {
-      true: { boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.08)]" },
+      true: { boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.06)]" },
     },
     animated: {
       true: {
         transition:
-          "[left 150ms ease-in-out, top 150ms ease-in-out, box-shadow 150ms ease-in-out]",
+          "[left 150ms ease-in-out, top 150ms ease-in-out, box-shadow 150ms ease-in-out, opacity 150ms ease-in-out]",
         "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
       },
     },
@@ -57,13 +61,13 @@ export const EditViewSelector = () => {
       )}
       style={{
         left: `min(${left}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
-        top: isCanvas ? 12 : 8,
+        top: isCanvas ? 12 : 10,
       }}
     >
       <SegmentedControl
         className={controlStyle}
         aria-label="Edit view"
-        size="sm"
+        size="xs"
         value={editViewMode}
         onChange={setEditViewMode}
         items={[
