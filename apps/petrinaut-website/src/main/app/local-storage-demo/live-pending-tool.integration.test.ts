@@ -6,7 +6,11 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { fauxProvider } from "@earendil-works/pi-ai";
+import {
+  fauxAssistantMessage,
+  fauxProvider,
+  fauxToolCall,
+} from "@earendil-works/pi-ai";
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -61,7 +65,7 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-test("bounds a native OpenAI tool row that stops after one argument delta", async () => {
+test("bounds a native OpenAI tool row without replaying completed tool work", async () => {
   process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.6-sol";
   process.env.BRUNCH_CHAT_THINKING = "low";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
@@ -71,6 +75,12 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
   });
   const requests: Record<string, unknown>[] = [];
   const stall = createNativeOpenaiToolStall("mutate_workpiece");
+  faux.setResponses([
+    fauxAssistantMessage(
+      [fauxToolCall("ping", {}, { id: "call_completed|fc_completed" })],
+      { stopReason: "toolUse" },
+    ),
+  ]);
 
   const application = await loadBuiltBrunchApplication();
   let retryAvailable = true;
@@ -80,7 +90,8 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
         faux.provider,
         requests,
         async () => {},
-        stall.response,
+        (input) =>
+          input.requestIndex === 0 ? undefined : stall.response(input),
       ),
       () => true,
       new Set(),
@@ -217,7 +228,7 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
     );
     const row = screen.getByRole("button", { name: /Updating ledger/u });
     expect(row.getAttribute("aria-busy")).toBe("true");
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(2);
 
     const retryPending = await Promise.race([
       retryPendingMessage.promise,
@@ -261,12 +272,12 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
       }),
     ]);
     expect(outcome).toBe("failed");
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     const attempts = stall.attempts();
     expect(attempts).toHaveLength(2);
     expect(attempts.at(1)?.toolCallId).not.toBe(firstAttempt.toolCallId);
-    expect(requests.at(1)?.model).toBe(requests.at(0)?.model);
-    expect(requests.at(1)?.reasoning).toEqual(requests.at(0)?.reasoning);
+    expect(requests.at(2)?.model).toBe(requests.at(1)?.model);
+    expect(requests.at(2)?.reasoning).toEqual(requests.at(1)?.reasoning);
     await Promise.all(attempts.map((attempt) => attempt.cancelled));
     const retryToolCallId = attempts.at(1)?.toolCallId;
     const terminalMessage = observedMessages.findLast((message) =>
@@ -316,10 +327,14 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
     expect(
       afterFailure.messages.filter((message) => message.purpose === "user"),
     ).toHaveLength(1);
+    const canonicalTools = afterFailure.messages.flatMap((historyMessage) =>
+      historyMessage.parts.filter((part) => part.type === "dynamic-tool"),
+    );
     expect(
-      afterFailure.messages.some((historyMessage) =>
-        historyMessage.parts.some((part) => part.type === "dynamic-tool"),
-      ),
+      canonicalTools.filter((part) => part.toolName === "ping"),
+    ).toHaveLength(1);
+    expect(
+      canonicalTools.some((part) => part.toolName === "mutate_workpiece"),
     ).toBe(false);
   } finally {
     await client.abort().catch(() => undefined);

@@ -8,8 +8,9 @@ import type { AssistantMessage, Provider } from "@earendil-works/pi-ai";
 import type { convertResponsesTools } from "@earendil-works/pi-ai/api/openai-responses-shared";
 
 export type NativeOpenaiResponseFactory = (input: {
+  readonly requestIndex: number;
   readonly signal: AbortSignal | undefined;
-}) => Response | Promise<Response>;
+}) => Response | undefined | Promise<Response | undefined>;
 
 type NativeOpenaiToolStallAttempt = {
   readonly cancelled: Promise<void>;
@@ -283,13 +284,16 @@ export const nativeOpenaiProvider = (
             assert.equal(sent.description, tool.description);
             assert.equal(sent.strict, false, "This path uses non-strict tools");
           }
+          const requestIndex = requests.length;
           requests.push(serialized);
           if (responseFactory !== undefined) {
-            return responseFactory({
+            const response = await responseFactory({
+              requestIndex,
               signal:
                 (request instanceof Request ? request.signal : init.signal) ??
                 undefined,
             });
+            if (response !== undefined) return response;
           }
           return syntheticResponse(
             await responses.streamSimple(model, context, options).result(),
