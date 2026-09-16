@@ -28,3 +28,5 @@ Returning restores keyboard focus to **Fill panel**, or to the section header if
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
 Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
+
+The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.

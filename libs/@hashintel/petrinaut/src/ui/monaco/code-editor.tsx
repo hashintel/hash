@@ -1,4 +1,4 @@
-import { Suspense, use, useRef, useState } from "react";
+import { Suspense, use, useLayoutEffect, useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -193,6 +193,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     monacoInstance: Monaco,
   ) => {
     editorRef.current = editorInstance;
+    setEditorFocused(false);
     setEditorMounted(true);
 
     // With a `path`, @monaco-editor/react reuses the existing model and
@@ -262,6 +263,13 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     onMount?.(editorInstance, monacoInstance);
   };
 
+  // Monaco retains its first onMount callback across Activity reactivation.
+  // Read the current committed props when it recreates the native editor.
+  const handleMountRef = useRef(handleMount);
+  useLayoutEffect(() => {
+    handleMountRef.current = handleMount;
+  });
+
   const editorOptions: EditorProps["options"] = singleLine
     ? {
         minimap: { enabled: false },
@@ -324,7 +332,9 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         theme="petrinaut-light"
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
-        onMount={handleMount}
+        onMount={(editorInstance, monacoInstance) =>
+          handleMountRef.current(editorInstance, monacoInstance)
+        }
         value={editorFocused ? undefined : value}
         onChange={onChange}
         {...props}
