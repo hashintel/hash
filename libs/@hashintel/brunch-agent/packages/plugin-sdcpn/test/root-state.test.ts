@@ -495,3 +495,193 @@ describe("native typed state construction", () => {
     ).toThrow(/Invalid input/u);
   });
 });
+
+describe("saved scenarios and metrics an experiment names", () => {
+  const agents = {
+    id: "agents",
+    name: "Agents",
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+  } satisfies SDCPN["places"][number];
+  const metric = {
+    id: "average-wait",
+    name: "Average wait",
+    code: "return state.places.Agents.count;",
+  } satisfies PetrinautAiToolInput<"addMetric">;
+  const staffing = {
+    id: "peak-demand",
+    name: "Peak demand",
+    scenarioParameters: [
+      { identifier: "active_agents", type: "integer", default: 4 },
+    ],
+    initialState: {
+      type: "per_place",
+      content: { [agents.id]: "scenario.active_agents" },
+    },
+  } satisfies PetrinautAiToolInput<"addScenario">;
+  const withAgents = () => {
+    const definition = empty();
+    definition.places.push(agents);
+    return definition;
+  };
+
+  test("admits a scenario whose integer parameter sets a place count by expression", () => {
+    const before = withAgents();
+    const req = request("addScenario", staffing);
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.scenarios?.[0]).toMatchObject({
+      id: staffing.id,
+      scenarioParameters: [{ identifier: "active_agents", type: "integer" }],
+    });
+    expect(outcome(req, before, after)).toBe("applied");
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.created.map((change) => change.path).sort()).toEqual([
+      "/scenarios/0/id",
+      "/scenarios/0/initialState",
+      "/scenarios/0/name",
+      "/scenarios/0/scenarioParameters",
+    ]);
+    const located = locateRootState(after, {
+      kind: "scenario",
+      name: staffing.name,
+      field: "/scenarioParameters/0/type",
+    });
+    expect(located).toMatchObject({
+      path: "/scenarios/0/scenarioParameters/0/type",
+      value: "integer",
+    });
+    expect(located.formalism).toContain("not an operating range");
+  });
+
+  test("the first metric is one entity creation, not a collection creation, and is located by kind", () => {
+    const before = withAgents();
+    expect(before.metrics).toBeUndefined();
+    const req = request("addMetric", metric);
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    expect(after.metrics).toEqual([metric]);
+    expect(outcome(req, before, after)).toBe("applied");
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.created.map((change) => change.path).sort()).toEqual([
+      "/metrics/0/code",
+      "/metrics/0/id",
+      "/metrics/0/name",
+    ]);
+    expect(effects.derived).toEqual([]);
+    const located = locateRootState(after, {
+      kind: "metric",
+      name: metric.name,
+      field: "code",
+    });
+    expect(located).toMatchObject({
+      kind: "metric",
+      id: metric.id,
+      nodePath: "/metrics/0",
+      path: "/metrics/0/code",
+      value: metric.code,
+    });
+    expect(located.formalism).toContain("name it as an objective");
+    expect(
+      parseConstructionWhyInput({ kind: "metric", name: metric.id }),
+    ).toEqual({ kind: "metric", name: metric.id, field: "entity" });
+    // A metric identity collides with every other root identity, and a
+    // retired one is not reused.
+    expect(() =>
+      assertStateIdentity(request("addMetric", metric), after, []),
+    ).toThrow(/Duplicate/);
+    expect(() =>
+      assertStateIdentity(
+        request("addMetric", { ...metric, id: agents.id }),
+        before,
+        [],
+      ),
+    ).toThrow(/Duplicate/);
+    expect(() =>
+      assertStateIdentity(request("addMetric", metric), before, [after]),
+    ).toThrow(/retired/);
+  });
+
+  test("a metric edit attributes only the requested field and refuses an unknown metric", () => {
+    const before = withAgents();
+    before.metrics = [metric];
+    const req = request("updateMetric", {
+      metricId: metric.id,
+      update: { name: "Average waiting time" },
+    });
+    assertStateIdentity(req, before, []);
+    const after = expectedNodeDefinition(req, before);
+    const effects = deriveMutationEffects(req, before, after);
+    expect(effects.updated).toEqual([
+      {
+        kind: "updated",
+        path: "/metrics/0/name",
+        before: metric.name,
+        after: "Average waiting time",
+      },
+    ]);
+    expect(effects.derived).toEqual([]);
+    expect(outcome(req, before, after)).toBe("applied");
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: "missing",
+          update: { name: "Nothing" },
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/Unknown or ambiguous metric/);
+  });
+
+  test("removals of a scenario or metric are one direct deletion at the located index", () => {
+    const before = withAgents();
+    before.scenarios = [
+      { ...staffing, id: "baseline", name: "Baseline", parameterOverrides: {} },
+      { ...staffing, parameterOverrides: {} },
+    ];
+    before.metrics = [metric, { ...metric, id: "queue-length", name: "Queue" }];
+    const dropScenario = request("removeScenario", { scenarioId: staffing.id });
+    const afterScenario = expectedNodeDefinition(dropScenario, before);
+    expect(afterScenario.scenarios?.map((entry) => entry.id)).toEqual([
+      "baseline",
+    ]);
+    const scenarioEffects = deriveMutationEffects(
+      dropScenario,
+      before,
+      afterScenario,
+    );
+    expect(scenarioEffects.deleted.map((change) => change.path)).toEqual([
+      "/scenarios/1",
+    ]);
+    expect(scenarioEffects.derived).toEqual([]);
+    expect(outcome(dropScenario, before, afterScenario)).toBe("applied");
+
+    // Like every root removal, the positional diff attributes a final-index
+    // removal directly; removing an earlier entry shifts its successors.
+    const dropMetric = request("removeMetric", { metricId: "queue-length" });
+    const afterMetric = expectedNodeDefinition(dropMetric, before);
+    expect(afterMetric.metrics?.map((entry) => entry.id)).toEqual([metric.id]);
+    const metricEffects = deriveMutationEffects(
+      dropMetric,
+      before,
+      afterMetric,
+    );
+    expect(metricEffects.deleted.map((change) => change.path)).toEqual([
+      "/metrics/1",
+    ]);
+    expect(metricEffects.derived).toEqual([]);
+    expect(outcome(dropMetric, before, afterMetric)).toBe("applied");
+    // A missing target has no located index; the canonical no-op is not laundered as a removal.
+    expect(() =>
+      deriveMutationEffects(
+        request("removeMetric", { metricId: "missing" }),
+        before,
+        before,
+      ),
+    ).toThrow(/Unknown or ambiguous/);
+  });
+});
