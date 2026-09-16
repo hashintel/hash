@@ -9,6 +9,8 @@ import { CELL_KIND_ICONS, CELL_KIND_LABELS } from "./cell-kinds";
 import { NetGraphView } from "./net-graph";
 
 import type { FocusGrid } from "../../worksheet/use-focus-grid";
+import type { CycleGroup } from "./net-cycles";
+import type { InitialPlaceGroup } from "./net-siphons";
 import type { CellConnections, NetGraph, NodeRef } from "./notebook-model";
 
 const containerStyle = css({
@@ -32,6 +34,12 @@ const headerActionsStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
+});
+
+const cycleSummaryStyle = css({
+  fontSize: "xs",
+  color: "neutral.fg.subtle",
+  whiteSpace: "nowrap",
 });
 
 /** The graph takes every pixel the lists below don't claim. */
@@ -248,6 +256,9 @@ export type ExplorerGraph = {
   dependencyIds: ReadonlySet<string>;
   dependentIds: ReadonlySet<string>;
   placeColors: ReadonlyMap<string, string>;
+  cycleByNode: ReadonlyMap<string, CycleGroup>;
+  initialByPlace: ReadonlyMap<string, InitialPlaceGroup>;
+  hoveredCycleKey: string | null;
   /** Set to re-layer the diagram around this node. */
   focusId: string | null;
 };
@@ -260,6 +271,9 @@ export interface GraphExplorerProps {
   /** Id of the selected cell — keys the connection lists' focus memory. */
   selectedCellId: string | null;
   selectedName: string | null;
+  /** Every cycle in the net, for the summary in the header. */
+  cycleGroups: CycleGroup[];
+  onHoverCycle: (cycleKey: string | null) => void;
   isFocusMode: boolean;
   /** Focus mode needs a place or transition selected to have something to centre. */
   canFocus: boolean;
@@ -280,6 +294,8 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
   connections,
   selectedCellId,
   selectedName,
+  cycleGroups,
+  onHoverCycle,
   isFocusMode,
   canFocus,
   onToggleFocus,
@@ -287,12 +303,30 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
 }) => {
   // How much of the pane the lists claim; the graph fills whatever is left.
   const [listsHeight, setListsHeight] = useState(DEFAULT_LISTS_HEIGHT);
+  const initialPlaceCount = graph.initialByPlace.size;
 
   return (
     <div className={containerStyle}>
       <div className={headerStyle}>
         <span className={titleStyle}>Graph explorer</span>
         <div className={headerActionsStyle}>
+          {cycleGroups.length > 0 && (
+            <span
+              className={cycleSummaryStyle}
+              title="Nodes in a cycle carry a matching ↻ badge — hover one to light the whole cycle up"
+            >
+              ↻ {cycleGroups.length}{" "}
+              {cycleGroups.length === 1 ? "cycle" : "cycles"}
+            </span>
+          )}
+          {initialPlaceCount > 0 && (
+            <span
+              className={cycleSummaryStyle}
+              title="Places that must hold tokens in the initial state carry a hollow token"
+            >
+              ○ {initialPlaceCount} initial
+            </span>
+          )}
           <Button
             size="xs"
             variant={isFocusMode ? "solid" : "ghost"}
@@ -318,7 +352,11 @@ export const GraphExplorer: React.FC<GraphExplorerProps> = ({
           dependencyIds={graph.dependencyIds}
           dependentIds={graph.dependentIds}
           placeColors={graph.placeColors}
+          cycleByNode={graph.cycleByNode}
+          initialByPlace={graph.initialByPlace}
+          hoveredCycleKey={graph.hoveredCycleKey}
           focusId={graph.focusId}
+          onHoverCycle={onHoverCycle}
           onNavigate={(node) =>
             onNavigate({ type: node.kind, id: node.id, name: node.name })
           }

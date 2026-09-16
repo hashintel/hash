@@ -3,6 +3,7 @@ import { use, useId } from "react";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { cycleTint } from "./net-cycles";
 import { useNetGraphTransition } from "./net-graph-animation";
 import {
   edgePath,
@@ -11,7 +12,9 @@ import {
   NET_NODE_WIDTH,
 } from "./net-graph-layout";
 
+import type { CycleGroup } from "./net-cycles";
 import type { PositionedNetNode } from "./net-graph-layout";
+import type { InitialPlaceGroup } from "./net-siphons";
 import type { NetGraph, NetGraphNode } from "./notebook-model";
 
 /** Fills the pane it is given; the diagram scrolls inside when it overflows. */
@@ -50,6 +53,57 @@ const shapeStyle = cva({
       both: { fill: "purple.s20", stroke: "purple.s90" },
       plain: { fill: "neutral.s00", stroke: "neutral.s45" },
       muted: { fill: "neutral.s00", stroke: "neutral.s35" },
+    },
+  },
+});
+
+/** Dashed ring outside the node, so it never fights the role fill/stroke. */
+const cycleRingStyle = cva({
+  base: {
+    fill: "[none]",
+    strokeDasharray: "[3 2]",
+    pointerEvents: "none",
+  },
+  variants: {
+    tint: {
+      pink: { stroke: "pink.s80" },
+      green: { stroke: "green.s80" },
+      yellow: { stroke: "yellow.s80" },
+    },
+    isHovered: {
+      true: { strokeWidth: "[2]", strokeDasharray: "[none]" },
+      false: { strokeWidth: "[1.25]" },
+    },
+  },
+});
+
+const cycleEdgeStyle = cva({
+  base: { fill: "[none]", strokeWidth: "[2]" },
+  variants: {
+    tint: {
+      pink: { stroke: "pink.s80" },
+      green: { stroke: "green.s80" },
+      yellow: { stroke: "yellow.s80" },
+    },
+  },
+});
+
+/**
+ * A hollow token drawn inside the node: this place has to hold tokens in the
+ * initial state. Sits on the right, clear of the label and of the token-type
+ * dot on the left, and inside the shape so it can never collide with a
+ * neighbouring node or with the cycle ring outside.
+ */
+const initialMarkerStyle = cva({
+  base: {
+    fill: "[none]",
+    stroke: "blue.s90",
+    strokeWidth: "[1.5]",
+  },
+  variants: {
+    isMuted: {
+      true: { opacity: "[0.35]" },
+      false: {},
     },
   },
 });
@@ -134,6 +188,8 @@ const markerId = (instanceId: string, role: EdgeRole) =>
   `${instanceId}-net-graph-arrow-${role}`;
 
 const MAX_LABEL_CHARS = 13;
+/** Characters given up to make room for the initial-state token on the right. */
+const MARKER_LABEL_COST = 2;
 
 const truncate = (name: string, maxChars: number): string =>
   name.length > maxChars ? `${name.slice(0, maxChars - 1)}…` : name;
@@ -152,8 +208,15 @@ export interface NetGraphViewProps {
   dependentIds: ReadonlySet<string>;
   /** Token-type display colour per place id, shown as a dot on the node. */
   placeColors: ReadonlyMap<string, string>;
+  /** Which cycle each node belongs to, if any. */
+  cycleByNode: ReadonlyMap<string, CycleGroup>;
+  /** Places the initial state has to seed, keyed by place id. */
+  initialByPlace: ReadonlyMap<string, InitialPlaceGroup>;
+  /** The cycle currently hovered anywhere in the view. */
+  hoveredCycleKey: string | null;
   /** Re-layer the diagram around this node instead of by longest path. */
   focusId: string | null;
+  onHoverCycle: (cycleKey: string | null) => void;
   onNavigate: (node: NetGraphNode) => void;
 }
 
@@ -164,7 +227,8 @@ export interface NetGraphViewProps {
  * dependents are highlighted and the rest of the net recedes — a neighbour
  * that is both, forming a cycle through the selection, gets its own colour.
  * With nothing selected the graph is drawn plainly, rooted at the nodes that
- * have no incoming arcs.
+ * have no incoming arcs. Places the initial state has to seed carry a hollow
+ * token, and nodes caught in a cycle a dashed ring.
  */
 export const NetGraphView: React.FC<NetGraphViewProps> = ({
   graph,
@@ -172,7 +236,11 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
   dependencyIds,
   dependentIds,
   placeColors,
+  cycleByNode,
+  initialByPlace,
+  hoveredCycleKey,
   focusId,
+  onHoverCycle,
   onNavigate,
 }) => {
   const instanceId = useId();
@@ -264,14 +332,32 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
               return null;
             }
             const role = edgeRole(edge.from, edge.to);
+            const fromCycle = cycleByNode.get(edge.from);
+            const toCycle = cycleByNode.get(edge.to);
+            // An edge inside the hovered cycle takes that cycle's colour, so
+            // the loop reads as one closed circuit.
+            const loop =
+              hoveredCycleKey !== null &&
+              fromCycle?.key === hoveredCycleKey &&
+              toCycle?.key === hoveredCycleKey
+                ? fromCycle
+                : undefined;
             const path = edgePath(from, to, edge.isBackEdge);
 
-            return (
+            return loop === undefined ? (
               <path
                 key={edge.key}
                 ref={edgeRef(edge.key)}
                 d={path}
                 className={edgeStyle({ role, isBackEdge: edge.isBackEdge })}
+                markerEnd={`url(#${markerId(instanceId, role)})`}
+              />
+            ) : (
+              <path
+                key={edge.key}
+                ref={edgeRef(edge.key)}
+                d={path}
+                className={cycleEdgeStyle({ tint: cycleTint(loop) })}
                 markerEnd={`url(#${markerId(instanceId, role)})`}
               />
             );
@@ -280,6 +366,8 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
           {layout.nodes.map((node) => {
             const role = nodeRole(node);
             const placeColor = placeColors.get(node.id);
+            const cycle = cycleByNode.get(node.id);
+            const initialGroup = initialByPlace.get(node.id);
 
             return (
               // Outer group: animation offset only, written straight to the
@@ -287,6 +375,14 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
               <g key={node.id} ref={nodeRef(node.id)}>
                 <g
                   className={nodeGroupStyle}
+                  onMouseEnter={
+                    cycle === undefined
+                      ? undefined
+                      : () => onHoverCycle(cycle.key)
+                  }
+                  onMouseLeave={
+                    cycle === undefined ? undefined : () => onHoverCycle(null)
+                  }
                   role="button"
                   // Out of the tab order: the explorer's list rows are the
                   // keyboard path to these nodes, matching the worksheet's
@@ -302,7 +398,30 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
                     }
                   }}
                 >
-                  <title>{node.name}</title>
+                  <title>
+                    {[
+                      node.name,
+                      cycle === undefined ? null : `in cycle ${cycle.label}`,
+                      initialGroup === undefined
+                        ? null
+                        : "must hold tokens in the initial state",
+                    ]
+                      .filter((part) => part !== null)
+                      .join(" — ")}
+                  </title>
+                  {cycle !== undefined && (
+                    <rect
+                      x={node.x - 3}
+                      y={node.y - 3}
+                      width={NET_NODE_WIDTH + 6}
+                      height={NET_NODE_HEIGHT + 6}
+                      rx={cornerRadius(node) + 3}
+                      className={cycleRingStyle({
+                        tint: cycleTint(cycle),
+                        isHovered: cycle.key === hoveredCycleKey,
+                      })}
+                    />
+                  )}
                   <rect
                     data-shape
                     x={node.x}
@@ -320,16 +439,31 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
                       style={{ fill: placeColor }}
                     />
                   )}
+                  {initialGroup !== undefined && (
+                    <circle
+                      cx={node.x + NET_NODE_WIDTH - 9}
+                      cy={node.y + NET_NODE_HEIGHT / 2}
+                      r={3.5}
+                      className={initialMarkerStyle({
+                        isMuted: role === "muted",
+                      })}
+                    />
+                  )}
                   <text
                     x={
                       node.x +
                       NET_NODE_WIDTH / 2 +
-                      (placeColor === undefined ? 0 : 4)
+                      (placeColor === undefined ? 0 : 4) -
+                      (initialGroup === undefined ? 0 : 4)
                     }
                     y={node.y + NET_NODE_HEIGHT / 2}
                     className={labelStyle({ role })}
                   >
-                    {truncate(node.name, MAX_LABEL_CHARS)}
+                    {truncate(
+                      node.name,
+                      MAX_LABEL_CHARS -
+                        (initialGroup === undefined ? 0 : MARKER_LABEL_COST),
+                    )}
                   </text>
                 </g>
               </g>
