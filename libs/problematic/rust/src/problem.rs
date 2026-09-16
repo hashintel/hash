@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use crate::ProblemDetails;
+use crate::{NoExtensions, ProblemDetails, ProblemType};
 
 /// A failure that provides problem details for the client.
 ///
@@ -61,6 +61,14 @@ pub trait Problem {
     /// Returns the problem details exposed to the client.
     #[must_use]
     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>>;
+}
+
+impl Problem for ProblemType {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        ProblemDetails::from(self)
+    }
 }
 
 impl<E> Problem for ProblemDetails<'_, E> {

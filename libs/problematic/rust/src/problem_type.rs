@@ -126,10 +126,10 @@ mod tests {
     use alloc::{borrow::Cow, string::String};
     use core::{assert_matches, ptr};
 
-    use crate::{ProblemDetails, ProblemType, StatusCode};
+    use crate::{Problem as _, ProblemDetails, ProblemType, StatusCode};
 
     #[test]
-    fn from_owned_metadata() {
+    fn details_owned_metadata() {
         let definition = ProblemType {
             type_uri: Cow::Owned(String::from(
                 "https://example.com/problems/invalid-parameters",
@@ -137,15 +137,15 @@ mod tests {
             title: Cow::Owned(String::from("Invalid parameters")),
             status: StatusCode::BAD_REQUEST,
         };
-        let details = ProblemDetails::from(&definition);
-
-        assert_matches!(
-            details.type_uri, Cow::Borrowed(uri) if ptr::eq(uri, definition.type_uri.as_ref()),
-            "the type URI should borrow the definition's allocation"
-        );
-        assert_matches!(
-            details.title, Cow::Borrowed(title) if ptr::eq(title, definition.title.as_ref()),
-            "the title should borrow the definition's allocation"
-        );
+        for details in [ProblemDetails::from(&definition), definition.details()] {
+            assert_matches!(
+                details.type_uri, Cow::Borrowed(uri) if ptr::eq(uri, definition.type_uri.as_ref()),
+                "the type URI should borrow the definition's allocation"
+            );
+            assert_matches!(
+                details.title, Cow::Borrowed(title) if ptr::eq(title, definition.title.as_ref()),
+                "the title should borrow the definition's allocation"
+            );
+        }
     }
 }

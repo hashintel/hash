@@ -98,7 +98,7 @@ fn details_latest_attachment() {
             explanation: String::from("The limit must be positive."),
         })
         .change_context(io::Error::other("request failed"))
-        .attach_problem(UNAVAILABLE.instance("/problem-occurrences/42"))
+        .attach_problem(UNAVAILABLE)
         .change_context(fmt::Error);
 
     let details = report
@@ -110,8 +110,7 @@ fn details_latest_attachment() {
         json!({
             "type": "https://example.com/problems/unavailable",
             "title": "Unavailable",
-            "status": 503,
-            "instance": "/problem-occurrences/42"
+            "status": 503
         }),
         "the most recent problem should replace the complete public representation"
     );
