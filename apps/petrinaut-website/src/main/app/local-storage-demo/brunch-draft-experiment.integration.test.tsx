@@ -7,10 +7,23 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { use } from "react";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
 import { draftPetrinautExperimentToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import {
+  compileHirArtifacts,
+  lowerScenarioToHir,
+} from "@hashintel/petrinaut-core/hir";
+import { resolveTrialScenarioParameterValues } from "@hashintel/petrinaut-core/optimization";
+import { createInProcessMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
+import {
+  type OptimizationBest,
+  PetrinautOptimizationContext,
+  UserSettingsContext,
+  UserSettingsProvider,
+} from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
@@ -30,6 +43,11 @@ import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { LspWorkerFactory, SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  PetrinautConnectedOptimization,
+  PetrinautOptimizationInput,
+} from "@hashintel/petrinaut-core/optimization";
+import type { PropsWithChildren } from "react";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -70,11 +88,27 @@ const cleanDiagnosticsWorker: LspWorkerFactory = () => {
   const listeners = new Set<LspWorkerListener>();
   return {
     postMessage(message: LspWorkerMessage) {
-      if (message.method !== "sdcpn/diagnostics" || !("id" in message)) return;
+      if (!("id" in message)) return;
+      let result: unknown;
+      if (message.method === "sdcpn/diagnostics") {
+        result = [];
+      } else if (message.method === "sdcpn/compileHirArtifacts") {
+        result = compileHirArtifacts(
+          message.params.sdcpn,
+          message.params.extensions,
+          message.params.options,
+        );
+      } else if (message.method === "sdcpn/lowerScenario") {
+        result = lowerScenarioToHir(message.params.scenario, {
+          adHocContext: message.params.adHocContext,
+        });
+      } else {
+        return;
+      }
       queueMicrotask(() => {
         for (const listener of listeners) {
           listener({
-            data: { jsonrpc: "2.0", id: message.id, result: [] },
+            data: { jsonrpc: "2.0", id: message.id, result },
           });
         }
       });
@@ -160,7 +194,109 @@ const draftInput: DraftPetrinautExperimentInput = {
   ],
 };
 
+const createControlledOptimization = (
+  continueAfterFirstTrial: Promise<void>,
+): PetrinautConnectedOptimization => ({
+  kind: "connected",
+  connect: (channel) => {
+    let manifest: PetrinautOptimizationInput | null = null;
+    return {
+      createOptimizationRun: async (input) => {
+        manifest = input;
+        return { runId: "run-integration" };
+      },
+      async *attachOptimizationRun(runId, options) {
+        if (manifest === null) {
+          throw new Error("The optimization manifest was not captured.");
+        }
+        let best: OptimizationBest | null = null;
+        let seq = 0;
+        const agentCounts = [2, 5, 8];
+        for (const [trial, agents] of agentCounts.entries()) {
+          const suggestedValues = { agents };
+          const outcome = await channel.evaluateTrial({
+            runId,
+            trial,
+            manifest,
+            suggestedValues,
+            scenarioParameterValues: resolveTrialScenarioParameterValues(
+              manifest,
+              suggestedValues,
+            ),
+            seeds: Array.from(
+              { length: manifest.execution.seedsPerTrial ?? 1 },
+              (_, index) => index + 1,
+            ),
+            signal: options?.signal ?? new AbortController().signal,
+          });
+          if (outcome.kind !== "objective") {
+            throw new Error(`Trial ${trial} did not produce an objective.`);
+          }
+          best ??= {
+            trial,
+            parameters: suggestedValues,
+            objective: outcome.objective,
+          };
+          seq += 1;
+          yield {
+            type: "trial",
+            trial,
+            parameters: suggestedValues,
+            objective: outcome.objective,
+            state: "complete",
+            best,
+            seq,
+          };
+          if (trial === 0) {
+            await continueAfterFirstTrial;
+          }
+        }
+        yield {
+          type: "complete",
+          requestedTrials: agentCounts.length,
+          completedTrials: agentCounts.length,
+          prunedTrials: 0,
+          failedTrials: 0,
+          best,
+          resumable: true,
+          seq: seq + 1,
+        };
+      },
+      cancelOptimizationRun: async () => {},
+      extendOptimizationRun: async () => {},
+      releaseOptimizationRun: async () => {},
+      dispose: () => {},
+    };
+  },
+});
+
+const EnableInBrowserOptimization = ({ children }: PropsWithChildren) => {
+  const settings = use(UserSettingsContext);
+  return (
+    <UserSettingsContext
+      value={{ ...settings, enableInBrowserOptimization: true }}
+    >
+      {children}
+    </UserSettingsContext>
+  );
+};
+
 beforeEach(() => {
+  const entries = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    get length() {
+      return entries.size;
+    },
+    clear: () => entries.clear(),
+    getItem: (key: string) => entries.get(key) ?? null,
+    key: (index: number) => [...entries.keys()].at(index) ?? null,
+    removeItem: (key: string) => entries.delete(key),
+    setItem: (key: string, value: string) => entries.set(key, value),
+  } satisfies Storage);
+  localStorage.setItem(
+    "petrinaut:user-settings",
+    JSON.stringify({ enableInBrowserOptimization: true }),
+  );
   resetBrunchDraftExperimentSession();
 });
 
@@ -170,7 +306,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("a streamed draft_petrinaut_experiment call renders the unrun card and reports drafted without starting an experiment", async () => {
+test("a streamed experiment draft stays idle until Run, then uses the stock host progress path", async () => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   vi.stubGlobal(
     "ResizeObserver",
@@ -179,6 +315,10 @@ test("a streamed draft_petrinaut_experiment call renders the unrun card and repo
       unobserve() {}
       disconnect() {}
     },
+  );
+  const continueTrials = Promise.withResolvers<void>();
+  const availableOptimization = createControlledOptimization(
+    continueTrials.promise,
   );
   const tracker = new BrunchPanelConversationTracker();
   const send = vi.fn<FlueClient["send"]>(
@@ -246,30 +386,37 @@ test("a streamed draft_petrinaut_experiment call renders the unrun card and repo
   });
 
   render(
-    <Petrinaut
-      handle={handle}
-      lspWorkerFactory={cleanDiagnosticsWorker}
-      aiAssistant={{
-        automaticTools: createBrunchPetrinautTools({
-          readTitle: () => "Support desk",
-        }),
-        interactiveTools: [
-          createBrunchDraftExperimentInteractiveTool({
-            readTitle: () => "Support desk",
-          }),
-        ],
-        conversationId: "test",
-        requestStop: async () => "already-settled",
-        transport: createBrunchPanelTransport(
-          Promise.resolve(client),
-          tracker,
-          {
-            clientToolNames: batchedConstructionClientToolNames,
-            dynamicClientToolNames: brunchPetrinautDynamicToolNames,
-          },
-        ),
-      }}
-    />,
+    <UserSettingsProvider>
+      <EnableInBrowserOptimization>
+        <PetrinautOptimizationContext value={availableOptimization}>
+          <Petrinaut
+            handle={handle}
+            lspWorkerFactory={cleanDiagnosticsWorker}
+            monteCarloWorkerFactory={createInProcessMonteCarloWorker}
+            aiAssistant={{
+              automaticTools: createBrunchPetrinautTools({
+                readTitle: () => "Support desk",
+              }),
+              interactiveTools: [
+                createBrunchDraftExperimentInteractiveTool({
+                  readTitle: () => "Support desk",
+                }),
+              ],
+              conversationId: "test",
+              requestStop: async () => "already-settled",
+              transport: createBrunchPanelTransport(
+                Promise.resolve(client),
+                tracker,
+                {
+                  clientToolNames: batchedConstructionClientToolNames,
+                  dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+                },
+              ),
+            }}
+          />
+        </PetrinautOptimizationContext>
+      </EnableInBrowserOptimization>
+    </UserSettingsProvider>,
   );
 
   const showPanel = await screen.findByRole("button", {
@@ -329,5 +476,20 @@ test("a streamed draft_petrinaut_experiment call renders the unrun card and repo
   expect(
     screen.queryByRole("button", { name: /active Monte Carlo simulation/u }),
   ).toBeNull();
-  expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
-});
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+  });
+  await screen.findByRole("button", {
+    name: "Show 1 active Monte Carlo simulations",
+  });
+  await screen.findByText("optimizing: 5/5 runs, step 2/3");
+  await act(async () => {
+    continueTrials.resolve();
+  });
+  await waitFor(() =>
+    expect(card.getAttribute("data-draft-status")).toBe("Run complete"),
+  );
+  expect(
+    screen.queryByRole("button", { name: /active Monte Carlo simulation/u }),
+  ).toBeNull();
+}, 30_000);

@@ -230,7 +230,7 @@ A small toast appears when an experiment **completes** or **errors**, even if it
 
 ## Active experiments popover
 
-When any experiment is **initializing** or **running**, the top bar shows an **Active experiments** flask icon with a count (e.g. "2 active"). Click it for a popover listing each in-flight experiment with its scenario, progress, status, and a time progress bar. Clicking a row jumps directly to Simulate mode, the Experiments tab, and that experiment's panel.
+When any experiment is **initializing** or **running**, the top bar shows an **Active experiments** flask icon with a count (e.g. "2 active"). A host-owned optimization remains active while its sweep is briefly **Idle** between steps and while its final result settles. Click the icon for a popover listing each in-flight experiment with its scenario, progress, status, and a time progress bar. Clicking a row jumps directly to Simulate mode, the Experiments tab, and that experiment's panel.
 
 The popover hides itself again once nothing is in flight.
 

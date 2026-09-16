@@ -31,6 +31,7 @@ export type ExperimentHostDependencies = {
   ) => Promise<void>;
   experiments: ReadableStore<readonly ExperimentRecord[]>;
   optimizations: ReadableStore<readonly OptimizationRecord[]>;
+  optimizationUnavailableReason: string | null;
   actions: Pick<
     ExperimentsActionsValue,
     "createExperiment" | "navigateSweep" | "cancelExperiment"
@@ -188,6 +189,9 @@ export const runExperiment = async (
       definition,
       dependencies.title,
     );
+    if (optimization && dependencies.optimizationUnavailableReason !== null) {
+      throw new Error(dependencies.optimizationUnavailableReason);
+    }
     searchRuns =
       request.execution.mode === "optimize"
         ? request.execution.runsPerStep

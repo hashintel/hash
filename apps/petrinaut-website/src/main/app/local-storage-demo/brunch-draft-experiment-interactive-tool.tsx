@@ -11,6 +11,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
+  OptimizationsContext,
   prepareExperiment,
   usePetrinautInstance,
 } from "@hashintel/petrinaut/react";
@@ -208,6 +209,11 @@ export const BrunchDraftExperimentWidget = ({
 }: WidgetProps & { readTitle: () => string }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
+  const { optimizationUnavailableReason } = use(OptimizationsContext);
+  const executionUnavailable =
+    input.experiment.execution.mode === "optimize"
+      ? optimizationUnavailableReason
+      : null;
   const sessionDrafts = sessionDraftsFor(instance.definition);
   const { draft, isCurrent } = useSessionDraft(sessionDrafts, toolCallId);
   const preparedOnceRef = useRef(false);
@@ -238,17 +244,24 @@ export const BrunchDraftExperimentWidget = ({
       registered.prepared
         ? {
             status: "drafted",
-            summary: summarizeForAgent(
+            summary: `${summarizeForAgent(
               registered.prepared.request,
               registered.definition,
               registered.input.unsupported.length,
-            ),
+            )}${
+              executionUnavailable === null
+                ? ""
+                : ` Execution unavailable: ${executionUnavailable}.`
+            }`,
             diagnostics: [
               "No constraints or constraint policy are carried; nothing is enforced.",
               ...registered.input.unsupported.map(
                 (condition) =>
                   `${condition.blocksRun ? "Run blocked" : "Not carried"}: ${condition.condition}`,
               ),
+              ...(executionUnavailable === null
+                ? []
+                : [`Execution unavailable: ${executionUnavailable}`]),
             ],
           }
         : {
@@ -257,12 +270,23 @@ export const BrunchDraftExperimentWidget = ({
             diagnostics: [registered.invalid ?? "Preparation failed"],
           },
     );
-  }, [input, instance, readTitle, sessionDrafts, state, submit, toolCallId]);
+  }, [
+    executionUnavailable,
+    input,
+    instance,
+    readTitle,
+    sessionDrafts,
+    state,
+    submit,
+    toolCallId,
+  ]);
 
   const definition =
     reviewed?.definition ?? draft?.definition ?? instance.definition.get();
   const request = draft?.prepared?.request ?? null;
   const blocksRun = input.unsupported.some((condition) => condition.blocksRun);
+  const optimizationUnavailable =
+    request?.execution.mode === "optimize" ? executionUnavailable : null;
 
   const onRun = async () => {
     // Read synchronously, not from the render closure: duplicate clicks or a
@@ -274,7 +298,8 @@ export const BrunchDraftExperimentWidget = ({
       latest.currentToolCallId !== toolCallId ||
       pending.dismissed ||
       pending.run.phase !== "idle" ||
-      pending.input.unsupported.some((condition) => condition.blocksRun)
+      pending.input.unsupported.some((condition) => condition.blocksRun) ||
+      optimizationUnavailable !== null
     )
       return;
     // Prepare again against the model as it is now: Run must start what the
@@ -353,6 +378,7 @@ export const BrunchDraftExperimentWidget = ({
     !draft.dismissed &&
     isCurrent &&
     draft.run.phase === "idle";
+  const canRun = canAct && optimizationUnavailable === null;
 
   return (
     <section
@@ -418,6 +444,11 @@ export const BrunchDraftExperimentWidget = ({
         <p className={noticeStyle} role="alert">
           Run is blocked by an unsupported restriction. Ask Brunch to revise the
           proposal; a reporting-only exploration needs your explicit acceptance.
+        </p>
+      ) : null}
+      {optimizationUnavailable !== null ? (
+        <p className={errorStyle} role="alert">
+          {optimizationUnavailable}
         </p>
       ) : null}
       {runError ? (
@@ -490,14 +521,16 @@ export const BrunchDraftExperimentWidget = ({
           >
             Dismiss
           </button>
-          <button
-            className={primaryButtonStyle}
-            disabled={blocksRun}
-            onClick={() => void onRun()}
-            type="button"
-          >
-            {reviewed ? "Run against current model" : "Run"}
-          </button>
+          {canRun ? (
+            <button
+              className={primaryButtonStyle}
+              disabled={blocksRun}
+              onClick={() => void onRun()}
+              type="button"
+            >
+              {reviewed ? "Run against current model" : "Run"}
+            </button>
+          ) : null}
         </div>
       ) : null}
       {draft?.run.phase === "running" ? (

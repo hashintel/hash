@@ -15,6 +15,7 @@ import { draftPetrinautExperimentInputSchema } from "@hashintel/brunch-agent-plu
 import { createReadableStore } from "@hashintel/petrinaut-core";
 import {
   ExperimentHostContext,
+  OptimizationsContext,
   PetrinautInstanceContext,
 } from "@hashintel/petrinaut/react";
 
@@ -49,6 +50,7 @@ import type {
   PetrinautExperimentResult,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { OptimizationsContextValue } from "@hashintel/petrinaut/react";
 import type { PetrinautAiInteractiveToolWidgetProps } from "@hashintel/petrinaut/ui";
 import type { ReactNode } from "react";
 
@@ -157,22 +159,33 @@ const renderWidget = ({
   state,
   definition,
   runExperiment,
+  optimizationUnavailableReason = null,
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
   state: WidgetState;
   definition: ReturnType<typeof createReadableStore<SDCPN>>;
   runExperiment: PetrinautExperimentHost["runExperiment"];
+  optimizationUnavailableReason?: string | null;
 }) => {
   const submit = vi.fn<(output: DraftPetrinautExperimentOutput) => void>();
   const instance = { definition } as unknown as Petrinaut;
   const host: PetrinautExperimentHost = { runExperiment };
+  const optimizations: OptimizationsContextValue = {
+    optimizations: [],
+    optimizationUnavailableReason,
+    createOptimization: () => Promise.reject(new Error("Not used")),
+    cancelOptimization: () => {},
+    removeOptimization: () => {},
+  };
   const wrap = (children: ReactNode) => (
-    <PetrinautInstanceContext.Provider value={instance}>
-      <ExperimentHostContext.Provider value={host}>
-        {children}
-      </ExperimentHostContext.Provider>
-    </PetrinautInstanceContext.Provider>
+    <OptimizationsContext value={optimizations}>
+      <PetrinautInstanceContext.Provider value={instance}>
+        <ExperimentHostContext.Provider value={host}>
+          {children}
+        </ExperimentHostContext.Provider>
+      </PetrinautInstanceContext.Provider>
+    </OptimizationsContext>
   );
   const utils = render(
     wrap(
@@ -318,6 +331,33 @@ describe("BrunchDraftExperimentWidget", () => {
       diagnostics: ['Metric "metric__missing" does not exist'],
     });
     expect(heading()).toEqual(["Could not be prepared"]);
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+    expect(runExperiment).not.toHaveBeenCalled();
+  });
+
+  it("does not offer Run when optimization is unavailable", async () => {
+    const runExperiment = vi.fn();
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "call_draft_unavailable",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+      optimizationUnavailableReason: "Optimization is unavailable",
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    const output = submit.mock.calls[0]![0];
+    expect(output.status).toBe("drafted");
+    expect(output.diagnostics).toContain(
+      "Execution unavailable: Optimization is unavailable",
+    );
+    expect(output.summary).toContain(
+      "Execution unavailable: Optimization is unavailable",
+    );
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Optimization is unavailable",
+    );
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
     expect(runExperiment).not.toHaveBeenCalled();
   });

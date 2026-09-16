@@ -69,6 +69,8 @@ export const ExperimentHostProvider = ({ children }: PropsWithChildren) => {
             title,
             experiments,
             optimizations,
+            optimizationUnavailableReason:
+              optimizationsContext.optimizationUnavailableReason,
             actions: {
               createExperiment: experimentsContext.createExperiment,
               navigateSweep: experimentsContext.navigateSweep,
