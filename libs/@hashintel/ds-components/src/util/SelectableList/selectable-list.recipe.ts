@@ -278,6 +278,7 @@ export const styles = sva({
       },
       menu: {
         content: {
+          maxWidth: "[min(500px, 70vw)]",
           '&[data-state="open"]': {
             animation: "fadeIn 120ms ease-out",
           },
