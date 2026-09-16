@@ -41,6 +41,8 @@ describe("detectStateConstraintForm", () => {
       "expression",
     ],
     ['state.places["return"].count > 0', "expression"],
+    ["state.places.Queue.count > 0; parameters.rate > 0;", "body"],
+    ["state.places.Queue.count > 0\nparameters.rate > 0", "body"],
     [
       "state.places.Queue.tokens.map((token) => { return token; }).length > 0",
       "expression",

@@ -78,6 +78,7 @@ export const getStateConstraintExpression = (
     ts.ScriptTarget.ES2020,
   );
   if (
+    sourceFile.statements.length > 1 ||
     sourceFile.statements.some(
       (statement) => !ts.isExpressionStatement(statement),
     )

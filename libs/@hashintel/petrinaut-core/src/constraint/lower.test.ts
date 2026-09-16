@@ -153,6 +153,18 @@ describe("lowerConstraint", () => {
     },
   );
 
+  it.each([
+    "state.places.Queue.count > 0; parameters.rate > 0;",
+    "state.places.Queue.count > 0\nparameters.rate > 0",
+  ])("reports body syntax requirements for separate conditions: %s", (code) => {
+    const result = lowerConstraint({ space: "state", id: "c", code }, context);
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.diagnostics[0]?.message).toContain("a final `return`");
+  });
+
   it("positions an unknown-place error on the authored expression", () => {
     const code = "\nstate.places.Missing.count < 10; // limit";
     const result = lowerConstraint({ space: "state", id: "c", code }, context);

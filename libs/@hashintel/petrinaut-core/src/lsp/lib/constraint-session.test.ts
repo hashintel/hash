@@ -195,6 +195,17 @@ describe("constraint session diagnostics", () => {
     });
   });
 
+  it("reports a missing return for separate state conditions", () => {
+    expect(
+      constraintDiagnostics(
+        "state",
+        "state.places.P.count > 3; parameters.weight > 0;",
+      ),
+    ).toEqual([
+      "A function whose declared type is neither 'undefined', 'void', nor 'any' must return a value.",
+    ]);
+  });
+
   it("removes the code file once the session is killed", () => {
     const server = makeServer(session("parameters", "scenario.a > 0"));
     expect(server.getConstraintFileNames(SESSION_ID)).toEqual([
