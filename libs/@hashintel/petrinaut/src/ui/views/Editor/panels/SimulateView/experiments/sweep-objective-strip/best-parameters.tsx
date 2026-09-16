@@ -3,7 +3,11 @@ import { Fragment } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { axisStep } from "../../../../../../../react/experiments/parameter-grid";
+import {
+  axisPositionFor,
+  axisStep,
+  axisValueAt,
+} from "../../../../../../../react/experiments/parameter-grid";
 import { isOptimizationActive } from "../../../../../../../react/optimizations/context";
 import { formatAxisValue } from "../../shared/format-axis-value";
 import { formatNumber } from "../../shared/format-value";
@@ -54,10 +58,12 @@ const listStyle = css({
 export const BestParameters = ({
   study,
   axes,
+  viewingBest,
   onViewBest,
 }: {
   study: OptimizationRecord;
   axes: readonly ExperimentParameterAxis[];
+  viewingBest: boolean;
   onViewBest: (() => void) | null;
 }) => {
   const { best } = study;
@@ -70,10 +76,10 @@ export const BestParameters = ({
           <Button
             variant="subtle"
             size="xs"
-            disabled={active || onViewBest === null}
+            disabled={active || viewingBest || onViewBest === null}
             onClick={() => onViewBest?.()}
           >
-            View best
+            {viewingBest ? "Viewing best" : "View best"}
           </Button>
         )}
       </div>
@@ -93,7 +99,10 @@ export const BestParameters = ({
                 <dt>{parameterLabel(axis)}</dt>
                 <dd>
                   {typeof value === "number"
-                    ? formatAxisValue(value, axisStep(axis))
+                    ? formatAxisValue(
+                        axisValueAt(axis, axisPositionFor(axis, value)),
+                        axisStep(axis),
+                      )
                     : "—"}
                 </dd>
               </Fragment>

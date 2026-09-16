@@ -156,6 +156,7 @@ export const SweepObjectiveStrip = ({
   study,
   driving,
   axes,
+  viewingBest,
   onViewBest,
 }: {
   /** The study started with the sweep. */
@@ -163,6 +164,7 @@ export const SweepObjectiveStrip = ({
   /** Whether the study drives the sweep now: the row's dot breathes. */
   driving: boolean;
   axes: readonly ExperimentParameterAxis[];
+  viewingBest: boolean;
   onViewBest: (() => void) | null;
 }) => {
   const [expanded, setExpanded] = useState(true);
@@ -209,7 +211,12 @@ export const SweepObjectiveStrip = ({
               }
             />
           </div>
-          <BestParameters study={study} axes={axes} onViewBest={onViewBest} />
+          <BestParameters
+            study={study}
+            axes={axes}
+            viewingBest={viewingBest}
+            onViewBest={onViewBest}
+          />
         </div>
       </Fold>
     </div>

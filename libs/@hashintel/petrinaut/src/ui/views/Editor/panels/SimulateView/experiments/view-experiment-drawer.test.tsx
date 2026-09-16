@@ -611,6 +611,75 @@ describe("best parameters", () => {
         .disabled,
     ).toBe(true);
   });
+
+  it("shows the tested slider values when optimizer suggestions fall between positions", () => {
+    renderDrawerWithStudies(
+      {
+        ...sweep,
+        parameterAxes: sweep.parameterAxes.map((axis) =>
+          axis.identifier === "recovery_days"
+            ? { ...axis, max: 202, stepCount: 50 }
+            : axis,
+        ),
+      },
+      sweepStudy(sweep, {
+        status: "complete",
+        best: {
+          ...best,
+          parameters: { transmission_rate: 0.359, recovery_days: 99 },
+        },
+      }),
+    );
+    const panel = within(
+      screen.getByRole("region", { name: "Best parameters" }),
+    );
+    expect(panel.getByText("0.356")).toBeTruthy();
+    expect(panel.getByText("98")).toBeTruthy();
+    expect(panel.queryByText("0.359")).toBeNull();
+    expect(panel.queryByText("99")).toBeNull();
+  });
+
+  it.each([
+    {
+      status: "complete" as const,
+      selectionKey: "transmission_rate=32|recovery_days=8",
+      label: "Viewing best",
+      disabled: true,
+    },
+    {
+      status: "complete" as const,
+      selectionKey: "transmission_rate=32|recovery_days=9",
+      label: "View best",
+      disabled: false,
+    },
+    {
+      status: "complete" as const,
+      selectionKey: "transmission_rate=31..33|recovery_days=8",
+      label: "View best",
+      disabled: false,
+    },
+    {
+      status: "running" as const,
+      selectionKey: "transmission_rate=32|recovery_days=8",
+      label: "View best",
+      disabled: true,
+    },
+  ])(
+    "shows $label for $selectionKey during a $status search",
+    ({ status, selectionKey, label, disabled }) => {
+      renderDrawerWithStudies(
+        { ...sweep, sweep: { ...sweep.sweep!, selectionKey } },
+        sweepStudy(sweep, { status, best }),
+      );
+      const panel = within(
+        screen.getByRole("region", { name: "Best parameters" }),
+      );
+      expect(
+        (panel.getByRole("button", { name: label }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(disabled);
+    },
+  );
 });
 
 describe("the Stop control", () => {
