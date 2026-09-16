@@ -156,20 +156,24 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
       }),
     ]);
     const pendingMessage = Promise.withResolvers<PetrinautAiMessage>();
+    const retryPendingMessage = Promise.withResolvers<PetrinautAiMessage>();
+    const observedMessages: PetrinautAiMessage[] = [];
     const consumed = (async () => {
       for await (const message of readUIMessageStream<PetrinautAiMessage>({
         stream,
       })) {
-        if (
-          message.parts.some(
-            (part) =>
-              isToolUIPart(part) &&
-              getToolName(part) === "mutate_workpiece" &&
-              part.toolCallId === firstAttempt.toolCallId &&
-              part.state === "input-streaming",
-          )
-        ) {
+        observedMessages.push(structuredClone(message));
+        const pendingPart = message.parts.find(
+          (part) =>
+            isToolUIPart(part) &&
+            getToolName(part) === "mutate_workpiece" &&
+            part.state === "input-streaming",
+        );
+        if (pendingPart === undefined || !isToolUIPart(pendingPart)) continue;
+        if (pendingPart.toolCallId === firstAttempt.toolCallId) {
           pendingMessage.resolve(structuredClone(message));
+        } else {
+          retryPendingMessage.resolve(structuredClone(message));
         }
       }
     })();
@@ -215,6 +219,38 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
     expect(row.getAttribute("aria-busy")).toBe("true");
     expect(requests).toHaveLength(1);
 
+    const retryPending = await Promise.race([
+      retryPendingMessage.promise,
+      consumed.then(() => {
+        throw new Error("The UI stream settled before showing the retry.");
+      }),
+      new Promise<never>((_resolve, reject) => {
+        setTimeout(
+          () => reject(new Error("The retry row was not rendered.")),
+          5_000,
+        );
+      }),
+    ]);
+    await firstAttempt.cancelled;
+    cleanup();
+    render(
+      createElement(AiAssistantContents, {
+        input: "",
+        messages: [retryPending],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        resolveToolPresentation: resolveBrunchToolPresentation,
+        status: "streaming",
+      }),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /Updating ledger/u })
+        .getAttribute("aria-busy"),
+    ).toBe("true");
+
     const outcome = await Promise.race([
       client.read(submissionId).then(
         () => "completed" as const,
@@ -232,6 +268,48 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
     expect(requests.at(1)?.model).toBe(requests.at(0)?.model);
     expect(requests.at(1)?.reasoning).toEqual(requests.at(0)?.reasoning);
     await Promise.all(attempts.map((attempt) => attempt.cancelled));
+    const retryToolCallId = attempts.at(1)?.toolCallId;
+    const terminalMessage = observedMessages.findLast((message) =>
+      message.parts.some(
+        (part) => isToolUIPart(part) && part.toolCallId === retryToolCallId,
+      ),
+    );
+    const terminalPart = terminalMessage?.parts.find(
+      (part) => isToolUIPart(part) && part.toolCallId === retryToolCallId,
+    );
+    expect(terminalPart).toMatchObject({
+      state: "output-error",
+      errorText: "This tool proposal was not executed.",
+    });
+    cleanup();
+    if (terminalMessage === undefined) {
+      throw new Error("The retry has no terminal UI message.");
+    }
+    render(
+      createElement(AiAssistantContents, {
+        input: "",
+        messages: [terminalMessage],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        resolveToolPresentation: resolveBrunchToolPresentation,
+        status: "error",
+      }),
+    );
+    const erroredRows = screen.getAllByRole("button", {
+      name: /Could not update ledger/u,
+    });
+    expect(erroredRows).toHaveLength(2);
+    expect(
+      erroredRows.every((row) => row.getAttribute("aria-busy") !== "true"),
+    ).toBe(true);
+    expect(stall.chronology()).toEqual([
+      { kind: "started", toolCallId: attempts.at(0)?.toolCallId },
+      { kind: "cancelled", toolCallId: attempts.at(0)?.toolCallId },
+      { kind: "started", toolCallId: attempts.at(1)?.toolCallId },
+      { kind: "cancelled", toolCallId: attempts.at(1)?.toolCallId },
+    ]);
     await consumed.catch(() => {});
 
     const afterFailure = await client.history();

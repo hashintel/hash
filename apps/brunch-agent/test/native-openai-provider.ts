@@ -16,21 +16,29 @@ type NativeOpenaiToolStallAttempt = {
   readonly toolCallId: string;
 };
 
+type NativeOpenaiToolStallEvent = {
+  readonly kind: "cancelled" | "started";
+  readonly toolCallId: string;
+};
+
 export const createNativeOpenaiToolStall = (
   toolName: string,
 ): {
   readonly attempts: () => readonly NativeOpenaiToolStallAttempt[];
   readonly cancelled: Promise<void>;
+  readonly chronology: () => readonly NativeOpenaiToolStallEvent[];
   readonly reached: Promise<NativeOpenaiToolStallAttempt>;
   readonly response: NativeOpenaiResponseFactory;
 } => {
   const attempts: NativeOpenaiToolStallAttempt[] = [];
+  const chronology: NativeOpenaiToolStallEvent[] = [];
   const cancelled = Promise.withResolvers<void>();
   const reached = Promise.withResolvers<NativeOpenaiToolStallAttempt>();
 
   return {
     attempts: () => attempts,
     cancelled: cancelled.promise,
+    chronology: () => chronology,
     reached: reached.promise,
     response: ({ signal }) => {
       const attemptCancelled = Promise.withResolvers<void>();
@@ -43,15 +51,23 @@ export const createNativeOpenaiToolStall = (
         toolCallId: `${callId}|${itemId}`,
       };
       attempts.push(attempt);
+      chronology.push({ kind: "started", toolCallId: attempt.toolCallId });
       reached.resolve(attempt);
       let removeAbortListener = () => {};
+      let stopped = false;
+      const settleCancellation = () => {
+        if (stopped) return;
+        stopped = true;
+        chronology.push({ kind: "cancelled", toolCallId: attempt.toolCallId });
+        attemptCancelled.resolve();
+        cancelled.resolve();
+      };
 
       return new Response(
         new ReadableStream({
           cancel() {
             removeAbortListener();
-            attemptCancelled.resolve();
-            cancelled.resolve();
+            settleCancellation();
           },
           start(controller) {
             const send = (frame: { type: string; [key: string]: unknown }) =>
@@ -112,8 +128,7 @@ export const createNativeOpenaiToolStall = (
 
             const abort = () => {
               removeAbortListener();
-              attemptCancelled.resolve();
-              cancelled.resolve();
+              settleCancellation();
               controller.error(
                 signal?.reason ??
                   new DOMException(
