@@ -367,26 +367,40 @@ impl Pending {
         let mut changed = false;
 
         self.updates.retain(|&entity, update| {
-            let Stage::Ready { geometry, legend } = &update.stage else {
+            let Stage::Ready {
+                geometry: Geometry::Node(position),
+                legend,
+            } = &update.stage
+            else {
                 return true;
             };
 
-            let outcome = match *geometry {
-                Geometry::Node(position) => delta.update_node(entity, legend.clone(), position),
-                Geometry::Edge(Some([source, target])) => {
-                    let (Some(source), Some(target)) =
-                        (delta.node_row(source), delta.node_row(target))
-                    else {
-                        return true;
-                    };
-
-                    delta.update_edge(entity, legend.clone(), Some([source, target]))
-                }
-                Geometry::Edge(None) => return true,
+            let Some(applied) = delta.update_node(entity, legend.clone(), *position) else {
+                tracing::warn!(?entity, "no node row remains for the update");
+                return true;
             };
 
-            let Some(applied) = outcome else {
-                tracing::warn!(?entity, "No entity row remains for the update");
+            changed |= applied;
+            false
+        });
+
+        self.updates.retain(|&entity, update| {
+            let Stage::Ready {
+                geometry: Geometry::Edge(Some([source, target])),
+                legend,
+            } = &update.stage
+            else {
+                return true;
+            };
+
+            let (Some(source), Some(target)) = (delta.node_row(*source), delta.node_row(*target))
+            else {
+                return true;
+            };
+
+            let Some(applied) = delta.update_edge(entity, legend.clone(), Some([source, target]))
+            else {
+                tracing::warn!(?entity, "no edge row remains for the update");
                 return true;
             };
 

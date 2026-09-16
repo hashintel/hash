@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::assert_matches;
+use core::{array, assert_matches};
 
 use arc_swap::Guard;
 use error_stack::Report;
@@ -516,6 +516,53 @@ fn receive_wire_coordinates() {
         fixture.delta.world.layout.position(&epoch, node),
         Some(expected)
     );
+}
+
+#[test]
+fn apply_ready_endpoints() {
+    let mut fixture = fixture("pending-apply-ready-endpoints");
+    let mut pending = Pending::default();
+    for seed in 100..103 {
+        pending.observe(update(seed, 1, false));
+    }
+
+    // assign the first visited entry to the edge, ahead of both endpoint updates.
+    let mut identities = pending.updates.keys().copied();
+    let [edge, source, target] =
+        array::from_fn(|_| identities.next().expect("should retain three updates"));
+    for (&entity, update) in &mut pending.updates {
+        update.stage = Stage::Ready {
+            geometry: if entity == edge {
+                Geometry::Edge(Some([source, target]))
+            } else {
+                Geometry::Node(Vec2::ZERO)
+            },
+            legend: OwnedLegend::new(OntologyRowId::MIN, Label::new("ready")),
+        };
+    }
+
+    assert!(pending.apply(&mut fixture.delta));
+    assert!(pending.updates.is_empty());
+    let endpoints = [source, target].map(|entity| {
+        fixture
+            .delta
+            .node_row(entity)
+            .expect("should allocate the endpoint")
+    });
+    let identities = DeltaIdentityProvider::from_parts(
+        &fixture.delta.edge,
+        NaiveIdentityProvider::from_ref(&fixture.delta.world.topology.identity),
+    );
+    let row = identities.row_of(edge).expect("should allocate the edge");
+    assert_eq!(
+        fixture
+            .delta
+            .world
+            .topology
+            .endpoints(&epoch(&fixture.delta), row),
+        Some(endpoints)
+    );
+    assert!(!pending.apply(&mut fixture.delta));
 }
 
 /// Requires endpoint rows for link updates and never requests an embedding.
