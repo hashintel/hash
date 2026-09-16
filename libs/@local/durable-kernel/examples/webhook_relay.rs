@@ -23,12 +23,13 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
-use core::time::Duration;
+use core::{num::NonZeroU64, time::Duration};
 use std::sync::Mutex;
 
 use durable_kernel::{
     domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
-    runtime::{Kernel, KernelConfig, RunningKernel, Submitted},
+    keyspace::Namespace,
+    runtime::{Kernel, KernelConfig, RunningKernel, SnapshotPolicy, Submitted},
 };
 use serde::{Deserialize, Serialize};
 use tokio::{
@@ -227,7 +228,9 @@ impl Executor<RelayDomain> for HttpDeliverer {
     }
 
     async fn execute(&self, effect: &DeliveryAttempt) -> Result<Vec<RelayEvent>, Retry> {
-        let key = effect_id(effect).expect("effect should serialize");
+        let key = effect_id(effect)
+            .expect("effect should serialize")
+            .to_string();
         let delivery = effect.delivery.clone();
         match http_post(&effect.body, &key).await {
             Ok(status) if (200..300).contains(&status) => {
@@ -448,9 +451,13 @@ async fn main() {
     tokio::spawn(run_endpoint(listener));
 
     let key = PartitionKey::parse("relay").expect("static key should parse");
-    let mut config = KernelConfig::new("webhookrelay", format!("file://{}", state_dir().display()));
-    config.shards = vec![u16::from(shard_of(&key).get())];
-    config.snapshot_every_events = 8;
+    let mut config = KernelConfig::new(
+        Namespace::parse("webhookrelay").expect("namespace should be valid"),
+        format!("file://{}", state_dir().display()),
+    );
+    config.shards = vec![shard_of(&key)];
+    config.snapshot_policy =
+        SnapshotPolicy::Every(NonZeroU64::new(8).expect("snapshot interval should be nonzero"));
     config.poll_interval = Duration::from_millis(50);
 
     let kernel = Kernel::open(config)

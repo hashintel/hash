@@ -22,7 +22,7 @@ use crate::{
         self, DomainEvent, EventRecord, EventRecordV1, Fold, Hosted, PartitionKey, SimpleDomain,
         effect_id,
     },
-    ids::EventId,
+    ids::{EffectId, EventId},
     properties::{self, CoverageSink, Property, PropertyClass},
     registry::{DurableRecord as _, VersionedRecord as _},
     shard_log::{
@@ -335,7 +335,7 @@ struct Driver<'a> {
     applied: BTreeSet<EventId>,
     rejected: BTreeSet<EventId>,
     /// Records every external execution under its effect ID, including repeats.
-    executions: BTreeMap<String, Vec<Vec<u8>>>,
+    executions: BTreeMap<EffectId, Vec<Vec<u8>>>,
     proposed: BTreeSet<EventId>,
     /// Allows one executor iteration per scheduled append outcome, plus the iterations needed
     /// to finish successful effects.
@@ -529,7 +529,7 @@ impl Driver<'_> {
         for effect in &effects {
             let identity = effect_id(effect).expect("effect should serialize");
             let payload = serde_json::to_vec(effect).expect("effect should serialize");
-            let executions = self.executions.entry(identity.clone()).or_default();
+            let executions = self.executions.entry(identity).or_default();
             if let Some(previous) = executions.first() {
                 properties::check(
                     &properties::EFFECT_REPLAYS_ARE_IDENTICAL,
