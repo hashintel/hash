@@ -32,10 +32,19 @@ fn table_entry(base: &str, version: u32) -> ArchivedOntologyTypeUuid {
     ))
 }
 
+/// Base URL of the `delivers` link type, reviewed as proximal in the fixtures.
 const DELIVERS: &str = "https://hash.ai/@h/types/entity-type/delivers/";
+/// Base URL of the Block Protocol `link` type.
+///
+/// It sorts before the HASH types by relation string.
 const LINK: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
+/// Base URL of the `yields` link type, reviewed as coincident in the fixtures.
 const YIELDS: &str = "https://hash.ai/@h/types/entity-type/yields/";
 
+/// Parses a contract-conforming document into three type verdicts and the source digest.
+///
+/// A contract-conforming document parses into three type verdicts with their classes, relations,
+/// reviewer and versioned URLs, no pair verdicts, and the recorded source digest.
 #[test]
 fn shipped_shape_parses() {
     let json = document(
@@ -78,6 +87,7 @@ fn shipped_shape_parses() {
     );
 }
 
+/// A document with a different schema tag fails with `Schema` carrying the tag found.
 #[test]
 fn foreign_schema_is_rejected() {
     let json = document(&verdict("overlay", LINK, 1), "")
@@ -89,6 +99,10 @@ fn foreign_schema_is_rejected() {
     );
 }
 
+/// Unknown fields and an unknown class fail at the JSON layer with `Json`.
+///
+/// An unknown field at the document or row level and an unknown class (`excluded`) fail at the JSON
+/// layer with `Json`.
 #[test]
 fn unknown_fields_and_classes_are_rejected() {
     // A field this reader does not know is a schema evolution nobody taught it, at the document and
@@ -109,7 +123,7 @@ fn unknown_fields_and_classes_are_rejected() {
         Err(InvalidReviewedVerdicts::Json(_)),
     );
 
-    // The exporter omits `excluded` reviews, so they are never a class.
+    // The exporter omits `excluded` reviews: `excluded` is never a class.
     let excluded = document(&verdict("excluded", LINK, 1), "");
     assert_matches!(
         ReviewedVerdicts::from_slice(excluded.as_bytes()),
@@ -117,6 +131,7 @@ fn unknown_fields_and_classes_are_rejected() {
     );
 }
 
+/// An unversioned URL and an uppercase digest fail at the JSON layer with `Json`.
 #[test]
 fn malformed_versioned_urls_and_digests_are_rejected() {
     let unversioned = document(
@@ -135,10 +150,13 @@ fn malformed_versioned_urls_and_digests_are_rejected() {
     );
 }
 
+/// Unordered or repeated type verdicts fail with `UnorderedTypeVerdicts` naming the index.
+///
+/// Type verdicts out of ascending relation order, or repeating a relation, fail with
+/// `UnorderedTypeVerdicts` naming the offending index.
 #[test]
 fn unordered_and_duplicate_type_verdicts_are_rejected() {
-    // LINK sorts before DELIVERS by relation string, so this order is
-    // descending.
+    // LINK sorts before DELIVERS by relation string: this order is descending.
     let unordered = document(
         &[
             verdict("proximal", DELIVERS, 1),
@@ -182,6 +200,10 @@ fn repeated_versioned_url_is_rejected() {
     );
 }
 
+/// Empty type and pair verdict fields fail with the variant naming the field.
+///
+/// An empty reviewer or relation fails with `EmptyTypeVerdictField` naming the field, and an empty
+/// pair-verdict field with `EmptyPairVerdictField`.
 #[test]
 fn empty_identity_fields_are_rejected() {
     let empty_reviewer = document(
@@ -221,6 +243,7 @@ fn empty_identity_fields_are_rejected() {
     );
 }
 
+/// Pair verdicts out of order fail with `UnorderedPairVerdicts` naming the offending index.
 #[test]
 fn unordered_pair_verdicts_are_rejected() {
     let json = document(
@@ -237,6 +260,9 @@ fn unordered_pair_verdicts_are_rejected() {
     );
 }
 
+/// Only the verdict whose versioned URL the ontology table holds resolves.
+///
+/// A verdict at another version of a held type and one for an absent type stay unresolved.
 #[test]
 fn resolution_is_version_precise() {
     let json = document(
@@ -249,8 +275,8 @@ fn resolution_is_version_precise() {
     );
     let verdicts = ReviewedVerdicts::from_slice(json.as_bytes()).expect("the fixture conforms");
 
-    // The snapshot holds two versions of the reviewed type; only the
-    // reviewed version resolves. LINK v9 is absent entirely.
+    // The snapshot holds two versions of the reviewed type, and only the reviewed version
+    // resolves. LINK v9 is absent entirely.
     let ontology = [
         table_entry(YIELDS, 1),
         table_entry(DELIVERS, 1),
@@ -270,10 +296,14 @@ fn resolution_is_version_precise() {
     assert_eq!(unresolved[0].relation, format!("hash:{LINK}"));
 }
 
+/// Reorders verdicts by ontology row against an opposite document order.
+///
+/// Resolution reorders verdicts by ontology row even when the document and the table order them
+/// oppositely.
 #[test]
 fn resolved_verdicts_ascend_by_row() {
-    // Document order is by relation string; the table reverses it, so
-    // resolution must re-order by row.
+    // Document order is by relation string and the table reverses it: resolution must
+    // re-order by row.
     let json = document(
         &[
             verdict("overlay", LINK, 1),
@@ -318,9 +348,8 @@ fn resolved_verdicts_ascend_by_row() {
 
 #[test]
 fn verdicts_without_a_store_identity_are_carried_as_evidence() {
-    // Foreign-corpus types (e.g. wikidata) record no versioned URL;
-    // the verdict parses, never resolves, and never conflicts with
-    // another identity-free verdict.
+    // Foreign-corpus types (e.g. wikidata) record no versioned URL. The verdict parses, never
+    // resolves, and never conflicts with another identity-free verdict.
     let json = document(
         &[
             verdict("proximal", DELIVERS, 1),
@@ -347,6 +376,7 @@ fn verdicts_without_a_store_identity_are_carried_as_evidence() {
     assert_eq!(unresolved, ["wikidata:P50", "wikidata:P69"]);
 }
 
+/// An empty document parses and resolves to no resolved and no unresolved verdicts.
 #[test]
 fn empty_document_resolves_to_nothing() {
     let json = document("", "");

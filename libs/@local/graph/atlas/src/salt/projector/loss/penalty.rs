@@ -1,17 +1,18 @@
-//! The sanctioned penalty family over the contrast violation.
+//! The penalty family over the contrast violation.
 //!
-//! Decision 4 selects the production penalty. This module carries the family as a closed set of
-//! shapes, each computing its value and exact derivative in one implementation, so the slope a
-//! gradient deposit consumes is the derivative of the value the estimand records. A caller-supplied
-//! callback could pair any value with any claimed slope, and nothing downstream could tell the pair
-//! from a derivative. A ruled shape outside the family arrives as a new variant rather than as a
-//! callback.
+//! This module carries the family as a closed set of shapes, each computing its value and exact
+//! derivative in one implementation. The slope a gradient deposit consumes is therefore the
+//! derivative of the value the estimand records. A caller-supplied callback could pair any value
+//! with any claimed slope, and nothing downstream could tell the pair from a derivative. A new
+//! shape arrives as a new variant rather than as a callback.
 
 /// The penalty `φ`, mapping a contrast violation to its value and exact derivative.
 ///
-/// Both readings evaluate in double precision, and no variant divides. Every violation widened
-/// from the working `f32` precision reads finite, because the widest such value squares inside
-/// `f64`'s range.
+/// Both readings evaluate in double precision, and no variant divides. Every finite violation
+/// widened from the working `f32` precision reads finite under both variants, because the widest
+/// such value, `f32::MAX`, squares inside `f64`'s range. The guarantee is that narrow: a finite
+/// `f64` violation above `√f64::MAX`, about `1.34·10¹⁵⁴`, overflows the quadratic hinge's square,
+/// and an infinite or NaN violation follows the branches [`evaluate`](Self::evaluate) states.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Penalty {
     /// `φ(v) = v` with slope `1` everywhere.
@@ -29,8 +30,8 @@ pub(crate) enum Penalty {
     Identity,
     /// `φ(v) = max(0, v)²` with slope `2·max(0, v)`: smooth at the hinge and dead below it.
     ///
-    /// The slope vanishes at a zero violation, so this shape keeps corrective force at distance
-    /// equality only through a positive margin. Admission enforces that pairing.
+    /// The slope vanishes at a zero violation. This shape keeps corrective force at distance
+    /// equality only through a positive margin, and admission enforces that pairing.
     #[cfg_attr(
         not(test),
         expect(
@@ -46,11 +47,15 @@ impl Penalty {
     /// Evaluates `(φ(v), φ′(v))` at the violation.
     ///
     /// The violation arrives in double precision, and a caller holding a working-precision
-    /// reading widens it visibly at the call. The pair is raw like its operand, and a
-    /// non-finite violation flows through to the consumer's own check. The value is signed -
-    /// under [`Identity`](Self::Identity) a satisfied pair's negative violation subtracts
-    /// value - and the slope is non-negative at every violation, because both declared
-    /// shapes are nondecreasing.
+    /// reading widens it visibly at the call. The pair is raw like its operand, and a non-finite
+    /// violation takes the variant's own branch. [`Identity`](Self::Identity) returns the
+    /// violation itself with slope one: `+∞`, `−∞` and NaN pass through as the value.
+    /// [`QuadraticHinge`](Self::QuadraticHinge) squares only a violation that compares greater
+    /// than zero: `+∞` returns `(+∞, +∞)`, while `−∞` and NaN take the zero branch and return
+    /// `(0, 0)`, indistinguishable from a satisfied pair. The value is signed - under
+    /// [`Identity`](Self::Identity) a satisfied pair's negative violation subtracts value - and
+    /// the slope is non-negative at every violation, because both declared shapes are
+    /// nondecreasing.
     #[must_use]
     pub(crate) fn evaluate(self, violation: f64) -> (f64, f64) {
         match self {
@@ -62,9 +67,8 @@ impl Penalty {
 
     /// Returns whether the derivative vanishes at a zero violation.
     ///
-    /// The ruled shape rule pairs such a penalty with a positive margin, so distance equality still
-    /// carries corrective force. Admission reads this to enforce the pairing, and the child module
-    /// locks the answer to the evaluated slope.
+    /// A penalty that is dead at equality pairs with a positive margin, which keeps corrective
+    /// force at distance equality. Admission reads this to enforce the pairing.
     #[must_use]
     pub(crate) const fn dead_at_equality(self) -> bool {
         match self {
@@ -83,6 +87,7 @@ mod tests {
 
     use super::Penalty;
 
+    /// Both penalty variants, for tests that must apply to every variant in the family.
     const FAMILY: [Penalty; 2] = [Penalty::Identity, Penalty::QuadraticHinge];
 
     /// Reads the raw pair for comparison against reference pairs.
@@ -118,6 +123,7 @@ mod tests {
         }
     }
 
+    /// `dead_at_equality` is true exactly when the slope at zero violation is zero.
     #[test]
     fn dead_at_equality_agrees_with_the_evaluated_slope() {
         for penalty in FAMILY {
@@ -125,6 +131,7 @@ mod tests {
         }
     }
 
+    /// Both penalties return finite values and slopes at `±f32::MAX`.
     #[test]
     fn the_widest_violation_still_reads_finite() {
         for penalty in FAMILY {

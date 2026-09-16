@@ -47,6 +47,11 @@ impl CorpusTable {
         self.as_str().into()
     }
 
+    /// Returns the table as a query correlation, unqualified by a schema.
+    ///
+    /// These tables are common table expressions rather than schema objects: the name lives in
+    /// the statement's own `WITH` clause, and a schema qualifier would send the resolver looking
+    /// for a real table of that name instead.
     pub(crate) fn reference(self) -> TableReference<'static> {
         TableReference {
             schema: None,
@@ -54,6 +59,10 @@ impl CorpusTable {
         }
     }
 
+    /// Returns `reference` as a column of this table, qualified by the table's own correlation.
+    ///
+    /// The qualifier is what keeps a column name that two joined relations share from being
+    /// ambiguous where both are in scope.
     pub(crate) fn column(self, reference: impl DatabaseColumn<'static> + Copy) -> Expression {
         Expression::ColumnReference(ColumnReference {
             correlation: Some(self.reference()),

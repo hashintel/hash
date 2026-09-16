@@ -1,25 +1,42 @@
-//! Wall-time and hardware-counter benchmarks for the math kernels.
+//! Math-kernel comparisons using wall time or calling-thread counters.
 //!
-//! Every benchmark pairs a SIMD kernel with the scalar formulation it replaces, so the
-//! vectorization claims in the module docs stay tied to measured numbers rather than
-//! emitted-assembly inspection alone.
+//! The suite compares selected vector kernels with scalar references, serial reductions with
+//! parallel forms, and production transcendental wrappers with experimental table kernels. Fixtures
+//! and surrounding benchmark code determine what each measurement includes.
 //!
-//! The measurement defaults to retired instructions, and `MATH_BENCH_EVENT`, a comma-separated
-//! list, selects it: every listed measurement runs the whole suite once in list order. The event
-//! is suffixed into the benchmark ids (`kernel@cycles/exp_f32x8`), so each event keeps its own
-//! statistics lineage and run-over-run change reports compare like with like. The events:
-//! `instructions`, `cycles`, `branch-mispredictions`, `l1d-cache-misses`, `backend-stalls` (cycles
-//! the scheduler issued nothing because execution was waiting, the direct view of dependency-chain
-//! latency), and `simd-instructions` (retired vector ALU operations, loop scaffolding filtered
-//! out). `wall-time` selects criterion's default wall-clock measurement instead, and it needs no
-//! elevated privileges. A list containing any other event runs under sudo. Instruction counts are
-//! stable across runs but blind to instruction-level parallelism, so confirm a winner in `cycles`
-//! before acting on close calls, and weigh instruction counts higher for kernels that run fused
-//! inside larger loops, where issue slots are the shared resource.
+//! `MATH_BENCH_EVENT` is a comma-separated list. It defaults to `instructions`, including when the
+//! list is empty. Each event runs the suite once in list order. Event suffixes such as
+//! `kernel@cycles/exp_f32x8` distinguish measurement names in the benchmark IDs.
 //!
-//! Counters attribute to the calling thread only: rayon-parallel benchmarks under-report every
-//! event because the workers' counts are invisible. Read parallel entries as coordination overhead,
-//! not as the work itself.
+//! # Measurements
+//!
+//! On supported Apple Silicon macOS systems, counter names select these events:
+//!
+//! - `instructions`: retired instructions.
+//! - `cycles`: CPU cycles.
+//! - `branch-mispredictions`: retired branch mispredictions.
+//! - `l1d-cache-misses`: retired L1 data-cache miss loads.
+//! - `backend-stalls`: no operation issued due to the backend, available on M4 and M5.
+//! - `simd-instructions`: retired non-load/store vector Advanced SIMD instructions, available on M2
+//!   through M5.
+//!
+//! The program uses its existing privileges for counter access, which requires root privileges or
+//! the kernel's kpc entitlement. `wall-time` uses Criterion's wall-clock measurement without
+//! counter access. On non-macOS platforms the counter backend also measures wall time, even when an
+//! ID carries a counter-event suffix.
+//!
+//! Instruction counts do not measure instruction-level parallelism and can vary with executed paths
+//! and allocator state. Compare cycles as well as instructions on the same machine and workload.
+//! Backend stalls aggregate backend causes rather than isolate one dependency chain. The
+//! vector-instruction event omits loads and stores and is not a count of all SIMD work.
+//!
+//! Hardware counts cover the calling thread, including any work it executes inside a parallel
+//! operation. Counts from other Rayon workers are omitted. Use `wall-time` to compare the
+//! completion times of serial and parallel reductions.
+//!
+//! # Running the suite
+//!
+//! These shell commands select counters or wall time:
 //!
 //! ```text
 //! sudo MATH_BENCH_EVENT=cycles,backend-stalls cargo bench -p hash-graph-atlas --features bench --bench math_kernels
@@ -39,9 +56,10 @@ use core::{hint::black_box, time::Duration};
 use codspeed_criterion_compat::{Criterion, Throughput, measurement::Measurement};
 use hash_graph_atlas::bench::{kernel, math};
 
+/// The embedding width the vector kernels run at.
 const EMBEDDING_DIMENSIONS: usize = 512;
 
-/// Deterministic, sign-varying components.
+/// Generates a repeating sequence of sign-varying components plus `offset`.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     core::array::from_fn(|index| {
         let value = f32::from(u8::try_from(index % 200).expect("bounded by modulus"));
@@ -50,6 +68,7 @@ fn scattered<const N: usize>(offset: f32) -> [f32; N] {
     })
 }
 
+/// Measures dot product and cosine distance at the embedding width.
 fn bench_vecn<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     let pair = math::vecn_pair(
         scattered::<EMBEDDING_DIMENSIONS>(0.5),
@@ -72,6 +91,7 @@ fn bench_vecn<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     group.finish();
 }
 
+/// Measures batched affinity gradients and the reference-point fit.
 fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &str) {
     let state = math::affinity_state(
         1.577,
@@ -103,12 +123,13 @@ fn bench_affinity<M: Measurement + 'static>(criterion: &mut Criterion<M>, event:
     );
 }
 
-/// Scalar-libm baselines for the gradient kernels' `pow` composition.
+/// Measures scalar powers alone and inside a synthetic rational coefficient.
 ///
-/// The affinity gradients need `d^(2b)` for four lanes with a shared exponent, and they tolerate a
-/// few ulps. The production choice is the vendored `exp2(p * log2(d))` composition (measured as
-/// `kernel/pow_f32x4`); these entries keep its scalar-libm alternative measured in the same
-/// isolated and fused-in-coefficient forms.
+/// The scalar comparison applies [`f32::powf`] to four lanes with exponent 0.895. The coefficient
+/// fixture evaluates −2abP/(1 + aPρ), with ρ the squared distance, a = 1.577, b = 0.895 and P = ρᵇ.
+/// The attractive gradient uses this form with P = ρᵇ⁻¹. This fixture's exponent makes it a
+/// separate synthetic workload. The `kernel@{event}/pow_f32x4` entry measures the vector power
+/// composition in isolation.
 fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     use core::simd::{Simd, f32x4};
 
@@ -131,10 +152,8 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>, event: &st
             ])
         });
     });
-    // The fused variant embeds the strategy in the attraction-coefficient
-    // arithmetic, measuring what the isolated calls cannot: whether the
-    // instruction-count gap converts to cycles once the pow competes with
-    // surrounding vector work for issue slots.
+    // embed the power in surrounding vector arithmetic to measure the combined workload. The
+    // benchmark name uses "fused" for this combination, not for a fused multiply-add.
     let curve_a = 1.577_f32;
     let curve_b = 0.895_f32;
     let coefficient = |power: f32x4, distance_squared: f32x4| {
@@ -161,16 +180,15 @@ fn bench_pow_strategies<M: Measurement>(criterion: &mut Criterion<M>, event: &st
     group.finish();
 }
 
-/// The production wrappers over the vendored SLEEF kernels.
+/// Measures transcendental wrappers and table-exponential candidates.
 ///
-/// Each entry measures a wrapper exactly as production calls it. The saved per-event baselines make
-/// a rewrite of the vendored kernels visible as an instruction-count or cycle change run over run.
+/// The gather and architecture-specific table entries are alternatives to the production
+/// exponential. Each benchmark measures the fixture's complete wrapper call.
 fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     use core::simd::{Simd, f32x4, f32x8, f64x4};
 
-    // Lane values spread across the interesting ranges: large-negative
-    // (underflow edge), moderate, near-zero, and large-positive
-    // (overflow edge) keep every polynomial and scaling path live.
+    // sample the normal-output range near its extremes and around zero. Saturating overflow, deep
+    // underflow and non-finite inputs need separate fixtures.
     let f32_inputs = f32x8::from_array([-87.3, -12.5, -1.0, -1e-4, 0.0, 0.5, 42.0, 88.7]);
     let f64_inputs = f64x4::from_array([-708.0, -0.5, 1e-9, 709.0]);
     let base = f32x4::from_array([0.25, 2.5, 117.0, 0.9]);
@@ -201,6 +219,7 @@ fn bench_kernels<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     group.finish();
 }
 
+/// Measures four-lane transform application beside its scalar reference.
 fn bench_transforms<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     let state = math::transform_batch(
         [2.0, 3.0],
@@ -221,6 +240,10 @@ fn bench_transforms<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     group.finish();
 }
 
+/// Measures bounds reduction over 100,000 and 1,000,000 collinear points.
+///
+/// The fixture repeats points on y = 1000 − 2x. The slice kernel runs beside its scalar reference
+/// at 100,000 rows and beside its parallel form at 1,000,000.
 fn bench_bounds<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     let small = math::scattered_points(100_000);
     let large = math::scattered_points(1_000_000);
@@ -246,6 +269,7 @@ fn bench_bounds<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     group.finish();
 }
 
+/// Measures serial and parallel similarity fits over 100,000 rows.
 fn bench_similarity_fit<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     let fixture = math::similarity_fixture(100_000, [2.0, 0.8, 0.6, 10.0, -4.0]);
 
@@ -262,6 +286,7 @@ fn bench_similarity_fit<M: Measurement>(criterion: &mut Criterion<M>, event: &st
     group.finish();
 }
 
+/// Measures a 64-way double-precision softmax.
 fn bench_dvecn<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &str) {
     let logits = math::logits(core::array::from_fn::<f64, 64, _>(|index| {
         f64::from(u8::try_from(index).expect("bounded dimension")).mul_add(0.05, -1.6)
@@ -272,6 +297,16 @@ fn bench_dvecn<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &s
     });
 }
 
+/// Configures Criterion with the backend for a counter-event name.
+///
+/// By default, requests a half-second warm-up and one second of measurement over 20 samples. The
+/// non-macOS backend uses wall time.
+///
+/// # Panics
+///
+/// Panics if `event` is unknown. On macOS, also panics if sampler initialization, event
+/// configuration or counter start fails, or if a previous acquisition set the process-local guard.
+/// This includes unsupported events and unavailable counter privileges.
 fn hardware_counter(event: &str) -> Criterion<darwin_kperf_criterion::HardwareCounter> {
     use darwin_kperf_criterion::HardwareCounter;
     use darwin_kperf_events::Event;
@@ -299,13 +334,11 @@ fn hardware_counter(event: &str) -> Criterion<darwin_kperf_criterion::HardwareCo
         .sample_size(20)
 }
 
-/// The finiteness scan's serial ordering against both parallel forms.
+/// Compares serial, per-point parallel and chunked parallel finiteness scans.
 ///
-/// The production serial scan runs beside rayon's per-point search for the first non-finite
-/// point and beside a chunked distribution of the serial scan's own batch predicate, over
-/// representative row counts. The parallel entries under-report every hardware counter
-/// (workers' counts are invisible to the calling thread), so `wall-time` is the honest event
-/// for this comparison.
+/// The finite fixtures range from 2¹² to 2²⁰ rows, exercising complete scans rather than early
+/// rejection. `wall-time` measures completion of the parallel work. Hardware counters cover only
+/// the calling thread's share.
 fn bench_finite_scan<M: Measurement>(criterion: &mut Criterion<M>, event: &str) {
     let mut group = criterion.benchmark_group(format!("finite_scan@{event}"));
     for exponent in [12_u32, 14, 16, 18, 20] {
@@ -325,11 +358,11 @@ fn bench_finite_scan<M: Measurement>(criterion: &mut Criterion<M>, event: &str) 
     group.finish();
 }
 
-/// Runs every group under `criterion`, with `event` suffixed into each benchmark id.
+/// Runs all groups with an event-qualified benchmark ID.
 ///
-/// The suffix keeps every measurement's statistics in its own lineage: benchmark ids are
-/// criterion's storage key, so without it a multi-event run would overwrite one event's samples
-/// with the next's and compare quantities of different units run over run.
+/// # Panics
+///
+/// Propagates benchmark and measurement panics, including failures to sample a hardware counter.
 fn run_benches<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &str) {
     bench_vecn(criterion, event);
     bench_affinity(criterion, event);
@@ -343,6 +376,11 @@ fn run_benches<M: Measurement + 'static>(criterion: &mut Criterion<M>, event: &s
 }
 
 /// Runs the suite once under a single measurement.
+///
+/// # Panics
+///
+/// Propagates [`hardware_counter`] and benchmark panics. Criterion argument processing also
+/// applies.
 fn run_event(event: &str) {
     if event == "wall-time" {
         let mut criterion = Criterion::default()
@@ -359,15 +397,19 @@ fn run_event(event: &str) {
     Criterion::default().configure_from_args().final_summary();
 }
 
-// The dispatch mirrors `criterion_group!`/`criterion_main!` expansion;
-// the macros cannot express two measurement types behind one binary,
-// and a measurement is a property of a whole `Criterion<M>` instance.
-// A multi-event selection re-execs this binary once per event instead
-// of looping instances in-process: kpc counter configuration is
-// per-process state, and a second configurable-event setup in the same
-// process fails with `FailedToSetKpcConfig` (the fixed-counter events,
-// instructions and cycles, mask the problem by not needing one).
+/// Runs the suite once per event, defaulting to retired instructions.
+///
+/// `MATH_BENCH_EVENT` supplies a comma-separated list. A multi-event list re-executes this binary
+/// once per event, with each child inheriting the arguments. An empty list selects `instructions`.
+///
+/// # Panics
+///
+/// Propagates [`run_event`] panics for a single event. For multiple events, panics if the
+/// executable path is unavailable, a child cannot be spawned, or any child exits unsuccessfully.
 fn main() {
+    // The macOS counter backend leaves its acquisition guard set after a successful acquisition,
+    // including after Drop. Re-executing creates a process-local guard for each event. Therefore
+    // each child can acquire its own measurement once.
     let events = std::env::var("MATH_BENCH_EVENT").unwrap_or_else(|_| "instructions".to_owned());
     let events: Vec<&str> = events
         .split(',')

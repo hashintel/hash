@@ -79,17 +79,12 @@ impl GenerationRoot {
     ///
     /// # Errors
     ///
-    /// Returns [`OpenError::Unpublished`] when the generation is not published in this root,
-    /// [`OpenError::Identity`] when the document's bytes do not hash to `id`,
-    /// [`OpenError::Document`] when they do not parse as a repository this module speaks, and
-    /// [`OpenError::Io`] when reading them fails.
+    /// Returns [`OpenError`] for an unpublished generation, an identity mismatch, an unparsable
+    /// document, or a read failure.
     #[tracing::instrument(skip_all)]
     pub(crate) fn open(&self, id: GenerationId) -> Result<Generation, OpenError> {
         let path = self.generation_path(id);
 
-        // Parsed, never mapped: the document is the JSON root of trust,
-        // kilobyte-scale, read once per open, and inspected by humans
-        // more often than machines - the palette's one JSON slot.
         let document = match fs::read(path.join(METADATA_FILE)) {
             Ok(document) => document,
             Err(error) if error.kind() == io::ErrorKind::NotFound => {

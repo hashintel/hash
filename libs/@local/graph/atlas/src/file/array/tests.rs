@@ -1,3 +1,5 @@
+//! Certificates for the array file's format.
+
 use core::{
     assert_matches,
     sync::atomic::{AtomicU64, Ordering},
@@ -27,6 +29,7 @@ struct TempFile {
 }
 
 impl TempFile {
+    /// Writes `bytes` to a fresh path, unique within this process run.
     fn create(bytes: &[u8]) -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -47,15 +50,20 @@ impl Drop for TempFile {
     }
 }
 
+/// An array shape over `dims`, panicking on a fixture beyond the eight-dimension rank.
 fn shape(dims: &[u64]) -> ArrayShape {
     let dims = dims.iter().copied().map(Dim::new).collect::<Vec<_>>();
     ArrayShape::new(&dims).expect("shape should hold at most eight dimensions")
 }
 
+/// The shape's dimensions as plain numbers, for comparison against an expected list.
 fn extents(shape: &ArrayShape) -> Vec<u64> {
     shape.dims().iter().map(|dim| dim.get()).collect()
 }
 
+/// The header's bytes sit where the format's table says: magic, little-endian version, this
+/// machine's information, the variant discriminant, the shape as little-endian `u64`s, and zero
+/// padding out to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2])));
@@ -172,6 +180,8 @@ fn shape_is_the_longest_nonzero_prefix() {
     assert!(ArrayShape::new(&[Dim::new(1); 9]).is_none());
 }
 
+/// The `u8` variant's discriminant, width, byte length and expected file length are the values
+/// the format fixes, and a header carrying it parses back to the same variant.
 #[test]
 fn u8_variant_pins_its_identity_and_width() {
     let header = FileHeader::new(ArrayVariant::U8, shape(&[3, 32]));
@@ -200,6 +210,8 @@ fn element_count_overflow_matches_no_file() {
     assert_eq!(header.byte_length(), None);
 }
 
+/// The expected file length is the header page plus element count times element width, and a
+/// zero-element array's expected length is the header page alone.
 #[test]
 fn expected_file_len_is_the_single_rule() {
     let header = FileHeader::new(ArrayVariant::F32, shape(&[1 << 18, 2]));

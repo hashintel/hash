@@ -21,7 +21,15 @@ use crate::{
     },
 };
 
-/// The drawn frame as one string per row, trailing blanks trimmed.
+/// Renders the drawn frame as one string per row, trailing blanks trimmed.
+///
+/// Reads coordinates from zero up to the buffer's width and height. Zero width produces an empty
+/// string per row, and zero height produces no rows.
+///
+/// # Panics
+///
+/// Panics for a nonempty area whose origin is not `(0, 0)`, or whose cell storage does not cover
+/// the requested coordinates.
 fn rows(buffer: &Buffer) -> Vec<String> {
     (0..buffer.area.height)
         .map(|y| {
@@ -43,7 +51,7 @@ fn draw_on(state: &RunState, tick: usize, width: u16, height: u16) -> Vec<String
     rows(&buffer_on(state, tick, width, height))
 }
 
-/// The drawn buffer itself, for the assertions that read style rather than text.
+/// Draws one frame and returns its buffer, for the assertions that read style rather than text.
 fn buffer_on(state: &RunState, tick: usize, width: u16, height: u16) -> Buffer {
     let mut terminal =
         Terminal::new(TestBackend::new(width, height)).expect("should open a terminal");
@@ -54,7 +62,7 @@ fn buffer_on(state: &RunState, tick: usize, width: u16, height: u16) -> Buffer {
     terminal.backend().buffer().clone()
 }
 
-/// A grid of interior rows around the origin, and the two landmarks that lead the sample.
+/// Builds a grid of interior rows around the origin, led by the sample's two landmarks.
 fn placement() -> Vec<Vec2> {
     let mut positions = vec![Vec2::new(-2.0, 0.0), Vec2::new(2.0, 0.0)];
     for column in 0..8_u8 {
@@ -69,7 +77,7 @@ fn placement() -> Vec<Vec2> {
     positions
 }
 
-/// A run standing in the placement stage with a snapshot reported.
+/// Builds a run standing in the placement stage with a snapshot reported.
 fn placed() -> RunState {
     let mut state = training(150, 600);
     state.place_projector(placement(), 2);
@@ -77,7 +85,7 @@ fn placed() -> RunState {
     state
 }
 
-/// A run standing in the placement stage, `steps` of `total` reported.
+/// Builds a run standing in the placement stage, `steps` of `total` reported.
 #[expect(
     clippy::cast_precision_loss,
     reason = "the fixture runs a few hundred steps, exactly representable"
@@ -88,7 +96,7 @@ fn training(steps: usize, total: usize) -> RunState {
         state.complete_at(stage, Duration::from_secs(index as u64 + 1));
     }
     for step in 0..steps {
-        // A decaying curve, so the chart has a real range to label.
+        // A decaying curve gives the chart a real range to label.
         let decay = 0.5_f32.powf(step as f32 / 16.0);
         state.advance_projector(
             step,
@@ -142,6 +150,9 @@ fn a_completed_stage_carries_its_glyph_span_and_leader_dots() {
     assert!(drawn[13].contains("stages 1/12"), "{drawn:#?}");
 }
 
+/// A half-finished embedding batch lights half the ingest row's bar.
+///
+/// The done-of-total counter prints between label and leader dots, on the running row alone.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -171,6 +182,9 @@ fn the_running_ingest_row_carries_the_embedding_counter() {
     assert!(!drawn[2].contains('░'), "{drawn:#?}");
 }
 
+/// An ingest that embedded nothing because the cache held everything reports the reused count.
+///
+/// A bar in its place would read as no progress.
 #[test]
 fn a_wholly_reused_workload_says_so_instead_of_drawing_an_empty_bar() {
     let mut state = RunState::new();
@@ -184,6 +198,9 @@ fn a_wholly_reused_workload_says_so_instead_of_drawing_an_empty_bar() {
     assert!(drawn[1].contains("4096 reused"), "{drawn:#?}");
 }
 
+/// Once ingest completes, its row trades the batch counter for the span it took.
+///
+/// The counter belongs to work in flight.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -207,6 +224,9 @@ fn a_completed_ingest_stage_drops_its_counter_for_its_span() {
     assert!(drawn[1].ends_with("12.4s │"), "{drawn:#?}");
 }
 
+/// Three of four folds done draws six of the classifier row's eight bar cells.
+///
+/// The fold counter stands beside them.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -254,6 +274,9 @@ fn the_classifier_row_carries_the_derived_boundary_until_the_folds_start() {
     );
 }
 
+/// With every fold in and a strength selected, the classifier row carries every reading.
+///
+/// The row shows the full bar, the fold counter and the chosen regularization strength.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -307,7 +330,7 @@ fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
     );
 
     // A phase the backend named replaces the bar: the linking counts
-    // nothing this side of the seam.
+    // nothing on this side of the handoff.
     state.report_knn(KnnActivity::Building("building the graph".to_owned()));
     assert!(
         draw(&state, 0)[6].starts_with("│ ⠋ knn         building the graph"),
@@ -343,6 +366,9 @@ fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
     );
 }
 
+/// A quarter of the descent schedule reported lights two of the projector row's eight bar cells.
+///
+/// The step counter prints beside them.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -351,8 +377,7 @@ fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
 fn the_running_projector_row_carries_its_step_counter() {
     let drawn = draw(&training(150, 600), 0);
 
-    // A quarter of the schedule is behind it, so two of the eight
-    // cells are lit.
+    // A quarter of the schedule is behind it. Two of the eight cells are lit.
     assert!(
         drawn[9].starts_with("│ ⠋ projector   ██░░░░░░ 150/600"),
         "{drawn:#?}"
@@ -380,13 +405,16 @@ fn the_loss_chart_labels_the_floor_and_the_peak_the_run_reached() {
     assert!(chart.contains('⠉') || chart.contains('⣀'), "{chart}");
 }
 
+/// A chart pane too narrow for the per-family footer keeps the chart.
+///
+/// The footer row keeps an unbroken border, rather than a title clipped mid-word.
 #[test]
 fn a_pane_too_narrow_for_the_breakdown_drops_it_rather_than_the_corner() {
     let drawn = draw_on(&training(150, 600), 0, 60, 30);
 
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
-    // The widget draws a title wider than its frame from the left corner outward, so the footer row
-    // is unbroken border or it is a truncated sentence starting mid-word. Absence of the whole
+    // The widget draws a title wider than its frame from the left corner outward. The footer row is
+    // unbroken border or it is a truncated sentence starting mid-word. Absence of the whole
     // breakdown is not enough to tell those apart.
     assert!(
         drawn[22]
@@ -425,8 +453,8 @@ fn the_map_draws_beside_the_curve_on_a_wide_pane() {
 fn a_pane_too_narrow_for_both_keeps_the_curve_alone() {
     let drawn = draw_on(&placed(), 0, 70, 30);
 
-    // The curve is the reading an operator acts on, so a narrow
-    // pane gives up the map rather than the descent.
+    // The curve is the reading an operator acts on. A narrow pane gives up the map rather than the
+    // descent.
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
     assert!(!drawn[14].contains(" map "), "{drawn:#?}");
 }
@@ -437,8 +465,7 @@ fn a_run_with_no_snapshot_leaves_the_curve_the_whole_band() {
 
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
     assert!(!drawn[14].contains(" map "), "{drawn:#?}");
-    // The chart has the room the map would have taken, so its
-    // per-family footer fits.
+    // The chart has the room the map would have taken. Its per-family footer fits.
     assert!(drawn[22].contains("semantic 0.013"), "{drawn:#?}");
 }
 
@@ -452,7 +479,7 @@ fn a_landmark_colors_the_cell_it_lands_in() {
         .map(|cell| cell.fg)
         .collect();
 
-    // The map draws the skeleton after the interior, so a cell holding a landmark reads as skeleton
+    // The map draws the skeleton after the interior. A cell holding a landmark reads as skeleton
     // and the rest as the sample. Both colors are present: the map distinguishes them.
     assert!(colors.contains(&SKELETON), "{colors:?}");
     assert!(colors.contains(&ACCENT), "{colors:?}");
@@ -462,12 +489,10 @@ fn a_landmark_colors_the_cell_it_lands_in() {
 fn the_map_keeps_the_placement_square() {
     let inner = Rect::new(0, 0, 40, 7);
 
-    // A braille dot is as tall as it is wide, so equal data units
-    // per dot on both axes is what keeps the atlas its own shape
-    // instead of one stretched to fill the frame. Whichever axis
-    // needs the most units per dot sets the scale, so the other one
-    // gets slack and the placement always fits: asserted from both
-    // sides, because a scale read off one axis alone is square too
+    // A braille dot is as tall as it is wide, so equal data units per dot on both axes is what
+    // keeps the atlas its own shape instead of one stretched to fill the frame. Whichever axis
+    // needs the most units per dot sets the scale. The other one gets slack and the placement
+    // always fits: asserted from both sides, because a scale read off one axis alone is square too
     // and lets the other axis run off the frame.
     for placement in [
         [Vec2::new(-8.0, -1.0), Vec2::new(8.0, 1.0)],
@@ -477,8 +502,8 @@ fn the_map_keeps_the_placement_square() {
 
         let across = (horizontal[1] - horizontal[0]) / (f64::from(inner.width) * 2.0);
         let down = (vertical[1] - vertical[0]) / (f64::from(inner.height) * 4.0);
-        // The map builds the viewport in `f32` and widens it for the canvas, so the two readings
-        // agree to within a rounding of the extent they were rebuilt from.
+        // The map builds the viewport in `f32` and widens it for the canvas. Both readings agree to
+        // within a rounding of the extent they were rebuilt from.
         let tolerance = 4.0 * f64::from(f32::EPSILON) * across;
         assert!(
             (across - down).abs() <= tolerance,
@@ -497,6 +522,9 @@ fn the_map_keeps_the_placement_square() {
     }
 }
 
+/// A row with a non-finite coordinate leaves the drawn band identical to the placement without it.
+///
+/// The canvas would otherwise clamp it into a corner it does not occupy.
 #[test]
 fn a_row_the_canvas_cannot_place_is_dropped_rather_than_drawn() {
     let mut state = training(150, 600);
@@ -550,6 +578,10 @@ fn probed(readings: usize) -> RunState {
     state
 }
 
+/// A full admission battery draws one indented row per reading under the admission stage.
+///
+/// The rows follow the battery's own order, each with leader dots out to its value and spreads
+/// rendered as spreads. The rail's footer and the log keep their places below.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -576,6 +608,9 @@ fn the_admission_readings_hang_under_the_stage_that_measured_them() {
     assert!(drawn.join("\n").contains(" log "), "{drawn:#?}");
 }
 
+/// A partial battery draws only the readings taken.
+///
+/// The rail invents neither a row nor a zero for evidence the probe does not have.
 #[expect(
     clippy::non_ascii_literal,
     reason = "the assertions read the dashboard's own glyphs"
@@ -592,26 +627,32 @@ fn a_battery_missing_evidence_draws_only_the_readings_it_has() {
     assert!(!drawn.join("\n").contains("continuity"), "{drawn:#?}");
 }
 
+/// A pane that cannot spare a row per reading shows none of them rather than half a battery.
+///
+/// Half a battery would read as evidence the probe could not measure. The log keeps its place
+/// below.
 #[test]
 fn readings_a_short_pane_cannot_hold_whole_stay_out_of_the_rail() {
     let drawn = draw_on(&probed(6), 0, 60, 20);
     let pane = drawn.join("\n");
 
-    // Half a battery would read as evidence the probe could not
-    // measure, so a pane that cannot spare a row per reading shows
-    // none of them - and the log keeps its voice either way.
+    // Half a battery would read as evidence the probe could not measure. A pane that cannot spare a
+    // row per reading shows none of them - and the log keeps its voice either way.
     assert!(drawn[13].contains("stages 12/12"), "{drawn:#?}");
     assert!(!pane.contains("recall"), "{pane}");
     assert!(!pane.contains("triplet agreement"), "{pane}");
     assert!(pane.contains(" log "), "{pane}");
 }
 
+/// On a short pane the chart is the first thing dropped.
+///
+/// The rail and the log, the run's shape and its voice, are both still drawn.
 #[test]
 fn a_pane_too_short_for_a_chart_keeps_the_rail_and_the_log() {
     let drawn = draw(&training(150, 600), 0);
     let pane = drawn.join("\n");
 
-    // The rail is the run's shape and the log is its voice; the
+    // The rail is the run's shape and the log is its voice. The
     // chart is the first thing to go.
     assert!(!pane.contains(" loss "), "{pane}");
     assert!(pane.contains("admission"), "{pane}");
@@ -658,12 +699,16 @@ fn the_log_pane_shows_the_newest_lines_that_fit() {
     let drawn = draw(&state, 0);
     let pane = drawn[15..].join("\n");
 
-    // The pane is a tail rather than a scrollback, so the newest line is always visible and the
-    // pane drops the oldest off the top.
+    // The pane is a tail rather than a scrollback. The newest line is always visible and the pane
+    // drops the oldest off the top.
     assert!(pane.contains("line 39"), "{pane}");
     assert!(!pane.contains("line 0 "), "{pane}");
 }
 
+/// Stage spans render as seconds to a tenth below a minute.
+///
+/// At or above a minute they render as minutes and zero-padded seconds, including the minute
+/// boundary itself.
 #[test]
 fn spans_read_as_a_clock() {
     assert_eq!(duration(Duration::from_millis(400)), "0.4s");

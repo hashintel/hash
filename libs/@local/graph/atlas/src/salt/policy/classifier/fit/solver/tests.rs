@@ -56,6 +56,7 @@ fn flat(assignments: &[(usize, f64)]) -> BoxedDVecN<SOLVER_DIMENSIONS> {
     vector
 }
 
+/// The most rows a solver fixture corpus holds.
 const CAPACITY: usize = 4;
 
 /// An owned solver-test corpus growing row by row.
@@ -65,6 +66,7 @@ struct Corpus {
 }
 
 impl Corpus {
+    /// An empty corpus with zeroed storage.
     fn new() -> Self {
         Self {
             storage: BoxedVecN::zero(),
@@ -72,6 +74,14 @@ impl Corpus {
         }
     }
 
+    /// Appends a row with the given leading embedding components, soft target and weight.
+    ///
+    /// The embedding starts with `leading` and is zero beyond it, and the row joins the shared
+    /// fixture group.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the corpus already holds [`CAPACITY`] rows.
     fn push(&mut self, leading: &[f32], target: [f64; GeometryClass::COUNT], weight: f64) {
         let index = self.rows.len();
         assert!(index < CAPACITY, "the fixture fits the capacity");
@@ -84,18 +94,23 @@ impl Corpus {
         });
     }
 
+    /// The pushed rows' embeddings as an aligned slice.
     fn embeddings(&self) -> &[AlignedVecN<CANONICAL_DIMENSIONS>] {
         AlignedVecN::from_slice(&self.storage.as_array()[..self.rows.len() * CANONICAL_DIMENSIONS])
             .expect("boxed storage is aligned")
     }
 }
 
+/// The SHA-256 digest of `bytes`, used as a group identity.
 fn digest(bytes: &[u8]) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hasher.finalize()
 }
 
+/// Preparation settings for the fixtures.
+///
+/// Regularisation `0.5`, a one-ulp target-sum tolerance and a `1e-12` relative curvature floor.
 fn settings() -> PreparationSettings {
     PreparationSettings {
         regularization: d_positive!(0.5),
@@ -104,8 +119,9 @@ fn settings() -> PreparationSettings {
     }
 }
 
-/// Builds the valid three-row corpus with exact targets, weights summing to five, and known leading
-/// components.
+/// Builds the valid three-row fixture corpus.
+///
+/// Exact targets, weights summing to five, and known leading components.
 fn valid_corpus() -> Corpus {
     let mut corpus = Corpus::new();
     corpus.push(&[2.0, -1.0], [1.0, 0.0, 0.0], 1.5);
@@ -125,7 +141,7 @@ fn solver_parameters() -> ContrastVector {
     parameters
 }
 
-/// Reconstructs raw parameters `W = BA`, `b = Ba` in the legacy flat layout.
+/// Reconstructs raw parameters `W = BA`, `b = Ba` in the objective's flat class layout.
 fn raw_parameters(contrast: &ContrastVector) -> Parameters {
     let mut raw = Parameters::zero();
     let (rows, intercepts) = raw.as_array_mut().as_chunks_mut::<CANONICAL_DIMENSIONS>();
@@ -169,8 +185,9 @@ fn flat_dot(left: &ContrastVector, right: &ContrastVector) -> f64 {
     )
 }
 
-/// Builds a coefficient axis, an intercept axis, and a mixed vector as the deterministic test
-/// directions.
+/// Builds the three deterministic test directions.
+///
+/// A coefficient axis, an intercept axis, and a mixed vector.
 fn directions() -> [ContrastVector; 3] {
     let mut coefficient = ContrastVector::zero();
     coefficient.coefficients[0].as_array_mut()[0] = 1.0;
@@ -242,8 +259,8 @@ fn basis_roundtrip_is_the_identity_up_to_rounding() {
         let logits = basis::expand(contrast);
         let recovered = basis::reduce(logits);
 
-        // Rounding in the expanded logits is proportional to the largest coordinate, so the
-        // roundtrip error of every component carries that scale after cancellation.
+        // Rounding in the expanded logits is proportional to the largest coordinate, and the
+        // roundtrip error of every component therefore carries that scale after cancellation.
         let magnitude = contrast[0].abs().max(contrast[1].abs()).max(1.0);
         for (out, initial) in recovered.iter().zip(contrast) {
             assert!(
@@ -265,10 +282,10 @@ fn expanded_logits_stay_shift_free() {
     }
 }
 
-/// [`AlignedDVecN::checked_dot`] passes an exactly representable dot through the gate.
+/// [`AlignedDVecN::checked_dot`] passes an exactly representable dot through the check.
 #[test]
 fn checked_dot_passes_finite_values() {
-    // Both terms are exact, so 2·4 + (−3)·5 = −7 under any fold shape.
+    // Both terms are exact: 2·4 + (−3)·5 = −7 under any fold shape.
     let left = flat(&[(0, 2.0), (9, -3.0)]);
     let right = flat(&[(0, 4.0), (9, 5.0)]);
 
@@ -293,8 +310,10 @@ fn checked_dot_rejects_non_finite_results() {
     assert_eq!(poisoned.checked_dot(&ones), None);
 }
 
-/// [`AlignedDVecN::checked_stable_l2`] passes exact norms through and reports non-finite
-/// components as [`None`].
+/// Passes exact norms through `checked_stable_l2` and refuses non-finite components.
+///
+/// [`AlignedDVecN::checked_stable_l2`] passes exact norms through and reports non-finite components
+/// as [`None`].
 #[test]
 fn checked_stable_l2_gates_the_house_norm() {
     // 3-4-5 triangle: every ratio and square of the house kernel is exact.
@@ -399,6 +418,8 @@ fn preparation_accumulates_statistics_and_charges_work() {
     assert_eq!(prepared.evidence.maximum_adjustment, 0.0);
 }
 
+/// Derives the initial diagonal `h_jj` identically for both contrast rows.
+///
 /// The initial diagonal follows `h_jj = (1/(3S))·Σ w x̄² + (λ/S)·1{coefficient}` with the derived
 /// floor inside the square root, identically for both contrast rows.
 #[test]
@@ -632,7 +653,7 @@ fn contrast_vector_roundtrips_the_flat_layout() {
 /// The derived reference component reports the canonicalization distance.
 #[test]
 fn closed_target_records_the_derived_adjustment() {
-    // The raw sum is one ulp above 1, so normalization moves the components.
+    // The raw sum is one ulp above 1, and normalization moves the components.
     let raw = [0.5, 0.25, 0.25 + f64::EPSILON];
     let (closed, evidence) = ClosedTarget::new(raw, one_ulp()).expect("within tolerance");
 
@@ -661,8 +682,9 @@ fn objective_at_zero_is_ln_three() {
     );
 }
 
-/// The raw-space objective over the full corpus: a per-row reference over [`objective::logits`]
-/// sharing no code with the contrast evaluation.
+/// Computes the raw-space objective over the full corpus.
+///
+/// A per-row reference over [`objective::logits`] sharing no code with the contrast evaluation.
 fn raw_objective(corpus: &Corpus, raw: &Parameters, regularization: f64) -> f64 {
     let mut objective = 0.0;
     for (row, embedding) in corpus.rows.iter().zip(corpus.embeddings()) {
@@ -1013,7 +1035,7 @@ fn objective_resolution_pins_the_ulp_exceptional_cases() {
     );
 
     // The top of the grid uses the predecessor spacing and stays finite: the returned domain
-    // proves finiteness, so the expectation is the whole assertion.
+    // proves finiteness, and the expectation is the whole assertion.
     let top = objective_resolution(f64::MAX, one_ulp()).expect("finite at the maximum");
     assert_eq!(top, f64::MAX - f64::MAX.next_down());
     let widest = NonZeroU32::new(u32::MAX).expect("u32::MAX is nonzero");
@@ -1046,8 +1068,8 @@ fn solver_config() -> SolverConfig {
 
 /// The in-domain fixture and the cross-field boundaries validate.
 ///
-/// Per-field domains hold by construction. Only the cross-field orderings remain for `validate`
-/// to accept.
+/// Per-field domains hold by construction. Only the cross-field orderings remain for the
+/// constructor to accept.
 #[test]
 fn config_accepts_the_domain_boundaries() {
     solver_config()
@@ -1098,6 +1120,8 @@ fn config_rejects_misordered_fields() {
     }
 }
 
+/// Reads the gradient threshold as the stated maximum and refuses only a non-finite norm.
+///
 /// The gradient threshold is the stated maximum, zero is valid, and only a non-finite norm maps
 /// away.
 #[test]
@@ -1164,7 +1188,7 @@ fn boundary_step_picks_the_far_crossing_for_a_backward_direction() {
     let crossed = boundary_step(&interior, &direction, &zero, &zero, d_positive!(2.0))
         .expect("the backward crossing is exact");
 
-    // From p = e₀ along −e₀ the boundary sits at −Δ·e₀, a crossing of τ = 3.
+    // From p = e₀ along −e₀ the boundary lies at −Δ·e₀, a crossing of τ = 3.
     assert_eq!(crossed.step.as_array()[0], -2.0);
     assert_eq!(crossed.hessian_step.as_array()[0], 0.0);
 }
@@ -1192,7 +1216,7 @@ fn boundary_step_advances_the_hessian_product_along_the_crossing() {
     assert_eq!(crossed.hessian_step.as_array()[1], 0.5);
 }
 
-/// An irrational crossing under an odd radius passes both norm gates of the gross-defect guard.
+/// An irrational crossing under an odd radius passes both norm checks of the gross-defect guard.
 #[test]
 fn boundary_step_survives_an_irrational_crossing() {
     let interior = flat(&[(0, 0.75)]);
@@ -1248,6 +1272,8 @@ fn boundary_step_rejects_a_zero_direction() {
     );
 }
 
+/// Rejects an overflowing radius normalization before any coefficient forms.
+///
 /// The boundary construction rejects an overflowing radius normalization before any coefficient
 /// forms.
 #[test]
@@ -1287,13 +1313,13 @@ fn boundary_step_rejects_an_overflowing_hessian_extension() {
 fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     let zero = flat(&[]);
     // 2⁻¹⁰⁴⁰: a subnormal radius whose rescaled step components quantize on the 2⁻¹⁰⁷⁴ grid,
-    // mangling the returned geometry by ~2⁻²⁸ relative - far outside the gross-defect guard.
+    // mangling the returned geometry by ~2⁻²⁸ relative, far outside the gross-defect guard.
     let radius = DPositive::new(f64::from_bits(1_u64 << 34)).expect("the subnormal is positive");
     let mut direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     direction.as_array_mut().fill(f64::from(radius));
 
-    // The same geometry at radius one passes both gates: the normalized crossing itself is
-    // sound, so a rejection below can only come from the rescaling revalidation.
+    // The same geometry at radius one passes both checks: the normalized crossing itself is
+    // sound, and a rejection below can only come from the rescaling revalidation.
     let mut unit_direction = BoxedDVecN::<SOLVER_DIMENSIONS>::zero();
     unit_direction.as_array_mut().fill(1.0);
     boundary_step(&zero, &unit_direction, &zero, &zero, d_positive!(1.0))
@@ -1302,9 +1328,10 @@ fn boundary_revalidation_rejects_a_subnormal_rescaling() {
     assert_eq!(boundary_step(&zero, &direction, &zero, &zero, radius), None,);
 }
 
-/// Returns a deterministic dense component from the Weyl sequence on the golden ratio at the given
-/// phase, folded to `[-1, 1]`, with every third component thinned to vary magnitudes within the
-/// fill.
+/// Returns a deterministic dense component from the golden-ratio Weyl sequence.
+///
+/// The component at the given phase folds to `[-1, 1]`, with every third component thinned to vary
+/// magnitudes within the fill.
 #[expect(
     clippy::cast_precision_loss,
     reason = "solver indices stay far below 2^52"
@@ -1321,8 +1348,9 @@ fn dense_component(index: usize, phase: f64) -> f64 {
     }
 }
 
-/// A dense solver vector with two full-scale leading components over a `1e-3` tail, scaled to the
-/// given Euclidean norm.
+/// A dense solver vector scaled to the given Euclidean norm.
+///
+/// Two full-scale leading components over a `1e-3` tail.
 ///
 /// The magnitude split concentrates the norm in two components while thousands of small squares
 /// absorb into the fold accumulators, the structure that drives the reductions' rounding. Uniform
@@ -1362,11 +1390,13 @@ fn compensated_l2(values: &[f64]) -> f64 {
     (sum + compensation).sqrt()
 }
 
-/// Replicates the boundary construction through the same primitives, returning the rescaled step
-/// with the built and returned radius-normalized residuals in ulps of one.
+/// Replicates the boundary construction through the same primitives.
 ///
-/// The built residual is internal to [`boundary_step`]; a consumer ties the replica to the
-/// implementation by asserting the returned step equals the admitted payload bit-for-bit, so the
+/// Returns the rescaled step with the built and returned radius-normalized residuals in ulps of
+/// one.
+///
+/// The built residual is internal to [`boundary_step`]. A consumer ties the replica to the
+/// implementation by asserting the returned step equals the admitted payload bit-for-bit: the
 /// replica cannot drift from the arithmetic it reports on.
 fn boundary_construction_replica(
     interior: &BoxedDVecN<SOLVER_DIMENSIONS>,
@@ -1415,7 +1445,7 @@ fn boundary_construction_replica(
 /// A dense solver-dimension crossing constructs, and the replica ties it byte-for-byte.
 ///
 /// The crossing has `‖interior‖ = 0.9392·Δ`, `‖direction‖ = 3.404·Δ`, `interior·direction ≈
-/// −1.5624`, `Δ = 0.7`: a dense, cancellation-prone construction whose honest residuals sit orders
+/// −1.5624`, `Δ = 0.7`: a dense, cancellation-prone construction whose honest residuals lie orders
 /// of magnitude inside the gross-defect guard. The byte-tie keeps the replica honest: its reported
 /// residuals describe exactly the arithmetic that produced the admitted step.
 #[test]
@@ -1458,7 +1488,10 @@ fn boundary_step_admits_the_dense_crossing_and_ties_its_replica() {
     );
 }
 
-/// Honest crossings across the historical calibration grid's corners sit far inside the guard.
+/// Keeps honest crossings at the grid corners far inside the guard.
+///
+/// Honest crossings at the corners of the radius and interior-fraction grid lie far inside the
+/// guard.
 #[test]
 fn honest_boundary_residuals_sit_inside_the_gross_defect_guard() {
     let guard_ulps = GROSS_DEFECT_GUARD / f64::EPSILON;
@@ -1479,8 +1512,8 @@ fn honest_boundary_residuals_sit_inside_the_gross_defect_guard() {
 
 /// The guard rejects a collapsed discriminant: the double-root value solves no crossing.
 ///
-/// A construction whose discriminant flushed to zero yields `τ = −b/(2a)`; on a real crossing that
-/// value lands the step far off unit norm, and the guard names the defect.
+/// A construction whose discriminant flushed to zero yields `τ = −b/(2a)`. On a real crossing that
+/// value leaves the step far off unit norm, and the guard names the defect.
 #[test]
 fn the_gross_defect_guard_rejects_a_collapsed_discriminant() {
     // u = 0.6·e₀, v = e₀ + e₁ at Δ = 1 gives a = 2, b = 1.2, c = −0.64, honest τ = 0.34.
@@ -1571,7 +1604,7 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     );
     assert!((converged.point.objective - 3.0_f64.ln()).abs() < 1.0e-12);
 
-    // No outer iteration started, so the receipt list stays empty and the inner counters stay at
+    // No outer iteration started: the receipt list stays empty and the inner counters stay at
     // zero.
     assert_eq!(run.control.outer_iterations_started, 0);
     assert!(run.receipts.is_empty());
@@ -1748,7 +1781,10 @@ fn solve_certificate_tie_returns_at_equality() {
     assert!(tie.receipts.is_empty());
 }
 
-/// A certificate out of reach exhausts the outer budget with one receipt per started iteration.
+/// Exhausts the outer budget on an unmeetable certificate, one receipt per iteration.
+///
+/// A certificate the tolerances cannot meet exhausts the outer budget with one receipt per started
+/// iteration.
 #[test]
 fn solve_fails_the_outer_iteration_budget() {
     let corpus = valid_corpus();
@@ -1767,11 +1803,6 @@ fn solve_fails_the_outer_iteration_budget() {
     assert_eq!(run.receipts.len(), 1);
 }
 
-/// A rejection at the minimum trust radius underflows.
-///
-/// The fixture's first full Newton step lands where curvature has risen against the model: its
-/// measured ratio is `0.99048`, so an acceptance threshold of `0.995` rejects it deterministically,
-/// and the rejection at the minimum radius reaches the terminal that no budget precedes any more.
 #[test]
 fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
     let corpus = valid_corpus();
@@ -1786,7 +1817,8 @@ fn solve_underflows_the_radius_on_a_rejection_at_the_minimum() {
         ..solver_config()
     };
 
-    // The rejection happens at the minimum radius, so the radius test fires.
+    // the strict acceptance threshold 0.995 rejects this candidate. With the initial radius
+    // already at the minimum, rejection returns `RadiusUnderflow`.
     let radius_starved = run_solver(&corpus, strict);
     assert_matches!(radius_starved.outcome, Err(SolverFailure::RadiusUnderflow));
     assert_eq!(
@@ -1837,12 +1869,12 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
     );
 
     // The `1e-3` radius forces a boundary step whose small-step ratio expands the radius once, the
-    // certificate stays out of reach, and the outer budget then ends the run.
+    // certificate stays unmet, and the outer budget then ends the run.
     assert_matches!(run.outcome, Err(SolverFailure::OuterIterationBudget));
     assert_eq!(run.control.counters.candidate_acceptances, 1);
     assert_eq!(run.control.radius, 2.0e-3);
     assert_eq!(run.receipts[0].radius, 1.0e-3);
-    // The Newton point sits far outside that radius, so the crossing is a boundary tag.
+    // The Newton point lies far outside that radius: the crossing is a boundary tag.
     assert_matches!(
         run.receipts[0].outcome.tag,
         Some(NewtonTag::CauchyBoundary | NewtonTag::DoglegBoundary),
@@ -1852,7 +1884,7 @@ fn solve_expands_the_radius_on_an_expanded_boundary_step() {
 /// A valid degenerate corpus drives the full machine into the typed non-finite Newton terminal.
 ///
 /// Weights of `f64::MAX / 4` keep `S` and every preparation aggregate finite, and the initial
-/// scaled gradient stays finite yet fails its relative certificate, so an inner solve must run. The
+/// scaled gradient stays finite yet fails its relative certificate: an inner solve must run. The
 /// per-row factor scale `wᵢ/λ` then overflows against the subnormal regularization, the weighted
 /// curvature block leaves the finite domain, and the machine reaches `NonFiniteNewton { Weights }`
 /// with the curvature traversal already charged.
@@ -1901,7 +1933,7 @@ fn solve_reaches_the_non_finite_newton_terminal_on_a_degenerate_scale() {
 /// Zero embeddings and one-hot targets keep every prepared datum and the scaled gradient finite
 /// (the class residuals cancel to rounding residue, well inside the absolute tolerance), but the
 /// weights push the accumulated origin data loss past the finite range. Initialization admits the
-/// infinite objective - the certificate tests only the gradient - and the reserved final evaluation
+/// infinite objective (the certificate tests only the gradient), and the reserved final evaluation
 /// then fails `FinalCertificationNonFinite` by name.
 #[test]
 fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
@@ -1937,8 +1969,9 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 
-/// The exposed domain tag and dimension are the exact digest-preimage prefix. The coordinate
-/// system rides only the exposed identity.
+/// The exposed domain tag and dimension are the exact digest-preimage prefix.
+///
+/// The coordinate system enters only the exposed identity.
 #[test]
 #[expect(
     clippy::host_endian_bytes,
@@ -1976,8 +2009,9 @@ fn receipt_domain_tag_and_dimension_are_the_exact_digest_prefix() {
     assert_eq!(hasher.finalize(), vector_digest(&vector));
 }
 
-/// The certificate pins the initial norm and its derived threshold. The norm's domain makes the
-/// derivation total.
+/// The certificate pins the initial norm and its derived threshold.
+///
+/// The norm's domain makes the derivation total.
 #[test]
 fn derive_certificate_pins_the_threshold_formula() {
     let config = solver_config();
@@ -2119,6 +2153,8 @@ fn factor_block_reproduces_psd_blocks_and_drops_rank() {
     assert_eq!(factor_block(0.0, 0.0, -1.0e-17), [0.0, 0.0, 0.0]);
 }
 
+/// Reads Gram entries as symmetric exact-product dots, bit for bit through the fold view.
+///
 /// Gram entries are the exact-product dots, symmetric, and a fold view reads the full matrix bit
 /// for bit as a direct dot over the member embeddings.
 #[test]
@@ -2158,7 +2194,7 @@ fn gram_views_read_the_assembled_dots_bit_for_bit() {
 
 /// The curvature pass's intercept columns are the oracle's Hessian columns.
 ///
-/// The pass accumulates `H[0|e_k]` through the moment identity `C = q − mmᵀ`; the oracle evaluates
+/// The pass accumulates `H[0|e_k]` through the moment identity `C = q − mmᵀ`. The oracle evaluates
 /// the same columns through its shifted-probability path. Agreement at a generic point ties the
 /// Newton assembly to the finite-difference-certified oracle at the block level, with rounding as
 /// the only separation.
@@ -2200,9 +2236,10 @@ fn curvature_pass_matches_the_oracle_intercept_columns() {
     }
 }
 
-/// Prepares the corpus and drives one inner Newton solve at the origin under the validated
-/// configuration, returning the outcome with the counters before and after the solve. The control
-/// radius is the configuration's initial radius.
+/// Drives one inner Newton solve at the origin under the validated configuration.
+///
+/// Prepares the corpus first and returns the outcome with the counters before and after the solve.
+/// The control radius is the configuration's initial radius.
 fn newton_at_origin(
     corpus: &Corpus,
     config: SolverConfig,
@@ -2246,9 +2283,9 @@ fn newton_at_origin(
 
 /// The interior Newton point inverts the oracle within its recorded residual.
 ///
-/// The residual reads the step's Hessian product from the finite-difference-certified oracle, so
-/// the residual proves the factorization against an implementation it shares no arithmetic with. At
-/// the origin the scaled system is near-identity, so backward-stable factorization keeps the
+/// The residual reads the step's Hessian product from the finite-difference-certified oracle, and
+/// it therefore proves the factorization against an implementation it shares no arithmetic with.
+/// At the origin the scaled system is near-identity, where backward-stable factorization keeps the
 /// relative residual within a few ulps, and the bound carries three orders of margin over that
 /// derivation. Each solve charges three assembly traversals, one factorization, and one priced
 /// product.
@@ -2283,7 +2320,7 @@ fn newton_step_inverts_the_oracle_within_its_residual() {
         baseline.started_row_traversals + 4,
     );
 
-    // A second identical solve returns identical bytes, so the engine is deterministic.
+    // A second identical solve returns identical bytes: the engine is deterministic.
     let (again, _, _) = newton_at_origin(&corpus, config);
     let again = again.expect("the identical solve succeeds identically");
     assert_eq!(outcome.step().as_array(), again.step().as_array());
@@ -2295,8 +2332,8 @@ fn newton_step_inverts_the_oracle_within_its_residual() {
 
 /// A small trust radius exits the inner solve through the steepest-descent crossing.
 ///
-/// At the origin the scaled gradient norm is about `1.4`, so both the Newton point and the Cauchy
-/// point sit far outside a radius of `1e-4`. The crossing follows `−g` from the origin through the
+/// At the origin the scaled gradient norm is about `1.4`, and both the Newton point and the Cauchy
+/// point lie far outside a radius of `1e-4`. The crossing follows `−g` from the origin through the
 /// validated boundary construction. It prices one oracle product for the Cauchy curvature and never
 /// requests the Newton product.
 #[test]
@@ -2386,7 +2423,7 @@ fn newton_step_crosses_the_dogleg_leg_between_cauchy_and_newton() {
         .expect("the gradient is finite");
     let cauchy_norm = gradient_square.get() / curvature * gradient_norm;
 
-    // The dogleg premise of the witness: the fixture's Cauchy point sits strictly inside the
+    // The dogleg premise of the witness: the fixture's Cauchy point lies strictly inside the
     // Newton length.
     assert!(
         cauchy_norm < 0.9 * newton_norm,
@@ -2451,7 +2488,7 @@ fn newton_step_survives_saturated_rows() {
         config,
     };
 
-    // Rows 0 and 2 carry a nonzero leading coordinate, so their reference differences reach
+    // Rows 0 and 2 carry a nonzero leading coordinate: their reference differences reach
     // `±O(10³)` and the shifted exponentials underflow to exact vertices. Row 1 stays interior.
     let mut point = ContrastVector::zero();
     point.coefficients[0].as_array_mut()[0] = 4000.0;

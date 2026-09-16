@@ -9,8 +9,8 @@ use crate::{
 
 /// Rows handed to one [`PublishedProjector::project`] call.
 ///
-/// The bound keeps each call's staging copy small and gives the progress observation its cadence;
-/// the projector itself batches however it likes.
+/// The bound keeps each call's staging copy small and gives the progress observation its cadence.
+/// The projector itself batches however it likes.
 const PROJECTION_BATCH_ROWS: usize = 256;
 
 /// One arrival's projection outcome through the published projector.
@@ -41,7 +41,7 @@ pub(crate) struct NonFinitePlacement {
 ///
 /// In production the implementor wraps the serving placer bound to `G0`, whose construction
 /// certifies the reopened checkpoint against the generation's own published coordinates. The
-/// trait mirrors that placer's projection contract; `&mut self` additionally admits stateful
+/// trait mirrors that placer's projection contract, and `&mut self` additionally admits stateful
 /// implementations.
 pub(crate) trait PublishedProjector {
     /// Projects one batch of arrival representations.
@@ -84,8 +84,8 @@ pub(crate) trait PublishedProjector {
     /// Projects one row range, splitting around each non-finite row.
     ///
     /// A failing call reports its first non-finite row and drops the outcomes of the rows before
-    /// it, so those rows re-project in a narrower call. The projector may be stateful, so no
-    /// call's outcome is assumed from another's.
+    /// it, and those rows therefore re-project in a narrower call. The projector may be stateful,
+    /// and no call's outcome is assumed from another's.
     ///
     /// # Panics
     ///
@@ -135,8 +135,11 @@ pub(crate) trait PublishedProjector {
 /// One row's projection outcome, held with its wire coordinate where one exists.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum ProjectedOutcome {
+    /// The row projected inside the fitted frame, at this wire coordinate.
     Placed(Vec2),
+    /// The row projected outside the fitted frame.
     OutOfFrame,
+    /// The row's projection produced a non-finite coordinate.
     NonFinite,
 }
 

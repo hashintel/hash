@@ -5,11 +5,11 @@
 //! sources:
 //!
 //! 1. order each group by recognizability while interleaving subgroups;
-//! 2. guarantee every non-empty group a slot, then deal capped rounds;
+//! 2. guarantee every non-empty group a slot while the budget lasts, then deal capped rounds;
 //! 3. relax the cap when otherwise-unused budget remains;
 //! 4. reject candidates that reuse either endpoint or an adapter-defined conflict token anywhere on
 //!    the card; and
-//! 5. redistribute slots lost to endpoint conflicts.
+//! 5. redistribute slots lost to either kind of conflict.
 //!
 //! Input order is the final deterministic tie-break throughout. Selection returns the chosen
 //! examples grouped in group declaration order, matching the canonical card renderer's order.
@@ -27,6 +27,7 @@ pub(crate) const DEFAULT_GROUP_SLOT_CAP: NonZero<usize> =
 
 /// One adapter-owned candidate annotated for common selection.
 pub(crate) struct Candidate<'text, P, S, A: Allocator = Global> {
+    /// The adapter's own data, handed back when the selection picks the candidate.
     pub payload: P,
     /// The source endpoint's identity token.
     ///
@@ -34,6 +35,7 @@ pub(crate) struct Candidate<'text, P, S, A: Allocator = Global> {
     pub source: Cow<'text, str>,
     /// The target endpoint's identity token, under the same exclusion.
     pub target: Cow<'text, str>,
+    /// The subgroup diversity ordering interleaves across.
     pub subgroup: S,
     /// Adapter-scored prominence.
     ///
@@ -56,13 +58,17 @@ impl<P, S, A: Allocator> Candidate<'_, P, S, A> {
 
 /// An ordered semantic group and its eligible candidate pool.
 pub(crate) struct Group<'text, K, P, S, A: Allocator = Global> {
+    /// The group's key, handed back with each selection.
     pub key: K,
+    /// The eligible candidates, in input order.
     pub candidates: Vec<Candidate<'text, P, S, A>, A>,
 }
 
 /// An adapter payload selected for one semantic group.
 pub(crate) struct Selected<K, P> {
+    /// The key of the group the payload was selected for.
     pub group: K,
+    /// The selected candidate's payload.
     pub payload: P,
 }
 
@@ -107,7 +113,7 @@ where
         }
     }
 
-    // Refill endpoint-dedup shortfalls round-robin across all groups.
+    // Refill conflict shortfalls round-robin across all groups.
     let mut total: usize = picks.iter().map(Vec::len).sum();
     'refill: while total < count {
         let mut progressed = false;
@@ -130,8 +136,8 @@ where
 
     let mut selected = Vec::with_capacity_in(total, alloc);
     for ((key, candidates), picks) in pools.into_iter().zip(picks) {
-        // Picks record strictly increasing order indices, so one forward
-        // walk moves every selected payload out in pick order.
+        // Picks record strictly increasing order indices. One forward walk moves every selected
+        // payload out in pick order.
         let mut picks = picks.into_iter().peekable();
         for (index, candidate) in candidates.into_iter().enumerate() {
             if picks.peek() == Some(&index) {
@@ -229,8 +235,8 @@ where
 {
     let alloc = candidates.allocator().clone();
 
-    // Subgroup membership as arrival-index lists; the candidates
-    // themselves never move until the final permutation.
+    // Subgroup membership as arrival-index lists. The candidates themselves never move until the
+    // final permutation.
     let mut members: Vec<Vec<usize, A>, A> = Vec::new_in(alloc.clone());
     for (arrival, candidate) in candidates.iter().enumerate() {
         if let Some(subgroup) = members

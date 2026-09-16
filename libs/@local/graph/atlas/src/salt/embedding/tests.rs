@@ -25,15 +25,16 @@ use crate::{
     progress::{NoProgress, Progress},
 };
 
+/// Hashes a fixture contract preimage into an embedder fingerprint.
 fn fingerprint(preimage: &[u8]) -> EmbedderFingerprint {
     let mut hasher = Sha256::new();
     hasher.update(preimage);
     EmbedderFingerprint::new(hasher.finalize())
 }
 
-/// A deterministic vector for one text.
+/// Builds a vector with the text's byte length plus `offset` in component zero.
 ///
-/// Component 0 is the text length plus the embedder's offset, every other component is zero.
+/// Every other component is zero.
 #[expect(
     clippy::cast_precision_loss,
     reason = "fixture card texts are a handful of bytes, exactly representable in f32"
@@ -44,13 +45,22 @@ fn vector_for(text: &str, offset: f32) -> BoxedVecN<CANONICAL_DIMENSIONS> {
     vector
 }
 
+/// Reads the fixture embedder's text-dependent component at `row`.
+///
+/// # Panics
+///
+/// Panics if the row is outside the table.
 fn component_zero(view: CardEmbeddingView<'_>, row: u64) -> f32 {
     view.embedding(OntologyRowId::new(row))
         .expect("the row should be inside the table")
         .as_array()[0]
 }
 
-/// Embeds deterministically via [`vector_for`] and records every call.
+/// A deterministic fixture embedder with a call log.
+///
+/// # Panics
+///
+/// Recording or reading calls panics if the fixture mutex is poisoned.
 struct RecordingEmbedder {
     fingerprint: EmbedderFingerprint,
     offset: f32,
@@ -58,6 +68,7 @@ struct RecordingEmbedder {
 }
 
 impl RecordingEmbedder {
+    /// Creates an embedder with the named contract and component-zero offset.
     fn new(preimage: &[u8], offset: f32) -> Self {
         Self {
             fingerprint: fingerprint(preimage),
@@ -66,6 +77,11 @@ impl RecordingEmbedder {
         }
     }
 
+    /// Returns the recorded text batches in call order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fixture mutex is poisoned.
     fn calls(&self) -> Vec<Vec<String>> {
         self.calls
             .lock()
@@ -99,7 +115,7 @@ impl CardEmbedder for RecordingEmbedder {
     }
 }
 
-/// Returns one row fewer than requested.
+/// A fixture embedder that omits the first requested row.
 struct ShortEmbedder;
 
 impl CardEmbedder for ShortEmbedder {
@@ -122,7 +138,7 @@ impl CardEmbedder for ShortEmbedder {
     }
 }
 
-/// Returns a NaN component in every row.
+/// A fixture embedder producing NaN in component seven of every row.
 struct NanEmbedder;
 
 impl CardEmbedder for NanEmbedder {
@@ -148,13 +164,22 @@ impl CardEmbedder for NanEmbedder {
     }
 }
 
-/// An observer recording the splits the card-embedding stage resolves.
+/// An observer recording card-embedding reuse splits.
+///
+/// # Panics
+///
+/// Recording or reading splits panics if the fixture mutex is poisoned.
 #[derive(Debug, Default)]
 struct RecordingProgress {
     splits: Mutex<Vec<CardEmbeddingStats>>,
 }
 
 impl RecordingProgress {
+    /// Returns the observed reuse splits in report order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fixture mutex is poisoned.
     fn splits(&self) -> Vec<CardEmbeddingStats> {
         self.splits
             .lock()
@@ -164,7 +189,6 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The fixture watches the reuse split, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -179,6 +203,7 @@ impl Progress for RecordingProgress {
     }
 }
 
+/// Builds one verbatim fixture card per input text, in order.
 fn cards(texts: &[&str]) -> IdVec<OntologyRowId, Card> {
     texts
         .iter()
@@ -220,8 +245,8 @@ async fn reuses_prior_rows_under_an_equal_fingerprint() {
         .await
         .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    // The second embedder serves the same contract but would produce
-    // shifted vectors, so a row equal to the prior vector proves reuse.
+    // the fixture deliberately reuses the fingerprint with a different offset to distinguish a
+    // copied vector from a fresh one.
     let embedder = RecordingEmbedder::new(b"contract", 100.0);
     let (table, stats) = embed_cards(
         &embedder,
@@ -262,9 +287,6 @@ async fn the_resolved_split_reaches_the_observer_before_the_provider_does() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    // The observer learns the whole split (what the prior covers and
-    // what the run asks the provider for) as one report, and the
-    // published evidence says the same thing.
     assert_eq!(
         progress.splits(),
         [CardEmbeddingStats {
@@ -298,8 +320,6 @@ async fn a_wholly_reused_workload_still_reports_its_split() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    // Nothing goes to the provider, and the operator still learns why
-    // the stage costs nothing.
     assert_eq!(embedder.calls(), [] as [Vec<String>; 0]);
     assert_eq!(
         progress.splits(),
@@ -437,7 +457,6 @@ fn view_exists_exactly_for_row_aligned_columns() {
     assert_eq!(view.hashes.len(), 2);
     assert!(view.embedding(OntologyRowId::new(2)).is_none());
 
-    // The count clause, violated from either side.
     assert!(
         CardEmbeddingView::new(fingerprint(b"contract"), &hashes[..1], rows).is_none(),
         "an extra row must not form a view",
@@ -448,12 +467,14 @@ fn view_exists_exactly_for_row_aligned_columns() {
     );
 }
 
+/// Computes the SHA-256 digest used to key a card's text.
 fn text_digest(text: &str) -> Sha256Digest {
     let mut hasher = Sha256::new();
     hasher.update(text.as_bytes());
     hasher.finalize()
 }
 
+/// Embeds `alpha`, `beta`, `alpha` with the recording fixture provider.
 async fn three_row_table() -> super::CardEmbeddingTable {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
     let (table, _) = embed_cards(
@@ -492,8 +513,8 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
         "the file must satisfy the format's length equation",
     );
 
-    // Row i starts at the header boundary plus i full rows; component 0
-    // carries the fixture's per-text value.
+    // row i starts at the header boundary plus i full rows. Component zero carries the fixture's
+    // text-dependent value.
     for (row, expected) in [(0_usize, 5.0_f32), (1, 4.0), (2, 5.0)] {
         let offset = PAGE_BYTES + row * CANONICAL_DIMENSIONS * size_of::<f32>();
         let component = f32::from_le_bytes(

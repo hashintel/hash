@@ -1,3 +1,5 @@
+//! The identity contract every ontology id type derives its id from a versioned URL under.
+
 use type_system::ontology::VersionedUrl;
 
 /// The identity-derivation contract of an ontology id type.

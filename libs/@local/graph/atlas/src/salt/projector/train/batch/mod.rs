@@ -2,21 +2,22 @@
 //!
 //! [`BatchSampler::draw`] pulls one step's populations from the built artifacts in corpus row
 //! space, together with each family's estimator scale. [`Batch::assemble`] re-indexes the
-//! populations into the batch-local row domain the loss terms speak - corpus keys convert to
-//! `BatchRowId` positions here and nowhere else, so the type system keeps the two domains apart -
-//! and [`Batch::input`] materializes the model input tensors for the participating rows, padded to
+//! populations into the batch-local row domain the loss terms index. Corpus keys convert to
+//! [`BatchRowId`] positions here and nowhere else, and the type system keeps the two domains apart.
+//! [`Batch::input`] materializes the model input tensors for the participating rows, padded to
 //! [`ROW_ALIGNMENT`] so the tensor shapes stay inside every GPU kernel's launch constraints.
 //!
 //! Draws consume the caller's random stream in a fixed family order (semantic, ordinary, hard,
 //! relation, landmark, anchor, target), and a skipped family consumes nothing. Equal artifacts,
 //! plans, stream types, and seeds therefore reproduce a batch exactly.
 //!
-//! The drawing and assembly paths allocate per step, so both expose `_in` variants in the standard
+//! The drawing and assembly paths allocate per step, and both expose `_in` variants in the standard
 //! library's allocator pattern: [`BatchSampler::draw_in`] and [`Batch::assemble_in`] place every
 //! population and batch vector in the caller's allocator, and the plain methods are defaulting
-//! wrappers over the global one. The allocator covers the batch spine; the structures nested inside
-//! draws (the relation draws' and [`RelationEdges`]' edge vectors, the gathered [`LocalScales`])
-//! and the tensor buffers of [`Batch::input`] - consumed by the backend - stay global.
+//! wrappers over the global one. The allocator covers the batch's own vectors. The structures
+//! nested inside draws (the relation draws' and [`RelationEdges`]' edge vectors, the gathered
+//! [`LocalScales`]) and the tensor buffers of [`Batch::input`] - consumed by the backend - stay
+//! global.
 
 use core::{alloc::Allocator, num::NonZero, ops::Range};
 use std::alloc::Global;
@@ -46,11 +47,11 @@ pub(crate) use self::draw::{BatchSampler, DrawContext, Populations, SupportAncho
 /// The batch's gathered-row count varies per step - draws and deduplication decide it - and it
 /// becomes the reduction dimension of the backward matmuls. Some GPU matmul kernels elected by
 /// shape-bucketed autotune constrain that dimension to a plane-size multiple and abort on shapes
-/// that violate it, so every materialized frame pads its row count to this alignment. A generous
-/// power of two covers every plausible plane size and collapses the per-step shape variety the
-/// election is sensitive to.
+/// that violate it. Every materialized frame therefore pads its row count to this alignment. A
+/// generous power of two covers every plausible plane size and collapses the per-step shape variety
+/// the election is sensitive to.
 ///
-/// Padded rows replicate the last participating row and no population references them, so they
+/// Padded rows replicate the last participating row, and no population references them. They
 /// receive exactly zero force and contribute exactly zero parameter gradient.
 pub(crate) const ROW_ALIGNMENT: NonZero<usize> =
     NonZero::new(256).expect("the row alignment is non-zero");
@@ -69,11 +70,11 @@ pub(crate) struct NodeColumns<'corpus, N> {
 
 /// One assembled minibatch, re-indexed to the batch-local row domain.
 ///
-/// `rows` lists the participating corpus rows in ascending order; a population's [`BatchRowId`]
-/// position `i` refers to `rows[i]`. The corpus-to-local map is monotone, so canonical pair
+/// `rows` lists the participating corpus rows in ascending order. A population's [`BatchRowId`]
+/// position `i` refers to `rows[i]`. The corpus-to-local map is monotone, and canonical pair
 /// ordering survives re-indexing.
 ///
-/// The batch vectors live in the assembly's allocator; the relation entries' nested edge vectors
+/// The batch vectors live in the assembly's allocator. The relation entries' nested edge vectors
 /// and the gathered scales stay global (see the module documentation).
 #[derive(Debug)]
 pub(crate) struct Batch<N, A: Allocator = Global> {
@@ -107,7 +108,7 @@ pub(crate) struct Batch<N, A: Allocator = Global> {
     ///
     /// Present exactly when relation edges are.
     pub scales: Option<LocalScales<BatchRowId>>,
-    /// The step's relation-lens step.
+    /// The training step's lens step.
     pub eta: NonNegative,
 }
 
@@ -117,15 +118,15 @@ where
 {
     /// Re-indexes drawn populations into the batch-local row domain.
     ///
-    /// `scales` is the corpus-wide local-scale table of the step's step; the batch gathers the
-    /// participating rows' entries. The opening semantic-only segment has no scale tables and
-    /// passes [`None`] - its draws carry no relation edges.
+    /// `scales` is the corpus-wide local-scale table of the training step's lens step. The batch
+    /// gathers the participating rows' entries. The opening semantic-only segment has no scale
+    /// tables and passes [`None`] - its draws carry no relation edges.
     ///
     /// # Panics
     ///
     /// This panics when relation edges are present without a scale table, or when a drawn row lies
-    /// outside the table. The draws and the tables come from one training run, so a mismatch is a
-    /// wiring defect.
+    /// outside the table. The draws and the tables come from one training run, and a mismatch is
+    /// therefore a wiring defect.
     #[must_use]
     pub(crate) fn assemble<E>(
         populations: Populations<'_, N, E>,
@@ -272,14 +273,14 @@ where
     ///
     /// With the row dimension padded to [`ROW_ALIGNMENT`].
     ///
-    /// The condition vector is the relation lens, and every row carries the batch's step as its
-    /// single column. The model is parametric in the condition width.
+    /// The condition vector is the relation lens, and every row carries the batch's lens step as
+    /// its single column. The model is parametric in the condition width.
     ///
     /// # Panics
     ///
     /// This panics when the representation and role columns disagree in length or a batch row lies
-    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
-    /// defect.
+    /// outside them. The columns and the draws come from one generation, and a mismatch is
+    /// therefore a wiring defect.
     #[must_use]
     pub(crate) fn input<B: Backend>(
         &self,
@@ -292,15 +293,15 @@ where
     /// Materializes the batch's model input at an explicit row alignment.
     ///
     /// The row count pads up to the next `alignment` multiple. Padded rows replicate the last
-    /// participating row and carry the batch's step. No population references them, so they project
-    /// dead coordinates that receive exactly zero force. Production goes through [`Batch::input`],
-    /// and certificates pass `1` to obtain the unpadded frame.
+    /// participating row and carry the batch's lens step. No population references them, and they
+    /// project dead coordinates that receive exactly zero force. Production goes through
+    /// [`Batch::input`], and certificates pass `1` to obtain the unpadded frame.
     ///
     /// # Panics
     ///
     /// This panics when the representation and role columns disagree in length or a batch row lies
-    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
-    /// defect.
+    /// outside them. The columns and the draws come from one generation, and a mismatch is
+    /// therefore a wiring defect.
     #[must_use]
     pub(crate) fn input_aligned<B: Backend>(
         &self,
@@ -354,8 +355,8 @@ where
     /// # Panics
     ///
     /// This panics when the representation and role columns disagree in length or a row lies
-    /// outside them. The columns and the draws come from one generation, so a mismatch is a wiring
-    /// defect.
+    /// outside them. The columns and the draws come from one generation, and a mismatch is
+    /// therefore a wiring defect.
     #[must_use]
     pub(super) fn input_gather<R, B: Backend>(
         self,

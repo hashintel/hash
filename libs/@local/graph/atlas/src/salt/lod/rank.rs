@@ -1,4 +1,4 @@
-//! The deterministic importance ranking.
+//! Importance ordering with seeded identity tie-breaking.
 
 use hashql_core::id::{Id, IdSlice, IdVec};
 use rayon::iter::ParallelIterator as _;
@@ -9,12 +9,11 @@ use crate::{
     integrity::{Sha256, Update as _},
 };
 
-/// The per-row inputs of the rank pass, one entry per point row.
+/// Equal-length importance, priority, and identity columns for ranking point rows.
 ///
-/// Rows rank by configured importance, then stable semantic priority, then a seeded hash of the
-/// entity identity, so the order is total and reproducible from the columns and the seed alone. The
-/// columns are row-indexed, equal-length by construction, and the row count fits the `u32` row
-/// encoding. `I` is the dataset's node id type. The ranking consumes its canonical bytes alone.
+/// The row count fits `u32`. [`Ranking::new`] orders the scores and uses a seeded hash of each
+/// identity's bytes to break score ties. Construction checks lengths alone, accepting every score
+/// bit pattern and repeated identities.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct RankInputs<'columns, I> {
     importance: &'columns IdSlice<NodeRowId, f32>,
@@ -23,7 +22,7 @@ pub(crate) struct RankInputs<'columns, I> {
 }
 
 impl<'columns, I> RankInputs<'columns, I> {
-    /// Wraps the rank columns.
+    /// Checks that the columns cover the same `u32`-sized row domain.
     ///
     /// Returns [`None`] when the columns disagree on length or the row count does not fit the `u32`
     /// row encoding.
@@ -59,12 +58,11 @@ impl<'columns, I> RankInputs<'columns, I> {
     }
 }
 
-/// The rank order of one row universe: a permutation and its inverse.
+/// A row permutation and its inverse, with rank zero first in importance order.
 ///
-/// Rank 0 is the most important row. The cascade consumes the ascending direction to claim cells.
-/// The published columns record each position's rank through the inverse. The row domain `R` is
-/// whatever universe the ranking orders - the generation's rows at fit time, or a view's own row
-/// vocabulary when a scope ranks its visible subset. A ranking applies only to the rows it ranked.
+/// `row_of_rank` must contain each row exactly once, and `rank_of_row` must be its inverse over the
+/// same domain. `R` identifies that domain: generation rows or the local rows of a visible subset.
+/// A ranking applies only to the rows it ranked.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Ranking<R> {
     /// Row by rank: `row_of_rank[rank]` is the row holding that rank.
@@ -79,8 +77,12 @@ where
 {
     /// Completes a ranking from its filled rank order.
     ///
-    /// `row_of_rank` must be a permutation of the row universe it ranks. The inverse view follows
-    /// from it.
+    /// `row_of_rank` must be a permutation of the row universe it ranks. Duplicate rows overwrite
+    /// their inverse entries and leave other entries at rank zero.
+    ///
+    /// # Panics
+    ///
+    /// Panics when a row index is at or beyond `row_of_rank.len()`.
     #[must_use]
     pub(crate) fn from_row_of_rank(row_of_rank: IdVec<ImportanceRank, R>) -> Self {
         let mut rank_of_row = IdVec::from_elem(ImportanceRank::MIN, row_of_rank.len());
@@ -98,13 +100,18 @@ where
 impl Ranking<NodeRowId> {
     /// Ranks the rows by descending importance.
     ///
-    /// Then descending priority, then the seeded identity hash ascending.
+    /// Ties compare by descending priority, then ascending seeded identity hash. Scores use
+    /// [`f32::total_cmp`], including its ordering of signed zeros and NaNs.
     ///
-    /// Scores compare under IEEE 754 `totalOrder`, so the ranking is total and deterministic for
-    /// every bit pattern; both score columns arrive finite - importance by the
-    /// [`ImportanceSignal`](crate::salt::importance::ImportanceSignal) contract, priority as a
-    /// constant column until it grows a source - and nothing here re-checks them. Equal seeds give
-    /// equal rankings. The generation's metadata records the seed.
+    /// Equal columns and seed reproduce the ranking with the current sorting implementation. Hashes
+    /// have only 64 bits: equal scores and hashes leave a tie whose relative order can change with
+    /// the sorting implementation. Cross-target replay also requires identical identity bytes on
+    /// each target. [`IntoBytes`] alone does not establish a canonical byte order.
+    ///
+    /// # Complexity
+    ///
+    /// For N rows, sorting costs O(N log N) comparisons and O(N) storage. Hashing additionally
+    /// reads every identity byte once.
     #[must_use]
     pub(crate) fn new<I>(inputs: RankInputs<'_, I>, seed: u64) -> Self
     where
@@ -118,9 +125,7 @@ impl Ranking<NodeRowId> {
 
         let mut row_of_rank: IdVec<_, _> = inputs.identities.ids().collect();
         row_of_rank.par_sort_unstable_by(|&left, &right| {
-            // Descending importance, then descending priority: the
-            // reversed comparisons spell the descending lexicographic
-            // key over the scores.
+            // reverse only the score comparisons: smaller hashes retain precedence
             inputs.importance[right]
                 .total_cmp(&inputs.importance[left])
                 .then_with(|| inputs.priority[right].total_cmp(&inputs.priority[left]))
@@ -133,9 +138,9 @@ impl Ranking<NodeRowId> {
 
 /// Hashes one entity identity under the ranking seed.
 ///
-/// The first eight digest bytes, little endian, of the SHA-256 over the seed followed by the
-/// identity bytes. Identities are unique per row, SHA-256 is collision-resistant at this width for
-/// corpus-scale row counts, and a new seed reshuffles every tie deterministically.
+/// Interprets the first eight digest bytes as a little-endian `u64`. The digest input is the
+/// little-endian seed followed by the identity's bytes. Changing the seed changes that input,
+/// without guaranteeing a different hash or tie order.
 #[expect(
     clippy::little_endian_bytes,
     reason = "the hash is pinned to the same canonical little-endian bytes on every platform"
@@ -146,5 +151,6 @@ fn tiebreak<I: IntoBytes + zerocopy::Immutable>(seed: u64, identity: &I) -> u64 
     hasher.update(identity.as_bytes());
     let digest = hasher.finalize().to_bytes();
 
+    // SHA-256 returns 32 bytes, of which this fixed slice selects exactly eight.
     u64::from_le_bytes(digest[..8].try_into().expect("eight bytes are eight bytes"))
 }

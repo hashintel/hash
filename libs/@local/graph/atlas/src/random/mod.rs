@@ -1,26 +1,15 @@
-//! Sampling utilities.
+//! Random samples and statistical sample-size estimates.
 //!
-//! Unbiased bounded integers, subset sampling, and statistical acceptance verification.
+//! [`uniform_below`] draws bounded integers, while [`sample_indices_vec`] and [`sample_ids`] sample
+//! without replacement. Uniformity assumes uniform generator words and follows rand's
+//! range-sampling guarantees. Replaying a seeded draw requires the same generator, sampling
+//! implementation and sequence of calls.
 //!
-//! Every sampler draws from a caller-provided [`Rng`], so any generator works and seeded runs
-//! reproduce exactly:
-//!
-//! - [`uniform_below`] draws one unbiased integer below a bound.
-//! - [`sample_indices_vec`] draws distinct indices without replacement, in memory proportional to
-//!   the sample rather than the population.
-//! - [`sample_ids`] draws distinct ids of an id-indexed population, typing the draw by the
-//!   population it came from.
-//! - [`keyed_rng`] builds an independent generator per `(seed, key, stream)`, which is what keeps
-//!   parallel draws deterministic.
-//! - [`acceptance_sample_size`] reports how many uniformly sampled items must all pass to certify a
-//!   defect-rate bound at a confidence level.
-//! - [`mean_sample_size`] reports how many uniformly sampled items estimate a mean within a margin
-//!   at a confidence level for a given per-item deviation.
-//! - [`normal_quantile`] inverts the standard normal distribution and supplies the `z` factor that
-//!   [`mean_sample_size`] uses.
-//!
-//! The module is crate-internal. Its examples carry `ignore` and spell each call as an in-crate
-//! caller writes it, and the module's tests assert every property the examples show.
+//! [`keyed_rng`] derives a generator from `(seed, key, stream)` without shared mutable state.
+//! [`acceptance_sample_size`] sizes an all-pass check against a defect-rate threshold.
+//! [`mean_sample_size`] uses a normal approximation to size a mean estimate, with
+//! [`normal_quantile`] supplying the quantile. The statistical models and floating-point limits are
+//! documented on the sizing functions.
 
 use core::num::NonZero;
 
@@ -38,22 +27,26 @@ mod compat;
 #[cfg(test)]
 mod tests;
 
-/// Draws an unbiased uniform integer in `[0, bound)`.
+/// Draws an integer in `[0, bound)`.
 ///
-/// Every value below the bound is exactly equally likely; the draw consumes a small bounded
-/// expected number of generator words. The non-zero bound makes the empty range unrepresentable, so
-/// the draw always succeeds.
+/// The nonzero bound excludes an empty range. With uniform generator words, rand's range sampler
+/// has a small mapping bias unless its `unbiased` feature is enabled. Rand bounds the affected
+/// fraction of `u64` draws by 2⁻⁶⁴. This function inherits that sampling behavior.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
-/// use core::num::NonZero;
+/// # use crate::math::nz;
 ///
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
+/// use crate::random::uniform_below;
+///
 /// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
-/// let sides = NonZero::new(6).expect("a die has sides");
+/// let sides = nz!(6);
 /// let roll = uniform_below(&mut rng, sides) + 1;
 /// assert!((1..=6).contains(&roll));
 /// ```
@@ -63,22 +56,25 @@ pub(crate) fn uniform_below(mut rng: impl Rng, bound: NonZero<u64>) -> u64 {
     rng.random_range(0..bound.get())
 }
 
-/// Samples `count` distinct indices from `[0, population)` uniformly at random.
+/// Samples `count` distinct indices from `[0, population)` in shuffled order.
 ///
-/// The sample draws without replacement, so every `count`-element subset of the population is
-/// equally likely, and the returned order is itself uniformly random. Memory scales with the sample
-/// size rather than the population.
+/// Sampling is without replacement and follows rand's range-sampling guarantees. Sparse requests
+/// use memory proportional to `count`. For denser requests, the sampler may allocate an index for
+/// every member of the population.
 ///
 /// # Panics
 ///
-/// This panics when `count` exceeds `population`. No `count`-element sample exists to draw, and an
-/// oversized request is a caller bug rather than a runtime condition.
+/// This panics when `count` exceeds `population`.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
+///
+/// use crate::random::sample_indices_vec;
 ///
 /// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
 /// let picked = sample_indices_vec(&mut rng, 1_000_000, 688);
@@ -90,31 +86,37 @@ pub(crate) fn sample_indices_vec(mut rng: impl Rng, population: usize, count: us
     sample(&mut rng, population, count)
 }
 
-/// Samples `count` distinct ids of an id-indexed population uniformly at random.
+/// Samples `count` distinct typed positions in shuffled order.
 ///
-/// The typed form of [`sample_indices_vec`]: the id domain comes from the population itself, so a
-/// draw cannot pair one population's length with another population's id type. The sample draws
-/// without replacement, the yielded order is itself uniformly random, and both forms consume the
-/// identical generator stream, so a seeded draw is unchanged by adopting the typed form. Every
-/// yielded id is a position of the population, below its length by the draw and within the id's
-/// representation by the slice's own construction. The iterator reports its exact length, which
-/// is `count`.
+/// This has the sampling behavior and memory cost of [`sample_indices_vec`], with the population
+/// length and ID type supplied together. Both forms consume the identical generator stream for
+/// equal lengths, counts and starting generator states. The returned iterator initially has exactly
+/// `count` elements.
+///
+/// Every sampled position must be representable by `I`. [`IdSlice::from_raw`] preserves lengths
+/// beyond the ID range and does not establish this condition.
 ///
 /// # Panics
 ///
-/// This panics when `count` exceeds the population's length. No `count`-element sample exists to
-/// draw, and an oversized request is a caller bug rather than a runtime condition.
+/// This panics when `count` exceeds the population's length. Iterating the result panics if a
+/// sampled position is outside `I`'s range.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use hashql_core::id::{IdSlice, newtype};
 /// use rand::SeedableRng as _;
 /// use rand_xoshiro::Xoshiro256PlusPlus;
 ///
+/// use crate::random::sample_ids;
+///
+/// newtype!(struct SampleId(u32));
 /// let mut rng = Xoshiro256PlusPlus::seed_from_u64(42);
-/// let population = IdSlice::<RowId, ()>::from_raw(&[(); 1_000_000]);
-/// let picked: Vec<RowId> = sample_ids(&mut rng, population, 688).collect();
-/// assert_eq!(picked.len(), 688);
+/// let population = IdSlice::<SampleId, ()>::from_raw(&[(); 4096]);
+/// let picked: Vec<SampleId> = sample_ids(&mut rng, population, 128).collect();
+/// assert_eq!(picked.len(), 128);
 /// ```
 #[inline]
 pub(crate) fn sample_ids<I: Id, T>(
@@ -127,8 +129,10 @@ pub(crate) fn sample_ids<I: Id, T>(
         .map(I::from_usize)
 }
 
-/// The golden-ratio increment of `SplitMix64`: `2^64 / phi`, odd and therefore coprime to the word,
-/// so consecutive keys land maximally spread before mixing.
+/// The odd golden-ratio increment used by `SplitMix64`.
+///
+/// Its value approximates 2⁶⁴/φ, where φ = (1 + √5)/2. Oddness makes multiplication invertible
+/// modulo 2⁶⁴.
 const SPLITMIX64_GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;
 
 /// The first `SplitMix64` finalizer multiplier (D. Stafford's "mix 13" variant).
@@ -137,25 +141,30 @@ const SPLITMIX64_MIX_1: u64 = 0xBF58_476D_1CE4_E5B9;
 /// The second `SplitMix64` finalizer multiplier (D. Stafford's "mix 13" variant).
 const SPLITMIX64_MIX_2: u64 = 0x94D0_49BB_1331_11EB;
 
-/// Builds a generator keyed by a seed and two stream indexes.
+/// Builds a reproducible non-cryptographic generator from a seed and stream indexes.
 ///
-/// The key mixes through the `SplitMix64` finalizer. The golden-ratio increment spreads `key`
-/// across the word, and the two multiply-xorshift rounds avalanche every input bit into the output,
-/// so generators with adjacent keys are statistically independent. Parallel work draws one
-/// generator per `(seed, key, stream)` instead of sharing a sequence, and a seeded run reproduces
-/// exactly at any thread count.
+/// Equal `(seed, key, stream)` inputs initialize equal generator states. Giving each work item
+/// stable inputs and its own generator makes its draws independent of scheduling, provided its
+/// sequence of calls is unchanged. This does not make subsequent floating-point reductions
+/// independent of execution order.
 ///
-/// # Examples
+/// Odd multiplication and right-xorshift mixing permute 64-bit words. Varying one coordinate while
+/// holding the others fixed changes the mixed seed. When more than one coordinate varies, this
+/// 64-bit derivation can produce the same seed. It guarantees neither distinct nor statistically
+/// independent streams.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
 /// use rand::RngExt as _;
 ///
+/// use crate::random::keyed_rng;
+///
 /// let mut draws = keyed_rng(42, 7, 0);
 /// let mut replay = keyed_rng(42, 7, 0);
 /// assert_eq!(draws.random::<u64>(), replay.random::<u64>());
-///
-/// let mut sibling = keyed_rng(42, 8, 0);
-/// assert_ne!(draws.random::<u64>(), sibling.random::<u64>());
 /// ```
 #[must_use]
 pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
@@ -166,28 +175,35 @@ pub(crate) fn keyed_rng(seed: u64, key: u64, stream: u64) -> impl Rng {
     Xoshiro256PlusPlus::seed_from_u64(mixed ^ (mixed >> 31))
 }
 
-/// Computes the sample size certifying a defect-rate bound.
+/// Estimates the sample size for an all-pass defect-rate check.
 ///
-/// The number of uniformly sampled items to check so that an all-pass result certifies the bound at
-/// a confidence level.
+/// Let p = `defect_rate` and c = `confidence`, both in (0, 1). Under independent uniform sampling,
+/// a population with defect fraction at least p passes all n checks with probability at most (1 −
+/// p)ⁿ. Requiring (1 − p)ⁿ ≤ 1 − c gives the real-arithmetic budget n = ⌈ln(1 − c)/ln(1 − p)⌉.
+/// Therefore accepting only after all n checks pass bounds the probability of accepting a
+/// population at or above the threshold by 1 − c. This is a repeated-sampling error bound, not a
+/// posterior probability about the population after observing the sample.
 ///
-/// Checking this many uniformly sampled items and finding all of them valid establishes, with
-/// probability at least `confidence`, that the true fraction of invalid items is below
-/// `defect_rate`.
+/// For a fixed finite population, uniform sampling without replacement only lowers the all-pass
+/// probability. The same budget is conservative when n fits the population. When n exceeds the
+/// population, checking it in full directly settles an all-pass criterion.
 ///
-/// If the true defect fraction were at least `defect_rate`, the probability that `n` independent
-/// uniform samples all pass would be at most `(1 - defect_rate)^n`; requiring that this is at most
-/// `1 - confidence` gives the smallest sufficient count, `n = ceil(ln(1 - confidence) / ln(1 -
-/// defect_rate))`. Sampling without replacement from a finite population only lowers the all-pass
-/// probability, so the bound stays valid and conservative there too.
+/// # Warning
 ///
-/// # Examples
+/// The returned budget uses floating-point logarithms, division and ceiling, followed by a
+/// saturating conversion to [`usize`]. Rounding near an integer boundary can change the minimal
+/// sufficient count. Extreme ratios can underflow to zero or saturate to [`usize::MAX`]. The
+/// returned integer alone is not a certified upper bound on the real-arithmetic budget.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
-/// // Verifying 688 uniformly sampled embeddings out of one million (for
-/// // example, that each is L2-normalized) and finding all of them valid
-/// // gives 99.9% confidence that fewer than 1% of the full set fails
-/// // that check.
+/// use crate::{math::OpenUnitFraction, random::acceptance_sample_size};
+///
+/// // If at least 1% of a population is defective, 688 independent uniform
+/// // draws all pass with probability at most 0.99⁶⁸⁸ < 0.001.
 /// let defect_rate = OpenUnitFraction::new(0.01).expect("one percent is interior");
 /// let confidence = OpenUnitFraction::new(0.999).expect("the confidence is interior");
 /// assert_eq!(acceptance_sample_size(defect_rate, confidence), 688);
@@ -197,10 +213,9 @@ pub(crate) fn acceptance_sample_size(
     defect_rate: OpenUnitFraction,
     confidence: OpenUnitFraction,
 ) -> usize {
-    // Both logarithms are strictly negative, so the ratio is positive and
-    // finite; `ceil` yields the smallest count whose all-pass probability
-    // drops to `1 - confidence` or below, up to f64 rounding at exact
-    // power boundaries.
+    // ln_1p preserves a small fraction's correction when `1.0 - fraction` would round to one. The
+    // negative logarithms have a positive real ratio, but the f64 division can underflow or
+    // overflow.
     let samples = (confidence.ln_complement() / defect_rate.ln_complement()).ceil();
 
     #[expect(
@@ -214,36 +229,45 @@ pub(crate) fn acceptance_sample_size(
     samples
 }
 
-/// Computes the sample size estimating the population mean within `margin`.
+/// Estimates a mean's sample size using a one-sided normal approximation.
 ///
-/// The number of uniformly sampled items whose mean reaches the one-sided confidence level, given
-/// the per-item standard deviation.
+/// Let σ = `deviation` ≥ 0 be the per-item standard deviation, m = `margin` > 0 the tolerated
+/// error, and c = `confidence` ∈ (1/2, 1). For n independent, identically distributed observations,
+/// the sample mean has standard error σ/√n. With z = Φ⁻¹(c), the normal model requires zσ/√n ≤ m,
+/// giving n = ⌈(zσ/m)²⌉. Here Φ is the standard normal cumulative distribution. This model is exact
+/// for normal observations with known σ and approximate when justified by the central limit
+/// theorem.
 ///
-/// The estimate's standard error is `deviation / √n`, so `n = ceil((z · deviation / margin)^2)`
-/// with `z` the standard normal quantile of `confidence` keeps the probability of a sampling error
-/// beyond `margin` (in one direction) at most `1 - confidence`, by the central limit theorem. This
-/// sizes aggregate-mean criteria. [`acceptance_sample_size`] sizes an all-pass criterion instead.
-/// An acceptance budget guarantees nothing about a mean's error, so neither sizing rule substitutes
-/// for the other.
+/// A finite-variance assumption alone gives no finite-sample accuracy guarantee for the normal
+/// approximation. For observations in [a, b], σ ≤ (b − a)/2 provides a distribution-free bound on
+/// the deviation, but does not turn this sizing rule into a distribution-free confidence guarantee.
+/// A pilot estimate of σ adds estimation uncertainty that this formula does not account for. Use
+/// [`acceptance_sample_size`] for an all-pass criterion rather than a mean's error.
 ///
-/// The deviation is the caller's to supply: bounded-per-item means admit the distribution-free
-/// bound (half the range), and a pilot sample's measured deviation sizes the final sample without
-/// baking a population constant into configuration (Stein's two-stage procedure).
+/// # Warning
 ///
-/// Every parameter carries its domain in the type, so every call has a defined sample size. A
-/// ratio too large for `f64` saturates to [`usize::MAX`], which no corpus reaches.
+/// [`normal_quantile`] and the budget arithmetic are approximate. Intermediate multiplication can
+/// overflow even when the real ratio fits, and tiny ratios or their squares can underflow to zero.
+/// The final conversion saturates to [`usize::MAX`]. The function returns zero for zero deviation
+/// or confidence 1/2. A zero budget does not provide an observed mean. Confidence below 1/2 is
+/// accepted by the type, but squaring the negative quantile does not implement the one-sided sizing
+/// derivation above.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
-/// // Estimating a mean within one percentage point at 99% one-sided
-/// // confidence, with a measured per-item deviation of 0.32.
+/// use crate::{math::{DNonNegative, DPositive, OpenUnitFraction}, random::mean_sample_size};
+///
+/// // Planning a mean estimate within one percentage point at approximate
+/// // 99% one-sided confidence, using a deviation estimate of 0.32.
 /// let deviation = DNonNegative::new(0.32).expect("the deviation is non-negative");
 /// let margin = DPositive::new(0.01).expect("the margin is positive");
 /// let confidence = OpenUnitFraction::new(0.99).expect("the confidence is interior");
 /// assert_eq!(mean_sample_size(deviation, margin, confidence), 5542);
 ///
-/// // A deviation of zero needs no sample at all.
+/// // The formula returns zero when the supplied deviation is zero.
 /// assert_eq!(mean_sample_size(DNonNegative::ZERO, margin, confidence), 0);
 /// ```
 #[must_use]
@@ -266,19 +290,24 @@ pub(crate) fn mean_sample_size(
     samples
 }
 
-/// Inverts the standard normal cumulative distribution.
+/// Approximates a standard normal quantile.
 ///
-/// Returns the value `z` with `Phi(z) = probability`: the boundary a standard normal variable stays
-/// below with exactly the given probability. Computed by Acklam's rational approximation, whose
-/// relative error stays below `1.15e-9` over the normal range of the open interval and below
-/// `1.8e-9` on subnormal probabilities - beyond any sampling design's sensitivity.
+/// For p = `probability` ∈ (0, 1), the target is the finite z satisfying Φ(z) = p, where Φ is the
+/// standard normal cumulative distribution. Acklam's rational approximation uses a central
+/// polynomial ratio and a tail ratio after the transformation q = √(−2 ln p), with symmetry for the
+/// upper tail. The returned value approximates z without a subsequent refinement step.
 ///
-/// The probability carries the open unit interval in its type, and every interior probability
-/// has a finite quantile.
+/// The upper-tail calculation uses [`f64::ln_1p`] to evaluate ln(1 − p). At the median p = 1/2, the
+/// result is zero. Floating-point evaluation and the rational approximation do not guarantee exact
+/// inversion or correct rounding.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::{math::OpenUnitFraction, random::normal_quantile};
+///
 /// let median = normal_quantile(OpenUnitFraction::new(0.5).expect("the median is interior"));
 /// assert!(median.abs() < 1e-9);
 ///
@@ -339,6 +368,8 @@ pub(crate) fn normal_quantile(probability: OpenUnitFraction) -> f64 {
 }
 
 /// Evaluates a polynomial by Horner's rule, leading coefficient first.
+///
+/// An empty coefficient array represents the zero polynomial.
 fn horner<const N: usize>(coefficients: [f64; N], x: f64) -> f64 {
     coefficients
         .into_iter()

@@ -26,6 +26,7 @@ fn prediction(calibrated: [f64; 3], applicability: f64) -> Prediction {
     }
 }
 
+/// An ontology row id from a literal.
 fn relation(row: u64) -> OntologyRowId {
     OntologyRowId::new(row)
 }
@@ -67,6 +68,10 @@ fn prediction_resolves_through_the_applicability_mix() {
     assert_eq!(policy.strength, 1.0);
 }
 
+/// Ranks a human override above the reviewed, synthetic and predicted sources.
+///
+/// A human override outranks the reviewed and synthetic ones and the prediction, and asserted
+/// records pass their distribution through the mix unchanged at applicability one.
 #[test]
 fn overrides_supersede_predictions_by_precedence() {
     let classifications = [(
@@ -94,8 +99,8 @@ fn overrides_supersede_predictions_by_precedence() {
     let policies = resolve(&classifications, &overrides, CoincidentAdmission::default())
         .expect("overrides resolve");
 
-    // The human override wins; asserted records carry applicability 1,
-    // so the mix passes the distribution through unchanged.
+    // The human override wins. Asserted records carry applicability 1,
+    // and the mix passes the distribution through unchanged.
     let policy = policies[0];
     assert_eq!(
         policy.selected,
@@ -126,8 +131,8 @@ fn admission_reroutes_failing_coincident_mass() {
             relation(1),
             Classification::Predicted(prediction([0.25, 0.5, 0.25], 0.5)),
         ),
-        // Applicability 0.25 < 0.5 despite mixed Coincident 0.1875:
-        // rerouted.
+        // Applicability 0.25 < 0.5, and the mixed Coincident 0.75 · 0.25 =
+        // 0.1875 < 0.2 as well: rerouted on both criteria.
         (
             relation(2),
             Classification::Predicted(prediction([0.75, 0.125, 0.125], 0.25)),
@@ -146,6 +151,10 @@ fn admission_reroutes_failing_coincident_mass() {
     assert_eq!(policies[1].selected.coincident, 0.25);
 }
 
+/// `resolve` refuses a duplicate, an ambiguous override and an unknown override.
+///
+/// `resolve` fails with `DuplicateRelation` for a repeated classification, `AmbiguousOverride` for
+/// two overrides of one source, and `UnknownOverride` for a relation with no classification.
 #[test]
 fn contract_violations_are_rejected() {
     let duplicate = resolve(
@@ -219,6 +228,10 @@ fn contract_violations_are_rejected() {
     );
 }
 
+/// Orders resolution output by relation and passes certification unchanged.
+///
+/// Resolution orders its output by relation regardless of input order, and the table passes
+/// certification unchanged.
 #[test]
 fn resolution_feeds_the_certified_policy_table() {
     // Input order is irrelevant; the output is strictly ascending and

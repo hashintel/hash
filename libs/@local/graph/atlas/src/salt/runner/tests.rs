@@ -35,8 +35,14 @@ use crate::{
     },
 };
 
+/// Row count of the runner fixture corpus.
 const NODES: usize = 48;
 
+/// Returns a per-process scratch path after attempting to remove its previous directory.
+///
+/// # Panics
+///
+/// This panics if the system temporary directory's path is not UTF-8.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -48,10 +54,11 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
-/// A probe-scale corpus for the real fit.
+/// Builds a small corpus with seeded representations and typed rows.
 ///
-/// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros, one
-/// node type alternating between two ontology rows, and one link type.
+/// Canonical embeddings zero-extend the normalized representations. Normalization computes in
+/// double precision before rounding the components to `f32`. Nodes alternate between two direct
+/// ontology types, and the link uses a third type.
 fn dataset() -> MemoryDataset {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(0x27A);
     let mut canonical = HashMap::new();
@@ -159,12 +166,16 @@ impl CardEmbedder for HashEmbedder {
     }
 }
 
-/// A deterministic classifier fitted from a synthetic corpus.
+/// Fits the fixture's supplied classifier from a fixed synthetic corpus.
 ///
-/// The supplied model input of the fixture runs.
+/// # Panics
+///
+/// This panics if the synthetic training fixture fails validation or fitting.
 fn classifier() -> ClassifierInput {
     const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
+    // A period coprime to the row width visits every pattern offset before repeating. This
+    // 13-element pattern spans four 3,072-component rows. Therefore each row starts at a distinct
+    // pattern offset and has a distinct embedding.
     const PATTERN: [f32; 13] = [
         -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
     ];
@@ -212,7 +223,7 @@ fn classifier() -> ClassifierInput {
     }
 }
 
-/// Fixture-sized runner options over the given thresholds.
+/// Configures a small landmark-baseline run with the given seed and thresholds.
 fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     RunnerOptions {
         fit: FitConfig {
@@ -249,15 +260,18 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
     }
 }
 
-/// An observer keeping every admission reading the battery reported, in arrival order.
+/// A shared log of admission readings in reporting order.
 ///
-/// Cloneable and shareable because a detached half records into the same log: the readings arrive
-/// exactly as the run reported them.
+/// Detached observers append to the same log. Reading or appending panics if its mutex is poisoned.
 #[derive(Debug, Clone, Default)]
 struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, f64)>>>);
 
 impl RecordingBattery {
-    /// Every reading so far, in arrival order.
+    /// Copies the recorded readings in reporting order.
+    ///
+    /// # Panics
+    ///
+    /// This panics if the log's mutex is poisoned.
     fn readings(&self) -> Vec<(QualityMetric, f64)> {
         self.0
             .lock()
@@ -267,7 +281,6 @@ impl RecordingBattery {
 }
 
 impl Progress for RecordingBattery {
-    /// Both halves share the log, so a detached half records into the same fixture.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -282,7 +295,6 @@ impl Progress for RecordingBattery {
     }
 }
 
-/// A run whose report passes activates what it publishes.
 #[tokio::test]
 async fn passing_run_activates_the_generation() {
     let root = GenerationRoot::new(scratch("activates")).expect("the root should open");
@@ -304,9 +316,6 @@ async fn passing_run_activates_the_generation() {
     .expect("the run should reach a verdict");
 
     assert_eq!(outcome.admission, Admission::Active);
-    // The battery reports the readings its own verdict turns on, one per control. They are the same
-    // numbers the report reduces, so an observer and the verdict can never disagree about the
-    // measurement.
     assert_eq!(
         outcome
             .report
@@ -341,16 +350,13 @@ async fn passing_run_activates_the_generation() {
     );
 }
 
-/// A run whose report refuses admission publishes a candidate and leaves the pointer alone.
 #[tokio::test]
 async fn refused_run_leaves_a_candidate() {
     let root = GenerationRoot::new(scratch("candidate")).expect("the root should open");
     let dataset = dataset();
     let classifier = classifier();
 
-    // A 2D projection of 48 pseudo-random unit vectors cannot carry
-    // near-perfect neighbourhoods: the floor refuses admission on a
-    // real reading, not on a rigged fixture.
+    // raise the recall floor to exercise refusal on this fixture's measured neighbourhood loss.
     let outcome = run(
         &dataset,
         &HashEmbedder,
@@ -382,7 +388,6 @@ async fn refused_run_leaves_a_candidate() {
     );
 }
 
-/// The second run reuses the active generation as its prior, while a fresh run ignores it.
 #[tokio::test]
 async fn prior_modes_route_reuse() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
@@ -451,10 +456,6 @@ async fn prior_modes_route_reuse() {
     );
 }
 
-/// Witnesses the replay half of [`probe_rng`]'s contract.
-///
-/// Equal seeds deriving equal draws is what lets a whole run replay from the one fit seed; the
-/// inequality is the complement that a constant generator would otherwise satisfy.
 #[test]
 fn the_admission_probe_derives_its_draws_from_the_fit_seed() {
     let draws = |seed| {

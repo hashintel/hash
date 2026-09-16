@@ -3,16 +3,14 @@
 //! Each training step draws three edge populations:
 //!
 //! - [`SemanticEdgeSampler`] draws positive pairs from the semantic graph proportional to their
-//!   fuzzy weight, with replacement, so gradient work concentrates where the attraction evidence
-//!   is;
+//!   fuzzy weight, with replacement: gradient work concentrates where the attraction evidence is;
 //! - [`RelationEdgeSampler`] draws typed attraction instances, choosing relation types uniformly
-//!   and capping edges per type, so raw edge frequency cannot hand the layout to high-volume
+//!   and capping edges per type: raw edge frequency cannot hand the layout to high-volume
 //!   relations;
 //! - [`OrdinaryNegativeSampler`] draws uniform distinct node pairs and admits them only past every
 //!   veto - self pairs, semantic-positive pairs, and pairs the protection evidence bars from
-//!   ordinary repulsion. Typed-separation control sets and signed-policy conflicts are further
-//!   vetoes the admission contract names; the initial generation has no signed policies, so both
-//!   sets are empty here.
+//!   ordinary repulsion. The admission contract names two further vetoes, typed-separation control
+//!   sets and signed-policy conflicts. Both sets are empty here, and this sampler applies neither.
 //!
 //! Every sampler draws from a caller-supplied random stream and nothing else: equal artifacts,
 //! stream types, and seeds reproduce a batch exactly.
@@ -39,9 +37,11 @@ use crate::{
 
 /// Weight-proportional semantic-positive edge sampler.
 ///
-/// Draws are independent (with replacement): a duplicate edge in one batch is a legitimate sample,
-/// and the estimator needs no without-replacement correction. The drawn weight itself stays out of
-/// the emitted pair - proportional sampling already accounts for it.
+/// Draws are with replacement, each from the same weight-proportional distribution, and the
+/// estimator treats them as independent: a duplicate edge in one batch is a legitimate sample, and
+/// no without-replacement correction applies. Independence and exact proportionality are
+/// properties of the ideal draw the seeded pseudorandom stream stands in for. The drawn weight
+/// itself stays out of the emitted pair - proportional sampling already accounts for it.
 #[derive(Debug)]
 pub(crate) struct SemanticEdgeSampler<'graph, N> {
     graph: SemanticGraphView<'graph, N>,
@@ -133,9 +133,9 @@ where
                     }
                 };
 
-                // The last cumulative entry therefore exceeds every target, so the partition point
-                // lands in `1..=rows`; rows without weight repeat their predecessor's total and are
-                // never selected.
+                // The last cumulative entry therefore exceeds every target, and the partition
+                // point lies in `1..=rows`. Rows without weight repeat their predecessor's total
+                // and are never selected.
                 let row = self
                     .cumulative
                     .partition_point(|&sum| sum <= target)
@@ -152,8 +152,8 @@ where
                     }
                 }
 
-                // The walk rebuilds the constructor's partial sums (same values, same order), so it
-                // reaches the row's total and the target lies strictly below it.
+                // The walk rebuilds the constructor's partial sums (same values, same order). It
+                // reaches the row's total, and the target lies strictly below it.
                 let id = chosen.expect("the row's rebuilt weight sums cover every drawn target");
                 NodePair::new(row, id)
             })
@@ -178,9 +178,9 @@ pub(crate) struct SampledRelationEdges<'index, N, E> {
 /// The sampler draws relation types uniformly without replacement, and each selected type
 /// contributes at most the per-type cap of distinct edges: the cap is the relation objective's own
 /// semantic anti-domination factor - a high-volume type must not own the geometry by edge count -
-/// not a performance knob. Uniform type selection is the strongest anti-skew choice; a
-/// square-root-of-edge-count weighting is the sanctioned alternative if quality evidence shows the
-/// cap alone starves high-volume relations.
+/// not a performance knob. Uniform type selection is the strongest anti-skew choice. A
+/// square-root-of-edge-count weighting is the alternative if quality evidence shows the cap alone
+/// starves high-volume relations.
 #[derive(Debug)]
 pub(crate) struct RelationEdgeSampler<'index, N, E> {
     groups: &'index [AttractionGroup<N, E>],
@@ -202,7 +202,7 @@ where
 
     /// Draws up to `types` relation types, allocating the draw list in `alloc`.
     ///
-    /// Fewer types than requested means every type participates; a group smaller than the cap
+    /// Fewer types than requested means every type participates. A group smaller than the cap
     /// contributes all its edges.
     ///
     /// The per-group edge vectors stay on the global allocator: they belong to
@@ -262,7 +262,7 @@ where
     /// # Panics
     ///
     /// This panics when the two views disagree about the row domain. Both artifacts come from one
-    /// generation, so a mismatch is a wiring defect.
+    /// generation, and a mismatch is therefore a wiring defect.
     #[must_use]
     pub(crate) fn new(
         semantic: SemanticGraphView<'view, N>,
@@ -296,7 +296,7 @@ where
         alloc: A,
     ) -> Vec<NodePair<N>, A> {
         let rows = u64::try_from(self.semantic.rows()).expect("graph rows fit the row-id encoding");
-        // Pairs need two distinct rows, so the empty and singleton corpora sample nothing.
+        // Pairs need two distinct rows: the empty and singleton corpora sample nothing.
         let Some(bound) = NonZero::new(rows).filter(|bound| bound.get() >= 2) else {
             return Vec::new_in(alloc);
         };
@@ -319,7 +319,7 @@ where
 
             let pair = NodePair::new(left, right);
 
-            // A vetoed pair stays vetoed; remembering it before the veto checks skips their cost on
+            // A vetoed pair stays vetoed. Remembering it before the veto checks skips their cost on
             // repeats.
             if !seen.insert(pair) {
                 continue;
@@ -340,7 +340,7 @@ where
 
     /// Returns whether the pair is a semantic-positive edge.
     ///
-    /// The graph is symmetric, so one row's adjacency decides.
+    /// The graph is symmetric, and one row's adjacency decides.
     fn is_semantic_positive(&self, pair: NodePair<N>) -> bool {
         self.semantic
             .row(pair.lhs())

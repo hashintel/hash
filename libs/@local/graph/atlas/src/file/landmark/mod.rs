@@ -65,8 +65,10 @@ use crate::file::region::{
     padded_size,
 };
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

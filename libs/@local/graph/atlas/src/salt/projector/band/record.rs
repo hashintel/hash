@@ -10,7 +10,7 @@ use crate::math::{DNonNegative, DPositive, DVec2, Vec2};
 /// The clip moves a row along `x ↦ centre + landing·u(x)` with `u` the unit displacement from
 /// the centre, whose Jacobian at the pre-projection position is `factor·(I − uuᵀ)` with
 /// `factor = landing/‖x − centre‖`: the radial component of a perturbation dies and the
-/// tangential component scales down to the landing sphere. The matrix is symmetric, so the
+/// tangential component scales down to the landing sphere. The matrix is symmetric, and the
 /// transpose the chain rule needs is the matrix itself.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ClipJacobian {
@@ -25,7 +25,7 @@ impl ClipJacobian {
     ///
     /// Returns the landed value with the applied derivative where `square` exceeds
     /// `radius_squared`, and [`None`] where the squared displacement sits at or inside it.
-    /// Every projection path shares this predicate and this landing arithmetic, so a value
+    /// Every projection path shares this predicate and this landing arithmetic, and a value
     /// clips identically wherever it is read.
     ///
     /// The readings must be one consistent set: `square` is the widened squared distance of
@@ -55,7 +55,7 @@ impl ClipJacobian {
 
         let displacement = DVec2::from(value) - DVec2::from(centre);
         // In `(0, 1)` on this branch: the distance exceeds the radius and the landing sits
-        // strictly inside it, so the quotient of two finite positives is finite and positive.
+        // strictly inside it. The quotient of two finite positives is finite and positive.
         let factor = DPositive::new_unchecked((landing_radius / distance).into_raw());
         let jacobian = Self {
             direction: displacement / distance,
@@ -85,21 +85,25 @@ impl ClipJacobian {
 /// every [`BandProjection::apply`](super::BandProjection::apply), and
 /// never reset: the type has no operation that shrinks a field, which is the no-reset rule made
 /// structural. The calibration protocol derives a run's non-binding verdict from these readings,
-/// so every one is taken pre-projection by the enforcing operation itself.
+/// and every one is taken pre-projection by the enforcing operation itself.
 #[derive(Debug, PartialEq)]
 pub(crate) struct EnforcementRecord<N> {
-    /// `u(n)` per row: the running maximum normalized pre-projection displacement over every
-    /// application so far.
+    /// `u(n)` per row: the running maximum normalized pre-projection displacement.
+    ///
+    /// The maximum runs over every application so far.
     row_maxima: Box<IdSlice<N, DNonNegative>>,
     /// The cumulative count of row-applications the projection moved.
     clipped_row_applications: u64,
-    /// The largest excess of any row's pre-projection normalized displacement over the enforced
-    /// radius. Zero while nothing has bound.
+    /// The largest excess of any row's pre-projection normalized displacement over the radius.
+    ///
+    /// Zero while nothing has bound.
     max_overshoot: DNonNegative,
     /// The boundary step the record opened at, which starts the accumulation interval.
     opened_at: usize,
-    /// The last enforcement point applied, or [`None`] before the first. Together with
-    /// [`opened_at`](Self::opened_at) this is the interval's persisted endpoint pair.
+    /// The last enforcement point applied, or [`None`] before the first.
+    ///
+    /// Together with [`opened_at`](Self::opened_at) this is the interval's persisted endpoint
+    /// pair.
     last_application: Option<usize>,
 }
 
@@ -144,8 +148,8 @@ where
 
     /// Returns whether any projection application moved any row.
     ///
-    /// Derived from the count: a clip is exactly a moved row, so the bit and the count cannot
-    /// disagree.
+    /// Derived from the count: a clip is exactly a moved row, and the bit and the count therefore
+    /// cannot disagree.
     #[inline]
     #[must_use]
     pub(crate) const fn ever_clipped(&self) -> bool {
@@ -173,8 +177,9 @@ where
         &self.row_maxima
     }
 
-    /// Consumes the record into its per-row maxima, without a copy, for the evidence record
-    /// that closes over it.
+    /// Consumes the record into its per-row maxima, without a copy.
+    ///
+    /// For the evidence record that closes over it.
     #[must_use]
     pub(crate) fn into_row_maxima(self) -> Box<IdSlice<N, DNonNegative>> {
         self.row_maxima

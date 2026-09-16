@@ -28,8 +28,8 @@ use crate::{
 ///
 /// The returned row is raw `u32` because it feeds [`RankScratch`] and
 /// [`NeighbourhoodAggregate::observe`], whose rank vocabulary is raw, and it never leaves this
-/// module. Construction refuses a comparison universe beyond the `u32` rank domain, so the cast
-/// is total over admitted universes.
+/// module. Construction refuses a comparison universe beyond the `u32` rank domain, and the cast
+/// is therefore total over admitted universes.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "construction refuses a comparison universe beyond the u32 rank domain"
@@ -59,15 +59,22 @@ fn one_query_reading(
 
 /// The running deployed-minus-refit sums over placed queries.
 pub(super) struct PairedAccumulator {
+    /// Placed queries accumulated.
     queries: usize,
+    /// The summed recall differences.
     recall: DFinite,
+    /// The summed trustworthiness differences.
     trustworthiness: DFinite,
+    /// The summed continuity differences.
     continuity: DFinite,
+    /// The summed intrusion-rate differences.
     intrusion_rate: DFinite,
+    /// The summed extrusion-rate differences.
     extrusion_rate: DFinite,
 }
 
 impl PairedAccumulator {
+    /// Starts every sum at zero with no placed query.
     const fn new() -> Self {
         Self {
             queries: 0,
@@ -79,6 +86,7 @@ impl PairedAccumulator {
         }
     }
 
+    /// Adds one placed query's paired differences to the running sums.
     const fn accumulate(&mut self, difference: &DifferenceRow) {
         self.queries += 1;
         self.recall += difference.recall;
@@ -93,8 +101,8 @@ impl PairedAccumulator {
         let queries = NonZero::new(self.queries)?;
         let count = DPositive::from_usize(queries);
 
-        // The divisor is a query count, so count ≥ 1 never magnifies: every mean stays within
-        // its finite numerator's bound.
+        // The divisor is a query count of at least one and never magnifies: every mean stays
+        // within its finite numerator's bound.
         let mean = |sum: DFinite| (sum / count).finish_unchecked();
 
         Some(PairedSummary {
@@ -112,25 +120,37 @@ impl PairedAccumulator {
 
 /// One novelty split's population aggregates at one neighbourhood size.
 struct NoveltyCells {
+    /// The deployed readings of the split's placed queries.
     deployed: NeighbourhoodAggregate,
+    /// The refit readings of the split's queries.
     refit: NeighbourhoodAggregate,
 }
 
 /// The deduplication diagnostic's aggregates at one neighbourhood size.
 struct DedupCells {
+    /// The deployed readings over the restricted universe.
     deployed: NeighbourhoodAggregate,
+    /// The refit readings over the restricted universe.
     refit: NeighbourhoodAggregate,
+    /// The control readings over the restricted universe.
     controls: NeighbourhoodAggregate,
 }
 
 /// One estimand's population aggregates at one neighbourhood size.
 pub(super) struct PopulationCells {
+    /// The deployed readings of every placed query.
     deployed: NeighbourhoodAggregate,
+    /// The refit readings of every query.
     refit: NeighbourhoodAggregate,
+    /// The fitted controls' readings.
     controls: NeighbourhoodAggregate,
+    /// The readings of queries whose bytes occur in `G0`.
     seen: NoveltyCells,
+    /// The readings of queries whose bytes occur nowhere in `G0`.
     novel: NoveltyCells,
+    /// The running deployed-minus-refit sums.
     paired: PairedAccumulator,
+    /// The deduplication diagnostic's cells, where the pass carries the lens.
     dedup: Option<DedupCells>,
 }
 
@@ -200,9 +220,12 @@ impl PopulationCells {
 /// The deduplication lens over one universe: representatives and their own scratch.
 ///
 /// The representative list maps each deduplication position to the universe position it
-/// restricts to, so the lens can only consume distances keyed by its own universe's domain.
+/// restricts to, and the lens can therefore only consume distances keyed by its own universe's
+/// domain.
 struct DedupLens<'run, I> {
+    /// The universe position each deduplication position restricts to, ascending.
     representatives: &'run IdSlice<DedupPosition, I>,
+    /// The rank scratch sized to the restricted universe.
     scratch: RankScratch,
 }
 
@@ -222,22 +245,27 @@ impl<I: Id> DedupLens<'_, I> {
 /// The rank-metric pass over one fixed comparison universe.
 ///
 /// Borrows the universe's embeddings, both wire framings, and the validated designs. The pass
-/// owns the reusable rank scratch, so it allocates two `u32` rows per universe regardless of
-/// query count. `I` is the universe's position domain, so one estimand's pass cannot consume
-/// another estimand's positions or representatives.
+/// owns the reusable rank scratch and therefore allocates two `u32` rows per universe regardless
+/// of query count. `I` is the universe's position domain, and one estimand's pass therefore
+/// cannot consume another estimand's positions or representatives.
 pub(super) struct MetricPass<'run, I> {
+    /// The validated designs, one per neighbourhood size.
     designs: &'run [NeighbourhoodDesign],
+    /// The universe members' embeddings, in position order.
     universe: &'run IdSlice<I, AlignedVecN<PROJECTOR_DIMENSIONS>>,
+    /// The universe members' wire coordinates, one column per generation.
     wire: &'run Pair<Vec<Vec2>>,
+    /// The rank scratch sized to the universe.
     scratch: RankScratch,
+    /// The deduplication lens, where the pass carries one.
     dedup: Option<DedupLens<'run, I>>,
 }
 
 impl<'run, I: Id> MetricPass<'run, I> {
-    /// A pass over one universe, with the deduplication lens where one is handed over.
+    /// Opens a pass over one universe, with the deduplication lens where one is handed over.
     ///
-    /// The embedding rows arrive in universe draw order, which is what binds them to the
-    /// position domain here.
+    /// The embedding rows are handed over in universe draw order, which is what binds them to
+    /// the position domain here.
     pub(super) fn new(
         designs: &'run [NeighbourhoodDesign],
         universe: &'run [AlignedVecN<PROJECTOR_DIMENSIONS>],
@@ -256,7 +284,7 @@ impl<'run, I: Id> MetricPass<'run, I> {
         }
     }
 
-    /// One sampled query's readings, merged into the population cells.
+    /// Reads one sampled query and merges its readings into the population cells.
     ///
     /// The refit reading exists for every query. The deployed reading and the paired difference
     /// exist exactly when the outcome placed the query.
@@ -371,8 +399,8 @@ impl<'run, I: Id> MetricPass<'run, I> {
 
     /// One fitted control's readings, merged into the population cells.
     ///
-    /// The control reads under the earlier generation's own wire frame, so its readings share the
-    /// deployed readings' normalizer.
+    /// The control reads under the earlier generation's own wire frame, and its readings therefore
+    /// share the deployed readings' normalizer.
     pub(super) fn control(
         &mut self,
         embedding: &AlignedVecN<PROJECTOR_DIMENSIONS>,

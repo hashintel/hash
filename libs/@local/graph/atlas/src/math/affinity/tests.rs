@@ -23,13 +23,10 @@ use crate::math::{AffinityCurve, Positive, Vec2, Vec2x4T, d_positive, positive, 
 const CURVE_A: f32 = 1.577;
 const CURVE_B: f32 = 0.895;
 
-/// Independent f64 reference for the fit objective.
+/// Computes the target residual sum of squares with a separate `f64` loop.
 ///
-/// The residual sum of squares of a candidate curve against the target falloff sampled on the
-/// crate's default grid, 300 samples over `[0, 3 · spread]`.
-///
-/// This reference spells the grid constants out by hand, so it fails when the documented default
-/// contract changes.
+/// The grid uses 300 samples over [0, 3σ], where σ is `spread`. The fixed constants match the
+/// documented default grid without using the solver's grid construction.
 fn reference_rss(spread: f64, minimum_distance: f64, curve_a: f64, curve_b: f64) -> f64 {
     let mut rss = 0.0;
     for index in 0..300_u16 {
@@ -46,13 +43,16 @@ fn reference_rss(spread: f64, minimum_distance: f64, curve_a: f64, curve_b: f64)
     rss
 }
 
+/// Creates the curve with parameters [`CURVE_A`] and [`CURVE_B`].
 fn curve() -> AffinityCurve {
     AffinityCurve::new(CURVE_A, CURVE_B).expect("reference parameters are positive and finite")
 }
 
-/// Independent f64 reference for the attraction coefficient.
+/// Computes the attraction update using separate `f64` powers.
 ///
-/// Transcribed from the pre-SIMD scalar kernel rather than from the implementation under test.
+/// The squared distance is first computed in `f32`, then widened. The coefficient evaluates ρ^(b−1)
+/// and ρᵇ separately before clipping. Inputs must meet [`Vec2::distance_squared`]'s finite-result
+/// contract.
 fn reference_attraction(from: Vec2, to: Vec2) -> Vec2 {
     let distance_squared = f64::from(from.distance_squared(to));
     if distance_squared <= 0.0 {
@@ -66,7 +66,10 @@ fn reference_attraction(from: Vec2, to: Vec2) -> Vec2 {
     reference_clipped(from, to, coefficient)
 }
 
-/// Independent f64 reference for the repulsion coefficient.
+/// Computes the regularized repulsion update with a `f64` coefficient.
+///
+/// The squared distance is first computed in `f32`, then widened. Inputs must meet
+/// [`Vec2::distance_squared`]'s finite-result contract.
 fn reference_repulsion(from: Vec2, to: Vec2, repulsion_strength: f64) -> Vec2 {
     let distance_squared = f64::from(from.distance_squared(to));
     if distance_squared <= 0.0 {
@@ -80,6 +83,7 @@ fn reference_repulsion(from: Vec2, to: Vec2, repulsion_strength: f64) -> Vec2 {
     reference_clipped(from, to, coefficient)
 }
 
+/// Scales widened `f32` differences, clips to ±4 and narrows to `f32`.
 fn reference_clipped(from: Vec2, to: Vec2, coefficient: f64) -> Vec2 {
     #[expect(
         clippy::cast_possible_truncation,
@@ -91,6 +95,13 @@ fn reference_clipped(from: Vec2, to: Vec2, coefficient: f64) -> Vec2 {
     Vec2::new(component(from.x() - to.x()), component(from.y() - to.y()))
 }
 
+/// Asserts componentwise agreement within a relative/absolute tolerance.
+///
+/// Each absolute difference must be below 10⁻⁵ · max(|expected|, 1).
+///
+/// # Panics
+///
+/// Panics when either component fails the comparison, naming `context`.
 #[track_caller]
 fn assert_close(actual: Vec2, expected: Vec2, context: &str) {
     let tolerance = |reference: f32| 1e-5 * reference.abs().max(1.0);
@@ -102,6 +113,7 @@ fn assert_close(actual: Vec2, expected: Vec2, context: &str) {
     );
 }
 
+/// Anchor points for paired updates against [`POINTS`].
 const ANCHORS: [Vec2; 4] = [
     Vec2::new(0.0, 0.0),
     Vec2::new(1.5, 6.5),
@@ -126,11 +138,12 @@ fn fit_reproduces_the_reference_parameters() {
     );
 }
 
+/// Compares the fitted objective with a local parameter grid.
+///
+/// The comparison varies a by a relative ±10⁻³ and b by an additive ±10⁻³, checking only the
+/// resulting grid points.
 #[test]
 fn fit_result_is_a_local_minimum_of_the_sampled_objective() {
-    // Local-optimality certificate: the fitted parameters score at least
-    // as well as every small perturbation on a grid around them, against
-    // the same sampled objective recomputed independently in f64.
     let fitted = AffinityCurve::fit(positive!(1.0), positive!(0.1))
         .expect("the reference inputs are well-conditioned");
     let (curve_a, curve_b) = (f64::from(fitted.a()), f64::from(fitted.b()));
@@ -155,11 +168,8 @@ fn fit_result_is_a_local_minimum_of_the_sampled_objective() {
 
 #[test]
 fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
-    // Exact-recovery certificate: when the sampled target IS an affinity
-    // curve, the zero-residual minimum sits at its parameters and the
-    // solver must return them. This drives the internal solver directly;
-    // the public API only exposes the exponential-falloff target, which
-    // no affinity curve reproduces exactly.
+    // A target from the same curve family has zero real-arithmetic residual at its generating
+    // parameters. This gives known coefficients to compare with the numerical solve.
     let (known_a, known_b) = (1.5_f64, 0.9_f64);
     let grid = SampleGrid::new(300, d_positive!(3.0 / 299.0));
 
@@ -178,12 +188,14 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
     );
 }
 
+/// Compares fitted parameters under a rescaling of distances.
+
 #[test]
 fn fit_scales_equivariantly_with_distance() {
-    // Scaling-law certificate: scaling all distances by `s` maps a
-    // solution `(a, b)` to `(a · s^(-2b), b)` exactly, and
-    // `fit(s · spread, s · minimum_distance)` samples the same target at
-    // distances scaled by `s`.
+    // In real arithmetic, replacing each distance d by sd gives a · s^(−2b) · (sd)^(2b) = a ·
+    // d^(2b). Scaling spread and minimum distance by the same s preserves the target values at
+    // corresponding grid points. Therefore (a · s^(−2b), b) is the corresponding fitted model. The
+    // assertions allow numerical fitting and narrowing error.
     let base = AffinityCurve::fit(positive!(1.0), positive!(0.1))
         .expect("the reference inputs are well-conditioned");
 
@@ -239,16 +251,11 @@ fn fitted_curve_tracks_its_target_falloff() {
 
 #[test]
 fn fit_rejects_a_minimum_distance_beyond_the_spread() {
-    // The signature's `Positive` domain refuses non-finite and non-positive inputs before the
-    // fit sees them. The ordering between the two is the one refusal left to the fit itself.
     assert!(AffinityCurve::fit(positive!(1.0), positive!(2.0)).is_none());
 }
 
 #[test]
 fn fit_with_rejects_degenerate_configs() {
-    // Too few samples for the two-parameter fit. The range's `Positive` domain refuses a
-    // degenerate range at construction, so the sample floor is the config refusal left to the
-    // fit itself.
     assert!(
         AffinityCurve::fit_with(
             positive!(1.0),
@@ -278,8 +285,8 @@ fn fit_with_rejects_degenerate_configs() {
 
 #[test]
 fn fit_is_stable_under_sample_refinement() {
-    // Refining the discretization must not move the minimizer: the
-    // sampled objective converges to its continuous limit.
+    // the 10⁻² tolerance accommodates shifts in the minimizer as grid refinement changes the
+    // sampled objective.
     let base = AffinityCurve::fit(positive!(1.0), positive!(0.1))
         .expect("the reference inputs are well-conditioned");
 
@@ -308,19 +315,13 @@ fn fit_is_stable_under_sample_refinement() {
 
 #[test]
 fn fit_accepts_a_minimum_distance_equal_to_the_spread() {
-    // The documented domain excludes only `minimum_distance > spread`;
-    // equality is the boundary case that stays inside.
     assert!(AffinityCurve::fit(positive!(1.0), positive!(1.0)).is_some());
 }
 
 #[test]
 fn fit_with_divides_the_range_into_samples_minus_one_steps() {
-    // The spacing divides the sampled range by `samples - 1`, not by
-    // `samples`, and the final sample therefore sits exactly at the range
-    // end. The explicit grid spells that spacing out; fitting over it runs
-    // the identical solver on identical inputs, so the results agree to
-    // narrowing precision. A coarse eight-sample grid makes any spacing
-    // drift orders of magnitude wider than the tolerance.
+    // spacing 3/7 places the last of eight samples at distance 3 in real arithmetic. The explicit
+    // grid uses the same rounded spacing and widened minimum distance as fit_with.
     let fitted = AffinityCurve::fit_with(
         positive!(1.0),
         positive!(0.1),
@@ -353,12 +354,8 @@ fn fit_with_divides_the_range_into_samples_minus_one_steps() {
 
 #[test]
 fn solver_refuses_a_target_that_poisons_only_the_objective() {
-    // The zero-distance sample contributes its residual and nothing else
-    // (its partials are skipped), so a NaN target at zero drives exactly
-    // one accumulated sum non-finite: the residual sum of squares. The
-    // finiteness gate is the only check standing between that poisoned
-    // objective and a solver that converges happily on the remaining
-    // samples.
+    // At distance zero both parameter partials vanish and are skipped. A NaN target there affects
+    // only the residual sum of squares, while the normal matrix and right-hand side stay finite.
     let result = fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
         if distance == 0.0 {
             f64::NAN
@@ -375,11 +372,9 @@ fn solver_refuses_a_target_that_poisons_only_the_objective() {
 
 #[test]
 fn solver_refuses_a_grid_that_cannot_move_the_exponent() {
-    // With distance one as the only positive sample, `ln 1 = 0` zeroes
-    // every `b`-partial: the normal matrix's `b` diagonal is exactly zero,
-    // and multiplicative damping keeps it zero. The damped solve must
-    // refuse the singular system at every retry rather than invent a step
-    // from an additively repaired diagonal.
+    // The only positive sample is d = 1, where ln(1) = 0 makes every b-partial zero. The
+    // corresponding normal-matrix diagonal is zero and multiplicative damping leaves it zero.
+    // Therefore the determinant test rejects every retry.
     let result = fit_curve(SampleGrid::new(2, d_positive!(1.0)), |distance| {
         if distance == 0.0 { 1.0 } else { 0.3 }
     });
@@ -392,11 +387,9 @@ fn solver_refuses_a_grid_that_cannot_move_the_exponent() {
 
 #[test]
 fn solver_solves_a_well_conditioned_system_of_tiny_magnitudes() {
-    // Distances of 1e-5 shrink every normal-equation entry by tens of
-    // orders of magnitude while the system stays perfectly solvable. The
-    // cancellation floor scales with the product of BOTH damped diagonals;
-    // a floor divided by either diagonal inflates astronomically here and
-    // refuses every step.
+    // Tiny distances make the Jacobian entries small. Scaling the determinant floor by the product
+    // of both damped diagonals tests relative cancellation without imposing an absolute
+    // matrix-magnitude floor.
     let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(4, d_positive!(1e-5)), |distance| {
         1.0 / (1.0 + 2.0 * distance.powf(2.0))
     })
@@ -414,12 +407,7 @@ fn solver_solves_a_well_conditioned_system_of_tiny_magnitudes() {
 
 #[test]
 fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
-    // From the fixed start (1, 1), an exact target at a = 100 or a = 1e8
-    // is reached only through the damping controller's full cycle:
-    // rejected overshoots raise the damping multiplicatively, accepted
-    // steps relax it, and the tiny-step exit measures each step against
-    // its own parameter. Flipping or rescaling any of those strands the
-    // walk short of recovery.
+    // the target coefficient a spans several orders of magnitude from the fixed start at one
     for known_a in [100.0, 1e8] {
         let (fitted_a, fitted_b) =
             fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
@@ -438,19 +426,17 @@ fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
     }
 }
 
+/// Terminates a fit to a target extending above the affinity range.
+
 #[test]
 fn solver_terminates_a_creep_along_the_domain_boundary() {
-    // A target thirty times the curve's whole range pulls `a` toward the
-    // zero boundary it may never cross: every Newton step overshoots into
-    // the forbidden quadrant, and only a damped fraction survives. The
-    // walk ends through the improvement difference falling under its
-    // relative tolerance. Additive damping growth on domain rejections
-    // and both broken improvement readings leave the creep unfinished.
+    // The target approaches 30 near zero, while the curve cannot exceed one. For positive
+    // distances, decreasing a moves the curve toward one. This puts the fit near its
+    // positive-parameter boundary, where damping and stopping thresholds matter.
     let result = fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
         30.0 / (1.0 + 1.5 * distance.powf(1.8))
     });
 
-    // The returned parameters are positive by type. Convergence is the claim left to assert.
     assert!(
         result.is_some(),
         "the boundary creep must converge: {result:?}",
@@ -459,12 +445,9 @@ fn solver_terminates_a_creep_along_the_domain_boundary() {
 
 #[test]
 fn tiny_step_convergence_requires_both_parameters() {
-    // The `a` parameter is bisected so the first damped step moves `a` by
-    // under 1e-17 (seven orders inside the relative tolerance) while
-    // moving `b` by 0.84. An exit that accepts either tiny component
-    // alone, or measures `b` against an absolute threshold, stops at the
-    // start (1, 1); the conjunction of relative thresholds walks on and
-    // recovers the target exactly.
+    // At the initial (a, b) = (1, 1), this target gives a first damped a-step near 8 × 10⁻¹⁸ and a
+    // b-step near 0.843. One component is well below the relative step threshold while the other
+    // remains large. Both components must satisfy the threshold to stop.
     const TUNED_A: f64 = 0.931_322_701_934_099;
 
     let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(12, d_positive!(0.25)), |distance| {
@@ -484,11 +467,7 @@ fn tiny_step_convergence_requires_both_parameters() {
 
 #[test]
 fn solver_rescues_a_walk_whose_steps_worsen_the_objective() {
-    // A steep falloff thirty spreads out makes whole stretches of proposed
-    // steps worsen the objective before the walk finds the descent again.
-    // The rescue lives in the rejection damping growing multiplicatively:
-    // sixteen additive bumps cap the damping near fifty, and the walk
-    // never re-enters the acceptable region.
+    // the target a = b = 30 has a steep falloff over a grid extending to distance 30
     let (fitted_a, fitted_b) =
         fit_curve(SampleGrid::new(50, d_positive!(30.0 / 49.0)), |distance| {
             1.0 / (1.0 + 30.0 * distance.powf(60.0))
@@ -609,9 +588,8 @@ fn coincident_pairs_receive_no_gradient() {
 #[test]
 fn near_coincident_repulsion_saturates_the_clip() {
     let curve = curve();
-    // Close along x, but far enough that the coefficient (capped near
-    // 2 · γ · b / 0.001 by the repulsion guard) times the difference
-    // still exceeds the clip: 0.01 · ~1600 is ~16, clamped to 4.
+    // With ρ ≈ 10⁻⁴ and γ = 1, the denominator is about 0.0011 and the numerator about 1.79. The
+    // coefficient is about 1600, giving an x update near 16 before clipping to 4.
     let from = Vec2::new(0.01, 0.0);
     let to = Vec2::ZERO;
 
@@ -636,35 +614,32 @@ fn gradients_stay_finite_at_extreme_distances() {
     assert!(batch.get(0).is_finite());
 }
 
-/// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
-///
-/// The example-based tests above pin extreme-distance behaviour.
+/// Generates finite points with coordinates in `-1e3..1e3`.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
-/// Arbitrary in-range points, one per batch lane.
+/// Generates a four-point batch from [`point_strategy`].
 fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
     proptest::array::uniform4(point_strategy())
 }
 
-/// Curve parameters bounded to `a` in `1e-3..1e3` and `b` in `0.1..5`.
-///
-/// Where `a · d^(2b)` stays finite over the strategy's distances.
+/// Generates curves with a in `1e-3..1e3` and b in `0.1..5`.
 fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
     (1e-3_f32..1e3, 0.1_f32..5.0).prop_map(|(curve_a, curve_b)| {
         AffinityCurve::new(curve_a, curve_b).expect("the strategy's ranges are positive and finite")
     })
 }
 
-/// Asserts a batch lane agrees with its scalar twin within a relative tolerance of `1e-3`.
+/// Asserts componentwise agreement under a relative tolerance and absolute floor.
 ///
-/// A matching absolute floor covers near-zero gradients.
+/// The allowance is 10⁻³ · max(|expected|, 10⁻³), giving an absolute floor of 10⁻⁶. Scalar and SIMD
+/// paths use different distance grouping and power approximations. This is the fixture's comparison
+/// tolerance, not a certified ULP bound for either power implementation.
 ///
-/// The bound covers the batch kernels' vectorized `d^(2b)` power, which composes sleef's 3.5-ulp
-/// `exp2`/`log2` stages. The exponent's absolute error grows with `|log2(d^2)|`, so the power's
-/// relative error reaches a few times `1e-5` over the strategy's distance range, well inside
-/// `1e-3`, against the scalar path's 0.5-ulp libm `powf`.
+/// # Panics
+///
+/// Panics when either component fails the comparison, naming `context`.
 #[track_caller]
 fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
     let tolerance = |reference: f32| 1e-3 * reference.abs().max(1e-3);
@@ -676,10 +651,10 @@ fn assert_lane_close(actual: Vec2, expected: Vec2, context: &str) {
     );
 }
 
-/// The affinity lies in `(0, 1]` and is monotone non-increasing in the squared distance.
+/// Samples affinity range and approximate ordering on bounded squared distances.
 ///
-/// Monotonicity holds up to a few ulps of libm `powf` rounding. This test bounds squared distances
-/// to `0..1e6`, where `a · d^(2b)` stays finite for every curve in the strategy.
+/// With ρ < 10⁶, a < 10³ and b < 5, the real-arithmetic product aρᵇ is below 10³³ for ρ ≥ 1,
+/// keeping it within `f32` range. Ordering uses a relative tolerance.
 #[property_test]
 fn affinity_is_a_monotone_probability(
     #[strategy = curve_strategy()] curve: AffinityCurve,
@@ -698,9 +673,7 @@ fn affinity_is_a_monotone_probability(
         prop_assert!(affinity <= 1.0);
     }
 
-    // `powf` is accurate to a fraction of an ulp but not proven
-    // monotone; the slack admits a few ulps of the result without
-    // accepting a real ordering violation.
+    // allow an ordering discrepancy up to 8 · EPSILON times the near affinity
     let slack = 8.0 * f32::EPSILON * curve.affinity(near);
     prop_assert!(
         curve.affinity(near) >= curve.affinity(far) - slack,
@@ -712,10 +685,10 @@ fn affinity_is_a_monotone_probability(
     );
 }
 
-/// Attraction pulls `from` toward `to`, and repulsion pushes it away.
+/// Checks attraction and repulsion signs relative to the point difference.
 ///
-/// For distinct points, the attraction gradient is anti-parallel to the difference vector and the
-/// repulsion gradient is parallel. The separation floor keeps the coefficients away from underflow.
+/// The squared-distance floor 10⁻⁶ excludes computed-coincident pairs. The assertions test
+/// dot-product signs, without requiring clipped updates to remain parallel to the difference.
 #[property_test]
 fn gradients_align_with_the_difference_vector(
     #[strategy = point_strategy()] from: Vec2,
@@ -729,10 +702,6 @@ fn gradients_align_with_the_difference_vector(
     prop_assert!(curve.repulsion(from, to, 1.0).dot(difference) > 0.0);
 }
 
-/// The batch attraction kernel agrees with the scalar kernel in every lane.
-///
-/// This crosses the sleef `exp2`/`log2` pow path against the scalar libm `powf` path over the whole
-/// in-range input space. The tolerance follows the kernel's documented 3.5-ulp-stage bound.
 #[property_test]
 fn attraction_x4_matches_scalar_attraction_per_lane(
     #[strategy = point_array_strategy()] from: [Vec2; 4],
@@ -750,9 +719,6 @@ fn attraction_x4_matches_scalar_attraction_per_lane(
     }
 }
 
-/// The batch repulsion kernel agrees with the scalar kernel in every lane.
-///
-/// The same pow-path bound as attraction applies.
 #[property_test]
 fn repulsion_x4_matches_scalar_repulsion_per_lane(
     #[strategy = point_array_strategy()] from: [Vec2; 4],

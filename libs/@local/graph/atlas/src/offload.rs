@@ -1,11 +1,8 @@
-//! CPU-bound work spawned onto rayon and answered on tokio.
+//! CPU-bound tasks with asynchronous result collection.
 //!
-//! The async surfaces stay responsive by running their heavy computation - response assembly,
-//! schedule and census construction - on rayon workers rather than runtime threads. This module
-//! exists so every such hand-off shares one panic posture: [`run`] executes the closure behind
-//! [`catch_unwind`](std::panic::catch_unwind) and answers through a oneshot channel, so a panic
-//! reaches the caller as [`OffloadError::Panicked`] instead of aborting the process, which is
-//! rayon's response to a panic no join point observes.
+//! [`run`] submits a closure to Rayon, keeping its computation off the async executor. Await the
+//! returned [`OffloadHandle`] for its result, or use [`OffloadHandle::try_join`] to check for
+//! completion without waiting.
 
 use alloc::borrow::Cow;
 use core::{any::Any, error::Error, fmt, panic::UnwindSafe};
@@ -16,12 +13,9 @@ use core::{any::Any, error::Error, fmt, panic::UnwindSafe};
 /// error.
 #[derive(Debug)]
 pub(crate) enum OffloadError {
-    /// The work panicked, and this holds the payload's text when the payload was one.
+    /// The computation panicked, with a message for string panic payloads.
     Panicked(Option<Cow<'static, str>>),
-    /// The worker vanished without answering.
-    ///
-    /// The channel closed with no result sent, which happens only when the pool drops the job
-    /// without running it, as at process teardown.
+    /// The worker closed the channel without a result, or the handle already returned it.
     Vanished,
 }
 
@@ -39,10 +33,8 @@ impl Error for OffloadError {}
 
 /// Runs `work` on a rayon worker and returns its value, answering a panic as an error.
 ///
-/// The future resolves when the work completes. Dropping the future first - a cancelled request,
-/// an abandoned resolution - drops the computed value on the worker and nothing else happens: the
-/// work itself always runs to completion once spawned, and the rejected value's drop stays inside
-/// an unwind boundary, so even a panicking destructor cannot abort the pool.
+/// Submission starts the job independently of polling the returned handle. The worker enters the
+/// current tracing span for both the computation and cleanup of an undeliverable result.
 ///
 /// # Errors
 ///
@@ -57,13 +49,10 @@ pub(crate) async fn run<T: Send + 'static>(
     rayon::spawn(move || {
         let result = std::panic::catch_unwind(work);
 
-        // A send failure means the caller's future was dropped and nothing wants the value: the
-        // rejected result drops right here on the worker. That drop runs inside its own unwind
-        // boundary, because a panicking destructor would otherwise reach the pool as a panic no
-        // join point observes, which aborts the process.
+        // A rejected result can panic during drop after the computation's unwind boundary has
+        // ended.
         //
-        // AssertUnwindSafe: the panic is swallowed after the caller has gone, so nothing
-        // observes the sender's or the value's state after the unwind.
+        // AssertUnwindSafe: the closure consumes the sender and result.
         let _cancelled = std::panic::catch_unwind(core::panic::AssertUnwindSafe(|| {
             let _rejected: Result<(), _> = sender.send(result);
         }));
@@ -76,10 +65,13 @@ pub(crate) async fn run<T: Send + 'static>(
     }
 }
 
-/// Extracts a panic payload's text.
+/// Extracts a string panic message and discards other payloads.
 ///
-/// A `panic!` with a message carries `&'static str` or `String`. Any other payload type has no
-/// text to extract and answers [`None`].
+/// Returns the text of an `&'static str` or [`String`] payload, or [`None`] for any other type.
+///
+/// # Panics
+///
+/// Panics if a non-string payload's destructor panics.
 fn panic_message(panic: Box<dyn Any + Send>) -> Option<Cow<'static, str>> {
     match panic.downcast_ref::<&'static str>() {
         Some(&message) => Some(Cow::Borrowed(message)),
@@ -93,18 +85,12 @@ fn panic_message(panic: Box<dyn Any + Send>) -> Option<Cow<'static, str>> {
 pub(crate) mod tests {
     use super::{OffloadError, run};
 
-    /// A completed computation answers its value.
     #[tokio::test]
     async fn completed_work_answers_its_value() {
         let value = run(|| 6 * 7).await.expect("the work completes");
         assert_eq!(value, 42);
     }
 
-    /// A panicking computation answers an error that holds the payload, and the process survives.
-    ///
-    /// The survival is the point: a bare `rayon::spawn` would abort the process on this panic,
-    /// because the pool has no join point to observe it. The follow-up call witnesses that the
-    /// pool keeps serving after the caught panic.
     #[tokio::test]
     async fn panicking_work_answers_an_error_without_aborting() {
         let error = run(|| -> u32 { panic!("the fixture panicked on purpose") })
@@ -120,7 +106,6 @@ pub(crate) mod tests {
         assert_eq!(value, 7);
     }
 
-    /// A formatted panic payload crosses as its rendered text.
     #[tokio::test]
     async fn formatted_panic_payload_keeps_its_text() {
         let error = run(|| -> u32 { panic!("row {} is out of range", 41) })
@@ -133,7 +118,6 @@ pub(crate) mod tests {
         assert_eq!(payload, "row 41 is out of range");
     }
 
-    /// A payload that is not text answers the panic without one.
     #[tokio::test]
     async fn textless_panic_payload_answers_none() {
         let error = run(|| -> u32 { std::panic::panic_any(41_u64) })
@@ -146,12 +130,7 @@ pub(crate) mod tests {
         );
     }
 
-    /// A cancelled caller whose rejected value panics on drop does not abort the pool.
-    ///
-    /// A failed send drops the computed value on the rayon worker, and that drop runs inside an
-    /// unwind boundary. Dropped bare, the destructor's panic would reach the pool with no join
-    /// point to observe it, and rayon aborts a process on such a panic. Under nextest, a
-    /// regression here therefore fails this one test with its own process's SIGABRT.
+    /// The worker catches a string panic from a rejected value's destructor.
     #[tokio::test]
     async fn cancelled_send_with_panicking_destructor_does_not_abort() {
         /// Signals that its drop ran, then panics inside it.
@@ -186,7 +165,6 @@ pub(crate) mod tests {
 
         release.send(()).expect("the worker waits on this release");
 
-        // The worker computed the value, failed the send, and ran the panicking destructor.
         drop_witness
             .recv_timeout(core::time::Duration::from_secs(10))
             .expect("the rejected value's destructor runs on the worker");

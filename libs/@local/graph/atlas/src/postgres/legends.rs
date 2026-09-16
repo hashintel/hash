@@ -45,7 +45,7 @@ fn representative_ordinal() -> Expression {
 
 /// Builds the joins resolving the edition cache's representative type to its type-table ordinal.
 ///
-/// Both joins are outer, so a missing cache entry or a representative type outside the type table
+/// Both joins are outer. A missing cache entry or a representative type outside the type table
 /// leaves the ordinal SQL NULL for the decoder to refuse.
 ///
 /// # SQL
@@ -256,6 +256,16 @@ pub(crate) fn edge_legend_statement<'params>(
 ///
 /// An edition without a cached label decodes as the empty label. A row whose representative type
 /// resolves to no type-table ordinal fails the decode.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError`]: [`Query`] when a selected column does not read back at the
+/// type the decode asks for, then [`Representative`] for a null representative, then [`Ordinal`]
+/// for a representative the store returns as a negative ordinal.
+///
+/// [`Query`]: PostgresDatasetError::Query
+/// [`Representative`]: PostgresDatasetError::Representative
+/// [`Ordinal`]: PostgresDatasetError::Ordinal
 pub(crate) fn decode_legend(
     row: &Row,
     columns: &LegendColumns,
@@ -298,12 +308,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered node-legend statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: the ordering is the node stream's, so positions agree under
-    /// the frozen snapshot.
     #[test]
     fn node_statement_text() {
         let axes = TemporalAxes::now();
@@ -312,12 +316,6 @@ mod tests {
         insta::assert_snapshot!(node_legend_statement(&axes, &types).sql);
     }
 
-    /// The rendered edge-legend statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: the ordering is the edge stream's link identity, so
-    /// positions agree under the frozen snapshot.
     #[test]
     fn edge_statement_text() {
         let axes = TemporalAxes::now();

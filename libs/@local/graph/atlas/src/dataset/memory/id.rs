@@ -1,6 +1,6 @@
 //! Typed source identifiers of the in-memory dataset.
 //!
-//! All three id domains are plain little-endian integers under a newtype each, so every domain
+//! All three id domains are plain little-endian integers under a newtype each. Every domain
 //! declares its own [`Key::Payload`] even though all three persist under one [`KeyKind`].
 
 use type_system::ontology::VersionedUrl;
@@ -118,6 +118,7 @@ impl Key for MemoryOntologyId {
 }
 
 impl OntologyIdentity for MemoryOntologyId {
+    /// Reads the id out of a `memory://<id>/` URL, refusing any other scheme or path.
     fn from_versioned_url(url: &VersionedUrl) -> Option<Self> {
         let url = url.base_url.to_url();
         if url.scheme() != "memory" || url.path() != "/" {

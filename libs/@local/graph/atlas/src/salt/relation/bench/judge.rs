@@ -1,15 +1,12 @@
 //! Judge-layout runners for pointwise probes and row-batched merges.
 //!
-//! Hard-negative mining vets every mined candidate pair against the protection index in one of two
-//! shapes. The first shape is a `judge` probe per pair (a row resolution plus a binary search). The
-//! second is one `row` walk per query point, merged against that point's sorted candidate list. The
-//! runners here execute both shapes over identical probe sets so numbers decide the miner's access
-//! layout. The pointwise runner calls the production probe. The row-merge runner is the candidate
-//! layout under audition, written here once so a decision for it promotes this merge into the
-//! protection view.
+//! Pointwise judgment uses one row resolution and binary search per pair. Row-merge judgment walks
+//! each query row's partners against its sorted candidates. These runners compare both access
+//! patterns over identical probe sets. The pointwise path uses the production lookup, while the
+//! row-merge path implements the alternative for measurement.
 //!
-//! The runners judge probes under the default protection configuration, whose zero thresholds
-//! protect exactly the linked pairs, the conservative baseline every calibration starts from.
+//! Both use the default protection configuration, whose zero thresholds protect every stored pair.
+//! The comparison does not evaluate non-default threshold calibration.
 
 use core::num::NonZero;
 
@@ -24,9 +21,9 @@ use crate::{
 
 /// A full mining sweep's candidate pairs, one chunk per node row.
 ///
-/// Row `i`'s candidates occupy the `i`-th fixed-width chunk, ascending within the chunk: the shape
-/// a mined neighbour list takes after canonical ordering, and the order the row-merge runner
-/// requires.
+/// Row `i`'s candidates occupy the `i`-th fixed-width chunk in ascending order, as the row-merge
+/// runner requires. Draws have replacement and may include duplicates and self-candidates. This
+/// type carries no corpus identity.
 pub struct JudgeProbes<N> {
     per_row: NonZero<usize>,
     candidates: Vec<N>,
@@ -46,14 +43,23 @@ impl<N, E> Corpus<N, E> {
     ///
     /// Every node row queries `per_row` candidates. Each candidate is one of the row's linked
     /// partners with probability `partner_fraction` (falling back to a uniform row when the row has
-    /// no partners) and a uniform row otherwise. The fraction dials the sweep's protected-hit rate:
-    /// attraction pulls linked pairs together in 2D, so a real mining sweep skews hit-rich, and the
-    /// layout question needs a hit-poor reading beside it.
+    /// no partners) and a uniform row otherwise. Draws have replacement.
+    ///
+    /// For a row with `d > 0` partners among `N` rows and fraction `f ∈ [0, 1]`, the ideal
+    /// protected-hit probability is:
+    ///
+    /// `f + (1 − f) · d/N`, since a uniform draw can also hit a partner.
+    ///
+    /// Rows with no partners have zero hits. Sweep the fraction to compare hit-poor and hit-rich
+    /// access, without assuming a real miner's hit rate.
+    ///
+    /// The fraction is not validated. Values at or below zero and NaN select only uniform draws.
+    /// Values at or above one always select a partner when one exists.
     ///
     /// # Panics
     ///
-    /// This panics when the probe set does not fit the address space. Construction satisfies every
-    /// internal expectation.
+    /// Panics when the cached protection index cannot be assembled, row ids cannot be represented,
+    /// or the probe allocation exceeds capacity. `rows · per_row` must fit `usize`.
     #[must_use]
     pub fn judge_probes<R>(
         &self,
@@ -108,8 +114,18 @@ impl<N, E> Corpus<N, E> {
 
     /// Judges every probe pair through pointwise probes.
     ///
-    /// One production `judge` call per pair. Returns the hard-protected count, which doubles as the
-    /// cross-layout agreement check.
+    /// Returns the hard-protected count, including repeated candidates. Use probes from this corpus
+    /// to compare with [`Self::judge_by_row`]. Probes carry no checked corpus association.
+    ///
+    /// # Complexity
+    ///
+    /// After cached index assembly, `P` probes take `O(P log(d + 2))` time for maximum stored row
+    /// length `d`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if cached protection assembly fails or a probe row position cannot be represented by
+    /// `N`.
     #[must_use]
     pub fn judge_pointwise(&self, probes: &JudgeProbes<N>) -> usize
     where
@@ -138,9 +154,19 @@ impl<N, E> Corpus<N, E> {
 
     /// Judges every probe pair through one row merge per query row.
     ///
-    /// Walks each row's protected partners once, merged against the row's ascending candidate
-    /// chunk. Returns the hard-protected count; equal probes yield the pointwise runner's count
-    /// exactly.
+    /// Returns the hard-protected count, including repeated candidates. With probes from this
+    /// corpus, the count equals [`Self::judge_pointwise`]'s. Candidate duplicates leave the
+    /// matching partner available for each repeated count.
+    ///
+    /// # Complexity
+    ///
+    /// After cached index assembly, takes `O(N + P + M)` time for `N` queried rows, `P` probes and
+    /// `M` stored entries in those rows. Each row's partners are traversed at most once.
+    ///
+    /// # Panics
+    ///
+    /// Panics if cached protection assembly fails, `N` cannot represent a required row, or the
+    /// probes contain more row chunks than this corpus has rows.
     #[must_use]
     pub fn judge_by_row(&self, probes: &JudgeProbes<N>) -> usize
     where

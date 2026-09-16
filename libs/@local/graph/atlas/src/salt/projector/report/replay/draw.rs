@@ -69,8 +69,8 @@ pub(super) struct DrawnSamples {
 impl DrawnSamples {
     /// Derives the replay's generator from the sampling seed.
     ///
-    /// The pinned name keeps the derivation disjoint from every other seeded consumer's, so a
-    /// replay and a fit sharing a seed value still draw independently.
+    /// The pinned name keeps the derivation disjoint from every other seeded consumer's, and a
+    /// replay and a fit sharing a seed value therefore still draw independently.
     #[expect(
         clippy::little_endian_bytes,
         reason = "the derivation preimage pins the canonical little-endian bytes"
@@ -85,12 +85,12 @@ impl DrawnSamples {
 
     /// Draws every sample of both estimands under the seed.
     ///
-    /// The draw order is pinned, so equal seeds replay the whole design. Entity queries draw
-    /// first and the joint entity universe-and-control draw follows. The class draws repeat that
-    /// order. Each estimand's universe and controls come from one joint draw whose first
+    /// The draw order is pinned, and equal seeds therefore replay the whole design. Entity queries
+    /// draw first and the joint entity universe-and-control draw follows. The class draws repeat
+    /// that order. Each estimand's universe and controls come from one joint draw whose first
     /// `comparisons` indices are the universe and whose rest are the controls, which is what
     /// makes the two disjoint. Classes enter their draw with equal weight, one index per class,
-    /// so member multiplicity buys a class no extra chance.
+    /// and member multiplicity therefore buys a class no extra chance.
     ///
     /// # Errors
     ///

@@ -1,4 +1,4 @@
-//! The probe's design parameters and their validation.
+//! Sampling settings and corpus-size checks for a quality probe.
 
 use alloc::borrow::Cow;
 use core::num::NonZero;
@@ -42,34 +42,30 @@ const DEFAULT_HORIZON_FACTOR: NonZero<usize> =
 // not measured.
 const DEFAULT_TRIPLET_PAIRS: usize = 64;
 
-/// Pinned sampling and neighbourhood settings for one probe.
+/// Sampling and neighbourhood settings for one probe.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProbeOptions {
     /// Sampled anchor rows: the queries every reading aggregates over.
+    ///
+    /// Uses 256 by default.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
     /// Sampled comparison rows: the shared universe the sampled pass ranks.
     ///
-    /// More rows sharpen the canonical readings toward finer neighbourhood scales and grow the
-    /// canonical fetch linearly.
+    /// Uses 4,096 by default. More rows measure finer neighbourhood scales at the same k and grow the canonical fetch linearly.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Neighbourhood sizes to read at, in reporting order.
     ///
-    /// The list must name at least one size. The trend across sizes is itself evidence: recall
-    /// rising with `k` is the near-tie reshuffling fingerprint.
+    /// Uses `[15, 30, 50]` by default. The list must name at least one size, each at most half both comparison universes. Recall rising with k can suggest near-boundary reshuffling, but the trend alone does not identify its cause.
     pub neighbourhoods: Cow<'static, [NonZero<usize>]> = Cow::Borrowed(DEFAULT_NEIGHBOURHOODS),
     /// Horizon multiplier for the intrusion and extrusion readings.
     ///
-    /// A false neighbour counts as an intrusion or extrusion when its 1-based opposite-space rank
-    /// passes `factor · k` (clamped to the universe), separating foreign points from reshuffling
-    /// near the neighbourhood boundary.
+    /// Uses 2 by default. A false neighbour counts as an intrusion or extrusion when its one-based opposite-space rank exceeds min(factor · k, universe), distinguishing distant ranks from swaps near the neighbourhood boundary.
     pub horizon_factor: NonZero<usize> = DEFAULT_HORIZON_FACTOR,
     /// Comparison-point pairs sampled for the triplet readings.
     ///
-    /// Every anchor reads the one shared pair sample, so the estimate's mean stays unbiased while
-    /// all anchors share one pair-driven variance. The reading's resolution therefore tracks this
-    /// count rather than the anchor-times-pair triplet total. Zero disables the readings - and with
-    /// them admission: the verdict demands the full battery, so a triplet-free probe is report-only
-    /// by construction.
+    /// Uses 64 by default. Each pair contains distinct comparison points, but pairs sample with replacement. Every anchor evaluates the same pairs. Conditional on the selected anchors and comparison rows, their mean is unbiased for agreement over all ordered pairs. The anchor-times-pair total is not a count of independent observations.
+    ///
+    /// Zero disables triplet sampling. The resulting report cannot pass admission because the triplet control requires observed triplets.
     pub triplet_pairs: usize = DEFAULT_TRIPLET_PAIRS,
 }
 
@@ -81,13 +77,21 @@ const impl Default for ProbeOptions {
 
 /// Checks the probe design fits the corpus.
 ///
-/// The design holds when the row count fits the `u32` probe domain, at least one neighbourhood size
-/// is named, and the corpus can host the disjoint anchor and comparison samples.
+/// Checks the u32 row domain, a nonempty neighbourhood list and room for disjoint samples.
+///
+/// `anchors + comparisons` must fit usize. Neighbourhood shapes and aggregate arithmetic capacity
+/// are separate conditions.
+///
+/// # Errors
+///
+/// Returns [`ProbeError`] for an oversized row domain, an empty neighbourhood list or insufficient
+/// corpus rows, in that order.
+///
+/// # Panics
+///
+/// Panics on an overflowing anchor-plus-comparison count when integer overflow checks are enabled.
 pub(super) fn validate_design<E>(rows: usize, options: &ProbeOptions) -> Result<(), ProbeError<E>> {
-    // The corpus arrives as mapped slices, so its row count is a usize;
-    // the probe's own row ids, orderings, and pair samples all travel as
-    // u32. Checking the width once here makes every later narrowing cast
-    // lossless.
+    // the corpus row count bounds sampled row positions and ranks narrowed to u32
     if u32::try_from(rows).is_err() {
         return Err(ProbeError::RowsExceedProbeDomain { rows });
     }

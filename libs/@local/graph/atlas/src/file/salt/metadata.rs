@@ -61,7 +61,7 @@ pub(crate) enum Placement {
 
 /// Where the generation's rank inputs came from.
 ///
-/// The identity keeps the signals distinguishable wherever a reader consumes the ranking; it
+/// The identity keeps the signals distinguishable wherever a reader consumes the ranking. It
 /// mirrors the configured [`RankingConfig`], recording what actually ran.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -445,7 +445,7 @@ pub(crate) struct LadderEvidence {
     /// The relation loss re-measured over the persisted aligned column.
     ///
     /// Guards the alignment application and the narrowing to `f32`. The reading is the corpus
-    /// total over every attraction instance, with no per-type cap; it does not store the capped
+    /// total over every attraction instance, with no per-type cap. It does not store the capped
     /// trained estimand ([`StepEvidence::capped_relation_loss`]).
     pub persisted_relation_loss: DNonNegative,
     /// The paired-movement readout beside the steps.
@@ -472,7 +472,7 @@ pub(crate) struct StepEvidence {
     pub condition: NonNegative,
     /// The field's frozen relation loss at projection time.
     ///
-    /// The corpus total over every attraction instance, with no per-type cap; it does not store
+    /// The corpus total over every attraction instance, with no per-type cap. It does not store
     /// the capped trained estimand ([`Self::capped_relation_loss`]).
     pub relation_loss: DNonNegative,
     /// The capped trained estimand at this step.

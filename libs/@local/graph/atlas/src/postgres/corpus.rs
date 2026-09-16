@@ -597,10 +597,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn statement_text() {
         let axes = TemporalAxes::now();

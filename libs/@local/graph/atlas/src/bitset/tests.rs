@@ -20,6 +20,8 @@ fn starts_empty() {
     assert!(!set.contains(NodeRowId::new(0)));
 }
 
+/// Insertion reports whether the set changed, membership follows insertion, and iteration is
+/// ascending across roaring's `2^16` container boundary regardless of insertion order.
 #[test]
 fn inserted_rows_are_contained_and_iterated_in_order() {
     // The rows straddle roaring's container boundary at 2^16, so the
@@ -119,6 +121,7 @@ fn rows_above_the_representable_domain_read_absent() {
     assert_eq!(set.count(), 1);
 }
 
+/// Inserting a row at or above `2^32` panics with the domain message.
 #[test]
 #[should_panic(expected = "the row lies in the representable domain")]
 fn insert_rejects_rows_above_the_representable_domain() {
@@ -182,6 +185,8 @@ fn dense_bit_slice_starts_empty() {
     assert!(!set.contains(NodeRowId::new(0)));
 }
 
+/// Insertion reports whether the frame changed, membership follows insertion, and iteration is
+/// ascending across the 64-bit word boundary regardless of insertion order.
 #[test]
 fn dense_bit_slice_inserted_rows_are_contained_and_iterated_in_order() {
     // The rows straddle the 64-bit word boundary, so the iteration order crosses words.
@@ -203,6 +208,8 @@ fn dense_bit_slice_inserted_rows_are_contained_and_iterated_in_order() {
     assert!(!set.contains(NodeRowId::new(128)));
 }
 
+/// Removing a member returns true and drops it. Removing it again returns false and changes
+/// nothing.
 #[test]
 fn dense_bit_slice_removal_reports_whether_the_set_changed() {
     let mut set = DenseBitSlice::new_empty(130);
@@ -225,6 +232,7 @@ fn dense_bit_slice_rows_outside_the_domain_read_absent() {
     assert_eq!(set.count(), 1);
 }
 
+/// Inserting the row equal to the domain size panics with the domain message.
 #[test]
 #[should_panic(expected = "the row lies in the set's domain")]
 fn dense_bit_slice_insert_rejects_rows_outside_the_domain() {
@@ -285,6 +293,7 @@ fn dense_bit_slice_words_cross_the_word_boundary() {
     assert_eq!(set.words().as_bytes(), expected);
 }
 
+/// The empty domain occupies no words at all.
 #[test]
 fn dense_bit_slice_zero_domain_packs_to_no_words() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(0);
@@ -370,6 +379,7 @@ fn dense_bit_slice_relations_against_an_in_memory_set() {
     );
 }
 
+/// A relation against an in-memory set over a different domain panics before touching a word.
 #[test]
 #[should_panic(expected = "the sets draw from the same domain")]
 fn dense_bit_slice_relations_reject_mismatched_domains() {
@@ -378,6 +388,8 @@ fn dense_bit_slice_relations_reject_mismatched_domains() {
     slice.union(&other);
 }
 
+/// `total_byte_len` is the 8-byte header plus 8 bytes per word the domain occupies, and a built
+/// frame's byte length equals it.
 #[test]
 fn dense_bit_slice_total_byte_len_counts_the_header_and_the_words() {
     // The empty domain still carries its 8-byte header; 64 rows fill exactly one word; 65 spill
@@ -451,6 +463,7 @@ fn dense_bit_slice_relations_apply_between_slices() {
     assert_eq!(target.count(), 0);
 }
 
+/// A relation between two frames over different domains panics before touching a word.
 #[test]
 #[should_panic(expected = "the sets draw from the same domain")]
 fn dense_bit_slice_relations_reject_mismatched_slice_domains() {
@@ -459,6 +472,7 @@ fn dense_bit_slice_relations_reject_mismatched_slice_domains() {
     target.union(&*other);
 }
 
+/// Indexing an array at its frame count panics with the rank message.
 #[test]
 #[should_panic(expected = "the rank names one of the array's frames")]
 fn dense_bit_slice_array_rejects_ranks_beyond_the_frames() {
@@ -497,6 +511,8 @@ mod miri {
         assert!(rest.is_empty());
     }
 
+    /// A zero-domain frame is exactly its 8-byte header and parses back to an empty set over
+    /// domain zero.
     #[test]
     fn dense_bit_slice_zero_domain_frames_parse() {
         let set = DenseBitSlice::<NodeRowId>::new_empty(0);
@@ -587,6 +603,8 @@ mod miri {
         assert_eq!(rest, [0xAB; 8]);
     }
 
+    /// A fresh array reports its frame count and domain, occupies exactly `total_byte_len`, and
+    /// every frame is empty over the array's domain.
     #[test]
     fn dense_bit_slice_array_starts_as_empty_frames() {
         let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
@@ -604,6 +622,8 @@ mod miri {
         }
     }
 
+    /// Insertions through `IndexMut` reach the addressed frame alone, and the other frames keep
+    /// their own members.
     #[test]
     fn dense_bit_slice_array_indexes_independent_frames() {
         let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
@@ -751,6 +771,7 @@ mod miri {
         assert_eq!(read.domain_size(), 64);
     }
 
+    /// An array of no frames panics on rank zero with the rank message.
     #[test]
     #[should_panic(expected = "the rank names one of the array's frames")]
     fn dense_bit_slice_array_of_no_frames_rejects_every_rank() {

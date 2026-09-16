@@ -1,8 +1,8 @@
 //! Certificates for the target objective's batch term.
 //!
-//! Dyadic fixtures produce exactly representable readings, so estimands, forces, and the
-//! scale pull assert exact contracts, and the finite-difference certificates bound their
-//! quotients around them.
+//! Dyadic fixtures produce exactly representable readings: estimands, forces and the scale pull
+//! assert exact contracts. The finite-difference certificates compare the gradient fields against
+//! central differences of an `f64` mirror of the estimand on scattered fixtures.
 
 #![expect(
     clippy::float_cmp,
@@ -25,6 +25,7 @@ use crate::{
     salt::projector::gauge::{DuplicateClassId, GaugeAnchors},
 };
 
+/// A target unit between two rows with the given ruler, weight and inclusion probability.
 fn unit(
     source: u64,
     target: u64,
@@ -42,6 +43,9 @@ fn unit(
     }
 }
 
+/// Builds a target estimator over a contrast energy of the given scale and margin.
+///
+/// The estimator takes `penalty`, the population weight and the activation.
 fn estimator(
     scale: f32,
     margin: f32,
@@ -60,12 +64,15 @@ fn estimator(
     )
 }
 
+/// A fresh pair of zeroed gradient fields (canonical, zero) over `rows`.
 fn fields(rows: usize) -> (GradientField<NodeRowId>, GradientField<NodeRowId>) {
     (GradientField::new(rows), GradientField::new(rows))
 }
 
-/// A two-unit fixture whose coordinates, units, and `W = 4`, `s = 2`, `m = 0.25` constants
-/// land every reading and every gradient entry on exactly representable values.
+/// Builds the two-unit dyadic fixture.
+///
+/// Its coordinates, units, and `W = 4`, `s = 2`, `m = 0.25` constants make every reading and every
+/// gradient entry exactly representable.
 fn dyadic_fixture() -> ([Vec2; 4], [Vec2; 4], [TargetUnit<NodeRowId>; 2]) {
     let canonical = [
         Vec2::new(0.0, 0.0),
@@ -84,6 +91,10 @@ fn dyadic_fixture() -> ([Vec2; 4], [Vec2; 4], [TargetUnit<NodeRowId>; 2]) {
     (canonical, zero, units)
 }
 
+/// Matches every dyadic-fixture reading and gradient entry to its hand-computed value.
+///
+/// On the dyadic fixture the estimand, scale pull and every entry of both gradient fields equal
+/// their hand-computed values exactly.
 #[test]
 fn the_reading_and_the_fields_are_exact_on_a_dyadic_batch() {
     let (canonical, zero, units) = dyadic_fixture();
@@ -118,6 +129,10 @@ fn the_reading_and_the_fields_are_exact_on_a_dyadic_batch() {
     assert_eq!(zero_entries[NodeRowId::new(3)], DVec2::new(-0.5, 0.0));
 }
 
+/// Scales every force and the pull with the activation and leaves the estimand unchanged.
+///
+/// Activations of zero and two leave the estimand unchanged, zero activation yields exactly zero
+/// force everywhere, and a doubled activation exactly doubles every force and the scale pull.
 #[test]
 fn the_activation_scales_every_force_and_never_the_reading() {
     let (canonical, zero, units) = dyadic_fixture();
@@ -146,7 +161,7 @@ fn the_activation_scales_every_force_and_never_the_reading() {
     assert_eq!(readings[1].estimand, readings[0].estimand);
     assert_eq!(readings[2].estimand, readings[0].estimand);
 
-    // Zero activation runs the same fold and lands exactly zero force everywhere.
+    // Zero activation runs the same fold and yields exactly zero force everywhere.
     assert_eq!(readings[1].scale_pull, 0.0);
     for row in 0..4 {
         let row = NodeRowId::new(row);
@@ -169,6 +184,11 @@ fn the_activation_scales_every_force_and_never_the_reading() {
     }
 }
 
+/// Recovers the declared mean under a capped draw law through the full inclusion, not `G/g`.
+///
+/// Under a capped one-type-per-batch draw law, dividing by the full inclusion probability makes the
+/// expected reading equal the declared mean, whereas the group factor `G/g` yields the per-type
+/// clipped objective instead.
 #[test]
 fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
     // Relation type A holds {a1, a2} and type B holds {b1}, with one type drawn per batch
@@ -252,6 +272,11 @@ fn the_full_inclusion_divisor_is_unbiased_where_the_group_factor_is_not() {
     assert_ne!(clipped_expectation, f64::from(declared));
 }
 
+/// Zeroes the field on a pair's coincident side and the pull only at canonical coincidence.
+///
+/// A coincident canonical pair contributes its value with zero canonical field and zero pull, and a
+/// coincident zero pair contributes its value with zero field on that side while the pull stays
+/// live.
 #[test]
 fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     // Canonical coincidence: the value reads, the canonical field and the pull stay zero.
@@ -307,6 +332,10 @@ fn a_coincident_side_counts_its_value_and_folds_no_pull() {
     );
 }
 
+/// Returns a diverged infinite reading for a minimum-positive ruler instead of panicking.
+///
+/// A minimum-positive ruler overflows the violation to infinity in working precision and the
+/// estimator returns a diverged reading whose raw value is infinite rather than panicking.
 #[test]
 fn overflowed_violation_diverges() {
     // A minimum-positive ruler overflows the violation to +∞ in working precision while every
@@ -331,10 +360,10 @@ fn overflowed_violation_diverges() {
 
 #[test]
 fn narrow_overflow_diverges() {
-    // A tiny ruler lands the violation near 8·10³⁰ in working precision, and the hinge squares
-    // it to an estimand near 3.2·10⁶¹ at mass 0.5: finite in double width, past the f32 range
-    // of the reading's storage. The checked narrow refuses with the double-width value instead
-    // of unwinding or storing ±∞.
+    // A tiny ruler takes the violation to about 8·10³⁰ in working precision, and the hinge
+    // squares it to an estimand of about 3.2·10⁶¹ at mass 0.5: finite in double width, past the
+    // f32 range of the reading's storage. The checked narrow refuses with the double-width value
+    // instead of unwinding or storing ±∞.
     let canonical = [Vec2::new(0.0, 0.0), Vec2::new(4.0, 0.0)];
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0)];
     let (mut canonical_field, mut zero_field) = fields(2);
@@ -353,6 +382,10 @@ fn narrow_overflow_diverges() {
     assert!(diverged.raw > f64::from(f32::MAX));
 }
 
+/// Reads `CappedDrawLaw::inclusion` as the exact product of its two probabilities.
+///
+/// `CappedDrawLaw::inclusion` is the exact product of the type-selection and edge-retention
+/// probabilities: `1/16`, `3/4` and `1` on the three fixtures.
 #[test]
 fn the_draw_law_prices_inclusion_as_the_exact_product() {
     let law = CappedDrawLaw::new(nz!(1), nz!(4), nz!(2));
@@ -367,6 +400,11 @@ fn the_draw_law_prices_inclusion_as_the_exact_product() {
     assert_eq!(law.inclusion(nz!(3)).get(), 1.0);
 }
 
+/// Reads `released_weight` as `confidence · normalization · strength` with its zero fold.
+///
+/// `released_weight` is `confidence · normalization · strength` (`0.375` on the fixture), folds
+/// zero confidence to zero force, and applies a unit strength multiplier while the strength head is
+/// off.
 #[test]
 fn the_released_weight_is_the_retained_factor_census() {
     let confidence = UnitFraction::new(0.5).expect("one half lies inside [0, 1]");
@@ -430,6 +468,10 @@ fn mirror_estimand(
     total
 }
 
+/// Matches both gradient fields to central finite differences at fixed scale.
+///
+/// Every component of both gradient fields agrees with a central finite difference of the estimand
+/// at fixed scale, for both penalties, on a four-row scattered fixture.
 #[test]
 fn field_partials_match_finite_differences_at_a_fixed_scale() {
     let canonical = [
@@ -563,6 +605,10 @@ fn mirror_scale(source: &[(f64, f64)], target: &[(f64, f64)]) -> f64 {
     dot.hypot(perp) / variance
 }
 
+/// Matches the total derivative through the field and live scale channels to finite differences.
+///
+/// With the gauge scale refit live over the anchor rows, the total derivative through the field and
+/// scale channels matches finite differences on rows that move the fit, bear units, or both.
 #[test]
 fn the_scale_channel_completes_the_derivative_through_a_live_refit() {
     // Rows zero through three anchor the gauge, rows four and five only bear units.

@@ -1,8 +1,8 @@
 //! The sampled rows as braille dots, with the landmark skeleton picked out.
 //!
-//! The map draws the sample the observer asked for, not the corpus, and it keeps the placement's
-//! own shape: equal data units per dot on both axes, so the atlas is never stretched to fill the
-//! frame. The map draws nothing it cannot place.
+//! The map draws sampled positions with a viewport fitted to the dot grid. Both axes use
+//! approximately equal data units per dot, subject to the corner rounding of
+//! [`Bounds2::with_aspect_ratio`]. An unrepresentable viewport leaves the frame empty.
 
 use ratatui::{
     Frame,
@@ -27,7 +27,7 @@ pub(super) const SKELETON: Color = Color::Magenta;
 
 /// How much wider than the placement the map draws its viewport.
 ///
-/// The map carries no axis labels, so widening states nothing untrue - it only keeps the outermost
+/// The map carries no axis labels. Widening states nothing untrue - it only keeps the outermost
 /// rows a dot inside the frame rather than against its wall.
 const MAP_MARGIN: Positive = Positive::new(1.04).unwrap();
 

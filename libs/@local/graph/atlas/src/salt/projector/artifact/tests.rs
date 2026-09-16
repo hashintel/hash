@@ -3,7 +3,7 @@
 //! Bit-exact round-trips across backends, and every open-path verification naming its failure.
 //!
 //! Forward-equality assertions are bit-exact by design. The record stores every f32 parameter at
-//! full precision, so a round-tripped model must compute the identical function. Any deviation
+//! full precision: a round-tripped model must compute the identical function, and any deviation
 //! breaks the round-trip rather than merely losing precision.
 
 use std::sync::LazyLock;
@@ -22,6 +22,9 @@ use crate::{
     salt::projector::model::{Architecture, Dimension, Layer, Projector, ProjectorInput},
 };
 
+/// A small architecture for the checkpoint fixtures.
+///
+/// Width 8, two residual blocks, six representation, four role and one condition dimension.
 fn architecture() -> Architecture {
     Architecture {
         width: nz!(8),
@@ -32,8 +35,10 @@ fn architecture() -> Architecture {
     }
 }
 
+/// The CPU device the checkpoint fixtures run on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
+/// A fresh training projector of the fixture architecture initialized from `seed`.
 fn model(seed: u64) -> Projector<Training> {
     Projector::new(
         architecture(),
@@ -69,6 +74,10 @@ fn probe<B: burn::tensor::backend::Backend<FloatElem = f32>>(
         .expect("projector outputs should convert to f32 values")
 }
 
+/// Reopens a training-backend checkpoint on the inference backend and projects bit-identically.
+///
+/// A model recorded on the training backend and reopened on the inference backend projects the
+/// probe input bit-identically.
 #[test]
 fn model_checkpoint_round_trips_bit_exactly_across_backends() {
     let trained = model(7);
@@ -86,6 +95,7 @@ fn model_checkpoint_round_trips_bit_exactly_across_backends() {
     );
 }
 
+/// Opening a checkpoint under a wider architecture fails with `Architecture` naming the mismatch.
 #[test]
 fn open_model_rejects_a_different_width() {
     let bytes = RecordedModel::record(model(7))
@@ -103,6 +113,10 @@ fn open_model_rejects_a_different_width() {
     assert_eq!(mismatch.actual, 8);
 }
 
+/// A checkpoint opened under a deeper architecture fails before the record load.
+///
+/// Opening a checkpoint under a deeper architecture fails with `Architecture` before the record
+/// load, which would otherwise panic.
 #[test]
 fn open_model_rejects_a_different_depth_before_loading() {
     let bytes = RecordedModel::record(model(7))
@@ -111,9 +125,8 @@ fn open_model_rejects_a_different_depth_before_loading() {
 
     let mut deeper = architecture();
     deeper.residual_blocks = nz!(3);
-    // A depth mismatch panics inside the framework's record zip, so
-    // this open returning an error at all certifies the pre-load
-    // check.
+    // A depth mismatch panics inside the framework's record zip: this open returning an error
+    // at all certifies the pre-load check.
     let error = open_model::<Training>(bytes.as_slice(), deeper, &*DEVICE)
         .expect_err("a depth mismatch should be rejected");
     let CheckpointError::Architecture(mismatch) = error else {
@@ -123,6 +136,7 @@ fn open_model_rejects_a_different_depth_before_loading() {
     assert_eq!(mismatch.dimension, Dimension::Depth);
 }
 
+/// A checkpoint truncated to 100 bytes fails to open with `Record`.
 #[test]
 fn open_model_rejects_truncated_bytes() {
     let mut bytes = RecordedModel::record(model(7))

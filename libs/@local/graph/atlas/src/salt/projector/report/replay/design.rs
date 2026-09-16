@@ -139,7 +139,7 @@ impl NeighbourhoodDesign {
     ///
     /// Each size is checked against the estimand and diagnostic universes. Every universe is
     /// then proved, at its estimand's actual query and control counts, to fit the rank kernel's
-    /// integer carriers, so no aggregate the run observes can wrap.
+    /// integer carriers, and no aggregate the run observes can therefore wrap.
     ///
     /// # Errors
     ///

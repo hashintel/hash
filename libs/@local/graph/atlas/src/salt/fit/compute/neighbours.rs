@@ -1,5 +1,7 @@
-//! The neighbour stage constructs, admits, and publishes the k-NN table, and smooths it into
-//! the semantic graphs.
+//! The neighbour stage over the k-NN table and the semantic graphs smoothed from it.
+//!
+//! The neighbour stage constructs, admits, and publishes the k-NN table, and smooths it into the
+//! semantic graphs.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -29,8 +31,8 @@ use crate::{
 
 /// The neighbour stage failed and staged no table.
 ///
-/// One variant per way the stage refuses, so a neighbour failure attributes to this stage by
-/// construction. The published failure surface speaks corpus rows.
+/// One variant per way the stage refuses. A neighbour failure therefore attributes to this stage
+/// by construction. The published failure surface names corpus rows.
 #[derive(Debug)]
 pub(crate) enum NeighbourError {
     /// The search backend failed.
@@ -124,12 +126,12 @@ impl<'fit> NeighbourAdmission<'fit> {
 
     /// Constructs and admits the neighbour lists, then publishes the corpus table.
     ///
-    /// Exact recall admits the lists. One construction runs at the wider of the spot check's
-    /// depth and the stored width, so the admitted lists and the training table are the same
-    /// lists. The published table covers the corpus row domain: under a real quotient every row
-    /// takes its representative's list, and under the identity the admitted table is already the
-    /// corpus's own. The admitted table speaks distinct rows, and the published failure surface
-    /// speaks corpus rows.
+    /// A recall spot check against exact rankings admits the lists. One construction runs at the
+    /// wider of the spot check's depth and the stored width, and the admitted lists and the
+    /// training table are therefore the same lists. The published table covers the corpus row
+    /// domain: under a real quotient every row takes its representative's list, and under the
+    /// identity the admitted table is already the corpus's own. The admitted table names distinct
+    /// rows, and the published failure surface names corpus rows.
     ///
     /// # Errors
     ///
@@ -145,7 +147,7 @@ impl<'fit> NeighbourAdmission<'fit> {
         P: Progress + Sync,
     {
         let training = self.quotient.training();
-        // Construction speaks distinct rows. The published failure surface speaks corpus rows.
+        // Construction names distinct rows. The published failure surface names corpus rows.
         let corpus = |row: DistinctRowId| self.quotient.representative(row);
 
         let width = self
@@ -187,9 +189,8 @@ impl<'fit> NeighbourAdmission<'fit> {
             })
             .map_err(|error| error.map_rows(corpus, |fault| fault.map_rows(corpus)))?;
 
-        // The report comes before the admission decision. The run measured a construction
-        // the floor rejects, and that measurement is what an operator is
-        // watching for.
+        // reporting before the admission decision lets the operator observe the recall measurement
+        // even when the floor rejects the construction.
         progress.knn_recall(&recall);
 
         match recall.admission() {
@@ -234,11 +235,11 @@ impl<'fit> NeighbourAdmission<'fit> {
     }
 }
 
-/// The corpus-domain expansion, waiting for the smoothing that spends it.
+/// The corpus-domain expansion, waiting for the smoothing that consumes it.
 ///
-/// Under a real quotient the carrier holds the expanded corpus-domain table; under the identity
+/// Under a real quotient the carrier holds the expanded corpus-domain table. Under the identity
 /// the admitted table is already the corpus's own and the carrier is empty. The smoothing
-/// consumes the carrier by value, so a second smoothing does not compile.
+/// consumes the carrier by value, and a second smoothing therefore does not compile.
 pub(super) struct Expansion(Option<Knn<NodeRowId>>);
 
 /// The corpus's admitted neighbourhood structure.
@@ -248,7 +249,7 @@ pub(super) struct Expansion(Option<Knn<NodeRowId>>);
 pub(super) struct Neighbourhood {
     /// The admitted distinct-domain table, the trainer's.
     pub admitted: Knn<DistinctRowId>,
-    /// The passed recall spot check, echoed into the metadata.
+    /// The recall spot check the table was admitted under, echoed into the metadata.
     pub recall: RecallSpotCheck,
     /// The published table's typed binding.
     pub binding: Binding<artifact::Knn>,
@@ -259,9 +260,9 @@ impl Neighbourhood {
     ///
     /// The published graph weighs the corpus-domain table, and the trainer's graph weighs the
     /// distinct table by the same kernel. Under the identity quotient the two domains are the
-    /// same rows in the same order, so one graph serves both: it stages as the published
-    /// artifact and returns as the training graph. The expansion arrives by value and does not
-    /// survive the call.
+    /// same rows in the same order, and one graph therefore serves both: it stages as the
+    /// published artifact and returns as the training graph. The expansion is consumed by value
+    /// and does not survive the call.
     ///
     /// # Errors
     ///

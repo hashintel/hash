@@ -30,6 +30,8 @@ fn regions_pad_to_the_boundary() {
     assert!(bytes[5..].iter().all(|&byte| byte == 0));
 }
 
+/// A region that is already a whole page adds nothing, and closing a stream that sits on the
+/// boundary adds nothing either - padding is never a full page of waste.
 #[test]
 fn aligned_regions_close_without_padding() {
     let mut bytes = Vec::new();
@@ -41,6 +43,8 @@ fn aligned_regions_close_without_padding() {
     assert_eq!(bytes.len() as u64, PAGE);
 }
 
+/// Closing a streamed region pads from the byte count the caller reports out to the page
+/// boundary, with zeros.
 #[test]
 fn streamed_regions_close_at_the_boundary() {
     let mut bytes = vec![7_u8; 10];
@@ -72,6 +76,9 @@ fn map_carves_regions() {
     fs::remove_file(&path).expect("the fixture file should remove");
 }
 
+/// A live mapping holds a shared lock: an exclusive lock on the same file contends while the
+/// mapping lives and succeeds once it drops. This is what keeps a published file from being
+/// rewritten under a reader.
 #[test]
 fn live_map_excludes_exclusive_lockers() {
     let path = std::env::temp_dir().join(format!(
@@ -130,6 +137,8 @@ fn region_rejects_a_carve_beyond_the_mapping() {
     let _region = map.region(0, 4);
 }
 
+/// A file shorter than one page maps, reports its true length, and has no header page - which is
+/// how every format's open reports an undersized file instead of reading past the end.
 #[test]
 fn short_file_has_no_header_page() {
     let path = std::env::temp_dir().join(format!(

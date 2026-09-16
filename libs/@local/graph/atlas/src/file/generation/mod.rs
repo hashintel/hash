@@ -1,13 +1,8 @@
 //! Generation directories: staging, atomic publish, activation, and open.
 //!
-//! A [`GenerationRoot`] holds published generations, one directory per generation, named by the
-//! SHA-256 of the generation's metadata document. Beside them sits the `current` pointer file
-//! naming the active generation. [`GenerationRoot::stage`] assembles a generation in a dot-prefixed
-//! staging directory. [`StagedGeneration::seal`] writes the metadata document and renames the
-//! directory into place, and [`GenerationRoot::activate`] replaces the pointer atomically. Readers
-//! resolve the pointer ([`GenerationRoot::current`]) and open the named generation
-//! ([`GenerationRoot::open`]), which verifies the document against the hash that names the
-//! directory.
+//! A [`GenerationRoot`] stores generations in directories named by the SHA-256 of their metadata
+//! document. [`GenerationRoot::current`] resolves the active generation, and
+//! [`GenerationRoot::open`] verifies its metadata against that identity.
 //!
 //! Every visible entry of the root is a complete generation or the pointer. Dot prefixes mark
 //! staging directories and the pointer's replacement file, and the rename into place is atomic, so
@@ -165,9 +160,7 @@ impl Error for ActivateError {
 
 /// The identity of one published generation, the SHA-256 of its metadata document.
 ///
-/// The canonical lowercase hexadecimal form names the generation's directory, so the directory name
-/// is verifiable against the document it holds. It is also the serialized form, so a metadata
-/// document naming a prior generation names a checkable directory.
+/// The canonical lowercase hexadecimal form is both the directory name and serialized identity.
 #[derive(
     Debug,
     Copy,
@@ -235,9 +228,7 @@ impl GenerationRoot {
         &self.path
     }
 
-    /// Returns the directory of the given generation.
-    ///
-    /// The directory exists exactly for published generations.
+    /// Returns the path where the given generation would be published.
     #[must_use]
     pub(crate) fn generation_path(&self, id: GenerationId) -> Utf8PathBuf {
         self.path.join(id.to_string())
@@ -245,9 +236,8 @@ impl GenerationRoot {
 
     /// Creates a scratch directory for one run's transient state.
     ///
-    /// Search-backend environments and other non-artifact working state live here: inside the root,
-    /// so the space is on the filesystem sized for generations, and dot-prefixed, so no listing
-    /// mistakes it for one. Dropping the handle removes the directory and everything inside.
+    /// Scratch storage uses the root's filesystem and a dot-prefixed directory name. Dropping the
+    /// handle removes the directory and everything inside.
     ///
     /// # Errors
     ///
@@ -297,8 +287,9 @@ impl GenerationRoot {
 
     /// Points `current` at the given published generation.
     ///
-    /// This replaces the pointer atomically, so a concurrent [`current`](Self::current) reads the
-    /// previous generation or this one, never a torn value.
+    /// Concurrent [`current`](Self::current) reads observe the previous generation or this one,
+    /// never a torn value. Activation and [`remove`](Self::remove) serialize through the root's
+    /// exclusive lock.
     ///
     /// # Errors
     ///
@@ -319,6 +310,15 @@ impl GenerationRoot {
         result.map_err(ActivateError::Io)
     }
 
+    /// Atomically replaces the current pointer and syncs it to disk.
+    ///
+    /// Readers observe the previous identity or `id`, never a partial write. The pointer file and
+    /// root directory are synced before success. The caller holds the root lock and owns
+    /// `temporary`, including removing it when this fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`io::Error`] of creating, writing, syncing or renaming the pointer.
     fn replace_pointer(&self, temporary: impl AsRef<Utf8Path>, id: GenerationId) -> io::Result<()> {
         let temporary = temporary.as_ref();
 
@@ -363,7 +363,7 @@ impl ScratchDirectory {
         Ok(path)
     }
 
-    /// Creates a named file directly under the scratch root and returns it with its path.
+    /// Removes an inactive generation while excluding concurrent activation.
     ///
     /// # Errors
     ///
@@ -470,15 +470,7 @@ impl StagedGeneration {
         Ok(Binding::new(hash))
     }
 
-    /// Seals the staging into a published generation.
-    ///
-    /// The staged file set must match the manifest exactly. Sealing writes the metadata document
-    /// beside the staged files and syncs every file and the directory. Every file drops its write
-    /// permission before the rename, so rewriting a published path fails with an OS error while
-    /// removal keeps working through the directory's own permissions. It then renames the
-    /// directory into place under the document's SHA-256 and syncs the root directory after the
-    /// rename. The returned generation is therefore visible and durable, and a failure leaves the
-    /// staging as it was.
+    /// Opens and verifies the published generation `id`.
     ///
     /// # Errors
     ///

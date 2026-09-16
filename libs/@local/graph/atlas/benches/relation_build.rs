@@ -1,16 +1,16 @@
 //! Wall-time benchmarks for the relation-index build under skew.
 //!
 //! The build's parallel design makes claims that only hold or fail at realistic scale and volume
-//! concentration; each group here measures one of them, over corpora synthesized at the live
+//! concentration. Each group here measures one of them, over corpora synthesized at the live
 //! store's measured shape (2.2M links, 17 relation types, the base type owning half of all
 //! instances, Zipf-hubbed targets):
 //!
 //! - `build`: full-build wall time across the live, uniform, and single-mega-relation profiles. The
-//!   profiles share endpoints, volume, and policies, so a spread between them is the cost of skew
-//!   alone - the two-level parallelism claim is that the spread stays small.
-//! - `stages` times the two whole-slice sorts, the group emission, the protection assembly, and the
-//!   index re-validation in isolation, each from its own pre-sorted input state - the split that
-//!   attributes the build's wall time and shows what caps its thread scaling.
+//!   profiles share endpoints, volume, and policies. A spread between them is therefore the cost of
+//!   skew alone - the two-level parallelism claim is that the spread stays small.
+//! - `stages` times the whole-slice group sort, the group emission, the protection assembly, and
+//!   the index re-validation in isolation, each from the input state that stage starts at - the
+//!   split that attributes the build's wall time and shows what caps its thread scaling.
 //! - `threads` times the full build across pool sizes, on the live profile.
 //! - `chunk` times group emission across chunk sizes around the production emission chunk. The
 //!   claim that the constant is only a work-splitting unit predicts a flat response.
@@ -23,7 +23,7 @@
 //! Before the timed groups, one report prints the pruned-edge and omitted-mass outcomes of a
 //! pruning-threshold sweep on the live profile. A threshold is admissible while the omitted mass
 //! fraction stays numerically negligible, and these are the numbers that judgement reads. The
-//! fixture's masses come from its policy spread (the live store leaves confidence unscored), so the
+//! fixture's masses come from its policy spread (the live store leaves confidence unscored). The
 //! sweep calibrates thresholds against policy mass, not against a confidence distribution.
 #![expect(
     clippy::print_stderr,
@@ -43,8 +43,14 @@ use rayon::ThreadPoolBuilder;
 /// One eighth of the measured live link volume.
 const DEFAULT_LINKS: usize = 275_000;
 
+/// The fixture seed every corpus in this target synthesizes from.
 const SEED: u64 = 0x5A17_A71A;
 
+/// Returns the link count the corpora synthesize: `RELATION_BENCH_LINKS`, or [`DEFAULT_LINKS`].
+///
+/// # Panics
+///
+/// This panics when `RELATION_BENCH_LINKS` is set to a value that is not a link count.
 fn links() -> usize {
     std::env::var("RELATION_BENCH_LINKS").map_or(DEFAULT_LINKS, |value| {
         value
@@ -89,9 +95,9 @@ fn bench_stages(criterion: &mut Criterion) {
             BatchSize::LargeInput,
         );
     });
-    // The emission runner reads the corpus's cached group-sorted copy, so
-    // its iterations carry no per-round clone; the assembly reorders its
-    // record input, so each round takes a fresh clone outside the timing.
+    // The emission runner reads the corpus's cached group-sorted copy. Its iterations carry no
+    // per-round clone. The assembly reorders its record input. Each round takes a fresh clone
+    // outside the timing.
     group.bench_function("emit_groups", |bencher| {
         bencher.iter(|| corpus.emit_groups(black_box(chunk)));
     });
@@ -102,8 +108,8 @@ fn bench_stages(criterion: &mut Criterion) {
             BatchSize::LargeInput,
         );
     });
-    // Assembly constructs the invariants and then re-validates them;
-    // this entry splits the stage's cost between scatter and check.
+    // Assembly constructs the invariants and then re-validates them.
+    // This entry splits the stage's cost between scatter and check.
     group.bench_function("validate_protection", |bencher| {
         bencher.iter(|| corpus.validate_protection());
     });
@@ -111,7 +117,13 @@ fn bench_stages(criterion: &mut Criterion) {
     group.finish();
 }
 
-/// Full-build scaling across worker-pool sizes.
+/// Times full-build scaling across worker-pool sizes.
+///
+/// The sweep skips pool sizes above the host's rayon thread count.
+///
+/// # Panics
+///
+/// This panics when a rayon pool of a requested size cannot be built.
 fn bench_thread_scaling(criterion: &mut Criterion) {
     let corpus = production_corpus(Profile::Live, links(), SEED);
 
@@ -142,8 +154,8 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
 
 /// Emission response to the chunk size, on the mega profile.
 ///
-/// The mega profile gives group-level parallelism nothing to hide behind, so the emission pass
-/// rides on chunking alone - the sharpest view of the flat-response claim.
+/// The mega profile assigns all instances to one relation. Chunking provides the emission pass with
+/// parallel work even when there are no other populated groups.
 fn bench_chunk_sensitivity(criterion: &mut Criterion) {
     let corpus = production_corpus(Profile::Mega, links(), SEED);
     let production = production_chunk();
@@ -184,12 +196,16 @@ fn report_pruning_sweep() {
     }
 }
 
+/// Returns the Criterion configuration the groups share.
+///
+/// Every benchmark warms up for half a second and measures for ten seconds.
 fn config() -> Criterion {
     Criterion::default()
         .warm_up_time(Duration::from_millis(500))
         .measurement_time(Duration::from_secs(10))
 }
 
+/// Prints the pruning-threshold sweep, then runs every timed group.
 fn benches_with_report(criterion: &mut Criterion) {
     report_pruning_sweep();
     bench_build_profiles(criterion);

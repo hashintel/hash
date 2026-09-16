@@ -7,6 +7,10 @@ use zerocopy::TryFromBytes as _;
 
 use super::{GeometryClass, Posterior};
 
+/// Lists the three geometry classes in discriminant order under `VARIANTS`.
+///
+/// `GeometryClass::VARIANTS` lists the three classes in discriminant order, matching `COUNT` and
+/// each variant's declared discriminant.
 #[test]
 fn variants_enumerate_the_classes_in_class_order() {
     // Certifies the const-transmute derivation of `VARIANTS` against
@@ -25,6 +29,7 @@ fn variants_enumerate_the_classes_in_class_order() {
     }
 }
 
+/// Each declared discriminant byte parses to its class, and one past the last or `u8::MAX` refuses.
 #[test]
 fn wire_bytes_admit_only_declared_discriminants() {
     for class in GeometryClass::VARIANTS {
@@ -40,6 +45,7 @@ fn wire_bytes_admit_only_declared_discriminants() {
         .expect_err("an undeclared discriminant must not parse");
 }
 
+/// `Posterior::new` accepts a distribution and reports each class's probability and the array.
 #[test]
 fn posterior_accepts_a_distribution() {
     let posterior = Posterior::new([0.5, 0.25, 0.25]).expect("a distribution should validate");

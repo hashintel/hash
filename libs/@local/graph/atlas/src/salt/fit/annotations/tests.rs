@@ -10,7 +10,9 @@ use crate::{
     salt::policy::annotation::InvalidAnnotationCorpus,
 };
 
+/// The record hash the fixture card and vote carry.
 const DIGEST: &str = "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b";
+/// The versioned HASH type URL of the fixture card.
 const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
 
 /// Composes a minimal contract-conforming document: one hash card carrying one geometry vote.
@@ -70,6 +72,7 @@ fn document() -> String {
     .to_string()
 }
 
+/// A fresh per-process scratch directory named `name` under the system temp dir.
 fn scratch(name: &str) -> Utf8PathBuf {
     let dir = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the temp directory is UTF-8")
@@ -82,6 +85,10 @@ fn scratch(name: &str) -> Utf8PathBuf {
     dir
 }
 
+/// Keeps the document bytes verbatim in `from_bytes` and hashes exactly those bytes.
+///
+/// `SuppliedAnnotations::from_bytes` keeps the document bytes verbatim and identifies them by the
+/// SHA-256 of those wire bytes.
 #[test]
 fn construction_preserves_bytes_and_binds_their_digest() {
     let document = document();
@@ -112,6 +119,10 @@ fn contract_violation_is_rejected_at_supply() {
     );
 }
 
+/// Reads a written document verbatim and maps a missing file and malformed JSON to their variants.
+///
+/// `open` reads a written document verbatim, reports a missing file as `Io`, and malformed JSON as
+/// `Invalid`.
 #[test]
 fn open_reads_the_file_and_reports_both_failure_shapes() {
     let dir = scratch("open");

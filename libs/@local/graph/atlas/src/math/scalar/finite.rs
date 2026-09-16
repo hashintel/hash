@@ -1,24 +1,20 @@
 //! Finiteness-only guards that carry their domain in the type.
 //!
 //! [`Finite`] holds a finite `f32` and [`DFinite`] a finite `f64`, for quantities whose contract
-//! is that they denote a real number and nothing further. Validation happens once, at
-//! construction - refusal ([`new`](DFinite::new)), a caller's proof
-//! ([`new_unchecked`](DFinite::new_unchecked)), or a widening conversion from a narrower domain -
-//! so a value that exists is finite and consuming code trusts the domain instead of re-checking
-//! it.
+//! is that they denote a real number and nothing further. Checked constructors such as
+//! [`DFinite::new`] validate raw inputs. Unchecked constructors such as
+//! [`DFinite::new_unchecked`] require a caller's proof, while widening conversions preserve a
+//! narrower source domain's finiteness.
 //!
-//! Comparing, sorting and hashing a [`DFinite`] need no NaN case: [`Eq`], [`Ord`] and [`Hash`]
-//! are total, agree with one another, and follow the IEEE total order restricted to the finite
-//! values. Both zeros are admitted and keep their sign bit, so under that order `-0.0` and
-//! `+0.0` are distinct readings with `-0.0 < +0.0`, and a reading round-trips bit for bit.
+//! Comparing, sorting and hashing a [`DFinite`] need no NaN case: [`Eq`], [`Ord`] and [`Hash`] are
+//! total, agree with one another, and follow the IEEE total order restricted to finite values. Both
+//! zeros are admitted with their sign bits intact. Under this order, `-0.0` and `+0.0` are distinct
+//! readings with `-0.0 < +0.0`. A reading round-trips bit for bit.
 //!
-//! Arithmetic whose result provably stays finite stays in the type - negation, integer
-//! conversion - with no run-time re-check. An operation that can leave the domain returns a
-//! raw float instead, and the caller re-enters through a constructor at whichever boundary
-//! proves the bound. The exception is the in-family sum, which stays in the type as the
-//! family's folds do: overflow escapes to `±∞` and asserts in debug builds. Serialization writes
-//! plain numbers and deserialization re-validates, so a persisted value is as trustworthy as a
-//! constructed one.
+//! Negation and integer conversion preserve finiteness. Other operations may return a raw
+//! float or [`Derivation`] for later validation. The `DFinite` sum and difference return the
+//! domain type and require a finite rounded result. Serialization writes plain numbers and
+//! deserialization validates them again.
 
 use core::{
     cmp::Ordering,
@@ -34,8 +30,8 @@ use crate::math::Derivation;
 
 /// Validates a finite literal at compile time.
 ///
-/// The expansion is a `const` block over [`Finite::new`], so a literal outside the domain fails the
-/// build instead of a test run. Runtime values keep the checked constructor.
+/// A `const` block validates the literal with [`Finite::new`] during compilation. A literal outside
+/// the domain fails the build. Runtime values use the checked constructor.
 #[cfg(test)]
 macro_rules! finite {
     ($value:expr) => {
@@ -47,8 +43,8 @@ pub(crate) use finite;
 
 /// Validates a finite double-precision literal at compile time.
 ///
-/// The expansion is a `const` block over [`DFinite::new`], so a literal outside the domain fails
-/// the build instead of a test run. Runtime values keep the checked constructor.
+/// A `const` block validates the literal with [`DFinite::new`] during compilation. A literal
+/// outside the domain fails the build. Runtime values use the checked constructor.
 macro_rules! d_finite {
     ($value:expr) => {
         const { $crate::math::DFinite::new($value).expect("the literal is finite") }
@@ -58,18 +54,21 @@ pub(crate) use d_finite;
 
 /// A finite `f32`, valid by construction.
 ///
-/// A value that exists is finite, so the domain check lives at the constructor and nowhere
-/// else. Quantities with a sign or interval bound on top of finiteness take the narrower
-/// [`Positive`], [`NonNegative`], or [`UnitFraction`](super::UnitFraction) instead, which
-/// states that bound in the same place.
+/// Finiteness is the construction invariant. Quantities with an additional sign or interval bound
+/// take the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`](super::UnitFraction), which
+/// states that bound too.
 ///
-/// Both zeros are admitted and keep their sign bit. The value serializes as a plain number, so
-/// a format whose number grammar covers exactly the finite values represents every inhabitant
-/// of this type and reads it back through the same validation.
+/// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
+/// format whose number grammar covers exactly the finite values represents every inhabitant of this
+/// type and reads it back through the same validation.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{Finite};
+///
 /// assert_eq!(Finite::new(-2.5).expect("-2.5 is finite").get(), -2.5);
 /// assert_eq!(
 ///     Finite::new(f32::MIN).expect("the minimum is finite").get(),
@@ -106,15 +105,13 @@ impl Finite {
 
     /// Returns whether `value`'s exact bits are a stored finite value.
     ///
-    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: accepted
-    /// values store bit for bit, both zeros included, so the bits are valid exactly when
-    /// [`new`](Self::new) accepts the value.
+    /// Accepted values retain their bits, including both zeros. Persisted bits are valid exactly
+    /// when [`new`](Self::new) accepts the corresponding value.
     #[inline]
     #[must_use]
     pub(crate) const fn is_canonical(value: f32) -> bool {
         match Self::new(value) {
-            // Compare against what construction stored, so the check follows any future
-            // normalization.
+            // compare with the constructed value to account for normalization
             Some(accepted) => accepted.0.to_bits() == value.to_bits(),
             None => false,
         }
@@ -165,7 +162,6 @@ impl fmt::Display for Finite {
 }
 
 const impl From<Positive> for Finite {
-    /// Widens into the enclosing domain: every positive value is finite.
     #[inline]
     fn from(value: Positive) -> Self {
         Self(value.get())
@@ -173,7 +169,6 @@ const impl From<Positive> for Finite {
 }
 
 const impl From<NonNegative> for Finite {
-    /// Widens into the enclosing domain: every non-negative value is finite.
     #[inline]
     fn from(value: NonNegative) -> Self {
         Self(value.get())
@@ -181,7 +176,6 @@ const impl From<NonNegative> for Finite {
 }
 
 const impl From<Finite> for f64 {
-    /// Widens into double precision, exactly.
     #[inline]
     fn from(value: Finite) -> Self {
         // `f64::from` is not const-callable. The widening cast is lossless.
@@ -192,12 +186,7 @@ const impl From<Finite> for f64 {
 const impl core::ops::Div<Positive> for Finite {
     type Output = f32;
 
-    /// Divides by a positive divisor, which is never zero.
-    ///
-    /// The result is a raw float: the quotient of a finite value by a small positive one can
-    /// overflow to either infinity, following the numerator's sign. It is never NaN: that
-    /// would take a zero or infinite operand, and both domains exclude them. The caller
-    /// re-enters a domain at whichever boundary proves its bound.
+    /// Divides by a nonzero divisor with deferred validation of overflow.
     #[inline]
     fn div(self, rhs: Positive) -> f32 {
         self.0 / rhs.get()
@@ -209,7 +198,6 @@ impl proptest::arbitrary::Arbitrary for Finite {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, both signs and subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -220,14 +208,12 @@ impl proptest::arbitrary::Arbitrary for Finite {
 }
 
 impl serde::Serialize for Finite {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f32(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for Finite {
-    /// Deserializes a plain number, refusing NaN and the infinities.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f32::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {
@@ -245,18 +231,22 @@ impl<'de> serde::Deserialize<'de> for Finite {
 /// real number and nothing further. A quantity that also has a sign or interval bound carries
 /// the narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`](super::UnitFraction).
 ///
-/// Both zeros are admitted and keep their sign bit. The value serializes as a plain number, so
-/// a format whose number grammar covers exactly the finite values represents every inhabitant
-/// of this type and reads it back through the same validation.
+/// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
+/// format whose number grammar covers exactly the finite values represents every inhabitant of this
+/// type and reads it back through the same validation.
 ///
 /// [`Eq`], [`Ord`] and [`Hash`] are total, agree with one another, and follow the IEEE total
 /// order restricted to the finite values. Values sort and key ordered maps like the numbers
 /// they hold, with one caveat the sign bit brings: `-0.0` and `+0.0` are distinct, and
 /// `-0.0 < +0.0`.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{DFinite};
+///
 /// assert_eq!(
 ///     DFinite::new(-1.0e-300)
 ///         .expect("a tiny negative is finite")
@@ -294,15 +284,13 @@ impl DFinite {
 
     /// Returns whether `value`'s exact bits are a stored finite value.
     ///
-    /// The bit-level twin of [`new`](Self::new), for validating persisted bytes: accepted
-    /// values store bit for bit, both zeros included, so the bits are valid exactly when
-    /// [`new`](Self::new) accepts the value.
+    /// Accepted values retain their bits, including both zeros. Persisted bits are valid exactly
+    /// when [`new`](Self::new) accepts the corresponding value.
     #[inline]
     #[must_use]
     pub(crate) const fn is_canonical(value: f64) -> bool {
         match Self::new(value) {
-            // Compare against what construction stored, so the check follows any future
-            // normalization.
+            // compare with the constructed value to account for normalization
             Some(accepted) => accepted.0.to_bits() == value.to_bits(),
             None => false,
         }
@@ -313,9 +301,13 @@ impl DFinite {
     /// The sign bit of a promised zero is kept. Where the proof is not immediate,
     /// [`new`](Self::new) checks instead.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{DFinite};
+    ///
     /// let span = DFinite::new(3.0).expect("3.0 is finite");
     /// // A mean of finite values bounded far inside the exponent range cannot overflow.
     /// let mean = DFinite::new_unchecked((span.get() + span.get()) / 2.0);
@@ -350,8 +342,7 @@ impl DFinite {
 
     /// Narrows to the strictly positive domain.
     ///
-    /// Returns [`None`] at zero and below, so an `if let` on the result is the sign guard and
-    /// the positivity witness in one move.
+    /// Returns [`None`] at zero and below.
     #[inline]
     #[must_use]
     pub(crate) const fn positive(self) -> Option<DPositive> {
@@ -373,9 +364,9 @@ impl DFinite {
 
     /// Returns the total-order key: a bit pattern monotone in the value.
     ///
-    /// Flipping a negative value's bits and setting a non-negative value's sign bit maps the
-    /// IEEE ordering onto unsigned integer order, so one integer compare decides every pair
-    /// with no NaN branch.
+    /// Flipping a negative value's bits and setting a nonnegative value's sign bit maps IEEE
+    /// ordering onto unsigned integer order for one integer comparison of every pair, without a NaN
+    /// branch.
     #[inline]
     const fn order_key(self) -> u64 {
         let bits = self.0.to_bits();
@@ -407,7 +398,6 @@ const impl From<DFinite> for f64 {
 }
 
 const impl From<DPositive> for DFinite {
-    /// Widens into the enclosing domain: every positive value is finite.
     #[inline]
     fn from(value: DPositive) -> Self {
         Self(value.get())
@@ -415,7 +405,6 @@ const impl From<DPositive> for DFinite {
 }
 
 const impl From<DNonNegative> for DFinite {
-    /// Widens into the enclosing domain: every non-negative value is finite.
     #[inline]
     fn from(value: DNonNegative) -> Self {
         Self(value.get())
@@ -441,7 +430,7 @@ const impl From<i64> for DFinite {
 const impl PartialEq for DFinite {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // one bit pattern per finite value, so bit equality is total-order equality
+        // unique finite total-order encodings make bit equality equivalent to total-order equality
         self.0.to_bits() == other.0.to_bits()
     }
 }
@@ -465,7 +454,7 @@ const impl Ord for DFinite {
 impl Hash for DFinite {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
-        // one bit pattern per finite value, so `Hash` agrees with `Eq`
+        // hashing each finite total-order value's unique bit pattern preserves agreement with `Eq`
         state.write_u64(self.0.to_bits());
     }
 }
@@ -475,8 +464,7 @@ const impl core::ops::Add for DFinite {
 
     /// Adds.
     ///
-    /// Overflow escapes to `±∞` - a wrong reading rather than a soundness break, since no
-    /// unsafe code trusts the domain - and asserts in debug builds through the constructor.
+    /// The rounded sum must remain finite. Same-sign operands can overflow to infinity.
     #[inline]
     fn add(self, rhs: DFinite) -> DFinite {
         DFinite::new_unchecked(self.0 + rhs.0)
@@ -495,8 +483,7 @@ const impl core::ops::Sub for DFinite {
 
     /// Subtracts.
     ///
-    /// Overflow escapes to `±∞` - a wrong reading rather than a soundness break, since no
-    /// unsafe code trusts the domain - and asserts in debug builds through the constructor.
+    /// The rounded difference must remain finite. Opposite-sign operands can overflow to infinity.
     #[inline]
     fn sub(self, rhs: DFinite) -> DFinite {
         DFinite::new_unchecked(self.0 - rhs.0)
@@ -520,10 +507,10 @@ const impl core::ops::Div<DPositive> for DFinite {
 
     /// Divides by a positive divisor, which is never zero.
     ///
-    /// The quotient's exponent is the numerator's minus the divisor's, so a finite value over
-    /// a small positive one can overflow to either infinity, following the numerator's sign.
-    /// The fat exit enters the derivation, which claims finiteness at its finish. It is never NaN:
-    /// that would take a zero or infinite operand, and both domains exclude them.
+    /// Dividing a finite value by a small positive one can overflow to either infinity, following
+    /// the numerator's sign. The derivation validates finiteness at its finish. The quotient is
+    /// never NaN for in-domain operands: both are finite and the divisor is nonzero. A zero
+    /// numerator is valid.
     #[inline]
     fn div(self, rhs: DPositive) -> Derivation<DFinite> {
         Derivation::raw(self.0 / rhs.get())
@@ -543,7 +530,6 @@ where
 }
 
 const impl PartialEq<OpenUnitFraction> for DFinite {
-    /// Compares across the scalar family, in one precision with no widening.
     #[inline]
     fn eq(&self, other: &OpenUnitFraction) -> bool {
         self.0 == other.get()
@@ -551,7 +537,6 @@ const impl PartialEq<OpenUnitFraction> for DFinite {
 }
 
 const impl PartialOrd<OpenUnitFraction> for DFinite {
-    /// Orders across the scalar family, in one precision with no widening.
     #[inline]
     fn partial_cmp(&self, other: &OpenUnitFraction) -> Option<Ordering> {
         self.0.partial_cmp(&other.get())
@@ -563,7 +548,6 @@ impl proptest::arbitrary::Arbitrary for DFinite {
     type Parameters = ();
     type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    /// Draws from the whole domain, both signs and subnormals included.
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         use proptest::strategy::Strategy as _;
 
@@ -574,14 +558,12 @@ impl proptest::arbitrary::Arbitrary for DFinite {
 }
 
 impl serde::Serialize for DFinite {
-    /// Serializes as the plain number.
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for DFinite {
-    /// Deserializes a plain number, refusing NaN and the infinities.
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = f64::deserialize(deserializer)?;
         Self::new(value).ok_or_else(|| {

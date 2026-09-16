@@ -1,19 +1,17 @@
 //! Z-order keys: two 32-bit axes interleaved into one sortable `u64`.
 //!
-//! The module is crate-internal, with one deliberate seam: the `bench` facade re-exports
-//! [`Depth`], [`MortonKey`], and [`MortonCell`] so the benchmark targets speak the same typed
-//! vocabulary as production instead of raw integers. The items are therefore `pub` while the
-//! module is not, and they reach a consumer only through that feature-gated door. Examples carry
-//! `ignore` and spell each call as an in-crate caller writes it.
+//! The crate-internal module exports [`Depth`], [`MortonKey`], and [`MortonCell`] through the
+//! `bench` facade when that feature is enabled. Examples carry `ignore` and use in-crate paths.
 //!
 //! [`MortonKey::new`] interleaves the bits of an `(x, y)` pair, `x` into the even bits and `y` into
-//! the odd bits, so that comparing keys compares positions along the Z-order curve. Every
-//! axis-aligned power-of-two cell of the grid is one contiguous key range, so a sorted key array
-//! answers cell queries with two binary searches.
+//! the odd bits. Comparing keys compares positions along the Z-order curve. Each depth-d cell fixes
+//! the leading d bits of each axis, hence the leading 2d key bits. Its remaining bits span one
+//! contiguous key range. A sorted key array answers these prefix-aligned cell queries with two
+//! binary searches.
 //!
 //! [`Depth`] counts subdivisions. Depth 0 is the whole domain, each step quarters a cell, and depth
 //! 32 pins both axes to a single key. A tile address `(z, x, y)` names the cell
-//! [`MortonCell::new(z, x, y)`](MortonCell::new); the cell containing an existing key is
+//! [`MortonCell::new(z, x, y)`](MortonCell::new). The cell containing an existing key is
 //! [`MortonKey::cell`]. Cells subdivide in key order via [`MortonCell::children`].
 
 #![cfg_attr(
@@ -44,14 +42,12 @@ impl Depth {
 
     /// Wraps a subdivision count.
     ///
-    /// Returns [`None`] above [`Depth::MAX`].
+    /// Depth d cells are the squares of a 2ᵈ × 2ᵈ grid over the axis domain. [`Depth::MIN`] is the
+    /// whole domain. [`Depth::MAX`] fixes all 32 bits of both axes and identifies one key.
     ///
     /// # Examples
     ///
-    /// ```ignore
-    /// assert!(Depth::new(16).is_some());
-    /// assert_eq!(Depth::new(33), None);
-    /// ```
+    /// Returns [`None`] above [`Depth::MAX`], the key width of one axis.
     #[inline]
     #[must_use]
     pub const fn new(depth: u8) -> Option<Self> {
@@ -62,7 +58,9 @@ impl Depth {
         Some(Self(depth))
     }
 
-    /// Returns the subdivision count.
+    /// Returns the depth whose grid a tile zoom addresses.
+    ///
+    /// Zoom z and depth z name the same 2ᶻ × 2ᶻ grid, and both types end at [`Depth::MAX`].
     #[inline]
     #[must_use]
     pub const fn get(self) -> u8 {
@@ -71,15 +69,21 @@ impl Depth {
 
     /// Adds `steps` subdivisions, saturating at [`Depth::MAX`].
     ///
-    /// The domain is capped, so the sum clamps instead of overflowing: the same contract as
-    /// [`u8::saturating_add`], with the ceiling at the key width rather than the type width.
+    /// Like [`u8::saturating_add`], the sum clamps instead of overflowing. The ceiling is the key
+    /// width rather than the type width.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
-    /// let depth = Depth::new(30).unwrap();
-    /// assert_eq!(depth.saturating_add(1).get(), 31);
-    /// assert_eq!(depth.saturating_add(9), Depth::MAX);
+    /// use crate::math::{Log2};
+    /// use crate::morton::{Depth};
+    ///
+    /// let depth = Depth::new(30);
+    /// let steps = Log2::new(9).expect("9 should fit the exponent domain");
+    /// assert_eq!(depth.saturating_add(Log2::ONE).get(), 31);
+    /// assert_eq!(depth.saturating_add(steps), Depth::MAX);
     /// ```
     #[inline]
     #[must_use]
@@ -101,13 +105,17 @@ impl Depth {
 
 /// A Z-order key interleaving two 32-bit axes into one `u64`.
 ///
-/// `x` occupies the even bits and `y` the odd bits, starting at bit 0, so key order is Z-order
-/// curve order and every [`MortonCell`] is one contiguous key range. Every bit pattern is a valid
-/// key.
+/// `x` occupies the even bits and `y` the odd bits, starting at bit 0. Key order follows the
+/// Z-order curve, and every [`MortonCell`] is one contiguous key range. Every bit pattern is a
+/// valid key.
 ///
-/// # Examples
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::morton::{MortonKey};
+///
 /// assert_eq!(MortonKey::new(1, 0).to_bits(), 0b01);
 /// assert_eq!(MortonKey::new(0, 1).to_bits(), 0b10);
 /// assert_eq!(MortonKey::new(3, 5).coordinates(), [3, 5]);
@@ -147,14 +155,18 @@ impl MortonKey {
 
     /// Returns the cell index at `depth`.
     ///
-    /// The leading `2 · depth` key bits, a value below `4^depth` that is dense over the depth's
-    /// grid.
+    /// The leading 2d key bits, where d is `depth`. These values densely index the cells from zero
+    /// through 4ᵈ − 1.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::morton::{Depth, MortonKey};
+    ///
     /// let key = MortonKey::new(0b10 << 30, 0b11 << 30);
-    /// assert_eq!(key.prefix(Depth::new(2).unwrap()), 0b1110);
+    /// assert_eq!(key.prefix(Depth::new(2)), 0b1110);
     /// ```
     #[inline]
     #[must_use]
@@ -167,12 +179,16 @@ impl MortonKey {
 
     /// Returns the deepest depth at which this key and `other` share a cell.
     ///
-    /// A depth-`d` cell is the leading `2 · d` key bits, so the shared depth counts the agreed
+    /// A depth-`d` cell is the leading `2 · d` key bits. The shared depth counts the agreed
     /// leading bit pairs. Equal keys share every grid and return [`Depth::MAX`].
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::morton::{Depth, MortonKey};
+    ///
     /// let key = MortonKey::new(0, 0);
     /// assert_eq!(key.shared_depth(key), Depth::MAX);
     /// assert_eq!(key.shared_depth(MortonKey::new(0, 1 << 31)).get(), 0);
@@ -217,19 +233,24 @@ pub struct MortonCell {
     ///
     /// The bits below the prefix are zero.
     min: u64,
+    /// The grid the cell belongs to.
     depth: Depth,
 }
 
 impl MortonCell {
-    /// Wraps the cell at `(x, y)` of the depth's grid.
+    /// Selects the cell at `(x, y)` of the depth's grid.
     ///
-    /// The grid spans `2^depth` cells per axis; returns [`None`] when either coordinate lies
+    /// At depth d the grid spans 2ᵈ cells per axis. Returns [`None`] when either coordinate lies
     /// outside it.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
-    /// let depth = Depth::new(3).unwrap();
+    /// use crate::morton::{Depth, MortonCell};
+    ///
+    /// let depth = Depth::new(3);
     /// assert!(MortonCell::new(depth, 7, 0).is_some());
     /// assert_eq!(MortonCell::new(depth, 8, 0), None);
     /// ```
@@ -281,7 +302,7 @@ impl MortonCell {
 
     /// Returns the four child cells in key order.
     ///
-    /// Child `i` holds the keys whose next axis bits are `x = i & 1` and `y = i >> 1`; the
+    /// Child `i` holds the keys whose next axis bits are `x = i & 1` and `y = i >> 1`. The
     /// children's ranges partition the parent's in that order. Returns [`None`] at [`Depth::MAX`].
     #[must_use]
     pub const fn children(self) -> Option<[Self; 4]> {

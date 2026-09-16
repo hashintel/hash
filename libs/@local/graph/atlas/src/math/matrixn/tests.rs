@@ -1,8 +1,3 @@
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here drives the row-major matrix buffer: row alignment and offsets, clone
-/// independence, and the return of the buffer to its allocator. The profile selects by module path,
-/// so moving a test in or out of this module is the whole edit.
 mod miri {
     use core::simd::f32x8;
 
@@ -75,7 +70,6 @@ mod miri {
         assert_eq!(matrix, matrix.clone());
     }
 
-    /// `Debug` prints the rows.
     #[test]
     fn debug_prints_the_rows() {
         let mut matrix = MatrixN::<8>::zeroed(1);
@@ -87,7 +81,6 @@ mod miri {
         );
     }
 
-    /// Dropping a matrix returns its buffer to the allocator that provided it.
     #[test]
     fn drop_returns_the_buffer_to_its_allocator() {
         let alloc = CountingAllocator::new();

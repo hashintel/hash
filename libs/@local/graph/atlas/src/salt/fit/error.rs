@@ -96,10 +96,13 @@ impl Error for PriorError {
     }
 }
 
-/// One fit failed and published nothing.
+/// A failure of one fit, from either side of its thread boundary.
 ///
 /// `D` is the dataset's error and `E` the embedding provider's. Both arise only during ingest.
-/// Every compute-side failure arrives as [`FitError::Compute`].
+/// Every compute-side failure is wrapped as [`FitError::Compute`]. Every ingest-side variant
+/// arises before the seal and leaves nothing published. A [`ComputeError::Seal`] raised after the
+/// seal's rename and a [`ComputeError::Offload`] raised by the progress observer's seal report
+/// return with the generation directory already visible.
 #[derive(Debug)]
 pub(crate) enum FitError<D, E> {
     /// The dataset failed to deliver a stream item.

@@ -1,13 +1,12 @@
 //! The display lookup over requested editions, under the serving-time regime.
 //!
-//! The statement executes on its caller's own connection and binds no temporal axes. An
-//! edition id addresses one immutable row, so the answer is the same at any read. Every
-//! requested edition answers exactly once, because every join is outer and the unnested
-//! requests survive them. The representative cached type answers as a store uuid rather than a
-//! generation ordinal, because an edition written after a fit can carry a type no generation
-//! tabulated. Its nearest declared icon rides the same row, resolved through the
-//! representative's current closed schema, so a register allocating a row for such a type has
-//! the icon in hand at the allocation.
+//! The statement executes on its caller's own connection and binds no temporal axes. An edition id
+//! addresses one immutable row. The answer is the same at any read. Every requested edition answers
+//! exactly once, because every join is outer and the unnested requests survive them. The
+//! representative cached type answers as a store uuid rather than a generation ordinal, because an
+//! edition written after a fit can carry a type no generation tabulated. Its nearest declared icon
+//! rides the same row, resolved through the representative's current closed schema. A register
+//! allocating a row for such a type has the icon in hand at the allocation.
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, ColumnName, Correlation, Expression, FromItem, Function,
@@ -77,12 +76,12 @@ pub(crate) struct EditionDisplayColumns {
 
 /// Builds the display lookup over the requested editions.
 ///
-/// The statement answers every requested edition exactly once, because every join is outer,
-/// each joins at most one row - the edition cache through its primary key, the representative
-/// type through the unique `(base_url, version)` pair, its type row through the ontology id,
-/// and the icon lateral through its own `LIMIT 1` - and the unnested requests survive them all.
-/// The statement binds no temporal axes. An edition id addresses one immutable row, so the
-/// answer is the same at any read.
+/// The statement answers every requested edition exactly once, because every join is outer, each
+/// joins at most one row - the edition cache through its primary key, the representative type
+/// through the unique `(base_url, version)` pair, its type row through the ontology id, and the
+/// icon lateral through its own `LIMIT 1` - and the unnested requests survive them all. The
+/// statement binds no temporal axes. An edition id addresses one immutable row. The answer is the
+/// same at any read.
 ///
 /// # SQL
 ///
@@ -193,10 +192,16 @@ pub(crate) struct DisplayParts {
 
 /// Decodes one edition-display row.
 ///
-/// A row without a resolved representative type decodes as [`None`], so the caller's next read
-/// cycle retries it: the register turns the representative into its ontology row, and an absent
+/// A row without a resolved representative type decodes as [`None`]. The caller's next read cycle
+/// retries it: the register turns the representative into its ontology row, and an absent
 /// representative leaves nothing to resolve. A row whose cache holds no label carries the empty
 /// label, and a representative whose chain declares no icon carries the empty icon.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] when a selected column does not read back at the type
+/// the decode asks for. A missing label, icon or representative is a null column rather than a
+/// failure.
 pub(crate) fn decode_edition_display(
     row: &Row,
     columns: &EditionDisplayColumns,
@@ -232,12 +237,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store. Reviewing a diff, hold it to the
-    /// statement's own contract: every join is outer and joins at most one row, so every
-    /// requested edition answers exactly once.
     #[test]
     fn statement_text() {
         let edition_ids = vec![Uuid::nil()];

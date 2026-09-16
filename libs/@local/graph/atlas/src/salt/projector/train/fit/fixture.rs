@@ -2,7 +2,7 @@
 //!
 //! The corpus, its relation evidence, the training options, and the target objective's declared
 //! inputs live here once, and construction is deterministic: equal calls read back bit-identical
-//! fixtures, so runs meant to share an input share it exactly.
+//! fixtures, and runs meant to share an input therefore share it exactly.
 
 use core::num::NonZero;
 
@@ -49,13 +49,16 @@ use crate::{
 /// Rows per semantic cluster.
 pub(super) const HALF: usize = 4;
 
+/// Rows in the corpus: two clusters.
 pub(super) const ROWS: usize = 2 * HALF;
 
+/// Components in the corpus's representation storage.
 pub(super) const CAPACITY: usize = ROWS * PROJECTOR_DIMENSIONS;
 
 /// The reviewed relation type of the boundary fixtures.
 pub(super) const RELATION: u64 = 11;
 
+/// The fixture generator for `seed`.
 pub(super) fn rng(seed: u64) -> Xoshiro256PlusPlus {
     Xoshiro256PlusPlus::seed_from_u64(seed)
 }
@@ -149,6 +152,7 @@ pub(super) fn instance(
     }
 }
 
+/// The reviewed Proximal verdict over [`RELATION`].
 pub(super) const fn proximal_verdict() -> ResolvedVerdict {
     ResolvedVerdict {
         relation: OntologyRowId::new(RELATION),
@@ -158,16 +162,24 @@ pub(super) const fn proximal_verdict() -> ResolvedVerdict {
 
 /// One training corpus's owned artifacts.
 pub(super) struct Corpus {
+    /// The two-clique semantic graph.
     pub graph: SemanticGraph<NodeRowId>,
+    /// The attraction and protection indexes over the relation evidence.
     pub indexes: RelationIndexes<NodeRowId, EdgeRowId>,
+    /// The complete-graph neighbour table.
     pub knn: Knn<NodeRowId>,
+    /// The aligned representation storage, one row per corpus row.
     pub storage: BoxedVecN<CAPACITY>,
+    /// The node roles, one per corpus row.
     pub roles: Vec<NodeRole>,
+    /// The landmark anchors, one per cluster.
     pub landmarks: Vec<SupportAnchor<NodeRowId>>,
+    /// The resolved reviewed verdicts.
     pub verdicts: Vec<ResolvedVerdict>,
 }
 
 impl Corpus {
+    /// Borrows the corpus as trainer inputs with no target objective declared.
     pub(super) fn inputs(&self) -> TrainerInputs<'_, NodeRowId, EdgeRowId> {
         TrainerInputs {
             semantic: self.graph.view(),
@@ -217,9 +229,8 @@ pub(super) fn corpus_with(
     )
     .expect("the fixture instances satisfy the input contract");
 
-    // Cluster-patterned representations: a shared sign block plus one
-    // row-distinct component, so cluster members map to similar inputs
-    // while every row stays distinguishable.
+    // Cluster-patterned representations: a shared sign block plus one row-distinct component.
+    // Cluster members therefore map to similar inputs while every row stays distinguishable.
     let mut storage = BoxedVecN::zero();
     let array = storage.as_array_mut();
     for row in 0..ROWS {
@@ -270,6 +281,9 @@ pub(super) const fn schedule(
     .expect("the fixture schedule is valid")
 }
 
+/// Builds the fixture's training options under `schedule`.
+///
+/// The batch plan, energies, and coefficients every fixture run shares.
 pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
     TrainOptions {
         schedule,
@@ -309,8 +323,9 @@ pub(super) fn options(schedule: TrainingSchedule) -> TrainOptions {
     }
 }
 
-/// A target corpus carrying one Proximal relation with two instances, so rows {2, 3, 6, 7}
-/// stay force-free for the gauge draw.
+/// Builds a target corpus carrying one Proximal relation with two instances.
+///
+/// Rows {2, 3, 6, 7} stay force-free for the gauge draw.
 pub(super) fn target_corpus() -> Corpus {
     corpus_with(
         &[proximal_policy(RELATION)],
@@ -322,10 +337,15 @@ pub(super) fn target_corpus() -> Corpus {
 
 /// The target objective's draw-side fixtures, owned so the trainer inputs can borrow them.
 pub(super) struct TargetDraws {
+    /// The force-free rows the gauge draws.
     pub gauge_rows: Vec<NodeRowId>,
+    /// The gauge rows' duplicate classes.
     pub gauge_classes: Vec<DuplicateClassId>,
+    /// Each row's covariate stratum.
     pub strata: Vec<StratumId>,
+    /// The held-out reference population, empty in the fixture.
     pub held_out: Vec<NodeRowId>,
+    /// The matched-control reference population, empty in the fixture.
     pub matched_controls: Vec<NodeRowId>,
 }
 
@@ -334,6 +354,10 @@ pub(super) fn split_digest() -> Sha256Digest {
     Sha256Digest::of(b"fixture split rule")
 }
 
+/// Builds target-objective draws over the fixture rows.
+///
+/// The draws include gauge rows and classes, one stratum per cluster, and empty reference
+/// populations.
 pub(super) fn target_draws() -> TargetDraws {
     TargetDraws {
         gauge_rows: [2, 3, 6, 7].map(NodeRowId::new).to_vec(),
@@ -342,13 +366,14 @@ pub(super) fn target_draws() -> TargetDraws {
         strata: (0..ROWS)
             .map(|row| StratumId::new(u32::from(!first_cluster(row))))
             .collect(),
-        // Force and gauge claim every fixture row, so the fixture split declares empty
-        // reference populations.
+        // Force and gauge claim every fixture row, and the fixture split therefore declares
+        // empty reference populations.
         held_out: Vec::new(),
         matched_controls: Vec::new(),
     }
 }
 
+/// The corpus's trainer inputs with the target objective declared over `draws`.
 pub(super) fn target_inputs<'run>(
     corpus: &'run Corpus,
     draws: &'run TargetDraws,
@@ -369,6 +394,11 @@ pub(super) fn target_inputs<'run>(
     }
 }
 
+/// Builds the fixture's target options at `activation`.
+///
+/// # Panics
+///
+/// Panics when `activation` is negative or not finite.
 pub(super) const fn target_options(activation: f32) -> TargetOptions {
     TargetOptions {
         canonical_step: nz!(2),

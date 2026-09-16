@@ -1,25 +1,27 @@
-//! The persisted paired-movement evidence body and its aggregation.
+//! Persisted paired-movement outcomes and distribution summaries.
 //!
-//! [`PairedMovementEvidence`] is the block the metadata document embeds beside the step
-//! measurements: the draw metadata a replay re-derives, then a tri-state outcome. A
-//! [`MovementOutcome::Measured`] body carries the aggregate families, and the other two
-//! structurally cannot. [`MovementOutcome::Vacuous`] records an empty pair domain, while
-//! [`MovementOutcome::Failed`] retains a typed refusal beside the completed draw counts. Every
-//! aggregate family sits beside its population count, and its value fields exist exactly when
-//! that count is positive, so neither an empty population nor an empty stratum can read as a
-//! measured zero. The body holds no pair or row identity, and its size is a function of the
-//! quantile grid and the strata alone.
+//! [`PairedMovementEvidence`] records draw metadata beside an outcome.
+//! [`MovementOutcome::Measured`] carries aggregate families. [`MovementOutcome::Vacuous`] records
+//! an empty pair domain, and [`MovementOutcome::Failed`] retains a typed refusal with any completed
+//! draw counts. Successful bodies omit selected identities. An endpoint failure can name a rejected
+//! row. Produced bodies have a fixed quantile grid and at most ten strata.
 //!
-//! Aggregation forms each per-pair difference from one reading's own fields in `f64` and never
-//! subtracts step aggregates. Means commute with subtraction while fractions and quantiles do
-//! not, so the shortcut would fabricate readings no pair produced. Quantiles follow the nearest
-//! rank, and every accumulating sum is one serial `f64` fold in draw order, so one draw
-//! reproduces its aggregates bit for bit.
+//! Aggregation forms every per-pair difference in `f64` and never subtracts step aggregates. For
+//! pair i, Δdᵢ = dᵢ,canonical − dᵢ,zero and Δrᵢ = rankᵢ,canonical − rankᵢ,zero. Negative
+//! differences indicate contraction or rank improvement. Fractions count strict negatives, and
+//! nearest-rank quantiles summarize the difference populations. Means commute with subtraction in
+//! real arithmetic, but separate rounded folds can differ. Quantiles and contraction fractions
+//! require the paired readings themselves.
 //!
-//! The collateral strata stand on the candidate population. Every nonparticipant row's
-//! anchor-distance reading defines the ten boundaries, so the strata are a function of the
-//! census rather than the draw, and each stratum's candidate and selected counts read how the
-//! draw spread across the census.
+//! Every accumulating sum uses a serial `f64` fold in draw order. Equal ordered readings reproduce
+//! the same aggregates under the same arithmetic semantics. This does not establish equal upstream
+//! frames or cross-platform square-root results.
+//!
+//! Collateral strata use all nonparticipants' distances to the sampled pair endpoints. Their
+//! boundaries depend on the pair sample but not on which controls were selected. Candidate and
+//! selected counts show the control sample's distribution across those boundaries. The producers
+//! attach a displacement family exactly when a stratum has selected rows. These relationships are
+//! not validated by deserialization.
 
 #[cfg(test)]
 mod tests;
@@ -41,10 +43,13 @@ const DECILES: u32 = 10;
 
 /// The paired-movement evidence body of one ladder record.
 ///
-/// The body persists no pair or row identity. A corpus holder re-derives the selected
-/// identities by recognizing the rule, re-deriving the salt, and rerunning the keyed order, so
-/// the omission limits the payload rather than claiming secrecy. The outcome
-/// flattens beside these fields under its `outcome` tag.
+/// A successful body omits selected pair and row identities. They can be re-derived from the same
+/// metadata, attraction index and draw conventions. This limits payload size without providing
+/// secrecy. An endpoint failure can include a rejected row.
+///
+/// The outcome flattens beside the draw metadata under its `outcome` tag. Public fields and derived
+/// deserialization do not validate count relationships, rule recognition or consistency between an
+/// outcome and its metadata.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PairedMovementEvidence<I> {
     /// The draw rule that produced the sample.
@@ -55,10 +60,11 @@ pub(crate) struct PairedMovementEvidence<I> {
     pub rank_window: u64,
     /// The distinct force-bearing Proximal pair count `P`.
     pub pair_candidates: u64,
-    /// The drawn pair count `n`, the candidates bounded by the pair-sample cap
-    /// ([`SAMPLE_CAP`](super::census::SAMPLE_CAP)).
+    /// The number of drawn pairs.
+    ///
+    /// The readout bounds this count by [`SAMPLE_CAP`](super::census::SAMPLE_CAP).
     pub pairs_selected: u64,
-    /// The nonparticipant corpus row count `Q`.
+    /// The nonparticipant corpus row count Q, or zero when no control census completed.
     pub control_candidates: u64,
     /// The drawn control count `m = min(Q, n)`.
     pub controls_selected: u64,
@@ -69,9 +75,9 @@ pub(crate) struct PairedMovementEvidence<I> {
 
 /// What one paired-movement readout resolved to.
 ///
-/// The variants are structural. Aggregates exist only inside [`Self::Measured`], so a vacuous
-/// or failed readout cannot carry a partial family, and the tag alone tells a reader the whole
-/// shape.
+/// Aggregate fields exist only inside [`Self::Measured`]. A vacuous or failed value cannot carry a
+/// partial family. Construction and deserialization do not validate a measured value's counts or
+/// stratum contents.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "outcome")]
 pub(crate) enum MovementOutcome<I> {
@@ -81,9 +87,8 @@ pub(crate) enum MovementOutcome<I> {
         pairs: PairAggregates,
         /// The collateral strata over the drawn controls.
         ///
-        /// A nonempty candidate population yields every stratum, individually empty when the
-        /// draw is thin. No strata at all under the `Q = 0` reading, which keeps every
-        /// control count zero and every control value field absent.
+        /// The producer emits ten strata for a nonempty control population, with individually
+        /// empty strata allowed. At Q = 0 it emits no strata.
         deciles: Vec<ControlDecile>,
     },
     /// The pair domain was empty (`P = 0`).
@@ -104,9 +109,8 @@ pub(crate) enum MovementOutcome<I> {
 
 /// The aggregate families over the drawn pairs.
 ///
-/// Each difference forms per pair from one [`PairMovement`]'s own fields. A negative distance
-/// change contracts, and a negative rank change improves rank, so the fractions read the share
-/// of pairs the canonical step moved toward their partners.
+/// Each difference forms per pair from one [`PairMovement`]'s own fields. Negative distance changes
+/// indicate contraction, and negative rank changes indicate rank improvement.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PairAggregates {
     /// The population count `n`, every drawn pair.
@@ -124,9 +128,10 @@ pub(crate) struct PairAggregates {
 impl PairAggregates {
     /// Aggregates the drawn pairs' readings, in draw order.
     ///
-    /// Every difference forms directly from a reading's own fields in `f64`, never by
-    /// subtracting persisted step aggregates. Means commute with subtraction while fractions
-    /// and quantiles do not, so the subtraction shortcut fabricates readings no pair produced.
+    /// Every difference forms directly from a reading's fields, never by subtracting step
+    /// aggregates. Distance differences use `f64`, and differences of the `u32` ranks are exactly
+    /// representable in `f64`. The difference populations must meet [`MovementAggregate::over`]'s
+    /// finite-partial-sum requirement.
     ///
     /// # Panics
     ///
@@ -147,9 +152,10 @@ impl PairAggregates {
             let rank =
                 DFinite::from(i64::from(reading.rank_canonical) - i64::from(reading.rank_zero));
 
-            // The strict-less is a plain numeric comparison, because a subtraction never
-            // produces `-0.0` under round-to-nearest, so the total order's `-0.0 < +0.0` case
-            // is unreachable here.
+            // Non-negative operands have canonical positive zero. Their difference cannot underflow
+            // to a negative zero under round-to-nearest, and equal operands give positive zero.
+            // Therefore the total-order comparison with zero agrees with numeric strict negativity
+            // for these differences.
             if distance < DFinite::ZERO {
                 contracted += 1;
             }
@@ -178,9 +184,10 @@ impl PairAggregates {
 
 /// One reading family's nearest-rank quantiles and mean.
 ///
-/// The value fields of one aggregate family. The population count lives beside the family, on
-/// [`PairAggregates::count`] for the pair families and on [`ControlDecile::selected`] for a
-/// stratum's displacement family, and the family exists exactly when that count is positive.
+/// For produced pair and control evidence, the associated count lives on [`PairAggregates::count`]
+/// or [`ControlDecile::selected`]. Those producers create a family exactly when the count is
+/// positive. This type carries no count and validates no cross-field relationships on
+/// deserialization.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct MovementAggregate {
     /// The nearest-rank reading at fraction 0.05.
@@ -200,10 +207,14 @@ pub(crate) struct MovementAggregate {
 impl MovementAggregate {
     /// Aggregates one reading family, in draw order.
     ///
-    /// The mean folds the readings serially in the given order. The quantiles sort a copy
-    /// ascending. The draw order breaks reading ties by stable identity, which keeps the sort
-    /// total without ever moving a value across a rank, so the ascending value sequence alone
-    /// reproduces every persisted quantile and the identities stay out of the aggregation.
+    /// The mean folds in the supplied order. Every running partial sum must remain finite.
+    /// Individual [`DFinite`] values alone do not establish this requirement. The quantiles sort a
+    /// copy using [`DFinite`]'s total order, which distinguishes zero signs. Equal values need no
+    /// identity tie-break because exchanging them leaves each quantile unchanged.
+    ///
+    /// # Complexity
+    ///
+    /// O(n log n) work and O(n) copied values for n readings.
     ///
     /// # Panics
     ///
@@ -214,17 +225,16 @@ impl MovementAggregate {
             panic!("an aggregate family exists only for a positive population");
         };
 
-        // One fixed serial fold in draw order. `Iterator::sum` happens to fold in order too,
-        // but the loop states the contract rather than inheriting it. The fold keeps the typed
-        // escape op by its totality theorem. Every reading is a frame distance difference or a
-        // rank difference, bounded below 2¹³¹, and the population is bounded by the corpus
-        // rows, below 2³². The serial sum therefore stays below 2¹⁶³, far inside `f64`.
+        // Finite f32 frame coordinates bound wide distance differences below 2¹³¹ in magnitude.
+        // With fewer than 2⁶⁴ readings on supported targets, those populations keep even the
+        // absolute sum below 2¹⁹⁵, far inside f64. Therefore the paired-frame readout can use the
+        // finite sum directly. Other inputs must meet the documented partial-sum requirement.
         let mut sum = DFinite::ZERO;
         for &reading in readings {
             sum += reading;
         }
 
-        // Finite with no check: dividing the bounded sum by a count of at least one shrinks it.
+        // dividing a finite sum by a count of at least one preserves finiteness.
         let mean = (sum / DPositive::from_usize(len)).finish_unchecked();
 
         let mut sorted = readings.to_vec();
@@ -243,21 +253,23 @@ impl MovementAggregate {
 
 /// One collateral stratum of the control readout.
 ///
-/// The strata partition the anchor-distance axis at each tenth of the candidate population, so
-/// the boundaries are a function of the census rather than the draw. The candidate count reads
-/// the stratum's share of the census, and the selected count reads the stratum's share of the
-/// draw.
+/// The strata partition distances to the sampled pair endpoints at each tenth of the full
+/// nonparticipant population. Their boundaries depend on the pair sample, but not on the selected
+/// control rows. Counts record each stratum's share of the census and the control sample.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ControlDecile {
-    /// The stratum's upper anchor-distance boundary, the nearest-rank reading at its tenth of
-    /// the candidate population.
+    /// The stratum's inclusive upper anchor-distance boundary.
+    ///
+    /// The nearest-rank reading at its tenth of the candidate population.
     pub upper: DNonNegative,
     /// Candidate rows this stratum holds.
     pub candidates: u64,
     /// Drawn rows this stratum holds.
     pub selected: u64,
-    /// The displacement family over the stratum's drawn rows, present exactly when `selected`
-    /// is positive.
+    /// The displacement family, produced exactly when `selected` is positive.
+    ///
+    /// Absence serializes as `null`. Deserialization does not check its relationship to
+    /// `selected`.
     pub displacement: Option<MovementAggregate>,
 }
 
@@ -265,19 +277,21 @@ impl ControlDecile {
     /// Builds the ten collateral strata.
     ///
     /// `candidates` holds every nonparticipant row's zero-step nearest-anchor distance and is
-    /// sorted in place. `readings` holds the drawn controls' readings in draw order, and each
-    /// drawn reading re-derives through the one metric, so it is one of the candidate readings.
-    /// A reading joins the first stratum whose upper boundary reaches it. Equal readings
-    /// therefore share a stratum, and a boundary tie leaves the later stratum without
-    /// candidates.
+    /// sorted in place. `readings` must hold sampled controls from that population in draw order,
+    /// using the same anchor positions and distance metric. Displacements must meet
+    /// [`MovementAggregate::over`]'s partial-sum requirement. Membership and uniqueness are not
+    /// checked.
+    ///
+    /// A reading joins the first stratum whose upper boundary reaches it. Equal readings share a
+    /// stratum, and repeated boundaries leave later strata without candidates.
     ///
     /// Returns no strata when the candidate population is empty. That is the `Q = 0`
     /// reading: every control count stays zero and every control value field stays absent.
     ///
     /// # Panics
     ///
-    /// This panics when readings arrive while the candidate population is empty, or when a
-    /// reading exceeds the census maximum. Both contradict the draw's own construction.
+    /// Panics when `readings` is nonempty but `candidates` is empty, or when a reading's anchor
+    /// distance exceeds the candidate maximum.
     pub(super) fn over(candidates: &mut [DNonNegative], readings: &[ControlMovement]) -> Vec<Self> {
         if candidates.is_empty() {
             assert!(
@@ -295,8 +309,8 @@ impl ControlDecile {
         for tenth in 1..=DECILES {
             let upper = nearest_rank(candidates, f64::from(tenth) / 10.0);
 
-            // Candidates at or below the boundary, cumulatively. The tenth boundary is the
-            // population maximum, so the final stratum absorbs the remainder.
+            // count candidates cumulatively through each boundary, with the tenth at the population
+            // maximum.
             let cumulative = candidates.partition_point(|&reading| reading <= upper);
             uppers.push(upper);
             census.push((cumulative - below) as u64);
@@ -329,10 +343,9 @@ impl ControlDecile {
 
 /// The typed refusal a failed readout retains.
 ///
-/// Each variant mirrors its producer field for field, so the persisted reason names exactly
-/// what refused. [`CensusError`] supplies the index contradictions and [`MovementError`] the
-/// row-count contradiction; a non-finite frame never reaches the readout, because the frames
-/// arrive as proven-finite fields.
+/// Each variant retains every field of its producer. [`CensusError`] supplies index contradictions
+/// and [`MovementError`] supplies frame-length disagreement. Finiteness belongs to the input field
+/// contract, with no failure variant here.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "cause")]
 pub(crate) enum FailureReason<I> {
@@ -397,14 +410,13 @@ impl From<MovementError> for FailureReason<NodeRowId> {
 
 /// Reads the nearest-rank quantile at `fraction` over ascending readings.
 ///
-/// The reading is the first whose cumulative unit count reaches `fraction` of the population.
-/// With population `N`, that is the reading at one-based rank `⌈fraction · N⌉`, evaluated in
-/// `f64` so every replay computes the same rank.
+/// `sorted` must be ascending and nonempty, and `fraction` must lie in (0,1]. The one-based rank is
+/// ceil(fraction · N), with both the conversion of N and the product evaluated in `f64`. The
+/// rounded product can select a different rank than exact rational arithmetic at a boundary.
 ///
 /// # Panics
 ///
-/// This panics when `sorted` is empty. An aggregate family exists only for a positive
-/// population.
+/// Panics when `sorted` is empty or the computed rank is zero or exceeds its length.
 fn nearest_rank<T: Copy>(sorted: &[T], fraction: f64) -> T {
     debug_assert!(
         fraction > 0.0 && fraction <= 1.0,

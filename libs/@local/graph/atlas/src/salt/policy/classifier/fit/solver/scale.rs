@@ -19,8 +19,9 @@ pub(crate) struct Scaling {
 }
 
 impl Scaling {
-    /// Expands per-augmented-coordinate scales into the flat solver layout, one copy per contrast
-    /// row.
+    /// Expands per-augmented-coordinate scales into the flat solver layout.
+    ///
+    /// The layout copies each scale once per contrast row.
     pub(super) fn from_augmented(scales: &AlignedDVecN<AUGMENTED_DIMENSIONS>) -> Self {
         let mut diagonal = BoxedDVecN::zero();
         for row in 0..CONTRAST_ROWS {
@@ -54,7 +55,7 @@ impl Scaling {
         product
     }
 
-    /// The diagonal in flat contrast-major layout.
+    /// Returns the diagonal in flat contrast-major layout.
     #[inline]
     #[cfg(test)] // The solver tests compare the assembled diagonal against hand values.
     pub(super) const fn diagonal(&self) -> &AlignedDVecN<SOLVER_DIMENSIONS> {

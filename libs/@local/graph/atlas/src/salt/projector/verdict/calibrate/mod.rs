@@ -2,10 +2,10 @@
 //!
 //! At the end of semantic-only training the data sets the Proximal radius. The calibration measures
 //! the locally normalized distance `z` over the pairs of every reviewed-Proximal relation type and
-//! freezes the radius at the 25th percentile, so the Proximal energy pulls on the outlying three
+//! freezes the radius at the 25th percentile: the Proximal energy pulls on the outlying three
 //! quarters. The low quartile anchors the boundary in the population the semantic baseline already
 //! satisfies - reviewed pairs the embedding placed together - and everything beyond it feels the
-//! pull, so the lens moves reviewed geometry instead of policing its fringe. "Outlying three
+//! pull: the lens moves reviewed geometry instead of policing its fringe. "Outlying three
 //! quarters" counts in the units that matter, since the force the training loop will actually apply
 //! to a pair weights that pair's `z`,
 //!
@@ -15,15 +15,15 @@
 //! ```
 //!
 //! where `min(cap, n) / n` is the pair's inclusion probability once the relation sampler draws its
-//! type (the sampler draws types uniformly, so the type-level factor is constant and drops out of
+//! type (the sampler draws types uniformly, and the type-level factor is constant and drops out of
 //! the percentile), `c` is effective confidence, `ν` the degree normalization, and `p_P · h` the
 //! group's Proximal class weight and strength multiplier. The sampler factor keeps a high-volume
-//! type from buying the radius with edge count; the degree factor keeps hub-heavy types from
+//! type from buying the radius with edge count. The degree factor keeps hub-heavy types from
 //! inflating it - a pair into a high-degree hub exerts proportionally little force on the layout,
 //! and its pull on the percentile shrinks in the same proportion. Both factors come from the built
-//! artifacts, so the measurement cannot drift from what training consumes. The `min(cap, n) / n`
+//! artifacts, and the measurement cannot drift from what training consumes. The `min(cap, n) / n`
 //! factor is the relation objective's own per-type clip. This calibration and the training sampler
-//! move in lockstep by contract, so changing the factor re-derives both surfaces together.
+//! move in lockstep by contract: changing the factor re-derives both surfaces together.
 //!
 //! The calibration measures `z = d / √((ρ_i + ε)(ρ_j + ε))` in the relation loss's own
 //! normalization convention, using the same local scales and the same scale guard the relation
@@ -42,13 +42,13 @@ use super::{PlacementClass, ResolvedVerdict};
 
 /// The weighted-quantile fraction at which the Proximal radius freezes.
 ///
-/// Both the pooled radius and every leave-one-out radius freeze at this fraction, so the two
+/// Both the pooled radius and every leave-one-out radius freeze at this fraction, and the two
 /// surfaces cannot drift apart. The per-type evidence quartiles are descriptive and keep their own
-/// literals; their first entry coinciding with this fraction is today's policy choice, not a shared
-/// definition.
+/// literals. Their first entry coinciding with this fraction is a policy choice rather than a
+/// shared definition.
 ///
 /// The fraction itself is a policy choice with no derivation behind it. It freezes engagement
-/// demand at a quantile the semantic baseline already achieves, so demand is weakest where the
+/// demand at a quantile the semantic baseline already achieves: demand is weakest where the
 /// relation signal adds most.
 const RADIUS_FRACTION: OpenUnitFraction =
     OpenUnitFraction::new(0.25).expect("0.25 lies inside (0, 1)");
@@ -68,8 +68,8 @@ use crate::{
 /// Validated calibration parameters.
 ///
 /// `cap` is the relation sampler's per-type edge cap, `epsilon` the relation energy's scale
-/// guard, and `temperature` the Proximal transition temperature the composed energy runs with;
-/// all three must be the values the training loop runs with, or the measured radius and its
+/// guard, and `temperature` the Proximal transition temperature the composed energy runs with.
+/// All three must be the values the training loop runs with, or the measured radius and its
 /// stability certificate describe a different population and tolerance than the loss acts on.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CalibrationOptions {
@@ -81,8 +81,8 @@ pub(crate) struct CalibrationOptions {
 impl CalibrationOptions {
     /// Creates calibration parameters.
     ///
-    /// The domains ride in the types: [`Positive`] is the domain the relation energy accepts
-    /// for both the scale guard and the temperature.
+    /// Every parameter carries its domain in its type: [`Positive`] is the domain the relation
+    /// energy accepts for both the scale guard and the temperature.
     #[must_use]
     pub(crate) const fn new(cap: NonZero<usize>, epsilon: Positive, temperature: Positive) -> Self {
         Self {
@@ -110,7 +110,7 @@ pub(crate) struct TypeCalibration {
     ///
     /// [`None`] when nothing else carries mass. The spread of these values across types is the
     /// review-sufficiency reading: a tight cluster means the radius does not hinge on any
-    /// single review, a wide one names the review that owns it.
+    /// single review, and a wide one names the review that owns it.
     pub radius_without: Option<NonNegative>,
 }
 
@@ -133,11 +133,11 @@ pub(crate) struct ProximalCalibration {
 }
 
 impl ProximalCalibration {
-    /// Returns the calibration for a run with no measured population. Its radius and certificate
-    /// are absent.
+    /// Returns the calibration for a run with no measured population.
     ///
-    /// A forceless corpus carries no reviewed-Proximal geometry at all, so the record states
-    /// the absence directly rather than measuring an empty population.
+    /// Its radius and certificate are absent. A forceless corpus carries no reviewed-Proximal
+    /// geometry at all, and the record states the absence directly rather than measuring an empty
+    /// population.
     pub(crate) const fn vacuous() -> Self {
         Self {
             radius: None,
@@ -146,12 +146,12 @@ impl ProximalCalibration {
         }
     }
 
-    /// A calibration assembled from the given readings, for fixtures.
+    /// Assembles a calibration from the given readings, for fixtures.
     ///
     /// # Panics
     ///
     /// This panics when `radius` and `stability` disagree on presence: the certificate is an
-    /// evaluated reading of the same positive-mass population the radius froze from, so a
+    /// evaluated reading of the same positive-mass population the radius froze from, and a
     /// fixture carrying one without the other states an impossible record.
     #[cfg(test)]
     pub(crate) fn fixture(
@@ -180,8 +180,8 @@ impl ProximalCalibration {
     /// # Panics
     ///
     /// This panics when an edge references a row outside the frame. The index and the frame
-    /// describe one corpus, so a mismatch is a wiring defect. A pair whose reading or force
-    /// weight falls outside its validated domain panics for the same reason: the coordinates,
+    /// describe one corpus, and a mismatch is therefore a wiring defect. A pair whose reading or
+    /// force weight falls outside its validated domain panics for the same reason: the coordinates,
     /// scales, and force factors that produce them are all validated upstream.
     pub(crate) fn new<N, E>(
         verdicts: &[ResolvedVerdict],
@@ -286,11 +286,11 @@ impl ProximalCalibration {
         }
     }
 
-    /// How far a single omitted type moves the pooled radius.
+    /// Returns how far a single omitted type moves the pooled radius.
     ///
     /// The maximum of `|R_{-t} - R|` over the types with a leave-one-out reading. [`None`]
     /// without a pooled radius or when no other type carries mass. A tight spread means the
-    /// radius does not hinge on any single review, a wide one names the review that owns it.
+    /// radius does not hinge on any single review, and a wide one names the review that owns it.
     pub(crate) fn leave_one_out_spread(&self) -> Option<DNonNegative> {
         let radius = self.radius?.widen();
         self.types
@@ -300,14 +300,17 @@ impl ProximalCalibration {
             .max()
     }
 
+    /// Returns the frozen radius `u_P`, or [`None`] when no reviewed pair carries mass.
     pub(crate) const fn radius(&self) -> Option<NonNegative> {
         self.radius
     }
 
+    /// Returns the per-type evidence, ascending by relation row.
     pub(crate) const fn types(&self) -> &[TypeCalibration] {
         &self.types
     }
 
+    /// Returns the stability certificate, present exactly when [`radius`](Self::radius) is.
     pub(crate) const fn stability(&self) -> Option<&StabilityCertificate> {
         self.stability.as_ref()
     }
@@ -326,7 +329,7 @@ struct PairReading {
 ///
 /// This is the single home of the calibration weight formula. The pooled percentile, the
 /// per-type quantiles, the stability certificate, and the per-refresh fraction report all
-/// read their populations through it, so the readings cannot drift apart.
+/// read their populations through it, and the readings cannot drift apart.
 fn group_readings<'group, N, E>(
     group: &'group AttractionGroup<N, E>,
     frame: ScaledFrame<'group, N>,
@@ -354,7 +357,7 @@ where
         let normalization = scales.normalization(source, target, options.epsilon);
 
         PairReading {
-            // Never NaN and never negative; a quotient past the working range saturates, so one
+            // Never NaN and never negative. A quotient past the working range saturates, and one
             // extreme pair reads as the ceiling instead of poisoning the quantile.
             z: distance.saturating_div(normalization),
             weight: DNonNegative::new(
@@ -372,7 +375,7 @@ where
 ///
 /// Each entry re-reads the radius quantile with its own rows excluded, over the shared pooled
 /// population in walk order. The surviving mass is summed over the surviving entries rather
-/// than subtracted from the total, so the threshold cannot drift from the walked mass by
+/// than subtracted from the total, and the threshold cannot drift from the walked mass by
 /// cancellation.
 ///
 /// # Panics
@@ -412,8 +415,8 @@ fn assign_radius_without(
 /// ([`ProximalCalibration::new`]), re-measured over the given frame and scales: the per-refresh
 /// drift report re-asks the freeze-time question of a later frame, on the same step the freeze
 /// measured. At the freeze frame itself the reading is the smallest mass share the atom
-/// structure realizes at or above the radius fraction, so later readings drift against that
-/// first entry rather than against the fraction constant.
+/// structure realizes at or above the radius fraction. Later readings therefore drift against
+/// that first entry rather than against the fraction constant.
 ///
 /// Returns [`None`] when no reviewed pair carries mass.
 ///
@@ -421,8 +424,8 @@ fn assign_radius_without(
 ///
 /// This panics when an edge references a row outside the frame - the same one-corpus wiring
 /// contract as [`ProximalCalibration::new`], and the same validated-domain contract on every pair's
-/// reading and
-/// force weight. It also panics when a weight sum overflows, which is a defect of the weights.
+/// reading and force weight. It also panics when a weight sum overflows, which is a defect of the
+/// weights.
 pub(crate) fn reviewed_fraction_within<N, E>(
     verdicts: &[ResolvedVerdict],
     index: &AttractionIndex<N, E>,
@@ -456,7 +459,7 @@ where
     }
 
     // The total's finish is what refuses a population whose weight sums overflowed. The within
-    // mass sums a subsequence of the total's own non-negative addends, so the share lies within
+    // mass sums a subsequence of the total's own non-negative addends, and the share lies within
     // accumulation rounding of [0, 1].
     let total = total
         .finish()
@@ -489,7 +492,7 @@ fn weighted_quantile(
     }
 
     // Reachable only through cumulative rounding shaving the last step
-    // below the threshold; the answer is the distribution's maximum
+    // below the threshold. The answer is the distribution's maximum
     // either way.
     last.expect("a positive total implies entries")
 }

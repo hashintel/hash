@@ -1,10 +1,10 @@
 //! The dump command that writes an offline dataset from the live store.
 //!
 //! One invocation drains the store's snapshot into a directory an
-//! [`OfflineDataset`](crate::dataset::offline::OfflineDataset) accepts, embeddings included, so a
-//! fit can run on a machine that reaches neither Postgres nor the embedding provider. The command
-//! embeds through the same fingerprinted provider contract the fit records, and the manifest
-//! seals the directory last, so an interrupted dump leaves a directory the reader refuses.
+//! [`OfflineDataset`](crate::dataset::offline::OfflineDataset) accepts, embeddings included. A fit
+//! can run on a machine that reaches neither Postgres nor the embedding provider. The command
+//! embeds through the same fingerprinted provider contract the fit records, and the manifest seals
+//! the directory last. An interrupted dump leaves a directory the reader refuses.
 
 use core::{error::Error, fmt, num::NonZero, time::Duration};
 use std::time::Instant;
@@ -40,16 +40,22 @@ pub struct DumpArgs {
 
     /// The fit seed the canonical sample derives from.
     ///
-    /// Under probe coverage an offline fit replays the sample from its own seed, so the fit's
-    /// seed must equal this one.
+    /// Under probe coverage an offline fit replays the sample from its own seed. The fit's seed
+    /// must equal this one.
+    ///
+    /// Defaults to `0` when neither the flag nor `HASH_GRAPH_ATLAS_SEED` supplies one.
     #[arg(long, env = "HASH_GRAPH_ATLAS_SEED", default_value_t = 0)]
     seed: u64,
 
     /// Sampled anchor rows of the admission probe.
+    ///
+    /// Defaults to `1024`.
     #[arg(long, default_value = "1024")]
     anchors: NonZero<usize>,
 
     /// Sampled comparison rows of the admission probe.
+    ///
+    /// Defaults to `4096`.
     #[arg(long, default_value = "4096")]
     comparisons: NonZero<usize>,
 
@@ -61,9 +67,9 @@ pub struct DumpArgs {
 
     /// Path of the annotation-corpus document the offline fit will run with.
     ///
-    /// The dump assembles the corpus and merges its card embeddings into the dump, so the offline
-    /// fit resolves every text it renders. A fit supplied with a corpus the dump never assembled
-    /// would request embeddings the dump does not hold.
+    /// The dump assembles the corpus and merges its card embeddings into the dump. The offline fit
+    /// resolves every text it renders. A fit supplied with a corpus the dump never assembled would
+    /// request embeddings the dump does not hold.
     #[arg(long, env = "HASH_GRAPH_ATLAS_ANNOTATIONS", value_hint = ValueHint::FilePath)]
     annotations: Option<Utf8PathBuf>,
 
@@ -177,11 +183,11 @@ impl DumpCommand {
 
     /// Writes one dump of the live store and returns its verdict.
     ///
-    /// The hosting binary supplies the dialed store connection. This call pins the snapshot, so
-    /// the dump reads the store as of the moment the command starts, and the manifest records the
-    /// snapshot's temporal axes for the offline fit to replay. The snapshot closes once the
-    /// store's streams are drained, so no transaction stays open while the embedding pass
-    /// round-trips to the provider.
+    /// The hosting binary supplies the dialed store connection. This call pins the snapshot. The
+    /// dump reads the store as of the moment the command starts, and the manifest records the
+    /// snapshot's temporal axes for the offline fit to replay. The snapshot closes once the store's
+    /// streams are drained. No transaction stays open while the embedding pass round-trips to the
+    /// provider.
     ///
     /// # Errors
     ///
@@ -191,6 +197,11 @@ impl DumpCommand {
     /// - [`DumpError::Embedder`] when producing the embedding provider fails.
     /// - [`DumpError::Snapshot`] when the store cannot open the snapshot transaction.
     /// - [`DumpError::Dump`] when writing the dump directory fails.
+    ///
+    /// # Panics
+    ///
+    /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first and rejects a
+    /// CPU below the compiled baseline, on the conditions it documents.
     pub async fn run(self, client: &mut Client) -> Result<DumpVerdict, DumpError> {
         // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
@@ -226,10 +237,10 @@ impl DumpCommand {
             comparisons: self.args.comparisons,
             all_canonicals: self.args.all_canonicals,
             annotations: supplied.as_ref().map(SuppliedAnnotations::document),
-            // The fit's own configuration takes this same crate default, so the dump embeds
-            // exactly the texts the offline fit's assembly will render. A fit run with a
-            // different assembly requests texts the dump never embedded, and the offline
-            // embedder refuses them by hash rather than serving stale vectors.
+            // The fit's own configuration takes this same crate default. The dump embeds exactly
+            // the texts the offline fit's assembly will render. A fit run with a different assembly
+            // requests texts the dump never embedded, and the offline embedder refuses them by hash
+            // rather than serving stale vectors.
             assembly: AssemblyConfig { .. },
         };
 
@@ -239,8 +250,8 @@ impl DumpCommand {
         let reading = read(&dataset, &self.args.output, &options)
             .await
             .map_err(DumpError::Dump)?;
-        // The reading borrows nothing from the dataset, so the snapshot transaction ends here
-        // rather than spanning the provider round-trips below.
+        // The reading borrows nothing from the dataset. The snapshot transaction ends here rather
+        // than spanning the provider round-trips below.
         drop(dataset);
 
         let finished = embed(&embedder, reading, &self.args.output, &options, &NoProgress)

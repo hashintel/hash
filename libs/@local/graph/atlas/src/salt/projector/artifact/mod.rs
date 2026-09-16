@@ -1,5 +1,6 @@
-//! Checkpoint artifacts: the published model checkpoint, and the error vocabulary both checkpoint
-//! flavours share.
+//! Checkpoint artifacts.
+//!
+//! The published model checkpoint, and the error vocabulary both checkpoint flavours share.
 //!
 //! Both artifacts are burn's own named-MessagePack record format, written and parsed by the
 //! framework - the deliberate framework-parse exception to the crate's zerocopy mapping doctrine,
@@ -12,7 +13,7 @@
 //! on any backend for inference. It lives here as [`RecordedModel`] and [`open_model`]. The resume
 //! checkpoint is the fork point of the tuning protocol - the full training state at entry of the
 //! boundary step, from which a ladder segment resumes bit-equally on a deterministic backend - and
-//! rides on the state it serializes, as
+//! is defined on the state it serializes, as
 //! [`BoundaryState::write_checkpoint`](crate::salt::projector::train::BoundaryState::write_checkpoint)
 //! and
 //! [`BoundaryState::open_checkpoint`](crate::salt::projector::train::BoundaryState::open_checkpoint).
@@ -123,7 +124,7 @@ impl From<ArchitectureMismatch> for CheckpointError {
 /// One recorded model checkpoint holding the framework's serialized bytes, ready to stage.
 ///
 /// The record-then-stage split keeps the two failure domains apart: recording fails only in the
-/// framework's encoder while staging fails only in the writer, so neither error path has to
+/// framework's encoder while staging fails only in the writer, and neither error path has to
 /// explain the other. Its writer marking admits the value as the published
 /// [`artifact::Projector`] entry.
 pub(crate) struct RecordedModel(Vec<u8>);
@@ -131,14 +132,14 @@ pub(crate) struct RecordedModel(Vec<u8>);
 impl RecordedModel {
     /// Records the model's parameters as the checkpoint's byte form.
     ///
-    /// Consumes the model. Recording moves the parameters into the record, so a caller that
-    /// keeps its own copy clones at the call site where the copy is visible.
+    /// Consumes the model. Recording moves the parameters into the record. A caller that keeps
+    /// its own copy clones at the call site, where the copy is visible.
     ///
     /// # Errors
     ///
     /// Returns an error when the framework cannot encode the record.
     pub(crate) fn record<B: Backend>(model: Projector<B>) -> Result<Self, CheckpointError> {
-        // Burn's "full" precision is f32 (as opposed to half); the model is f32 end to end, so
+        // Burn's "full" precision is f32 (as opposed to half). The model is f32 end to end, and
         // the recorder round-trips the parameters exactly.
         let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
         let bytes = recorder.record(model.into_record(), ())?;

@@ -1,5 +1,3 @@
-//! The quality runner's error.
-
 use core::{error::Error, fmt};
 
 use super::probe::{DeliveryError, ProbeError};
@@ -11,7 +9,7 @@ use crate::{
     salt::{fit::prepare::identity::InvalidIdentityFile, knn::artifact::InvalidKnnFile},
 };
 
-/// The quality run could not produce a report.
+/// An artifact, probe or type-delivery failure that prevents a quality report.
 #[derive(Debug)]
 pub(crate) enum QualityRunError<E> {
     /// Opening the k-NN artifact failed.

@@ -1,7 +1,6 @@
-//! The standalone atlas operator binary.
-//!
-//! Everything lives in [`hash_graph_atlas::cli`]. This shell only redirects into it.
+//! The standalone Atlas command-line application.
 
+/// Runs an Atlas command and returns its process exit status.
 fn main() -> std::process::ExitCode {
     hash_graph_atlas::cli::main()
 }

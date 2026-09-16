@@ -96,6 +96,11 @@ fn prose_statement(types: &(impl ToSql + Sync)) -> BoundStatement<'_, ProseColum
 /// The `n`-th returned facts belong to `types[n]`: the statement orders by the unnest
 /// ordinality, and the row count check makes a violated referential contract loud.
 ///
+/// # Errors
+///
+/// Returns the store's error when it rejects the read, then when a row's prose columns do not
+/// read back at the type the decode asks for.
+///
 /// # Panics
 ///
 /// This panics when a type in `types` resolves no versioned type row, which the store's foreign
@@ -152,8 +157,9 @@ struct AncestorColumns {
     ancestor_id: usize,
 }
 
-/// Builds the ancestor statement, walking the all-depth inheritance table to each type's
-/// ancestors.
+/// Builds the ancestor statement.
+///
+/// It walks the all-depth inheritance table to each type's ancestors.
 ///
 /// # SQL
 ///
@@ -256,6 +262,11 @@ fn ancestor_statement(types: &(impl ToSql + Sync)) -> BoundStatement<'_, Ancesto
 ///
 /// The store's inheritance table holds no self rows, and the statement excludes other versions
 /// of a type's own base id along with it. The link root contributes no prose.
+///
+/// # Errors
+///
+/// Returns the store's error when it rejects the read, then when a row does not decode. `facts`
+/// keeps the ancestors earlier rows already contributed.
 pub(super) async fn ancestor_rows(
     transaction: &Transaction<'_>,
     types: &[Uuid],
@@ -306,10 +317,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered prose statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn prose_statement_text() {
         let types = vec![Uuid::nil()];
@@ -326,10 +333,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered ancestor statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn ancestor_statement_text() {
         let types = vec![Uuid::nil()];

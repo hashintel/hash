@@ -9,16 +9,25 @@
 //!
 //! The last dataset touch splits the pipeline. [`ingest`] runs on the async runtime and drains the
 //! dataset's streams and the embedding provider into staged files. [`compute`] runs on the rayon
-//! pool behind [`offload`], so the CPU-heavy stages never occupy a tokio runtime thread. A stage
-//! panic surfaces as [`compute::ComputeError::Panicked`] instead of poisoning the executor.
+//! pool behind [`offload`], and the CPU-heavy stages never occupy a tokio runtime thread. A stage
+//! panic surfaces as `compute::ComputeError::Offload` instead of poisoning the executor.
 //!
 //! # Memory discipline
 //!
-//! Every corpus-scale stage output goes to its staged file and maps back before the next stage
-//! reads it. Owned `N`-scale values are construction-transient and drop at stage exit, so the
-//! pipeline's peak residency is one stage's working set rather than the sum. The mapped views stay
-//! cheap because their pages are freshly written and evictable under pressure. Config-bounded
-//! `M`-scale values (the landmark selection, the quotient graph) stay resident within the run.
+//! Ingest streams the corpus-scale inputs into staged files, and the compute stages map those
+//! files in where they consume them. The corpus matrix and the identity table open at the compute
+//! boundary, and the card, endpoint and ontology identity columns open inside the stages that
+//! read them. The mapped pages are freshly written and evictable under pressure. Every compute
+//! stage returns its own product as an owned value beside the staged file's binding
+//! ([`compute::Staged`]), and the run retains each value until it returns. The representation
+//! quotient's row maps, the adjacency, the trainer's relation indexes, the admitted neighbour
+//! table, the semantic graph and the skeleton are all resident while the placement runs, and the
+//! adjacency and the ingest's resident type columns feed the level-of-detail stage after it. Peak
+//! residency is the retained products plus the running stage's own working storage, not one
+//! stage's working set alone. Corpus-scale intermediates a stage writes and maps rather than
+//! retains live in the scratch directory: the quotient's distinct matrix and the placement's
+//! ladder frames. Config-bounded `M`-scale values (the landmark selection and its quotient graph)
+//! stay resident within the run.
 //!
 //! # Seeds
 //!
@@ -164,7 +173,7 @@ const _: () = assert!(LandmarkSupport::new(LandmarkSupport::default().weight()).
 ///
 /// The model, its training run, and the condition ladder that publishes the canonical field.
 ///
-/// Each field is a validated value. The struct is plain wiring. [`ratified`](Self::ratified) is the
+/// Each field is a validated value. The struct is plain wiring. [`live`](Self::live) is the
 /// stamped live configuration and the placement default.
 ///
 /// The semantic affinity energy composes at stage entry from the fit's low-dimensional kernel and
@@ -183,8 +192,8 @@ pub(crate) struct ProjectorOptions {
     pub plan: BatchPlan,
     /// The logarithm offset of the semantic affinity energy.
     ///
-    /// It bounds the near-coincidence repulsion derivative, so it is a force ceiling, not a
-    /// numerical crumb.
+    /// It bounds the near-coincidence repulsion derivative: it is a force ceiling rather than a
+    /// numerical guard alone.
     pub affinity_offset: Positive,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
@@ -199,7 +208,7 @@ pub(crate) struct ProjectorOptions {
     ///
     /// The placement stage normalizes them at assembly. The semantic and ordinary bases divide by
     /// the corpus's total semantic edge weight, the hard-negative base by the row count, and the
-    /// support bases by their pool sizes, so a configured base weighs the same objective share on
+    /// support bases by their pool sizes, and a configured base weighs the same objective share on
     /// every corpus. The relation base passes through unchanged, because its estimator is already
     /// mass-free.
     pub coefficients: Coefficients,
@@ -225,7 +234,7 @@ pub(crate) struct ProjectorOptions {
 }
 
 impl ProjectorOptions {
-    /// Returns the ratified live configuration.
+    /// Returns the live configuration.
     ///
     /// Every value stamped for production training, schedule included.
     ///
@@ -319,7 +328,7 @@ pub(crate) enum PlacementOptions {
 
 /// How one fit constructs its k-NN lists.
 ///
-/// The search-backend wrapper is the default; NN-Descent derives the lists directly, with no
+/// The search-backend wrapper is the default. NN-Descent derives the lists directly, with no
 /// search structure. Either construction answers to the same recall spot check, and neither
 /// outlives the fit: the wrapper's index lives in the fit's scratch directory, which removes
 /// itself when the run ends.
@@ -414,7 +423,7 @@ impl Stage {
 
 /// Derives one stage's generator from the fit seed and the stage's pinned name.
 ///
-/// The full 32-byte digest seeds the generator, so a derived stream keeps the derivation's whole
+/// The full 32-byte digest seeds the generator, and a derived stream keeps the derivation's whole
 /// entropy.
 pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
@@ -518,9 +527,9 @@ pub(crate) struct Supplies<'fit> {
 /// Runs one fit over the dataset and publishes the generation.
 ///
 /// The stages run in the dataset's documented ingest order (nodes, edges, ontology) with every
-/// artifact staged in place, so the returned generation is complete, durable, and verifiable
-/// against its metadata document. Activation stays with the caller. Publishing a generation and
-/// serving it are separate decisions.
+/// artifact staged in place. The returned generation is therefore complete, durable, and
+/// verifiable against its metadata document. Activation stays with the caller. Publishing a
+/// generation and serving it are separate decisions.
 ///
 /// The `classifier` input resolves to a fitted model either way ([`ClassifierInput`]). A supplied
 /// artifact passes through unchanged. The run instead stages an annotation corpus verbatim,
@@ -530,8 +539,10 @@ pub(crate) struct Supplies<'fit> {
 ///
 /// The `verdicts` are a supplied input in the policy-override category. A validated
 /// reviewed-verdicts document ([`SuppliedVerdicts`]) stages verbatim as the generation's
-/// `reviewed_verdicts` role for the trainer's phase boundary to consume. The fit itself never acts
-/// on it. A fit run without one publishes with the role absent. The manifest records the absence.
+/// `reviewed_verdicts` role. The fit derives nothing from it before the placement stage, where it
+/// resolves the verdicts against the staged ontology identity column into the corpus row domain
+/// and hands the resolution to the trainer's phase boundary. The staged bytes stay the supplied
+/// file's. A fit run without one publishes with the role absent. The manifest records the absence.
 ///
 /// A `prior` generation seeds reuse. Card texts whose hash its card table lists keep their
 /// embeddings without touching the provider (under a matching embedder fingerprint). Its landmarks
@@ -544,8 +555,10 @@ pub(crate) struct Supplies<'fit> {
 /// [`FitError::Cards`], [`FitError::Embedding`]) or a supplied annotation corpus fails to assemble
 /// into the classifier's training set ([`FitError::Assembly`]). A streamed ingest write can also
 /// fail ([`FitError::Io`]), and any compute stage rejecting its input, failing an admission check,
-/// or unable to write, map, or publish answers [`FitError::Compute`]. The run publishes nothing on
-/// any error.
+/// or unable to write, map, or publish answers [`FitError::Compute`]. Every error before the
+/// seal's rename leaves nothing published. A seal error after the rename, or a progress observer
+/// panicking after the seal, returns an error although the generation directory is already
+/// visible.
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the staging and scratch directories move into the compute closure whole; nothing \
@@ -572,9 +585,9 @@ where
     let staging = root.stage()?;
     let scratch = root.scratch()?;
 
-    // The supplied verdicts stage before any derivation: construction
-    // already validated the document, so nothing after this write can
-    // reject it, and the staged bytes are the supplied file verbatim.
+    // The supplied verdicts stage before any derivation. Construction
+    // already validated the document, and nothing after this write can
+    // therefore reject it. The staged bytes are the supplied file verbatim.
     let reviewed_verdicts = match verdicts {
         Some(supplied) => {
             let file = staging.stage_with(artifact::ReviewedVerdicts, |writer| {
@@ -651,7 +664,7 @@ where
         ingested,
     };
 
-    // The compute half leaves this stack for the rayon pool, so it takes the observer's detached
+    // The compute half leaves this stack for the rayon pool, and it takes the observer's detached
     // half rather than a borrow the spawn cannot hold.
     let detached = progress.detach();
     let published =

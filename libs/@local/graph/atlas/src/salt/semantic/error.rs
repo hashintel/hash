@@ -1,8 +1,6 @@
-//! Semantic-graph validation errors.
-
 use core::{error::Error, fmt};
 
-/// A matrix violated a [`SemanticGraph`](super::SemanticGraph) invariant.
+/// A violation of a [`SemanticGraph`](super::SemanticGraph) invariant.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum SemanticValidationError {
     /// The matrix uses column compression.
