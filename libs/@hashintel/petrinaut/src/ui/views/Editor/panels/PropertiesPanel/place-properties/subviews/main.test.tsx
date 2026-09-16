@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { use, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,12 +19,9 @@ import {
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { CodeNavigationProvider } from "../../../../../../monaco/code-navigation";
 import { PlacePropertiesProvider } from "../context";
 import { placeMainContentSubView } from "./main";
-
-vi.mock("../../../../../../monaco/code-workspace", () => ({
-  useCodeWorkspace: () => ({ enabled: false }),
-}));
 
 afterEach(cleanup);
 
@@ -94,7 +92,9 @@ const Harness = ({
               setPlace((currentPlace) => ({ ...currentPlace, ...update }))
             }
           >
-            <PlaceMainContent />
+            <CodeNavigationProvider>
+              <PlaceMainContent />
+            </CodeNavigationProvider>
           </PlacePropertiesProvider>
         </ActiveNetContext>
       </EditorContext>
@@ -152,7 +152,9 @@ describe("Place properties", () => {
     await act(async () => {
       fireEvent.click(screen.getByText("Token capacity", { exact: true }));
     });
-    expect(screen.queryByLabelText("Maximum tokens")).toBeNull();
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Maximum tokens")).toBeNull();
+    });
   });
 
   it.each([false, true])(
@@ -166,6 +168,9 @@ describe("Place properties", () => {
         id: "type-1",
       });
       fireEvent.click(screen.getByRole("button", { name: /View equation/ }));
+      expect(
+        screen.queryByRole("button", { name: "Open equation code" }),
+      ).toBeNull();
       expect(selectItem).toHaveBeenLastCalledWith({
         type: "differentialEquation",
         id: "equation-1",

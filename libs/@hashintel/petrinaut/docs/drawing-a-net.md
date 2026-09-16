@@ -25,7 +25,7 @@ into it, and the rest comes back for as long as you stay on it.
 
 Select an entity to inspect its properties. Places use the same Name and Description fields as transitions and types.
 
-Place settings include an **Options** section for **Component port**, **Token capacity**, and **Default starting place**. Click a checkbox or its label to toggle the setting. Enabling Token capacity shows the **Maximum tokens** field. Point at the info icons for an explanation of each option.
+Place settings include an **Options** section for **Component port**, **Token capacity**, and **Default starting place**. Click a checkbox or its label to toggle the setting. Enabling Token capacity expands a compact **Maximum tokens** row beneath it. Point at the info icons for an explanation of each option.
 
 Click **View type** or **View equation** to open the assigned definition. These navigation actions are available when the net is read-only.
 
