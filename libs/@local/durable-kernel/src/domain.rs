@@ -556,7 +556,7 @@ pub enum ProjectionSnapshot<S: SimpleDomain> {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields, bound = "")]
 pub struct ProjectionSnapshotV1<S: SimpleDomain> {
-    pub shard: String,
+    pub shard: Shard,
     pub through_log_sequence: u64,
     pub created_at: String,
     pub seen: BTreeMap<EventId, JournalRecordDigest>,
@@ -577,7 +577,7 @@ pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
 impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
     pub fn into_record(self, created_at: String) -> ProjectionSnapshot<S> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
-            shard: crate::routing::shard_path(self.shard),
+            shard: self.shard,
             through_log_sequence: self.through_log_sequence,
             created_at,
             seen: self.seen,
@@ -585,21 +585,6 @@ impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
             domain: self.domain,
         })
     }
-}
-
-fn parse_snapshot_shard(value: &str) -> Result<Shard, String> {
-    if value.len() != 3 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("snapshot shard must be three hexadecimal characters".to_owned());
-    }
-    let parsed =
-        u16::from_str_radix(value, 16).map_err(|error| format!("parse snapshot shard: {error}"))?;
-    let shard = Shard::try_from(parsed).map_err(|error| error.to_string())?;
-    if crate::routing::shard_path(shard) != value {
-        return Err(format!(
-            "snapshot shard {value:?} must use lowercase hexadecimal digits"
-        ));
-    }
-    Ok(shard)
 }
 
 fn snapshot_malformed(message: impl Into<String>) -> CompatError {
@@ -860,7 +845,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
 
     fn snapshot_bounds(snapshot: &ProjectionSnapshot<S>) -> Result<(Shard, u64), String> {
         let ProjectionSnapshot::V1(record) = snapshot;
-        let shard = parse_snapshot_shard(&record.shard)?;
+        let shard = record.shard;
         Ok((shard, record.through_log_sequence))
     }
 
@@ -879,11 +864,11 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         snapshot: &ProjectionSnapshot<S>,
     ) -> Result<Self::Projection, String> {
         let ProjectionSnapshot::V1(record) = snapshot;
-        let snapshot_shard = parse_snapshot_shard(&record.shard)?;
+        let snapshot_shard = record.shard;
         if snapshot_shard != shard {
             return Err(format!(
                 "snapshot for shard {} was offered to shard {}",
-                record.shard,
+                crate::routing::shard_path(record.shard),
                 crate::routing::shard_path(shard)
             ));
         }
@@ -1237,7 +1222,7 @@ mod tests {
 
     fn toy_snapshot(shard: &str, created_at: String) -> ProjectionSnapshot<ToyDomain> {
         ProjectionSnapshot::V1(ProjectionSnapshotV1 {
-            shard: shard.to_owned(),
+            shard: shard.parse().expect("test shard should parse"),
             through_log_sequence: 0,
             created_at,
             seen: BTreeMap::new(),
@@ -1275,15 +1260,51 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_shard_strings_are_validated() {
-        Toy::snapshot_bounds(&toy_snapshot("00f", String::new()))
-            .expect("fixed-width shard should be valid");
-        for invalid in ["0f", "00f1", "xyz", ""] {
+    fn snapshot_shard_decode() {
+        let mut fixture = json!({
+            "version": "v1",
+            "data": {
+                "shard": "00f",
+                "through_log_sequence": 0,
+                "created_at": "",
+                "seen": {},
+                "partitions": {},
+                "domain": { "totals": {} }
+            }
+        });
+        let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
+        let snapshot =
+            ProjectionSnapshot::<ToyDomain>::decode(&bytes).expect("stored snapshot should decode");
+        assert_eq!(
+            Toy::snapshot_bounds(&snapshot).expect("snapshot bounds should be valid"),
+            (Shard::from_u8(15), 0)
+        );
+        assert_eq!(
+            snapshot.encode().expect("snapshot should encode"),
+            bytes,
+            "typed shard should preserve the stored snapshot format"
+        );
+
+        for invalid in ["0f", "00f1", "xyz", "", "00F", "100"] {
+            fixture["data"]["shard"] = json!(invalid);
+            let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
+            let error = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
+                .err()
+                .expect("an invalid shard should fail snapshot decoding");
             assert!(
-                Toy::snapshot_bounds(&toy_snapshot(invalid, String::new())).is_err(),
-                "shard {invalid:?} should be refused"
+                matches!(error, CompatError::Malformed { .. }),
+                "shard {invalid:?} should make the snapshot malformed: {error}"
             );
         }
+    }
+
+    #[tokio::test]
+    async fn snapshot_restore_foreign_shard() {
+        let snapshot = toy_snapshot("00f", String::new());
+        let error = Toy::load_snapshot_projection(&(), Shard::from_u8(16), &snapshot)
+            .await
+            .expect_err("a snapshot should only restore to its own shard");
+        assert_eq!(error, "snapshot for shard 00f was offered to shard 010");
     }
 
     #[test]
