@@ -187,7 +187,7 @@ impl From<PartitionKey> for String {
 ///
 /// # Panics
 ///
-/// Panics if the shard count is zero or a shard index cannot be represented.
+/// Panics if a shard index cannot be represented.
 #[expect(
     clippy::big_endian_bytes,
     reason = "shard routing defines the digest prefix as big-endian"
@@ -201,12 +201,8 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
             .expect("digest should contain eight prefix bytes"),
     );
     Shard::try_from(
-        u16::try_from(
-            routing_value
-                .checked_rem(u64::from(SHARD_COUNT))
-                .expect("shard count should be nonzero"),
-        )
-        .expect("shard index should fit in u16"),
+        u16::try_from(routing_value % core::num::NonZeroU64::from(SHARD_COUNT))
+            .expect("shard index should fit in u16"),
     )
     .expect("a value reduced modulo the shard count should be a valid shard")
 }

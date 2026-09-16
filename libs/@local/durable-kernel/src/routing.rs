@@ -3,7 +3,8 @@
 //! [`Shard`] checks numeric IDs and [`shard_path`] formats them for storage paths. Application
 //! domains route partition keys through [`crate::domain::shard_of`].
 
-pub const SHARD_COUNT: u16 = 256;
+pub const SHARD_COUNT: core::num::NonZeroU16 =
+    core::num::NonZeroU16::new(256).expect("shard count should be nonzero");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Shard(u8);
