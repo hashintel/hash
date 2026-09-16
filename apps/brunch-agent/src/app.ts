@@ -38,7 +38,11 @@ import {
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
-import { withBufferedToolAdmission } from "./provider-admission.ts";
+import {
+  claimModelStreamIdleRetry,
+  withBufferedToolAdmission,
+  type ModelStreamIdleRetryScope,
+} from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
@@ -82,8 +86,9 @@ instrument({
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
 // merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
-type AdmissionExecutionScope = { idleRetryAvailable: boolean };
-const admissionScope = new AsyncLocalStorage<AdmissionExecutionScope | false>();
+const admissionScope = new AsyncLocalStorage<
+  ModelStreamIdleRetryScope | false
+>();
 const modelStreamTimeout = (environmentName: string, productionMs: number) => {
   if (process.env.NODE_ENV !== "test") return productionMs;
   const configured = process.env[environmentName];
@@ -162,18 +167,7 @@ const registerAdmittedProvider = (provider: Provider) => {
       browserToolNames,
       {
         cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
-        claimRetry: () => {
-          const scope = admissionScope.getStore();
-          if (
-            scope === undefined ||
-            scope === false ||
-            !scope.idleRetryAvailable
-          ) {
-            return false;
-          }
-          scope.idleRetryAvailable = false;
-          return true;
-        },
+        claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
         reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,

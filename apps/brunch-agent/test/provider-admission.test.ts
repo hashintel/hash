@@ -246,6 +246,8 @@ test("gives newly opened reasoning its longer first-delta grace", async () => {
     await expect(reading).rejects.toMatchObject({
       code: "model_stream_idle",
       idleMs: 15,
+      lastEventType: "thinking_start",
+      phase: "reasoning_start",
     });
   } finally {
     vi.useRealTimers();
@@ -258,7 +260,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     const { faux, model } = fixture();
     const upstream = createAssistantMessageEventStream();
     let upstreamSignal: AbortSignal | undefined;
-    const claimRetry = vi.fn(() => true);
+    const claimRetry = vi.fn<() => boolean>(() => true);
     const provider = withBufferedToolAdmission(
       {
         ...faux.provider,
@@ -323,7 +325,7 @@ test("admits a completed call that wins the idle race", async () => {
   try {
     const { faux, model } = fixture();
     const upstream = createAssistantMessageEventStream();
-    const claimRetry = vi.fn(() => true);
+    const claimRetry = vi.fn<() => boolean>(() => true);
     const provider = withBufferedToolAdmission(
       { ...faux.provider, streamSimple: () => upstream },
       () => true,
@@ -374,7 +376,7 @@ test("does not retry after a complete tool call wins the idle race", async () =>
   try {
     const { faux, model } = fixture();
     const upstream = createAssistantMessageEventStream();
-    const claimRetry = vi.fn(() => true);
+    const claimRetry = vi.fn<() => boolean>(() => true);
     const provider = withBufferedToolAdmission(
       {
         ...faux.provider,

@@ -24,7 +24,10 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
-import { withBufferedToolAdmission } from "../../../../../brunch-agent/src/provider-admission";
+import {
+  claimModelStreamIdleRetry,
+  withBufferedToolAdmission,
+} from "../../../../../brunch-agent/src/provider-admission";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
@@ -91,7 +94,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
   ]);
 
   const application = await loadBuiltBrunchApplication();
-  let retryAvailable = true;
+  const retryScope = { idleRetryAvailable: true };
   setProvider(
     withBufferedToolAdmission(
       nativeOpenaiProvider(
@@ -105,11 +108,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       new Set(),
       {
         cancellationTimeoutMs: 100,
-        claimRetry: () => {
-          const claimed = retryAvailable;
-          retryAvailable = false;
-          return claimed;
-        },
+        claimRetry: () => claimModelStreamIdleRetry(retryScope),
         firstEventTimeoutMs: 3_000,
         idleTimeoutMs: 500,
         reasoningStartTimeoutMs: 3_000,
