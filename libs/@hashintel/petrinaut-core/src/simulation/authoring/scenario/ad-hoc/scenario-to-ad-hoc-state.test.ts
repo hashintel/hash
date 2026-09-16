@@ -403,7 +403,7 @@ const synthesisContext = (net: SDCPN): AdHocSynthesisContext => ({
 const compileOriginal = (candidate: Scenario, net: SDCPN) => {
   const result = compileScenario(
     candidate,
-    lowerScenarioToHir(candidate),
+    lowerScenarioToHir(candidate, { adHocContext: synthesisContext(net) }),
     net.parameters,
     net.places,
     net.types,
@@ -441,13 +441,13 @@ const compileConverted = (candidate: Scenario, net: SDCPN) => {
 };
 
 describe("adHocStateFromScenario over the core examples", () => {
-  it("covers every stored kind the examples ship", () => {
-    expect(exampleScenarios("per_place")).toHaveLength(22);
-    expect(exampleScenarios("code")).toHaveLength(2);
-    expect(exampleScenarios("adhoc")).toHaveLength(0);
+  it("stores every example scenario in the editable ad-hoc format", () => {
+    expect(exampleScenarios("per_place")).toHaveLength(0);
+    expect(exampleScenarios("code")).toHaveLength(0);
+    expect(exampleScenarios("adhoc")).toHaveLength(24);
   });
 
-  it.each([...exampleScenarios("per_place"), ...exampleScenarios("code")])(
+  it.each(exampleScenarios("adhoc"))(
     "%s keeps every scenario parameter identifier verbatim",
     (_title, candidate, net) => {
       const converted = adHocStateFromScenario(
@@ -466,14 +466,15 @@ describe("adHocStateFromScenario over the core examples", () => {
     },
   );
 
-  it.each(exampleScenarios("per_place"))(
-    "%s compiles to the same initial state and parameter values once converted",
+  it.each(exampleScenarios("adhoc"))(
+    "%s keeps its editable definition and compiled values when reopened",
     (_title, candidate, net) => {
       const converted = adHocStateFromScenario(
         candidate,
         synthesisContext(net),
       );
-      expect(converted.kind).toBe("per_place");
+      expect(converted.kind).toBe("adhoc");
+      expect(converted.state).toEqual(candidate.initialState.content);
       const original = compileOriginal(candidate, net);
       const viaForm = compileConverted(candidate, net);
       expect(viaForm.initialState).toEqual(original.initialState);
@@ -481,19 +482,9 @@ describe("adHocStateFromScenario over the core examples", () => {
     },
   );
 
-  it.each(exampleScenarios("code"))(
-    "%s keeps its code body and synthesizes the same parameters and overrides",
+  it.each(exampleScenarios("adhoc"))(
+    "%s synthesizes the same exposed parameters and overrides",
     (_title, candidate, net) => {
-      const converted = adHocStateFromScenario(
-        candidate,
-        synthesisContext(net),
-      );
-      expect(converted.kind).toBe("code");
-      if (converted.kind !== "code") {
-        return;
-      }
-      expect(converted.code).toBe(candidate.initialState.content);
-      expect(converted.state.places).toEqual({});
       const synthesized = synthesizeConverted(candidate, net);
       expect(synthesized.scenarioParameters).toEqual(
         candidate.scenarioParameters,

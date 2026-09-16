@@ -65,9 +65,12 @@ const generateRuntime = async (entry: ExampleCatalogEntry) => {
     null,
   ) as Record<string, ScenarioHir>;
   for (const scenario of definition.scenarios ?? []) {
-    const hir = lowerScenarioToHir({
-      parameterOverrides: scenario.parameterOverrides,
-      initialState: scenario.initialState,
+    const hir = lowerScenarioToHir(scenario, {
+      adHocContext: {
+        places: definition.places,
+        types: definition.types,
+        netParameters: definition.parameters,
+      },
     });
     const outcome = compileScenario(
       scenario,

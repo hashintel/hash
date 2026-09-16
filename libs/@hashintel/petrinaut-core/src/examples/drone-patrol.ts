@@ -203,22 +203,181 @@ export default Dynamics((tokens, parameters) => {
           param__drain_rate: "scenario.drain_rate",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            // battery, altitude — one row per drone.
-            place__hangar: [
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
-              [100, 0],
+            variables: [
+              {
+                name: "launch_rate",
+                type: "real",
+                expression: "0.6",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "drain_rate",
+                type: "real",
+                expression: "2.5",
+                exposed: true,
+                optimize: null,
+              },
             ],
-            place__airborne: [],
+            netParameters: [
+              {
+                parameterId: "param__launch_rate",
+                expression: "scenario.launch_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "param__drain_rate",
+                expression: "scenario.drain_rate",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__hangar: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "100",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place__airborne: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
