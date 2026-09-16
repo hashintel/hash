@@ -879,7 +879,11 @@ describe("CreateExperimentDrawer constraints", () => {
       screen.getByRole("button", { name: "Add parameter constraint" }),
     );
     const row = screen.getByRole("group", { name: "Parameter constraint 1" });
-    expect(within(row).getByText(/Parameters/)).toBeTruthy();
+    expect(
+      within(
+        screen.getByRole("group", { name: "Parameter constraints" }),
+      ).getByRole("group", { name: "Parameter constraint 1" }),
+    ).toBe(row);
     const session = firstConstraintSession(languageClient);
     expect(session).toMatchObject({
       space: "parameters",
@@ -906,8 +910,8 @@ describe("CreateExperimentDrawer constraints", () => {
     ).toMatchObject({ space: "state", code: "" });
     expect(
       within(
-        screen.getByRole("group", { name: "State constraint 1" }),
-      ).getByText(/State/),
+        screen.getByRole("group", { name: "State constraints" }),
+      ).getByRole("group", { name: "State constraint 1" }),
     ).toBeTruthy();
 
     fireEvent.click(
@@ -919,6 +923,44 @@ describe("CreateExperimentDrawer constraints", () => {
     expect(
       screen.queryByRole("group", { name: "Parameter constraint 1" }),
     ).toBeNull();
+  });
+
+  it("groups conditions by type and returns focus to that group's add button", async () => {
+    await openConstrainedSweep();
+    const addState = screen.getByRole("button", {
+      name: "Add state constraint",
+    });
+    fireEvent.click(addState);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.click(addState);
+
+    const parameterGroup = screen.getByRole("group", {
+      name: "Parameter constraints",
+    });
+    const stateGroup = screen.getByRole("group", { name: "State constraints" });
+    expect(parameterGroup.compareDocumentPosition(stateGroup)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(within(parameterGroup).getAllByRole("textbox")).toHaveLength(1);
+    expect(within(stateGroup).getAllByRole("textbox")).toHaveLength(2);
+    expect(
+      within(stateGroup).getByLabelText("Pass threshold (percent)"),
+    ).toBeTruthy();
+    expect(
+      within(parameterGroup).queryByLabelText("Pass threshold (percent)"),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 2" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove state constraint 1" }),
+    );
+    expect(document.activeElement).toBe(addState);
+    expect(within(stateGroup).queryByRole("textbox")).toBeNull();
+    expect(within(parameterGroup).getByRole("textbox")).toBeTruthy();
   });
 
   it("mounts the pass threshold with the first state row only", async () => {
