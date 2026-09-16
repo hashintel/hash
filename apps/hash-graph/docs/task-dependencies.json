@@ -1,27 +1,28 @@
 {
-  "package": "@apps/hash-graph",
+  "package": "hash-graph",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/harpc-codec",
-    "@rust/harpc-server",
-    "@rust/hash-codec",
-    "@rust/hash-graph-api",
-    "@rust/hash-graph-atlas",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-embeddings",
-    "@rust/hash-graph-postgres-store",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-type-fetcher",
-    "@rust/hash-telemetry",
-    "@rust/hash-temporal-client"
+    "error-stack",
+    "harpc-codec",
+    "harpc-server",
+    "hash-codec",
+    "hash-graph-api",
+    "hash-graph-atlas",
+    "hash-graph-authorization",
+    "hash-graph-embeddings",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-type-fetcher",
+    "hash-telemetry",
+    "hash-temporal-client",
+    "type-system"
   ],
   "tasks": {
     "build:docker": {
       "dependsOn": [],
       "cache": false,
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "build:docker:dev": {
@@ -38,11 +39,12 @@
     },
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores"
       ]
     },
     "fix:clippy": {
@@ -54,7 +56,8 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "start": {
@@ -101,7 +104,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     }
   }

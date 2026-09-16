@@ -47,7 +47,7 @@
       "command": ["just", "miri"]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/harpc-wire-protocol"]
+      "command": ["mise", "run", "test:unit", "harpc-wire-protocol"]
     }
   }
 }

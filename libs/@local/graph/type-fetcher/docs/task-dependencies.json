@@ -1,22 +1,24 @@
 {
-  "package": "@rust/hash-graph-type-fetcher",
+  "package": "hash-graph-type-fetcher",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-types",
-    "@rust/hash-temporal-client"
+    "error-stack",
+    "hash-graph-authorization",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-types",
+    "hash-temporal-client",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -26,6 +28,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

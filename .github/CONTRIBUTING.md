@@ -46,7 +46,7 @@ New local packages should follow these rules:
 1. Anything which is imported or consumed by something else belongs in `libs/` and have a `package.json` `"name"`:
    - beginning with `@local/` for non-published JavaScript dependencies
    - identical to their `npm` name for published JavaScript dependencies
-   - begin with `@rust/` for Rust dependencies
+   - Rust crates carry no `package.json`; Turborepo knows them by their `Cargo.toml` `[package].name`
 2. Things which are executed belong in `apps/`, and are named `@apps/app-name
 3. Packages which aren't published to `npm` should have `"private": true` in their `package.json`
 4. All TypeScript packages should be `"type": "module"`

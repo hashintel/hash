@@ -43,7 +43,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/hash-graph-authentication",
+        "hash-graph-authentication",
         "--",
         "--filterset",
         "not kind(test)"

@@ -1,7 +1,0 @@
-{
-  "name": "@rust/antsi",
-  "version": "0.0.0-private",
-  "private": true,
-  "description": "A no-std mini-crate that provides support ANSI escape sequences",
-  "license": "MIT OR Apache-2.0"
-}

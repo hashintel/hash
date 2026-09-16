@@ -1,10 +1,10 @@
 [package]
-name              = "hash-graph-integration"
-version.workspace = true
+authors.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "hash-graph-integration"
 publish.workspace = true
-authors.workspace = true
+version.workspace = true
 
 [dev-dependencies]
 # Private workspace dependencies
@@ -38,8 +38,3 @@ workspace = true
 [[test]]
 name = "postgres"
 path = "postgres/lib.rs"
-
-[package.metadata.sync.turborepo]
-extra-dev-dependencies = [
-    { name = "@apps/hash-graph", version = "workspace:*" },
-]

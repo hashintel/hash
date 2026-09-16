@@ -1,8 +1,8 @@
 [package]
-name              = "hashql-eval"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "hashql-eval"
 publish.workspace = true
 version.workspace = true
 
@@ -52,14 +52,9 @@ type-system              = { workspace = true }
 workspace = true
 
 [[test]]
-name    = "compiletest"
 harness = false
+name    = "compiletest"
 
 [[test]]
-name    = "orchestrator"
 harness = false
-
-[package.metadata.sync.turborepo]
-ignore-dev-dependencies = [
-    "hashql-compiletest",
-]
+name    = "orchestrator"

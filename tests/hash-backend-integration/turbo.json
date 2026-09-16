@@ -7,7 +7,12 @@
       "dependsOn": ["@local/hash-isomorphic-utils#build"]
     },
     "test:integration": {
-      "dependsOn": ["codegen", "^build", "^start:test:healthcheck"]
+      "dependsOn": [
+        "codegen",
+        "^build",
+        "^start:test:healthcheck",
+        "hash-graph#start:test:healthcheck"
+      ]
     }
   }
 }

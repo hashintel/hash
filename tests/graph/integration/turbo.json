@@ -3,7 +3,7 @@
   "tasks": {
     "test:integration": {
       "command": ["cargo", "nextest", "run", "--all-features", "--all-targets"],
-      "dependsOn": ["^manifest"]
+      "dependsOn": ["^manifest", "hash-graph#start:test:healthcheck"]
     },
     "fix:clippy": {
       "command": ["just", "clippy", "--fix"]

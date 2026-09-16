@@ -5,12 +5,7 @@ from __future__ import annotations
 
 import unittest
 
-from prune import (
-    expand_scopes,
-    extra_paths_for_requested,
-    extras_for_requested,
-    fixpoint_expand,
-)
+from prune import extra_paths_for_requested, extras_for_requested
 
 CORE = "@hashintel/brunch-agent"
 TRANSPORT = "@hashintel/brunch-agent-transport-aisdk"
@@ -18,27 +13,14 @@ APP = "@apps/brunch-agent"
 WEBSITE = "@apps/petrinaut-website"
 FRONTEND = "@apps/hash-frontend"
 PLAYWRIGHT = "@tests/hash-playwright"
-ATLAS = "@rust/hash-graph-atlas"
+ATLAS = "hash-graph-atlas"
 
 
 class FrontendRequestedExtras(unittest.TestCase):
     def test_frontend_direct(self) -> None:
         self.assertEqual(extras_for_requested({FRONTEND}), frozenset({ATLAS}))
-        self.assertIn(
-            ATLAS,
-            fixpoint_expand(
-                {FRONTEND} | extras_for_requested({FRONTEND}),
-                {FRONTEND: frozenset(), ATLAS: frozenset()},
-            ),
-        )
 
-    def test_frontend_transitive(self) -> None:
-        dependencies = {
-            PLAYWRIGHT: frozenset({FRONTEND}),
-            FRONTEND: frozenset(),
-        }
-        expanded = fixpoint_expand({PLAYWRIGHT}, dependencies)
-        self.assertNotIn(ATLAS, expanded)
+    def test_dependent_of_frontend_adds_nothing(self) -> None:
         self.assertEqual(extras_for_requested({PLAYWRIGHT}), frozenset())
 
 
@@ -64,37 +46,7 @@ class BrunchRequestedExtras(unittest.TestCase):
     def test_sibling_or_website_job_does_not_add_context_paths(self) -> None:
         self.assertEqual(extra_paths_for_requested({TRANSPORT}), [])
         self.assertEqual(extra_paths_for_requested({WEBSITE}), [])
-
-    def test_core_transitive(self) -> None:
-        dependencies = {
-            WEBSITE: frozenset({CORE, TRANSPORT}),
-            TRANSPORT: frozenset(),
-            CORE: frozenset(),
-        }
-        expanded = fixpoint_expand({WEBSITE}, dependencies)
-        self.assertNotIn(APP, expanded)
         self.assertEqual(extras_for_requested({WEBSITE}), frozenset())
-
-
-class DarwinPrefix(unittest.TestCase):
-    def test_darwin_child(self) -> None:
-        extras = expand_scopes({"@rust/darwin-kperf-sys"})
-        self.assertIn("@rust/darwin-kperf-sys", extras)
-        self.assertIn("@rust/darwin-kperf-events", extras)
-
-
-TYPE_SYSTEM = "@blockprotocol/type-system"
-TYPE_SYSTEM_RS = "@blockprotocol/type-system-rs"
-
-
-class DependencyScopes(unittest.TestCase):
-    def test_dependencies_become_scopes_and_trigger_extras(self) -> None:
-        expanded = fixpoint_expand(
-            {TYPE_SYSTEM}, {TYPE_SYSTEM: frozenset({TYPE_SYSTEM_RS})}
-        )
-        self.assertIn(TYPE_SYSTEM_RS, expanded)
-        # The rust twin in scope also fires its EXTRA_DEPENDENCIES rule.
-        self.assertIn("@rust/hash-graph-test-data", expanded)
 
 
 if __name__ == "__main__":

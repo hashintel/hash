@@ -33,7 +33,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/harpc-types",
+        "harpc-types",
         "--",
         "--no-tests",
         "warn"

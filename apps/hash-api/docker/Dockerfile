@@ -29,16 +29,8 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     mise install --locked npm:turbo yq
 
 COPY . .
-# `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN mise trust && \
-    turbo prune '@apps/hash-api' --docker && \
-    find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
-    [ -f "/app/out/full/$1" ] || ( \
-    mkdir -p "/app/out/full/$(dirname "$1")/src" && \
-    echo > "/app/out/full/$(dirname "$1")/src/lib.rs" && \
-    printf "[package]\nname = \"$(yq ".package.name" $1)\"" > "/app/out/full/$1" \
-    )' _ {} \; && \
-    cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
+    turbo prune '@apps/hash-api' --docker
 
 
 FROM mise AS rust

@@ -49,7 +49,7 @@
       "command": ["just", "clippy"]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hash-codec"]
+      "command": ["mise", "run", "test:unit", "hash-codec"]
     }
   }
 }

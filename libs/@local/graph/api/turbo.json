@@ -46,7 +46,7 @@
       "cache": false
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hash-graph-api"],
+      "command": ["mise", "run", "test:unit", "hash-graph-api"],
       "dependsOn": ["^manifest", "lint:openapi"]
     }
   }

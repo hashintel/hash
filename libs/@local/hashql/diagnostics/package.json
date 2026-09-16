@@ -1,6 +1,0 @@
-{
-  "name": "@rust/hashql-diagnostics",
-  "version": "0.0.0-private",
-  "private": true,
-  "license": "AGPL-3"
-}
