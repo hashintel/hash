@@ -2,6 +2,8 @@
 
 Petrinaut includes several built-in example nets accessible from the **hamburger menu** (top-left) under **Load example**. The SIR model is the simplest starting point; the Supply Chain with Disruption net is the most complex.
 
+Bundled scenarios use the [ad-hoc scenario form](ad-hoc-scenarios.md), so you can edit their Variables, parameter overrides, and initial-state tables. Dynamic rows keep generated machine fleets and satellite constellations linked to their scenario parameters.
+
 ## SIR Epidemic Model
 
 The classic Susceptible-Infected-Recovered compartmental model from epidemiology, implemented as a stochastic Petri net.
@@ -171,12 +173,12 @@ An orbital mechanics simulation: satellites are continuously launched into orbit
 - **`Distribution.map()` for coordinate conversion** -- a uniform launch angle is sampled once, then `.map()` derives both `x` (cosine) and `y` (sine) from the same underlying sample for a coherent polar-to-cartesian position.
 - **Predicate transitions based on geometry** -- "Collision" checks the distance between two satellites and "Crash" checks distance from the planet's surface, routing tokens to the Debris place.
 - **Arc weight 2** on the "Collision" transition -- it consumes two satellites from the Space place at once to evaluate pairwise proximity.
-- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters. _Pre-deployed Constellation_ defines its initial state [as code](scenarios.md#scenarios-stored-as-code), building a ring of satellites with `range(...).map(...)` from two scenario parameters (`number_of_satellites`, `initial_altitude`). Each satellite starts tangentially at circular-orbit speed, so the whole ring stays in orbit from the first frame.
+- **Scenarios** -- _Moon Orbit_ (low gravity, gentle arcs) and _Earth Orbit_ (high orbital velocities, frequent launches) preconfigure the gravitational constant, planet radius, and launch parameters. _Pre-deployed Constellation_ uses a dynamic row in the [ad-hoc scenario form](ad-hoc-scenarios.md) to build a ring of satellites from two scenario parameters (`number_of_satellites`, `initial_altitude`). Each satellite starts tangentially at circular-orbit speed, so the whole ring stays in orbit from the first frame.
 - **[Metrics](simulation.md)** -- satellites in orbit, debris objects, average orbital radius, and average orbital speed. Its **Average orbital radius** and **Average orbital speed** metrics reduce over the satellites' attributes and compile to the GPU as loops.
 
 **Suggested initial state:** no initial tokens needed -- pick a scenario (e.g. _Earth Orbit_) and press Play. The "LaunchSatellite" source transition creates satellites with randomized orbital positions and velocities. Select the Space place and open the visualizer preview to watch the orbits fill up. The velocity for a roughly circular orbit at radius `r` is approximately `sqrt(gravitational_constant / r)`.
 
-**Bundled extras:** five scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** tune the physical constants for very different orbital regimes, and **Pre-deployed Constellation** starts with a configurable ring of satellites already in orbit (its initial state is stored as code). Switch between them in Simulation Settings to compare.
+**Bundled extras:** five scenarios -- **Moon Orbit**, **Earth Orbit**, **Mars Orbit**, and **Solar Orbit** tune the physical constants for very different orbital regimes, and **Pre-deployed Constellation** starts with a configurable ring of satellites already in orbit (its initial state is editable as a dynamic row). Switch between them in Simulation Settings to compare.
 
 **Key concepts:** [dynamics](petri-net-extensions.md#differential-equations-dynamics), [visualizers](petri-net-extensions.md#visualizer), [source transitions](useful-patterns.md#source-transitions-exogenous-arrivals), [distributions and `.map()`](petri-net-extensions.md#distributions), [arc weight](useful-patterns.md#arc-weight-for-multi-token-operations), [scenarios](scenarios.md).
 

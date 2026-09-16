@@ -1,10 +1,13 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 
 import { Button, HelpTooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
+import { useFocusHeader } from "../worksheet/use-focus-member";
+import { PointerHelpTooltip } from "./pointer-help-tooltip";
+import { StackedSectionHeader, StackedSections } from "./stacked-sections";
 
 // -- SectionList (wrapper) --------------------------------------------------
 
@@ -22,15 +25,32 @@ const sectionListStyle = css({
 
 interface SectionListProps {
   children: ReactNode;
+  stacked?: boolean;
 }
 
-export const SectionList = ({ children }: SectionListProps) => (
-  <div className={sectionListStyle}>{children}</div>
-);
+export const SectionList = ({ children, stacked }: SectionListProps) =>
+  stacked ? (
+    <StackedSections>{children}</StackedSections>
+  ) : (
+    <div className={sectionListStyle}>{children}</div>
+  );
 
 // -- Section -----------------------------------------------------------------
 
+const stackedSectionStyle = css({
+  display: "contents",
+  "&[data-state=open] + [data-section] > [data-stack-anchor]": {
+    marginTop: "2",
+  },
+});
+const stackedContentStyle = css({
+  paddingBottom: "2",
+  borderBottom: "[1px solid {colors.neutral.a20}]",
+  "&[data-part=content]": { overflow: "visible" },
+});
+
 const sectionStyle = css({
+  "&:has([data-stacked-sections]) > [data-part=content]": { overflow: "clip" },
   display: "flex",
   flexDirection: "column",
   position: "relative",
@@ -60,6 +80,8 @@ const fillHeightSectionStyle = css({
 });
 
 const headerStyle = css({
+  "&[data-stack-header]": { paddingY: "1" },
+  "&[data-stack-header]::after": { display: "none" },
   position: "sticky",
   top: "[0]",
   zIndex: "[2]",
@@ -163,6 +185,8 @@ const fillHeightContentStyle = css({
 
 interface SectionProps {
   title: string;
+  titleAction?: ReactNode;
+  stacked?: boolean;
   tooltip?: string;
   collapsible?: boolean;
   defaultOpen?: boolean;
@@ -190,6 +214,8 @@ interface SectionProps {
 
 export const Section = ({
   title,
+  titleAction,
+  stacked = false,
   tooltip,
   collapsible = false,
   defaultOpen = true,
@@ -205,52 +231,88 @@ export const Section = ({
   children,
   className,
 }: SectionProps) => {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const expanded = open ?? internalOpen;
+  const setExpanded = (next: boolean) => {
+    setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+  const header = useFocusHeader({
+    collapse: expanded ? () => setExpanded(false) : undefined,
+    expand: expanded ? undefined : () => setExpanded(true),
+  });
   const headerLeft = (
+    renderTitle?: (text: string, className: string) => ReactNode,
+  ) => (
     <div className={headerLeftStyle}>
       {renderHeaderLeading?.()}
-      <span className={titleStyle}>{title}</span>
-      {tooltip && <HelpTooltip content={tooltip} />}
+      {renderTitle ? (
+        renderTitle(title, titleStyle)
+      ) : (
+        <span className={titleStyle}>{title}</span>
+      )}
+      {tooltip &&
+        (stacked ? (
+          <PointerHelpTooltip content={tooltip} />
+        ) : (
+          <HelpTooltip content={tooltip} />
+        ))}
+      {titleAction}
     </div>
   );
 
   const { showAnimations } = use(UserSettingsContext);
 
+  const renderHeaderContent = (
+    renderTitle?: (text: string, className: string) => ReactNode,
+  ) => (
+    <>
+      <div className={headerRowStyle}>
+        {headerLeft(renderTitle)}
+        {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+        <Collapsible.Trigger className={triggerButtonStyle} asChild>
+          <TriggerButton
+            ref={triggerRef ?? header.attach}
+            size="xs"
+            variant="ghost"
+            aria-label={`Toggle ${title} section`}
+            iconName="chevronUp"
+            tooltip="Toggle section"
+            onKeyDown={onTriggerKeyDown ?? header.onHeaderKeyDown}
+          />
+        </Collapsible.Trigger>
+      </div>
+      {renderStickyBand && (
+        <div className={stickyBandStyle}>{renderStickyBand()}</div>
+      )}
+    </>
+  );
+
   if (collapsible) {
     return (
       <Collapsible.Root
         defaultOpen={defaultOpen}
-        open={open}
-        onOpenChange={
-          onOpenChange ? (details) => onOpenChange(details.open) : undefined
-        }
+        open={expanded}
+        onOpenChange={(details) => setExpanded(details.open)}
         lazyMount={unmountOnCollapse}
         unmountOnExit={unmountOnCollapse}
-        className={cx(sectionStyle, className)}
+        data-section
+        className={cx(stacked ? stackedSectionStyle : sectionStyle, className)}
       >
-        <div className={headerStyle}>
-          <div className={headerRowStyle}>
-            {headerLeft}
-            {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-            <Collapsible.Trigger className={triggerButtonStyle} asChild>
-              <TriggerButton
-                ref={triggerRef}
-                size="xs"
-                variant="ghost"
-                aria-label={`Toggle ${title} section`}
-                iconName="chevronUp"
-                tooltip="Toggle section"
-                onKeyDown={onTriggerKeyDown}
-              />
-            </Collapsible.Trigger>
+        {stacked ? (
+          <StackedSectionHeader className={headerStyle}>
+            {renderHeaderContent}
+          </StackedSectionHeader>
+        ) : (
+          <div className={headerStyle} data-section-header>
+            {renderHeaderContent()}
           </div>
-          {renderStickyBand && (
-            <div className={stickyBandStyle}>{renderStickyBand()}</div>
-          )}
-        </div>
+        )}
         <Collapsible.Content
           className={cx(
             showAnimations ? collapsibleContentStyle : undefined,
             contentPaddingStyle,
+            stacked && stackedContentStyle,
           )}
         >
           <div className={cx(collapsibleContentInnerStyle)}>{children}</div>
@@ -261,6 +323,7 @@ export const Section = ({
 
   return (
     <div
+      data-section
       className={cx(
         sectionStyle,
         sectionGapStyle,
@@ -268,9 +331,9 @@ export const Section = ({
         className,
       )}
     >
-      <div className={headerStyle}>
+      <div className={headerStyle} data-section-header>
         <div className={headerRowStyle}>
-          {headerLeft}
+          {headerLeft()}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
         </div>
         {renderStickyBand && (

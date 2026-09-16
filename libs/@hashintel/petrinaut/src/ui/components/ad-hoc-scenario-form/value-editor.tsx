@@ -50,6 +50,7 @@ import {
 } from "./spreadsheet/form-table";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { stepAdHocValue } from "./step-value";
+import { ComputedExpression } from "./value-editor/computed-expression";
 
 import type {
   AdHocValue,
@@ -429,6 +430,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     formatExpression,
     dispatch,
     overlayKeyDown,
+    expressionFor,
   } = use(AdHocFormContext);
   const triggerPlaceholder =
     placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
@@ -796,85 +798,95 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     };
   const boundValue = (key: BoundKey): string => value.optimize?.[key] ?? "";
 
+  const [focused, setFocused] = useState(false);
+  const sourceExpression = readOnly ? expressionFor(target) : undefined;
+  const showSource = focused && sourceExpression && sourceExpression !== text;
+  const sourceId = `${editorId}-source`;
+  const trigger = (
+    <button
+      ref={(element) => {
+        buttonRef.current = element;
+        triggerRef?.(element);
+      }}
+      type="button"
+      aria-label={label}
+      aria-describedby={showSource ? sourceId : undefined}
+      title={showTriggerError ? error : undefined}
+      data-highlighted={dependencyHighlighted || undefined}
+      className={cx(
+        cellButtonStyle,
+        triggerHeightStyle,
+        optimized && optimizedTriggerStyle,
+        derived && derivedTriggerStyle,
+        isEmpty && placeholderTriggerStyle,
+        showTriggerError && cellErrorUnderlineStyle,
+        dependencyHighlighted && dependencyHighlightStyle,
+        className,
+      )}
+      tabIndex={derived ? -1 : 0}
+      onFocus={() => {
+        setFocused(true);
+        setFocusedValue(target);
+        onTriggerFocus?.();
+      }}
+      onBlur={() => {
+        setFocused(false);
+        if (!open) {
+          setFocusedValue(null);
+        }
+      }}
+      onPointerDown={triggerActivation.onPointerDown}
+      onClick={(event) => {
+        if (derived) {
+          onOpenDerived?.();
+          return;
+        }
+        if (triggerActivation.shouldActivate(event) && !readOnly) {
+          setMountSelection("all");
+          setOpenState(true);
+        }
+      }}
+      onKeyDown={(event) => {
+        // Delete/Backspace clears the selected cell's value and never
+        // reaches the app (a bubbled Delete would hit canvas shortcuts).
+        if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!derived && !readOnly && !optimized && value.expression !== "") {
+            dispatch({ type: "setExpression", target, expression: "" });
+          }
+          return;
+        }
+        // Typing on a selected cell overwrites it, spreadsheet-style: the
+        // typed character replaces the value and the editor opens on it.
+        if (!derived && !readOnly && !optimized && isOverwriteKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          dispatch({
+            type: "setExpression",
+            target,
+            expression: event.key,
+          });
+          setMountSelection("end");
+          setOpenState(true);
+          return;
+        }
+        onTriggerKeyDown?.(event);
+      }}
+    >
+      <span className={triggerTextStyle}>{derived ? <>⌃ {text}</> : text}</span>
+    </button>
+  );
   return (
     <>
-      <button
-        ref={(element) => {
-          buttonRef.current = element;
-          triggerRef?.(element);
-        }}
-        type="button"
-        aria-label={label}
-        title={showTriggerError ? error : undefined}
-        data-highlighted={dependencyHighlighted || undefined}
-        className={cx(
-          cellButtonStyle,
-          triggerHeightStyle,
-          optimized && optimizedTriggerStyle,
-          derived && derivedTriggerStyle,
-          isEmpty && placeholderTriggerStyle,
-          showTriggerError && cellErrorUnderlineStyle,
-          dependencyHighlighted && dependencyHighlightStyle,
-          className,
-        )}
-        tabIndex={derived ? -1 : 0}
-        onFocus={() => {
-          setFocusedValue(target);
-          onTriggerFocus?.();
-        }}
-        onBlur={() => {
-          if (!open) {
-            setFocusedValue(null);
-          }
-        }}
-        onPointerDown={triggerActivation.onPointerDown}
-        onClick={(event) => {
-          if (derived) {
-            onOpenDerived?.();
-            return;
-          }
-          if (triggerActivation.shouldActivate(event) && !readOnly) {
-            setMountSelection("all");
-            setOpenState(true);
-          }
-        }}
-        onKeyDown={(event) => {
-          // Delete/Backspace clears the selected cell's value and never
-          // reaches the app (a bubbled Delete would hit canvas shortcuts).
-          if (event.key === "Delete" || event.key === "Backspace") {
-            event.preventDefault();
-            event.stopPropagation();
-            if (
-              !derived &&
-              !readOnly &&
-              !optimized &&
-              value.expression !== ""
-            ) {
-              dispatch({ type: "setExpression", target, expression: "" });
-            }
-            return;
-          }
-          // Typing on a selected cell overwrites it, spreadsheet-style: the
-          // typed character replaces the value and the editor opens on it.
-          if (!derived && !readOnly && !optimized && isOverwriteKey(event)) {
-            event.preventDefault();
-            event.stopPropagation();
-            dispatch({
-              type: "setExpression",
-              target,
-              expression: event.key,
-            });
-            setMountSelection("end");
-            setOpenState(true);
-            return;
-          }
-          onTriggerKeyDown?.(event);
-        }}
-      >
-        <span className={triggerTextStyle}>
-          {derived ? <>⌃ {text}</> : text}
-        </span>
-      </button>
+      {trigger}
+      {showSource ? (
+        <ComputedExpression
+          id={sourceId}
+          expression={sourceExpression}
+          anchorRef={buttonRef}
+        />
+      ) : null}
       {open && rect ? (
         <Portal container={portalContainerRef}>
           <div
@@ -994,8 +1006,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                   />
                 </div>
               ) : null}
-              {boundsError ? (
-                <div className={fieldErrorStyle}>{boundsError}</div>
+              {error ? (
+                <div className={fieldErrorStyle} role="alert">
+                  {error}
+                </div>
               ) : null}
             </PortalContainerContext>
           </div>

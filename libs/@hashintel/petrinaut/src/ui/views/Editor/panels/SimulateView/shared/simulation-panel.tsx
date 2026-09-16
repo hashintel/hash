@@ -105,6 +105,7 @@ const PanelContent = ({
           }
         }}
         className={css({
+          "--panel-horizontal-padding": "var(--spacing-5)",
           gridArea: "[1 / 1]",
           display: "flex",
           flexDirection: "column",
@@ -336,18 +337,22 @@ const PanelHeader = ({ description }: { description?: ReactNode }) => {
 const PanelBody = ({
   children,
   className,
+  withPadding = true,
+  scrollable = true,
 }: {
   children: ReactNode;
   className?: string;
+  withPadding?: boolean;
+  scrollable?: boolean;
 }) => (
   <div
     className={cx(
       css({
         flex: "[1]",
         minHeight: "[0]",
-        overflowY: "auto",
+        overflowY: scrollable ? "auto" : "hidden",
         overscrollBehavior: "contain",
-        padding: "5",
+        padding: withPadding ? "5" : "[0]",
       }),
       className,
     )}

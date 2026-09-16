@@ -1693,26 +1693,203 @@ return orders.reduce((sum, o) => sum + o.age, 0) / orders.length;`,
           param_initial_finished_goods: "scenario.initial_finished_goods",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_supplier_a_available: "1",
-            place_supplier_a_down: "0",
-            place_supplier_b_available: "1",
-            place_supplier_b_down: "0",
-            place_raw_materials: "scenario.initial_raw_materials",
-            place_finished_goods: "scenario.initial_finished_goods",
-            place_damaged_inbound: "0",
-            place_scrap: "0",
-            place_delivered: "0",
-            place_lost: "0",
-            place_cancelled: "0",
-            place_machine_up: [[0.95, 0.08]],
-            place_machine_down: [],
-            place_inbound: [],
-            place_wip: [],
-            place_orders: [],
-            place_backorders: [],
-            place_outbound: [],
+            variables: [
+              {
+                name: "demand_multiplier",
+                type: "real",
+                expression: "1",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "a_share_bias",
+                type: "ratio",
+                expression: "1",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_raw_materials",
+                type: "integer",
+                expression: "8",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_finished_goods",
+                type: "integer",
+                expression: "12",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_demand_rate",
+                expression:
+                  "parameters.demand_rate * scenario.demand_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_a_order_rate",
+                expression:
+                  "parameters.supplier_a_order_rate * scenario.a_share_bias",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_order_rate",
+                expression:
+                  "parameters.supplier_b_order_rate * (2 - scenario.a_share_bias)",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_raw_materials",
+                expression: "scenario.initial_raw_materials",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_finished_goods",
+                expression: "scenario.initial_finished_goods",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_supplier_a_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_a_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_raw_materials: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_raw_materials",
+                  optimize: null,
+                },
+              },
+              place_damaged_inbound: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_finished_goods",
+                  optimize: null,
+                },
+              },
+              place_scrap: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_delivered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_cancelled: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_inbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_wip: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_orders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_backorders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_outbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_machine_up: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "0.95",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0.08",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place_machine_down: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
@@ -1754,26 +1931,203 @@ return orders.reduce((sum, o) => sum + o.age, 0) / orders.length;`,
           param_initial_finished_goods: "scenario.initial_finished_goods",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_supplier_a_available: "1",
-            place_supplier_a_down: "0",
-            place_supplier_b_available: "1",
-            place_supplier_b_down: "0",
-            place_raw_materials: "6",
-            place_finished_goods: "scenario.initial_finished_goods",
-            place_damaged_inbound: "0",
-            place_scrap: "0",
-            place_delivered: "0",
-            place_lost: "0",
-            place_cancelled: "0",
-            place_machine_up: [[0.9, 0.12]],
-            place_machine_down: [],
-            place_inbound: [],
-            place_wip: [],
-            place_orders: [],
-            place_backorders: [],
-            place_outbound: [],
+            variables: [
+              {
+                name: "demand_multiplier",
+                type: "real",
+                expression: "1.8",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "lead_time_multiplier",
+                type: "real",
+                expression: "1.7",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "damage_threshold",
+                type: "real",
+                expression: "0.78",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_finished_goods",
+                type: "integer",
+                expression: "18",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_demand_rate",
+                expression:
+                  "parameters.demand_rate * scenario.demand_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_a_lead_time",
+                expression:
+                  "parameters.supplier_a_lead_time * scenario.lead_time_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_lead_time",
+                expression:
+                  "parameters.supplier_b_lead_time * scenario.lead_time_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_inbound_damage_threshold",
+                expression: "scenario.damage_threshold",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_finished_goods",
+                expression: "scenario.initial_finished_goods",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_supplier_a_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_a_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_raw_materials: {
+                kind: "uncoloured",
+                count: {
+                  expression: "6",
+                  optimize: null,
+                },
+              },
+              place_damaged_inbound: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_finished_goods",
+                  optimize: null,
+                },
+              },
+              place_scrap: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_delivered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_cancelled: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_inbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_wip: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_orders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_backorders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_outbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_machine_up: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "0.9",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0.12",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place_machine_down: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
@@ -1806,26 +2160,184 @@ return orders.reduce((sum, o) => sum + o.age, 0) / orders.length;`,
           param_initial_finished_goods: "scenario.initial_finished_goods",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_supplier_a_available: "0",
-            place_supplier_a_down: "1",
-            place_supplier_b_available: "1",
-            place_supplier_b_down: "0",
-            place_raw_materials: "8",
-            place_finished_goods: "scenario.initial_finished_goods",
-            place_damaged_inbound: "0",
-            place_scrap: "0",
-            place_delivered: "0",
-            place_lost: "0",
-            place_cancelled: "0",
-            place_machine_up: [[0.94, 0.1]],
-            place_machine_down: [],
-            place_inbound: [],
-            place_wip: [],
-            place_orders: [],
-            place_backorders: [],
-            place_outbound: [],
+            variables: [
+              {
+                name: "a_recovery_rate",
+                type: "real",
+                expression: "0.08",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "b_expedite_multiplier",
+                type: "real",
+                expression: "1.6",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_finished_goods",
+                type: "integer",
+                expression: "10",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_supplier_a_repair_rate",
+                expression: "scenario.a_recovery_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_order_rate",
+                expression:
+                  "parameters.supplier_b_order_rate * scenario.b_expedite_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_finished_goods",
+                expression: "scenario.initial_finished_goods",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_supplier_a_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_supplier_a_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_raw_materials: {
+                kind: "uncoloured",
+                count: {
+                  expression: "8",
+                  optimize: null,
+                },
+              },
+              place_damaged_inbound: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_finished_goods",
+                  optimize: null,
+                },
+              },
+              place_scrap: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_delivered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_cancelled: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_inbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_wip: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_orders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_backorders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_outbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_machine_up: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "0.94",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0.1",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place_machine_down: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
@@ -1865,26 +2377,197 @@ return orders.reduce((sum, o) => sum + o.age, 0) / orders.length;`,
           param_initial_raw_materials: "scenario.initial_raw_materials",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_supplier_a_available: "1",
-            place_supplier_a_down: "0",
-            place_supplier_b_available: "1",
-            place_supplier_b_down: "0",
-            place_raw_materials: "scenario.initial_raw_materials",
-            place_finished_goods: "8",
-            place_damaged_inbound: "0",
-            place_scrap: "0",
-            place_delivered: "0",
-            place_lost: "0",
-            place_cancelled: "0",
-            place_machine_up: [[0.96, 0.06]],
-            place_machine_down: [],
-            place_inbound: [],
-            place_wip: [],
-            place_orders: [],
-            place_backorders: [],
-            place_outbound: [],
+            variables: [
+              {
+                name: "a_order_multiplier",
+                type: "real",
+                expression: "0.35",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "b_order_multiplier",
+                type: "real",
+                expression: "1.9",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "b_risk_multiplier",
+                type: "real",
+                expression: "1.45",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_raw_materials",
+                type: "integer",
+                expression: "12",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_supplier_a_order_rate",
+                expression:
+                  "parameters.supplier_a_order_rate * scenario.a_order_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_order_rate",
+                expression:
+                  "parameters.supplier_b_order_rate * scenario.b_order_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_risk_multiplier",
+                expression: "scenario.b_risk_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_raw_materials",
+                expression: "scenario.initial_raw_materials",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_supplier_a_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_a_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_raw_materials: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_raw_materials",
+                  optimize: null,
+                },
+              },
+              place_damaged_inbound: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "8",
+                  optimize: null,
+                },
+              },
+              place_scrap: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_delivered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_cancelled: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_inbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_wip: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_orders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_backorders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_outbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_machine_up: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "0.96",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0.06",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place_machine_down: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
@@ -1926,26 +2609,203 @@ return orders.reduce((sum, o) => sum + o.age, 0) / orders.length;`,
           param_initial_finished_goods: "scenario.initial_finished_goods",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_supplier_a_available: "1",
-            place_supplier_a_down: "0",
-            place_supplier_b_available: "1",
-            place_supplier_b_down: "0",
-            place_raw_materials: "scenario.initial_raw_materials",
-            place_finished_goods: "scenario.initial_finished_goods",
-            place_damaged_inbound: "0",
-            place_scrap: "0",
-            place_delivered: "0",
-            place_lost: "0",
-            place_cancelled: "0",
-            place_machine_up: [[1, 0.03]],
-            place_machine_down: [],
-            place_inbound: [],
-            place_wip: [],
-            place_orders: [],
-            place_backorders: [],
-            place_outbound: [],
+            variables: [
+              {
+                name: "initial_raw_materials",
+                type: "integer",
+                expression: "18",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_finished_goods",
+                type: "integer",
+                expression: "24",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "maintenance_multiplier",
+                type: "real",
+                expression: "2.2",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "supplier_recovery_multiplier",
+                type: "real",
+                expression: "1.8",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_maintenance_rate",
+                expression:
+                  "parameters.maintenance_rate * scenario.maintenance_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_a_repair_rate",
+                expression:
+                  "parameters.supplier_a_repair_rate * scenario.supplier_recovery_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_supplier_b_repair_rate",
+                expression:
+                  "parameters.supplier_b_repair_rate * scenario.supplier_recovery_multiplier",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_raw_materials",
+                expression: "scenario.initial_raw_materials",
+                optimize: null,
+              },
+              {
+                parameterId: "param_initial_finished_goods",
+                expression: "scenario.initial_finished_goods",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_supplier_a_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_a_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_available: {
+                kind: "uncoloured",
+                count: {
+                  expression: "1",
+                  optimize: null,
+                },
+              },
+              place_supplier_b_down: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_raw_materials: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_raw_materials",
+                  optimize: null,
+                },
+              },
+              place_damaged_inbound: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "scenario.initial_finished_goods",
+                  optimize: null,
+                },
+              },
+              place_scrap: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_delivered: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_cancelled: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_inbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_wip: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_orders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_backorders: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_outbound: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+              place_machine_up: {
+                kind: "coloured",
+                variables: [],
+                rows: [
+                  {
+                    kind: "fixed",
+                    cells: [
+                      {
+                        expression: "1",
+                        optimize: null,
+                      },
+                      {
+                        expression: "0.03",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+              place_machine_down: {
+                kind: "coloured",
+                variables: [],
+                rows: [],
+                sharedColumns: {},
+              },
+            },
           },
         },
       },
