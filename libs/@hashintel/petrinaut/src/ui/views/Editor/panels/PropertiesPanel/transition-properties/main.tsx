@@ -95,7 +95,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   );
 
   const subViews: SubView[] = [
-    transitionMainContentSubView,
+    {
+      ...transitionMainContentSubView,
+      title: `${transitionMainContentSubView.title} ${transition.name}`,
+    },
     ...(presentation.showSourceCode && logicAvailability.lambda
       ? [transitionFiringTimeSubView]
       : []),
@@ -121,7 +124,6 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       >
         <VerticalSubViewsContainer
           key={transition.id}
-          returnLabel="Back to transition"
           name="transition-properties"
           subViews={subViews}
         />

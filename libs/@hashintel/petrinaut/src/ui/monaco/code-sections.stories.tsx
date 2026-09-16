@@ -57,7 +57,6 @@ const meta = {
     );
     const resultsToggle = await canvas.findByRole("button", {
       name: "Transition Results",
-      exact: true,
     });
     if (resultsToggle.getAttribute("aria-expanded") !== "true") {
       await userEvent.click(resultsToggle);

@@ -12,6 +12,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
 import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
+import { useSubViewMaximization } from "./vertical-sub-views-container/use-sub-view-maximization";
 
 import type { SubView } from "../types";
 
@@ -66,6 +67,65 @@ const sectionWrapperStyle = css({
   "&:hover [data-info-tooltip], &:focus-within [data-info-tooltip]": {
     opacity: "[1]",
   },
+});
+
+const sectionMotionStyle = css({
+  transition: "[opacity 180ms ease-out]",
+  "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+});
+
+const breadcrumbStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "1",
+  minWidth: "0",
+  overflow: "hidden",
+  fontSize: "xs",
+  lineHeight: "[20px]",
+});
+
+const parentTitleStyle = css({
+  appearance: "none",
+  border: "[0]",
+  backgroundColor: "[transparent]",
+  padding: "0",
+  maxWidth: "[60%]",
+  "&:only-child": { maxWidth: "full" },
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  textAlign: "left",
+  color: "neutral.s90",
+  fontWeight: "medium",
+  cursor: "pointer",
+  transition: "[color 140ms ease]",
+  _hover: {
+    color: "neutral.s120",
+    textDecoration: "underline",
+    textUnderlineOffset: "[3px]",
+  },
+  _focusVisible: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[3px]",
+    borderRadius: "[2px]",
+  },
+});
+
+const breadcrumbSeparatorStyle = css({
+  display: "flex",
+  color: "neutral.s65",
+  flexShrink: 0,
+});
+
+const breadcrumbCurrentStyle = css({
+  fontWeight: "medium",
+  color: "neutral.s120",
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const sectionContentStyle = css({
@@ -338,9 +398,9 @@ interface SubViewHeaderProps {
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
   alwaysShowHeaderAction?: boolean;
-  onExpand?: () => void;
+  onExpand?: (button: HTMLButtonElement) => void;
   onRestore?: () => void;
-  returnLabel: string;
+  parentTitle: string;
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
@@ -356,7 +416,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   alwaysShowHeaderAction,
   onExpand,
   onRestore,
-  returnLabel,
+  parentTitle,
 }) => (
   <div
     data-subview-header
@@ -364,19 +424,39 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
       main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
     }
   >
-    {onRestore && (
-      <Button
-        size="xs"
-        variant="ghost"
-        iconName="arrowLeft"
-        data-restore-subview
-        aria-label={returnLabel}
-        tooltip={returnLabel}
-        onClick={onRestore}
-      />
-    )}
-    {main ? (
-      <div className={mainHeaderContentStyle}>
+    {onRestore ? (
+      <nav
+        aria-label="Properties path"
+        data-subview-title
+        className={breadcrumbStyle}
+      >
+        <button
+          type="button"
+          data-restore-subview
+          aria-label={`Back to ${parentTitle}`}
+          title={parentTitle}
+          className={parentTitleStyle}
+          onClick={onRestore}
+        >
+          {parentTitle}
+        </button>
+        {parentTitle !== title && (
+          <>
+            <span aria-hidden="true" className={breadcrumbSeparatorStyle}>
+              <Icon name="chevronRight" size="xxs" />
+            </span>
+            <span
+              aria-current="page"
+              title={title}
+              className={breadcrumbCurrentStyle}
+            >
+              {title}
+            </span>
+          </>
+        )}
+      </nav>
+    ) : main ? (
+      <div data-subview-title className={mainHeaderContentStyle}>
         {HeaderIcon && (
           <span className={headerIconStyle}>
             <HeaderIcon size={HEADER_ICON_SIZE} />
@@ -437,7 +517,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             data-expand-subview
             aria-label={`Expand ${title}`}
             tooltip="Fill panel"
-            onClick={onExpand}
+            onClick={(event) => onExpand(event.currentTarget)}
           />
         )}
         {renderHeaderAction?.()}
@@ -453,7 +533,6 @@ interface VerticalSubViewsContainerProps {
   subViews: SubView[];
   /** Whether sections should be expanded by default */
   defaultExpanded?: boolean;
-  returnLabel?: string;
 }
 
 /**
@@ -463,33 +542,14 @@ interface VerticalSubViewsContainerProps {
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
-> = ({
-  name,
-  subViews,
-  defaultExpanded = true,
-  returnLabel = "Back to sections",
-}) => {
-  const [maximizedId, setMaximizedId] = useState<string | null>(null);
-  const expandedHeader = useRef<HTMLElement | null>(null);
-  if (
-    maximizedId !== null &&
-    !subViews.some(
-      (subView) => subView.id === maximizedId && subView.canMaximize,
-    )
-  ) {
-    setMaximizedId(null);
-  }
-  const restore = () => {
-    setMaximizedId(null);
-    requestAnimationFrame(() =>
-      expandedHeader.current
-        ?.querySelector<HTMLButtonElement>("[data-expand-subview]")
-        ?.focus(),
-    );
-  };
+> = ({ name, subViews, defaultExpanded = true }) => {
   const presentation = usePetrinautPresentation();
   const { showAnimations, subViewPanels, updateSubViewSection } =
     use(UserSettingsContext);
+  const { maximizedId, isRestoring, maximize, restore } =
+    useSubViewMaximization(subViews, showAnimations);
+  const parentTitle =
+    subViews.find((subView) => subView.main)?.title ?? "Properties";
 
   const containerSettings = subViewPanels[name];
 
@@ -572,9 +632,11 @@ export const VerticalSubViewsContainer: React.FC<
               <div
                 className={cx(
                   sectionWrapperStyle,
+                  showAnimations && sectionMotionStyle,
                   fillsContainer && expandedSectionStyle,
                 )}
-                style={isHidden ? { visibility: "hidden" } : undefined}
+                style={isHidden && !isRestoring ? { opacity: 0 } : undefined}
+                data-subview-section
                 inert={isHidden}
                 aria-hidden={isHidden || undefined}
                 data-expanded-subview={fillsContainer || undefined}
@@ -595,26 +657,11 @@ export const VerticalSubViewsContainer: React.FC<
                       : subView.renderHeaderAction
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
-                  returnLabel={returnLabel}
+                  parentTitle={parentTitle}
                   onRestore={fillsContainer ? restore : undefined}
                   onExpand={
                     subView.canMaximize && !fillsContainer
-                      ? () => {
-                          expandedHeader.current =
-                            document.activeElement instanceof HTMLElement
-                              ? document.activeElement.closest<HTMLElement>(
-                                  "[data-subview-header]",
-                                )
-                              : null;
-                          requestAnimationFrame(() =>
-                            expandedHeader.current
-                              ?.querySelector<HTMLButtonElement>(
-                                "[data-restore-subview]",
-                              )
-                              ?.focus(),
-                          );
-                          setMaximizedId(subView.id);
-                        }
+                      ? (button) => maximize(subView.id, button)
                       : undefined
                   }
                 />
