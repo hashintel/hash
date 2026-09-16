@@ -16,7 +16,7 @@ import { createFlueClient } from "@flue/sdk";
 import { cleanup, render, screen } from "@testing-library/react";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { createElement } from "react";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
@@ -38,6 +38,7 @@ import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noop = () => {};
+const originalFetch = globalThis.fetch;
 
 type BuiltBrunchApplication = {
   readonly fetch: typeof fetch;
@@ -61,8 +62,15 @@ beforeAll(() => {
     public observe() {}
     public unobserve() {}
   };
+  globalThis.fetch = () =>
+    Promise.reject(
+      new Error("External fetch is forbidden in the native OpenAI fixture."),
+    );
 });
 
+afterAll(() => {
+  globalThis.fetch = originalFetch;
+});
 afterEach(cleanup);
 
 test("bounds a native OpenAI tool row without replaying completed tool work", async () => {
