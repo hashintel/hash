@@ -5,6 +5,7 @@ import type * as CborPrimitive from "../CborPrimitive";
 import type * as Decoder from "../Decoder";
 import type * as Envelope from "../Envelope";
 import type * as GenerationId from "../GenerationId";
+import type * as Num from "../Num";
 import type * as Head from "./head";
 
 /** Document sections that group independent validation failures. */
@@ -20,7 +21,7 @@ export type TileDocumentErrorReason =
   | {
       readonly _tag: "unknown-field";
       readonly section: "global" | "head" | "trailer";
-      readonly key: Decoder.U64;
+      readonly key: Num.u64;
     }
   | { readonly _tag: "missing-field"; readonly field: string }
   | {
@@ -51,8 +52,8 @@ export type TileDocumentErrorReason =
     }
   | {
       readonly _tag: "variant-mismatch";
-      readonly expected: Decoder.U64;
-      readonly actual: Decoder.U64;
+      readonly expected: Num.u64;
+      readonly actual: Num.u64;
     }
   | {
       readonly _tag: "mode-mismatch";
@@ -137,8 +138,8 @@ export class TileDocumentError extends TaggedError.TaggedError<
   }
 
   static variantMismatch(
-    expected: Decoder.U64,
-    actual: Decoder.U64,
+    expected: Num.u64,
+    actual: Num.u64,
   ): TileDocumentError {
     return new TileDocumentError({
       _tag: "variant-mismatch",

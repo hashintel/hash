@@ -32,7 +32,6 @@ export type OmitUndefined<T> = Simplify<
  * @example
  * ```ts
  * const edge = Record.omitUndefined({ id, source, target, label });
- * // { readonly id: EntityId; readonly source: number; readonly target: number; readonly label?: string }
  * ```
  */
 export const omitUndefined = <T extends object>(

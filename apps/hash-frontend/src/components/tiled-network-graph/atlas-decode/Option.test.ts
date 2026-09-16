@@ -38,6 +38,66 @@ describe("Option", () => {
     expect(transform).not.toHaveBeenCalled();
   });
 
+  it("filter_call_forms", () => {
+    const isEven = (value: number) => value % 2 === 0;
+    expect(Option.filter(Option.some(2), isEven)).toEqual(Option.some(2));
+    expect(Option.filter(Option.some(3), isEven)).toEqual(Option.none());
+    expect(Option.filter(isEven)(Option.some(4))).toEqual(Option.some(4));
+    expectTypeOf(Option.filter(Option.some(2), isEven)).toEqualTypeOf<
+      Option.Option<number>
+    >();
+  });
+
+  it("filter_absence", () => {
+    const predicate = vi.fn(() => true);
+    expect(Option.filter(Option.none(), predicate)).toBe(Option.none());
+    expect(predicate).not.toHaveBeenCalled();
+  });
+
+  it("filter_refinement_narrows", () => {
+    const isString = (value: unknown): value is string =>
+      typeof value === "string";
+    const option = Option.some("abc") as Option.Option<string | number>;
+    expectTypeOf(Option.filter(option, isString)).toEqualTypeOf<
+      Option.Option<string>
+    >();
+    expectTypeOf(Option.filter(isString)(option)).toEqualTypeOf<
+      Option.Option<string>
+    >();
+    expect(Option.filter(Option.some(1 as string | number), isString)).toEqual(
+      Option.none(),
+    );
+  });
+
+  it("lift_predicate_call_forms", () => {
+    const isEven = (value: number) => value % 2 === 0;
+    expect(Option.liftPredicate(2, isEven)).toEqual(Option.some(2));
+    expect(Option.liftPredicate(3, isEven)).toEqual(Option.none());
+    expect(Option.liftPredicate(isEven)(4)).toEqual(Option.some(4));
+    const value: number = 2;
+    expectTypeOf(Option.liftPredicate(value, isEven)).toEqualTypeOf<
+      Option.Option<number>
+    >();
+    expectTypeOf(Option.liftPredicate(isEven)(value)).toEqualTypeOf<
+      Option.Option<number>
+    >();
+  });
+
+  it("lift_predicate_refinement_narrows", () => {
+    const isString = (value: unknown): value is string =>
+      typeof value === "string";
+    const value = "abc" as string | number;
+    expectTypeOf(Option.liftPredicate(value, isString)).toEqualTypeOf<
+      Option.Option<string>
+    >();
+    expectTypeOf(Option.liftPredicate(isString)(value)).toEqualTypeOf<
+      Option.Option<string>
+    >();
+    expect(Option.liftPredicate(1 as string | number, isString)).toEqual(
+      Option.none(),
+    );
+  });
+
   it("match_selected_handler", () => {
     const onSome = vi.fn((value: number) => value + 1);
     const onNone = vi.fn(() => 0);

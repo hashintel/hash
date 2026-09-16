@@ -1,7 +1,7 @@
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-import type * as Decoder from "./Decoder";
+import type * as Num from "./Num";
 
 /** A malformed position column or an out-of-range row lookup. */
 export type PositionColumnErrorReason =
@@ -33,7 +33,7 @@ export class PositionColumnError extends TaggedError.TaggedError<
 }
 
 /** An x/y pair stored as single-precision coordinates. */
-export type Position = readonly [x: Decoder.F32, y: Decoder.F32];
+export type Position = readonly [x: Num.f32, y: Num.f32];
 
 /**
  * Borrows interleaved little-endian coordinate pairs.
@@ -82,8 +82,8 @@ export class PositionColumn<
 
   #read(index: number): Position {
     return [
-      this.#view.getFloat32(index * 8, true) as Decoder.F32,
-      this.#view.getFloat32(index * 8 + 4, true) as Decoder.F32,
+      this.#view.getFloat32(index * 8, true) as Num.f32,
+      this.#view.getFloat32(index * 8 + 4, true) as Num.f32,
     ];
   }
 

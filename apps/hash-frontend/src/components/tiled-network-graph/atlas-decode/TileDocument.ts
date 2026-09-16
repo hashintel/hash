@@ -12,6 +12,7 @@ import * as TypeMask from "./TypeMask";
 
 import type * as Decoder from "./Decoder";
 import type * as GenerationId from "./GenerationId";
+import type * as Num from "./Num";
 
 export type { TileDocumentErrorReason } from "./TileDocument/error";
 export { TileDocumentError } from "./TileDocument/error";
@@ -27,25 +28,25 @@ export type { TileDocumentTrailer } from "./TileDocument/trailer";
 /** Tile metadata with borrowed geometry columns. */
 export interface TileDocument<T extends ArrayBufferLike> {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
+  readonly variant: Num.u64;
   readonly coordinate: Head.Coordinate;
   readonly mode: Head.Mode;
   /** Points delivered by this response. */
-  readonly delivered: Decoder.U64;
+  readonly delivered: Num.u64;
   /** Bucket of `runs[0]`. */
-  readonly firstBucket: Decoder.U64;
+  readonly firstBucket: Num.u64;
   /**
    * Per-bucket delivered counts.
    *
    * Bucket `firstBucket + index` holds `runs[index]` points, whose rows begin at column offset `sum(runs[0..index])`. Zero-length entries keep their positional slot.
    */
-  readonly runs: readonly Decoder.U64[];
+  readonly runs: readonly Num.u64[];
   /**
    * Occupied-child bitmask: bit `i` marks Morton child `i` as holding an undelivered visible point below this cut.
    *
    * Zero is the completeness signal in both delivery modes: nothing deeper exists.
    */
-  readonly children: Decoder.U64;
+  readonly children: Num.u64;
   readonly global: Head.TileDocumentGlobal | null;
   readonly positions: Position.PositionColumn<T>;
   readonly rowIds: NodeId.NodeIdColumn<T>;
@@ -71,7 +72,7 @@ const checkContext = (
   return Result.ok(undefined);
 };
 
-const checkCount = (field: string, expected: Decoder.U64) =>
+const checkCount = (field: string, expected: Num.u64) =>
   Result.filter(
     (column: { readonly length: number }) => BigInt(column.length) === expected,
     (column) =>
@@ -80,7 +81,7 @@ const checkCount = (field: string, expected: Decoder.U64) =>
 
 const decodePositions = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
-  delivered: Decoder.U64,
+  delivered: Num.u64,
 ): Result.Result<Position.PositionColumn<T>, TileError.TileDocumentError> =>
   Position.PositionColumn.decode(bytes).pipe(
     Result.changeContext(() =>
@@ -91,7 +92,7 @@ const decodePositions = <T extends ArrayBufferLike>(
 
 const decodeRowIds = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
-  delivered: Decoder.U64,
+  delivered: Num.u64,
 ) =>
   NodeId.NodeIdColumn.decode(bytes).pipe(
     Result.changeContext(() =>
@@ -102,7 +103,7 @@ const decodeRowIds = <T extends ArrayBufferLike>(
 
 const decodeTypeMask = <T extends ArrayBufferLike>(
   bytes: Option.Option<Uint8Array<T>>,
-  delivered: Decoder.U64,
+  delivered: Num.u64,
   coloredTypeCount: number,
 ) =>
   Option.transposeResult(
@@ -120,7 +121,7 @@ const decodeTypeMask = <T extends ArrayBufferLike>(
 
 export interface DecodeOptions extends Head.Context {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
+  readonly variant: Num.u64;
   readonly mode: Head.Mode;
   readonly coordinate: Head.Coordinate;
 }

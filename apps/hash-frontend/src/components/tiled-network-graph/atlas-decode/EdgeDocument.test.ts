@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { BinaryEntityIdError } from "./BinaryEntityId";
 import { CborDecoderError } from "./CborDecoder";
-import { Decoder, DecoderError, type U64 } from "./Decoder";
+import { Decoder, DecoderError } from "./Decoder";
 import * as EdgeDocument from "./EdgeDocument";
 import * as Envelope from "./Envelope";
 import {
@@ -23,6 +23,8 @@ import {
 import * as GenerationId from "./GenerationId";
 import { NodeIdColumnError } from "./NodeId";
 import * as Result from "./Result";
+
+import type { u64 } from "./Num";
 
 const generationBytes = Array.from({ length: 32 }, (_, index) => index);
 const sourcesDefault = [7, 11, 13];
@@ -81,7 +83,7 @@ const decodeOptions: EdgeDocument.DecodeOptions = {
   generation: GenerationId.GenerationId.make(
     new Uint8Array(generationBytes),
   ).pipe(Result.unwrap),
-  variant: 7n as U64,
+  variant: 7n as u64,
 };
 
 const runDecode = (
@@ -482,7 +484,7 @@ describe("EdgeDocument.decode request", () => {
 
   it("variant_mismatch", () => {
     const error = expectSingleSectionError(
-      runDecode(edgesResponse(), { ...decodeOptions, variant: 8n as U64 }),
+      runDecode(edgesResponse(), { ...decodeOptions, variant: 8n as u64 }),
       "request",
     );
     expect(error.reason).toEqual({
@@ -493,13 +495,13 @@ describe("EdgeDocument.decode request", () => {
   });
 
   it("variant_u64_exact", () => {
-    const variant = 0xffff_ffff_ffff_ffffn as U64;
+    const variant = 0xffff_ffff_ffff_ffffn as u64;
     const buffer = edgesResponse({
       head: defaultHeadEntries({ 1: cborUint(variant) }),
     });
     expectOk(runDecode(buffer, { ...decodeOptions, variant }));
     const error = expectSingleSectionError(
-      runDecode(buffer, { ...decodeOptions, variant: (variant - 1n) as U64 }),
+      runDecode(buffer, { ...decodeOptions, variant: (variant - 1n) as u64 }),
       "request",
     );
     expect(error.reason).toEqual({
@@ -514,7 +516,7 @@ describe("EdgeDocument.decode request", () => {
       new Uint8Array(32).fill(255),
     ).pipe(Result.unwrap);
     const errors = expectSectionErrors(
-      runDecode(edgesResponse(), { generation, variant: 8n as U64 }),
+      runDecode(edgesResponse(), { generation, variant: 8n as u64 }),
       "request",
     );
     expect(errors.map((error) => error.reason._tag)).toEqual([
@@ -941,7 +943,7 @@ describe("EdgeDocument.decode real fixture", () => {
         generation: GenerationId.GenerationId.fromHex(
           sidecar.head.generation,
         ).pipe(Result.unwrap),
-        variant: BigInt(sidecar.head.variant) as U64,
+        variant: BigInt(sidecar.head.variant) as u64,
       }),
     );
 

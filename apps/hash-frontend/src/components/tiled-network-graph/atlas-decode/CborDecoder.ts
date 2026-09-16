@@ -7,7 +7,7 @@
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-import type { F32, F64, U64 } from "./Decoder";
+import type { f32, f64, u64 } from "./Num";
 
 /** The encoded value category presented to a visitor. */
 export type CborKind =
@@ -109,7 +109,7 @@ export interface CborMapAccess {
    *
    * Returns a decoding error for a malformed key. Each key must be followed by {@link CborMapAccess.readValue} before another key is read.
    */
-  readKey(): Result.Result<U64, CborDecoderError>;
+  readKey(): Result.Result<u64, CborDecoderError>;
 
   /**
    * Decodes the current key's value with its receiving visitor.
@@ -133,7 +133,7 @@ export interface CborVisitor<T, E> {
   readonly expecting: string;
 
   /** Constructs a value from an integer in [0, 2⁶⁴ − 1]. */
-  visitUnsignedInteger?(value: U64): Result.Result<T, E | CborDecoderError>;
+  visitUnsignedInteger?(value: u64): Result.Result<T, E | CborDecoderError>;
 
   /** Constructs a value from an integer in [−2⁶⁴, −1]. */
   visitNegativeInteger?(value: bigint): Result.Result<T, E | CborDecoderError>;
@@ -157,10 +157,10 @@ export interface CborVisitor<T, E> {
   visitNull?(): Result.Result<T, E | CborDecoderError>;
 
   /** Constructs a value from an encoded IEEE 754 single-precision float. */
-  visitFloat32?(value: F32): Result.Result<T, E | CborDecoderError>;
+  visitFloat32?(value: f32): Result.Result<T, E | CborDecoderError>;
 
   /** Constructs a value from an encoded IEEE 754 double-precision float. */
-  visitFloat64?(value: F64): Result.Result<T, E | CborDecoderError>;
+  visitFloat64?(value: f64): Result.Result<T, E | CborDecoderError>;
 }
 
 /** A recursion bound for nested visitor calls. */
@@ -176,7 +176,7 @@ export interface CborDecoderOptions {
  *
  * @example
  * ```ts
- * const integer: CborVisitor<U64, never> = {
+ * const integer: CborVisitor<u64, never> = {
  *   expecting: "an unsigned integer",
  *   visitUnsignedInteger: Result.ok,
  * };
@@ -246,9 +246,9 @@ export class CborDecoder<T extends ArrayBufferLike> {
   #argument(
     info: number,
     offset: number,
-  ): Result.Result<U64, CborDecoderError> {
+  ): Result.Result<u64, CborDecoderError> {
     if (info < 24) {
-      return Result.ok(BigInt(info) as U64);
+      return Result.ok(BigInt(info) as u64);
     }
 
     if (info > 27) {
@@ -285,12 +285,12 @@ export class CborDecoder<T extends ArrayBufferLike> {
       );
     }
 
-    return Result.ok(value as U64);
+    return Result.ok(value as u64);
   }
 
   /** Narrows a length only when the remaining bytes can contain its items. */
   #length(
-    value: U64,
+    value: u64,
     minimumBytes: number,
   ): Result.Result<number, CborDecoderError> {
     const available = Math.floor(
@@ -446,13 +446,13 @@ export class CborDecoder<T extends ArrayBufferLike> {
     if (info === 26) {
       return (
         visitor.visitFloat32?.(
-          this.#view.getFloat32(start.value, false) as F32,
+          this.#view.getFloat32(start.value, false) as f32,
         ) ?? this.#unexpected(visitor.expecting, "float32", offset)
       );
     }
     return (
       visitor.visitFloat64?.(
-        this.#view.getFloat64(start.value, false) as F64,
+        this.#view.getFloat64(start.value, false) as f64,
       ) ?? this.#unexpected(visitor.expecting, "float64", offset)
     );
   }
@@ -508,7 +508,7 @@ export class CborDecoder<T extends ArrayBufferLike> {
   }
 
   /** Reads a strictly increasing unsigned map key. */
-  #key(previous: bigint): Result.Result<U64, CborDecoderError> {
+  #key(previous: bigint): Result.Result<u64, CborDecoderError> {
     const start = this.#take(1);
     if (Result.isErr(start)) {
       return Result.err(start.error);

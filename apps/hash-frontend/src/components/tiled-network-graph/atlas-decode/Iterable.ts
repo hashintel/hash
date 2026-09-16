@@ -133,11 +133,13 @@ export const zip = <Sources extends readonly Iterable<unknown>[]>(
         }
       }
       if (failures?.length === 1) {
-        // eslint-disable-next-line no-unsafe-finally -- Report a captured failure even when the consumer calls return.
+        // Propagate the captured failure even when the consumer calls return.
+        // eslint-disable-next-line no-unsafe-finally
         throw failures[0];
       }
       if (failures !== undefined) {
-        // eslint-disable-next-line no-unsafe-finally -- Preserve the iteration failure together with every cleanup failure.
+        // Preserve the iteration failure together with every cleanup failure.
+        // eslint-disable-next-line no-unsafe-finally
         throw new AggregateError(failures, "zip iteration or cleanup failed");
       }
     }

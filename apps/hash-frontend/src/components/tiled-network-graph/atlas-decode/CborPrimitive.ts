@@ -3,13 +3,13 @@ import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
 import type * as CborDecoder from "./CborDecoder";
-import type * as Decoder from "./Decoder";
+import type * as Num from "./Num";
 
 /** An array length that differs from its enclosing schema's declaration. */
 export interface ArrayVisitorErrorReason {
   readonly _tag: "length";
   readonly field: string;
-  readonly expected: Decoder.U64;
+  readonly expected: Num.u64;
   readonly actual: number;
 }
 
@@ -27,7 +27,7 @@ export class ArrayVisitorError extends TaggedError.TaggedError<
 }
 
 /** Accepts unsigned integers without narrowing to JavaScript numbers. */
-export const unsigned: CborDecoder.CborVisitor<Decoder.U64, never> = {
+export const unsigned: CborDecoder.CborVisitor<Num.u64, never> = {
   expecting: "an unsigned integer",
   visitUnsignedInteger: Result.ok,
 };
@@ -51,13 +51,13 @@ export const bytes: CborDecoder.CborVisitor<Uint8Array, never> = {
 };
 
 /** Accepts only single-precision CBOR floats. */
-export const float32: CborDecoder.CborVisitor<Decoder.F32, never> = {
+export const float32: CborDecoder.CborVisitor<Num.f32, never> = {
   expecting: "an f32 value",
   visitFloat32: Result.ok,
 };
 
 /** Accepts only double-precision CBOR floats. */
-export const float64: CborDecoder.CborVisitor<Decoder.F64, never> = {
+export const float64: CborDecoder.CborVisitor<Num.f64, never> = {
   expecting: "an f64 value",
   visitFloat64: Result.ok,
 };
@@ -135,7 +135,7 @@ export const nullable = <T, E>(
 export const array = <T, E>(
   element: CborDecoder.CborVisitor<T, E>,
   field: string,
-  count?: Decoder.U64,
+  count?: Num.u64,
 ): CborDecoder.CborVisitor<T[], E | ArrayVisitorError> => ({
   expecting: field,
   visitArray: Result.fn(function* readArray(
