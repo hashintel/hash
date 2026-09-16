@@ -8,6 +8,29 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it("round-trips an expanded Properties Panel section with its selected item", () => {
+    const search = {
+      itemType: "transition",
+      itemId: "collision",
+      expandedPanel: "transition-properties",
+      expandedSection: "transition-results",
+    } as const;
+    const state = sharedSearchToNavigationState(search);
+    expect(state.expandedSubView).toEqual({
+      container: search.expandedPanel,
+      id: search.expandedSection,
+    });
+    expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+    expect(
+      sharedSearchToNavigationState({
+        itemType: "transition",
+        itemId: "collision",
+      }).expandedSubView,
+    ).toBeNull();
+    expect(
+      applyPreviewNavigationUpdate(search, (current) => current),
+    ).toMatchObject(search);
+  });
   it.each(["general", "viewport", "simulation", "labs"] as const)(
     "round-trips the %s settings section in Simulate",
     (settings) => {

@@ -397,7 +397,7 @@ interface SubViewHeaderProps {
   onToggle: () => void;
   renderHeaderAction?: () => React.ReactNode;
   alwaysShowHeaderAction?: boolean;
-  onExpand?: (button: HTMLButtonElement) => void;
+  onExpand?: () => void;
   onRestore?: () => void;
   parentTitle: string;
 }
@@ -516,7 +516,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             data-expand-subview
             aria-label={`Expand ${title}`}
             tooltip="Fill panel"
-            onClick={(event) => onExpand(event.currentTarget)}
+            onClick={onExpand}
           />
         )}
         {renderHeaderAction?.()}
@@ -545,8 +545,8 @@ export const VerticalSubViewsContainer: React.FC<
   const presentation = usePetrinautPresentation();
   const { showAnimations, subViewPanels, updateSubViewSection } =
     use(UserSettingsContext);
-  const { maximizedId, isRestoring, maximize, restore } =
-    useSubViewMaximization(subViews, showAnimations);
+  const { containerRef, maximizedId, isRestoring, maximize, restore } =
+    useSubViewMaximization(name, subViews, showAnimations);
   const parentTitle =
     subViews.find((subView) => subView.main)?.title ?? "Properties";
 
@@ -595,6 +595,7 @@ export const VerticalSubViewsContainer: React.FC<
 
   return (
     <Group
+      elementRef={containerRef}
       orientation="vertical"
       className={cx(containerStyle, isAnimating && panelTransitionStyle)}
       onKeyDown={(event) => {
@@ -636,6 +637,7 @@ export const VerticalSubViewsContainer: React.FC<
                 )}
                 style={isHidden && !isRestoring ? { opacity: 0 } : undefined}
                 data-subview-section
+                data-subview-id={subView.id}
                 inert={isHidden}
                 aria-hidden={isHidden || undefined}
                 data-expanded-subview={fillsContainer || undefined}
@@ -647,7 +649,7 @@ export const VerticalSubViewsContainer: React.FC<
                   icon={subView.icon}
                   main={isMain || fillsContainer}
                   renderTitle={subView.renderTitle}
-                  isExpanded={isExpanded}
+                  isExpanded={fillsContainer || isExpanded}
                   onToggle={() => toggleSection(subView)}
                   renderHeaderAction={
                     subView.headerActionMutates &&
@@ -660,12 +662,12 @@ export const VerticalSubViewsContainer: React.FC<
                   onRestore={fillsContainer ? restore : undefined}
                   onExpand={
                     subView.canMaximize && !fillsContainer
-                      ? (button) => maximize(subView.id, button)
+                      ? () => maximize(subView.id)
                       : undefined
                   }
                 />
 
-                {isExpanded && (
+                {(fillsContainer || isExpanded) && (
                   <div
                     id={`subview-content-${subView.id}`}
                     className={sectionContentStyle}

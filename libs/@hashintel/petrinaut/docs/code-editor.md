@@ -21,6 +21,8 @@ The expanded header shows a breadcrumb, such as **Transition Collision › Trans
 
 Expanding and returning animate within the section container. These transitions respect the animation setting and your system’s reduced-motion preference.
 
+On hosts with app navigation enabled, expanding a section updates the URL and browser history. **Back** closes the expanded view and **Forward** reopens it. Reloading or opening that URL restores the selected item and expanded section.
+
 Drag the panel’s left edge to change its width. After returning to the other properties, drag the dividers between sections to change their heights.
 
 Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.

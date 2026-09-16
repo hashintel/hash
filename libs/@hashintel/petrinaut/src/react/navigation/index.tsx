@@ -57,6 +57,7 @@ export type PetrinautNavigationState = {
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
+  expandedSubView: { container: string; id: string } | null;
   overlay: PetrinautNavigationOverlay;
 };
 
@@ -67,6 +68,7 @@ export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   scenarioId: undefined,
   subnetId: null,
   selection: [],
+  expandedSubView: null,
   overlay: null,
 };
 
@@ -79,6 +81,7 @@ export type PetrinautNavigationAction =
   | "scenario"
   | "subnet"
   | "selection"
+  | "subview"
   | "overlay";
 
 export type PetrinautNavigationIntent =
@@ -177,6 +180,8 @@ export const petrinautNavigationStatesMatch = (
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
+  left.expandedSubView?.container === right.expandedSubView?.container &&
+  left.expandedSubView?.id === right.expandedSubView?.id &&
   left.overlay?.type === right.overlay?.type &&
   (left.overlay?.type !== "user-settings" ||
     right.overlay?.type !== "user-settings" ||
@@ -189,10 +194,18 @@ const resolveNavigationUpdate = (
 ): PetrinautNavigationState => {
   const updated =
     typeof update === "function" ? update(current) : { ...current, ...update };
+  const selection = canonicalizeSelection(updated.selection);
+  const scopeChanged =
+    updated.subnetId !== current.subnetId ||
+    !selectionsMatch(selection, current.selection);
 
   return {
     ...updated,
-    selection: canonicalizeSelection(updated.selection),
+    selection,
+    expandedSubView:
+      scopeChanged && updated.expandedSubView === current.expandedSubView
+        ? null
+        : updated.expandedSubView,
   };
 };
 

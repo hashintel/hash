@@ -1,4 +1,6 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+import { usePetrinautNavigation } from "../../../../../react/navigation";
 
 import type { SubView } from "../../types";
 
@@ -7,7 +9,7 @@ type Maximization = {
   id: string;
   restoring: boolean;
   animated: boolean;
-  from: Bounds;
+  from: Bounds | null;
 };
 
 const relativeBounds = (element: Element, container: Element): Bounds => {
@@ -40,12 +42,27 @@ const animationOptions = {
 };
 
 export const useSubViewMaximization = (
+  name: string,
   subViews: SubView[],
   showAnimations: boolean,
 ) => {
-  const [maximization, setMaximization] = useState<Maximization | null>(null);
-  const sectionRef = useRef<HTMLElement | null>(null);
-
+  const navigation = usePetrinautNavigation();
+  const requestedId =
+    navigation.state.expandedSubView?.container === name
+      ? navigation.state.expandedSubView.id
+      : null;
+  const targetId = subViews.some(
+    (subView) => subView.id === requestedId && subView.canMaximize,
+  )
+    ? requestedId
+    : null;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const [maximization, setMaximization] = useState<Maximization | null>(() =>
+    targetId
+      ? { id: targetId, restoring: false, animated: false, from: null }
+      : null,
+  );
   if (
     maximization &&
     !subViews.some(
@@ -55,53 +72,69 @@ export const useSubViewMaximization = (
     setMaximization(null);
   }
 
-  const canAnimate = (section: HTMLElement) =>
-    showAnimations &&
-    typeof section.animate === "function" &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  const maximize = (id: string, button: HTMLButtonElement) => {
-    const section = button.closest<HTMLElement>("[data-subview-section]");
-    const container = section?.closest("[data-group]");
-    if (!section || !container) return;
-    sectionRef.current = section;
-    setMaximization({
-      id,
-      restoring: false,
-      animated: canAnimate(section),
-      from: relativeBounds(section, container),
-    });
-  };
-
-  const restore = () => {
-    const section = sectionRef.current;
-    const container = section?.closest("[data-group]");
-    if (!section || !container || !maximization) return;
-    if (canAnimate(section)) {
-      setMaximization({
-        ...maximization,
-        restoring: true,
-        animated: true,
-        from: relativeBounds(section, container),
-      });
-    } else {
-      setMaximization(null);
+  useEffect(() => {
+    if (requestedId !== null && targetId === null) {
+      navigation.navigate(
+        (current) =>
+          current.expandedSubView?.container === name &&
+          current.expandedSubView.id === requestedId
+            ? { ...current, expandedSubView: null }
+            : current,
+        { cause: "normalization", action: "subview" },
+      );
     }
-  };
+  }, [name, navigation, requestedId, targetId]);
 
   useLayoutEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    if (!maximization) {
-      focusHeader(section, "[data-expand-subview]");
+    const displayedId = maximization?.restoring
+      ? null
+      : (maximization?.id ?? null);
+    if (displayedId === targetId) return;
+    const container = containerRef.current;
+    const sectionId = targetId ?? maximization?.id;
+    const section =
+      container &&
+      [
+        ...container.querySelectorAll<HTMLElement>("[data-subview-section]"),
+      ].find((element) => element.dataset.subviewId === sectionId);
+    if (!container || !section || !sectionId) {
       return;
     }
+    const animated =
+      showAnimations &&
+      typeof section.animate === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!targetId && !animated) {
+      restoreFocusRef.current = section;
+    }
+    const from = relativeBounds(section, container);
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Measure the current DOM bounds before moving a routed section; the destination guard prevents repeated updates.
+    setMaximization(
+      !targetId && !animated
+        ? null
+        : { id: sectionId, restoring: targetId === null, animated, from },
+    );
+  }, [maximization, showAnimations, targetId]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!maximization) {
+      if (restoreFocusRef.current) {
+        focusHeader(restoreFocusRef.current, "[data-expand-subview]");
+        restoreFocusRef.current = null;
+      }
+      return;
+    }
+    if (!container) return;
+    const section = [
+      ...container.querySelectorAll<HTMLElement>("[data-subview-section]"),
+    ].find((element) => element.dataset.subviewId === maximization.id);
+    if (!section) return;
     if (!maximization.restoring) {
       focusHeader(section, "[data-restore-subview]");
     }
-    const container = section.closest("[data-group]");
     const panel = section.closest("[data-panel]");
-    if (!maximization.animated || !container || !panel) return;
+    if (!maximization.animated || !maximization.from || !panel) return;
     const target = maximization.restoring
       ? relativeBounds(panel, container)
       : relativeBounds(container, container);
@@ -122,6 +155,7 @@ export const useSubViewMaximization = (
     void animation.finished
       .then(() => {
         if (maximization.restoring) {
+          restoreFocusRef.current = section;
           setMaximization(null);
         }
       })
@@ -133,9 +167,18 @@ export const useSubViewMaximization = (
   }, [maximization]);
 
   return {
+    containerRef,
     maximizedId: maximization?.id ?? null,
     isRestoring: maximization?.restoring ?? false,
-    maximize,
-    restore,
+    maximize: (id: string) =>
+      navigation.navigate(
+        { expandedSubView: { container: name, id } },
+        { cause: "user", action: "subview" },
+      ),
+    restore: () =>
+      navigation.navigate(
+        { expandedSubView: null },
+        { cause: "user", action: "subview" },
+      ),
   };
 };
