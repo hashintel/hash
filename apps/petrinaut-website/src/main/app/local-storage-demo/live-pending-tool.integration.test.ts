@@ -93,6 +93,7 @@ test("bounds a native OpenAI tool row that stops after one argument delta", asyn
         },
         firstEventTimeoutMs: 3_000,
         idleTimeoutMs: 500,
+        reasoningStartTimeoutMs: 3_000,
       },
     ),
   );

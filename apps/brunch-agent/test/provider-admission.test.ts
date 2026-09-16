@@ -194,6 +194,64 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
+test("gives newly opened reasoning its longer first-delta grace", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    let upstreamSignal: AbortSignal | undefined;
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          upstreamSignal = options?.signal;
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry: () => false,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const message = fauxAssistantMessage([
+      { type: "thinking", thinking: "", thinkingSignature: "synthetic" },
+    ]);
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "thinking_start",
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(upstreamSignal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(5);
+    await expect(reading).rejects.toMatchObject({
+      code: "model_stream_idle",
+      idleMs: 15,
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test.each(["missing", "arguments", "identity"] as const)(
   "refuses inconsistent streamed and final browser calls (%s)",
   async (difference) => {

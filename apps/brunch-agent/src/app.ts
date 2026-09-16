@@ -102,6 +102,10 @@ const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
   10_000,
 );
+const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
+  "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+  15_000,
+);
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
   2_000,
@@ -172,6 +176,7 @@ const registerAdmittedProvider = (provider: Provider) => {
         },
         firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
         idleTimeoutMs: modelStreamIdleTimeoutMs,
+        reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
       },
     ),
   );

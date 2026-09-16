@@ -53,6 +53,7 @@ type StreamIdleRecovery = {
   readonly claimRetry: () => boolean;
   readonly firstEventTimeoutMs: number;
   readonly idleTimeoutMs: number;
+  readonly reasoningStartTimeoutMs: number;
 };
 
 type BufferedEvent = {
@@ -110,6 +111,7 @@ class AdmittedStream extends EventStream<
     let bytes = 0;
     let eventCount = 0;
     let receivedModelEvent = false;
+    let awaitingReasoningProgress = false;
     let rejectAbort: () => void = () => {};
     let iterator: AsyncIterator<AssistantMessageEvent> | undefined;
     const interrupted = new Promise<never>((_resolve, reject) => {
@@ -136,9 +138,11 @@ class AdmittedStream extends EventStream<
         const nextPending = iterator.next();
         let idleTimer: ReturnType<typeof setTimeout> | undefined;
         const idle = Symbol("provider-stream-idle");
-        const idleTimeoutMs = receivedModelEvent
-          ? idleRecovery?.idleTimeoutMs
-          : idleRecovery?.firstEventTimeoutMs;
+        const idleTimeoutMs = !receivedModelEvent
+          ? idleRecovery?.firstEventTimeoutMs
+          : awaitingReasoningProgress
+            ? idleRecovery?.reasoningStartTimeoutMs
+            : idleRecovery?.idleTimeoutMs;
         const idlePending =
           idleTimeoutMs === undefined
             ? new Promise<never>(() => {})
@@ -189,7 +193,13 @@ class AdmittedStream extends EventStream<
             ? (({ partial: _partial, ...rest }) => rest)(event)
             : event;
         eventCount += 1;
-        if (event.type !== "start") receivedModelEvent = true;
+        if (event.type === "thinking_start") {
+          receivedModelEvent = true;
+          awaitingReasoningProgress = true;
+        } else if (event.type !== "start") {
+          receivedModelEvent = true;
+          awaitingReasoningProgress = false;
+        }
         count(compact);
         // Flue publishes executable inputs only at toolcall_end. Text and
         // thinking can stream without admitting a call or completing a turn.
