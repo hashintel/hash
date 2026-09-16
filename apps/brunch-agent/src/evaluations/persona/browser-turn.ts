@@ -32,7 +32,10 @@ export const submitPersonaBrowserTurn = async (
   options: {
     session?: PersonaBrowserSession;
     signal?: AbortSignal;
-    onAdmission?: (session: PersonaBrowserSession) => Promise<void>;
+    onAdmission?: (
+      session: PersonaBrowserSession,
+      receipt: AgentSendResult,
+    ) => Promise<void>;
   } = {},
 ) => {
   const { signal } = options;
@@ -58,8 +61,31 @@ export const submitPersonaBrowserTurn = async (
   const isAdmission = (response: BrowserResponse) =>
     response.request().method() === "POST" &&
     /^\/agents\/chat\/[^/]+$/u.test(new URL(response.url()).pathname);
+  let admissionSession: PersonaBrowserSession | undefined;
+  const continuationAdmissionTasks: Promise<void>[] = [];
   const collect = (response: BrowserResponse) => {
-    if (isAdmission(response)) responses.push(response);
+    if (!isAdmission(response)) return;
+    responses.push(response);
+    const session = admissionSession;
+    if (session === undefined) return;
+    continuationAdmissionTasks.push(
+      (async () => {
+        assert.equal(
+          response.url(),
+          session.url,
+          "Another conversation submitted during the persona turn",
+        );
+        assert.equal(
+          response.status(),
+          202,
+          "A browser continuation failed admission",
+        );
+        await options.onAdmission?.(
+          session,
+          (await response.json()) as AgentSendResult,
+        );
+      })(),
+    );
   };
   let admitted = false;
   let stopTask: Promise<void> | undefined;
@@ -124,7 +150,8 @@ export const submitPersonaBrowserTurn = async (
           `Persona browser changed ${key}`,
         );
     }
-    await options.onAdmission?.(session);
+    admissionSession = session;
+    await options.onAdmission?.(session, admission);
     if (signal?.aborted) cancel();
     // The product's busy status spans client-tool continuations, unlike one Flue settlement.
     await Promise.race([
@@ -132,6 +159,7 @@ export const submitPersonaBrowserTurn = async (
       aborted.promise,
     ]);
     await stopTask;
+    await Promise.all(continuationAdmissionTasks);
     const admissions = await Promise.all(
       responses.map(async (response) => {
         assert.equal(

@@ -5,6 +5,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { FlueExecutionError } from "@flue/sdk";
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
@@ -24,6 +25,7 @@ import {
   readPersonaCase,
   recordingReadySummary,
   responds,
+  settlePersonaLauncherStop,
 } from "./launch.ts";
 import {
   axisSettingsFromRun,
@@ -34,6 +36,60 @@ import {
   resolvePersonaRoleSettings,
   roleSettingsFromRun,
 } from "./launch/role-settings.ts";
+
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
+
+test("launcher Stop observes durable aborted settlement before cleanup", async () => {
+  const receipt = {
+    submissionId: "sub_TEST",
+  } as AgentSendResult;
+  let abortRecorded = false;
+  const client = {
+    abort: vi.fn<FlueClient["abort"]>(async () => {
+      abortRecorded = true;
+      return { aborted: true };
+    }),
+    wait: vi.fn<FlueClient["wait"]>(async () => {
+      expect(abortRecorded).toBe(true);
+      throw new FlueExecutionError({
+        target: "agent_submission",
+        targetId: receipt.submissionId,
+        failure: "aborted",
+      });
+    }),
+  };
+
+  await expect(
+    settlePersonaLauncherStop(client, receipt, 100),
+  ).resolves.toEqual({
+    settlement: "aborted",
+    submissionId: receipt.submissionId,
+  });
+});
+
+test("launcher Stop bounds an unobserved settlement", async () => {
+  const receipt = {
+    submissionId: "sub_TEST_timeout",
+  } as AgentSendResult;
+  const client = {
+    abort: vi.fn<FlueClient["abort"]>().mockResolvedValue({ aborted: true }),
+    wait: vi.fn<FlueClient["wait"]>(
+      (_receipt, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            "abort",
+            () => reject(options.signal?.reason),
+            { once: true },
+          );
+        }),
+    ),
+  };
+
+  await expect(settlePersonaLauncherStop(client, receipt, 5)).resolves.toEqual({
+    settlement: "not-observed",
+    submissionId: receipt.submissionId,
+  });
+});
 
 test("locates the bound Petrinaut document in supported persona modes", () => {
   expect(
