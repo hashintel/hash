@@ -284,12 +284,11 @@ async fn declarations(
             .change_context_lazy(|| TaskDependenciesError::ReadFile(path.clone()))?;
 
         for (key, definition) in config.tasks {
-            let (owner, task) = match key.split_once('#') {
-                Some((owner, task)) => (owner.to_owned(), task.to_owned()),
-                None => {
-                    names.insert(key.clone());
-                    (package.name.clone(), key)
-                }
+            let (owner, task) = if let Some((owner, task)) = key.split_once('#') {
+                (owner.to_owned(), task.to_owned())
+            } else {
+                names.insert(key.clone());
+                (package.name.clone(), key)
             };
             if has_command(&definition) {
                 implemented.entry(owner).or_default().insert(task);
@@ -625,14 +624,16 @@ fn documents(
         );
     }
 
-    Ok(documents
+    // The workspace roots are packages without a directory of their own.
+    let documents = documents
         .into_iter()
-        // The workspace roots are packages without a directory of their own.
         .filter_map(|(name, document)| match paths.remove(&name) {
             Some(path) if !path.is_empty() => Some((path, document)),
             _ => None,
         })
-        .collect())
+        .collect();
+
+    Ok(documents)
 }
 
 fn render(document: &Document) -> Result<String, Report<TaskDependenciesError>> {
