@@ -41,7 +41,7 @@ describe("useSharedSearchNavigation", () => {
     let controller!: PetrinautNavigationController;
     const onSearchChange = vi.fn();
     const parent = { itemType: "transition", itemId: "collision" } as const;
-    const notebook = { ...parent, editView: "notebook" } as const;
+    const notebook = { ...parent, editView: "definitions" } as const;
     const onController = (value: PetrinautNavigationController) => {
       controller = value;
     };
@@ -49,7 +49,7 @@ describe("useSharedSearchNavigation", () => {
     const view = render(<Probe {...props} search={parent} />);
     act(() =>
       controller.onNavigate(
-        (current) => ({ ...current, editView: "notebook" }),
+        (current) => ({ ...current, editView: "definitions" }),
         { history: "push", intent: { cause: "user", action: "edit-view" } },
       ),
     );
@@ -61,7 +61,7 @@ describe("useSharedSearchNavigation", () => {
     view.rerender(<Probe {...props} search={parent} />);
     expect(controller.state.editView).toBe("canvas");
     view.rerender(<Probe {...props} search={notebook} />);
-    expect(controller.state.editView).toBe("notebook");
+    expect(controller.state.editView).toBe("definitions");
     expect(controller.state.mode).toBe("edit");
     expect(controller.state.selection).toEqual([
       { type: "transition", id: "collision" },

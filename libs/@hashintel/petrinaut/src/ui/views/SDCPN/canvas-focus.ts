@@ -5,7 +5,7 @@
  *
  * Direction is what the roles carry — a neighbour that feeds the focused item
  * is upstream, one it feeds is downstream — so the canvas can show a
- * neighbourhood in colour, the way the Notebook's net graph does, rather than
+ * neighbourhood in colour, the way the Definitions' net graph does, rather than
  * fading the rest of the net away.
  */
 

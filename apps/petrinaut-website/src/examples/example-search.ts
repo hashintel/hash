@@ -24,7 +24,7 @@ import {
  */
 export const sharedModes = ["edit", "simulate", "actual"] as const;
 
-export const sharedEditViews = ["canvas", "notebook"] as const;
+export const sharedEditViews = ["canvas", "definitions"] as const;
 
 export const sharedSimulateViews = [
   "scenarios",
@@ -137,8 +137,10 @@ export const validateSharedExampleSearch = (
   mode: input.mode === "notebook" ? "edit" : optionalMode.parse(input.mode),
   editView:
     input.mode === "notebook"
-      ? "notebook"
-      : optionalEditView.parse(input.editView),
+      ? "definitions"
+      : optionalEditView.parse(
+          input.editView === "notebook" ? "definitions" : input.editView,
+        ),
   view: optionalSimulateView.parse(input.view),
   overlay: optionalOverlay.parse(input.overlay),
   expandedPanel: optionalNonEmptyString.parse(input.expandedSection)
