@@ -16,7 +16,7 @@ use serde_json::json;
 use sha2::{Digest as _, Sha256};
 
 use crate::{
-    ids::{EventId, JournalRecordDigest, content_digest},
+    ids::{EventId, JournalRecordDigest, content_digest, content_digest_bytes},
     port::{Domain, Prepared},
     registry::{
         self, AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
@@ -237,11 +237,11 @@ fn derive_event_id<E: DomainEvent>(
 ) -> Result<EventId, CompatError> {
     let event = serde_json::to_value(event)
         .map_err(|error| record_malformed::<E>(format!("serialize event for identity: {error}")))?;
-    content_digest(
+    content_digest_bytes(
         "domain-event:v1",
         &json!({ "partition": partition, "event": event }),
     )
-    .map(EventId::from_digest)
+    .map(EventId::from_bytes)
     .map_err(|error| record_malformed::<E>(error.to_string()))
 }
 
@@ -288,7 +288,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
         let event = serde_json::to_value(&self.event).map_err(|error| {
             record_malformed::<E>(format!("serialize event for digest: {error}"))
         })?;
-        content_digest(
+        content_digest_bytes(
             "domain-record:v1",
             &json!({
                 "event_id": self.event_id,
@@ -296,7 +296,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
                 "event": event,
             }),
         )
-        .map(JournalRecordDigest::from_digest)
+        .map(JournalRecordDigest::from_bytes)
         .map_err(|error| record_malformed::<E>(error.to_string()))
     }
 }
@@ -661,13 +661,13 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
 
     fn reject_foreign_shard(record: &Self::RecordCurrent) -> Self::FoldError {
         FoldError::ForeignShard {
-            event_id: record.event_id.clone(),
+            event_id: record.event_id,
             partition: record.partition.clone(),
         }
     }
 
     fn record_event_id(record: &Self::RecordCurrent) -> EventId {
-        record.event_id.clone()
+        record.event_id
     }
 
     fn record_state_key(record: &Self::RecordCurrent) -> PartitionKey {
@@ -693,7 +693,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                 Ok(Prepared::Noop)
             } else {
                 Err(FoldError::ConflictingReuse {
-                    event_id: record.event_id.clone(),
+                    event_id: record.event_id,
                 })
             };
         }
@@ -701,7 +701,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
             .domain
             .validate(&record.event)
             .map_err(|rejection| FoldError::Rejected {
-                event_id: record.event_id.clone(),
+                event_id: record.event_id,
                 rejection,
             })?;
         Ok(Prepared::Mutation(record.clone()))
@@ -726,7 +726,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         let digest = delta.digest().map_err(|error| FoldError::Invalid {
             message: error.to_string(),
         })?;
-        projection.seen.insert(delta.event_id.clone(), digest);
+        projection.seen.insert(delta.event_id, digest);
         projection
             .partitions
             .insert(delta.partition.clone(), shard_sequence);
@@ -873,7 +873,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
                 record.event_id
             )),
             None => {
-                projection.seen.insert(record.event_id.clone(), digest);
+                projection.seen.insert(record.event_id, digest);
                 projection
                     .partitions
                     .insert(record.partition.clone(), sequence);
@@ -1078,6 +1078,10 @@ mod tests {
     #[test]
     fn wire_shape_is_frozen() {
         let record = incremented("orders", 5);
+        assert_eq!(
+            record.event_id.to_string(),
+            "06ccc9f5d9b454676b6d0fc90cdc732d917cf17c8bb3f1427be236ff896f2d10"
+        );
         let encoded = EventRecord::V1(record.clone())
             .encode()
             .expect("record should encode");
@@ -1187,7 +1191,7 @@ mod tests {
     fn identities_are_computed_and_forgeries_are_refused() {
         let record = incremented("orders", 5);
         let mut forged = incremented("orders", 6);
-        forged.event_id = record.event_id.clone();
+        forged.event_id = record.event_id;
         assert!(forged.verify().is_err());
         EventRecord::V1(forged)
             .encode()
@@ -1256,9 +1260,7 @@ mod tests {
         let other_digest = incremented("orders", 7)
             .digest()
             .expect("digest should compute");
-        projection
-            .seen
-            .insert(record.event_id.clone(), other_digest);
+        projection.seen.insert(record.event_id, other_digest);
         let error = Toy::replay(&mut projection, shard, 2, EventRecord::V1(record))
             .expect_err("an event ID stored with different content should be refused");
         assert!(error.contains("reused with different content"));
