@@ -417,7 +417,7 @@ return {
             {
               elementId: "element__machine_id",
               name: "machine_id",
-              type: "uuid",
+              type: "integer",
               identityRef: "identity__machine",
             },
             {
@@ -438,7 +438,7 @@ return {
             {
               elementId: "element__producing_machine_id",
               name: "machine_id",
-              type: "uuid",
+              type: "integer",
               identityRef: "identity__machine",
             },
             {
@@ -533,7 +533,7 @@ return tokens.map(({ distance_to_site }) => {
         {
           id: "identity__machine",
           name: "Machine",
-          keyElementTypes: ["uuid"],
+          keyElementTypes: ["integer"],
         },
       ],
       statusViews: [
@@ -678,6 +678,7 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
                         optimize: null,
                       },
                       cells: [
+                        { expression: "i + 1", optimize: null },
                         {
                           expression: "scenario.initial_machine_damage",
                           optimize: null,

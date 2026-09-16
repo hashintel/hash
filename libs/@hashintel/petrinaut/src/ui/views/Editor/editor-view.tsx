@@ -587,6 +587,8 @@ const EditorViewContent = ({
     },
   ];
 
+  const hasStatusViews = (petriNetDefinition.statusViews ?? []).length > 0;
+
   const showEmptyAiHero =
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
@@ -665,8 +667,11 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization, or the Kanban projection of a status
-                        view over the same frame source */}
-                    {canvasViewMode === "kanban" ? (
+                        view over the same frame source. A net without status
+                        views always shows the canvas: the toggle is hidden then,
+                        so a stored "kanban" preference would otherwise be
+                        inescapable. */}
+                    {hasStatusViews && canvasViewMode === "kanban" ? (
                       <KanbanView />
                     ) : (
                       <SDCPNView
@@ -675,7 +680,7 @@ const EditorViewContent = ({
                       />
                     )}
 
-                    {(petriNetDefinition.statusViews ?? []).length > 0 && (
+                    {hasStatusViews && (
                       <div className={canvasViewToggleStyle}>
                         <SegmentedControl
                           value={canvasViewMode}
