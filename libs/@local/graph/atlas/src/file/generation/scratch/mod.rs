@@ -102,7 +102,7 @@ impl ScratchFile {
     ///
     /// Returns the original transfer error after attempting to remove the partial file.
     pub(crate) async fn finish<E>(self, result: Result<(), E>) -> Result<Utf8PathBuf, E> {
-        drop(self.file);
+        drop(self.file.into_std().await);
 
         if let Err(error) = result {
             if let Err(cleanup_error) = tokio::fs::remove_file(&self.path).await {

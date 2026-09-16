@@ -1,9 +1,15 @@
 //! Scratch fixtures for tests across the crate, and the input-completion cases.
 
+use core::{
+    assert_matches,
+    future::Future as _,
+    pin::pin,
+    task::{Context, Poll, Waker},
+};
 use std::{env, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
-use tokio::io::AsyncWriteExt as _;
+use tokio::{io::AsyncWriteExt as _, runtime::Builder, sync::oneshot};
 use uuid::Uuid;
 
 use super::{ScratchDirectory, ScratchFile};
@@ -101,6 +107,54 @@ async fn finish_distinct_files() {
     drop(directory);
 }
 
+#[test]
+fn finish_pending_write() {
+    let runtime = Builder::new_current_thread()
+        .max_blocking_threads(1)
+        .build()
+        .expect("should build the file runtime");
+    runtime.block_on(async {
+        let directory = scratch();
+        let mut input = ScratchFile::new(root(&directory))
+            .await
+            .expect("should create the input");
+
+        // occupying the only blocking worker keeps the file write pending.
+        let (started, ready) = oneshot::channel();
+        let (release, resume) = oneshot::channel::<()>();
+        let blocker = tokio::task::spawn_blocking(move || {
+            started
+                .send(())
+                .expect("should announce the blocked worker");
+            resume.blocking_recv()
+        });
+        ready.await.expect("should start the blocked worker");
+        input
+            .file
+            .write_all(b"queued body")
+            .await
+            .expect("should queue the input write");
+
+        let mut finish = pin!(input.finish(Ok::<_, io::Error>(())));
+        let initial = finish
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()));
+        release.send(()).expect("should release the blocked worker");
+        blocker
+            .await
+            .expect("should join the blocked worker")
+            .expect("should receive the release");
+        assert_matches!(initial, Poll::Pending);
+
+        let path = finish.await.expect("should retain the completed input");
+        assert_eq!(
+            fs::read(path).expect("should read the completed input"),
+            b"queued body"
+        );
+        drop(directory);
+    });
+}
+
 /// A failed transfer removes its own partial input, returns its error and retains the others.
 #[tokio::test]
 async fn finish_partial_failure() {
@@ -115,11 +169,6 @@ async fn finish_partial_failure() {
         .write_all(b"short")
         .await
         .expect("should write the initial bytes");
-    partial
-        .file
-        .flush()
-        .await
-        .expect("should finish writing the initial bytes");
     let error = partial
         .finish(Err(io::Error::new(
             io::ErrorKind::UnexpectedEof,
