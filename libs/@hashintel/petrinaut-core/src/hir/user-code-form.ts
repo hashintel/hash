@@ -68,3 +68,19 @@ export function detectUserCodeForm(code: string): UserCodeForm {
   );
   return sourceFile.statements.some(isExportStatement) ? "module" : "body";
 }
+
+/** State constraints accept expressions and existing bodies with explicit returns. */
+export const detectStateConstraintForm = (
+  code: string,
+): "expression" | "body" => {
+  const sourceFile = ts.createSourceFile(
+    "constraint-form.ts",
+    code,
+    ts.ScriptTarget.ES2020,
+  );
+  return sourceFile.statements.some(
+    (statement) => !ts.isExpressionStatement(statement),
+  )
+    ? "body"
+    : "expression";
+};
