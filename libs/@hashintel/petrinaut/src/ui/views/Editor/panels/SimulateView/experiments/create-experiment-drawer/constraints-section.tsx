@@ -1,6 +1,11 @@
 import { use, useRef, useState } from "react";
 
-import { Button, Icon, NumberInput } from "@hashintel/ds-components";
+import {
+  Button,
+  HelpTooltip,
+  Icon,
+  NumberInput,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../../react/lsp/context";
@@ -10,7 +15,6 @@ import { getConstraintDocumentUri } from "../../../../../../monaco/editor-paths"
 import {
   addConstraintDraft,
   type ConstraintDraftsState,
-  hasStateConstraintDraft,
   removeConstraintDraft,
   updateConstraintDraftCode,
 } from "./constraint-drafts";
@@ -33,9 +37,43 @@ const listStyle = css({
   gap: "2",
 });
 
+const groupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  border: "[1px solid {colors.neutral.bd.subtle}]",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s05",
+  minWidth: "[0]",
+});
+
+const groupHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: "2",
+});
+
+const groupTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.body",
+});
+
+const groupActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "3",
+});
+
 const rowStyle = css({
   display: "grid",
-  gap: "1",
+  gridTemplateColumns: "[minmax(0, 1fr) auto]",
+  alignItems: "start",
+  gap: "[4px 8px]",
   minWidth: "[0]",
   borderRadius: "lg",
   _focusVisible: {
@@ -44,17 +82,8 @@ const rowStyle = css({
   },
 });
 
-const rowHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "2",
-});
-
-const rowLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
+const removeButtonStyle = css({
+  marginTop: "[3px]",
 });
 
 const diagnosticStyle = css({
@@ -62,6 +91,7 @@ const diagnosticStyle = css({
   lineHeight: "[16px]",
   color: "red.s100",
   whiteSpace: "pre-wrap",
+  gridColumn: "[1 / -1]",
 });
 
 const emptyStyle = css({
@@ -69,38 +99,45 @@ const emptyStyle = css({
   color: "neutral.s80",
 });
 
-const addRowStyle = css({
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "2",
-});
-
 const thresholdStyle = css({
   display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  paddingTop: "2",
-  borderTopWidth: "[1px]",
-  borderTopStyle: "solid",
-  borderTopColor: "neutral.bd.subtle",
-});
-
-const thresholdFieldStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[minmax(0, 1fr) 120px]",
   alignItems: "center",
   gap: "2",
 });
 
+const thresholdFieldStyle = css({
+  width: "[80px]",
+});
+
 const thresholdLabelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  fontSize: "xs",
+  color: "neutral.s100",
 });
 
 const hintStyle = css({
   fontSize: "xs",
-  color: "neutral.s80",
+  color: "neutral.s100",
 });
+
+const constraintGroups = [
+  {
+    space: "parameters",
+    title: "Parameters",
+    label: "Parameter constraints",
+    description: "Checked before simulation.",
+    addLabel: "Add parameter constraint",
+  },
+  {
+    space: "state",
+    title: "State",
+    label: "State constraints",
+    description: "Checked at every time step.",
+    addLabel: "Add state constraint",
+  },
+] as const;
 
 const SECTION_TOOLTIP =
   "What the optimizer must respect when it drives this sweep. A parameter constraint rules out points before they compute; a state constraint is checked on every frame of every run and runs on the CPU.";
@@ -147,20 +184,6 @@ const ConstraintRow = ({
       tabIndex={-1}
       className={rowStyle}
     >
-      <div className={rowHeaderStyle}>
-        <span className={rowLabelStyle}>
-          {row.space === "parameters" ? "Parameters" : "State"}
-        </span>
-        <Button
-          size="xs"
-          variant="ghost"
-          tone="neutral"
-          iconName="trash"
-          aria-label={`Remove ${label.toLowerCase()}`}
-          disabled={disabled}
-          onClick={onRemove}
-        />
-      </div>
       <CodeEditor
         language="typescript"
         path={getConstraintDocumentUri(row.id)}
@@ -205,6 +228,16 @@ const ConstraintRow = ({
           }
         }}
       />
+      <Button
+        size="xs"
+        variant="ghost"
+        tone="neutral"
+        iconName="trash"
+        className={removeButtonStyle}
+        aria-label={`Remove ${label.toLowerCase()}`}
+        disabled={disabled}
+        onClick={onRemove}
+      />
       {errorMessage ? (
         <span className={diagnosticStyle} role="alert">
           {errorMessage}
@@ -231,9 +264,13 @@ export const ConstraintsSection = ({
   // The row added last takes focus as its editor mounts; a UI detail the
   // drafts themselves do not carry.
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
-  const hasStateRow = hasStateConstraintDraft(drafts);
   const editorRefs = useRef(new Map<string, editor.IStandaloneCodeEditor>());
-  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const addButtonRefs = useRef<
+    Record<ConstraintSpace, HTMLButtonElement | null>
+  >({
+    parameters: null,
+    state: null,
+  });
   const parameterName = scenarioParameters[0]?.identifier;
   const placeName = placeNames[0];
   const placeholders: Record<ConstraintSpace, string> = {
@@ -244,13 +281,16 @@ export const ConstraintsSection = ({
   };
 
   const removeRow = (row: ConstraintDraft) => {
-    const index = drafts.rows.findIndex((candidate) => candidate.id === row.id);
-    const nextRow = drafts.rows[index + 1] ?? drafts.rows[index - 1];
+    const rows = drafts.rows.filter(
+      (candidate) => candidate.space === row.space,
+    );
+    const index = rows.findIndex((candidate) => candidate.id === row.id);
+    const nextRow = rows[index + 1] ?? rows[index - 1];
     onChange(removeConstraintDraft(drafts, row.id));
     if (nextRow) {
       editorRefs.current.get(nextRow.id)?.focus();
     } else {
-      addButtonRef.current?.focus();
+      addButtonRefs.current[row.space]?.focus();
     }
   };
 
@@ -271,79 +311,88 @@ export const ConstraintsSection = ({
         <span className={emptyStyle}>
           No constraints — the optimizer may try any point of the sweep.
         </span>
-      ) : (
-        <div className={listStyle}>
-          {drafts.rows.map((row) => (
-            <ConstraintRow
-              key={row.id}
-              row={row}
-              label={describeConstraint(row, drafts.rows)}
-              scenarioParameters={scenarioParameters}
-              focusOnMount={row.id === focusRowId}
-              placeholder={placeholders[row.space]}
-              onEditorMount={(instance) => {
-                editorRefs.current.set(row.id, instance);
-                instance.onDidDispose(() => editorRefs.current.delete(row.id));
-              }}
-              disabled={disabled}
-              onCodeChange={(code) =>
-                onChange(updateConstraintDraftCode(drafts, row.id, code))
-              }
-              onRemove={() => removeRow(row)}
-            />
-          ))}
-        </div>
-      )}
-      <div className={addRowStyle}>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="plus" size="sm" />}
-          ref={addButtonRef}
-          aria-label="Add parameter constraint"
-          disabled={disabled}
-          onClick={() => addRow("parameters")}
-        >
-          Parameter constraint
-        </Button>
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          prefix={<Icon name="plus" size="sm" />}
-          aria-label="Add state constraint"
-          disabled={disabled}
-          onClick={() => addRow("state")}
-        >
-          State constraint
-        </Button>
-      </div>
-      {hasStateRow ? (
-        <div className={thresholdStyle}>
-          <div className={thresholdFieldStyle}>
-            <span className={thresholdLabelStyle}>Pass threshold</span>
-            <NumberInput
-              size="sm"
-              min={1}
-              max={99.9}
-              step={0.5}
-              hideStepper
-              suffix={{ text: "%", variant: "subtle" }}
-              aria-label="Pass threshold (percent)"
-              value={drafts.passThresholdPercent}
-              disabled={disabled}
-              onChange={(passThresholdPercent) =>
-                onChange({ ...drafts, passThresholdPercent })
-              }
-            />
-          </div>
-          <span className={hintStyle}>
-            Minimum share of runs that must satisfy each state condition at
-            every time step.
-          </span>
-        </div>
       ) : null}
+      <div className={listStyle}>
+        {constraintGroups.map((group) => {
+          const rows = drafts.rows.filter((row) => row.space === group.space);
+          return (
+            <div
+              key={group.space}
+              role="group"
+              aria-label={group.label}
+              className={groupStyle}
+            >
+              <div className={groupHeaderStyle}>
+                <div>
+                  <div className={groupTitleStyle}>{group.title}</div>
+                  <div className={hintStyle}>{group.description}</div>
+                </div>
+                <div className={groupActionsStyle}>
+                  {group.space === "state" && rows.length > 0 ? (
+                    <div className={thresholdStyle}>
+                      <span className={thresholdLabelStyle}>
+                        Pass threshold
+                        <HelpTooltip content="Minimum share of runs that must satisfy each state condition at every time step." />
+                      </span>
+                      <div className={thresholdFieldStyle}>
+                        <NumberInput
+                          size="xs"
+                          min={1}
+                          max={99.9}
+                          step={0.5}
+                          hideStepper
+                          suffix={{ text: "%", variant: "subtle" }}
+                          aria-label="Pass threshold (percent)"
+                          value={drafts.passThresholdPercent}
+                          disabled={disabled}
+                          onChange={(passThresholdPercent) =>
+                            onChange({ ...drafts, passThresholdPercent })
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                  <Button
+                    variant="ghost"
+                    tone="neutral"
+                    size="xs"
+                    prefix={<Icon name="plus" size="xs" />}
+                    ref={(element) => {
+                      addButtonRefs.current[group.space] = element;
+                    }}
+                    aria-label={group.addLabel}
+                    disabled={disabled}
+                    onClick={() => addRow(group.space)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+              {rows.map((row) => (
+                <ConstraintRow
+                  key={row.id}
+                  row={row}
+                  label={describeConstraint(row, drafts.rows)}
+                  scenarioParameters={scenarioParameters}
+                  focusOnMount={row.id === focusRowId}
+                  placeholder={placeholders[row.space]}
+                  onEditorMount={(instance) => {
+                    editorRefs.current.set(row.id, instance);
+                    instance.onDidDispose(() =>
+                      editorRefs.current.delete(row.id),
+                    );
+                  }}
+                  disabled={disabled}
+                  onCodeChange={(code) =>
+                    onChange(updateConstraintDraftCode(drafts, row.id, code))
+                  }
+                  onRemove={() => removeRow(row)}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </Section>
   );
 };
