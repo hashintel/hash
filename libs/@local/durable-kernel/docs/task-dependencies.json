@@ -1,0 +1,23 @@
+{
+  "package": "@rust/durable-kernel",
+  "dependencies": [
+    "@rust/error-stack"
+  ],
+  "tasks": {
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}
