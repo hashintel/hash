@@ -147,6 +147,10 @@ const lockedFormStyle = css({
 });
 
 const labelStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  whiteSpace: "nowrap",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.fg.body",
@@ -520,7 +524,9 @@ const SimulationSettingsContent: React.FC = () => {
   const timeStepControl = (
     <div className={timeStepInlineStyle}>
       <label htmlFor="time-step-input" className={labelStyle}>
-        Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+        <span>
+          Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+        </span>
         <PointerHelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
       </label>
       <NumberInput
@@ -700,8 +706,8 @@ const SimulationSettingsContent: React.FC = () => {
                       <FormSectionHeader
                         title="Initial state"
                         tooltip="Token counts and values for this run."
+                        titleAction={placesVisibilityControl}
                       >
-                        {placesVisibilityControl}
                         <FocusControls axis="horizontal">
                           <Button
                             size="xs"
@@ -794,9 +800,8 @@ const SimulationSettingsContent: React.FC = () => {
                             title="Initial state"
                             spaceBefore={scenarioRunView.previewReady}
                             tooltip="Computed token counts and values for this run."
-                          >
-                            {placesVisibilityControl}
-                          </FormSectionHeader>
+                            titleAction={placesVisibilityControl}
+                          />
                           {scenarioRunView.notice === null ? null : (
                             <div className={runNoticeStyle}>
                               {scenarioRunView.notice}

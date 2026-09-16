@@ -40,7 +40,7 @@ Changes here do not modify the parameter definition or the scenario -- they only
 
 ### Time step (dt)
 
-The time step in seconds per frame. Controls the resolution of ODE integration and how frequently transitions are evaluated.
+Set the time step in seconds per frame using the **Time Step** input beside the scenario picker in Simulation Settings. It controls the resolution of ODE integration and how frequently transitions are evaluated. Hover the info icon beside its label for a short explanation.
 
 - **Smaller dt** -- finer approximation, but slower computation.
 - **Larger dt** -- faster, but less accurate for continuous dynamics.
@@ -65,7 +65,7 @@ If there are unresolved error-severity [diagnostics](petri-net-extensions.md#dia
 
 Use arrow keys to move between the scenario picker, its action buttons, the time-step field, and the tables below. Enter opens a picker or edits a selected table value. Text fields keep Left and Right for moving the caret until it reaches an edge. Tab follows the usual browser order.
 
-The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on **Show all places** on the header to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
+The uppercase section headers stack at the top as you scroll each column. Earlier headers fade slightly; click one to return to that section. Upcoming section headers stay at the bottom; click one to jump ahead. A soft fade marks the edge where content scrolls beneath the headers and clears when you return to the section's start. Informational tooltips are skipped by Tab and arrow-key navigation. Scrollbars overlay the content when you hover over a scrollable area, without shifting the columns. Initial state starts with the places marked **Default starting place** in their properties. Turn on the compact **Show all places** switch beside the Initial state title and info icon to inspect the rest. The switch appears only when the model contains other places. Left collapses an expanded place; Left again moves to the neighbouring focus group.
 
 ## How a frame is computed
 

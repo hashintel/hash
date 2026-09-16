@@ -38,9 +38,6 @@ const denseBlockStyle = css({
   gap: "1",
 });
 
-// One line grammar for places: the fixed title width and line height are
-// shared between an uncoloured place's row and a collapsed coloured
-// place's header, so counts and collapsed summaries start at the same x.
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
@@ -70,19 +67,13 @@ const placeNameButtonStyle = css({
   },
 });
 
-const collapsedTitleButtonStyle = css({
-  width: "[214px]",
-  flexShrink: "0",
-});
-
-const collapsedTitleNameStyle = css({
+const placeTitleNameStyle = css({
   flex: "1",
   minWidth: "[0]",
   overflow: "hidden",
   whiteSpace: "nowrap",
   textAlign: "left",
-  maskImage:
-    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
+  textOverflow: "ellipsis",
 });
 
 const chevronStyle = css({
@@ -108,6 +99,8 @@ const colourDotStyle = css({
 });
 
 const summaryStyle = css({
+  marginLeft: "auto",
+  flexShrink: "0",
   fontFamily: "mono",
   fontSize: "[10px]",
   color: "neutral.s80",
@@ -149,10 +142,6 @@ const placeNameStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s120",
-});
-
-const headerSpacerStyle = css({
-  flex: "1",
 });
 
 // An uncoloured place is one line: a fixed-width title, then the count
@@ -252,10 +241,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
         <button
           ref={attachHeader}
           type="button"
-          className={cx(
-            placeNameButtonStyle,
-            collapsed && collapsedTitleButtonStyle,
-          )}
+          className={placeNameButtonStyle}
           aria-expanded={!collapsed}
           aria-label={`${place.name} place`}
           onClick={() => setCollapsed((current) => !current)}
@@ -272,23 +258,20 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             className={colourDotStyle}
             style={{ backgroundColor: colour.displayColor }}
           />
-          <span className={cx(collapsed && collapsedTitleNameStyle)}>
-            {place.name}
-          </span>
+          <span className={placeTitleNameStyle}>{place.name}</span>
         </button>
-        {collapsed ? (
-          <span
-            className={cx(
-              summaryStyle,
-              (state.rows.length > 0 || (total.resolved && total.total > 0)) &&
-                summaryFilledStyle,
-            )}
-          >
-            {state.rows.length} row{state.rows.length === 1 ? "" : "s"} ·{" "}
-            {totalText} tokens
-          </span>
-        ) : null}
-        <span className={headerSpacerStyle} />
+        <span
+          className={cx(
+            summaryStyle,
+            (state.rows.length > 0 || (total.resolved && total.total > 0)) &&
+              summaryFilledStyle,
+          )}
+        >
+          {collapsed
+            ? `${state.rows.length} row${state.rows.length === 1 ? "" : "s"} · `
+            : null}
+          {totalText} tokens
+        </span>
       </div>
       <div
         className={collapseWrapStyle}

@@ -185,6 +185,7 @@ const fillHeightContentStyle = css({
 
 interface SectionProps {
   title: string;
+  titleAction?: ReactNode;
   stacked?: boolean;
   tooltip?: string;
   collapsible?: boolean;
@@ -213,6 +214,7 @@ interface SectionProps {
 
 export const Section = ({
   title,
+  titleAction,
   stacked = false,
   tooltip,
   collapsible = false,
@@ -255,6 +257,7 @@ export const Section = ({
         ) : (
           <HelpTooltip content={tooltip} />
         ))}
+      {titleAction}
     </div>
   );
 

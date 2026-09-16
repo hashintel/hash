@@ -31,19 +31,21 @@ const actionsStyle = css({
 
 export const FormSectionHeader: React.FC<{
   title: string;
+  titleAction?: React.ReactNode;
   tooltip?: string;
   spaceBefore?: boolean;
   children?: React.ReactNode;
-}> = ({ title, tooltip, spaceBefore, children }) => (
+}> = ({ title, titleAction, tooltip, spaceBefore, children }) => (
   <StackedSectionHeader className={headerStyle} spaceBefore={spaceBefore}>
     {(renderTitle) => (
       <>
         {renderTitle(title, titleStyle)}
         {tooltip ? <PointerHelpTooltip content={tooltip} /> : null}
-        {children ? (
-          <div className={actionsStyle}>
-            <FocusStack axis="horizontal">{children}</FocusStack>
-          </div>
+        {titleAction || children ? (
+          <FocusStack axis="horizontal">
+            {titleAction}
+            {children ? <div className={actionsStyle}>{children}</div> : null}
+          </FocusStack>
         ) : null}
       </>
     )}

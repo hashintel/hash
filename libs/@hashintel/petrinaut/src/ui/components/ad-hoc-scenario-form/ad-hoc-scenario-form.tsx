@@ -92,6 +92,21 @@ const placesListStyle = css({
   gap: "1",
 });
 
+const placesVisibilityStyle = css({
+  marginLeft: "1",
+  gap: "1.5",
+  paddingY: "1",
+  flexShrink: "0",
+  whiteSpace: "nowrap",
+  "& [data-part='label']": { fontSize: "[11px]" },
+  "& [data-part='control']": {
+    "--toggle-width": "22px",
+    "--toggle-height": "12px",
+    "--toggle-padding": "1px",
+    "--toggle-thumb-size": "8px",
+  },
+});
+
 export interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
@@ -151,8 +166,8 @@ const NavigableSection: React.FC<{
   title: string;
   tooltip: string;
   children: React.ReactNode;
-  action?: React.ReactNode;
-}> = ({ title, tooltip, children, action }) => {
+  titleAction?: React.ReactNode;
+}> = ({ title, tooltip, children, titleAction }) => {
   const [open, setOpen] = useState(true);
   const header = useFocusHeader({
     collapse: open ? () => setOpen(false) : undefined,
@@ -169,7 +184,7 @@ const NavigableSection: React.FC<{
       onOpenChange={setOpen}
       triggerRef={header.attach}
       onTriggerKeyDown={header.onHeaderKeyDown}
-      renderHeaderAction={action ? () => action : undefined}
+      titleAction={titleAction}
     >
       {children}
     </Section>
@@ -345,6 +360,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     <FocusControls axis="horizontal">
       <Toggle
         size="xxs"
+        className={placesVisibilityStyle}
         value={showAllPlaces}
         onChange={setShowAllPlaces}
         labelOnText="Show all places"
@@ -446,7 +462,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
               <NavigableSection
                 title="Initial state"
                 tooltip="Token counts and values per place. Every value is an expression."
-                action={placesVisibilityControl}
+                titleAction={placesVisibilityControl}
               >
                 {placesList}
               </NavigableSection>
