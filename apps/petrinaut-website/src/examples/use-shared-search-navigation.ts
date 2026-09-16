@@ -39,6 +39,8 @@ const mergeSharedSearch = (
     mode: shared.mode,
     editView: shared.editView,
     simulateView: shared.simulateView,
+    simulateResource: shared.simulateResource,
+    simulatePresentation: shared.simulatePresentation,
     overlay: shared.overlay,
   };
 };
@@ -61,14 +63,15 @@ export const withClearedSharedLocation = (
   subnetId: null,
   selection: [],
   expandedSubView: null,
+  simulateResource: null,
+  simulatePresentation: undefined,
 });
 
 /**
  * Navigation controller for pages whose URL carries the shared location: the
- * scenario, the subnet, the focused item, its expanded properties section,
- * the mode, the Simulate section and the open overlay. The editor also navigates
- * the resource open inside Simulate, so the full location still lives in page
- * state and only its shared projection reaches the URL.
+ * selected scenario, subnet, focused item, expanded properties section,
+ * mode, Simulate section, open record, overlay and panel presentation.
+ * Page state also retains multi-selection.
  *
  * `initialState` is the location this page starts from, for every field the URL
  * does not name; the URL overrides whatever it does name. A controlled host

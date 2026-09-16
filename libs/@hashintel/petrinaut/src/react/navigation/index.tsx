@@ -56,6 +56,8 @@ export type PetrinautNavigationState = {
   editView: EditViewMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
+  /** Omission uses the panel presentation, including in existing host controllers. */
+  simulatePresentation?: "panel" | "fullscreen";
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
@@ -82,6 +84,7 @@ export type PetrinautNavigationAction =
   | "edit-view"
   | "simulation-view"
   | "simulation-resource"
+  | "simulation-presentation"
   | "scenario"
   | "subnet"
   | "selection"
@@ -182,6 +185,8 @@ export const petrinautNavigationStatesMatch = (
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&
+  (left.simulatePresentation ?? "panel") ===
+    (right.simulatePresentation ?? "panel") &&
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
@@ -211,6 +216,13 @@ const resolveNavigationUpdate = (
       scopeChanged && updated.expandedSubView === current.expandedSubView
         ? null
         : updated.expandedSubView,
+    simulatePresentation:
+      updated.simulateResource?.type === "scenario" ||
+      updated.simulateResource?.type === "experiment" ||
+      updated.overlay?.type === "create-experiment" ||
+      updated.overlay?.type === "create-scenario"
+        ? updated.simulatePresentation
+        : undefined,
   };
 };
 
@@ -228,6 +240,32 @@ export const PetrinautNavigationProvider = ({
       selection: canonicalizeSelection(initialState?.selection ?? []),
     }));
   const state = controller?.state ?? uncontrolledState;
+  const [simulationVisits, setSimulationVisits] = useState<
+    Partial<
+      Record<
+        SimulateViewMode,
+        Pick<
+          PetrinautNavigationState,
+          "simulateResource" | "simulatePresentation"
+        >
+      >
+    >
+  >({});
+  const visit = simulationVisits[state.simulateView];
+  if (
+    visit === undefined ||
+    visit.simulateResource?.type !== state.simulateResource?.type ||
+    visit.simulateResource?.id !== state.simulateResource?.id ||
+    visit.simulatePresentation !== state.simulatePresentation
+  ) {
+    setSimulationVisits({
+      ...simulationVisits,
+      [state.simulateView]: {
+        simulateResource: state.simulateResource,
+        simulatePresentation: state.simulatePresentation,
+      },
+    });
+  }
   /**
    * React normally rerenders after navigation, but several UI libraries emit
    * related callbacks in the same event. Track the state those accepted
@@ -268,7 +306,24 @@ export const PetrinautNavigationProvider = ({
   ) => {
     const updater: PetrinautNavigationUpdater<PetrinautNavigationState> = (
       current,
-    ) => resolveNavigationUpdate(current, update);
+    ) => {
+      const next = resolveNavigationUpdate(current, update);
+      if (
+        intent.cause === "user" &&
+        intent.action === "simulation-view" &&
+        next.simulateView !== current.simulateView
+      ) {
+        return {
+          ...next,
+          simulateResource:
+            simulationVisits[next.simulateView]?.simulateResource ?? null,
+          simulatePresentation:
+            simulationVisits[next.simulateView]?.simulatePresentation,
+          overlay: null,
+        };
+      }
+      return next;
+    };
     const optimistic = optimisticRef.current;
     const current = optimistic?.preview ?? state;
     const preview = updater(current);

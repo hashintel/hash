@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canonicalSearchString,
   sharedOverlays,
   sharedSimulateViews,
   validateSharedExampleSearch,
@@ -12,6 +13,39 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it.each([
+    { mode: "edit", editView: "canvas" },
+    { mode: "edit", editView: "definitions" },
+    { mode: "actual", editView: "canvas" },
+  ] as const)(
+    "round-trips $mode/$editView URLs with remembered simulation resources",
+    (destination) => {
+      const baseline = sharedSearchToNavigationState({
+        mode: destination.mode,
+      });
+      for (const resourceType of ["scenario", "experiment"] as const) {
+        for (const presentation of [undefined, "fullscreen"] as const) {
+          const state = {
+            ...sharedSearchToNavigationState(
+              { resourceType, resourceId: "record / one", presentation },
+              baseline,
+            ),
+            ...destination,
+          };
+          const url = canonicalSearchString(
+            navigationStateToSharedSearch(state, baseline),
+          );
+          const search = validateSharedExampleSearch(
+            Object.fromEntries(new URLSearchParams(url)),
+          );
+          expect(sharedSearchToNavigationState(search, baseline)).toEqual(
+            state,
+          );
+        }
+      }
+    },
+  );
+
   it("routes Definitions within Edit and preserves the selection in shared links", () => {
     const search = {
       editView: "definitions",
@@ -70,6 +104,35 @@ describe("navigation state projection", () => {
       applyPreviewNavigationUpdate(search, (current) => current),
     ).toMatchObject(search);
   });
+
+  it.each(["scenario", "experiment"] as const)(
+    "opens a direct %s link and preserves its presentation through Preview",
+    (resourceType) => {
+      const search = {
+        resourceType,
+        resourceId: "record / one",
+        presentation: "fullscreen" as const,
+      };
+      const state = sharedSearchToNavigationState(search);
+      expect(state.mode).toBe("simulate");
+      expect(state.simulateView).toBe(
+        resourceType === "scenario" ? "scenarios" : "experiments",
+      );
+      expect(state.simulateResource).toEqual({
+        type: resourceType,
+        id: "record / one",
+      });
+      expect(state.simulatePresentation).toBe("fullscreen");
+      expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+      expect(
+        applyPreviewNavigationUpdate(search, (current) => ({
+          ...current,
+          subnetId: "subnet",
+        })),
+      ).toMatchObject(search);
+    },
+  );
+
   it.each(["general", "viewport", "simulation", "labs"] as const)(
     "round-trips the %s settings section in Simulate",
     (settings) => {

@@ -21,6 +21,9 @@ const lifecycle = vi.hoisted(() => ({
 vi.mock("../../../react", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
 }));
+vi.mock("../../../react/hooks/use-element-size", () => ({
+  useElementSize: () => ({ width: 1200, height: 800 }),
+}));
 vi.mock("../../../react/state/use-selection-cleanup", () => ({
   useSelectionCleanup: () => {},
 }));
@@ -37,6 +40,7 @@ vi.mock("./panels/ai-assistant-panel", () => ({
   },
 }));
 vi.mock("./panels/SimulateView/simulate-view", () => ({
+  SimulateViewTabs: () => <nav aria-label="Simulation views" />,
   SimulateView: () => (
     <section aria-label="Experiments">Experiment results</section>
   ),

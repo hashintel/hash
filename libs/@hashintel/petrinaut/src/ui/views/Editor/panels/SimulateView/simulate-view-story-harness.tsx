@@ -31,10 +31,11 @@ import {
 } from "../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
+import { SimulationWorkspace } from "../../shared/simulation-workspace";
 import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import { useCreateOptimizedExperiment } from "./experiments/create-optimized-experiment";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
-import { SimulateView } from "./simulate-view";
+import { SimulateView, SimulateViewTabs } from "./simulate-view";
 
 import type {
   CreateExperimentInput,
@@ -50,6 +51,7 @@ export type StoryExample = {
 };
 
 const rootStyle = css({
+  display: "flex",
   position: "relative",
   width: "full",
   height: "[100vh]",
@@ -134,9 +136,12 @@ export const SimulateViewStoryStage = ({ children }: PropsWithChildren) => {
     <PortalContainerContext value={portalContainerRef}>
       <div className={`${rootStyle} petrinaut-root`}>
         <div ref={portalContainerRef} className={portalContainerStyle} />
-        <SimulateView />
-        <SimulationCreationDrawer />
-        {children}
+        <SimulateViewTabs />
+        <SimulationWorkspace>
+          <SimulateView />
+          <SimulationCreationDrawer />
+          {children}
+        </SimulationWorkspace>
       </div>
     </PortalContainerContext>
   );

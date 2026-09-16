@@ -15,7 +15,7 @@
 
 import { use, useState } from "react";
 
-import { Drawer, Form, TextArea, TextInput } from "@hashintel/ds-components";
+import { Form, TextArea, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   adHocExposedParameterIdentifier,
@@ -31,6 +31,7 @@ import {
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
+import { SimulationPanel } from "../shared/simulation-panel";
 import { summarizeAdHocLspErrors } from "./ad-hoc-scenario-authoring/ad-hoc-lsp-errors";
 import { validateScenarioName } from "./ad-hoc-scenario-authoring/validate-scenario-name";
 
@@ -223,7 +224,7 @@ export const AdHocScenarioAuthoringBody: React.FC<{
 }> = ({ authoring, children }) => {
   const { code } = authoring;
   return (
-    <Drawer.Body className={css({ paddingTop: "[0]" })}>
+    <SimulationPanel.Body>
       <div className={fieldsStyle}>
         <Form.Field
           label="Scenario name"
@@ -281,6 +282,6 @@ export const AdHocScenarioAuthoringBody: React.FC<{
               )
         }
       />
-    </Drawer.Body>
+    </SimulationPanel.Body>
   );
 };

@@ -1,6 +1,7 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { Stack } from "../../../../components/stack";
+import { simulationHeaderStyle } from "./shared/simulation-header";
 
 import type { ReactNode } from "react";
 
@@ -17,14 +18,12 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  height: "[52px]",
   paddingLeft: "[18px]",
   paddingRight: "[20px]",
   paddingY: "[12px]",
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.s40",
-  flexShrink: 0,
 });
 
 const headerTitleStyle = css({
@@ -54,7 +53,7 @@ export const SimulateSubviewFrame = ({
   title,
 }: SimulateSubviewFrameProps) => (
   <Stack className={mainContainerStyle}>
-    <div className={headerStyle}>
+    <div className={cx(simulationHeaderStyle(), headerStyle)}>
       <span className={headerTitleStyle}>{title}</span>
       {action}
     </div>

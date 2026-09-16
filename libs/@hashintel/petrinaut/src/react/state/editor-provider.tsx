@@ -510,10 +510,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setHiddenTimelineSeriesIds: (seriesIds) =>
       setState((prev) => ({ ...prev, hiddenTimelineSeriesIds: seriesIds })),
     setSimulateViewMode: (mode) =>
-      navigateTo({
-        simulateViewMode: mode,
-        simulateDrawer: { type: "closed" },
-      }),
+      navigation.navigate(
+        (current) =>
+          current.simulateView === mode
+            ? current
+            : {
+                ...current,
+                simulateView: mode,
+                simulateResource: null,
+                overlay: null,
+              },
+        { cause: "user", action: "simulation-view" },
+      ),
     setSimulateDrawer: (drawer) => navigateTo({ simulateDrawer: drawer }),
     setSearchOpen: (isOpen) => {
       scheduleAnimationEnd();

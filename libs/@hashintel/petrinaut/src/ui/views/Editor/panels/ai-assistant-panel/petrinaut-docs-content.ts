@@ -14,6 +14,7 @@ import experiments from "../../../../../../docs/experiments.md?raw";
 import petriNetExtensions from "../../../../../../docs/petri-net-extensions.md?raw";
 import preview from "../../../../../../docs/preview.md?raw";
 import scenarios from "../../../../../../docs/scenarios.md?raw";
+import simulationPanels from "../../../../../../docs/simulation-panels.md?raw";
 import simulation from "../../../../../../docs/simulation.md?raw";
 import usefulPatterns from "../../../../../../docs/useful-patterns.md?raw";
 import visualSettings from "../../../../../../docs/visual-settings.md?raw";
@@ -38,6 +39,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   scenarios,
   "ad-hoc-scenarios": adHocScenarios,
   experiments,
+  "simulation-panels": simulationPanels,
   "actual-mode": actualMode,
   preview,
   "ai-assistant": aiAssistant,

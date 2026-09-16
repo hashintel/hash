@@ -28,6 +28,47 @@ describe("example search contract", () => {
       expect(search.expandedSection).toBeUndefined();
     }
   });
+
+  it("validates complete resource links and fullscreen creation links", () => {
+    const resource = {
+      resourceType: "scenario",
+      resourceId: "scenario / one",
+      presentation: "fullscreen",
+    };
+    const validated = validateSharedExampleSearch(resource);
+    expect(validated).toMatchObject(resource);
+    expect(canonicalSearchString(validated)).toBe(
+      "presentation=fullscreen&resourceId=scenario+%2F+one&resourceType=scenario",
+    );
+    expect(
+      validateSharedExampleSearch({
+        overlay: "create-experiment",
+        presentation: "fullscreen",
+      }).presentation,
+    ).toBe("fullscreen");
+    for (const invalid of [
+      { resourceType: "unknown", resourceId: "one" },
+      { resourceType: "scenario" },
+      { resourceType: "experiment", resourceId: "" },
+      { resourceId: "one" },
+    ]) {
+      const search = validateSharedExampleSearch({
+        ...invalid,
+        presentation: "fullscreen",
+      });
+      expect(search.resourceType).toBeUndefined();
+      expect(search.resourceId).toBeUndefined();
+      expect(search.presentation).toBeUndefined();
+    }
+    expect(
+      validateSharedExampleSearch({
+        resourceType: "metric",
+        resourceId: "one",
+        presentation: "fullscreen",
+      }).presentation,
+    ).toBeUndefined();
+  });
+
   it("validates settings sections only for the user settings dialog", () => {
     expect(
       validateSharedExampleSearch({

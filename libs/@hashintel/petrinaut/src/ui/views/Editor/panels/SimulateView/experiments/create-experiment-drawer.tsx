@@ -3,7 +3,6 @@ import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   Button,
-  Drawer,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -44,6 +43,7 @@ import {
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
 import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
 import {
@@ -1173,16 +1173,14 @@ export const CreateExperimentDrawer = ({
   }
 
   return (
-    <Drawer
-      shouldCloseOn={isSubmitting ? "none" : undefined}
-      showBackdrop={false}
+    <SimulationPanel
+      title="Create an experiment"
+      layer="creation"
+      closeDisabled={isSubmitting}
       onClose={handleClose}
     >
-      <Drawer.Header
-        title="Create an experiment"
-        description="Run a Monte Carlo experiment from the current model and scenario"
-      />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <SimulationPanel.Header description="Run a Monte Carlo experiment from the current model and scenario" />
+      <SimulationPanel.Body>
         <SectionList>
           <Section title="Experiment" collapsible defaultOpen>
             <div className={fieldStyle}>
@@ -1383,8 +1381,8 @@ export const CreateExperimentDrawer = ({
             </div>
           </Section>
         </SectionList>
-      </Drawer.Body>
-      <Drawer.Footer
+      </SimulationPanel.Body>
+      <SimulationPanel.Footer
         secondaryActions={
           footerError ? (
             <span className={errorStyle}>{footerError}</span>
@@ -1430,6 +1428,6 @@ export const CreateExperimentDrawer = ({
           </>
         }
       />
-    </Drawer>
+    </SimulationPanel>
   );
 };

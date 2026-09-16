@@ -1,5 +1,5 @@
 /**
- * The chrome every Simulate drawer shares: a header that condenses once the
+ * The chrome every Simulate results panel shares: a header that condenses once the
  * body scrolls, a body of fixed-height cards, a footer of actions. The parts
  * in `drawer-frame/` (the header and its stat columns, the columns, the
  * spanning card, the computing chip, the fold) form the frame layer, and
@@ -11,7 +11,7 @@
  * padding, empty when there is nothing to say, so an error or a resume note
  * appearing moves nothing; then the adopter's parameter card across the
  * width, then `FrameColumns`, which
- * arranges the surface and the cards by the body's width. In a drawer the
+ * arranges the surface and the cards by the body's width. In a panel the
  * body takes the opening focus, so wheel and arrow keys scroll it at once and
  * no control in the header holds the header open. One switch, the animations
  * setting and the reduced-motion preference together, governs every
@@ -20,7 +20,6 @@
  */
 import { type ReactNode, use, useRef } from "react";
 
-import { Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
@@ -32,6 +31,11 @@ import {
 } from "./drawer-frame/frame-header";
 import { useBodyScrolled } from "./drawer-frame/use-body-scrolled";
 import { useHeaderEngaged } from "./drawer-frame/use-header-engaged";
+import {
+  SimulationPanel,
+  SimulationPanelControls,
+  SimulationPanelTitle,
+} from "./simulation-panel";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 export {
@@ -57,9 +61,6 @@ export type FrameNote = {
 
 /** The height of the note row in pixels: the body's top padding, which the row sits in. */
 const FRAME_NOTE_HEIGHT = 20;
-
-// The ds close button is 28px wide with a 20px right gutter.
-const DRAWER_CLOSE_GUTTER = 52;
 
 const sectionFrameStyle = css({
   display: "flex",
@@ -96,29 +97,6 @@ const sectionFooterGroupStyle = css({
   alignItems: "center",
   gap: "2",
   minWidth: "[0]",
-});
-
-// The ds header's own padding and bottom rule go; the frame header brings
-// its own padding and its progress bar is the bottom edge. The close button
-// the ds header draws floats over the frame header's right gutter.
-const drawerHeaderStyle = css({
-  display: "block",
-  padding: "[0 !important]",
-  borderBottomWidth: "[0 !important]",
-  position: "relative",
-  "& > div:first-child": { minWidth: "[0]" },
-  "& > button": {
-    position: "absolute",
-    top: "[4px]",
-    right: "[20px]",
-    margin: "[0]",
-  },
-});
-
-const drawerBodyStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
 });
 
 // The body is a tinted ground the white cards sit on. Its top padding is
@@ -179,8 +157,8 @@ export type DrawerFrameProps = {
   footer: ReactNode;
   /** The footer's left side: the controls that stay whatever the status. */
   footerSecondary?: ReactNode | null;
-  /** Given, the frame renders inside a ds `Drawer`; otherwise it fills its section. */
-  drawer?: { onClose: () => void; swapKey: string };
+  /** Given, the frame renders in the workspace panel; otherwise it fills its section. */
+  panel?: { onClose: () => void };
   children: ReactNode;
 };
 
@@ -193,7 +171,7 @@ export const DrawerFrame = ({
   note = null,
   footer,
   footerSecondary = null,
-  drawer,
+  panel,
   children,
 }: DrawerFrameProps) => {
   const { showAnimations } = use(UserSettingsContext);
@@ -208,13 +186,15 @@ export const DrawerFrame = ({
 
   const header = (
     <FrameHeader
-      title={title}
+      title={
+        panel === undefined ? title : <SimulationPanelTitle title={title} />
+      }
       headline={headline}
       stats={stats}
       badge={badge}
       progress={progress}
       condensed={condensed}
-      closeGutter={drawer === undefined ? 0 : DRAWER_CLOSE_GUTTER}
+      controls={panel === undefined ? undefined : <SimulationPanelControls />}
       engagement={engagement}
     />
   );
@@ -244,7 +224,7 @@ export const DrawerFrame = ({
     </div>
   );
 
-  if (drawer === undefined) {
+  if (panel === undefined) {
     return (
       <FrameAnimateContext value={animate}>
         <div className={sectionFrameStyle} data-drawer-frame>
@@ -261,24 +241,18 @@ export const DrawerFrame = ({
 
   return (
     <FrameAnimateContext value={animate}>
-      <Drawer
-        size="xl"
-        showBackdrop={false}
-        onClose={drawer.onClose}
-        swapKey={drawer.swapKey}
+      <SimulationPanel
+        title={title}
+        onClose={panel.onClose}
         initialFocusRef={bodyRef}
-        // The header holds no ds Title, so the dialog takes its name from here.
-        aria-label={title}
       >
-        <Drawer.Header className={drawerHeaderStyle}>{header}</Drawer.Header>
-        <Drawer.Body withPadding={false} className={drawerBodyStyle}>
-          {body}
-        </Drawer.Body>
-        <Drawer.Footer
+        {header}
+        {body}
+        <SimulationPanel.Footer
           secondaryActions={footerSecondary}
-          actions={footer ?? null}
+          actions={footer}
         />
-      </Drawer>
+      </SimulationPanel>
     </FrameAnimateContext>
   );
 };
