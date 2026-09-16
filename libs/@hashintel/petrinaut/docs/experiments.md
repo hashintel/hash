@@ -109,7 +109,7 @@ Flip the toggle on any numeric value to explore an interval of values instead of
 
 An invalid interval keeps **Create sweep** or **Optimize** disabled. The first configuration error appears in the footer and the disabled button's tooltip.
 
-The **Parameters** card has one slider per swept parameter. Each slider chooses a single value within the bounds set when creating the experiment. Its name and current value appear together above the slider. Parameter identifiers appear as readable names, such as **Transmission rate** for `transmission_rate`.
+The **Parameters** card has one slider per swept parameter. Each slider chooses a single value within the bounds set when creating the experiment. Its name and current value appear together above the slider, with the minimum and maximum in small text below its left and right ends. Parameter identifiers appear as readable names, such as **Transmission rate** for `transmission_rate`.
 
 A sweep created with **Create sweep** starts at the middle of each parameter's interval and waits for you to move a slider or click the Surface. The line below the controls reads **Move a slider to explore results**. A sweep created with **Optimize** follows the values selected by its study from the first step (see [Optimizing a sweep](#optimizing-a-sweep)).
 
