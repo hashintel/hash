@@ -1,6 +1,8 @@
 {
   "package": "@rust/problematic",
-  "dependencies": [],
+  "dependencies": [
+    "@rust/error-stack"
+  ],
   "tasks": {
     "lint:clippy": {
       "dependsOn": [],

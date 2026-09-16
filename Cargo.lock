@@ -10864,6 +10864,8 @@ dependencies = [
 name = "problematic"
 version = "0.0.0"
 dependencies = [
+ "erased-serde",
+ "error-stack",
  "http 1.4.2",
  "insta",
  "schemars 1.2.1",
