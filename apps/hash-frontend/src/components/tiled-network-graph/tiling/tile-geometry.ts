@@ -14,16 +14,14 @@
 
 import * as Num from "../atlas-decode/Num";
 import {
-  ATLAS_TILE_AXIS_SIZE,
   ATLAS_TILE_MAX_ZOOM,
+  atlasGridSize,
   atlasTileBounds,
+  WORLD_SIZE,
+  WORLD_SIZE_U64,
 } from "./atlas-tile-coordinate";
 
 import type * as TileDocument from "../atlas-decode/TileDocument";
-
-/** Width and height of the world axis the grid tiles over (`65536`). */
-export const WORLD_SIZE = ATLAS_TILE_AXIS_SIZE;
-export const WORLD_SIZE_U64 = Num.u64.unsafe(BigInt(WORLD_SIZE));
 
 const { zero, one } = Num.u64;
 const two = Num.u64.unsafe(2n);
@@ -88,12 +86,13 @@ export const clampRectToWorld = (rect: Rect): Rect => {
   };
 };
 
+/** The last tile index on each axis at depth `z`. */
+const gridMaximumAt = (z: Num.u64): Num.u64 =>
+  Num.u64.sub.unchecked(atlasGridSize(z), one);
+
 /** Number of indices in a closed span, `maximum - minimum + 1`. */
 const spanLength = (minimum: Num.u64, maximum: Num.u64): Num.u64 =>
   Num.u64.add.unchecked(Num.u64.sub.unchecked(maximum, minimum), one);
-
-/** Tiles per axis at depth `z`, `2 ** z`. */
-const gridSizeAt = (z: Num.u64): Num.u64 => Num.u64.pow.unchecked(two, z);
 
 /** Clamps a tile-index span to at most `MAX_TILES_ACROSS`, centred on itself. */
 const clampSpan = (
@@ -142,10 +141,10 @@ interface TileRange {
  * requiredTiles} caps the span (see {@link clampSpan}) before enumerating them.
  */
 const coverRangeForDepth = (rect: Rect, z: Num.u64): TileRange => {
-  const gridSize = gridSizeAt(z);
+  const gridSize = atlasGridSize(z);
 
   const span = Num.u64.div.unchecked(WORLD_SIZE_U64, gridSize);
-  const gridMaximum = Num.u64.sub.unchecked(gridSize, one);
+  const gridMaximum = gridMaximumAt(z);
 
   return {
     minX: Num.u64.min(Num.u64.div.unchecked(rect.x1, span), gridMaximum),
@@ -171,7 +170,7 @@ export const viewportTileCount = (rect: Rect, z: Num.u64): Num.u64 => {
 /** Tile-index range covering `rect` at depth `z`, capped to bound enumeration. */
 const tileRangeForDepth = (rect: Rect, z: Num.u64): TileRange => {
   const { minX, maxX, minY, maxY } = coverRangeForDepth(rect, z);
-  const gridMaximum = Num.u64.sub.unchecked(gridSizeAt(z), one);
+  const gridMaximum = gridMaximumAt(z);
 
   const [spanMinX, spanMaxX] = clampSpan(minX, maxX, gridMaximum);
   const [spanMinY, spanMaxY] = clampSpan(minY, maxY, gridMaximum);
@@ -201,13 +200,6 @@ export const requiredTiles = (
   }
   return coordinates;
 };
-
-/** `tileIndex` (row-major) of a coordinate, as `fetchTile` expects. */
-export const tileIndexOf = (coordinate: TileDocument.Coordinate): Num.u64 =>
-  Num.u64.add.unchecked(
-    Num.u64.mul.unchecked(coordinate.y, gridSizeAt(coordinate.z)),
-    coordinate.x,
-  );
 
 /**
  * The four depth-`z+1` quadrants a tile subdivides into (row-major: NW, NE, SW,

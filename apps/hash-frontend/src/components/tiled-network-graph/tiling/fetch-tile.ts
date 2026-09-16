@@ -46,15 +46,19 @@ import * as Function from "../atlas-decode/Function";
 import * as GenerationId from "../atlas-decode/GenerationId";
 import * as Iterable from "../atlas-decode/Iterable";
 import { parseCurrent, parseManifest } from "../atlas-decode/manifest";
+import * as Num from "../atlas-decode/Num";
 import * as Option from "../atlas-decode/Option";
 import * as Record from "../atlas-decode/Record";
 import * as Result from "../atlas-decode/Result";
 import * as TileDocument from "../atlas-decode/TileDocument";
-import { ATLAS_TILE_MAX_ZOOM, atlasTileKey } from "./atlas-tile-coordinate";
-import { WORLD_SIZE } from "./tile-geometry";
+import {
+  atlasTileAtIndex,
+  AtlasTileCoordinateError,
+  atlasTileKey,
+  WORLD_SIZE,
+} from "./atlas-tile-coordinate";
 
 import type * as Detail from "../atlas-decode/Detail";
-import type * as Num from "../atlas-decode/Num";
 
 /**
  * The atlas surface as a browser addresses it: hash-api's `/atlas` mount.
@@ -1038,7 +1042,7 @@ const fetchSaltileSession = async (
       Result.unwrap,
     ),
     variant,
-    variantIndex: 0n as Num.u64,
+    variantIndex: Num.u64.zero,
     deliverySpanLog2,
     maxZoom: manifest.bucketSchedule.maxZoom,
     tileMaxZoom: manifest.scopeSchedule.maxZoom,
@@ -1464,27 +1468,15 @@ export const fetchTile = async (
     coloredTypeIds = [],
   }: FetchTileOptions = {},
 ): Promise<FetchedTile> => {
-  if (zoom < 0n || zoom > ATLAS_TILE_MAX_ZOOM) {
-    throw new FetchTileError(
-      `zoom ${zoom} must be an integer in 0..=${ATLAS_TILE_MAX_ZOOM}`,
-    );
+  let coordinate: TileDocument.Coordinate;
+  try {
+    coordinate = atlasTileAtIndex(zoom, tileIndex);
+  } catch (error) {
+    if (error instanceof AtlasTileCoordinateError) {
+      throw new FetchTileError(error.message, { cause: error });
+    }
+    throw error;
   }
-
-  // Each axis holds `2 ** zoom` tiles, so the flattened grid holds `4 ** zoom`.
-  const gridSize = 2n ** zoom;
-  const tileCount = gridSize * gridSize;
-  if (tileIndex < 0n || tileIndex >= tileCount) {
-    throw new FetchTileError(
-      `tileIndex ${tileIndex} must be an integer in 0..${tileCount} at zoom ${zoom}`,
-    );
-  }
-
-  // Row-major un-flattening: `tileIndex = y * gridSize + x`, top-left origin.
-  const coordinate = {
-    z: zoom,
-    x: (tileIndex % gridSize) as Num.u64,
-    y: (tileIndex / gridSize) as Num.u64,
-  };
 
   return withAtlasSession(baseUrl, (session) =>
     fetchAndDecodeTile(

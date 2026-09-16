@@ -32,6 +32,7 @@ import {
   atlasTileKey,
   ATLAS_TILE_MAX_ZOOM,
   type AtlasTileCoordinate,
+  WORLD_SIZE,
 } from "./atlas-tile-coordinate";
 import {
   clampInt,
@@ -42,7 +43,6 @@ import {
   rectWidth,
   requiredTiles,
   tileDistance,
-  WORLD_SIZE,
   type ViewportRegion,
 } from "./tile-geometry";
 

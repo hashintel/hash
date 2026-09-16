@@ -1,3 +1,5 @@
+import * as z from "zod";
+
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
@@ -111,3 +113,21 @@ export const Visitor: CborDecoder.CborVisitor<GenerationId, GenerationIdError> =
   };
 
 export const fromHex = GenerationId.fromHex;
+
+/** Parses a JSON hexadecimal identity, retaining factory errors in the Zod issue. */
+export const Schema = z.string().transform((value, context) => {
+  const parsed = fromHex(value);
+
+  if (Result.isErr(parsed)) {
+    context.issues.push({
+      code: "custom",
+      input: value,
+      message: parsed.error.message,
+      params: { cause: parsed.error },
+    });
+
+    return z.NEVER;
+  }
+
+  return parsed.value;
+});

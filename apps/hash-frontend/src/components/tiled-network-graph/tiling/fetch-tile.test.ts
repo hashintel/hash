@@ -13,7 +13,9 @@ import {
   f32le,
   u32le,
 } from "../atlas-decode/fixtures";
+import * as Num from "../atlas-decode/Num";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
+import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
   AtlasAuthorityEndedError,
@@ -29,10 +31,12 @@ import {
   subscribeToAtlasTileMaxZoom,
   withAtlasRetry,
 } from "./fetch-tile";
-import { WORLD_SIZE } from "./tile-geometry";
 
 // Zero-delay backoff keeps the retry tests fast while still exercising the loop.
 const FAST = { retries: 3, baseDelayMs: 0, maxDelayMs: 0 } as const;
+
+/** Brands a zoom or tile index literal the test knows is a nonnegative integer. */
+const u64 = (value: number): Num.u64 => Num.u64.unsafe(BigInt(value));
 
 /** Rejects `failures` times with `error`, then resolves with `value`. */
 const flaky = <T>(failures: number, error: Error, value: T) => {
@@ -358,7 +362,9 @@ describe("fetchTile", () => {
     });
 
     // Row-major tileIndex: y * 2^z + x = 1 * 8 + 5.
-    const { nodes, complete } = await fetchTile(3, 13, { baseUrl: BASE });
+    const { nodes, complete } = await fetchTile(u64(3), u64(13), {
+      baseUrl: BASE,
+    });
 
     const scale = WORLD_SIZE / 2;
     expect(nodes).toEqual([
@@ -385,7 +391,7 @@ describe("fetchTile", () => {
         saltile(tileBytes(0x1a, 3, 5, 1, 7)),
     });
 
-    const { nodes } = await fetchTile(3, 13, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
     expect(nodes).toHaveLength(3);
   });
 
@@ -404,7 +410,7 @@ describe("fetchTile", () => {
 
     // The wrapper names the tile and the cause names the contract, so the
     // detail is one `.cause` away rather than lost.
-    const refusal = await fetchTile(3, 13, { baseUrl: BASE }).catch(
+    const refusal = await fetchTile(u64(3), u64(13), { baseUrl: BASE }).catch(
       (error: unknown) => error,
     );
     expect(refusal).toBeInstanceOf(FetchTileError);
@@ -423,8 +429,8 @@ describe("fetchTile", () => {
         saltile(tileBytes(0x22, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     const bootstraps = paths.filter((path) =>
       path.endsWith("/atlas/current"),
@@ -456,7 +462,7 @@ describe("fetchTile", () => {
 
     // Pin the stale generation, re-pin the server, then fetch: the 404 triggers
     // exactly one re-bootstrap and the retry succeeds.
-    const pinned = fetchTile(2, 13, { baseUrl: BASE }); // y = 3, x = 1
+    const pinned = fetchTile(u64(2), u64(13), { baseUrl: BASE }); // y = 3, x = 1
     active = newGeneration;
     const { nodes } = await pinned;
 
@@ -476,7 +482,7 @@ describe("fetchTile", () => {
     });
 
     await expect(
-      fetchTile(2, 13, { baseUrl: BASE, retry: 0 }), // y = 3, x = 1
+      fetchTile(u64(2), u64(13), { baseUrl: BASE, retry: 0 }), // y = 3, x = 1
     ).rejects.toThrow(/503/);
 
     // The contrast with the test above is the point. A `503` is not a session-ending refusal: every
@@ -507,7 +513,7 @@ describe("fetchTile", () => {
       return Promise.resolve(notFound());
     }) as typeof fetch);
 
-    const { nodes } = await fetchTile(3, 13, {
+    const { nodes } = await fetchTile(u64(3), u64(13), {
       baseUrl: BASE,
       detail: "auxiliary",
     });
@@ -541,7 +547,7 @@ describe("fetchTile", () => {
       return Promise.resolve(notFound());
     }) as typeof fetch);
 
-    const { nodes } = await fetchTile(3, 13, {
+    const { nodes } = await fetchTile(u64(3), u64(13), {
       baseUrl: BASE,
       coloredTypeIds: ["type://a", "type://b", "type://c"],
     });
@@ -564,7 +570,7 @@ describe("fetchTile", () => {
         saltile(tileBytes(0x78, 3, 5, 1)),
     });
 
-    const { nodes } = await fetchTile(3, 13, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
     expect(nodes.every((node) => node.typeIndices === undefined)).toBe(true);
   });
@@ -572,16 +578,10 @@ describe("fetchTile", () => {
   it("rejects out-of-range zooms and tile indexes without a request", async () => {
     const paths = stubTransport({});
 
-    await expect(fetchTile(-1, 0, { baseUrl: BASE })).rejects.toThrow(
+    await expect(fetchTile(u64(17), u64(0), { baseUrl: BASE })).rejects.toThrow(
       FetchTileError,
     );
-    await expect(fetchTile(17, 0, { baseUrl: BASE })).rejects.toThrow(
-      FetchTileError,
-    );
-    await expect(fetchTile(1, 4, { baseUrl: BASE })).rejects.toThrow(
-      FetchTileError,
-    );
-    await expect(fetchTile(1, 1.5, { baseUrl: BASE })).rejects.toThrow(
+    await expect(fetchTile(u64(1), u64(4), { baseUrl: BASE })).rejects.toThrow(
       FetchTileError,
     );
     expect(paths).toEqual([]);
@@ -595,7 +595,7 @@ describe("fetchTile", () => {
         manifest(generation, 2),
     });
 
-    await expect(fetchTile(3, 0, { baseUrl: BASE })).rejects.toThrow(
+    await expect(fetchTile(u64(3), u64(0), { baseUrl: BASE })).rejects.toThrow(
       /maxZoom/u,
     );
   });
@@ -631,7 +631,7 @@ describe("the atlas base", () => {
       return Promise.resolve(route === undefined ? notFound() : route());
     }) as typeof fetch);
 
-    await fetchTile(3, 13, { baseUrl: BASE });
+    await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
     // hash-api is a different origin from the frontend, so an uncredentialed request would be
     // answered as the public user rather than refused: every request carries the cookie.
@@ -663,8 +663,8 @@ describe("the atlas session revision", () => {
     });
 
     const before = getAtlasSessionRevision();
-    await fetchTile(1, 1, { baseUrl: BASE });
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     // Bootstrapping and serving tiles is not a change of binding: a revision
     // that moved here would throw away live, correctly-attributed tiles.
@@ -693,7 +693,7 @@ describe("the atlas session revision", () => {
     // The 404 re-bootstrap is the re-pin: every wire row id is salted by the
     // generation identity, so tiles decoded under the retired one now name
     // different, existing rows. Whoever composites them must be told.
-    const pinned = fetchTile(2, 13, { baseUrl: BASE });
+    const pinned = fetchTile(u64(2), u64(13), { baseUrl: BASE });
     active = newGeneration;
     await pinned;
     unsubscribe();
@@ -728,7 +728,7 @@ describe("the atlas session revision", () => {
 
     const notified = vi.fn();
     subscribeToAtlasSessionRevision(notified)();
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     clearAtlasSessionCache(BASE);
 
     expect(notified).not.toHaveBeenCalled();
@@ -826,7 +826,7 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x11, 3, 5, 1)),
     });
 
-    await fetchTile(3, 13, { baseUrl: BASE });
+    await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
     // The session pair by role: `current` is the one `GET`, the manifest is a bodyless `POST`, and
     // both are tokenless. That keeps them CORS-simple — no custom header, no stated content type —
@@ -879,7 +879,7 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x13, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     // The defect it exists for: the data route presents nothing, which the server answers with the
     // same `401` a genuine expiry earns, so nothing downstream can tell the two apart.
@@ -908,7 +908,7 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x14, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(dataRoutes(seen).map((request) => request.authority)).toEqual([
       TOKEN_A,
@@ -930,7 +930,7 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x12, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(dataRoutes(seen).map((request) => request.authority)).toEqual([odd]);
   });
@@ -955,12 +955,12 @@ describe("the atlas authority token", () => {
 
     const notified = vi.fn();
     const unsubscribe = subscribeToAtlasSessionRevision(notified);
-    const first = await fetchTile(1, 1, { baseUrl: BASE });
+    const first = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const before = getAtlasSessionRevision();
 
     // The token ages out under a viewport that is still painting.
     expired = true;
-    const second = await fetchTile(1, 1, { baseUrl: BASE });
+    const second = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     unsubscribe();
 
     expect(second.nodes).toEqual(first.nodes);
@@ -1029,7 +1029,9 @@ describe("the atlas authority token", () => {
 
     // All four tiles of the viewport are refused together. Row-major at z=2: tileIndex = 0 * 4 + x.
     const tiles = await Promise.all(
-      [0, 1, 2, 3].map((index) => fetchTile(2, index, { baseUrl: BASE })),
+      [0, 1, 2, 3].map((index) =>
+        fetchTile(u64(2), u64(index), { baseUrl: BASE }),
+      ),
     );
 
     expect(tiles.map(({ nodes }) => nodes.length)).toEqual([3, 3, 3, 3]);
@@ -1066,13 +1068,13 @@ describe("the atlas authority token", () => {
 
     const notified = vi.fn();
     const unsubscribe = subscribeToAtlasSessionRevision(notified);
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const before = getAtlasSessionRevision();
 
     // A redeploy: the process this session pinned is gone, and the token it holds is refused before
     // the route can answer that the generation is unknown.
     active = newGeneration;
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     unsubscribe();
 
     // The renewal's 404 travelled to the caller's own generation-refresh path, which re-bootstrapped
@@ -1106,7 +1108,9 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x40, 1, 1, 0)),
     });
 
-    await expect(fetchTile(1, 1, { baseUrl: BASE })).rejects.toMatchObject({
+    await expect(
+      fetchTile(u64(1), u64(1), { baseUrl: BASE }),
+    ).rejects.toMatchObject({
       name: "FetchTileError",
       status: 401,
     });
@@ -1127,7 +1131,9 @@ describe("the atlas authority token", () => {
       [`/atlas/tile/${generation}/plain/1/1/0`]: () => unauthorized(),
     });
 
-    await expect(fetchTile(1, 1, { baseUrl: BASE })).rejects.toThrow(/401/u);
+    await expect(fetchTile(u64(1), u64(1), { baseUrl: BASE })).rejects.toThrow(
+      /401/u,
+    );
 
     // Two attempts, one renewal — never a loop, and the refusal reaches the caller intact.
     expect(dataRoutes(seen)).toHaveLength(2);
@@ -1145,10 +1151,10 @@ describe("the atlas authority token", () => {
         saltile(tileBytes(0x51, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     clearAtlasSessionCache(BASE);
     minted = TOKEN_B;
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     // A token seals view state resolved under the generation its session pinned, and the next
     // generation's key refuses it as a forgery rather than as an expiry — so a dropped session
@@ -1190,17 +1196,17 @@ describe("the atlas authority token", () => {
           : unauthorized(),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     // A redeploy: the 401 leads to a 404 at the retired manifest, and the re-pin re-bootstraps.
     active = newGeneration;
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const afterRepin = getAtlasSessionRevision();
 
     // Then the new session's own token ages out. The renewal must address the generation this
     // session pinned: aimed at the retired one it would 404 forever, and every such 404 travels as
     // a re-pin, discarding the painted tiles of a generation that never moved.
     expired = true;
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(nodes).toHaveLength(3);
     expect(getAtlasSessionRevision()).toBe(afterRepin);
@@ -1234,7 +1240,7 @@ describe("the atlas authority token", () => {
     // The refusal that started the renewal is already past retrying — a `401` is terminal for the
     // request that took it — so a blip here would fail a viewport whose only problem was an
     // expiring token.
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(nodes).toHaveLength(3);
     expect(manifestFetches(seen)).toHaveLength(3);
@@ -1264,7 +1270,7 @@ describe("the atlas authority token", () => {
           : unauthorized(),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const before = getAtlasSessionRevision();
     // Where the revision moved, measured in requests already sent, so the order can be asserted
     // rather than described: the drop must be visible to holders before the new token exists.
@@ -1279,7 +1285,10 @@ describe("the atlas authority token", () => {
     refusingPresented = true;
 
     // The session is replaced and the request retried, so the caller sees a painted tile.
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    const { nodes } = await fetchTile(u64(1), u64(1), {
+      baseUrl: BASE,
+      retry: 0,
+    });
     expect(nodes).toHaveLength(3);
 
     // Advanced once, for the one session that was really pinned.
@@ -1322,9 +1331,9 @@ describe("the atlas authority token", () => {
 
     // The class is the assertion, not the wording: what reaches the caller is the refusal of a
     // renewal, which is the one failure that ends a session.
-    await expect(fetchTile(1, 1, { baseUrl: BASE, retry: 0 })).rejects.toThrow(
-      AtlasAuthorityEndedError,
-    );
+    await expect(
+      fetchTile(u64(1), u64(1), { baseUrl: BASE, retry: 0 }),
+    ).rejects.toThrow(AtlasAuthorityEndedError);
 
     // One replacement, never a loop: two bootstraps and two tile attempts, then the refusal reaches
     // the caller. A bootstrap that presents no token cannot be refused for authority, so a refusal
@@ -1357,7 +1366,7 @@ describe("the atlas authority token", () => {
 
     // Zoom 3 is beyond the renewal document's maxZoom of 1 and within the bootstrap's 16. The
     // session keeps the schedule and limits the bootstrap resolved; a refresh renews authority.
-    const { nodes } = await fetchTile(3, 13, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
     expect(nodes).toHaveLength(3);
     expect(manifestFetches(seen)).toHaveLength(2);
@@ -1383,7 +1392,7 @@ describe("the atlas authority token", () => {
     });
 
     const before = getAtlasSessionRevision();
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE });
+    const { nodes } = await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(nodes).toHaveLength(3);
     // One renewal and no replacement: no `/current` re-read, and the binding never moved.
@@ -1424,7 +1433,9 @@ describe("the atlas authority token", () => {
     });
 
     // Painted under the scoped view, two levels deeper than the corpus serves.
-    expect((await fetchTile(1, 1, { baseUrl: BASE })).nodes).toHaveLength(3);
+    expect(
+      (await fetchTile(u64(1), u64(1), { baseUrl: BASE })).nodes,
+    ).toHaveLength(3);
     const before = getAtlasSessionRevision();
     const settled = seen.length;
 
@@ -1433,7 +1444,10 @@ describe("the atlas authority token", () => {
 
     // The session is replaced and the request retried, so the caller still sees a painted tile —
     // decoded against the cut the successor session resolved.
-    const { nodes } = await fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    const { nodes } = await fetchTile(u64(1), u64(1), {
+      baseUrl: BASE,
+      retry: 0,
+    });
     expect(nodes).toHaveLength(3);
 
     // Advanced once, so every holder of rows painted at the old cut discarded them: they are rows
@@ -1476,11 +1490,11 @@ describe("the atlas authority token", () => {
           : unauthorized(),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     corpus = true;
 
     await expect(
-      fetchTile(1, 1, { baseUrl: BASE, retry: 0 }),
+      fetchTile(u64(1), u64(1), { baseUrl: BASE, retry: 0 }),
     ).rejects.toBeInstanceOf(AtlasDeliveryCutChangedError);
     // One painted tile and one refusal: the superseded caller retried nothing.
     expect(dataRoutes(seen)).toHaveLength(2);
@@ -1510,7 +1524,7 @@ describe("the atlas view filter", () => {
         saltile(tileBytes(0x51, 3, 5, 1)),
     });
 
-    await fetchTile(3, 13, { baseUrl: BASE });
+    await fetchTile(u64(3), u64(13), { baseUrl: BASE });
 
     // The bootstrap carries the filter as its body and states its type — a filtered view is what
     // makes the bootstrap non-simple — while staying tokenless, since it mints the view rather than
@@ -1554,10 +1568,10 @@ describe("the atlas view filter", () => {
         expired ? unauthorized() : saltile(tileBytes(0x52, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     // The token ages out mid-viewport, forcing a renewal.
     expired = true;
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     // Both the mint and the re-mint carry the same filter bytes: a bodyless renewal would state the
     // unfiltered view and silently widen the session behind a `200`.
@@ -1581,7 +1595,7 @@ describe("the atlas view filter", () => {
     });
 
     setAtlasViewFilter(BASE, FILTER);
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const settled = getAtlasSessionRevision();
 
     // Re-binding the same view keeps the session: no revision move, so painted rows survive.
@@ -1623,12 +1637,12 @@ describe("a change of authenticated principal", () => {
         saltile(tileBytes(0x81, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     // A sign-out and a sign-in as someone else, in one tab: no page load, so this module keeps
     // everything unless the transition drops it.
     minted = TOKEN_B;
     enterPrincipal("actor-b");
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     // The bootstrap runs again: the rows the first session's tiles decoded to are rows actor-a was
     // allowed to see, and the token seals the actor hash-api resolved for actor-a, so every data
@@ -1656,7 +1670,7 @@ describe("a change of authenticated principal", () => {
       notifications.push(getAtlasSessionRevision());
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const pinned = getAtlasSessionRevision();
     enterPrincipal("actor-b");
 
@@ -1678,12 +1692,12 @@ describe("a change of authenticated principal", () => {
         saltile(tileBytes(0x83, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     const pinned = getAtlasSessionRevision();
     // The app refetches the authenticated user on every navigation, so re-observing the same
     // principal is the overwhelmingly common case. It must cost nothing at all.
     enterPrincipal("actor-a");
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(getAtlasSessionRevision()).toBe(pinned);
     expect(
@@ -1720,9 +1734,9 @@ describe("a change of authenticated principal", () => {
         saltile(tileBytes(0x84, 1, 1, 0)),
     });
 
-    const superseded = fetchTile(1, 1, { baseUrl: BASE });
+    const superseded = fetchTile(u64(1), u64(1), { baseUrl: BASE });
     enterPrincipal("actor-b");
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     gate.release(json({ generation }));
 
     // Its own failure is the recovery: the memoized promise it would have resolved was dropped by
@@ -1730,7 +1744,7 @@ describe("a change of authenticated principal", () => {
     await expect(superseded).rejects.toThrow(/superseded/);
     // The unconditional `authorityCache.set` in a bootstrap is the sharp edge: unguarded it installs
     // a tokenless entry over the successor's, and every later data request goes out bare.
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expect(dataRoutes(seen).map((request) => request.authority)).toEqual([
       TOKEN_B,
       TOKEN_B,
@@ -1759,20 +1773,20 @@ describe("a change of authenticated principal", () => {
           : saltile(tileBytes(0x85, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expired = true;
-    const stale = fetchTile(1, 1, { baseUrl: BASE });
+    const stale = fetchTile(u64(1), u64(1), { baseUrl: BASE });
     await vi.waitFor(() => {
       expect(manifests).toBe(2);
     });
     enterPrincipal("actor-b");
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     gate.release(manifest(generation, 16, token(0xa2)));
     await stale;
 
     // Retention resolves its entry by origin at the moment the response lands, so an unguarded late
     // mint is written into whichever entry now holds the origin — here, the next principal's.
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expect(dataRoutes(seen).at(-1)?.authority).toBe(TOKEN_B);
   });
 
@@ -1797,14 +1811,14 @@ describe("a change of authenticated principal", () => {
           : saltile(tileBytes(0x86, 1, 1, 0)),
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expired = true;
-    const stale = fetchTile(1, 1, { baseUrl: BASE, retry: 0 });
+    const stale = fetchTile(u64(1), u64(1), { baseUrl: BASE, retry: 0 });
     await vi.waitFor(() => {
       expect(manifests).toBe(2);
     });
     enterPrincipal("actor-b");
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     const pinned = getAtlasSessionRevision();
     const notified = vi.fn();
@@ -1827,7 +1841,7 @@ describe("a change of authenticated principal", () => {
     ).toHaveLength(0);
 
     // And B's token survives unswapped: the next request still presents the one B's bootstrap minted.
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expect(dataRoutes(seen).at(-1)?.authority).toBe(TOKEN_B);
     unsubscribe();
   });
@@ -1875,13 +1889,13 @@ describe("the atlas tile max-zoom", () => {
       notifications.push(getAtlasTileMaxZoom());
     });
 
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expect(getAtlasTileMaxZoom()).toBe(9);
 
     // A replacement session can resolve the same generation at a different depth — the value is
     // the view's, not the generation's — so it must land on every bootstrap.
     clearAtlasSessionCache(BASE);
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
 
     expect(getAtlasTileMaxZoom()).toBe(5);
     expect(notifications).toEqual([9, 5]);
@@ -1904,12 +1918,12 @@ describe("the atlas tile max-zoom", () => {
         saltile(tileBytes(0x94, 1, 1, 0)),
     });
 
-    const superseded = fetchTile(1, 1, { baseUrl: BASE });
+    const superseded = fetchTile(u64(1), u64(1), { baseUrl: BASE });
     await vi.waitFor(() => {
       expect(manifests).toBe(1);
     });
     clearAtlasSessionCache(BASE);
-    await fetchTile(1, 1, { baseUrl: BASE });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
     expect(getAtlasTileMaxZoom()).toBe(9);
 
     // The stale manifest answers at a shallower depth — a narrower view's, say — after the live

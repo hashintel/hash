@@ -154,16 +154,13 @@ const decodeDocument = Result.fn(function* decodeDocument<
     Result.changeContext(() => TileError.TileDocumentError.rejected("slot")),
   );
 
-  yield* Option.match(typeMaskChunk, {
-    onSome: () =>
-      Result.assert(coloredTypeCount !== 0, () =>
-        TileError.TileDocumentError.unexpectedSlot(3),
-      ),
-    onNone: () =>
-      Result.assert(coloredTypeCount === 0, () =>
-        Envelope.EnvelopeError.missingSlot(3),
-      ),
-  });
+  yield* Result.assert(
+    Option.isSome(typeMaskChunk) === coloredTypeCount > 0,
+    () =>
+      coloredTypeCount > 0
+        ? Envelope.EnvelopeError.missingSlot(3)
+        : TileError.TileDocumentError.unexpectedSlot(3),
+  );
 
   const [positions, rowIds, typeMask] = yield* Result.all([
     decodePositions(positionsChunk, head.delivered),

@@ -116,8 +116,12 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import * as Num from "../atlas-decode/Num";
-import { atlasTileKey } from "./atlas-tile-coordinate";
+import {
+  ATLAS_ROOT_COORDINATE,
+  atlasTileIndex,
+  atlasTileKey,
+  WORLD_SIZE,
+} from "./atlas-tile-coordinate";
 import {
   fetchEdgesForTiles,
   type FetchedEdges,
@@ -138,20 +142,20 @@ import {
   childCoordinates,
   clampRectToWorld,
   tileDistance,
-  tileIndexOf,
   tileIntersectsRect,
   tileZoomForViewport,
-  WORLD_SIZE,
   type Rect,
   type ViewportRegion,
 } from "./tile-geometry";
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
 import type * as Detail from "../atlas-decode/Detail";
+import type * as Num from "../atlas-decode/Num";
 import type * as TileDocument from "../atlas-decode/TileDocument";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
-export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
+export { WORLD_SIZE } from "./atlas-tile-coordinate";
+export { tileZoomForViewport } from "./tile-geometry";
 
 /**
  * Tile depth used for a `null` (freshly loaded) viewport: the depth-0 root
@@ -763,7 +767,7 @@ export class TileCache {
     detail: Detail.Detail,
     signal?: AbortSignal,
   ): Promise<readonly TileNode[]> {
-    const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate), {
+    const pending = this.#fetcher(coordinate.z, atlasTileIndex(coordinate), {
       priority: origin === "prefetch" ? "low" : "high",
       signal,
       detail,
@@ -1063,9 +1067,7 @@ export const getViewportNodes = async (
   // current depth: the rect-covering children of the previous depth's *incomplete*
   // tiles. A complete tile has delivered its whole subtree, so it is a leaf and
   // its children are never requested.
-  let frontier: TileDocument.Coordinate[] = [
-    { z: Num.u64.unsafe(0n), x: Num.u64.unsafe(0n), y: Num.u64.unsafe(0n) },
-  ];
+  let frontier: TileDocument.Coordinate[] = [ATLAS_ROOT_COORDINATE];
   for (let z = 0; z <= targetDepth && frontier.length > 0; z += 1) {
     for (const coordinate of frontier) {
       requiredKeys.add(atlasTileKey(coordinate));

@@ -19,7 +19,7 @@
  * The flow mirrors {@link fetchTile}: it shares the memoized
  * {@link getSaltileSession} (so locate binds to the same generation as the
  * viewport's tiles), POSTs the request, decodes the `SALTILEL` envelope with
- * {@link decodeSaltileLocate}, and maps wire-frame positions onto the layer's
+ * {@link LocateDocument.decode}, and maps wire-frame positions onto the layer's
  * world exactly as the tile transport does. Transient failures retry with
  * backoff, and the two failures that end a session replace it once and retry, as
  * in {@link fetchTile}: a `404`, meaning the pinned generation is no longer
@@ -47,6 +47,7 @@ import * as LocateDocument from "../atlas-decode/LocateDocument";
 import * as Option from "../atlas-decode/Option";
 import * as Record from "../atlas-decode/Record";
 import * as Result from "../atlas-decode/Result";
+import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
@@ -54,14 +55,9 @@ import {
   withAtlasSession,
   type SaltileSession,
 } from "./fetch-tile";
-import { WORLD_SIZE } from "./tile-geometry";
 
+import type * as Num from "../atlas-decode/Num";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-
-export type {
-  SaltileProperties,
-  SaltilePropertyValue,
-} from "../atlas-decode/locate";
 
 /**
  * Names a locate source in one of the endpoint's two domains: a wire node/edge
@@ -86,7 +82,7 @@ export interface LocateNode {
    * metadata.
    */
   readonly typeId?: VersionedUrl;
-  /** Matched {@link FetchLocateOptions.coloredTypeIds} indices; see {@link typeIndicesAt}. */
+  /** Matched indices into {@link FetchLocateOptions.coloredTypeIds}, in request order. */
   readonly typeIndices?: readonly number[];
   /**
    * The source's capped simple-value properties keyed by property base URL.
@@ -94,7 +90,7 @@ export interface LocateNode {
    * `null` marks a store-absent source; `undefined` a neighbour
    * (neighbour detail is one locate away).
    */
-  readonly properties?: SaltileProperties | null;
+  readonly properties?: LocateDocument.Properties | null;
 }
 
 /** One located edge: its link-entity identity, endpoints, and hydration. */
@@ -112,12 +108,12 @@ export interface LocateEdge {
   readonly target: number;
   /** Link-entity label; `undefined` when it did not resolve. */
   readonly label?: string;
-  /** The link's direct types as versioned URLs, canonical order, capped. */
+  /** The link's direct types as versioned URLs, in wire order, capped. */
   readonly typeIds: readonly VersionedUrl[];
   /** Whether {@link typeIds} is the link's whole direct set. */
   readonly typeIdsComplete: boolean;
   /** The link's capped simple properties; `null` marks a store-absent link. */
-  readonly properties: SaltileProperties | null;
+  readonly properties: LocateDocument.Properties | null;
   /** Whether {@link properties} is the link entity's whole set. */
   readonly propertiesComplete: boolean;
 }
@@ -138,8 +134,8 @@ export interface LocatedEntity {
   /** The edges incident to the source (ascending identity bytes). */
   readonly edges: LocateEdge[];
   /** The source's first visible zoom and its tile there — a fly-to target. */
-  readonly cell: { readonly z: number; readonly x: number; readonly y: number };
-  readonly zoom: number;
+  readonly cell: LocateDocument.Cell;
+  readonly zoom: Num.u64;
   /** False when the locate edge cap truncated the subgraph. */
   readonly complete: boolean;
   /** The request's coloredTypeIds cover every direct type of the source. */
@@ -212,15 +208,28 @@ const fetchAndDecodeLocate = async (
   // power-of-two scale, as in the tile transport.
   const scale = WORLD_SIZE / 2;
 
-  const { positions, rowIds, typeMask, sources, targets, edgeIds, trailer } =
-    LocateDocument.decode(decoder, {
-      generation: session.generation,
-      variant: session.variantIndex,
-      coloredTypeCount: coloredTypeIds.length,
-    }).pipe(
-      Result.changeContext(() => new FetchTileError("failed to decode locate")),
-      Result.unwrap,
-    );
+  const {
+    positions,
+    rowIds,
+    typeMask,
+    sources,
+    targets,
+    edgeIds,
+    trailer,
+    entityId,
+    cell,
+    zoom,
+    complete,
+    typeIdsComplete: sourceTypeIdsComplete,
+    propertiesComplete: sourcePropertiesComplete,
+  } = LocateDocument.decode(decoder, {
+    generation: session.generation,
+    variant: session.variantIndex,
+    coloredTypeCount: coloredTypeIds.length,
+  }).pipe(
+    Result.changeContext(() => new FetchTileError("failed to decode locate")),
+    Result.unwrap,
+  );
 
   const nodes = Function.pipe(
     [
@@ -229,19 +238,18 @@ const fetchAndDecodeLocate = async (
       Option.unwrapOrElse(typeMask, () => Iterable.repeat(null)),
       trailer.labels,
       trailer.typeIds,
-      trailer.properties ?? Iterable.repeat(undefined),
     ],
     Function.spread(Iterable.zip),
     Iterable.map(
-      ([rowId, [x, y], typeMask, label, typeId, properties]): LocateNode =>
+      ([rowId, [x, y], mask, label, typeId], index): LocateNode =>
         Record.omitUndefined({
           id: rowId,
           x: (x + 1) * scale,
           y: (y + 1) * scale,
-          typeMask: typeMask ? [...typeMask] : undefined,
+          typeIndices: mask ? [...mask] : undefined,
           label: label ?? undefined,
-          typeId,
-          properties,
+          typeId: typeId ?? undefined,
+          properties: index === 0 ? trailer.properties : undefined,
         }),
     ),
     Iterable.collect(),
@@ -265,18 +273,18 @@ const fetchAndDecodeLocate = async (
         source,
         target,
         label,
-        typeId,
-        typeIdComplete,
+        typeIds,
+        typeIdsComplete,
         properties,
         propertiesComplete,
       ]): LocateEdge =>
         Record.omitUndefined({
-          id: edgeId,
+          id: edgeId.toString(),
           source,
           target,
           label: label ?? undefined,
-          typeId,
-          typeIdComplete,
+          typeIds,
+          typeIdsComplete,
           properties,
           propertiesComplete,
         }),
@@ -285,14 +293,14 @@ const fetchAndDecodeLocate = async (
   );
 
   return {
-    entityId: decoded.entityId,
+    entityId: entityId.toString(),
     nodes,
     edges,
-    cell: decoded.cell,
-    zoom: decoded.zoom,
-    complete: decoded.complete,
-    typeIdsComplete: decoded.typeIdsComplete,
-    propertiesComplete: decoded.propertiesComplete,
+    cell,
+    zoom,
+    complete,
+    typeIdsComplete: sourceTypeIdsComplete,
+    propertiesComplete: sourcePropertiesComplete,
   };
 };
 
