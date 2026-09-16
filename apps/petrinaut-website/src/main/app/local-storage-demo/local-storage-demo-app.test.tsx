@@ -1372,6 +1372,7 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "draft_petrinaut_experiment",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
       "read_petrinaut_diagnostics",
@@ -1384,6 +1385,7 @@ describe("local storage demo Brunch controls", () => {
       "read_petrinaut_diagnostics",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
+      "draft_petrinaut_experiment",
     ]);
   });
 });

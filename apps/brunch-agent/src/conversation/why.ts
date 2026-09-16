@@ -415,6 +415,7 @@ export const queryWorkpiece = async (input: {
           case "differential-equation":
           case "type":
           case "scenario":
+          case "metric":
             return locateRootState(definition, {
               kind: target.kind,
               name: target.id,

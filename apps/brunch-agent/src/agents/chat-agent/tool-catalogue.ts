@@ -16,6 +16,7 @@ export interface OrdinaryBrunchToolCatalogueEntry {
     | "workpiece"
     | "petrinaut-read"
     | "petrinaut-mutation"
+    | "petrinaut-experiment-draft"
     | "explanation"
     | "diagnostic";
 }
@@ -82,6 +83,12 @@ export const ordinaryBrunchToolCatalogue: readonly OrdinaryBrunchToolCatalogueEn
       definitionOwner: "sdcpn-plugin",
       executionOwner: "petrinaut-website",
       role: "petrinaut-mutation",
+    },
+    {
+      name: "draft_petrinaut_experiment",
+      definitionOwner: "sdcpn-plugin",
+      executionOwner: "petrinaut-website",
+      role: "petrinaut-experiment-draft",
     },
     {
       name: "read_workpiece",

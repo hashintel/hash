@@ -20,6 +20,8 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentToolName,
   queryWorkpieceInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
@@ -330,6 +332,77 @@ try {
     );
     assert(tools.length > 0);
     for (const tool of tools) assert.deepEqual(tool.input_schema, expected);
+
+    // The session experiment draft carries core's request schema natively:
+    // the sent schema must be byte-identical to the Zod source and must still
+    // refuse a constraint (there is no constraint carriage) once serialized.
+    const draftTool = ordinaryRequest.serialized.tools.find(
+      (tool) => tool.name === draftPetrinautExperimentToolName,
+    );
+    assert(draftTool, `${method} must carry the experiment draft tool`);
+    assert.deepEqual(
+      draftTool.input_schema,
+      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    const draftExperiment = {
+      name: "Synthetic staffing",
+      scenarioId: "scenario-peak",
+      scenarioParameterValues: { agents: { mode: "range", min: 2, max: 8 } },
+      runCount: 20,
+      seed: 1,
+      dt: 0.5,
+      maxTime: 120,
+      metricIds: ["metric-wait"],
+      execution: {
+        mode: "optimize",
+        objectiveMetricId: "metric-wait",
+        direction: "minimize",
+        steps: 5,
+        runsPerStep: 4,
+      },
+    };
+    const draftEnvelope = {
+      observation: { toolCallId: "read-1", baseHash: "a".repeat(64) },
+      declarations: [
+        { subject: "maxTime", statement: "120 model minutes: the peak." },
+      ],
+      basis: { kind: "absent", reason: "Synthetic control." },
+      unsupported: [],
+    };
+    const validateDraft = (arguments_: Record<string, unknown>): void => {
+      validateToolArguments(
+        {
+          name: draftTool.name,
+          description: "Captured draft tool",
+          parameters: draftTool.input_schema as Tool["parameters"],
+        },
+        {
+          type: "toolCall",
+          id: "draft-schema-control",
+          name: draftTool.name,
+          arguments: arguments_,
+        },
+      );
+    };
+    assert.doesNotThrow(() =>
+      validateDraft({ ...draftEnvelope, experiment: draftExperiment }),
+    );
+    assert.throws(() =>
+      validateDraft({
+        ...draftEnvelope,
+        experiment: { ...draftExperiment, constraints: [] },
+      }),
+    );
+    assert.throws(() =>
+      validateDraft({
+        ...draftEnvelope,
+        declarations: [],
+        experiment: draftExperiment,
+      }),
+    );
+    assert.throws(() => validateDraft(draftEnvelope));
   }
   assert.equal(networkAttempts, 0);
   process.stdout.write(

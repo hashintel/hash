@@ -10,7 +10,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import { petrinautDocsContent } from "@hashintel/petrinaut/ui";
 
-import { brunchPetrinautDynamicToolNames } from "./brunch-client-tools";
+import { brunchPetrinautAutomaticToolNames } from "./brunch-client-tools";
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { observeBrowserDefinition } from "./mutation-record";
 
@@ -102,7 +102,7 @@ const toolNamed = (
 };
 
 describe("Brunch-named Petrinaut tools", () => {
-  test("mounts every Brunch-named tool as a dynamic host tool", () => {
+  test("mounts every Brunch-named automatic tool as a dynamic host tool", () => {
     const tools = createBrunchPetrinautTools({
       readTitle: () => "Net",
       mutation: {
@@ -114,7 +114,7 @@ describe("Brunch-named Petrinaut tools", () => {
       },
     });
     expect(tools.map(({ toolName }) => toolName).toSorted()).toEqual(
-      [...brunchPetrinautDynamicToolNames].toSorted(),
+      [...brunchPetrinautAutomaticToolNames].toSorted(),
     );
     expect(toolNamed(tools, "layout_petrinaut_net").visibility).toBe("hidden");
     expect(
