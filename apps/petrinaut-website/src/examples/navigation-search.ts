@@ -2,9 +2,9 @@
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
  * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run
- * or a record inside the open document rather than a place in the app.
+ * the focused item, its expanded properties section, the editor's mode, its
+ * Simulate section and the overlay it has open. It leaves out `simulateResource`,
+ * which names a run or a record inside the open document rather than a place in the app.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is
@@ -84,6 +84,10 @@ export const sharedSearchToNavigationState = (
   subnetId: search.subnet ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
   mode: search.mode ?? baseline.mode,
+  expandedSubView:
+    search.expandedPanel && search.expandedSection
+      ? { container: search.expandedPanel, id: search.expandedSection }
+      : null,
   simulateView: search.view ?? baseline.simulateView,
   overlay:
     search.overlay === undefined
@@ -101,6 +105,8 @@ export const navigationStateToSharedSearch = (
   return {
     scenario: scenarioToSearch(state.scenarioId),
     subnet: state.subnetId ?? undefined,
+    expandedPanel: state.expandedSubView?.container,
+    expandedSection: state.expandedSubView?.id,
     // Omitted at the baseline, so an untouched page keeps a clean URL and the
     // decode above puts the baseline back.
     mode: mode === modeToSearch(baseline.mode) ? undefined : mode,
@@ -146,6 +152,8 @@ export const applyPreviewNavigationUpdate = (
   view: search.view,
   overlay: search.overlay,
   settings: search.settings,
+  expandedPanel: search.expandedPanel,
+  expandedSection: search.expandedSection,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),

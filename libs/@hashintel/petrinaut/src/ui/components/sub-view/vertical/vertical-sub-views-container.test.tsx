@@ -11,13 +11,33 @@ import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  defaultPetrinautNavigationState,
+  PetrinautNavigationProvider,
+} from "../../../../react/navigation";
+import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../../../react/state/user-settings-context";
 import { PetrinautPresentationProvider } from "../../../views/shared/presentation-context";
 import { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 
+import type { PetrinautNavigationController } from "../../../../react/navigation";
 import type { SubView } from "../types";
+import type { ComponentProps } from "react";
+
+vi.mock("@hashintel/ds-components", async (importOriginal) => {
+  const components =
+    await importOriginal<typeof import("@hashintel/ds-components")>();
+  return {
+    ...components,
+    Button: (props: ComponentProps<typeof components.Button>) => (
+      <components.Button
+        {...props}
+        tooltipOptions={{ ...props.tooltipOptions, disableTooltip: true }}
+      />
+    ),
+  };
+});
 
 const updateSubViewSection = vi.fn();
 const originalAnimate = Object.getOwnPropertyDescriptor(
@@ -109,11 +129,15 @@ const Harness = ({
   itemId = "one",
   profile = "editor",
   showAnimations = true,
+  navigation,
+  codeCollapsed = false,
 }: {
   views?: SubView[];
   itemId?: string;
   profile?: "editor" | "preview";
   showAnimations?: boolean;
+  navigation?: PetrinautNavigationController;
+  codeCollapsed?: boolean;
 }) => (
   <UserSettingsContext
     value={{
@@ -122,19 +146,105 @@ const Harness = ({
       subViewPanels: {
         test: {
           properties: { collapsed: false, height: 240 },
-          code: { collapsed: false, height: 180 },
+          code: { collapsed: codeCollapsed, height: 180 },
         },
       },
       updateSubViewSection,
     }}
   >
     <PetrinautPresentationProvider profile={profile}>
-      <VerticalSubViewsContainer key={itemId} name="test" subViews={views} />
+      <PetrinautNavigationProvider key={itemId} controller={navigation}>
+        <VerticalSubViewsContainer key={itemId} name="test" subViews={views} />
+      </PetrinautNavigationProvider>
     </PetrinautPresentationProvider>
   </UserSettingsContext>
 );
 
 describe("maximizing a subview", () => {
+  it("follows routed Back and Forward without writing new history entries", () => {
+    const state = defaultPetrinautNavigationState;
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    const view = render(<Harness navigation={{ state, onNavigate }} />);
+    const code = screen.getByRole("textbox", { name: "Code" });
+    fireEvent.change(code, { target: { value: "return false;" } });
+    fireEvent.click(screen.getByRole("button", { name: "Expand Firing Time" }));
+    expect(
+      screen.queryByRole("navigation", { name: "Properties path" }),
+    ).toBeNull();
+    const request = onNavigate.mock.calls.at(-1)!;
+    expect(request[1]).toEqual({
+      history: "push",
+      intent: { cause: "user", action: "subview" },
+    });
+    const expandedState = request[0](state);
+    expect(expandedState.expandedSubView).toEqual({
+      container: "test",
+      id: "code",
+    });
+    view.rerender(
+      <Harness navigation={{ state: expandedState, onNavigate }} />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Back to Transition Collision" }),
+    ).toBeTruthy();
+    view.rerender(<Harness navigation={{ state, onNavigate }} />);
+    expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
+    view.rerender(
+      <Harness navigation={{ state: expandedState, onNavigate }} />,
+    );
+    expect(screen.getByRole("textbox", { name: "Code" })).toBe(code);
+    expect((code as HTMLTextAreaElement).value).toBe("return false;");
+    expect(onNavigate).toHaveBeenCalledOnce();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to Transition Collision" }),
+    );
+    expect(
+      onNavigate.mock.calls.at(-1)?.[0](expandedState).expandedSubView,
+    ).toBeNull();
+  });
+
+  it("opens a collapsed section from a link without changing saved section sizes", () => {
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    render(
+      <Harness
+        codeCollapsed
+        navigation={{
+          state: {
+            ...defaultPetrinautNavigationState,
+            expandedSubView: { container: "test", id: "code" },
+          },
+          onNavigate,
+        }}
+      />,
+    );
+    expect(screen.getByRole("textbox", { name: "Code" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Back to Transition Collision" }),
+    ).toBeTruthy();
+    expect(updateSubViewSection).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("replaces an unavailable routed section instead of adding history", () => {
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    render(
+      <Harness
+        navigation={{
+          state: {
+            ...defaultPetrinautNavigationState,
+            expandedSubView: { container: "test", id: "missing" },
+          },
+          onNavigate,
+        }}
+      />,
+    );
+    expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
+    expect(onNavigate.mock.calls[0]?.[1]).toEqual({
+      history: "replace",
+      intent: { cause: "normalization", action: "subview" },
+    });
+  });
+
   it("uses the main SubView title as the live breadcrumb parent", () => {
     const view = render(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Expand Firing Time" }));
@@ -190,10 +300,14 @@ describe("maximizing a subview", () => {
     expect(updateSubViewSection).not.toHaveBeenCalled();
   });
 
-  it("returns with Escape and clears maximization when changing items or removing a section", () => {
+  it("returns with Escape and clears maximization when changing items or removing a section", async () => {
     const view = render(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Expand Firing Time" }));
-    fireEvent.keyDown(screen.getByRole("textbox", { name: "Code" }), {
+    const parent = screen.getByRole("button", {
+      name: "Back to Transition Collision",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(parent));
+    fireEvent.keyDown(parent, {
       key: "Escape",
     });
     expect(

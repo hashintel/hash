@@ -21,6 +21,64 @@ import type {
 } from ".";
 
 describe("Petrinaut navigation", () => {
+  test("clears an expanded SubView when its item or subnet changes", () => {
+    const initialState: PetrinautNavigationState = {
+      ...defaultPetrinautNavigationState,
+      selection: [{ type: "transition", id: "collision" }],
+      expandedSubView: {
+        container: "transition-properties",
+        id: "transition-results",
+      },
+    };
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    const Probe = () => {
+      const { navigate } = usePetrinautNavigation();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                { selection: [{ type: "transition", id: "crash" }] },
+                { cause: "user", action: "selection" },
+              )
+            }
+          >
+            Select another transition
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(openPetrinautSubnet("subnet"), {
+                cause: "user",
+                action: "subnet",
+              })
+            }
+          >
+            Open subnet
+          </button>
+        </>
+      );
+    };
+    render(
+      <PetrinautNavigationProvider
+        controller={{ state: initialState, onNavigate }}
+      >
+        <Probe />
+      </PetrinautNavigationProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select another transition" }),
+    );
+    expect(
+      onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open subnet" }));
+    expect(
+      onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
+    ).toBeNull();
+  });
+
   test("distinguishes settings sections and normalizes the default section", () => {
     const state = (
       section?: "general" | "viewport",
