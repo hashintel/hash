@@ -192,7 +192,8 @@ const scrollShadowStyle = cva({
 
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
-  borderTopColor: "neutral.a40",
+  borderTopColor:
+    "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
@@ -219,7 +220,8 @@ const headerRowStyle = cva({
     alignItems: "center",
 
     borderBottomWidth: "thin",
-    borderBottomColor: "neutral.a40",
+    borderBottomColor:
+      "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
   },
   variants: {
     isCollapsed: {
@@ -240,7 +242,8 @@ const mainHeaderRowStyle = css({
   alignItems: "center",
 
   borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a40",
+  borderBottomColor:
+    "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
 });
 
 const headerActionVisibleStyle = css({
@@ -275,6 +278,9 @@ const sectionToggleStyle = css({
 
   "& [data-toggle-icon]": {
     width: "3.5",
+    opacity: "[var(--petrinaut-panel-toggle-opacity, 0)]",
+  },
+  "&:hover [data-toggle-icon], &:focus-visible [data-toggle-icon]": {
     opacity: "[1]",
   },
 });

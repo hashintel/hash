@@ -17,7 +17,9 @@ import {
   type PetrinautNavigationState,
 } from "../../../../../react/navigation";
 import { PetrinautProvider } from "../../../../../react/petrinaut-provider";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { MonacoProvider } from "../../../../monaco/provider";
+import { entitiesTreeSubView } from "../LeftSideBar/subviews/entities-tree";
 import { SelectedItemProperties } from "./selected-item-properties";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -146,7 +148,13 @@ const emptyTransition: Transition = {
   y: 0,
 };
 
-const PropertiesPanelStory = ({ selection }: { selection: SelectionItem }) => {
+const PropertiesPanelStory = ({
+  selection,
+  showSidebar = false,
+}: {
+  selection: SelectionItem;
+  showSidebar?: boolean;
+}) => {
   const [instance] = useState(() =>
     createPetrinaut({
       document: createJsonDocHandle({
@@ -189,6 +197,14 @@ const PropertiesPanelStory = ({ selection }: { selection: SelectionItem }) => {
             overflow: "hidden",
           }}
         >
+          {showSidebar && (
+            <div style={{ width: 260, display: "flex", flexShrink: 0 }}>
+              <VerticalSubViewsContainer
+                name="properties-story-entities"
+                subViews={[entitiesTreeSubView]}
+              />
+            </div>
+          )}
           <div
             style={{
               flex: 1,
@@ -243,6 +259,44 @@ export const PlaceWithType: Story = {
 export const PlaceEmpty: Story = {
   name: "Place (no type)",
   args: { selection: { type: "place", id: "place-empty" } },
+};
+
+export const SidebarAndProperties: Story = {
+  args: {
+    selection: { type: "place", id: "place-1" },
+    showSidebar: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const row = await canvas.findByRole("option", { name: "PlantASupply" });
+    const label = within(row).getByText("PlantASupply");
+    await expect(getComputedStyle(label).fontSize).toBe("14px");
+    await expect(getComputedStyle(label).fontWeight).toBe("500");
+    await expect(getComputedStyle(label).lineHeight).toBe("19.25px");
+    await expect(row.getBoundingClientRect().height).toBe(32);
+    await expect(getComputedStyle(row).padding).toBe("4px 4px 4px 20px");
+
+    const sidebarHeader = canvas
+      .getByText("Entities", { exact: true })
+      .closest<HTMLElement>("[data-subview-header]")!;
+    const propertyHeader = canvas
+      .getByText("Place PlantASupply", { exact: true })
+      .closest<HTMLElement>("[data-subview-header]")!;
+    await expect(sidebarHeader.getBoundingClientRect().height).toBe(44);
+    await expect(getComputedStyle(sidebarHeader).borderBottomColor).toBe(
+      "rgba(0, 0, 0, 0.024)",
+    );
+    await expect(getComputedStyle(propertyHeader).borderBottomColor).toBe(
+      "rgba(0, 0, 0, 0.09)",
+    );
+    const stateToggle = canvas.getByRole("button", {
+      name: /^State\b/,
+    });
+    await expect(
+      getComputedStyle(stateToggle.querySelector("[data-toggle-icon]")!)
+        .opacity,
+    ).toBe("1");
+  },
 };
 
 export const TransitionWithArcs: Story = {

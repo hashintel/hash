@@ -1,5 +1,7 @@
 import { use } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+
 import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
@@ -13,12 +15,18 @@ import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
 
+const propertiesStyle = css({
+  display: "contents",
+  "--petrinaut-panel-divider-color": "var(--colors-neutral-a40)",
+  "--petrinaut-panel-toggle-opacity": "1",
+});
+
 /**
  * Resolves the editor selection to the existing entity-specific property
  * content. Layout shells (such as the resizable editor panel)
  * intentionally share this component so their entity rendering cannot drift.
  */
-export const SelectedItemProperties: React.FC = () => {
+const SelectedItemPropertiesContent: React.FC = () => {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
   const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const {
@@ -172,3 +180,9 @@ export const SelectedItemProperties: React.FC = () => {
 
   return null;
 };
+
+export const SelectedItemProperties: React.FC = () => (
+  <div className={propertiesStyle}>
+    <SelectedItemPropertiesContent />
+  </div>
+);
