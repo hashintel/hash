@@ -21,6 +21,7 @@ Case selection does not authorize paid execution; follow the mission's allocatio
 Current process-model-elicitation assets:
 
 - `cases/inventory-purchasing/` — the current from-scratch flagship; its hand-built reference net remains evaluator-only.
+- `cases/support-desk-staffing/` — one bounded staffing decision (agents 2–8 on a two-hour weekday peak, average waiting time, one unenforceable ten-minute rule) for Mission 8's Ledger-derived experiment proposal; the persona never asks for an experiment.
 - `cases/vestera-scheduling/` and `oracles/vestera-scheduling/` — the executed Vestera exemplar
   and its case-specific retrospective and prospective ledgers, plus the filled runbook IR used
   by the supported headless construction command.
