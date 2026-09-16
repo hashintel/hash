@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import * as Result from "./Result";
-import * as TaggedError from "./TaggedError";
+import * as Result from "./result";
+import * as TaggedError from "./tagged-error";
 
 /** A structurally distinct error selected by an instanceof guard. */
 class LowLevelError extends Error {

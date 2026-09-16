@@ -26,14 +26,14 @@
  * token says nothing is stale.
  */
 
-import { Decoder } from "../atlas-decode/Decoder";
-import * as EdgeDocument from "../atlas-decode/EdgeDocument";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
-import * as Function from "../atlas-decode/Function";
-import * as Iterable from "../atlas-decode/Iterable";
-import * as Num from "../atlas-decode/Num";
-import * as Record from "../atlas-decode/Record";
-import * as Result from "../atlas-decode/Result";
+import { Decoder } from "../atlas-decode/decoder";
+import * as EdgeDocument from "../atlas-decode/edge-document";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
+import * as Function from "../atlas-decode/function";
+import * as Iterable from "../atlas-decode/iterable";
+import * as Num from "../atlas-decode/num";
+import * as Record from "../atlas-decode/record";
+import * as Result from "../atlas-decode/result";
 import {
   AtlasTileCoordinateError,
   validateAtlasTileCoordinate,
@@ -46,10 +46,10 @@ import {
   type SaltileSession,
 } from "./fetch-tile";
 
-import type * as BinaryEntityId from "../atlas-decode/BinaryEntityId";
-import type * as Detail from "../atlas-decode/Detail";
-import type * as NodeId from "../atlas-decode/NodeId";
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as BinaryEntityId from "../atlas-decode/binary-entity-id";
+import type * as Detail from "../atlas-decode/detail";
+import type * as NodeId from "../atlas-decode/node-id";
+import type * as TileDocument from "../atlas-decode/tile-document";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** One decoded edge: its link-entity identity and the node rows it connects. */

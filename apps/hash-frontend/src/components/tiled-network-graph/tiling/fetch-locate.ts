@@ -39,14 +39,14 @@
  * yields a byte-identical response through either domain.
  */
 
-import * as Decoder from "../atlas-decode/Decoder";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
-import * as Function from "../atlas-decode/Function";
-import * as Iterable from "../atlas-decode/Iterable";
-import * as LocateDocument from "../atlas-decode/LocateDocument";
-import * as Option from "../atlas-decode/Option";
-import * as Record from "../atlas-decode/Record";
-import * as Result from "../atlas-decode/Result";
+import * as Decoder from "../atlas-decode/decoder";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
+import * as Function from "../atlas-decode/function";
+import * as Iterable from "../atlas-decode/iterable";
+import * as LocateDocument from "../atlas-decode/locate-document";
+import * as Option from "../atlas-decode/option";
+import * as Record from "../atlas-decode/record";
+import * as Result from "../atlas-decode/result";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
@@ -56,7 +56,7 @@ import {
   type SaltileSession,
 } from "./fetch-tile";
 
-import type * as Num from "../atlas-decode/Num";
+import type * as Num from "../atlas-decode/num";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /**

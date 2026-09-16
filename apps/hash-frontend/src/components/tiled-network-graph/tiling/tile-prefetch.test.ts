@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 import { atlasTileKey } from "./atlas-tile-coordinate";
 import {
   rectCenterX,
@@ -15,7 +15,7 @@ import {
   type PrefetchCache,
 } from "./tile-prefetch";
 
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as TileDocument from "../atlas-decode/tile-document";
 
 /** A square viewport region centred at `(cx, cy)`, half-side `half`, at `depth`. */
 const region = (

@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import * as Record from "./Record";
+import * as Record from "./record";
 
 describe("Record", () => {
   it("omit_undefined_proto_key", () => {

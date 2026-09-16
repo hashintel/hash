@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { enterPrincipal } from "../../../shared/principal-scoped-state";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import { fetchLocate } from "./fetch-locate";
 import {
@@ -27,7 +27,7 @@ import {
  * what happens to the session, so no locate wire fixture is needed to pin it.
  */
 
-import type * as LocateDocument from "../atlas-decode/LocateDocument";
+import type * as LocateDocument from "../atlas-decode/locate-document";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const BASE = "http://api.test/atlas";

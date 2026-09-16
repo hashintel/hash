@@ -28,7 +28,7 @@
  *    size (tapered by cache fullness) so a fast pan is not starved at six tiles.
  */
 
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 import { atlasTileKey, WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   clampInt,
@@ -43,7 +43,7 @@ import {
   type ViewportRegion,
 } from "./tile-geometry";
 
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as TileDocument from "../atlas-decode/tile-document";
 
 /** How many recent viewports to retain for movement prediction. */
 export const HISTORY_LENGTH = 5;

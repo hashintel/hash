@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { Decoder, DecoderError, type DecoderErrorReason } from "./Decoder";
+import { Decoder, DecoderError, type DecoderErrorReason } from "./decoder";
 import { f32le, u32le } from "./fixtures";
-import * as Result from "./Result";
+import * as Result from "./result";
 
 /** Little-endian byte builders fixtures.ts does not already provide. */
 const u16le = (value: number) => {

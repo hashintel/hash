@@ -1,6 +1,6 @@
 /** Explicit absence, independent of a computation's success or failure. */
-import { dual } from "./Function";
-import * as Result from "./Result";
+import { dual } from "./function";
+import * as Result from "./result";
 
 export interface Some<out T> {
   readonly _tag: "some";

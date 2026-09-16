@@ -41,7 +41,7 @@ import {
 } from "@local/hash-isomorphic-utils/data-types";
 
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
-import * as Num from "../../../components/tiled-network-graph/atlas-decode/Num";
+import * as Num from "../../../components/tiled-network-graph/atlas-decode/num";
 import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
@@ -83,7 +83,7 @@ import {
   typeColorRanks,
 } from "./shared/type-colors";
 
-import type * as LocateDocument from "../../../components/tiled-network-graph/atlas-decode/LocateDocument";
+import type * as LocateDocument from "../../../components/tiled-network-graph/atlas-decode/locate-document";
 import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";

@@ -1,6 +1,6 @@
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as TileDocument from "../atlas-decode/tile-document";
 
 /**
  * Addressing for the Morton (Z-order) quadtree the Atlas tile API serves.

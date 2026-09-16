@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import * as Result from "./Result";
+import * as Result from "./result";
 
 describe("Result.all", () => {
   it("tuple_types", () => {

@@ -1,9 +1,9 @@
-import * as Option from "./Option";
-import * as Result from "./Result";
-import * as TaggedError from "./TaggedError";
+import * as Option from "./option";
+import * as Result from "./result";
+import * as TaggedError from "./tagged-error";
 
-import type * as Decoder from "./Decoder";
-import type * as Num from "./Num";
+import type * as Decoder from "./decoder";
+import type * as Num from "./num";
 
 export const SALTILE_MEDIA_TYPE = "application/vnd.hash.saltile-v1";
 

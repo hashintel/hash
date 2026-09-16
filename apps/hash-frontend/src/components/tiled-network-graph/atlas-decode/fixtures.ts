@@ -4,7 +4,7 @@
  * CBOR integers and floats are big-endian. Envelope fields and column payloads are little-endian.
  */
 
-import * as Envelope from "./Envelope";
+import * as Envelope from "./envelope";
 
 export const cborUint = (value: number | bigint, major = 0): number[] => {
   if (typeof value === "number" && !Number.isSafeInteger(value)) {

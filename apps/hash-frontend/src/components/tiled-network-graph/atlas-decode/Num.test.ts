@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import * as Num from "./Num";
-import * as Option from "./Option";
+import * as Num from "./num";
+import * as Option from "./option";
 
 describe("Num", () => {
   describe("bounds", () => {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
 import {
   buildResponse,
   cborArray,
@@ -12,7 +12,7 @@ import {
   cborUint,
   u32le,
 } from "../atlas-decode/fixtures";
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 import { fetchEdgesForTiles } from "./fetch-edges-for-tiles";
 import {
   ATLAS_RETIRED_GENERATION_PROBLEM,

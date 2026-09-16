@@ -8,7 +8,7 @@
  * @module
  */
 
-import { dual } from "./Function";
+import { dual } from "./function";
 
 /** Sequential composition shared by {@link Ok} and {@link Err}. */
 abstract class ResultBase<out T, out E> {

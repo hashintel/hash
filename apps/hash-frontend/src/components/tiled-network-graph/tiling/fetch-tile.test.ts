@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { enterPrincipal } from "../../../shared/principal-scoped-state";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
 import {
   buildResponse,
   cborArray,
@@ -14,7 +14,7 @@ import {
   f32le,
   u32le,
 } from "../atlas-decode/fixtures";
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
