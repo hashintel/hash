@@ -71,7 +71,7 @@ const maskBytes = (
     return bytes;
   });
 
-// In g7, integral property values are encoded as CBOR integers.
+// g7 encodes integral property values as CBOR integers.
 const fixtureProperties = (properties: Record<string, unknown> | null) =>
   properties === null
     ? null
