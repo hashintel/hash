@@ -41,7 +41,7 @@ export class HirInterpretError extends Error {
   }
 }
 
-type Env = Map<string, HirValue>;
+type Env = ReadonlyMap<string, HirValue>;
 
 const CONSTANT_VALUES = {
   PI: Math.PI,
@@ -343,6 +343,19 @@ function evalExpr(
         expr.span,
       );
   }
+}
+
+/**
+ * Evaluates one expression under `locals` (the enclosing `let` and callback
+ * bindings) and the ambient bindings. Analyses that walk the tree themselves,
+ * such as a constraint's margin, evaluate their operands through this.
+ */
+export function interpretHirExpr(
+  expr: HirExpr,
+  locals: ReadonlyMap<string, HirValue>,
+  bindings: HirInterpretBindings,
+): HirValue {
+  return evalExpr(expr, locals, bindings);
 }
 
 /**

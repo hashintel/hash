@@ -17,7 +17,10 @@
       "dependsOn": [
         "@rust/hash-repo-chores#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
     },
     "fix:clippy": {
       "dependsOn": []
@@ -26,12 +29,18 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }

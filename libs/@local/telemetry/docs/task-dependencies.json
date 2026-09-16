@@ -8,7 +8,10 @@
       "dependsOn": [
         "@rust/hash-repo-chores#build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/hash-repo-chores"
+      ]
     },
     "fix:clippy": {
       "dependsOn": []

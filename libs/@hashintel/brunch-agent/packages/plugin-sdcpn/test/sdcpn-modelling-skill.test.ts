@@ -25,14 +25,10 @@ describe("the authored sdcpn-modelling skill directory", () => {
       expect(sdcpnModellingSkill.files?.[path]).toBe(readSkillFile(path));
     }
     expect(sdcpnModellingSkill.instructions).not.toMatch(/^---/u);
-    expect(sdcpnModellingSkill.instructions).toContain(
-      "# Capability-aware lifecycle",
-    );
   });
 
-  test("routes universal judgment to core's elicitation skill instead of packaging it", () => {
+  test("names only packaged resources without duplicating universal guidance", () => {
     const instructions = sdcpnModellingSkill.instructions;
-    expect(instructions).toContain("Activate the `elicitation` skill");
     expect(Object.keys(sdcpnModellingSkill.files ?? {})).not.toContain(
       "references/universal-elicitation.md",
     );
@@ -43,21 +39,20 @@ describe("the authored sdcpn-modelling skill directory", () => {
     }
   });
 
-  test("keeps reusable teaching free of scenario nouns and target vocabulary leaks", () => {
+  test("keeps packaged resources free of scenario nouns", () => {
     const profile = readSkillFile("references/profile.md");
     const workpiece = readSkillFile("templates/workpiece.md");
     const construction = readSkillFile("references/pn-construction.md");
     const checks = readSkillFile("references/checks.md");
     expect(profile).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
-    expect(workpiece).toContain(
-      "Every operational claim has one authoritative home",
-    );
-    expect(checks).toContain("Tool-schema acceptance");
-    expect(checks).toContain("Agent-reviewed structural correspondence");
-    expect(checks).toContain("Behavioral execution or stronger analysis");
-    expect(construction).toContain("getLatestNetDefinition");
-    expect(construction).not.toContain("```json");
-    expect(construction).not.toContain("```pn-json");
+    expect(workpiece).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
+    expect(construction).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
+    expect(checks).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
+  });
+
+  test("names the mounted construction read tool", () => {
+    const construction = readSkillFile("references/pn-construction.md");
+    expect(construction).toContain("read_petrinaut_net");
   });
 
   test("the always-on append routes to the job skill and stays compact", () => {

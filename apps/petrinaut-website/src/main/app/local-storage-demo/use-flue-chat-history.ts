@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
+
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -15,7 +16,6 @@ import type {
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noSettlements: readonly FlueConversationSettlement[] = [];
-const brunchClientToolNames = new Set([readPetrinautDocToolName]);
 
 /**
  * The observed canonical conversation together with the durable-stream offset
@@ -33,15 +33,20 @@ const projectPetrinautMessages = (
     | ((input: {
         readonly input: unknown;
         readonly toolName: string;
+        readonly toolCallId: string;
       }) => unknown)
     | undefined,
+  validatedClientToolNames?: ReadonlySet<string>,
+  dynamicClientToolNames?: ReadonlySet<string>,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
     clientToolNames,
+    dynamicClientToolNames,
+    validatedClientToolNames,
     ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
-    hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+    hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
@@ -51,7 +56,10 @@ export const useFlueChatHistory = (
   mapClientToolInput?: (input: {
     readonly input: unknown;
     readonly toolName: string;
+    readonly toolCallId: string;
   }) => unknown,
+  validatedClientToolNames?: ReadonlySet<string>,
+  dynamicClientToolNames?: ReadonlySet<string>,
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -148,6 +156,8 @@ export const useFlueChatHistory = (
             conversation,
             clientToolNames,
             mapClientToolInput,
+            validatedClientToolNames,
+            dynamicClientToolNames,
           ),
     phase: observation?.phase,
     ready,

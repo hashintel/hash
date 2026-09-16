@@ -6,10 +6,10 @@
  * have to reach into `/ui` to read its own initial state.
  */
 
-export const DEFAULT_LEFT_SIDEBAR_WIDTH = 320;
+export const DEFAULT_LEFT_SIDEBAR_WIDTH = 280;
 
 export const DEFAULT_PROPERTIES_PANEL_WIDTH = 450;
 
 export const DEFAULT_BOTTOM_PANEL_HEIGHT = 180;
 
-export const DEFAULT_AI_ASSISTANT_WIDTH = 500;
+export const DEFAULT_AI_ASSISTANT_WIDTH = 420;

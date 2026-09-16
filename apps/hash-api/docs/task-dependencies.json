@@ -22,13 +22,19 @@
   "tasks": {
     "build:docker": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "codegen": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build",
         "@local/hash-isomorphic-utils#build",
         "@local/petrinaut-optimizer-client#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "dev": {
@@ -51,7 +57,10 @@
         "codegen"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "fix:eslint": {
       "dependsOn": [
@@ -71,6 +80,9 @@
         "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:eslint": {
@@ -94,6 +106,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:tsc": {
@@ -114,6 +129,9 @@
         "@local/petrinaut-optimizer-client#build",
         "@local/status#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "start": {
@@ -121,7 +139,10 @@
         "start:migrate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "start:healthcheck": {
       "dependsOn": [],
@@ -147,14 +168,20 @@
         "@local/status#build",
         "codegen"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "start:test": {
       "dependsOn": [
         "start:test:migrate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "start:test:healthcheck": {
       "dependsOn": [],
@@ -180,7 +207,10 @@
         "@local/status#build",
         "codegen"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "test:unit": {
       "dependsOn": [
@@ -203,6 +233,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }

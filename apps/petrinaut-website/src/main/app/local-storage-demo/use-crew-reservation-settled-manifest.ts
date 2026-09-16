@@ -1,12 +1,18 @@
-import { useLocalStorage } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 
 import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage,
+} from "./browser-storage";
+import {
   crewReservationSettledManifestStorageKey,
+  parseCrewReservationSettledManifest,
   settleCrewReservationManifest,
   type CrewReservationSettledManifest,
   type CrewReservationSettlementResult,
 } from "./crew-reservation-settled-manifest";
+import { usePersistedState } from "./use-persisted-state";
 
 import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -28,13 +34,55 @@ export type CrewReservationSettlementStatus =
       readonly state: "refused";
     };
 
-export const useCrewReservationSettledManifestStorage = () => {
-  const [settledManifest, setSettledManifest] =
-    useLocalStorage<CrewReservationSettledManifest | null>({
-      key: crewReservationSettledManifestStorageKey,
-      defaultValue: null,
-      getInitialValueInEffect: false,
-    });
+type SetCrewReservationSettledManifest = (
+  value:
+    | CrewReservationSettledManifest
+    | null
+    | ((
+        previous: CrewReservationSettledManifest | null,
+      ) => CrewReservationSettledManifest | null),
+) => void;
+
+const readSettledManifest = (): CrewReservationSettledManifest | null => {
+  const stored = readBrowserStorage(
+    localStorage,
+    crewReservationSettledManifestStorageKey,
+  );
+  if (stored === null) return null;
+  try {
+    return parseCrewReservationSettledManifest(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
+const writeSettledManifest = (
+  settledManifest: CrewReservationSettledManifest | null,
+): void => {
+  if (settledManifest === null) {
+    removeBrowserStorage(
+      localStorage,
+      crewReservationSettledManifestStorageKey,
+    );
+    return;
+  }
+  writeBrowserStorage(
+    localStorage,
+    crewReservationSettledManifestStorageKey,
+    JSON.stringify(settledManifest),
+  );
+};
+
+export const useCrewReservationSettledManifestStorage = (input?: {
+  readonly enabled: boolean;
+}) => {
+  const enabled = input?.enabled ?? true;
+  const [settledManifest, setSettledManifest] = usePersistedState({
+    enabled,
+    fallback: null as CrewReservationSettledManifest | null,
+    read: readSettledManifest,
+    write: writeSettledManifest,
+  });
   return { settledManifest, setSettledManifest };
 };
 
@@ -45,14 +93,7 @@ export const useCrewReservationSettlement = (input: {
   readonly historyError: string | undefined;
   readonly persistCoherentSnapshot: (sha256: string, definition: SDCPN) => void;
   readonly preparationError: string | undefined;
-  readonly setSettledManifest: (
-    value:
-      | CrewReservationSettledManifest
-      | null
-      | ((
-          previous: CrewReservationSettledManifest | null,
-        ) => CrewReservationSettledManifest | null),
-  ) => void;
+  readonly setSettledManifest: SetCrewReservationSettledManifest;
   readonly settledManifest: CrewReservationSettledManifest | null;
   readonly snapshotMissing: boolean;
 }) => {

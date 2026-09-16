@@ -10,7 +10,8 @@
       "dependsOn": ["^build"]
     },
     "dev": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["PORT"]
     }
   }
 }

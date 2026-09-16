@@ -8,6 +8,30 @@ import {
 } from "./example-search";
 
 describe("example search contract", () => {
+  it("validates settings sections only for the user settings dialog", () => {
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "viewport",
+      }),
+    ).toMatchObject({ overlay: "user-settings", settings: "viewport" });
+    expect(
+      validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "unknown",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({
+        overlay: "create-experiment",
+        settings: "viewport",
+      }).settings,
+    ).toBeUndefined();
+    expect(
+      validateSharedExampleSearch({ overlay: "viewport-settings" }).overlay,
+    ).toBe("viewport-settings");
+  });
+
   it("strips unsupported query values", () => {
     expect(
       validateSharedExampleSearch({
@@ -71,5 +95,25 @@ describe("example search contract", () => {
         itemId: "place-1",
       }),
     ).toBe("itemId=place-1&itemType=place&scenario=scenario-1&subnet=subnet-1");
+  });
+
+  it("normalises a link to the retired Optimizations section", () => {
+    // Links shared before optimization folded into the Experiments tab named
+    // that section and a `present` param; both drop out, and the page opens on
+    // the editor's default section in Simulate mode.
+    const search = validateSharedExampleSearch({
+      mode: "simulate",
+      view: "optimizations",
+      present: "full",
+      overlay: "create-optimization",
+    });
+    expect(search).toEqual({
+      scenario: undefined,
+      subnet: undefined,
+      mode: "simulate",
+      view: undefined,
+      overlay: undefined,
+    });
+    expect(canonicalSearchString(search)).toBe("mode=simulate");
   });
 });

@@ -210,9 +210,13 @@ jobs:
 
             # Infra images — turbo is blind to them; a changed file under their
             # context dir is a complete signal (the dir IS the build context).
-            CHANGED=$(git diff --name-only HEAD^ HEAD | jq -Rsc 'split("\n") | map(select(length > 0))')
+            # Write the path list to a file: on large PR merge checkouts
+            # `git diff HEAD^` is the whole PR, and `--argjson` hits ARG_MAX.
+            CHANGED_JSON="${RUNNER_TEMP:-$(mktemp -d)}/deploy-changed.json"
+            git diff --name-only HEAD^ HEAD | jq -Rsc 'split("\n") | map(select(length > 0))' > "$CHANGED_JSON"
 
-            AFFECTED_CATALOG=$(jq -c --argjson pkgs "$AFFECTED_PKGS" --argjson changed "$CHANGED" '
+            AFFECTED_CATALOG=$(jq -c --argjson pkgs "$AFFECTED_PKGS" --slurpfile changed "$CHANGED_JSON" '
+              ($changed[0]) as $changed |
               [.[] | select(
                 (.package != null and (.package as $p | $pkgs | index($p) != null))
                 or

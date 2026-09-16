@@ -8,10 +8,14 @@ export type VoiceSessionActions = {
   end: () => void;
   pause: () => void;
   readFullResponse?: () => void;
-  reconnect: () => void;
+  reconnect?: () => void;
   repeatQuestion?: () => void;
-  resume: () => void;
-  setMicrophoneMuted: (muted: boolean) => void;
+  retryPlayback?: () => void;
+  resume?: () => void;
+  setInterruptionBySpeaking?: (enabled: boolean) => void;
+  setMicrophoneMuted?: (muted: boolean) => void;
+  setSpeakerMuted?: (muted: boolean) => void;
+  setSpeakerVolume?: (volume: number) => void;
   takeTurn?: () => Promise<void> | void;
 };
 

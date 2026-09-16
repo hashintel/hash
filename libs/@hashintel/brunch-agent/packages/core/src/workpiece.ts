@@ -3,6 +3,102 @@
  * append-only conversation projection.
  */
 
+import * as v from "valibot";
+
+import { JsonValueSchema } from "./json-value";
+
+import type { ReadonlyDeep } from "./readonly-deep";
+
+export const workpieceRevisionStateKey = "brunch.workpiece.current.v1";
+
+/** Locators have meaning only within their immutable revision's Markdown. */
+export const evidenceRelationSchema = v.strictObject({
+  locator: v.strictObject({
+    start: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(0),
+      v.description(
+        "Inclusive UTF-16 offset from read_workpiece locateTexts for the exact Markdown being submitted.",
+      ),
+    ),
+    end: v.pipe(
+      v.number(),
+      v.integer(),
+      v.minValue(1),
+      v.description(
+        "Exclusive UTF-16 end offset from the same match; greater than start and within the submitted Markdown.",
+      ),
+    ),
+  }),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.description(
+      "Authorized true-user source IDs returned by read_workpiece. Elicited evidence requires at least one; never substitute assistant or tool-call IDs.",
+    ),
+  ),
+  kind: v.pipe(
+    v.picklist([
+      "elicited",
+      "inference",
+      "default",
+      "formalism-constraint",
+      "external",
+      "correction",
+    ]),
+    v.description(
+      "Standing of this passage: user testimony (elicited), representational reasoning (inference), a chosen default, a formalism constraint, external material, or a correction. Linkage does not establish semantic support.",
+    ),
+  ),
+});
+
+export type WorkpieceEvidenceRelation = ReadonlyDeep<
+  v.InferOutput<typeof evidenceRelationSchema>
+>;
+
+/**
+ * Core stays substrate-neutral, so these finite unions are owned here; the app
+ * pins its substrate projection against them at the producer.
+ */
+export type WorkpieceMessageRole = "user" | "assistant" | "system";
+export type WorkpieceMessagePurpose =
+  | "user"
+  | "assistant"
+  | "dispatch"
+  | "advisory";
+
+/** The app acquires these from this instance's authorized public history. */
+export interface WorkpieceEvidenceSource {
+  readonly id: string;
+  readonly role: WorkpieceMessageRole;
+  readonly purpose: WorkpieceMessagePurpose;
+  readonly text: string;
+}
+
+export interface WorkpieceEvidenceServices {
+  readonly currentRevision: WorkpieceRevision | null;
+  readonly readSources: () => Promise<readonly WorkpieceEvidenceSource[]>;
+}
+
+/** Tool-call identity and content hash; ordinal is presentation only, never citation identity. */
+export const workpieceRevisionPointerSchema = v.object({
+  revisionId: v.string(),
+  sha256: v.string(),
+  ordinal: v.number(),
+});
+
+/** Current settled artifact. Retained legacy carriage is not verified unless evidenceValidated is true. */
+export const workpieceRevisionSchema = v.object({
+  ...workpieceRevisionPointerSchema.entries,
+  markdown: v.string(),
+  evidence: v.optional(JsonValueSchema),
+  evidenceValidated: v.optional(v.literal(true)),
+});
+
+export type WorkpieceRevision = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRevisionSchema>
+>;
+
 export const preparedWorkpieceSignalType = "brunch.fixture.prepared";
 export const preparedWorkpieceSignalTag = "prepared-fixture";
 export const preparedWorkpieceAuthorship = "test-authored";
@@ -22,10 +118,10 @@ export interface WorkpieceHistoryMessage {
     | WorkpieceTextPart
     | { readonly type: string; readonly [key: string]: unknown }
   )[];
-  readonly purpose: string;
-  readonly role: string;
+  readonly purpose: WorkpieceMessagePurpose;
+  readonly role: WorkpieceMessageRole;
   readonly signal?: {
-    readonly attributes?: Readonly<Record<string, unknown>>;
+    readonly attributes?: Readonly<Record<string, string>>;
     readonly tagName?: string;
     readonly type?: string;
   };
@@ -53,7 +149,7 @@ export interface PreparedWorkpieceDelivery {
 }
 
 export interface SelectedRunbookWorkpiece {
-  readonly authorship: "model-produced" | "test-authored";
+  readonly authorship: "model-produced" | typeof preparedWorkpieceAuthorship;
   readonly content: string;
   readonly fixtureId?: string;
   /**

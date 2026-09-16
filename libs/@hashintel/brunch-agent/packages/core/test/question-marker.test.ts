@@ -1,23 +1,26 @@
-import { readFile } from "node:fs/promises";
-
 import * as v from "valibot";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 
-import { createBrunchQuestionMarkerTool } from "../src/flue";
 import {
   BRUNCH_QUESTION_DATA_NAME,
   BRUNCH_QUESTION_TOOL_NAME,
+  BRUNCH_QUESTION_TOOL_NAMES,
   BrunchQuestionDataSchema,
   BrunchQuestionInputSchema,
+  LEGACY_BRUNCH_QUESTION_TOOL_NAME,
+  LEGACY_QUESTION_REPLAY_TOOL_NAME,
   parseBrunchQuestionData,
-  type BrunchQuestionData,
 } from "../src/question-marker";
 
-import type { FlueLogger } from "@flue/runtime";
-
-describe("the Brunch question marker", () => {
-  test("defines one non-interactive tool and data-part identity", () => {
+describe("legacy Brunch question markers", () => {
+  test("preserves historical tool and data identities for projection compatibility", () => {
     expect(BRUNCH_QUESTION_TOOL_NAME).toBe("brunch_mark_question");
+    expect(LEGACY_BRUNCH_QUESTION_TOOL_NAME).toBe("brunch_mark_question");
+    expect(LEGACY_QUESTION_REPLAY_TOOL_NAME).toBe("mark_question_for_replay");
+    expect(BRUNCH_QUESTION_TOOL_NAMES).toEqual([
+      "brunch_mark_question",
+      "mark_question_for_replay",
+    ]);
     expect(BRUNCH_QUESTION_DATA_NAME).toBe("brunch-question");
   });
 
@@ -35,28 +38,6 @@ describe("the Brunch question marker", () => {
         toolCallId: "tool-question-1",
       }),
     ).toEqual({ question, toolCallId: "tool-question-1" });
-  });
-
-  test("writes the exact marker without terminating or waiting for an answer", async () => {
-    const writeQuestion = vi.fn<(question: BrunchQuestionData) => void>();
-    const tool = createBrunchQuestionMarkerTool(writeQuestion);
-
-    const result = await tool.run({
-      data: { question: "Which line should run this order?" },
-      log: {
-        error: vi.fn<FlueLogger["error"]>(),
-        info: vi.fn<FlueLogger["info"]>(),
-        warn: vi.fn<FlueLogger["warn"]>(),
-      },
-      toolCallId: "tool-question-1",
-    });
-
-    expect(writeQuestion).toHaveBeenCalledOnce();
-    expect(writeQuestion).toHaveBeenCalledWith({
-      question: "Which line should run this order?",
-      toolCallId: "tool-question-1",
-    });
-    expect(result).toEqual({ output: { marked: true } });
   });
 
   test.each([
@@ -77,17 +58,5 @@ describe("the Brunch question marker", () => {
 
     expect(parseBrunchQuestionData(marker)).toEqual(marker);
     expect(parseBrunchQuestionData(null)).toBeUndefined();
-  });
-
-  test("instructs the model to mark and then reproduce the exact question in ordinary prose", async () => {
-    const systemPrompt = await readFile(
-      new URL("../src/prompts/SYSTEM.md", import.meta.url),
-      "utf8",
-    );
-
-    expect(systemPrompt).toContain("brunch_mark_question");
-    expect(systemPrompt).toContain("exact same question text");
-    expect(systemPrompt).toContain("ordinary assistant prose");
-    expect(systemPrompt).toContain("does not wait for or accept the answer");
   });
 });

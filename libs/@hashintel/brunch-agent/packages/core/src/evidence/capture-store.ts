@@ -4,7 +4,10 @@ import * as v from "valibot";
 
 import { JsonValueSchema } from "../json-value";
 import {
+  canonicalString,
   EvidenceQuoteSchema,
+  nonEmptyString,
+  positiveInteger,
   resolveEvidenceQuotes,
   type EvidenceQuote,
   type EvidenceResolutionRefusal,
@@ -13,10 +16,10 @@ import {
   type SessionLogArchive,
 } from "./session-log";
 
-import type { JsonValue } from "../json-value";
+import type { ReadonlyJsonValue } from "../json-value";
 import type { ReadonlyDeep } from "../readonly-deep";
 
-export type { JsonValue } from "../json-value";
+export type { ReadonlyJsonValue } from "../json-value";
 
 export const ABSENCE_STATES = [
   "unknown-to-user",
@@ -65,6 +68,11 @@ export type CaptureInputProposal =
         }
       : Proposal
     : never;
+/** The quote-bearing proposal branch: user evidence, never a declared default or lookup. */
+export type UserCaptureInputProposal = Extract<
+  CaptureInputProposal,
+  { readonly evidence: readonly EvidenceQuote[] }
+>;
 export type CaptureProposal = ReadonlyDeep<
   v.InferOutput<typeof captureProposalSchema>
 >;
@@ -122,27 +130,20 @@ export type CaptureStoreCommand =
       readonly type: "apply-sweep";
       readonly proposals: readonly CaptureInputProposal[];
     }
-  | {
-      readonly type: "open-issue";
-      readonly issueType: IssueType;
-      readonly origin: IssueOrigin;
-      readonly references: readonly string[];
-      readonly canDefault: boolean;
-    }
+  // Commands carry the record's own fields minus the store-minted identity;
+  // evidence arrives as quotes and is resolved to spans on application.
+  | ({ readonly type: "open-issue" } & Omit<CaptureIssue, "id" | "type"> & {
+        readonly issueType: CaptureIssue["type"];
+      })
   | { readonly type: "close-issue"; readonly issueId: string }
-  | {
-      readonly type: "resolve-conflict";
-      readonly issueId: string;
-      readonly decision: string;
-      readonly evidence: readonly EvidenceQuote[];
-      readonly winnerCaptureId: string;
-      readonly loserCaptureIds: readonly string[];
-    }
-  | {
-      readonly type: "retract-capture";
-      readonly captureId: string;
-      readonly evidence: readonly EvidenceQuote[];
-    };
+  | ({ readonly type: "resolve-conflict" } & Omit<
+      ResolutionRecord,
+      "type" | "id" | "evidence"
+    > & { readonly evidence: readonly EvidenceQuote[] })
+  | ({ readonly type: "retract-capture" } & Omit<
+      RetractionEvent,
+      "type" | "id" | "evidence"
+    > & { readonly evidence: readonly EvidenceQuote[] });
 
 export type CaptureStoreRefusal =
   | EvidenceResolutionRefusal
@@ -212,8 +213,6 @@ export type CaptureStoreResult =
     }
   | { readonly ok: false; readonly refusal: CaptureStoreRefusal };
 
-const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
-const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
 // Range ordering belongs to this schema rather than to any one caller: every
 // surface that accepts evidence — proposals, resolution and retraction
 // commands, persisted snapshots — reaches it through here, so all of them
@@ -526,31 +525,18 @@ export const parseCaptureStoreSnapshot = (
   return snapshot;
 };
 
-const canonicalize = (value: JsonValue): JsonValue => {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, child]) => [key, canonicalize(child)]),
-    );
-  }
-  return value;
-};
-
-const canonicalString = (value: JsonValue): string =>
-  JSON.stringify(canonicalize(value));
-
 export const captureDedupKey = (proposal: CaptureProposal): string => {
-  const provenance: JsonValue =
+  const provenance: ReadonlyJsonValue =
     "evidence" in proposal
       ? {
           evidence: [...proposal.evidence]
-            .map((span) => canonicalString(span as unknown as JsonValue))
+            .map((span) =>
+              canonicalString(span as unknown as ReadonlyJsonValue),
+            )
             .sort(),
         }
-      : { basis: proposal.basis as unknown as JsonValue };
-  const content: JsonValue =
+      : { basis: proposal.basis as unknown as ReadonlyJsonValue };
+  const content: ReadonlyJsonValue =
     "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
@@ -569,7 +555,7 @@ const captureOccurrenceKey = (
   proposal: CaptureInputProposal | CaptureEnvelope,
 ): string | undefined => {
   if (!("evidence" in proposal)) return undefined;
-  const content: JsonValue =
+  const content: ReadonlyJsonValue =
     "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
@@ -587,7 +573,7 @@ const captureOccurrenceKey = (
  * existing target documents retain their validated shape.
  */
 const captureRetryKey = (proposal: CaptureProposal): string => {
-  const provenance: JsonValue =
+  const provenance: ReadonlyJsonValue =
     "evidence" in proposal
       ? {
           evidence: [...proposal.evidence]
@@ -595,12 +581,12 @@ const captureRetryKey = (proposal: CaptureProposal): string => {
               canonicalString({
                 excerpt: span.excerpt,
                 pointer: span.pointer,
-              } as unknown as JsonValue),
+              } as unknown as ReadonlyJsonValue),
             )
             .sort(),
         }
-      : { basis: proposal.basis as unknown as JsonValue };
-  const content: JsonValue =
+      : { basis: proposal.basis as unknown as ReadonlyJsonValue };
+  const content: ReadonlyJsonValue =
     "absence" in proposal.content
       ? { absence: proposal.content.absence }
       : { value: proposal.content.value };
@@ -782,7 +768,7 @@ const evidenceIdentity = (
   "evidence" in capture
     ? canonicalString(
         [...capture.evidence]
-          .map((span) => canonicalString(span as unknown as JsonValue))
+          .map((span) => canonicalString(span as unknown as ReadonlyJsonValue))
           .sort(),
       )
     : undefined;

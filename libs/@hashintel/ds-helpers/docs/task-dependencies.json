@@ -5,6 +5,9 @@
     "codegen": {
       "dependsOn": [
         "@hashintel/ds-components#codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/ds-components"
       ]
     }
   }

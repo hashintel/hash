@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
@@ -18,6 +18,7 @@ import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 vi.hoisted(() => {
@@ -31,7 +32,27 @@ vi.hoisted(() => {
     removeEventListener() {},
     dispatchEvent: () => true,
   });
+  // Monaco's clipboard contrib reads this at import time; jsdom does not
+  // implement it, and the lazy singleton can finish loading mid-suite.
+  Object.defineProperty(document, "queryCommandSupported", {
+    configurable: true,
+    value: () => false,
+  });
+  Object.defineProperty(window, "CSS", {
+    configurable: true,
+    value: {
+      ...window.CSS,
+      escape: (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "\\$&"),
+    },
+  });
 });
+
+beforeAll(async () => {
+  // The real panel loads Monaco lazily. Resolve its browser capability checks
+  // during setup, rather than letting an import failure race a later test.
+  // Cold transforms exceeded the default 10s when the full suite ran in parallel.
+  await import("monaco-editor");
+}, 30_000);
 
 const VoiceObserver = ({
   current,
@@ -43,12 +64,34 @@ const VoiceObserver = ({
   useLayoutEffect(() => onUpdate(current), [current, onUpdate]);
   return null;
 };
-const inertWorker = () => ({
-  postMessage() {},
-  addEventListener() {},
-  removeEventListener() {},
-  terminate() {},
-});
+type LspWorker = Awaited<ReturnType<LspWorkerFactory>>;
+type LspWorkerMessage = Parameters<LspWorker["postMessage"]>[0];
+type LspWorkerListener = Parameters<LspWorker["addEventListener"]>[1];
+
+const cleanDiagnosticsWorker: LspWorkerFactory = () => {
+  const listeners = new Set<LspWorkerListener>();
+  return {
+    postMessage(message: LspWorkerMessage) {
+      if (message.method !== "sdcpn/diagnostics" || !("id" in message)) return;
+      queueMicrotask(() => {
+        for (const listener of listeners) {
+          listener({
+            data: { jsonrpc: "2.0", id: message.id, result: [] },
+          });
+        }
+      });
+    },
+    addEventListener(_type, listener) {
+      listeners.add(listener);
+    },
+    removeEventListener(_type, listener) {
+      listeners.delete(listener);
+    },
+    terminate() {
+      listeners.clear();
+    },
+  };
+};
 const hosts: Array<() => void> = [];
 afterEach(() => {
   cleanup();
@@ -216,7 +259,7 @@ test.each([
     render(
       <Petrinaut
         handle={handle}
-        lspWorkerFactory={inertWorker}
+        lspWorkerFactory={cleanDiagnosticsWorker}
         aiAssistant={{
           conversationId: "test",
           requestStop: async () => {

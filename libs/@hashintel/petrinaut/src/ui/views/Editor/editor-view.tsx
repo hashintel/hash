@@ -27,6 +27,8 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
+import { formatShortcutKeys } from "../../../react/commands/format-shortcut";
+import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
@@ -41,6 +43,7 @@ import {
   willShowWalkthroughDialog,
 } from "../../components/walkthrough/walkthrough-context";
 import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dialog";
+import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
@@ -50,6 +53,13 @@ import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
+import { CreateNewNetCommands } from "./editor-view/create-new-net-commands";
+import {
+  createNewNetMenuItem,
+  shouldShowBrunchCreateNew,
+} from "./editor-view/create-new-net-menu";
+import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
@@ -94,15 +104,29 @@ const formatRelativeTime = (isoTimestamp: string): string => {
 // overflow, scrollIntoView can still scroll it programmatically — pushing the
 // TopBar out of view.
 const rowContainerStyle = css({
+  position: "relative",
+  containerType: "inline-size",
   flex: "[1]",
+  minWidth: "[0]",
   minHeight: "[0]",
   userSelect: "none",
 });
 
 const canvasContainerStyle = css({
-  width: "full",
+  minWidth: "[0]",
   position: "relative",
-  flexGrow: 1,
+  flex: "[1]",
+});
+
+// `white-space` inherits down to the item text, whose `overflow: hidden;
+// text-overflow: ellipsis` only elides on a non-wrapping line. `&&` outranks
+// the menu's own max-height class, which ties on specificity.
+const openSubmenuStyle = css({
+  whiteSpace: "nowrap",
+  "&&": {
+    maxWidth: "[min(600px, 70vw)]",
+    maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
+  },
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -120,6 +144,7 @@ export const EditorView = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
+  titleEditable,
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
@@ -128,9 +153,11 @@ export const EditorView = ({
    */
   hideNetManagementControls?: "all" | "except-title";
   slots?: PetrinautSlots;
+  titleEditable: boolean;
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
+  const navigation = usePetrinautNavigation();
   // Auto-layout moves nodes, which a read-only net rejects, so the menu would
   // otherwise offer an item that silently does nothing.
   const isReadOnly = useIsReadOnly();
@@ -157,6 +184,7 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
     setAiAssistantOpen,
+    setAiAssistantCollapsed,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
@@ -168,17 +196,36 @@ export const EditorView = ({
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
+  const [offerStartPosture, setOfferStartPosture] = useState(false);
+  const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
   const {
+    brunchDemoMode,
     enableNotebookView,
+    enableExperimentalIconPack,
+    showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
   } = use(UserSettingsContext);
+  const showBrunchCreateNew = shouldShowBrunchCreateNew({
+    brunchDemoMode,
+    hasAiAssistant: aiAssistant !== undefined,
+  });
   const walkthrough = use(WalkthroughContext);
 
   // Shared with useReadOnlyReason so the rendered view and the mutation
   // rules never disagree.
   const effectiveMode = useEffectiveGlobalMode();
+
+  const toggleAiAssistant = () => {
+    if (isAiAssistantOpen) {
+      setAiAssistantOpen(false);
+      return;
+    }
+    setAiAssistantCollapsed(false);
+    setAiAssistantOpen(true);
+    setAiAssistantFocusRequest((request) => request + 1);
+  };
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -203,21 +250,25 @@ export const EditorView = ({
   function handleCreateEmpty() {
     createNewNet({
       title: "Untitled",
-      petriNetDefinition: {
-        places: [],
-        transitions: [],
-        types: [],
-        differentialEquations: [],
-        parameters: [],
-        subnets: [],
-        componentInstances: [],
-      },
+      petriNetDefinition: emptyPetriNetDefinition,
     });
     clearSelection();
   }
 
-  function handleNew() {
+  function handleStartBlank() {
+    setOfferStartPosture(false);
+    setIsAiCtaDismissed(true);
     handleCreateEmpty();
+    if (aiAssistant !== undefined) {
+      setAiAssistantOpen(false);
+    }
+  }
+
+  function handleBuildWithBrunch() {
+    setIsAiCtaDismissed(true);
+    setOfferStartPosture(true);
+    handleCreateEmpty();
+    setAiAssistantOpen(true);
   }
 
   function handleExport(format: DocumentFormat) {
@@ -292,11 +343,11 @@ export const EditorView = ({
   const menuItems: MenuItem[] = [
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "new",
-            text: "New",
-            onClick: handleNew,
-          },
+          createNewNetMenuItem({
+            showBrunchOptions: showBrunchCreateNew,
+            onBuildWithBrunch: handleBuildWithBrunch,
+            onStartBlank: handleStartBlank,
+          }),
         ]
       : []),
     ...(showNetManagementMenuItems && existingNets.length > 0
@@ -304,6 +355,7 @@ export const EditorView = ({
           {
             id: "open",
             text: "Open",
+            menuClassName: openSubmenuStyle,
             subItems: existingNets.map((net) => ({
               id: `open-${net.netId}`,
               text: net.title,
@@ -450,6 +502,16 @@ export const EditorView = ({
         ]
       : []),
     {
+      id: "user-settings",
+      text: "User settings",
+      suffix: formatShortcutKeys("mod+,").join(" "),
+      onClick: () =>
+        navigation.navigate(
+          { overlay: { type: "user-settings", section: "general" } },
+          { cause: "user", action: "overlay" },
+        ),
+    },
+    {
       id: "docs",
       text: "Docs",
       onClick: () => {
@@ -470,8 +532,20 @@ export const EditorView = ({
     isEmptySDCPN(petriNetDefinition);
 
   return (
-    <>
-      <EditorCommands />
+    <ExperimentalIconProvider
+      enabled={enableExperimentalIconPack}
+      motion={showAnimations ? "auto" : "none"}
+    >
+      <EditorCommands
+        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+      />
+      <UserSettings />
+      <CreateNewNetCommands
+        enabled={showNetManagementMenuItems}
+        showBrunchOptions={showBrunchCreateNew}
+        onBuildWithBrunch={handleBuildWithBrunch}
+        onStartBlank={handleStartBlank}
+      />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {
@@ -492,6 +566,7 @@ export const EditorView = ({
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
+        titleEditable={titleEditable}
         hideNetManagementControls={hideNetManagementControls}
         mode={effectiveMode}
         onModeChange={setGlobalMode}
@@ -539,37 +614,39 @@ export const EditorView = ({
 
               {/* Bottom Panel */}
               <BottomPanel />
-
-              <BottomBar
-                mode={effectiveMode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
-              />
-
-              {aiAssistant && (
-                <AiAssistantPanel
-                  /** Reset state (e.g. initial messages) when the active net changes */
-                  key={petriNetId ?? "no-net"}
-                  aiAssistant={aiAssistant}
-                  initialMessage={pendingAiAssistantMessage}
-                  initialInteractionMode={pendingAiInteractionMode}
-                  onInitialMessageConsumed={() =>
-                    setPendingAiAssistantMessage(null)
-                  }
-                  onInitialInteractionModeConsumed={() =>
-                    setPendingAiInteractionMode(null)
-                  }
-                />
-              )}
             </Box>
+          )}
+          {(effectiveMode === "edit" || effectiveMode === "actual") && (
+            <BottomBar
+              mode={effectiveMode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+              hasAiAssistant={aiAssistant !== undefined}
+            />
+          )}
+          {aiAssistant && (
+            <AiAssistantPanel
+              /** Reset state (e.g. initial messages) when the active net changes */
+              key={`ai-assistant-${petriNetId ?? "no-net"}`}
+              aiAssistant={aiAssistant}
+              focusRequest={aiAssistantFocusRequest}
+              initialMessage={pendingAiAssistantMessage}
+              initialInteractionMode={pendingAiInteractionMode}
+              offerStartPosture={offerStartPosture}
+              onInitialMessageConsumed={() =>
+                setPendingAiAssistantMessage(null)
+              }
+              onInitialInteractionModeConsumed={() =>
+                setPendingAiInteractionMode(null)
+              }
+            />
           )}
         </Stack>
       </VoiceSessionProvider>
 
       <SimulationCreationDrawer />
-    </>
+    </ExperimentalIconProvider>
   );
 };

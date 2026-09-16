@@ -6,51 +6,67 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../react/state/editor-context";
+import {
+  PlaybackIcon,
+  useExperimentalIconPackEnabled,
+} from "../../../../experimental-icons";
 import { usePetrinautPresentation } from "../../../shared/presentation-context";
 import { CollapsibleGroup } from "./collapsible-group";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
+import { formatPlaybackTimes, playbackTimes } from "./playback-time";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
 import type { PlaybackSpeed } from "../../../../../react/playback/context";
 
-const frameInfoStyle = cva({
+// Elapsed over total, stacked, so the readout costs the bar a column of
+// digits rather than a row of them. Wide enough for the longest run either bar
+// will show, so the controls either side hold still while the numbers run.
+const timeReadoutStyle = cva({
   base: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    fontSize: "[10px]",
-    color: "neutral.s105",
-    fontWeight: "medium",
-    lineHeight: "[1]",
-    width: "[90px]",
+    justifyContent: "center",
+    flexShrink: "0",
+    width: "[58px]",
+    lineHeight: "[1.15]",
     fontVariantNumeric: "tabular-nums",
+    letterSpacing: "[-0.2px]",
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
   variants: {
     compact: {
-      true: { width: "[64px]" },
+      true: { width: "[54px]" },
     },
   },
 });
 
 const elapsedTimeStyle = css({
-  fontSize: "[9px]",
-  color: "neutral.s100",
-  marginTop: "[2px]",
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  color: "neutral.s110",
 });
 
-const frameIndexStyle = css({
-  fontSize: "[11px]",
-  color: "neutral.s100",
-  letterSpacing: "[-0.2px]",
-  marginTop: "[1px]",
+const totalTimeStyle = css({
+  fontSize: "[9px]",
+  color: "neutral.s95",
 });
 
 const sliderStyle = cva({
   base: {
-    width: "[300px]",
+    // Sized to the space available rather than to a fixed 300px: `clamp`
+    // tracks the viewport continuously, so a window or iframe resize slides
+    // the scrubber's width with it instead of stepping at a breakpoint.
+    //
+    // The flexing applies to the embed's expanded bar, whose row is held to
+    // the bar's full width and so has slack to give. The editor's toolbar
+    // group is sized to its content, where there is none to take.
+    width: "[clamp(140px, 24vw, 420px)]",
+    flex: "[1 1 auto]",
+    minWidth: "[96px]",
+    maxWidth: "[100%]",
     height: "[4px]",
     appearance: "none",
     background: "neutral.s30",
@@ -81,9 +97,8 @@ const sliderStyle = cva({
   variants: {
     compact: {
       true: {
-        width: "[clamp(96px, 30vw, 220px)]",
-        flex: "[1 1 160px]",
-        minWidth: "[96px]",
+        width: "[clamp(96px, 34vw, 360px)]",
+        minWidth: "[72px]",
       },
     },
   },
@@ -101,6 +116,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   allowedPlaybackSpeeds,
 }) => {
   const presentation = usePetrinautPresentation();
+  const experimentalIcons = useExperimentalIconPackEnabled();
   const { dt, state: simulationState, reset } = use(SimulationContext);
 
   const {
@@ -127,7 +143,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const isSimulationErrored = simulationState === "Error";
   const isPlaybackPlaying = playbackState === "Playing";
   const frameIndex = currentFrameIndex;
-  const elapsedTime = currentViewedFrame ? frameIndex * dt : 0;
+  const times = formatPlaybackTimes(
+    playbackTimes({
+      frameIndex: currentViewedFrame ? frameIndex : 0,
+      totalFrames,
+      dt,
+    }),
+    dt,
+  );
 
   // Disable play button when at the last frame and simulation is complete or errored
   const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
@@ -218,7 +241,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isPlaybackPlaying ? (
+        {experimentalIcons ? (
+          <PlaybackIcon playing={isPlaybackPlaying} duration={200} />
+        ) : isPlaybackPlaying ? (
           <Icon name="pauseFilled" />
         ) : (
           <Icon name="playFilled" />
@@ -232,15 +257,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         {hasSimulation && (
           <>
             <div
-              className={frameInfoStyle({
+              role="timer"
+              aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
+              className={timeReadoutStyle({
                 compact: presentation.compactControls,
               })}
             >
-              {!presentation.compactControls && <div>Frame</div>}
-              <div className={frameIndexStyle}>
-                {frameIndex + 1} / {totalFrames}
-              </div>
-              <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
+              <span className={elapsedTimeStyle}>{times.elapsed}</span>
+              <span className={totalTimeStyle}>/ {times.total}</span>
             </div>
 
             <input

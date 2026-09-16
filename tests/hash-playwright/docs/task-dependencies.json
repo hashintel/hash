@@ -16,6 +16,9 @@
     "codegen": {
       "dependsOn": [
         "@local/hash-isomorphic-utils#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "fix:eslint": {
@@ -26,6 +29,9 @@
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:eslint": {
@@ -39,6 +45,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:tsc": {
@@ -48,6 +57,9 @@
         "@local/hash-graph-sdk#build",
         "@local/hash-isomorphic-utils#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "test:integration": {
@@ -60,6 +72,9 @@
       "cache": false,
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }

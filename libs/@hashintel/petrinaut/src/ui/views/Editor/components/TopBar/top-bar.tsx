@@ -13,6 +13,8 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { MenuIcon, SidebarIcon } from "../../../../experimental-icons";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
@@ -63,6 +65,7 @@ interface TopBarProps {
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
+  titleEditable: boolean;
   hideNetManagementControls?: "all" | "except-title";
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
@@ -76,6 +79,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   menuItems,
   title,
   onTitleChange,
+  titleEditable,
   hideNetManagementControls,
   mode,
   onModeChange,
@@ -85,6 +89,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
   const undoRedo = use(UndoRedoContext);
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
 
   return (
     <div className={topBarStyle}>
@@ -100,7 +105,17 @@ export const TopBar: React.FC<TopBarProps> = ({
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          iconName="sidebar"
+          {...(enableExperimentalIconPack
+            ? {
+                prefix: (
+                  <SidebarIcon
+                    size={16}
+                    collapsed={!isLeftSidebarOpen}
+                    duration={240}
+                  />
+                ),
+              }
+            : { iconName: "sidebar" })}
         />
 
         <Menu
@@ -110,7 +125,9 @@ export const TopBar: React.FC<TopBarProps> = ({
               size="sm"
               variant="ghost"
               tooltip="Menu"
-              iconName="bars"
+              {...(enableExperimentalIconPack
+                ? { prefix: <MenuIcon size={16} duration={200} /> }
+                : { iconName: "bars" })}
             />
           }
           items={menuItems}
@@ -123,6 +140,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             variant="subtle"
             value={title}
             onChange={onTitleChange}
+            readonly={!titleEditable}
             placeholder="Process"
             className={titleStyles}
             size="sm"

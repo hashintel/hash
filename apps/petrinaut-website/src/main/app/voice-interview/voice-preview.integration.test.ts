@@ -253,9 +253,11 @@ describe("controlled voice preview", () => {
     } as unknown as MediaStream;
     const remoteAudio = {
       autoplay: false,
+      muted: false,
       pause: vi.fn(),
       play: vi.fn(async () => undefined),
       srcObject: null as MediaStream | null,
+      volume: 1,
     };
     const peer = {
       addTrack: vi.fn(),
@@ -388,8 +390,7 @@ describe("controlled voice preview", () => {
     dataChannel.receive({
       content_index: 0,
       item_id: "pre-output-item",
-      transcript: "This completed before output started.",
-      type: "conversation.item.input_audio_transcription.completed",
+      type: "conversation.item.input_audio_transcription.failed",
     });
     expect(controller.getSnapshot()).toMatchObject({
       lastCommittedText: "",
@@ -634,7 +635,7 @@ describe("controlled voice preview", () => {
         input: {
           turn_detection: {
             type: "semantic_vad",
-            eagerness: "low",
+            eagerness: "medium",
             create_response: false,
             interrupt_response: false,
           },

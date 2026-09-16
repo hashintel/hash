@@ -12,6 +12,16 @@
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
       ]
     },
     "lint:eslint": {
@@ -22,6 +32,16 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
       ]
     },
     "lint:tsc": {
@@ -29,6 +49,16 @@
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@blockprotocol/type-system-rs",
+        "@rust/error-stack",
+        "@rust/error-stack-macros",
+        "@rust/harpc-types",
+        "@rust/harpc-wire-protocol",
+        "@rust/hash-codec",
+        "@rust/hash-codegen",
+        "@rust/hash-graph-temporal-versioning"
       ]
     }
   }

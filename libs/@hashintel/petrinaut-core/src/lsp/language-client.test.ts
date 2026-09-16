@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createLanguageClient } from "./language-client";
+import { createSDCPN } from "./lib/helper/create-sdcpn";
 
 import type { LspTransport } from "./transport";
 import type {
+  ClientMessage,
   PublishDiagnosticsParams,
   ServerMessage,
 } from "./worker/protocol";
@@ -11,8 +13,11 @@ import type { Diagnostic } from "vscode-languageserver-types";
 
 const createFakeTransport = () => {
   let listener: ((message: ServerMessage) => void) | null = null;
+  const sent: ClientMessage[] = [];
   const transport: LspTransport = {
-    send: vi.fn(),
+    send(message) {
+      sent.push(message);
+    },
     onMessage(next) {
       listener = next;
       return () => {
@@ -27,7 +32,9 @@ const createFakeTransport = () => {
       method: "textDocument/publishDiagnostics",
       params,
     });
-  return { transport, publish };
+  const respond = (id: number, result: PublishDiagnosticsParams[]) =>
+    listener?.({ jsonrpc: "2.0", id, result });
+  return { transport, sent, publish, respond };
 };
 
 const diagnostic = (message: string): Diagnostic => ({
@@ -40,6 +47,110 @@ const diagnostic = (message: string): Diagnostic => ({
 });
 
 describe("createLanguageClient diagnostics", () => {
+  it("resolves repeated clean diagnostic requests independently", async () => {
+    const { transport, sent, respond } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const definition = createSDCPN();
+
+    const first = client.requestDiagnostics(definition);
+    respond(0, []);
+    await expect(first).resolves.toMatchObject({ total: 0, errorCount: 0 });
+
+    const second = client.requestDiagnostics(definition);
+    respond(1, []);
+    await expect(second).resolves.toMatchObject({ total: 0, errorCount: 0 });
+    expect(sent.map((message) => message.method)).toEqual([
+      "sdcpn/diagnostics",
+      "sdcpn/diagnostics",
+    ]);
+  });
+
+  it("resolves a clean request after a dirty request", async () => {
+    const { transport, respond } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const definition = createSDCPN();
+
+    const dirty = client.requestDiagnostics(definition);
+    respond(0, [{ uri: "inmemory://a", diagnostics: [diagnostic("dirty")] }]);
+    await expect(dirty).resolves.toMatchObject({ total: 1, errorCount: 1 });
+
+    const clean = client.requestDiagnostics(definition);
+    respond(1, []);
+    await expect(clean).resolves.toMatchObject({ total: 0, errorCount: 0 });
+  });
+
+  it("correlates each response to the exact requested definition", async () => {
+    const { transport, sent, respond } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const firstDefinition = createSDCPN();
+    const secondDefinition = createSDCPN({
+      parameters: [{ id: "second", name: "Second" }],
+    });
+
+    const first = client.requestDiagnostics(firstDefinition);
+    const second = client.requestDiagnostics(secondDefinition);
+    respond(1, []);
+    respond(0, [
+      { uri: "inmemory://first", diagnostics: [diagnostic("first")] },
+    ]);
+
+    await expect(first).resolves.toMatchObject({ total: 1 });
+    await expect(second).resolves.toMatchObject({ total: 0 });
+    expect(sent).toMatchObject([
+      { id: 0, params: { sdcpn: firstDefinition } },
+      { id: 1, params: { sdcpn: secondDefinition } },
+    ]);
+  });
+
+  it("correlates snapshot responses without waiting for diagnostic changes", async () => {
+    const { transport, publish, respond, sent } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const definition = {
+      places: [],
+      transitions: [],
+      parameters: [],
+      types: [],
+      differentialEquations: [],
+    };
+    const first = client.requestDiagnostics(definition);
+    const second = client.requestDiagnostics(definition);
+    publish([
+      {
+        uri: "inmemory://session",
+        diagnostics: [diagnostic("unrelated session")],
+      },
+    ]);
+    respond(1, []);
+    respond(0, [
+      { uri: "inmemory://net", diagnostics: [diagnostic("net error")] },
+    ]);
+
+    expect((await first).byUri.get("inmemory://net")?.[0]?.message).toBe(
+      "net error",
+    );
+    expect((await second).errorCount).toBe(0);
+    expect(client.diagnostics.get().byUri.has("inmemory://session")).toBe(true);
+    expect(sent).toContainEqual({
+      jsonrpc: "2.0",
+      id: 0,
+      method: "sdcpn/diagnostics",
+      params: { sdcpn: definition, extensions: undefined },
+    });
+  });
+
+  it("rejects a snapshot request when the worker is disposed", async () => {
+    const { transport } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+    const response = client.requestDiagnostics({
+      places: [],
+      transitions: [],
+      parameters: [],
+      types: [],
+      differentialEquations: [],
+    });
+    client.dispose();
+    await expect(response).rejects.toThrow();
+  });
   it("notifies subscribers only when a publish changed a diagnostic", () => {
     const { transport, publish } = createFakeTransport();
     const client = createLanguageClient({ transport });

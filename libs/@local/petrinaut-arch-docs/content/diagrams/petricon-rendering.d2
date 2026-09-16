@@ -1,0 +1,15 @@
+direction: down
+
+host: "Control state\nopen, selected, status" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+provider: "PetriconProvider\nweight, size, motion" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+renderer: "Petricon\nresolve state and defaults" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+geometry: "SVG parts\npaths, frames, masks" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+motion: "Motion policy\nhints, transitions, effects" {style.fill: "#fdeedc"; style.stroke: "#b5762f"}
+output: "Inline SVG\ncurrent state or animated transition" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+
+host -> renderer
+provider -> renderer
+renderer -> geometry
+renderer -> motion
+geometry -> output
+motion -> output

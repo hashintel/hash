@@ -3,6 +3,9 @@
   "tasks": {
     "build": {
       "outputs": ["./dist/**"]
+    },
+    "dev": {
+      "passThroughEnv": ["PORT"]
     }
   }
 }

@@ -9,6 +9,7 @@ import {
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
@@ -20,6 +21,21 @@ import type {
 } from ".";
 
 describe("Petrinaut navigation", () => {
+  test("distinguishes settings sections and normalizes the default section", () => {
+    const state = (
+      section?: "general" | "viewport",
+    ): PetrinautNavigationState => ({
+      ...defaultPetrinautNavigationState,
+      overlay: { type: "user-settings", section },
+    });
+    expect(petrinautNavigationStatesMatch(state(), state("general"))).toBe(
+      true,
+    );
+    expect(
+      petrinautNavigationStatesMatch(state("general"), state("viewport")),
+    ).toBe(false);
+  });
+
   test("passes an updater and app-history intent to a controlled host", () => {
     const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
     const controller: PetrinautNavigationController = {
@@ -503,7 +519,6 @@ describe("Petrinaut navigation", () => {
       "create-scenario",
       "create-metric",
       "create-experiment",
-      "create-optimization",
     ] as const) {
       const drawer = { type };
       // A create drawer layers over the open record rather than replacing it.
@@ -542,11 +557,8 @@ describe("Petrinaut navigation", () => {
         id: "experiment-a",
       }),
     ).toEqual({ type: "view-experiment", experimentId: "experiment-a" });
-    expect(
-      navigationResourceToSimulateDrawer({
-        type: "optimization",
-        id: "optimization-a",
-      }),
-    ).toEqual({ type: "closed" });
+    expect(navigationResourceToSimulateDrawer(null)).toEqual({
+      type: "closed",
+    });
   });
 });

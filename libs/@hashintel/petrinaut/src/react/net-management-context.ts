@@ -14,7 +14,7 @@ import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
  */
 export type NetManagement = {
   title: string;
-  setTitle: (title: string) => void;
+  setTitle?: (title: string) => void;
   existingNets: MinimalNetMetadata[];
   createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet: (petriNetId: string) => void;
@@ -22,7 +22,6 @@ export type NetManagement = {
 
 const DEFAULT_NET_MANAGEMENT: NetManagement = {
   title: "",
-  setTitle: () => {},
   existingNets: [],
   createNewNet: () => {},
   loadPetriNet: () => {},

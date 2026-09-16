@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { sharedOverlays, sharedSimulateViews } from "./example-search";
 import {
   applyPreviewNavigationUpdate,
   navigationStateToSharedSearch,
@@ -7,6 +8,31 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it.each(["general", "viewport", "simulation", "labs"] as const)(
+    "round-trips the %s settings section in Simulate",
+    (settings) => {
+      const search = {
+        mode: "simulate",
+        view: "metrics",
+        overlay: "user-settings",
+        settings,
+      } as const;
+      const state = sharedSearchToNavigationState(search);
+      expect(state.overlay).toEqual({
+        type: "user-settings",
+        section: settings,
+      });
+      expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+      expect(
+        applyPreviewNavigationUpdate(search, (current) => current),
+      ).toMatchObject(search);
+      expect(
+        sharedSearchToNavigationState({ mode: "simulate", view: "metrics" })
+          .overlay,
+      ).toBeNull();
+    },
+  );
+
   it("round-trips scenario, subnet, and selection", () => {
     const state = sharedSearchToNavigationState({
       scenario: "none",
@@ -42,6 +68,39 @@ describe("navigation state projection", () => {
     expect(state.mode).toBe("edit");
     expect(state.overlay).toBeNull();
     expect(state.simulateResource).toBeNull();
+  });
+
+  it("round-trips every Simulate section and overlay the URL can name", () => {
+    for (const view of sharedSimulateViews) {
+      for (const overlay of sharedOverlays) {
+        const state = sharedSearchToNavigationState({
+          mode: "simulate",
+          view,
+          overlay,
+        });
+        expect(state.simulateView).toBe(view);
+        expect(state.overlay).toEqual({ type: overlay });
+        // The projection omits whatever sits at the baseline, so the property
+        // is that decoding it lands on the same location.
+        expect(
+          sharedSearchToNavigationState(navigationStateToSharedSearch(state)),
+        ).toEqual(state);
+      }
+    }
+  });
+
+  it("omits the fields that sit at the baseline", () => {
+    const state = sharedSearchToNavigationState({
+      mode: "simulate",
+      view: "experiments",
+    });
+    expect(navigationStateToSharedSearch(state)).toEqual({
+      scenario: undefined,
+      subnet: undefined,
+      mode: "simulate",
+      view: undefined,
+      overlay: undefined,
+    });
   });
 });
 

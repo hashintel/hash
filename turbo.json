@@ -4,7 +4,8 @@
     // A task nothing implements, so depending on it runs nothing. Its hash still covers the
     // package's inputs, and the chain over `^manifest` carries those of every transitive
     // dependency, which is what a task needs from a crate it reads sources from rather than
-    // artifacts.
+    // artifacts. A package that reads a crate the package graph does not reach adds the
+    // crate's `manifest` to its own, so the chain continues into the crate.
     "manifest": {
       "dependsOn": ["^manifest"]
     },
@@ -31,8 +32,11 @@
       "dependsOn": ["//#sync:turborepo"]
     },
     "build": {},
+    // An image copies the repository and generates and builds inside it, so the host
+    // contributes only sources.
     "build:docker": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["^manifest"]
     },
     "build:codspeed": {
       "cache": false,

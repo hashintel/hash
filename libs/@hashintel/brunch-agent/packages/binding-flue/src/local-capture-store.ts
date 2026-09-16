@@ -28,7 +28,8 @@ import { registerArchiveWriter } from "./archive-capability";
 const FORMAT_VERSION = 2 as const;
 const LEGACY_FORMAT_VERSION = 1 as const;
 
-interface TargetDocumentRecord {
+/** The persisted binding-private document: capture store and archive under one owner key. */
+export interface TargetDocumentRecord {
   readonly formatVersion: typeof FORMAT_VERSION;
   readonly ownerKey: string | null;
   readonly captureStore: CaptureStoreSnapshot;

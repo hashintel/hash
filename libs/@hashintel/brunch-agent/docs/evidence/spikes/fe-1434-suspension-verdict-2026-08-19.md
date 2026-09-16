@@ -14,8 +14,7 @@ a deterministic faux provider. It adds no production protocol. The disposable ev
 instrument is preserved in commit `4df6f86b6881653c3400eca101df01d21211dba1` at
 `apps/dev/test/flue-client-tool-suspension.probe.ts`; at that commit it ran as
 `node --experimental-strip-types apps/dev/test/flue-client-tool-suspension.probe.ts`. The branch
-head intentionally removes the probe source. Its normalized captured output persists as
-[`fe-1434-suspension-evidence-2026-08-19.json`](fe-1434-suspension-evidence-2026-08-19.json).
+head intentionally removes the probe source. Its normalized captured output, formerly `fe-1434-suspension-evidence-2026-08-19.json`, was subsequently retired; this verdict retains the historical result, not the raw output.
 
 The faux provider emits a multi-tool batch in which every tool outcome returns
 `terminate: true`. Each callback records its Flue `toolCallId` through updater-form
@@ -63,8 +62,9 @@ required by the evidence; selecting the slot variant is the smaller design, not 
 parallel design lacks value. As a recommended guardrail, initially reject a model turn that tries
 to suspend both a user question and a client-tool batch. Mixed-pending semantics remain untested.
 
-FE-1435 (the panel-to-AI-SDK adapter spike named by the
-[integration spec](../../specs/petrinaut-integration.md#testing-decisions)) still has to prove that
+FE-1435 (the panel-to-AI-SDK adapter spike named by the historical integration spec's
+testing-decisions section, last full copy
+`ed9edfe7f0:libs/@hashintel/brunch-agent/docs/specs/petrinaut-integration.md`) still has to prove that
 the real panel's batched tool-result POST can become this one Flue signal without losing ids.
 That is the exact remaining wire uncertainty; it does not reopen the Flue runtime behavior tested
 here.

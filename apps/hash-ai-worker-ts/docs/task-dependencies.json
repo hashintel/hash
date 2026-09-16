@@ -27,11 +27,17 @@
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
         "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "build:docker": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "dev": {
       "dependsOn": [
@@ -47,7 +53,10 @@
         "@local/status#build"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "fix:eslint": {
       "dependsOn": [
@@ -61,6 +70,9 @@
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
         "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:eslint": {
@@ -78,6 +90,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "lint:tsc": {
@@ -92,11 +107,17 @@
         "@local/hash-isomorphic-utils#build",
         "@local/internal-api-client#build",
         "@local/status#build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "sentry:sourcemaps": {
       "dependsOn": [
         "build"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     },
     "start": {
@@ -105,7 +126,10 @@
         "build"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "start:healthcheck": {
       "dependsOn": [],
@@ -117,7 +141,10 @@
         "build"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
     },
     "start:test:healthcheck": {
       "dependsOn": [],
@@ -138,6 +165,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
       ]
     }
   }

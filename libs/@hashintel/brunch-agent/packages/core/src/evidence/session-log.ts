@@ -2,7 +2,7 @@ import * as v from "valibot";
 
 import { JsonValueSchema, isJsonValue } from "../json-value";
 
-import type { JsonValue } from "../json-value";
+import type { ReadonlyJsonValue } from "../json-value";
 import type { ReadonlyDeep } from "../readonly-deep";
 import type { EvidenceSpan } from "./capture-store";
 
@@ -15,27 +15,21 @@ export const SESSION_ENTRY_KINDS = [
 
 export type SessionEntryKind = (typeof SESSION_ENTRY_KINDS)[number];
 
-export interface SessionLogEntrySnapshot {
-  /** Stable identity supplied by the substrate's public projection. */
-  readonly substrateEntryId: string;
-  /** Harness-owned provenance classification at this read. */
-  readonly kind: SessionEntryKind;
-  /** Materialized text searched for verbatim evidence quotes. */
-  readonly text: string;
-  /** Complete public entry, retained independently of the substrate. */
-  readonly materialized: JsonValue;
-}
+/**
+ * One public entry as read from the substrate, before archiving assigns it an
+ * ordinal and version. Fields are the archive's own, projected.
+ */
+export type SessionLogEntrySnapshot = Pick<
+  ArchivedSessionEntry,
+  "substrateEntryId"
+> &
+  Pick<ArchivedSessionEntryVersion, "kind" | "text" | "materialized">;
 
-export interface SessionLogRead {
-  readonly sessionId: string;
-  /** Substrate projection identity, distinct from the harness session id. */
-  readonly substrateConversationId?: string;
-  /** Opaque substrate checkpoint, retained as provenance and never interpreted. */
-  readonly offset: string;
-  readonly incarnation?: string;
-  readonly entries: readonly SessionLogEntrySnapshot[];
-  readonly settlements: readonly JsonValue[];
-}
+/** One incoming read: the archive's read record plus the entries it observed. */
+export type SessionLogRead = Pick<ArchivedSessionLog, "sessionId"> &
+  Omit<ArchivedSessionRead, "entries"> & {
+    readonly entries: readonly SessionLogEntrySnapshot[];
+  };
 
 export type ArchivedSessionEntryVersion = ReadonlyDeep<
   v.InferOutput<typeof versionSchema>
@@ -89,8 +83,8 @@ export type EvidenceResolutionResult =
     }
   | { readonly ok: false; readonly refusal: EvidenceResolutionRefusal };
 
-const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
-const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
+export const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
+export const positiveInteger = v.pipe(v.number(), v.integer(), v.minValue(1));
 const kindSchema = v.picklist(SESSION_ENTRY_KINDS);
 export const EvidenceQuoteSchema = v.strictObject({ excerpt: nonEmptyString });
 const versionSchema = v.strictObject({
@@ -125,7 +119,7 @@ const sessionSchema = v.strictObject({
 });
 const archiveSchema = v.strictObject({ sessions: v.array(sessionSchema) });
 
-const canonicalize = (value: JsonValue): JsonValue => {
+const canonicalize = (value: ReadonlyJsonValue): ReadonlyJsonValue => {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
@@ -137,7 +131,8 @@ const canonicalize = (value: JsonValue): JsonValue => {
   return value;
 };
 
-const canonicalString = (value: JsonValue): string =>
+/** Key-order-independent JSON text, so equal values hash and compare equal. */
+export const canonicalString = (value: ReadonlyJsonValue): string =>
   JSON.stringify(canonicalize(value));
 
 export const createEmptySessionLogArchive = (): SessionLogArchive => ({
@@ -197,7 +192,7 @@ export const parseSessionLogArchive = (input: unknown): SessionLogArchive => {
       }
     }
     const readIdentities = session.reads.map((read) =>
-      canonicalString(read as unknown as JsonValue),
+      canonicalString(read as unknown as ReadonlyJsonValue),
     );
     if (new Set(readIdentities).size !== readIdentities.length) {
       throw new TypeError(
@@ -300,12 +295,12 @@ export const archiveSessionLogRead = (
     settlements: structuredClone(read.settlements),
   };
   const archivedReadIdentity = canonicalString(
-    archivedRead as unknown as JsonValue,
+    archivedRead as unknown as ReadonlyJsonValue,
   );
   if (
     !session.reads.some(
       (candidate) =>
-        canonicalString(candidate as unknown as JsonValue) ===
+        canonicalString(candidate as unknown as ReadonlyJsonValue) ===
         archivedReadIdentity,
     )
   ) {

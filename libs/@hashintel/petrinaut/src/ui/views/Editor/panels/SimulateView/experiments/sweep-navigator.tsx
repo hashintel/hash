@@ -1,16 +1,17 @@
 /**
  * The parameter navigator of a sweep: one slider row per swept parameter,
- * plus a sampling status line. Each slider selects a position range on the
+ * plus a status line. Each slider selects a position range on the
  * parameter's quantized interval — the whole interval by default,
  * collapsible to a single point — and committing a move reports the new
  * selection so the owner can redirect compute to it. In the experiment
- * drawer this strip lives in the section's sticky band and stays visible
- * while the charts scroll.
+ * drawer this is the Parameters card's content, under the header.
  *
- * Purely presentational: selection and sampling progress come in as props,
- * and the only output is `onSelectionChange`. Slider moves commit live —
- * positions are quantized, so a drag emits one change per step crossed and
- * compute follows the thumb.
+ * Purely presentational: selection and progress come in as props, and the
+ * only output is `onSelectionChange`. Slider moves commit live — positions
+ * are quantized, so a drag emits one change per step crossed and compute
+ * follows the thumb. While an optimizer drives the sweep the controls only
+ * show where it went: they are disabled, and the status line names the step;
+ * once the study settles the line keeps its outcome.
  */
 import {
   LoadingSpinner,
@@ -33,10 +34,19 @@ import type {
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 
-/** Sampling progress shown under the sliders. */
+/** Progress shown under the sliders. */
 export type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
+  /**
+   * The study behind the selection: the step it follows while a study
+   * drives the sweep, or the settled study's outcome in one line. Null when
+   * no study was started.
+   */
+  following:
+    | { kind: "following"; step: number; total: number }
+    | { kind: "settled"; summary: string }
+    | null;
   /** Runs finished for the selection so far. */
   runsCompleted: number;
   /** Runs finished within the currently running batch's target. */
@@ -61,8 +71,7 @@ const rowStyle = css({
 
 const nameStyle = css({
   fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s120",
+  color: "neutral.s110",
   width: "[140px]",
   flexShrink: 0,
   overflow: "hidden",
@@ -72,8 +81,9 @@ const nameStyle = css({
 
 const readoutStyle = css({
   fontSize: "xs",
+  fontWeight: "medium",
   fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
+  color: "neutral.s120",
   width: "[128px]",
   flexShrink: 0,
   textAlign: "right",
@@ -83,16 +93,25 @@ const sliderStyle = css({
   flex: "1",
 });
 
+// One line whatever the band's width, so a change of wording never moves
+// what follows the band.
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
   // Aligns under the sliders: the 140px name column plus the row gap.
   paddingLeft: "[148px]",
+  minWidth: "[0]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
-  minHeight: "[16px]",
+  whiteSpace: "nowrap",
+  height: "[16px]",
+  "& > span:last-child": {
+    minWidth: "[0]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
 });
 
 const spinnerSlotStyle = css({
@@ -103,10 +122,12 @@ const spinnerSlotStyle = css({
 const AxisControl = ({
   axis,
   selected,
+  disabled,
   onSelect,
 }: {
   axis: ExperimentParameterAxis;
   selected: SweepAxisSelection;
+  disabled: boolean;
   onSelect: (range: SweepAxisSelection) => void;
 }) => {
   const isPoint = selected.from === selected.to;
@@ -126,6 +147,7 @@ const AxisControl = ({
     <>
       <SegmentedControl
         size="xs"
+        disabled={disabled}
         aria-label={`${axisDisplayName(axis)} selection mode`}
         items={[
           { value: "range", label: "Range" },
@@ -148,10 +170,12 @@ const AxisControl = ({
         // thumbs trap the drag on the upper one, which cannot move left.
         <Slider
           className={sliderStyle}
+          variant="plain"
           min={0}
           max={axis.stepCount}
           step={1}
           value={selected.from}
+          disabled={disabled}
           aria-label={axisDisplayName(axis)}
           onChange={commitPoint}
         />
@@ -162,6 +186,7 @@ const AxisControl = ({
           max={axis.stepCount}
           step={1}
           value={[selected.from, selected.to]}
+          disabled={disabled}
           aria-label={axisDisplayName(axis)}
           onChange={commitRange}
         />
@@ -188,16 +213,39 @@ const SamplingStatus = ({
   const activity = isRange
     ? "sampling across the selected ranges"
     : "refining while you stay here";
+  const { following } = status;
+  const sampling = status.computing
+    ? ` — ${status.runsSampled} of ${status.runTarget ?? status.runCount} runs`
+    : "";
 
   return (
     <div className={statusStyle}>
-      <span className={spinnerSlotStyle} data-idle={!status.computing}>
+      {/* The spinner spans a driving study's gap between two steps as well. */}
+      <span
+        className={spinnerSlotStyle}
+        data-idle={!status.computing && following?.kind !== "following"}
+      >
         <LoadingSpinner size="xs" />
       </span>
-      {status.computing ? (
+      {following?.kind === "following" ? (
+        <span>
+          Following step {following.step} of {following.total}
+          {sampling}
+        </span>
+      ) : following?.kind === "settled" ? (
+        <span>
+          {following.summary}
+          {sampling}
+        </span>
+      ) : status.computing ? (
         <span>
           {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
           {activity}
+        </span>
+      ) : status.runsCompleted === 0 ? (
+        <span>
+          collapse a control to a point or click the surface to compute a point;
+          widen a range to sample across it
         </span>
       ) : (
         <span>
@@ -213,11 +261,14 @@ export const SweepNavigator = ({
   axes,
   selection,
   status,
+  disabled,
   onSelectionChange,
 }: {
   axes: readonly ExperimentParameterAxis[];
   selection: SweepSelection;
   status: SweepNavigatorStatus;
+  /** The controls only show the selection: a study drives it, or the experiment is over. */
+  disabled: boolean;
   onSelectionChange: (selection: SweepSelection) => void;
 }) => {
   return (
@@ -229,6 +280,7 @@ export const SweepNavigator = ({
           </span>
           <AxisControl
             axis={axis}
+            disabled={disabled}
             selected={
               selection[axis.identifier] ?? {
                 from: 0,

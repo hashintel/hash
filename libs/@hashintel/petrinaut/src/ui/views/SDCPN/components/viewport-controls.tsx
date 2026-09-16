@@ -5,11 +5,12 @@ import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { VIEWPORT_CONTROLS_OFFSET } from "../../../constants/ui";
+import { SettingsIcon } from "../../../experimental-icons";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
-import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 import type { ViewportAction } from "../../../types/viewport-action";
 
@@ -39,13 +40,10 @@ export const ViewportControls: React.FC<{
 }> = ({ viewportActions }) => {
   const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
-  const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
-  const setIsSettingsOpen = (open: boolean) => {
-    navigation.navigate(
-      { overlay: open ? { type: "viewport-settings" } : null },
-      { cause: "user", action: "overlay" },
-    );
-  };
+  const { enableExperimentalIconPack } = use(UserSettingsContext);
+  const isSettingsOpen =
+    navigation.state.overlay?.type === "user-settings" ||
+    navigation.state.overlay?.type === "viewport-settings";
   const chromeBackground = presentation.blurredChrome
     ? blurredBackground
     : undefined;
@@ -55,10 +53,8 @@ export const ViewportControls: React.FC<{
   const { fitView, zoomIn, zoomOut } = useCanvasController();
   const { collapseAllPanels, isPanelAnimating } = use(EditorContext);
 
-  // Shared with the bottom toolbar, so the two keep clear of the same panels
-  // by the same rules — the assistant panel included, which used to cover the
-  // column when it opened.
-  const insets = useCanvasInsets();
+  // Unlike the bottom toolbar, this column fits above a collapsed Voice dock.
+  const insets = useCanvasInsets({ aboveCollapsedDock: true });
   const rightOffset = VIEWPORT_CONTROLS_OFFSET + insets.right;
   const bottomOffset = VIEWPORT_CONTROLS_OFFSET + insets.bottom;
 
@@ -126,16 +122,27 @@ export const ViewportControls: React.FC<{
           <Button
             size="xs"
             variant="subtle"
-            aria-label="Settings"
-            tooltip="Settings"
+            aria-label="Viewport settings"
+            tooltip="Viewport settings"
             tooltipOptions={{ position: "left" }}
-            iconName="gear"
+            {...(enableExperimentalIconPack
+              ? {
+                  prefix: (
+                    <SettingsIcon
+                      size={12}
+                      open={isSettingsOpen}
+                      duration={240}
+                    />
+                  ),
+                }
+              : { iconName: "gear" })}
             className={chromeBackground}
-            onClick={() => setIsSettingsOpen(true)}
-          />
-          <ViewportSettingsDialog
-            open={isSettingsOpen}
-            onOpenChange={(details) => setIsSettingsOpen(details.open)}
+            onClick={() =>
+              navigation.navigate(
+                { overlay: { type: "user-settings", section: "viewport" } },
+                { cause: "user", action: "overlay" },
+              )
+            }
           />
         </>
       )}

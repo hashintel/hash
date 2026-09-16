@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "manifest": {
+      "dependsOn": ["^manifest", "@rust/hash-graph-authorization#manifest"]
+    },
     "codegen": {
       "dependsOn": ["@rust/hash-graph-authorization#build:types"],
       "inputs": [

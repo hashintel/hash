@@ -1,17 +1,99 @@
 /** The app's route map — one ownership-guarded Flue conversation door. */
 
 import "./telemetry-bootstrap.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFile } from "node:fs/promises";
 
+import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { instrument, setProvider } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
+import {
+  layoutPetrinautNetToolName,
+  mutatePetrinautNetToolName,
+  observedConstructionBrowserToolNames,
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { withReportedDocumentRevisionScope } from "./conversation/reported-document-revision.ts";
+import { workedModelStore } from "./db.ts";
 import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./http/cors.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import { CHAT_AGENT_ROUTE, HEALTH_ROUTE } from "./http/routes.ts";
+import {
+  CHAT_AGENT_ROUTE,
+  HEALTH_ROUTE,
+  WORKED_MODELS_ROUTE,
+} from "./http/routes.ts";
+import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
+import { createStepARequestAccounting } from "./provider-accounting.ts";
+import { withBufferedToolAdmission } from "./provider-admission.ts";
+import { diagnostics } from "./runtime-diagnostics.ts";
+
+// Failed runtime events (tools, turns, tasks, compaction, operations,
+// settlement, recovery) reach the server log with their runtime IDs; the
+// OpenTelemetry instrument stays content-free and this one adds no spans.
+instrument({
+  key: Symbol.for("brunch.runtime-diagnostics"),
+  observe: diagnostics.observe,
+  interceptor: (_operation, _context, next) => next(),
+  dispose() {},
+});
+// Scope follows the runtime's submission execution, not the HTTP request that
+// merely queues it. It is an async execution flag, never a proposal/state ledger.
+const admissionScope = new AsyncLocalStorage<boolean>();
+instrument({
+  key: Symbol.for("brunch.buffered-tool-admission"),
+  observe() {},
+  interceptor(operation, context, next) {
+    return withReportedDocumentRevisionScope(context.submissionId, () => {
+      if (operation.type === "agent" && context.agentName !== undefined) {
+        return admissionScope.run(
+          context.agentName === ChatAgent.agentName,
+          next,
+        );
+      }
+      if (operation.type === "task") return admissionScope.run(false, next);
+      return next();
+    });
+  },
+  dispose() {},
+});
+const accounting = createStepARequestAccounting(
+  process.env.BRUNCH_STEP_A_ACCOUNTING,
+);
+if (accounting) {
+  instrument({
+    key: Symbol.for("brunch.step-a-request-accounting"),
+    observe() {},
+    interceptor: accounting.interceptor,
+    dispose() {},
+  });
+}
+// Uses the pinned 0.83.0 Anthropic schema-carriage patch: Pi still strips
+// tool parameters to `{ type, properties, required }` unless we override
+// `convertTools`. See apps/brunch-agent/AGENTS.md.
+const nativeProvider = anthropicProvider();
+setProvider(
+  withBufferedToolAdmission(
+    accounting?.wrap(
+      nativeProvider,
+      () => admissionScope.getStore() === true,
+    ) ?? nativeProvider,
+    () => admissionScope.getStore() === true,
+    new Set([
+      ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+      ...observedConstructionBrowserToolNames,
+      layoutPetrinautNetToolName,
+      mutatePetrinautNetToolName,
+      READ_PETRINAUT_DOCS_TOOL_NAME,
+    ]),
+  ),
+);
 
 const app = new Hono();
 
@@ -23,8 +105,21 @@ app.use(
     parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
   ),
 );
-app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
+app.use(
+  `${chatAgentMount}/*`,
+  agentOwnershipGuard(`${chatAgentMount}/`, ChatAgent.agentName),
+);
 app.route(chatAgentMount, createAgentRouter(ChatAgent));
+app.use(
+  `${WORKED_MODELS_ROUTE}/*`,
+  createAgentCors(
+    parseCorsAllowedOrigins(process.env.BRUNCH_CORS_ALLOWED_ORIGINS),
+  ),
+);
+app.route(
+  WORKED_MODELS_ROUTE,
+  createWorkedModelNetProjectionRouter(workedModelStore),
+);
 
 app.get(HEALTH_ROUTE, healthHandler);
 

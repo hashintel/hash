@@ -7,8 +7,9 @@ Brunch is the stateful elicitation harness and package family at `libs/@hashinte
   [`MISSION.next.md`](./MISSION.next.md) is the self-contained canonical future spine and is not
   execution authority. Closed missions live under [`docs/mission-archive/`](./docs/mission-archive/).
 - [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
-- [`docs/specs/`](./docs/specs/) and [`docs/adr/`](./docs/adr/) record the harness contract and
-  prior design decisions (see [`docs/adr/README.md`](./docs/adr/README.md)).
+- [`docs/specs/`](./docs/specs/) and [`docs/adr/`](./docs/adr/) are historical design hypotheses,
+  not the current harness contract (see [`docs/specs/README.md`](./docs/specs/README.md) and
+  [`docs/adr/README.md`](./docs/adr/README.md)).
 - [`docs/evidence/`](./docs/evidence/) holds observed results and proofs.
 - [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`; its `./flue` subpath is the
   production contribution (always-on prompt and the `elicitation` skill), `./storage` and

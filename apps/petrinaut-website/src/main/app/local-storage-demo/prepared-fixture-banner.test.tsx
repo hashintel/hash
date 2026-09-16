@@ -2,56 +2,23 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
 import {
-  asCanonicalConversationId,
-  asConversationOffset,
-  asFlueMessageId,
-  asFlueSubmissionId,
-  asManifestId,
-  asSha256Digest,
-  type CrewReservationSettledManifest,
-} from "./crew-reservation-settled-manifest";
-import {
-  crewReservationConversationId,
-  crewReservationDocumentId,
-  crewReservationFixtureId,
-} from "./prepared-crew-reservation-fixture";
-import {
   PreparedFixtureBanner,
   PreparedFixtureSelector,
 } from "./prepared-fixture-banner";
 
-const settledManifest = {
-  version: 1 as const,
-  fixtureId: crewReservationFixtureId,
+const bundle = {
   revision: 3,
-  settledAt: "2026-09-03T15:00:00.000Z",
-  manifestId: asManifestId("manifest-3"),
-  conversation: {
-    logicalId: crewReservationConversationId,
-    canonicalId: asCanonicalConversationId("canonical-conversation"),
-    offset: asConversationOffset("20"),
-  },
-  latestWorkpiece: {
-    authorship: "model-produced" as const,
-    contentSha256: asSha256Digest("content-hash"),
-    sourceKind: "assistant" as const,
-    sourceMessageId: asFlueMessageId("assistant-3"),
-    sourceMessageSha256: asSha256Digest("message-hash"),
-    sourceSubmissionId: asFlueSubmissionId("submission-3"),
-  },
-  document: {
-    id: crewReservationDocumentId,
-    sha256: asSha256Digest("document-hash"),
-    targetArc: "present" as const,
-  },
-} satisfies CrewReservationSettledManifest;
+  targetArc: "present" as const,
+};
 
 describe("PreparedFixtureBanner", () => {
   test("offers a stable labelled fixture selector below the top bar", () => {
     const markup = renderToStaticMarkup(<PreparedFixtureSelector />);
 
     expect(markup).toContain("Prepared fixture selector");
-    expect(markup).toContain("Open the labelled crew-reservation fixture");
+    expect(markup).toContain(
+      "Open the labelled legacy crew-reservation fixture",
+    );
     expect(markup).toContain("?brunch-fixture=crew-reservation-v1");
     // Petrinaut's top bar is 64px tall; the panel sits under it, not behind.
     expect(markup).toContain("position:fixed");
@@ -60,7 +27,7 @@ describe("PreparedFixtureBanner", () => {
 
   test("visibly states authorship, non-claims, and automatic settlement", () => {
     const markup = renderToStaticMarkup(
-      <PreparedFixtureBanner settledManifest={null} />,
+      <PreparedFixtureBanner bundle={null} />,
     );
 
     expect(markup).toContain("Test-authored prepared fixture");
@@ -74,7 +41,7 @@ describe("PreparedFixtureBanner", () => {
   test("visibly retains the prior bundle when settlement is refused", () => {
     const markup = renderToStaticMarkup(
       <PreparedFixtureBanner
-        settledManifest={settledManifest}
+        bundle={bundle}
         settlementStatus={{
           state: "refused",
           reason: "missing-correlated-mutation",
@@ -91,7 +58,7 @@ describe("PreparedFixtureBanner", () => {
   test("shows a selected revision as revalidating during a history gap", () => {
     const markup = renderToStaticMarkup(
       <PreparedFixtureBanner
-        settledManifest={settledManifest}
+        bundle={bundle}
         settlementStatus={{ state: "revalidating" }}
       />,
     );

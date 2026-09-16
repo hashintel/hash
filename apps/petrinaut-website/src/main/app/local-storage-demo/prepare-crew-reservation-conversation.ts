@@ -10,6 +10,7 @@ import {
 
 import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { AgentSendResult } from "@flue/sdk";
+import type { SdcpnInitialData } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 
 export interface PreparedFixtureConversationClient {
   readonly history: () => Promise<CrewReservationHistory>;
@@ -17,6 +18,7 @@ export interface PreparedFixtureConversationClient {
     readonly idempotencyKey: string;
     readonly initialData: {
       readonly mode: typeof preparedWorkpieceInitialDataMode;
+      readonly browser?: NonNullable<SdcpnInitialData>["browser"];
     };
     readonly message: typeof preparedCrewReservationDelivery.message;
     readonly uid: null;
@@ -64,18 +66,50 @@ const assertPreparedFixtureHistory = (
  */
 export const prepareCrewReservationConversation = async (
   client: PreparedFixtureConversationClient,
+  browser?: NonNullable<SdcpnInitialData>["browser"],
 ): Promise<CrewReservationHistory> => {
+  const verifyBinding = (history: CrewReservationHistory) => {
+    const prepared = history.messages.find(
+      (message) =>
+        message.signal?.tagName ===
+        preparedCrewReservationDelivery.message.tagName,
+    );
+    if (
+      browser &&
+      prepared?.signal?.attributes?.rootArcContext !== JSON.stringify(browser)
+    )
+      throw new Error(
+        "The prepared conversation is bound to another document incarnation or issued base.",
+      );
+    return assertPreparedFixtureHistory(history);
+  };
   try {
-    return assertPreparedFixtureHistory(await client.history());
+    return verifyBinding(await client.history());
   } catch (error) {
     if (!isNotFound(error)) throw error;
   }
 
+  const preparedDelivery =
+    browser === undefined
+      ? preparedCrewReservationDelivery
+      : {
+          ...preparedCrewReservationDelivery,
+          message: {
+            ...preparedCrewReservationDelivery.message,
+            attributes: {
+              ...preparedCrewReservationDelivery.message.attributes,
+              rootArcContext: JSON.stringify(browser),
+            },
+          },
+        };
   const admission = await client.send({
     uid: null,
-    initialData: { mode: preparedWorkpieceInitialDataMode },
-    ...preparedCrewReservationDelivery,
+    initialData: {
+      mode: preparedWorkpieceInitialDataMode,
+      ...(browser === undefined ? {} : { browser }),
+    },
+    ...preparedDelivery,
   });
   await client.wait(admission);
-  return assertPreparedFixtureHistory(await client.history());
+  return verifyBinding(await client.history());
 };

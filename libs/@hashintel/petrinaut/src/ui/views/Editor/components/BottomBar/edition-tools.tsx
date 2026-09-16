@@ -10,6 +10,10 @@ import {
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import {
+  AddPlaceIcon,
+  AddTransitionIcon,
+} from "../../../../experimental-icons";
 import { writeDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
@@ -73,7 +77,8 @@ export const EditionTools: React.FC<{
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
   const { extensions } = use(SDCPNContext);
-  const { enableNetComponents } = use(UserSettingsContext);
+  const { enableNetComponents, enableExperimentalIconPack } =
+    use(UserSettingsContext);
 
   if (isReadOnly) {
     return null;
@@ -94,7 +99,18 @@ export const EditionTools: React.FC<{
           writeDraggedNodeKind(event.dataTransfer, "place");
         }}
       >
-        <Icon name="circlePlus" />
+        {enableExperimentalIconPack ? (
+          <AddPlaceIcon
+            selected={editionMode === "add-place"}
+            variant={editionMode === "add-place" ? "filled" : "outline"}
+            effect={editionMode === "add-place" ? "bounce" : undefined}
+            trigger={editionMode}
+            transition="spring"
+            duration={420}
+          />
+        ) : (
+          <Icon name="circlePlus" />
+        )}
       </ToolbarButton>
       <ToolbarButton
         tooltip="Add Transition (T)"
@@ -108,7 +124,18 @@ export const EditionTools: React.FC<{
           writeDraggedNodeKind(event.dataTransfer, "transition");
         }}
       >
-        <Icon name="squarePlus" />
+        {enableExperimentalIconPack ? (
+          <AddTransitionIcon
+            selected={editionMode === "add-transition"}
+            variant={editionMode === "add-transition" ? "filled" : "outline"}
+            effect={editionMode === "add-transition" ? "bounce" : undefined}
+            trigger={editionMode}
+            transition="spring"
+            duration={420}
+          />
+        ) : (
+          <Icon name="squarePlus" />
+        )}
       </ToolbarButton>
       {isRootNet && extensions.subnets && enableNetComponents && (
         <ComponentDropdown editionMode={editionMode} />

@@ -2,9 +2,9 @@
  * Projects the example URL contract onto Petrinaut's navigation state.
  *
  * The URL carries the location a reader can act on: the scenario, the subnet,
- * the focused item, the editor's mode, its Simulate section, and the overlay it
- * has open. It deliberately leaves out `simulateResource`, which names a run or
- * a record inside the open document rather than a place in the app.
+ * the focused item, the editor's mode, its Simulate section and the overlay it
+ * has open. It deliberately leaves out `simulateResource`, which names a run
+ * or a record inside the open document rather than a place in the app.
  *
  * Every field is decoded against a BASELINE — the location its page starts
  * from. A URL that does not name a field means "the baseline's value", which is
@@ -71,7 +71,9 @@ const overlayToSearch = (
 
 const overlayFromSearch = (
   overlay: SharedOverlay,
-): PetrinautNavigationOverlay => ({ type: overlay });
+  section: SharedExampleSearch["settings"],
+): PetrinautNavigationOverlay =>
+  overlay === "user-settings" ? { type: overlay, section } : { type: overlay };
 
 export const sharedSearchToNavigationState = (
   search: SharedExampleSearch,
@@ -86,7 +88,7 @@ export const sharedSearchToNavigationState = (
   overlay:
     search.overlay === undefined
       ? baseline.overlay
-      : overlayFromSearch(search.overlay),
+      : overlayFromSearch(search.overlay, search.settings),
 });
 
 export const navigationStateToSharedSearch = (
@@ -106,6 +108,10 @@ export const navigationStateToSharedSearch = (
       view === simulateViewToSearch(baseline.simulateView) ? undefined : view,
     overlay:
       overlay === overlayToSearch(baseline.overlay) ? undefined : overlay,
+    settings:
+      state.overlay?.type === "user-settings"
+        ? state.overlay.section
+        : undefined,
     ...selectionToSearch(state.selection),
   };
 };
@@ -139,6 +145,7 @@ export const applyPreviewNavigationUpdate = (
   mode: search.mode,
   view: search.view,
   overlay: search.overlay,
+  settings: search.settings,
   ...navigationStateToPreviewSearch(
     update(previewSearchToNavigationState(search)),
   ),

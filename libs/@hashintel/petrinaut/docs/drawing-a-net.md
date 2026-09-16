@@ -6,7 +6,7 @@ The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
-- **Left sidebar** -- lists of entities organized into tabs: Nodes, Types, Differential Equations, Parameters.
+- **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
 - **Bottom panel** -- tabs for Diagnostics (code errors), Simulation Settings, and Timeline (during simulation).
 - **Bottom toolbar** -- editing mode buttons, simulation controls, the AI assistant toggle, and a show/hide button for the bottom panel.
@@ -27,8 +27,8 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
-- **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**. When the host enables its experimental Brunch demo mode and provides an AI assistant, **New** opens a submenu: **Build with Brunch** starts a fresh empty net and opens the assistant with a choice of careful interview or a quick preview; **Start blank** starts a fresh empty net and keeps the assistant closed. Otherwise **New** directly starts a blank net.
+- **Net title** -- inline title for the current net. The host application decides whether the title is editable or read-only, and may hide it entirely.
 
 **Center**
 
@@ -44,13 +44,13 @@ Spans the full editor width and has three sections.
 
 Petrinaut global modes are switched via the centre control in the top bar.
 
-| Mode         | Workspace                                                                                                                                                                                            |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations.            |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views, plus [Optimizations](optimization.md) when the host application provides an optimizer. |
-| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                            |
+| Mode         | Workspace                                                                                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Canvas + left sidebar + properties panel + bottom panel + bottom toolbar (with AI assistant). This is where you draw the net, configure entities, write code, and run single simulations. |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                                             |
+| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                                                 |
 
-In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments and, when enabled by the host, run optimizations. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
+In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
 In Actual mode the net is also read-only. It shows the Petri net supplied by the live source, with an Actual timeline and Events tab in the bottom panel when execution data is available.
 
@@ -78,9 +78,21 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
+### Automatic arc connections (experimental)
+
+Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections-experimental) to try a different way to connect nodes:
+
+1. Hover over a place or transition to reveal its outgoing handle.
+2. Drag the handle onto the target node. A blue outline shows a valid target.
+3. Release to create the arc. Its endpoints follow the node outlines when you move either node.
+
+Drag from the source: place to transition creates an input arc; transition to place creates an output arc. Release on empty space or press **Escape** to cancel. Dropping onto a subnet does not create an arc in this mode.
+
+You can also focus the outgoing handle with **Tab**, press **Enter** or **Space**, then focus a target and press **Enter** or **Space** again. On touch devices, the outgoing handle stays visible.
+
 ## Component ports
 
-Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **Settings → Net Components** first.
+Subnets can expose selected places as ports. If you don't see subnet or component controls, enable **User settings → Labs → Net Components** first.
 
 Open the subnet, select a boundary place, and enable **Component port** in the place properties panel.
 
@@ -101,7 +113,7 @@ See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-
 
 ## Token capacity
 
-Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded. The capacity setting is saved with the net and kept when you reopen it.
 
 A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
 
@@ -137,20 +149,36 @@ Whether a node must be fully inside or only partially inside the selection box i
 
 <img width="941" height="296" alt="selection" src="https://github.com/user-attachments/assets/174dd165-1be9-45a4-bccf-ffdd2e419d44" />
 
+### Neighbourhood highlight
+
+Selecting a node, or resting the pointer on one, rings it and colours everything one arc away from it:
+
+| Colour     | Meaning                                                                         |
+| ---------- | ------------------------------------------------------------------------------- |
+| **Blue**   | Feeds the node -- the places it consumes from, or the transitions filling it.   |
+| **Orange** | Fed by the node -- the places it produces into, or the transitions draining it. |
+| **Purple** | Both at once, so tokens cycle through the node.                                 |
+
+The arcs joining them are cased in the same colours, keeping their own colour inside the casing, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
+
+Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen. Nodes further away fade back, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. A selected node stays ringed while you point at something else. If you would rather the pointer left the net alone, turn off **Highlight on hover** in [visual settings](visual-settings.md); selecting a node still highlights it.
+
 ## Left sidebar
 
-The left sidebar has four tabs for creating and managing entities:
+The left sidebar holds **Entities**, one tree of everything in the net, in these groups:
 
-| Tab                        | Contents                                                             |
+| Group                      | Contents                                                             |
 | -------------------------- | -------------------------------------------------------------------- |
 | **Nodes**                  | All places and transitions. Click to select and open properties.     |
-| **Types**                  | Token types (colours). Click **+** to create a new type.             |
+| **Token Types**            | Token types (colours). Click **+** to create a new type.             |
 | **Differential Equations** | ODE definitions for continuous dynamics. Click **+** to create.      |
 | **Parameters**             | Global parameters available in all user code. Click **+** to create. |
 
+A group appears only when the net's [extensions](petri-net-extensions.md) allow it: Token Types needs colours, Differential Equations needs colours and dynamics, Parameters needs parameters. A net with subnets gets a **Subnets** panel below the tree, once **Net Components** is switched on in [visual settings](visual-settings.md); that setting is off by default.
+
 Toggle the sidebar with the button in the top-left corner.
 
-Each list is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
+The tree is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
 
 ## Search
 
@@ -162,8 +190,8 @@ ArrowDown moves from the search input into the results; arrows then walk the res
 
 On hosts with app navigation enabled, Browser **Back** and **Forward** move
 through the app locations you visited. This includes switching global
-modes or Simulate sections, opening an existing scenario, metric, experiment,
-or optimization, opening or closing their creation drawers, changing subnet,
+modes or Simulate sections, opening an existing scenario, metric or
+experiment, opening or closing their creation drawers, changing subnet,
 committing a selection, and opening or closing Viewport Settings. Creation
 drawers opened from Simulation Settings or the timeline are included too. A
 drag-selection gesture creates one location after you finish drawing the
@@ -193,6 +221,8 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+Z              | Undo                                   |
 | Cmd+Shift+Z        | Redo                                   |
 | Cmd+F              | Search                                 |
+| Cmd+Shift+K        | Toggle the AI assistant                |
+| Cmd+,              | Open user settings                     |
 | Delete / Backspace | Delete selection                       |
 
 On Windows/Linux, use Ctrl instead of Cmd.

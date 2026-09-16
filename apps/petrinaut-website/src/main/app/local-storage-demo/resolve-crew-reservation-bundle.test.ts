@@ -30,11 +30,13 @@ import {
 
 import type { CrewReservationHistory } from "./crew-reservation-history";
 import type { SDCPNInLocalStorage } from "./use-local-storage-sdcpns";
+import type { FlueConversationMessage } from "@flue/sdk";
 
 const preparedMessage = {
   id: "prepared-message",
   role: "system",
   purpose: "dispatch",
+  display: "hidden",
   submissionId: "prepare-submission",
   signal: {
     tagName: preparedWorkpieceSignalTag,
@@ -44,8 +46,10 @@ const preparedMessage = {
       claimBoundary: preparedWorkpieceClaimBoundary,
     },
   },
-  parts: [{ type: "text", text: preparedCrewReservationWorkpiece }],
-} as const;
+  parts: [
+    { type: "text", state: "done", text: preparedCrewReservationWorkpiece },
+  ],
+} as const satisfies FlueConversationMessage;
 
 const preparedContent = latestRunbookIrBlock(preparedCrewReservationWorkpiece);
 if (preparedContent === undefined) {
@@ -95,9 +99,11 @@ const history: CrewReservationHistory = {
       id: "newer-message",
       role: "assistant",
       purpose: "assistant",
+      display: "visible",
       parts: [
         {
           type: "text",
+          state: "done",
           text: "```runbook-ir\n# Unsettled newer workpiece\n```",
         },
       ],

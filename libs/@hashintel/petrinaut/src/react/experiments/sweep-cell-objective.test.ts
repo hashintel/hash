@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sweepCellObjective } from "./sweep-cell-objective";
+import { sweepCellObjective, sweepCellSample } from "./sweep-cell-objective";
 
 import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core";
 
@@ -31,6 +31,14 @@ describe("sweepCellObjective", () => {
       ]),
     ];
     expect(sweepCellObjective(frames, "m")).toBe(15);
+  });
+
+  it("reports the runs sampled on the frame the value came from", () => {
+    const frames = [
+      distribution(0, [[100, 8]]),
+      { ...distribution(1, [[10, 5]]), runSampleCount: 5 },
+    ];
+    expect(sweepCellSample(frames, "m")).toEqual({ value: 10, runs: 5 });
   });
 
   it("returns null when the metric never reported", () => {

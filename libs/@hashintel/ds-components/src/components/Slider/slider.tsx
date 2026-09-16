@@ -6,6 +6,29 @@ const THUMB_WIDTH = 18;
 const THUMB_HEIGHT = 16;
 const THUMB_RADIUS = THUMB_HEIGHT / 2;
 const THUMB_ACTIVE_SCALE = 2.2;
+/** The plain variant's round thumb, in pixels; it never scales. */
+const PLAIN_THUMB_SIZE = 12;
+
+/**
+ * How the thumb draws. `default` is the pill thumb that swells while dragged;
+ * `plain` is a small round thumb of one fixed size, for dense control rows
+ * where a swelling thumb would cover its neighbours.
+ */
+export type SliderVariant = "default" | "plain";
+
+const plainThumbStyles = css({
+  outline: "none",
+  display: "block",
+  width: `[${PLAIN_THUMB_SIZE}px]`,
+  height: `[${PLAIN_THUMB_SIZE}px]`,
+  borderRadius: "full",
+  border: "[1px solid rgba(255,255,255,0.6)]",
+  backgroundColor: "blue.s90",
+  boxShadow: "[0 1px 3px rgba(37,99,235,0.3)]",
+  "&[data-focus]": {
+    boxShadow: "[0 0 0 3px rgba(59,130,246,0.3)]",
+  },
+});
 
 const thumbInnerStyles = css({
   display: "block",
@@ -28,6 +51,7 @@ export interface SliderProps {
   defaultValue?: number;
   label?: string;
   showValueText?: boolean;
+  variant?: SliderVariant;
   /** Shows the value without letting the pointer or keyboard move it. */
   disabled?: boolean;
   onChange?: (value: number) => void;
@@ -45,15 +69,24 @@ export const Slider: React.FC<SliderProps> = ({
   defaultValue,
   label,
   showValueText = false,
+  variant = "default",
   disabled,
   onChange,
   onChangeEnd,
 }) => {
+  const plain = variant === "plain";
   return (
     <BaseSlider.Root
       min={min}
       step={step}
       disabled={disabled}
+      // The plain thumb is a known size, so the rail's ends line up with the
+      // thumb's extremes without a measurement.
+      thumbSize={
+        plain
+          ? { width: PLAIN_THUMB_SIZE, height: PLAIN_THUMB_SIZE }
+          : undefined
+      }
       className={cx(
         css({
           position: "relative",
@@ -111,7 +144,14 @@ export const Slider: React.FC<SliderProps> = ({
           position: "relative",
           display: "flex",
           alignItems: "center",
+          // The rail spans the root whatever aligns the root's children; a
+          // centred root would otherwise shrink the control to the thumb.
+          width: "full",
+          "&[data-variant=plain]": {
+            height: `[${PLAIN_THUMB_SIZE + 4}px]`,
+          },
         })}
+        data-variant={variant}
       >
         <BaseSlider.Track
           className={css({
@@ -133,28 +173,34 @@ export const Slider: React.FC<SliderProps> = ({
           />
         </BaseSlider.Track>
 
-        <BaseSlider.Thumb
-          index={0}
-          className={css({
-            outline: "none",
-            "& > div": {
-              background:
-                "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
-              transformOrigin: "center",
-              transition:
-                "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease]",
-            },
-            "&[data-dragging] > div": {
-              transform: `scale(${THUMB_ACTIVE_SCALE})`,
-              background: "[rgba(255,255,255,0.2)]",
-              shadow:
-                "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
-            },
-          })}
-        >
-          <div className={thumbInnerStyles} />
-          <BaseSlider.HiddenInput />
-        </BaseSlider.Thumb>
+        {plain ? (
+          <BaseSlider.Thumb index={0} className={plainThumbStyles}>
+            <BaseSlider.HiddenInput />
+          </BaseSlider.Thumb>
+        ) : (
+          <BaseSlider.Thumb
+            index={0}
+            className={css({
+              outline: "none",
+              "& > div": {
+                background:
+                  "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
+                transformOrigin: "center",
+                transition:
+                  "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease]",
+              },
+              "&[data-dragging] > div": {
+                transform: `scale(${THUMB_ACTIVE_SCALE})`,
+                background: "[rgba(255,255,255,0.2)]",
+                shadow:
+                  "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
+              },
+            })}
+          >
+            <div className={thumbInnerStyles} />
+            <BaseSlider.HiddenInput />
+          </BaseSlider.Thumb>
+        )}
       </BaseSlider.Control>
     </BaseSlider.Root>
   );

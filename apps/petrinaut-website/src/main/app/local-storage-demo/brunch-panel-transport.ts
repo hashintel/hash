@@ -3,19 +3,21 @@ import {
   FlueChatAdmissionError,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-import { BRUNCH_QUESTION_TOOL_NAME } from "@hashintel/brunch-agent/question-marker";
-import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
+import { BRUNCH_QUESTION_TOOL_NAMES } from "@hashintel/brunch-agent/question-marker";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-
-const brunchClientToolNames = new Set([readPetrinautDocToolName]);
+import { brunchClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "../brunch-sweep-output";
-import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type {
+  AgentSendResult,
+  FlueClient,
+  FlueConversationState,
+} from "@flue/sdk";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -33,6 +35,32 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  // Local admissions only, scoped to this conversation tracker. Retain until
+  // the tracker is replaced; missing retained history fails closed.
+  readonly #admittedSubmissionIds = new Set<string>();
+
+  public canReplaceMessages(
+    snapshot: FlueConversationState | undefined,
+  ): boolean {
+    if (snapshot === undefined || this.#inFlightSubmissions.size !== 0)
+      return false;
+    return [...this.#admittedSubmissionIds].every((submissionId) => {
+      const settlement = snapshot.settlements.find(
+        (entry) => entry.submissionId === submissionId,
+      );
+      if (settlement === undefined) return false;
+      if (settlement.outcome === "failed" || settlement.outcome === "aborted")
+        return true;
+      const responseSubmissionId =
+        settlement.answeredBySubmissionId ?? submissionId;
+      return snapshot.messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          message.purpose === "assistant" &&
+          message.submissionId === responseSubmissionId,
+      );
+    });
+  }
   readonly #admissionFailureSubscriptions = new Set<{
     readonly listener: (error: FlueChatAdmissionError) => void;
     readonly target: BrunchPanelAdmissionTarget;
@@ -59,6 +87,7 @@ export class BrunchPanelConversationTracker {
   readonly #stopRequestedListeners = new Set<() => void>();
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
+    this.#admittedSubmissionIds.add(admission.admission.submissionId);
     if (admission.kind === "user") {
       this.#inputSubmissions.set(
         admission.messageId,
@@ -312,13 +341,19 @@ export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
   tracker: BrunchPanelConversationTracker,
   options?: {
+    readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
     readonly clientToolNames?: ReadonlySet<string>;
+    readonly dynamicClientToolNames?: ReadonlySet<string>;
+    readonly validatedClientToolNames?: ReadonlySet<string>;
+    readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
     readonly mapClientToolInput?: (input: {
       readonly input: unknown;
       readonly toolName: string;
+      readonly toolCallId: string;
     }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
+    readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
   },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
@@ -328,11 +363,17 @@ export const createBrunchPanelTransport = (
         const client = await clientPromise;
         const transport = createFlueChatTransport({
           client,
+          ...(options?.initialData === undefined
+            ? {}
+            : { initialData: options.initialData }),
           clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
+          dynamicClientToolNames: options?.dynamicClientToolNames,
+          validatedClientToolNames: options?.validatedClientToolNames,
+          clientToolResultMetadata: options?.clientToolResultMetadata,
           ...(options?.mapClientToolInput === undefined
             ? {}
             : { mapClientToolInput: options.mapClientToolInput }),
-          hiddenToolNames: new Set([BRUNCH_QUESTION_TOOL_NAME]),
+          hiddenToolNames: new Set(BRUNCH_QUESTION_TOOL_NAMES),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);
@@ -340,6 +381,7 @@ export const createBrunchPanelTransport = (
           onResponseMessage: (event) => tracker.recordResponse(event),
           onResponseMessageCompleted: (event) =>
             tracker.recordResponseMessageCompleted(event),
+          onToolOutputError: options?.onToolOutputError,
         });
         try {
           return decorateBrunchStream(

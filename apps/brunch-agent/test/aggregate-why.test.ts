@@ -1,0 +1,344 @@
+import { readFileSync } from "node:fs";
+
+import { expect, test } from "vitest";
+
+import {
+  parseConstructionWhyInput,
+  type ConstructionMutationRecord,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+
+import {
+  queryWorkpiece,
+  type RootArcExplanation,
+} from "../src/conversation/why.ts";
+import { retainedSettledRevision } from "../src/conversation/workpiece.ts";
+
+import type { FlueConversationSnapshot } from "@flue/sdk";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const withAttemptPostRevision = (
+  source: FlueConversationSnapshot,
+  toolCallId: string,
+  revisionId: string,
+): FlueConversationSnapshot => {
+  const next = structuredClone(source);
+  for (const message of next.messages) {
+    for (const part of message.parts) {
+      if (part.type !== "text") continue;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(part.text);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(parsed)) continue;
+      const result = (parsed as unknown[]).find(
+        (entry) => isRecord(entry) && entry.toolCallId === toolCallId,
+      );
+      if (!isRecord(result) || !isRecord(result.metadata)) continue;
+      const mutationRecord = result.metadata.mutationRecord;
+      if (!isRecord(mutationRecord) || !Array.isArray(mutationRecord.attempts))
+        continue;
+      for (const attempt of mutationRecord.attempts) {
+        if (isRecord(attempt) && isRecord(attempt.post))
+          attempt.post.revisionId = revisionId;
+      }
+      (part as { text: string }).text = JSON.stringify(parsed);
+    }
+  }
+  return next;
+};
+
+// Untouched actual browser capture; never imported into a product store.
+const snapshot = JSON.parse(
+  readFileSync(
+    new URL(
+      "./fixtures/aggregate-why/typed-state/history.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+) as FlueConversationSnapshot;
+const current = retainedSettledRevision(snapshot, "typed-revision-two");
+if (!current) throw new Error("Missing actual settled revision");
+const first = clientToolHistoryFrom(snapshot.messages).results.find(
+  (result) => result.toolCallId === "typed-type",
+);
+if (!first) throw new Error("Missing actual typed browser record");
+const binding = (
+  first.metadata as { mutationRecord: ConstructionMutationRecord }
+).mutationRecord.attempts[0]?.binding;
+if (!binding) throw new Error("Missing actual document binding");
+const browser = { binding, construction: true as const };
+const explain = (query: unknown) =>
+  queryWorkpiece({
+    snapshot,
+    current,
+    browser,
+    query: parseConstructionWhyInput(query),
+  });
+
+test("supports an entity origin without inheriting its derived child fields", async () => {
+  const creationSnapshot = {
+    ...snapshot,
+    messages: snapshot.messages.slice(0, 25),
+  };
+  const creationRevision = retainedSettledRevision(
+    creationSnapshot,
+    "typed-revision-one",
+  );
+  if (!creationRevision) throw new Error("Missing creation revision");
+
+  const answer = await queryWorkpiece({
+    snapshot: creationSnapshot,
+    current: creationRevision,
+    browser,
+    query: parseConstructionWhyInput({
+      kind: "scenario",
+      name: "TestInitial",
+      field: "entity",
+    }),
+  });
+
+  expect(answer.disposition).toBe("partially-supported");
+  expect(answer.originToolCallId).toBe("typed-scenario");
+  expect(answer.targetMutationAttemptIds).toEqual(["typed-scenario"]);
+  expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
+  expect(
+    answer.recordedChange?.effects.derived.some(({ path }) =>
+      path.endsWith("/parameterOverrides"),
+    ),
+  ).toBe(true);
+});
+
+test("distinguishes Petrinaut document revisions from mutation-attempt identities", async () => {
+  const creationSnapshot = withAttemptPostRevision(
+    {
+      ...snapshot,
+      messages: snapshot.messages.slice(0, 25),
+    },
+    "typed-scenario",
+    "petrinaut-scenario-revision",
+  );
+  const creationRevision = retainedSettledRevision(
+    creationSnapshot,
+    "typed-revision-one",
+  );
+  if (!creationRevision) throw new Error("Missing creation revision");
+
+  const answer = await queryWorkpiece({
+    snapshot: creationSnapshot,
+    current: creationRevision,
+    browser,
+    query: parseConstructionWhyInput({
+      kind: "scenario",
+      name: "TestInitial",
+      field: "entity",
+    }),
+  });
+
+  expect(answer.targetMutationAttemptIds).toEqual(["typed-scenario"]);
+  expect(answer.targetPetrinautRevisionIds).toEqual([
+    "petrinaut-scenario-revision",
+  ]);
+  expect(answer.appliedChanges).toEqual([
+    expect.objectContaining({
+      toolCallId: "typed-scenario",
+      mutationAttemptId: "typed-scenario",
+      petrinautRevisionId: "petrinaut-scenario-revision",
+    }),
+  ]);
+});
+
+test.each([
+  {
+    kind: "scenario",
+    name: "TestInitial",
+    field: "initialState",
+    origin: "typed-scenario",
+  },
+  {
+    kind: "scenario",
+    name: "TestInitial",
+    field: "/initialState/content",
+    origin: "typed-scenario",
+  },
+  {
+    kind: "scenario",
+    name: "TestInitial",
+    field: "/initialState/content/test-queue/1",
+    origin: "typed-scenario",
+  },
+  {
+    kind: "type",
+    name: "TestCorrectedAttributes",
+    field: "elements",
+    origin: "typed-type",
+  },
+  {
+    kind: "type",
+    name: "TestCorrectedAttributes",
+    field: "entity",
+    origin: "typed-type",
+  },
+])(
+  "refuses current $kind $field aggregate without assigning creation or latest-child basis",
+  async ({ origin, ...query }) => {
+    const answer = await explain(query);
+    expect(answer.disposition).toBe("refused");
+    expect(answer.reason).toMatch(/aggregate.*descendant/iu);
+    expect(answer.governing).toBeUndefined();
+    expect(answer.recordedChange).toBeUndefined();
+    expect(answer.originToolCallId).toBe(origin);
+    expect(answer.appliedChanges?.length).toBeGreaterThan(1);
+    expect(answer.reconciliation.status).toBe("as-of");
+  },
+);
+
+test("lists later entity updates without assigning one update to the whole entity", async () => {
+  const answer = await explain({
+    kind: "type",
+    name: "TestCorrectedAttributes",
+    field: "entity",
+  });
+
+  expect(answer.appliedChanges?.map(({ toolCallId }) => toolCallId)).toEqual([
+    "typed-type",
+    "typed-active",
+    "typed-integer",
+    "typed-type-description",
+  ]);
+  expect(answer.disposition).toBe("refused");
+  expect(answer.governing).toBeUndefined();
+  expect(answer.recordedChange).toBeUndefined();
+});
+
+test("keeps explicit and derived leaf causes separate beneath the refused row", async () => {
+  const explicit = await explain({
+    kind: "scenario",
+    name: "TestInitial",
+    field: "/initialState/content/test-queue/1/0",
+  });
+  expect(explicit.disposition).toBe("partially-supported");
+  expect(explicit.target?.value).toBe(3);
+  expect(explicit.recordedChange?.toolCallId).toBe("typed-explicit-initial");
+  expect(explicit.governing?.revisionId).toBe("typed-revision-two");
+  expect(explicit.originToolCallId).toBe("typed-scenario");
+  expect(explicit.targetMutationAttemptIds).toEqual([
+    "typed-scenario",
+    "typed-active",
+    "typed-integer",
+    "typed-explicit-initial",
+  ]);
+  expect(explicit.workpieceRevisionTurns).toEqual({
+    revisionId: "typed-revision-two",
+    startTurn: 2,
+    endTurn: 2,
+    userMessageIds: [
+      "entry_direct_c3ViX2lrX2U1ZGE2NTYwN2UwMGEyMjRiOTdiMTJlOGM4NTgxMTZi",
+    ],
+  });
+  const derived = await explain({
+    kind: "scenario",
+    name: "TestInitial",
+    field: "/initialState/content/test-queue/1/1",
+  });
+  expect(derived.disposition).toBe("refused");
+  expect(derived.reason).toMatch(/derived/);
+  expect(derived.target?.value).toBe(false);
+  expect(derived.recordedChange?.toolCallId).toBe("typed-active");
+  expect(derived.governing).toBeUndefined();
+  expect(derived.originToolCallId).toBe("typed-scenario");
+  expect(derived.reconciliation).toEqual(explicit.reconciliation);
+});
+
+test("does not refuse an unchanged aggregate or primitive merely because sibling fields changed", async () => {
+  await Promise.all(
+    ["scenarioParameters", "name"].map(async (field) => {
+      const answer = await explain({
+        kind: "scenario",
+        name: "TestInitial",
+        field,
+      });
+      expect(answer.disposition).toBe("partially-supported");
+      expect(answer.recordedChange?.toolCallId).toBe("typed-scenario");
+      expect(answer.governing?.revisionId).toBe("typed-revision-one");
+    }),
+  );
+});
+
+test("existing transition arc aggregates cannot inherit their empty creation basis", async () => {
+  const directory = new URL(
+    "./fixtures/aggregate-why/root-creation/",
+    import.meta.url,
+  );
+  const rootSnapshot = JSON.parse(
+    readFileSync(new URL("history.json", directory), "utf8"),
+  ) as FlueConversationSnapshot;
+  const [prior] = JSON.parse(
+    readFileSync(new URL("why.json", directory), "utf8"),
+  ) as RootArcExplanation[];
+  if (!prior) throw new Error("Missing actual root explanation fixture");
+  const explainField = (field: string) =>
+    queryWorkpiece({
+      snapshot: rootSnapshot,
+      current: prior.currentWorkpiece,
+      browser: { binding: prior.binding, construction: true },
+      query: parseConstructionWhyInput({
+        kind: "transition",
+        name: "Test operation",
+        field,
+      }),
+    });
+  const aggregates = await Promise.all(
+    ["inputArcs", "outputArcs"].map(explainField),
+  );
+  for (const answer of aggregates) {
+    expect(answer.originToolCallId).toBe("creation-step");
+    expect(answer.disposition).toBe("refused");
+    expect(answer.reason).toMatch(/aggregate.*descendant/iu);
+    expect(answer.governing).toBeUndefined();
+    expect(answer.recordedChange).toBeUndefined();
+    expect(answer.target?.value).toHaveLength(1);
+  }
+  const scalar = await explainField("lambdaCode");
+  expect(scalar.originToolCallId).toBe("creation-step");
+  expect(scalar.disposition).toBe("partially-supported");
+  expect(scalar.recordedChange?.toolCallId).toBe("creation-pause");
+});
+
+test("preserves exact live observation reconciliation while refusing aggregate basis", async () => {
+  const query = parseConstructionWhyInput({
+    kind: "scenario",
+    name: "TestInitial",
+    field: "initialState",
+    observationToolCallId: "typed-reopened-read",
+  });
+  const answer = await queryWorkpiece({
+    snapshot,
+    current,
+    browser,
+    query,
+    activeObservationCallIds: ["typed-reopened-read"],
+  });
+  const leaf = await queryWorkpiece({
+    snapshot,
+    current,
+    browser,
+    query: parseConstructionWhyInput({
+      ...query,
+      field: "/initialState/content/test-queue/1/0",
+    }),
+    activeObservationCallIds: ["typed-reopened-read"],
+  });
+  expect(answer.disposition).toBe("refused");
+  expect(answer.reconciliation).toEqual(leaf.reconciliation);
+  expect(answer.reconciliation.status).toBe("serialization-equivalent");
+  expect(answer.reconciliation.observationScope).toBe("live-observed");
+  expect(answer.reconciliation.sha256).not.toBe(
+    answer.reconciliation.recordedSha256,
+  );
+});

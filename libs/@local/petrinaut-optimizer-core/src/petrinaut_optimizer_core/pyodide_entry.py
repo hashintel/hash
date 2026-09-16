@@ -20,6 +20,12 @@ from optuna.exceptions import ExperimentalWarning
 
 from .ask_tell import run_study, told_trials
 from .description import MAX_STUDY_TRIALS, StudyDescription, parse_description
+from .importance import (
+    completed_trials,
+    importance_cadence,
+    importance_floor,
+    parameter_importances,
+)
 from .study import Scalar, create_study
 
 
@@ -57,6 +63,42 @@ def _positive_integer(value: object, name: str) -> int:
     return value
 
 
+def importances_of(study: optuna.Study) -> dict[str, Any] | None:
+    """The `importances` block for an event, or None when the estimate is unavailable."""
+    values = parameter_importances(study)
+    if values is None:
+        return None
+    return {"values": values, "completedTrials": completed_trials(study)}
+
+
+def attach_importances(study: optuna.Study, event: dict[str, Any]) -> None:
+    importances = importances_of(study)
+    if importances is not None:
+        event["importances"] = importances
+
+
+def with_importances_at_cadence(
+    study: optuna.Study, requested: int, on_trial: Callable[[dict[str, Any]], object]
+) -> Callable[[dict[str, Any]], object]:
+    """Wrap `on_trial` so every `importance_cadence` completed trials past the floor carry an estimate.
+
+    The count is the study's own, so a continued study keeps the rhythm it had.
+    The estimate never raises, and a trial it is unavailable for goes out
+    without the key; the study never fails for its importances.
+    """
+    floor = importance_floor(requested)
+    cadence = importance_cadence(requested)
+
+    def report(event: dict[str, Any]) -> object:
+        if event.get("state") == "complete":
+            completed = completed_trials(study)
+            if completed >= floor and (completed - floor) % cadence == 0:
+                attach_importances(study, event)
+        return on_trial(event)
+
+    return report
+
+
 def create_browser_study(description_json: str, parallelism: int = 1) -> StudyHandle:
     """Parse the description and build its study.
 
@@ -82,15 +124,17 @@ def run_browser_study(
     evaluate: Callable[[dict[str, Scalar]], Awaitable[object]],
     on_trial: Callable[[dict[str, Any]], object],
     is_cancelled: Callable[[], object],
+    is_paused: Callable[[], object] = lambda: False,
 ) -> Awaitable[dict[str, Any]]:
     """Run `trials` more trials on the handle's study and return the awaitable summary.
 
     The arguments are checked and `handle.requested` grows by `trials` before
     this returns. Once the run settles, `handle.requested` is the number of
-    trials the study was told an outcome for, so the segment after a stop or
-    an error counts from the trials the study holds. `evaluate` receives each
-    trial's suggested values as a Python dict and may resolve to a JavaScript
-    object; `on_trial` receives plain dicts.
+    trials the study was told an outcome for, so the segment after a stop, a
+    pause or an error counts from the trials the study holds. `evaluate`
+    receives each trial's suggested values as a Python dict and may resolve to
+    a JavaScript object; `on_trial` receives plain dicts. `is_paused` drains
+    the segment as `ask_tell.run_study` describes.
     """
     study = handle.study
     if study is None:
@@ -115,11 +159,13 @@ def run_browser_study(
                 handle.description,
                 trials=trials,
                 evaluate=evaluate_trial,
-                on_trial=on_trial,
+                on_trial=with_importances_at_cadence(study, handle.requested, on_trial),
                 is_cancelled=lambda: bool(is_cancelled()),
+                is_paused=lambda: bool(is_paused()),
                 parallelism=handle.parallelism,
             )
             summary["requestedTrials"] = handle.requested
+            attach_importances(study, summary)
             return summary
         finally:
             handle.running = False

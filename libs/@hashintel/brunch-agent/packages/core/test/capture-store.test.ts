@@ -8,6 +8,7 @@ import {
   deriveIssueStatus,
   parseCaptureStoreSnapshot,
   type CaptureInputProposal,
+  type UserCaptureInputProposal,
   type CaptureStoreCommand,
   type CaptureStoreSnapshot,
   type EvidenceSpan,
@@ -65,16 +66,13 @@ const applyCaptureStoreCommand = (
     archive: evidenceArchive(),
   });
 
-type UserCaptureProposal = Extract<
-  CaptureInputProposal,
-  { readonly evidence: readonly EvidenceQuote[] }
->;
-
 const valueProposal = (
   value: string,
   evidence = userEvidence(value),
-  overrides: Partial<Omit<UserCaptureProposal, "content" | "evidence">> = {},
-): UserCaptureProposal => ({
+  overrides: Partial<
+    Omit<UserCaptureInputProposal, "content" | "evidence">
+  > = {},
+): UserCaptureInputProposal => ({
   evidence: [evidence],
   epistemicStatus: "explicit",
   confidence: "high",

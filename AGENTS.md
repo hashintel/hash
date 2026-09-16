@@ -44,6 +44,50 @@ Package-specific standing instructions live in that package’s `AGENTS.md`. On-
 - Backend only: `yarn dev:backend` or `yarn dev:backend:api`
 - Frontend only: `yarn dev:frontend`
 
+### Dev server ports
+
+Every dev server binds a port of its own, so any set of them can run at once:
+
+| Port  | Server                                                           |
+| ----- | ---------------------------------------------------------------- |
+| 3000  | `@apps/hash-frontend`                                            |
+| 4004  | Petrinaut Optimizer service (`--with-optimizer-service`)         |
+| 4321  | `@apps/brunch-agent` chat -- `strictPort`, paired with the panel |
+| 4322  | `@apps/petrinaut-docs`                                           |
+| 4915  | `@apps/brunch-agent` panel -- `strictPort`                       |
+| 5001  | `@apps/hash-api`                                                 |
+| 5173  | `@apps/petrinaut-website`                                        |
+| 6006  | `@hashintel/petrinaut` Storybook                                 |
+| 6007  | `@hashintel/refractive` Storybook                                |
+| 61000 | `@hashintel/ds-components` Ladle                                 |
+
+`PORT` overrides the default for every one of them except the Optimizer service, which the dev script publishes at 4004 and compose moves with `PETRINAUT_OPT_PORT`, and the two Brunch servers, which take `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` instead: one variable each, because the pair binds two ports and the panel proxies to whatever the chat variable names. Set them on `yarn dev:brunch`, which passes its environment to both servers. Turbo runs a dev task in strict environment mode and forwards only the variables its `turbo.json` lists in `env` or `passThroughEnv`, so a dev server that reads a port variable declares it there. `.claude/launch.json` names the servers a Claude Code session can preview; keep its `port` in step with the table when a default moves.
+
+The compose stack and the graph take these, so a new dev server stays off them as well. Where a variable moves the port, the table names it:
+
+| Port       | Service                     | Moved by                       |
+| ---------- | --------------------------- | ------------------------------ |
+| 1025       | Mailslurper SMTP            |                                |
+| 3001       | Grafana                     |                                |
+| 3100       | Temporal UI                 | `HASH_TEMPORAL_UI_PORT`        |
+| 4000       | Graph API HTTP              | `HASH_GRAPH_HTTP_PORT`         |
+| 4001       | Graph admin API             | `HASH_GRAPH_ADMIN_PORT`        |
+| 4002       | Graph HaRPC                 | `HASH_GRAPH_RPC_PORT`          |
+| 4003       | Graph Atlas                 | `HASH_GRAPH_ATLAS_PORT`        |
+| 4040       | Pyroscope                   |                                |
+| 4317       | OpenTelemetry collector     |                                |
+| 4433, 4434 | Kratos public and admin API |                                |
+| 4436, 4437 | Mailslurper web and API     |                                |
+| 4444, 4445 | Hydra public and admin API  |                                |
+| 4455       | Type fetcher                | `HASH_GRAPH_TYPE_FETCHER_PORT` |
+| 5432       | Postgres                    | `POSTGRES_PORT`                |
+| 6379       | Redis                       |                                |
+| 7233       | Temporal server             | `HASH_TEMPORAL_SERVER_PORT`    |
+| 8200       | Vault                       | `HASH_VAULT_PORT`              |
+| 9000, 9001 | MinIO API and console       |                                |
+
+The Brunch agent's `start` and `start:test` scripts and its production image listen on 3002, where the integration tests expect it; the dev pair uses 4321 and 4915.
+
 ### Starting Services
 
 - Start all services: `yarn start`

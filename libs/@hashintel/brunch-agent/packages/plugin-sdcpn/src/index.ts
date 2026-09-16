@@ -6,9 +6,113 @@
  * `skills/sdcpn-modelling/` for the job skill and its resources, `tools/` for
  * executable Petrinaut capabilities, and `flue.ts` for the selected mounting.
  * The retired YAML definition and typed slot-assertion proposal path were
- * removed on 2026-09-02. This root export carries the pairing's identity only;
- * the `./flue` subpath owns the production contribution.
+ * removed on 2026-09-02. The `./flue` subpath owns the production contribution;
+ * the root also exposes host-consumed transition verification.
  */
+
+export {
+  assertMutationEffects,
+  canonicalContent,
+  classifyMutationOutcome,
+  clientToolResultMetadataSchema,
+  deriveLayoutEffects,
+  deriveMutationEffects,
+  expectedNodeDefinition,
+  observedMutationOutcome,
+  type ClassifiedMutationOutcome,
+  parseClientToolResultMetadata,
+  reconcileMutationAttempts,
+  verifyMutationAttempt,
+  verifyDefinitionObservation,
+  reconcileDefinitionObservations,
+  type MutationEffects,
+  type ArcMutationRequest,
+  type BrowserBinding,
+  type ClientToolResultMetadata,
+  type ConstructionMutationName,
+  type ObservedConstructionMutationName,
+  type ConstructionMutationRequest,
+  type ConstructionMutationAttempt,
+  type ConstructionMutationRecord,
+  type ArcMutationAttempt,
+  type ArcMutationRecord,
+  type DefinitionObservation,
+  type UnverifiedDefinitionObservation,
+} from "./mutation-record";
+
+export {
+  conversationConstructionMode,
+  joinedRootArcInputSchema,
+  observedArcInputSchema,
+  observedArcMutationNames,
+  isObservedArcMutation,
+  parseObservedArcInput,
+  parseJoinedRootArcInput,
+  browserBindingSchema,
+  rootArcEnvelopeSchema,
+  rootArcWhyInputSchema,
+  locateRootArc,
+  type ObservedArcMutationName,
+  type RootArcWhyInput,
+} from "./root-arc";
+export {
+  applyAutoLayoutToolName,
+  isLayoutPetrinautNetToolName,
+  isReadPetrinautDocsToolName,
+  isReadPetrinautDiagnosticsToolName,
+  isReadPetrinautNetToolName,
+  LEGACY_READ_PETRINAUT_DOCS_TOOL_NAME,
+  layoutPetrinautNetToolName,
+  legacyLayoutPetrinautNetToolName,
+  legacyReadPetrinautDiagnosticsToolName,
+  legacyReadPetrinautNetToolName,
+  observedConstructionBrowserToolNames,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  READ_PETRINAUT_DOCS_TOOL_NAME,
+  readPetrinautDiagnosticsToolName,
+  readPetrinautNetToolName,
+} from "./construction-tool-names";
+export {
+  batchedConstructionMode,
+  isMutatePetrinautNetToolName,
+  legacyMutatePetrinautNetToolName,
+  mutatePetrinetAttemptCallId,
+  mutatePetrinetAttemptOperationId,
+  mutatePetrinetInputSchema,
+  mutatePetrinetOutputSchema,
+  mutatePetrinetToolName,
+  mutatePetrinautNetToolName,
+  type MutatePetrinetInput,
+  type MutatePetrinetOperation,
+  type MutatePetrinetOutput,
+} from "./mutate-petrinet";
+export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
+export {
+  constructionWhyInputSchema,
+  queryWorkpieceInputSchema,
+  parseConstructionWhyInput,
+  rootNodeWhyInputSchema,
+  type RootNodeWhyInput,
+  observedNodeMutationNames,
+  isObservedNodeMutation,
+  observedNodeInputSchema,
+  parseObservedNodeInput,
+  locateRootNode,
+  assertNodeIdentity,
+  type ObservedNodeMutationName,
+} from "./root-node";
+
+export {
+  observedStateMutationNames,
+  isObservedStateMutation,
+  observedStateInputSchema,
+  parseObservedStateInput,
+  assertStateIdentity,
+  rootStateWhyInputSchema,
+  locateRootState,
+  type ObservedStateMutationName,
+  type RootStateWhyInput,
+} from "./root-state";
 
 export const SDCPN_DOMAIN_TYPOLOGY = "operational processes";
 export const SDCPN_TARGET_FORMALISM = "sdcpn";

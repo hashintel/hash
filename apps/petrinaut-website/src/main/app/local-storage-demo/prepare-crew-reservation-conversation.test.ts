@@ -72,6 +72,62 @@ describe("prepareCrewReservationConversation", () => {
     expect(history).toHaveBeenCalledTimes(2);
   });
 
+  test("pins the issued incarnation and base in initial data and refuses reuse under a changed binding", async () => {
+    const browser = {
+      binding: {
+        conversationId: "root-arc:incarnation",
+        documentId: "tracer-document",
+        incarnationId: "incarnation",
+      },
+      requestedBaseHash: "a".repeat(64),
+    };
+    const historyValue = {
+      ...preparedHistory,
+      messages: preparedHistory.messages.map((message) => ({
+        ...message,
+        signal: {
+          ...message.signal,
+          attributes: {
+            ...message.signal.attributes,
+            rootArcContext: JSON.stringify(browser),
+          },
+        },
+      })),
+    };
+    const history = vi
+      .fn()
+      .mockRejectedValueOnce({ status: 404 })
+      .mockResolvedValue(historyValue);
+    const send = vi
+      .fn()
+      .mockResolvedValue({ submissionId: "prepare-submission" });
+    const wait = vi.fn().mockResolvedValue(undefined);
+    await expect(
+      prepareCrewReservationConversation({ history, send, wait }, browser),
+    ).resolves.toEqual(historyValue);
+    expect(send).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        initialData: { mode: preparedWorkpieceInitialDataMode, browser },
+      }),
+    );
+    await expect(
+      prepareCrewReservationConversation({ history, send, wait }, browser),
+    ).resolves.toEqual(historyValue);
+    for (const changed of [
+      { ...browser, requestedBaseHash: "b".repeat(64) },
+      { ...browser, binding: { ...browser.binding, incarnationId: "another" } },
+      {
+        ...browser,
+        binding: { ...browser.binding, conversationId: "another" },
+      },
+    ]) {
+      await expect(
+        prepareCrewReservationConversation({ history, send, wait }, changed),
+      ).rejects.toThrow(/incarnation or issued base/u);
+    }
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   test("refuses an existing conversation without this fixture source", async () => {
     await expect(
       prepareCrewReservationConversation({

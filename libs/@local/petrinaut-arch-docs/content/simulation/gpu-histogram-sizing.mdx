@@ -6,11 +6,11 @@ attachTo: core.webgpu
 ---
 
 The GPU backend never stores per-run metric samples. Each frame, every
-workgroup reduces its runs' place counts into a shared histogram and merges it
-into a global buffer ([GPU backend](doc:simulation/gpu-backend)). That fixed
-layout is what makes the memory static and the per-chunk streaming readback
-possible. Two questions size it: how many bins a shader gets, and which count
-range those bins cover.
+workgroup reduces its runs' metric samples (place counts or expression values)
+into a shared histogram and merges it into a global buffer
+([GPU backend](doc:simulation/gpu-backend)). That fixed layout is what makes
+the memory static and the per-chunk streaming readback possible. Two questions
+size it: how many bins a shader gets, and which value range those bins cover.
 
 ## The problem
 
@@ -49,9 +49,10 @@ same value.
   by construction, so the seventeen-metric pipeline failure cannot occur.
 - **A known count ceiling shrinks the histogram to fit it.** A typed place's
   count cannot exceed its slot capacity, and a declared capacity on any place
-  is enforced by the shader's eligibility constraints. When every sampled
-  place has such a ceiling, `bins = ceiling + 1` — capacity 16 gets 17 bins,
-  and the per-frame loops shrink accordingly.
+  is enforced by the shader's eligibility constraints. When every metric is a
+  place count with such a ceiling, `bins = ceiling + 1` — capacity 16 gets 17
+  bins, and the per-frame loops shrink accordingly. An expression metric has
+  no ceiling, so any expression metric gives the shader the full budget.
 
 The budget is the WebGPU _baseline_ limit rather than the adapter's:
 `requestGpuDevice` raises only the buffer limits, so the created device sits at
@@ -63,40 +64,59 @@ are linear in the bin count — 600 frames × 1024 bins × 3 metrics is 7.4 MB �
 and the merge loop skips empty slots, so unused range costs little; the cap
 mainly bounds the decode and the buffer for long experiments.
 
-**Window** — bin `i` covers counts `[lo + i × stride, lo + (i+1) × stride)`,
-and `lo`/`stride` are _uniforms_ in the shader's config (`metric-windows.ts`
-plans them), so moving the window needs no recompile. The window calibrates
-itself instead of warning:
+**Window** — bin `i` covers values `[lo + i × stride, lo + (i+1) × stride)`,
+and `lo`/`stride` are f32 _uniforms_ in the shader's config — the same two
+words per metric for every kind of metric (`metric-windows.ts` plans them), so
+moving the window needs no recompile. Every sample, a place count included, is
+an f32 binned through the one `window_bin` helper. A window carries an
+`integer` flag: integer windows keep integer strides and label a bin by its
+middle integer, so counts bin and label exactly as a u32 path would below
+2^24 (above it a count rounds in f32 before binning, so a label can be off by
+one); real windows label a bin by its centre with a `stride / 2` extent on
+each side, and a constant real-valued metric gets one bin centred on its
+value. `window_bin` divides once and then settles the quotient against the
+exact edges the host labels by, because an f32 division carries up to 2.5 ULP
+and a sample on an edge must land where the decoder says it does. The window
+calibrates itself instead of warning:
 
-1. The first attempt is exact for a ceiling-bounded place (`lo = 0`,
-   `stride = 1` when the capacity fits the bins) and a generous guess
-   anchored on the initial count otherwise — a wider window is a larger
-   stride over the same bins, so guessing large costs resolution, never
+1. The first attempt is exact for a ceiling-bounded place count (`lo = 0`,
+   `stride = 1` when the capacity fits the bins) and a blind `lo 0, stride 1`
+   window otherwise, which the probe always replans — a wider window is a
+   larger stride over the same bins, so a window costs resolution, never
    memory.
 2. The shader tracks each metric's observed min and max on the device
    (workgroup-reduced, like the histogram itself) and counts samples that
-   escaped the window into an edge bin — at both ends.
+   escaped the window into an edge bin — at both ends. Min and max travel as
+   order-preserving u32 keys (`f32_order_key`), so the existing u32 atomics
+   reduce floats and the workgroup budget is unchanged.
 3. Any escape recalibrates: the experiment handle replans the window from
    the observed range and re-runs. Seeds derive from absolute run indices,
    so the re-run reproduces the same trajectories and the observed range is
    exact — one re-run always converges.
-4. A large run with guessed windows probes first: a small prefix of the runs
-   (`GPU_PREVIEW_RUNS`) streams its frames to the charts, its observed
-   range plus margin sizes the full run's window, and the full attempt's
-   frames replace the probe's as they re-deliver.
+4. Blind windows probe first: a small prefix of the runs (`probeRunCount`,
+   at most 128) streams its frames to the charts, its observed range plus
+   margin sizes the full run's window, and the full attempt's frames replace
+   the probe's as they re-deliver. Range tracking is independent of the
+   window, so the probe observes the exact range whatever its blind window
+   clamped.
+
+Frame 0 is sampled on the device before the first step, like every later
+frame: the sample sits at the top of the frame iteration, so row `f` holds the
+state after `f` steps. Frame 0 reuses the row the old scheme left empty (every
+run still going took its completed status at the frame limit, before it could
+be sampled there), and the buffer gains one row, `frameLimit + 1` rows in all,
+so row `frame_limit` holds the CPU's final frame for `completed` and `all`
+metrics, matching `runner/histogram-frames.ts`'s "(frameLimit + 1) × metrics ×
+bins".
 
 A count past the old fixed range is therefore no longer an error, a warning,
 or a refusal — a 1,030-token initial marking runs with a window that covers
 it, and a place living in [1000, 1200] gets bin-exact resolution across its
-actual span. The clamped edge bins of a guessed first attempt are only ever
-an intermediate picture on screen during calibration.
+actual span. The clamped edge bins of a blind first attempt are only ever an
+intermediate picture on screen during calibration.
 
 ## Potential future solutions
 
-- **Range binning.** A host-declared window maps `bin = (count − lo) × bins /
-(hi − lo)`. Counts in the tens of thousands become representable at reduced
-  resolution. This changes bin semantics from exact counts to intervals, so
-  the decode and the charts must carry the window.
 - **Exact readback for small run counts.** Below a few hundred runs the raw
   per-run counts are smaller than the histogram; an opt-in exact mode would
   remove the ceiling entirely where it is cheapest to do so.

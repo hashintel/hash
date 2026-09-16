@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { use, useCallback, useState } from "react";
 
 import { useElementSize } from "../../../../../react/hooks/use-element-size";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { VIEWPORT_CONTROLS_CLEARANCE } from "../../../../constants/ui";
 import { useCanvasInsets } from "../../../../hooks/use-canvas-insets";
 import { fitsWithinBounds, getBottomBarOffset } from "./bottom-bar-placement";
@@ -36,7 +37,7 @@ export interface BottomBarLayout {
  * the way mirrored state does.
  */
 export const useBottomBarLayout = (
-  /** Spans the canvas; the bar is centred in it and measured against it. */
+  /** Spans the editor; the bar is centred in it and measured against it. */
   laneRef: React.RefObject<HTMLDivElement | null>,
   barRef: React.RefObject<HTMLDivElement | null>,
   {
@@ -84,6 +85,18 @@ export const useBottomBarLayout = (
   );
 
   const insets = useCanvasInsets();
+  const {
+    isAiAssistantOpen,
+    aiAssistantPlacement,
+    isAiAssistantCollapsed,
+    aiAssistantWidth,
+  } = use(EditorContext);
+  const dockedAssistantWidth =
+    isAiAssistantOpen &&
+    aiAssistantPlacement === "docked" &&
+    !isAiAssistantCollapsed
+      ? Math.min(aiAssistantWidth, containerWidth)
+      : 0;
   const bounds = {
     containerWidth,
     leftInset: insets.left,
@@ -91,7 +104,9 @@ export const useBottomBarLayout = (
     // so they bound it the same way a panel does. They are absent in actual
     // mode, where `SDCPNCanvas` does not render them.
     rightInset:
-      insets.right + (hasViewportControls ? VIEWPORT_CONTROLS_CLEARANCE : 0),
+      dockedAssistantWidth +
+      insets.right +
+      (hasViewportControls ? VIEWPORT_CONTROLS_CLEARANCE : 0),
     margin: BOTTOM_BAR_MARGIN,
   };
 

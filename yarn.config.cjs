@@ -3,8 +3,19 @@
  * @typedef {import('@yarnpkg/types').Yarn.Constraints.Dependency} Dependency
  */
 
-/** @type {import('@yarnpkg/types')} */
-const { defineConfig } = require(`@yarnpkg/types`);
+/**
+ * `@yarnpkg/types` provides types only: `defineConfig` is the identity function
+ * at runtime. It is absent from disk whenever an install skips the link step,
+ * as `--mode=update-lockfile` does, so the constraints below load without it.
+ *
+ * @type {typeof import('@yarnpkg/types').defineConfig}
+ */
+let defineConfig;
+try {
+  ({ defineConfig } = require(`@yarnpkg/types`));
+} catch {
+  defineConfig = (config) => config;
+}
 
 const enforcedDevDependencies = {
   prettier: { commands: ["prettier"], ident: "prettier" },

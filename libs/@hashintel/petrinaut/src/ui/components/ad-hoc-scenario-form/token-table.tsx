@@ -41,7 +41,7 @@ import {
 } from "../../worksheet/use-focus-stops";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
-import { AdHocFormContext } from "./form-context";
+import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
@@ -398,7 +398,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label: "Dynamic count",
                   checked: kind === "dynamic",
                 },
-                ...(selection === "optimize" || selection === "sweep"
+                ...(adHocIntervalSelection(selection)
                   ? [
                       {
                         id: "optimized",

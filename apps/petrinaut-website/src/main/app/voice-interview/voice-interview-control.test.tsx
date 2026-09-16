@@ -19,6 +19,8 @@ import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
   loadOpenAIVoiceConfig,
+  readInterruptionBySpeakingPreference,
+  saveInterruptionBySpeakingPreference,
   submitVoiceInputWithAdmission,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
@@ -28,13 +30,15 @@ import { VoiceTurnController } from "./voice-turn-controller";
 import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
-  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
 } from "@hashintel/petrinaut/ui";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
-let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
+let registeredVoiceModeControls:
+  | PetrinautAiVoiceModeSessionControls
+  | undefined;
 
 const VoiceInterviewHarness = () => {
   "use no memo";
@@ -553,6 +557,26 @@ describe("voice interview control", () => {
     expect(registeredVoiceModeControls?.repeatQuestion).toBeTypeOf("function");
   });
 
+  test("keeps idle speaker controls inert and retires them on unmount", async () => {
+    const setSpeakerMuted = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerMuted")
+      .mockImplementation(() => {});
+    const setSpeakerVolume = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setSpeakerVolume")
+      .mockImplementation(() => {});
+    const { unmount } = render(<VoiceInterviewHarness />);
+    await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
+
+    registeredVoiceModeControls?.setSpeakerMuted?.(true);
+    registeredVoiceModeControls?.setSpeakerVolume?.(0.35);
+
+    expect(setSpeakerMuted).not.toHaveBeenCalled();
+    expect(setSpeakerVolume).not.toHaveBeenCalled();
+
+    unmount();
+    expect(registeredVoiceModeControls).toBeUndefined();
+  });
+
   test("restarts when Voice is reselected before teardown completes", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -668,5 +692,37 @@ describe("voice interview control", () => {
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBe("acknowledged");
+  });
+});
+
+describe("interruption by speaking preference", () => {
+  test("defaults on and remembers both settings across reads", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+    expect(readInterruptionBySpeakingPreference(storage)).toBe(true);
+    saveInterruptionBySpeakingPreference(false, storage);
+    expect(readInterruptionBySpeakingPreference(storage)).toBe(false);
+    saveInterruptionBySpeakingPreference(true, storage);
+    expect(readInterruptionBySpeakingPreference(storage)).toBe(true);
+  });
+  test("works when browser storage is unavailable", () => {
+    const storage = {
+      getItem: () => {
+        throw new Error("denied");
+      },
+      setItem: () => {
+        throw new Error("denied");
+      },
+    };
+    expect(readInterruptionBySpeakingPreference(storage)).toBe(true);
+    expect(() =>
+      saveInterruptionBySpeakingPreference(false, storage),
+    ).not.toThrow();
+    expect(readInterruptionBySpeakingPreference(null)).toBe(true);
   });
 });

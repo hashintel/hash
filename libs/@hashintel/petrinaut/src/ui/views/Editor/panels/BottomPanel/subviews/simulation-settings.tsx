@@ -7,7 +7,6 @@ import {
   Icon,
   NumberInput,
   Select,
-  Toggle,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -24,12 +23,10 @@ import { SimulationContext } from "../../../../../../react/simulation/context";
 import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import {
   AdHocScenarioForm,
   FormLayoutColumn,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
-import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 import {
@@ -44,7 +41,7 @@ import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
 // The subview opts out of the tab content's uniform 16px padding (noPadding)
 // and owns its insets instead: a tighter top, no bottom padding at all so the
-// parameters list can scroll through the panel's full height.
+// form's columns can scroll through the panel's full height.
 const rootStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -60,7 +57,7 @@ const scenarioRowStyle = css({
   gap: "2",
   flexShrink: 0,
   // Small right inset so the row's controls don't hug the panel edge,
-  // matching the parameters list below.
+  // matching the form's columns below.
   paddingRight: "2",
   marginBottom: "3",
 });
@@ -106,43 +103,28 @@ const scenarioSelectWrapperStyle = css({
   },
 });
 
-const parameterInputStyles = css({
-  width: "[80px]",
-});
-
-const parameterSliderInputStyles = css({
-  width: "[65px]",
-});
-
+// The form's two columns: Variables and Parameters on the left, the wider
+// Initial state on the right. The scenario picker and Time Step sit above
+// the grid, so the columns keep the full panel width and their headers
+// align.
 const containerStyle = css({
   display: "grid",
+  gridTemplateColumns: "[1fr 1.4fr]",
   gap: "8",
   flex: "[1]",
   minHeight: "[0]",
 });
 
-// Parameters alone normally; the ad-hoc embedding adds a wider Initial
-// state column. The scenario picker and Time Step sit above the grid, so
-// the columns keep the full panel width and their headers align.
-const parametersOnlyContainerStyle = css({
-  gridTemplateColumns: "[1fr]",
-});
-
-const adHocColumnsContainerStyle = css({
-  gridTemplateColumns: "[1fr 1.4fr]",
-});
-
-// The left ad-hoc column stacks Variables above Parameters in one scroll
-// area; the gap separates the two titled blocks.
+// The left column stacks two titled blocks in one scroll area; the gap
+// separates them.
 const leftColumnSectionsStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "6",
 });
 
-// The form wraps the whole grid when the ad-hoc embedding is live, so its
-// keyboard handling covers both form columns; it must fill the panel like
-// the grid it contains.
+// The form wraps the whole grid, so its keyboard handling covers both
+// columns; it must fill the panel like the grid it contains.
 const adHocFormRootStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -257,55 +239,6 @@ const parametersListStyle = css({
   marginLeft: "[-18px]",
 });
 
-// Plain rows separated by hairline dividers, matching the sidebar's
-// parameter list, rather than card-like boxes. A small horizontal inset
-// nudges the name and value off the row edges; the divider still spans the
-// full width.
-const parameterRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "4",
-  paddingY: "2",
-  paddingX: "1",
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a25",
-  "&:last-child": {
-    borderBottomWidth: "[0]",
-  },
-});
-
-const parameterNameStyle = css({
-  fontSize: "[13px]",
-  color: "neutral.fg.heading",
-});
-
-// Row label for parameters without a display name (scenario parameters are
-// identified by their variable name alone).
-const parameterVarNameOnlyStyle = css({
-  fontSize: "[12px]",
-  color: "neutral.fg.heading",
-  fontFamily: "mono",
-});
-
-const parameterVarNameStyle = css({
-  fontSize: "[11px]",
-  color: "neutral.s100",
-  fontFamily: "mono",
-});
-
-const ratioRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: "2",
-});
-
-const ratioSliderStyle = css({
-  width: "[120px]",
-  opacity: "[1]",
-});
-
 // The Clear affordance stays quiet until pointed at: it wipes the whole
 // draft, so it should not compete with the fields it clears.
 const quietClearButtonStyle = css({
@@ -369,8 +302,8 @@ const scenarioMessagesStyle = css({
 // -- Component ----------------------------------------------------------------
 
 /**
- * Wraps the parameters list in a container with white scroll fades: at the top
- * once the list is scrolled, at the bottom while more content is below.
+ * Wraps a form column in a container with white scroll fades: at the top
+ * once the column is scrolled, at the bottom while more content is below.
  */
 const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -402,8 +335,9 @@ const ParametersScrollArea: React.FC<{ children: React.ReactNode }> = ({
 const NO_SCENARIO = "__none__";
 
 /**
- * SimulationSettingsContent displays simulation settings in the BottomPanel.
- * Includes a scenario picker, parameters section, and computation settings.
+ * SimulationSettingsContent displays simulation settings in the BottomPanel:
+ * a scenario picker, the Time Step, and the scenario form — editable with no
+ * scenario selected, in run mode for a saved scenario.
  */
 const SimulationSettingsContent: React.FC = () => {
   const { navigateTo, setSimulateDrawer } = use(EditorContext);
@@ -416,8 +350,6 @@ const SimulationSettingsContent: React.FC = () => {
     state: simulationState,
     dt,
     setDt,
-    parameterValues,
-    setParameterValue,
     selectedScenarioId: contextScenarioId,
     setSelectedScenarioId: setContextScenarioId,
     scenarioParameterValues,
@@ -429,8 +361,6 @@ const SimulationSettingsContent: React.FC = () => {
     initialMarking,
   } = use(SimulationContext);
 
-  const { enableAdHocScenarios } = use(UserSettingsContext);
-
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
@@ -439,17 +369,16 @@ const SimulationSettingsContent: React.FC = () => {
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
 
-  // The inline ad-hoc embedding: only behind the user setting, and only
-  // with no scenario selected. Off, the panel renders exactly as before
-  // the feature.
-  const adHocActive = enableAdHocScenarios && !selectedScenario;
+  // With no scenario selected the form edits the inline definition the
+  // next run compiles against.
+  const adHocActive = !selectedScenario;
 
-  // A selected ad-hoc scenario shows through the form too, in run mode:
-  // the panel edits a local copy whose only writable slots are the exposed
+  // A selected ad-hoc scenario shows through the form in run mode: the
+  // panel edits a local copy whose only writable slots are the exposed
   // Variables (the scenario's parameters); every edit resolves to ordinary
   // scenario-parameter values, so the run path is the selected scenario's.
   const selectedAdHocScenario =
-    enableAdHocScenarios && selectedScenario?.initialState.type === "adhoc"
+    selectedScenario?.initialState.type === "adhoc"
       ? selectedScenario
       : undefined;
   // Any other selected scenario shows through the same form: its scenario
@@ -457,9 +386,7 @@ const SimulationSettingsContent: React.FC = () => {
   // run will actually start with — the compiled initial marking,
   // materialized into literal read-only rows.
   const selectedClassicScenario =
-    enableAdHocScenarios && selectedScenario && !selectedAdHocScenario
-      ? selectedScenario
-      : undefined;
+    selectedScenario && !selectedAdHocScenario ? selectedScenario : undefined;
   const classicHir = useScenarioHir(selectedClassicScenario);
   // `seededFrom` is the persisted scenario definition the run state came
   // from, by content: saving an edit to the selected scenario changes it, so
@@ -518,10 +445,9 @@ const SimulationSettingsContent: React.FC = () => {
       },
     });
   }
-  // Deselecting (No scenario, or the ad-hoc embedding) drops the run state
-  // entirely: reselecting the same scenario later must reseed from the
-  // then-current parameter values, not resurface stale edits the run no
-  // longer uses.
+  // Deselecting (No scenario) drops the run state entirely: reselecting the
+  // same scenario later must reseed from the then-current parameter values,
+  // not resurface stale edits the run no longer uses.
   if (!selectedAdHocScenario && !selectedClassicScenario && scenarioRun) {
     setScenarioRun(null);
   }
@@ -541,9 +467,9 @@ const SimulationSettingsContent: React.FC = () => {
   };
 
   const adHocFormContext = {
-    // The quick-sim embedding sees the overlaid parameters the run compiles
-    // against (the raw panel inputs are hidden while it is live); a selected
-    // scenario keeps the net's own defaults — its overrides rule.
+    // With no scenario the form sees the overlaid parameters the run
+    // compiles against; a selected scenario keeps the net's own defaults —
+    // its overrides rule.
     netParameters: adHocActive ? adHocNetParameters : globalParameters,
     places,
     types: extensions.colors ? types : [],
@@ -677,30 +603,6 @@ const SimulationSettingsContent: React.FC = () => {
     };
   })();
 
-  // When a scenario is selected, show its scenario parameters + overridden net params.
-  // When no scenario, show net-level parameters.
-  const displayParams: Array<{
-    key: string;
-    /** Human-readable name — scenario parameters only have an identifier. */
-    name?: string;
-    variableName: string;
-    type: "real" | "integer" | "boolean" | "ratio";
-    defaultValue: string;
-  }> = selectedScenario
-    ? selectedScenario.scenarioParameters.map((sp) => ({
-        key: `sp-${sp.identifier}`,
-        variableName: sp.identifier,
-        type: sp.type,
-        defaultValue: String(sp.default),
-      }))
-    : globalParameters.map((p) => ({
-        key: p.id,
-        name: p.name,
-        variableName: p.variableName,
-        type: p.type,
-        defaultValue: p.defaultValue,
-      }));
-
   const scenarioOptions = [
     ...(scenarios ?? []).map((s) => ({ value: s.id, text: s.name })),
     { value: NO_SCENARIO, text: "No scenario" },
@@ -738,9 +640,9 @@ const SimulationSettingsContent: React.FC = () => {
         scenario={selectedScenario}
       />
 
-      {/* The scenario picker and Time Step share the top row, so the
-          PARAMETERS and INITIAL STATE columns below keep the full panel
-          width and their headers start at the same height. */}
+      {/* The scenario picker and Time Step share the top row, so the form's
+          two columns below keep the full panel width and their headers
+          start at the same height. */}
       <div className={scenarioRowStyle}>
         <div className={scenarioPickerGroupStyle}>
           <span className={scenarioLabelStyle}>Scenario</span>
@@ -828,12 +730,11 @@ const SimulationSettingsContent: React.FC = () => {
       </div>
 
       {adHocActive ? (
-        /* The ad-hoc embedding: Variables and Parameters share the left
-           panel column, Initial state fills the right one, laid out
-           through renderLayout — the form's keyboard handling wraps the
-           whole grid, and each visual column is one FormLayoutColumn in
-           the keyboard flow. This embedding offers no Optimize/expose
-           toggles. */
+        /* No scenario: Variables and Parameters share the left panel
+           column, Initial state fills the right one, laid out through
+           renderLayout — the form's keyboard handling wraps the whole grid,
+           and each visual column is one FormLayoutColumn in the keyboard
+           flow. This embedding offers no Optimize/expose toggles. */
         <AdHocScenarioForm
           state={adHocScenario ?? seededAdHocState}
           onChange={setAdHocScenario}
@@ -845,7 +746,7 @@ const SimulationSettingsContent: React.FC = () => {
             parameters: parameterRows,
             places: placesList,
           }) => (
-            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
+            <div className={containerStyle}>
               <FormLayoutColumn>
                 <div className={cx(sectionStyle, fillSectionStyle)}>
                   <ParametersScrollArea>
@@ -915,10 +816,12 @@ const SimulationSettingsContent: React.FC = () => {
           )}
         />
       ) : scenarioRunView ? (
-        /* A selected ad-hoc scenario, shown through the form in run mode:
-           the scenario's parameters (its exposed Variables) take value
-           edits in the left column; Parameters and Initial state sit
-           read-only in the right one, still walkable and selectable. */
+        /* A selected scenario, shown through the form in run mode: the
+           scenario's parameters (its exposed Variables) take value edits in
+           the left column; Parameters and Initial state sit read-only in
+           the right one, still walkable and selectable. The run state
+           reseeds in the same render pass as the selection, so this arm
+           renders whenever a scenario is selected. */
         <AdHocScenarioForm
           key={`${scenarioRun?.scenarioId}:${scenarioRun?.seed}`}
           state={scenarioRunView.state}
@@ -932,7 +835,7 @@ const SimulationSettingsContent: React.FC = () => {
             parameters: parameterRows,
             places: placesList,
           }) => (
-            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
+            <div className={containerStyle}>
               <FormLayoutColumn>
                 <div className={cx(sectionStyle, fillSectionStyle)}>
                   <ParametersScrollArea>
@@ -995,134 +898,7 @@ const SimulationSettingsContent: React.FC = () => {
             </div>
           )}
         />
-      ) : (
-        <div className={cx(containerStyle, parametersOnlyContainerStyle)}>
-          {/* Parameters Section */}
-          <div className={cx(sectionStyle, fillSectionStyle)}>
-            <div className={sectionTitleStyle}>Parameters</div>
-            {displayParams.length > 0 ? (
-              <ParametersScrollArea>
-                {displayParams.map((param) => (
-                  <div key={param.key} className={parameterRowStyle}>
-                    <div>
-                      {param.name === undefined ? (
-                        <div className={parameterVarNameOnlyStyle}>
-                          {param.variableName}
-                        </div>
-                      ) : (
-                        <>
-                          <div className={parameterNameStyle}>{param.name}</div>
-                          <div className={parameterVarNameStyle}>
-                            {param.variableName}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    {param.type === "boolean" ? (
-                      <Toggle
-                        size="xs"
-                        value={
-                          selectedScenario
-                            ? (scenarioParameterValues[param.variableName] ??
-                                param.defaultValue) !== "0"
-                            : (parameterValues[param.variableName] ??
-                                param.defaultValue) === "true"
-                        }
-                        onChange={(checked) => {
-                          if (selectedScenario) {
-                            setScenarioParameterValue(
-                              param.variableName,
-                              checked ? "1" : "0",
-                            );
-                          } else {
-                            setParameterValue(
-                              param.variableName,
-                              checked ? "true" : "false",
-                            );
-                          }
-                        }}
-                        disabled={isSimulationActive}
-                      />
-                    ) : param.type === "ratio" && selectedScenario ? (
-                      <div className={ratioRowStyle}>
-                        <Slider
-                          className={ratioSliderStyle}
-                          min={0}
-                          max={1}
-                          step={0.00001}
-                          value={Number(
-                            scenarioParameterValues[param.variableName] ??
-                              param.defaultValue,
-                          )}
-                          onChange={(e) =>
-                            setScenarioParameterValue(
-                              param.variableName,
-                              e.target.value,
-                            )
-                          }
-                          disabled={isSimulationActive}
-                        />
-                        <NumberInput
-                          size="xs"
-                          min={0}
-                          max={1}
-                          step={0.00001}
-                          align="right"
-                          hideStepper
-                          value={Number(
-                            scenarioParameterValues[param.variableName] ??
-                              param.defaultValue,
-                          )}
-                          onChange={(paramValue) =>
-                            setScenarioParameterValue(
-                              param.variableName,
-                              paramValue === null ? "" : String(paramValue),
-                            )
-                          }
-                          disabled={isSimulationActive}
-                          className={parameterSliderInputStyles}
-                        />
-                      </div>
-                    ) : (
-                      <NumberInput
-                        size="xs"
-                        align="right"
-                        step={param.type === "integer" ? 1 : 0.001}
-                        hideStepper
-                        value={Number(
-                          selectedScenario
-                            ? (scenarioParameterValues[param.variableName] ??
-                                param.defaultValue)
-                            : (parameterValues[param.variableName] ??
-                                param.defaultValue),
-                        )}
-                        onChange={(paramValue) => {
-                          const next =
-                            paramValue === null ? "" : String(paramValue);
-                          if (selectedScenario) {
-                            setScenarioParameterValue(param.variableName, next);
-                          } else {
-                            setParameterValue(param.variableName, next);
-                          }
-                        }}
-                        placeholder={param.defaultValue}
-                        disabled={isSimulationActive}
-                        className={parameterInputStyles}
-                      />
-                    )}
-                  </div>
-                ))}
-              </ParametersScrollArea>
-            ) : (
-              <div className={emptyMessageStyle}>
-                {selectedScenario
-                  ? "No scenario parameters defined"
-                  : "No parameters defined"}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {scenarioCompilationErrors && (
         <Banner

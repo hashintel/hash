@@ -1,3 +1,4 @@
+import { readPetrinautNetToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   type PetrinautConstructionToolName,
@@ -10,19 +11,18 @@ import {
 import {
   createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
+  petrinautAiTools,
+  type PetrinautAiToolInput,
 } from "@hashintel/petrinaut-core/ai";
 
+import type { ClientToolCall } from "../../conversation/client-tools.ts";
+import type { ClientToolResult } from "@hashintel/brunch-agent-transport-aisdk";
 import type { Petrinaut, SDCPN } from "@hashintel/petrinaut-core";
 
-export interface HeadlessPetrinautToolCall {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly input: unknown;
-}
+export type HeadlessPetrinautToolCall = ClientToolCall;
 
-export interface HeadlessPetrinautToolResult {
-  readonly toolCallId: string;
-  readonly toolName: string;
+/** A client-tool result whose output the headless host fully determines. */
+export type HeadlessPetrinautToolResult = Omit<ClientToolResult, "output"> & {
   readonly output:
     | {
         readonly applied: true;
@@ -36,7 +36,12 @@ export interface HeadlessPetrinautToolResult {
         readonly definition: ReturnType<Petrinaut["definition"]["get"]>;
         readonly extensions: Petrinaut["extensions"];
       };
-}
+};
+
+type WritableConstructionToolName = Exclude<
+  PetrinautConstructionToolName,
+  typeof getLatestNetDefinitionToolName
+>;
 
 const constructionToolNames = new Set<string>(
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -59,14 +64,37 @@ export const createHeadlessPetrinautClient = (
     initial,
   });
   const instance = createPetrinaut({ document: handle });
-  const writableCallbacks = createPetrinautAiWritableCallbacks(
-    instance,
-  ) as unknown as Record<string, (input: unknown) => unknown>;
+  const writableCallbacks = createPetrinautAiWritableCallbacks(instance);
+  const applyMutation = async (
+    toolName: WritableConstructionToolName,
+    input: unknown,
+  ): Promise<void> => {
+    // Petrinaut's own input schema is the validation boundary for a headless call.
+    const parsed = petrinautAiTools[toolName].inputSchema.parse(input);
+    // The callback map is keyed by name, but TypeScript cannot correlate one
+    // key with its own parameter across the union; the parse above establishes it.
+    const callback = writableCallbacks[toolName] as (
+      mutation: PetrinautAiToolInput<WritableConstructionToolName>,
+    ) => unknown;
+    await callback(parsed);
+  };
 
   const execute = async (
     call: HeadlessPetrinautToolCall,
   ): Promise<HeadlessPetrinautToolResult> => {
-    if (!constructionToolNames.has(call.toolName)) {
+    if (call.toolName === readPetrinautNetToolName) {
+      return {
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        output: {
+          title,
+          definition: instance.definition.get(),
+          extensions: instance.extensions,
+        },
+      };
+    }
+
+    if (!isPetrinautConstructionToolName(call.toolName)) {
       return {
         toolCallId: call.toolCallId,
         toolName: call.toolName,
@@ -89,20 +117,8 @@ export const createHeadlessPetrinautClient = (
       };
     }
 
-    const callback = writableCallbacks[call.toolName];
-    if (callback === undefined) {
-      return {
-        toolCallId: call.toolCallId,
-        toolName: call.toolName,
-        output: {
-          applied: false,
-          error: `Petrinaut has no writable callback for ${call.toolName}`,
-        },
-      };
-    }
-
     try {
-      await callback(call.input);
+      await applyMutation(call.toolName, call.input);
       return {
         toolCallId: call.toolCallId,
         toolName: call.toolName,
@@ -126,6 +142,7 @@ export const createHeadlessPetrinautClient = (
     document,
     execute,
     parse,
+    revisionId: () => handle.revisionId.get(),
     dispose: instance.dispose,
   };
 };

@@ -36,9 +36,12 @@ const playbackPositionStyle = css({
   interpolateSize: "[allow-keywords]",
   padding: "0.5",
   overflow: "hidden",
-  // A flat bordered box like the editor's panels: square, opaque, no shadow.
+  // An opaque bordered box with no shadow, like the editor's panels, but
+  // rounded: it floats over the canvas rather than framing the embed, and
+  // `lg` is the `md` of the controls it wraps plus the padding around them.
   borderWidth: "thin",
   borderColor: "neutral.s40",
+  borderRadius: "lg",
   backgroundColor: "neutral.s00",
   "&[data-expanded='true']": {
     width: "[calc(100% - 16px)]",
