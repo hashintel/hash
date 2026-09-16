@@ -80,7 +80,6 @@ const breadcrumbStyle = css({
   gap: "2",
   flex: "1",
   minWidth: "0",
-  overflow: "hidden",
   fontSize: "xs",
   lineHeight: "[20px]",
 });
@@ -97,7 +96,7 @@ const parentTitleStyle = css({
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   textAlign: "left",
-  color: "neutral.s90",
+  color: "fg.muted",
   fontWeight: "medium",
   cursor: "pointer",
   transition: "[color 140ms ease]",
