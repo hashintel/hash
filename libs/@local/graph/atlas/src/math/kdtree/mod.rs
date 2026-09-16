@@ -196,8 +196,7 @@ where
             |index, _| Leaf::new(I::from_usize(index)),
         )
         .expect(
-            "the leaf strategy is soft-bucketed and items arrive from the closure, so no \
-             construction error is reachable",
+            "soft buckets and closure-supplied items make engine construction errors unreachable",
         );
 
         Self { points, engine }

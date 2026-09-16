@@ -6,7 +6,14 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use super::{DPositive, Finite, Negative, raw_interop, unsafe_impl_try_from_bytes};
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
+
+use super::{DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
+use crate::math::Derivation;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a positive literal at compile time.
 ///
@@ -307,6 +314,33 @@ const impl core::ops::Sub for Positive {
     }
 }
 
+const impl core::ops::Mul for Positive {
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 * rhs.0)
+    }
+}
+
+const impl core::ops::Mul<NonNegative> for Positive {
+    type Output = Derivation<NonNegative>;
+
+    #[inline]
+    fn mul(self, rhs: NonNegative) -> Self::Output {
+        Derivation::raw(self.0 * rhs.get())
+    }
+}
+
+const impl core::ops::Div for Positive {
+    type Output = Derivation<Self>;
+
+    #[inline]
+    fn div(self, rhs: Self) -> Self::Output {
+        Derivation::raw(self.0 / rhs.0)
+    }
+}
+
 const impl core::ops::Div<Positive> for f32 {
     type Output = f32;
 
@@ -317,20 +351,6 @@ const impl core::ops::Div<Positive> for f32 {
     #[inline]
     fn div(self, rhs: Positive) -> f32 {
         self / rhs.0
-    }
-}
-
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for Positive {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (f32::from_bits(1)..=f32::MAX)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
     }
 }
 
@@ -354,3 +374,14 @@ impl<'de> serde::Deserialize<'de> for Positive {
 
 raw_interop!(Positive[f32]);
 unsafe_impl_try_from_bytes!(Positive[f32]);
+
+#[cfg(test)]
+impl Arbitrary for Positive {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (num::f32::POSITIVE | num::f32::NORMAL | num::f32::SUBNORMAL).prop_map(Self)
+    }
+}

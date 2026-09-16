@@ -181,7 +181,7 @@ impl Similarity {
 /// `squared` must be nonnegative and finite, and `pairs` must be nonzero.
 #[expect(
     clippy::cast_precision_loss,
-    reason = "pair counts remain exactly representable in f64 far beyond any corpus"
+    reason = "deliberately convert the pair count for double-precision arithmetic"
 )]
 fn finish_rms(squared: f64, pairs: usize) -> DNonNegative {
     // Finite f32 coordinates and coefficients have magnitude below 2¹²⁸. Each residual component

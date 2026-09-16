@@ -27,8 +27,8 @@ use crate::{
     },
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, Bounds2, Vec2, d_non_negative, d_positive, non_negative, open_unit_fraction,
-        unit_fraction,
+        AffinityCurve, Bounds2, Vec2, d_non_negative, d_positive, non_negative, nz,
+        open_unit_fraction, positive, unit_fraction,
     },
     morton::Depth,
     salt::{
@@ -84,8 +84,7 @@ fn config(seed: u64) -> FitConfig {
             maximum_count: NonZero::new(2).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::new(1.577, 0.895)
-            .expect("the fixture parameters are finite and strictly positive"),
+        curve: AffinityCurve::new(positive!(1.577), positive!(0.895)),
         ..
     }
 }

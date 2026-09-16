@@ -221,8 +221,8 @@ mod miri {
     #[test]
     #[expect(
         clippy::suboptimal_flops,
-        reason = "the potency guard contrasts the fused and separate forms, so the separate form \
-                  must stay unfused"
+        reason = "products and sum must round separately to distinguish the unfused and fused \
+                  results"
     )]
     fn dvec2x4t_distance_squared_matches_the_scalar_twin_per_lane() {
         let (sources, targets) = distance_pairs();

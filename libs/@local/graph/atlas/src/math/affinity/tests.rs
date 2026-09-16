@@ -15,13 +15,17 @@ use super::{
     AffinityFitConfig,
     fit::{SampleGrid, fit_curve},
 };
-use crate::math::{AffinityCurve, Positive, Vec2, Vec2x4T, d_positive, positive, tests::POINTS};
+use crate::math::{
+    AffinityCurve, NonNegative, Positive, Vec2, Vec2x4T, d_positive, non_negative, positive,
+    tests::POINTS,
+};
 
-/// The reference parameters for spread 1.0, minimum distance 0.1.
-// Provenance: umap-learn's `find_ab_params(spread=1.0, min_dist=0.1)`
-// yields a ≈ 1.5769, b ≈ 0.8951 over the same 300-sample grid.
-const CURVE_A: f32 = 1.577;
-const CURVE_B: f32 = 0.895;
+/// The rounded reference coefficient for spread 1.0 and minimum distance 0.1.
+// umap-learn's find_ab_params uses the same 300-sample target, with recorded a ≈ 1.5769 and b ≈
+// 0.8951
+const CURVE_A: Positive = positive!(1.577);
+/// The rounded reference exponent paired with [`CURVE_A`].
+const CURVE_B: Positive = positive!(0.895);
 
 /// Computes the target residual sum of squares with a separate `f64` loop.
 ///
@@ -45,7 +49,7 @@ fn reference_rss(spread: f64, minimum_distance: f64, curve_a: f64, curve_b: f64)
 
 /// Creates the curve with parameters [`CURVE_A`] and [`CURVE_B`].
 fn curve() -> AffinityCurve {
-    AffinityCurve::new(CURVE_A, CURVE_B).expect("reference parameters are positive and finite")
+    AffinityCurve::new(CURVE_A, CURVE_B)
 }
 
 /// Computes the attraction update using separate `f64` powers.
@@ -174,7 +178,7 @@ fn fit_recovers_the_parameters_of_an_exact_affinity_target() {
     let grid = SampleGrid::new(300, d_positive!(3.0 / 299.0));
 
     let (fitted_a, fitted_b) = fit_curve(grid, |distance| {
-        1.0 / (1.0 + known_a * distance.powf(2.0 * known_b))
+        1.0 / (1.0 + known_a * f64::from(distance).powf(2.0 * known_b))
     })
     .expect("an exact affinity target is well-conditioned");
 
@@ -233,15 +237,18 @@ fn fitted_curve_tracks_its_target_falloff() {
     .expect("the inputs are well-conditioned");
 
     // Inside the minimum distance the target membership is 1.
-    assert_eq!(fitted.affinity(0.0), 1.0);
-    assert!(fitted.affinity(0.25 * 0.25) > 0.9);
+    assert_eq!(fitted.affinity(NonNegative::ZERO), 1.0);
+    assert!(fitted.affinity(non_negative!(0.25 * 0.25)) > 0.9);
 
     // Beyond it the curve tracks the exponential falloff to within
     // 0.05: the fit trades pointwise accuracy for least-squares
     // balance.
     for distance in [0.75_f32, 1.5, 3.0, 4.5] {
         let target = (-(distance - minimum_distance) / spread).exp();
-        let affinity = fitted.affinity(distance * distance);
+        let affinity = fitted.affinity(
+            NonNegative::new(distance * distance)
+                .expect("the fixture distances have finite squares"),
+        );
         assert!(
             (affinity - target).abs() < 0.05,
             "at distance {distance}: expected roughly {target}, got {affinity}",
@@ -360,7 +367,7 @@ fn solver_refuses_a_target_that_poisons_only_the_objective() {
         if distance == 0.0 {
             f64::NAN
         } else {
-            1.0 / (1.0 + 1.5 * distance.powf(1.8))
+            1.0 / (1.0 + 1.5 * f64::from(distance).powf(1.8))
         }
     });
 
@@ -391,7 +398,7 @@ fn solver_solves_a_well_conditioned_system_of_tiny_magnitudes() {
     // of both damped diagonals tests relative cancellation without imposing an absolute
     // matrix-magnitude floor.
     let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(4, d_positive!(1e-5)), |distance| {
-        1.0 / (1.0 + 2.0 * distance.powf(2.0))
+        1.0 / (1.0 + 2.0 * f64::from(distance).powf(2.0))
     })
     .expect("a tiny well-conditioned grid still fits");
 
@@ -411,7 +418,7 @@ fn fit_recovers_parameters_orders_of_magnitude_from_the_start() {
     for known_a in [100.0, 1e8] {
         let (fitted_a, fitted_b) =
             fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
-                1.0 / (1.0 + known_a * distance.powf(2.0))
+                1.0 / (1.0 + known_a * f64::from(distance).powf(2.0))
             })
             .expect("an exact affinity target is well-conditioned");
 
@@ -434,7 +441,7 @@ fn solver_terminates_a_creep_along_the_domain_boundary() {
     // distances, decreasing a moves the curve toward one. This puts the fit near its
     // positive-parameter boundary, where damping and stopping thresholds matter.
     let result = fit_curve(SampleGrid::new(300, d_positive!(3.0 / 299.0)), |distance| {
-        30.0 / (1.0 + 1.5 * distance.powf(1.8))
+        30.0 / (1.0 + 1.5 * f64::from(distance).powf(1.8))
     });
 
     assert!(
@@ -451,7 +458,7 @@ fn tiny_step_convergence_requires_both_parameters() {
     const TUNED_A: f64 = 0.931_322_701_934_099;
 
     let (fitted_a, fitted_b) = fit_curve(SampleGrid::new(12, d_positive!(0.25)), |distance| {
-        1.0 / (1.0 + TUNED_A * distance.powf(6.0))
+        1.0 / (1.0 + TUNED_A * f64::from(distance).powf(6.0))
     })
     .expect("an exact affinity target is well-conditioned");
 
@@ -470,7 +477,7 @@ fn solver_rescues_a_walk_whose_steps_worsen_the_objective() {
     // the target a = b = 30 has a steep falloff over a grid extending to distance 30
     let (fitted_a, fitted_b) =
         fit_curve(SampleGrid::new(50, d_positive!(30.0 / 49.0)), |distance| {
-            1.0 / (1.0 + 30.0 * distance.powf(60.0))
+            1.0 / (1.0 + 30.0 * f64::from(distance).powf(60.0))
         })
         .expect("a steep exact target still fits");
 
@@ -485,24 +492,41 @@ fn solver_rescues_a_walk_whose_steps_worsen_the_objective() {
 }
 
 #[test]
-fn new_rejects_degenerate_parameters() {
-    assert!(AffinityCurve::new(1.0, 1.0).is_some());
-    assert!(AffinityCurve::new(0.0, 1.0).is_none());
-    assert!(AffinityCurve::new(1.0, 0.0).is_none());
-    assert!(AffinityCurve::new(-1.0, 1.0).is_none());
-    assert!(AffinityCurve::new(f32::NAN, 1.0).is_none());
-    assert!(AffinityCurve::new(1.0, f32::INFINITY).is_none());
+fn affinity_overflowed_power() {
+    let curve = AffinityCurve::new(Positive::ONE, positive!(2.0));
+
+    assert_eq!(curve.affinity(non_negative!(f32::MAX)), 0.0);
+}
+
+#[test]
+fn affinity_overflowed_denominator() {
+    let curve = AffinityCurve::new(Positive::MAX, Positive::ONE);
+
+    assert_eq!(curve.affinity(non_negative!(2.0)), 0.0);
+}
+
+#[test]
+fn attraction_indeterminate_coefficient() {
+    let curve = AffinityCurve::new(Positive::ONE, positive!(3.0));
+    // ρ = 10²⁰ is finite, but ρ² overflows. The coefficient is then ∞/∞.
+    let gradient = curve.attraction(Vec2::new(1e10, 0.0), Vec2::ZERO);
+
+    assert!(gradient.x().is_nan());
+    assert!(gradient.y().is_nan());
 }
 
 #[test]
 fn affinity_is_one_at_zero_and_decreases() {
     let curve = curve();
 
-    assert_eq!(curve.affinity(0.0), 1.0);
+    assert_eq!(curve.affinity(NonNegative::ZERO), 1.0);
 
     let mut previous = 1.0;
     for step in 1..=8_u8 {
-        let affinity = curve.affinity(f32::from(step) * 2.0);
+        let affinity = curve.affinity(
+            NonNegative::new(f32::from(step) * 2.0)
+                .expect("the eight steps have finite positive distances"),
+        );
         assert!(affinity < previous, "affinity must fall monotonically");
         assert!(affinity > 0.0);
         previous = affinity;
@@ -534,7 +558,7 @@ fn attraction_matches_f64_reference() {
 #[test]
 fn repulsion_matches_f64_reference() {
     let curve = curve();
-    let strength = 1.0;
+    let strength = NonNegative::ONE;
 
     for (from, to) in POINTS.into_iter().zip(ANCHORS) {
         assert_close(
@@ -565,7 +589,7 @@ fn gradients_point_in_the_right_direction() {
     assert!(attraction.dot(from - to) < 0.0);
 
     // Repulsion pushes `from` away from `to`: along the difference.
-    let repulsion = curve.repulsion(from, to, 1.0);
+    let repulsion = curve.repulsion(from, to, NonNegative::ONE);
     assert!(repulsion.dot(from - to) > 0.0);
 }
 
@@ -575,7 +599,7 @@ fn coincident_pairs_receive_no_gradient() {
     let point = Vec2::new(2.5, -1.5);
 
     assert_eq!(curve.attraction(point, point), Vec2::ZERO);
-    assert_eq!(curve.repulsion(point, point, 1.0), Vec2::ZERO);
+    assert_eq!(curve.repulsion(point, point, NonNegative::ONE), Vec2::ZERO);
 
     // A batch with one coincident lane zeroes only that lane.
     let mut anchors = ANCHORS;
@@ -593,11 +617,15 @@ fn near_coincident_repulsion_saturates_the_clip() {
     let from = Vec2::new(0.01, 0.0);
     let to = Vec2::ZERO;
 
-    let gradient = curve.repulsion(from, to, 1.0);
+    let gradient = curve.repulsion(from, to, NonNegative::ONE);
     assert_eq!(gradient.x(), AffinityCurve::GRADIENT_CLIP);
     assert_eq!(gradient.y(), 0.0);
 
-    let batch = curve.repulsion_x4(Vec2x4T::from([from; 4]), Vec2x4T::from([to; 4]), 1.0);
+    let batch = curve.repulsion_x4(
+        Vec2x4T::from([from; 4]),
+        Vec2x4T::from([to; 4]),
+        NonNegative::ONE,
+    );
     assert_eq!(batch.get(0), gradient);
 }
 
@@ -607,8 +635,12 @@ fn gradients_stay_finite_at_extreme_distances() {
     let far = Vec2::new(1e18, -1e18);
 
     assert!(curve.attraction(far, Vec2::ZERO).is_finite());
-    assert!(curve.repulsion(far, Vec2::ZERO, 1.0).is_finite());
-    assert!(curve.affinity(f32::MAX).is_finite());
+    assert!(
+        curve
+            .repulsion(far, Vec2::ZERO, NonNegative::ONE)
+            .is_finite()
+    );
+    assert!(curve.affinity(non_negative!(f32::MAX)).is_finite());
 
     let batch = curve.attraction_x4(Vec2x4T::from([far; 4]), Vec2x4T::from([Vec2::ZERO; 4]));
     assert!(batch.get(0).is_finite());
@@ -627,7 +659,10 @@ fn point_array_strategy() -> impl Strategy<Value = [Vec2; 4]> {
 /// Generates curves with a in `1e-3..1e3` and b in `0.1..5`.
 fn curve_strategy() -> impl Strategy<Value = AffinityCurve> {
     (1e-3_f32..1e3, 0.1_f32..5.0).prop_map(|(curve_a, curve_b)| {
-        AffinityCurve::new(curve_a, curve_b).expect("the strategy's ranges are positive and finite")
+        AffinityCurve::new(
+            Positive::new(curve_a).expect("the strategy's coefficient is positive and finite"),
+            Positive::new(curve_b).expect("the strategy's exponent is positive and finite"),
+        )
     })
 }
 
@@ -661,6 +696,10 @@ fn affinity_is_a_monotone_probability(
     #[strategy = 0.0_f32..1e6] first: f32,
     #[strategy = 0.0_f32..1e6] second: f32,
 ) {
+    let first =
+        NonNegative::new(first).expect("the strategy's distances are non-negative and finite");
+    let second =
+        NonNegative::new(second).expect("the strategy's distances are non-negative and finite");
     let (near, far) = if first <= second {
         (first, second)
     } else {
@@ -699,7 +738,7 @@ fn gradients_align_with_the_difference_vector(
     let difference = from - to;
 
     prop_assert!(curve.attraction(from, to).dot(difference) < 0.0);
-    prop_assert!(curve.repulsion(from, to, 1.0).dot(difference) > 0.0);
+    prop_assert!(curve.repulsion(from, to, NonNegative::ONE).dot(difference) > 0.0);
 }
 
 #[property_test]
@@ -726,6 +765,8 @@ fn repulsion_x4_matches_scalar_repulsion_per_lane(
     #[strategy = 1e-2_f32..1e2] strength: f32,
 ) {
     let curve = curve();
+    let strength =
+        NonNegative::new(strength).expect("the strategy's strength is positive and finite");
 
     let batch = curve.repulsion_x4(Vec2x4T::from(from), Vec2x4T::from(to), strength);
     for (index, (from, to)) in from.into_iter().zip(to).enumerate() {

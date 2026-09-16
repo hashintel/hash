@@ -40,14 +40,14 @@ impl AffinityEnergy {
     #[must_use]
     pub(crate) fn attraction(self, distance_squared: NonNegative) -> (f32, f32) {
         let epsilon = self.epsilon.get();
-        let affinity = self.curve.affinity(distance_squared.get());
+        let affinity = self.curve.affinity(distance_squared);
         let value = -(affinity + epsilon).ln();
         if distance_squared.is_zero() {
             return (value, 0.0);
         }
 
-        // d/du of -ln(q + ε) = a b u^(b - 1) q^2 / (q + ε).
-        let derivative = self.mass(distance_squared.get(), affinity) / (affinity + epsilon);
+        // d/du of -ln(q + ε) = a b u^(b - 1) q² / (q + ε).
+        let derivative = self.mass(distance_squared, affinity) / (affinity + epsilon);
         (value, derivative)
     }
 
@@ -60,28 +60,29 @@ impl AffinityEnergy {
     #[must_use]
     pub(crate) fn repulsion(self, distance_squared: NonNegative) -> (f32, f32) {
         let epsilon = self.epsilon.get();
-        let affinity = self.curve.affinity(distance_squared.get());
+        let affinity = self.curve.affinity(distance_squared);
         let value = -(1.0 - affinity + epsilon).ln();
         if distance_squared.is_zero() {
             return (value, 0.0);
         }
 
-        // d/du of -ln(1 - q + ε) = -a b u^(b - 1) q^2 / (1 - q + ε).
-        let derivative = -self.mass(distance_squared.get(), affinity) / (1.0 - affinity + epsilon);
+        // d/du of -ln(1 - q + ε) = -a b u^(b - 1) q² / (1 - q + ε).
+        let derivative = -self.mass(distance_squared, affinity) / (1.0 - affinity + epsilon);
         (value, derivative)
     }
 
     /// Computes the shared derivative mass `a b u^(b - 1) q²`.
     ///
-    /// `-q'(u)` in both derivatives; the callers divide by their respective logarithm arguments and
-    /// choose the sign.
-    fn mass(self, distance_squared: f32, affinity: f32) -> f32 {
-        #[expect(
-            clippy::min_ident_chars,
-            reason = "a and b are the affinity curve's literature parameter names"
-        )]
+    /// This is `-q'(u)` in both derivatives. The callers divide by their respective logarithm
+    /// arguments and choose the sign.
+    #[expect(
+        clippy::min_ident_chars,
+        reason = "a and b are the affinity curve's literature parameter names"
+    )]
+    fn mass(self, distance_squared: NonNegative, affinity: f32) -> f32 {
         let (a, b) = (self.curve.a(), self.curve.b());
-        a * b * distance_squared.powf(b - 1.0) * affinity * affinity
+        let power = distance_squared.powf(b - Positive::ONE);
+        (a * b * power * affinity * affinity).into_raw()
     }
 }
 
@@ -99,8 +100,8 @@ impl AffinityEnergy {
 /// competing terms jointly set a pair's equilibrium distance.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct ProximalEnergy {
-    radius: NonNegative,
-    temperature: Positive,
+    pub radius: NonNegative,
+    pub temperature: Positive,
 }
 
 impl ProximalEnergy {
@@ -129,10 +130,9 @@ impl ProximalEnergy {
     /// [`f32::MAX`].
     #[must_use]
     pub(crate) fn evaluate(self, normalized: NonNegative) -> (NonNegative, NonNegative) {
-        // The quotient can leave the finite domain, so the scaled excess and softplus
-        // compute raw: softplus carries +∞ through and the clamp re-enters the domain.
-        // sigmoid is total over the extended reals and re-enters on its own.
-        let argument = (normalized - self.radius) / self.temperature;
+        // the scaled excess can overflow. softplus preserves +∞, which saturates at the output's
+        // maximum. sigmoid accepts either infinity.
+        let argument = ((normalized - self.radius) / self.temperature).into_raw();
 
         (
             NonNegative::new_unchecked((self.temperature * softplus(argument)).min(f32::MAX)),
@@ -148,8 +148,8 @@ impl ProximalEnergy {
 /// derivative is continuous everywhere.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct CoincidentEnergy {
-    radius: NonNegative,
-    threshold: Positive,
+    pub radius: NonNegative,
+    pub threshold: Positive,
 }
 
 impl CoincidentEnergy {

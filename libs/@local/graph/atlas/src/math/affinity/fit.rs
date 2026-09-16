@@ -13,7 +13,9 @@
 use core::num::NonZero;
 
 use super::AffinityCurve;
-use crate::math::{DNonNegative, DPositive, Positive, positive, scalar::narrow_f32};
+use crate::math::{
+    DFinite, DNonNegative, DPositive, Derivation, Positive, d_finite, d_positive, positive,
+};
 
 /// Sample count and distance range for the least-squares target.
 ///
@@ -140,7 +142,7 @@ impl AffinityCurve {
             }
         })?;
 
-        Self::new(narrow_f32(a.get())?, narrow_f32(b.get())?)
+        Some(Self::new(a.narrow()?, b.narrow()?))
     }
 }
 
@@ -193,38 +195,50 @@ impl SampleGrid {
 #[derive(Debug, Copy, Clone)]
 struct NormalEquations {
     /// Sum of squared residuals, the objective the fit minimizes.
-    residual_sum_of_squares: f64,
+    residual_sum_of_squares: DFinite,
     /// The `a`-`a` entry of the normal matrix.
-    j_aa: f64,
+    j_aa: DFinite,
     /// The symmetric off-diagonal entry of the normal matrix.
-    j_ab: f64,
+    j_ab: DFinite,
     /// The `b`-`b` entry of the normal matrix.
-    j_bb: f64,
-    /// The `a` component of the gradient.
-    g_a: f64,
-    /// The `b` component of the gradient.
-    g_b: f64,
+    j_bb: DFinite,
+    /// The `a` component of Jᵀr.
+    g_a: DFinite,
+    /// The `b` component of Jᵀr.
+    g_b: DFinite,
 }
 
-impl NormalEquations {
-    /// The additive identity every accumulation pass starts from.
+/// Unvalidated sums for one objective and Jacobian evaluation.
+struct NormalEquationsDerivation {
+    residual_sum_of_squares: Derivation<DFinite>,
+    j_aa: Derivation<DFinite>,
+    j_ab: Derivation<DFinite>,
+    j_bb: Derivation<DFinite>,
+    g_a: Derivation<DFinite>,
+    g_b: Derivation<DFinite>,
+}
+
+impl NormalEquationsDerivation {
+    /// Empty sums before the first sample.
     const ZERO: Self = Self {
-        residual_sum_of_squares: 0.0,
-        j_aa: 0.0,
-        j_ab: 0.0,
-        j_bb: 0.0,
-        g_a: 0.0,
-        g_b: 0.0,
+        residual_sum_of_squares: Derivation::ZERO,
+        j_aa: Derivation::ZERO,
+        j_ab: Derivation::ZERO,
+        j_bb: Derivation::ZERO,
+        g_a: Derivation::ZERO,
+        g_b: Derivation::ZERO,
     };
 
-    /// Returns whether every accumulated sum is finite.
-    const fn is_finite(self) -> bool {
-        self.residual_sum_of_squares.is_finite()
-            && self.j_aa.is_finite()
-            && self.j_ab.is_finite()
-            && self.j_bb.is_finite()
-            && self.g_a.is_finite()
-            && self.g_b.is_finite()
+    /// Validates the accumulated sums, returning [`None`] if any is non-finite.
+    fn finish(self) -> Option<NormalEquations> {
+        Some(NormalEquations {
+            residual_sum_of_squares: self.residual_sum_of_squares.finish().ok()?,
+            j_aa: self.j_aa.finish().ok()?,
+            j_ab: self.j_ab.finish().ok()?,
+            j_bb: self.j_bb.finish().ok()?,
+            g_a: self.g_a.finish().ok()?,
+            g_b: self.g_b.finish().ok()?,
+        })
     }
 }
 
@@ -334,13 +348,16 @@ fn evaluate(
     a: DPositive,
     b: DPositive,
 ) -> Option<NormalEquations> {
-    let mut sums = NormalEquations::ZERO;
+    let mut sums = NormalEquationsDerivation::ZERO;
+    let exponent = (d_positive!(2.0) * b).finish().ok()?;
 
     for index in 0..grid.samples {
         let distance = grid.distance(index);
-        let power = distance.powf(2.0 * b).get();
-        let denominator = a.get().mul_add(power, 1.0);
-        let residual = 1.0 / denominator - target(distance);
+        let power = distance.powf(exponent.into());
+
+        let denominator = Derivation::from(DNonNegative::from(a)).mul_add(power, DPositive::ONE);
+        let residual = Derivation::from(DFinite::ONE) / denominator - target(distance);
+
         sums.residual_sum_of_squares = residual.mul_add(residual, sums.residual_sum_of_squares);
 
         // the zero-distance sample contributes residual error with zero parameter partials
@@ -349,8 +366,9 @@ fn evaluate(
         };
 
         let denominator_squared = denominator * denominator;
-        let partial_a = -power / denominator_squared;
-        let partial_b = -(2.0 * a * power * distance.ln()) / denominator_squared;
+        let partial_a = (Derivation::from(-DFinite::ONE) * power) / denominator_squared;
+        let partial_b = (d_finite!(-2.0) * a * power * distance.ln()) / denominator_squared;
+
         sums.j_aa = partial_a.mul_add(partial_a, sums.j_aa);
         sums.j_ab = partial_a.mul_add(partial_b, sums.j_ab);
         sums.j_bb = partial_b.mul_add(partial_b, sums.j_bb);
@@ -358,7 +376,7 @@ fn evaluate(
         sums.g_b = partial_b.mul_add(residual, sums.g_b);
     }
 
-    sums.is_finite().then_some(sums)
+    sums.finish()
 }
 
 /// Solves the multiplicatively damped 2x2 normal system.
@@ -372,23 +390,56 @@ fn evaluate(
 /// is [`f64::EPSILON`], or when a computed step is non-finite. This numerical floor rejects
 /// near-cancellation, without certifying exact conditioning.
 fn solve_damped(equations: NormalEquations, damping: f64) -> Option<(f64, f64)> {
-    let damped_aa = equations.j_aa * (1.0 + damping);
-    let damped_bb = equations.j_bb * (1.0 + damping);
-    let determinant = damped_aa.mul_add(damped_bb, -(equations.j_ab * equations.j_ab));
+    let damped_aa = Derivation::from(equations.j_aa) * (1.0 + damping);
+    let damped_bb = Derivation::from(equations.j_bb) * (1.0 + damping);
+    let determinant = damped_aa
+        .mul_add(damped_bb, -(equations.j_ab * equations.j_ab))
+        .finish()
+        .ok()?
+        .positive()?;
 
-    // The damped matrix is positive definite in exact arithmetic; at or
-    // below the floor the closed form divides cancellation noise.
-    if !determinant.is_finite() || determinant <= f64::EPSILON * damped_aa * damped_bb {
+    // compare determinant cancellation against the product scale of both damped diagonals
+    let determinant_floor = (damped_aa * d_positive!(f64::EPSILON) * damped_bb)
+        .finish()
+        .ok()?;
+    if DFinite::from(determinant) <= determinant_floor {
         return None;
     }
 
-    let step_a = equations
-        .j_ab
+    let step_a = Derivation::from(equations.j_ab)
         .mul_add(equations.g_b, -(damped_bb * equations.g_a))
         / determinant;
-    let step_b = equations
-        .j_ab
+    let step_b = Derivation::from(equations.j_ab)
         .mul_add(equations.g_a, -(damped_aa * equations.g_b))
         / determinant;
-    (step_a.is_finite() && step_b.is_finite()).then_some((step_a, step_b))
+    Some((step_a.finish().ok()?.get(), step_b.finish().ok()?.get()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SampleGrid, evaluate};
+    use crate::math::{DPositive, d_positive};
+
+    #[test]
+    fn evaluation_power_overflow() {
+        // The affinity rounds to zero, but the parameter partials contain ∞/∞.
+        let equations = evaluate(
+            SampleGrid::new(2, d_positive!(1e200)),
+            &|_| 0.0,
+            DPositive::ONE,
+            DPositive::ONE,
+        );
+        assert!(equations.is_none());
+    }
+
+    #[test]
+    fn evaluation_exponent_overflow() {
+        let equations = evaluate(
+            SampleGrid::new(2, DPositive::ONE),
+            &|_| 0.0,
+            DPositive::ONE,
+            d_positive!(f64::MAX),
+        );
+        assert!(equations.is_none());
+    }
 }

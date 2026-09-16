@@ -33,8 +33,8 @@ use crate::{
     device::{Inference, PinnedDevice},
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     math::{
-        AffinityCurve, FinitePointField, MatrixN, NonNegative, Positive, UnitFraction, Vec2,
-        non_negative,
+        AffinityCurve, FinitePointField, MatrixN, NonNegative, UnitFraction, Vec2, non_negative,
+        positive,
     },
     salt::{
         policy::ClassProbabilities,
@@ -423,21 +423,21 @@ fn objective_options() -> ObjectiveOptions {
     let ratified = crate::salt::fit::ProjectorOptions::ratified();
     ObjectiveOptions {
         affinity: AffinityEnergy::new(
-            AffinityCurve::new(1.0, 1.0).expect("the curve constants are valid"),
+            AffinityCurve::new(positive!(1.0), positive!(1.0)),
             ratified.affinity_offset,
         )
         .expect("the curve exponent satisfies the objective bound"),
         relation: Some(
             RelationEnergy::new(
-                CoincidentEnergy::new(
-                    NonNegative::new(0.05).expect("the bench radius is non-negative"),
-                    Positive::new(1.0).expect("the bench threshold is positive"),
-                ),
-                ProximalEnergy::new(
-                    NonNegative::new(0.1).expect("the bench radius is non-negative"),
-                    Positive::new(0.25).expect("the bench temperature is positive"),
-                ),
-                Positive::new(1.0e-3).expect("the bench scale guard is positive"),
+                CoincidentEnergy {
+                    radius: non_negative!(0.05),
+                    threshold: positive!(1.0),
+                },
+                ProximalEnergy {
+                    radius: non_negative!(0.1),
+                    temperature: positive!(0.25),
+                },
+                positive!(1.0e-3),
             )
             .expect("the radii are ordered"),
         ),

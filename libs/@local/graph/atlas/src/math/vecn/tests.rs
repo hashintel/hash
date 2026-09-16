@@ -390,7 +390,7 @@ mod miri {
         wrapped_mut[1] = *VecN::from_ref(&[9.0; 8]);
         assert_eq!(
             source[1], [9.0; 8],
-            "a write through the mut wrapper must land in the source"
+            "a write through the mut wrapper must update the source"
         );
     }
 

@@ -19,7 +19,8 @@ use crate::{
     identity::{EdgeRowId, NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
     math::{
-        AffinityCurve, FinitePointField, NonNegative, PositiveUnitFraction, UnitFraction, Vec2,
+        AffinityCurve, FinitePointField, NonNegative, PositiveUnitFraction, UnitFraction, Vec2, nz,
+        positive,
     },
     salt::{embedding::EmbedderFingerprint, fit::FitConfig, landmark::select::SelectionOptions},
 };
@@ -41,8 +42,7 @@ pub(super) fn config() -> FitConfig {
             maximum_count: NonZero::new(512).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::new(1.5, 0.9)
-            .expect("the fixture parameters are finite and strictly positive"),
+        curve: AffinityCurve::new(positive!(1.5), positive!(0.9)),
         ..
     }
 }

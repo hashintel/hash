@@ -35,7 +35,7 @@ const MAP_MARGIN: Positive = Positive::new(1.04).unwrap();
 ///
 /// The first refresh tick of a collapsed initialization reports rows that all sit together, which
 /// has a centre but no size to scale.
-const MINIMUM_EXTENT: f32 = 1.0;
+const MINIMUM_EXTENT: Positive = Positive::new(1.0).unwrap();
 
 /// Draws the placement itself, the sampled rows as braille dots with the skeleton picked out.
 ///
@@ -52,10 +52,15 @@ pub(super) fn render_map(frame: &mut Frame, area: Rect, placement: &PlacementMap
         .title_bottom(population(placement, area.width).right_aligned());
     let inner = block.inner(area);
 
+    let Some([horizontal, vertical]) = map_bounds(&placement.positions, inner) else {
+        // leave an unrepresentable viewport empty instead of drawing a partial placement.
+        frame.render_widget(block, area);
+        return;
+    };
+
     let (skeleton, interior) = placement.positions.split_at(placement.landmarks);
     let skeleton: Vec<(f64, f64)> = drawable(skeleton).into_iter().collect();
     let interior: Vec<(f64, f64)> = drawable(interior).into_iter().collect();
-    let [horizontal, vertical] = map_bounds(&placement.positions, inner);
 
     let canvas = Canvas::default()
         .block(block)
@@ -96,20 +101,22 @@ fn drawable(positions: &[Vec2]) -> impl IntoIterator<Item = (f64, f64)> {
 /// The map's viewport, which is the placement's own extent squared against the pane's dot grid.
 ///
 /// A braille cell is [`DOTS_ACROSS`] dots wide and [`DOTS_DOWN`] tall over a terminal cell about
-/// twice as tall as it is wide, so a dot is approximately square. Equal data units per dot on both
-/// axes is what keeps the atlas its own shape instead of a version stretched to fill the frame. The
-/// extent grows to the grid's aspect first and then by [`MAP_MARGIN`]. A placement with no extent
-/// of its own grows to [`MINIMUM_EXTENT`] instead, so its rows sit in the middle of a frame rather
-/// than dividing by zero.
-pub(super) fn map_bounds(positions: &[Vec2], inner: Rect) -> [[f64; 2]; 2] {
+/// twice as tall as it is wide, which leaves each dot approximately square. Growing to the grid's
+/// aspect ratio before applying [`MAP_MARGIN`] gives both axes equal data units per dot in exact
+/// arithmetic.
+/// A collapsed placement first grows to [`MINIMUM_EXTENT`] to provide a positive extent.
+///
+/// Returns [`None`] when growth requires a corner beyond the finite `f32` range. With no finite
+/// position, returns a unit viewport around the origin. Corner rounding follows
+/// [`Bounds2::with_aspect_ratio`] and can change the achieved aspect ratio.
+pub(super) fn map_bounds(positions: &[Vec2], inner: Rect) -> Option<[[f64; 2]; 2]> {
     let Some(bounds) = Bounds2::from_points(
         positions
             .iter()
             .copied()
             .filter(|position| position.is_finite()),
     ) else {
-        // Nothing placeable to draw yet.
-        return [[-1.0, 1.0], [-1.0, 1.0]];
+        return Some([[-1.0, 1.0], [-1.0, 1.0]]);
     };
 
     let across = (f32::from(inner.width) * f32::from(DOTS_ACROSS)).max(1.0);
@@ -117,14 +124,14 @@ pub(super) fn map_bounds(positions: &[Vec2], inner: Rect) -> [[f64; 2]; 2] {
     let aspect = Positive::new(across / down).unwrap_or(Positive::ONE);
 
     let viewport = bounds
-        .with_minimum_extent(MINIMUM_EXTENT)
-        .with_aspect_ratio(aspect)
-        .scaled_about_centre(MAP_MARGIN);
+        .with_minimum_extent(MINIMUM_EXTENT)?
+        .with_aspect_ratio(aspect)?
+        .scaled_about_centre(MAP_MARGIN)?;
 
-    [
+    Some([
         [f64::from(viewport.min().x()), f64::from(viewport.max().x())],
         [f64::from(viewport.min().y()), f64::from(viewport.max().y())],
-    ]
+    ])
 }
 
 /// The map's footer, showing how many rows it is drawing and how many of them are the skeleton.

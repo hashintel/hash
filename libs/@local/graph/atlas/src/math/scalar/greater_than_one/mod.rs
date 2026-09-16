@@ -1,12 +1,17 @@
 //! The finite `f64` scalar strictly greater than one.
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::unsafe_impl_try_from_bytes;
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a greater-than-one literal at compile time.
 ///
 /// The expansion is a `const` block over [`GreaterThanOne::new`], so a literal outside the domain
 /// fails the build instead of a test run. Runtime values keep the checked constructor.
-#[cfg(test)]
 macro_rules! greater_than_one {
     ($value:expr) => {
         const {
@@ -15,7 +20,6 @@ macro_rules! greater_than_one {
         }
     };
 }
-#[cfg(test)]
 pub(crate) use greater_than_one;
 
 /// A finite `f64` strictly greater than one, valid by construction.
@@ -76,3 +80,32 @@ impl GreaterThanOne {
 }
 
 unsafe_impl_try_from_bytes!(GreaterThanOne[f64]);
+
+impl serde::Serialize for GreaterThanOne {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GreaterThanOne {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = f64::deserialize(deserializer)?;
+        Self::new(value).ok_or_else(|| {
+            serde::de::Error::invalid_value(
+                serde::de::Unexpected::Float(value),
+                &"a finite positive number greater than one",
+            )
+        })
+    }
+}
+
+#[cfg(test)]
+impl Arbitrary for GreaterThanOne {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (1.0_f64.next_up()..=f64::MAX).prop_map(Self)
+    }
+}

@@ -97,8 +97,7 @@ fn config() -> FitConfig {
             maximum_count: NonZero::new(4_096).expect("the fixture capacity is nonzero"),
             ..
         },
-        curve: AffinityCurve::new(1.577, 0.895)
-            .expect("the fixture parameters are finite and strictly positive"),
+        curve: AffinityCurve::new(positive!(1.577), positive!(0.895)),
         placement: placement(),
         policy: PolicyOptions {
             overrides: vec![PolicyOverride {

@@ -12,6 +12,8 @@
 
 use core::simd::Simd;
 
+use serde::de::Error as _;
+
 use super::{
     Positive,
     kernel::mul_add_f32x4,
@@ -71,8 +73,18 @@ mod tests;
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
+    serde::Serialize,
 )]
 pub(crate) struct Similarity {
+    scale: Positive,
+    rotation: Rotation,
+    translation: Vec2,
+}
+
+/// Similarity coefficients awaiting joint numerical validation.
+#[derive(serde::Deserialize)]
+#[serde(rename = "Similarity")]
+struct UnvalidatedSimilarity {
     scale: Positive,
     rotation: Rotation,
     translation: Vec2,
@@ -101,6 +113,18 @@ impl Similarity {
         translation: Vec2,
     ) -> Option<Self> {
         if !scale.is_normal() || !(1.0 / scale.get()).is_normal() {
+            return None;
+        }
+
+        let cos = f64::from(rotation.cos());
+        let sin = f64::from(rotation.sin());
+
+        // products of finite widened f32 components are exact in f64. Only their sum rounds.
+        let norm_squared = cos * cos + sin * sin;
+        if !norm_squared.is_finite()
+            || (norm_squared - 1.0).abs() > 1.0e-6
+            || !translation.is_finite()
+        {
             return None;
         }
 
@@ -166,17 +190,17 @@ impl Similarity {
     /// while rotating or scaling the inverse translation.
     #[inline]
     #[must_use]
-    pub(crate) const fn inverse(self) -> Self {
+    pub(crate) const fn inverse(self) -> Option<Self> {
         // In domain with no check: `new` admits only scales whose reciprocal is also normal.
         let inverse_scale = self.scale.recip();
         let rotation = self.rotation.inverse();
         let moved = rotation.apply(self.translation);
 
-        Self {
-            scale: inverse_scale,
+        Self::new(
+            inverse_scale,
             rotation,
-            translation: Vec2::new(-(inverse_scale * moved.x()), -(inverse_scale * moved.y())),
-        }
+            Vec2::new(-(inverse_scale * moved.x()), -(inverse_scale * moved.y())),
+        )
     }
 
     /// Transforms a single vector.
@@ -264,6 +288,26 @@ impl Similarity {
             Rotation::from_cos_sin(cos, sin),
             Vec2::new(translation_x, translation_y),
         )
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Similarity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let coefficients = UnvalidatedSimilarity::deserialize(deserializer)?;
+        Self::new(
+            coefficients.scale,
+            coefficients.rotation,
+            coefficients.translation,
+        )
+        .ok_or_else(|| {
+            D::Error::custom(
+                "similarity requires a normal scale and reciprocal, a rotation squared-norm \
+                 defect at most 1e-6, and finite translation",
+            )
+        })
     }
 }
 

@@ -5,12 +5,19 @@ use core::{
     error::Error,
     fmt,
     hash::{Hash, Hasher},
-    ops::{Mul, MulAssign, Sub},
+    ops::{Add, Mul, MulAssign, Sub},
 };
 
+#[cfg(test)]
+use proptest::{arbitrary::Arbitrary, strategy::Strategy as _};
+
 use super::{
-    DFinite, OpenUnitFraction, PositiveUnitFraction, raw_interop, unsafe_impl_try_from_bytes,
+    DFinite, DNonNegative, OpenUnitFraction, PositiveUnitFraction, raw_interop,
+    unsafe_impl_try_from_bytes,
 };
+
+#[cfg(test)]
+mod tests;
 
 /// Validates a unit-fraction literal at compile time.
 ///
@@ -252,7 +259,8 @@ impl UnitFraction {
     /// Returns `true` when the fraction is exactly one.
     #[expect(
         clippy::float_cmp,
-        reason = "one is exactly representable and stored canonically, so equality is exact"
+        reason = "the endpoint test needs exact equality with the exactly representable, \
+                  canonical one"
     )]
     #[inline]
     #[must_use]
@@ -311,6 +319,20 @@ impl UnitFraction {
         // In range with no check: sqrt is monotone into [0, 1] over this domain, never NaN for
         // a non-negative operand, and sqrt(+0.0) is +0.0.
         Self(self.0.sqrt())
+    }
+
+    /// Returns the fraction rounded to `f32`.
+    ///
+    /// The result remains finite and in `[0, 1]`. Both endpoints are exact.
+    ///
+    /// # Warning
+    ///
+    /// Rounding can map a positive fraction to `0.0` or a fraction below one to `1.0`.
+    #[inline]
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) const fn as_f32(self) -> f32 {
+        self.0 as f32
     }
 }
 
@@ -431,20 +453,6 @@ const impl TryFrom<f64> for UnitFraction {
     }
 }
 
-#[cfg(test)]
-impl proptest::arbitrary::Arbitrary for UnitFraction {
-    type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::strategy::Strategy as _;
-
-        (0.0..=1.0)
-            .prop_map(|value| Self::new(value).expect("the range covers exactly the domain"))
-            .boxed()
-    }
-}
-
 impl serde::Serialize for UnitFraction {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_f64(self.0)
@@ -534,8 +542,28 @@ const impl Mul<PositiveUnitFraction> for UnitFraction {
     }
 }
 
+const impl Add<UnitFraction> for UnitFraction {
+    type Output = DNonNegative;
+
+    #[inline]
+    fn add(self, rhs: UnitFraction) -> DNonNegative {
+        DNonNegative::new_unchecked(self.get() + rhs.get())
+    }
+}
+
 raw_interop!(UnitFraction[f64]);
 unsafe_impl_try_from_bytes!(UnitFraction[f64]);
+
+#[cfg(test)]
+impl Arbitrary for UnitFraction {
+    type Parameters = ();
+
+    type Strategy = impl proptest::strategy::Strategy<Value = Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        (0.0..=1.0).prop_map(Self)
+    }
+}
 
 // SAFETY: repr(transparent) preserves the native f64 layout, and this type has no interior
 // mutability.

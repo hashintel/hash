@@ -93,13 +93,13 @@ impl Vec2x4T {
     /// Returns the four `x` components as SIMD lanes.
     ///
     /// Lane `i` holds the `x` component of vector `i`.
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::cast_ptr_alignment,
         reason = "the pointer derives from `&Self` with 32-byte alignment, which satisfies \
                   `Simd<f32, 4>`'s 16-byte alignment at offset 0"
     )]
+    #[inline]
+    #[must_use]
     pub const fn xs(&self) -> &Simd<f32, 4> {
         let this = &raw const *self;
         let this = this.cast::<f32>();
@@ -114,13 +114,13 @@ impl Vec2x4T {
     /// Returns the four `y` components as SIMD lanes.
     ///
     /// Lane `i` holds the `y` component of vector `i`.
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::cast_ptr_alignment,
         reason = "the pointer derives from `&Self` with 32-byte alignment, which satisfies \
                   `Simd<f32, 4>`'s 16-byte alignment at the 16-byte `y` group offset"
     )]
+    #[inline]
+    #[must_use]
     pub const fn ys(&self) -> &Simd<f32, 4> {
         let this = &raw const *self;
         let this = this.cast::<f32>();
@@ -138,12 +138,12 @@ impl Vec2x4T {
     /// The first group holds the `x` components, the second the `y` components. Lane `i` of each
     /// corresponds to vector `i`. This is the inverse of [`from_lanes`](Self::from_lanes) and the
     /// by-value counterpart of [`xs`](Self::xs) and [`ys`](Self::ys).
-    #[inline]
-    #[must_use]
     #[expect(
         clippy::tuple_array_conversions,
         reason = "the suggested `From` conversion is not const-callable"
     )]
+    #[inline]
+    #[must_use]
     pub const fn into_lanes(self) -> (Simd<f32, 4>, Simd<f32, 4>) {
         // SAFETY: the cast relies on each four-lane Simd having its array element layout. Self
         // contains the initialized x group followed by the y group, without padding. The transmute
