@@ -93,6 +93,7 @@ installFauxProvider({
 });
 const markdown =
   "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
+const nextMarkdown = `${markdown}\n## Recovery continuation\n\nNext synthetic diagnostic revision.\n`;
 const response = (id: string, content: string, baseRevisionId: string | null) =>
   fauxAssistantMessage(
     fauxToolCall(
@@ -240,11 +241,7 @@ try {
     const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response(
-        "a4-next-revision",
-        "# Next synthetic diagnostic revision",
-        "a4-crash-revision",
-      ),
+      response("a4-next-revision", nextMarkdown, "a4-crash-revision"),
       fauxAssistantMessage("Next revision acknowledged."),
     ]);
     await client.read(
@@ -269,13 +266,10 @@ try {
     });
     // Persist both observations before asserting, so failures retain the next ordinal too.
     assertRevision(recovered, "a4-crash-revision", markdown, 1, null);
-    assertRevision(
-      next,
-      "a4-next-revision",
-      "# Next synthetic diagnostic revision",
-      2,
-      { revisionId: "a4-crash-revision", markdown },
-    );
+    assertRevision(next, "a4-next-revision", nextMarkdown, 2, {
+      revisionId: "a4-crash-revision",
+      markdown,
+    });
     assert.deepEqual(
       tools(next).map((part) => part.toolCallId),
       ["a4-crash-revision", "a4-next-revision"],
