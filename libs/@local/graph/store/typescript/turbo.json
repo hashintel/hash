@@ -6,14 +6,6 @@
     },
     "codegen": {
       "dependsOn": ["hash-graph-store#build:types"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        {
-          "mode": "dependencyOutputs",
-          "globs": ["types/index.snap.d.ts"],
-          "from": ["hash-graph-store#build:types"]
-        }
-      ],
       "outputs": ["src/generated/**"]
     },
     "build": {

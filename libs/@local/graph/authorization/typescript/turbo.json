@@ -6,14 +6,6 @@
     },
     "codegen": {
       "dependsOn": ["hash-graph-authorization#build:types"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        {
-          "mode": "dependencyOutputs",
-          "globs": ["types/index.snap.d.ts"],
-          "from": ["hash-graph-authorization#build:types"]
-        }
-      ],
       "outputs": ["src/generated/**"]
     },
     "build": {
