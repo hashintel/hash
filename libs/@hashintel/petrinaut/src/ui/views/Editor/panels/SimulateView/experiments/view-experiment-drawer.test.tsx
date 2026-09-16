@@ -56,6 +56,7 @@ const optimizer = vi.hoisted<{ current: SweepOptimizer | null }>(() => ({
 const idleOptimizer: SweepOptimizer = {
   study: null,
   driving: null,
+  start: null,
   stop: () => {},
   discard: () => {},
 };
@@ -451,7 +452,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     ).toBe(true);
   });
 
-  it("keeps the settled outcome on the status line with no card control", () => {
+  it("keeps the settled outcome and offers another optimizer start", () => {
     renderDrawerWithStudy(
       {
         ...sweep,
@@ -463,7 +464,7 @@ describe("ViewExperimentDrawer in the frame", () => {
 
     expect(screen.getByText("Ready")).toBeTruthy();
     expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
-    expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
+    expect(screen.getByRole("button", { name: /Optimize$/u })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Stop$/u })).toBeNull();
     expect(
       screen

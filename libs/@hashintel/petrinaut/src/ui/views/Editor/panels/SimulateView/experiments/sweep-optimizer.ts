@@ -1,12 +1,14 @@
 /**
  * The optimizer behind a parameter sweep: the study manifest built from the
- * experiment record, the hook that starts the study with the experiment from
- * the Create Experiment drawer, and the hook that reads the one study back
- * for the results drawer. The study evaluates its trials through the sweep's
+ * experiment record, the hook that starts a study during creation or later,
+ * and the hook that reads the current study for the results drawer.
+ * The study evaluates its trials through the sweep's
  * own compute (`createOptimization` with `sweep`), so this file only
  * describes the search and reads the record.
  */
 import { use } from "react";
+
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
@@ -15,6 +17,7 @@ import {
   isOptimizationActive,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
+import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { directionWord } from "../shared/study-labels";
 
@@ -29,7 +32,7 @@ import type {
 import type { Metric, SDCPN } from "@hashintel/petrinaut-core";
 import type { PetrinautOptimizationDirection } from "@hashintel/petrinaut-core/optimization";
 
-/** What the Create Experiment drawer's Objective section decides. */
+/** The metric, direction and budget selected for a sweep's search. */
 export type SweepObjective = {
   metricId: string;
   direction: PetrinautOptimizationDirection;
@@ -108,12 +111,13 @@ export const startSweepStudy = async (
   if (spec === undefined) {
     throw new Error("Pick a metric to optimize");
   }
+  const experimentDefinition = experiment.definition ?? definition;
   const input = buildSweepOptimizationInput({
     title,
-    definition,
+    definition: experimentDefinition,
     experiment: { ...experiment, scenario: experiment.scenario },
     name: `${experiment.name} · ${directionWord(objective.direction)} ${spec.label}`,
-    metric: sweepOptimizationMetric(spec, definition),
+    metric: sweepOptimizationMetric(spec, experimentDefinition),
     objective,
     runsPerStep: SWEEP_OPTIMIZATION_RUNS_PER_STEP,
   });
@@ -156,9 +160,11 @@ const studyStepProgress = (
 
 /** The one study of this sweep, read back from the optimizations context. */
 export type SweepOptimizer = {
+  /** Starts or replaces a settled study; null while unavailable or locked. */
+  start: ((objective: SweepObjective) => Promise<void>) | null;
   /**
-   * The study started with the experiment; null for a sweep created without
-   * the optimizer. Read for its outcome and its error once `driving` is null.
+   * The latest study, or null before optimization starts. Read for its
+   * outcome and its error once `driving` is null.
    */
   study: OptimizationRecord | null;
   /** The step the study is on while it drives the sweep; null otherwise. */
@@ -170,17 +176,37 @@ export type SweepOptimizer = {
 };
 
 export const useSweepOptimizer = (
-  experiment: Pick<ExperimentRecord, "id">,
+  experiment: ExperimentRecord,
 ): SweepOptimizer => {
   const { optimizations, cancelOptimization, removeOptimization } =
     use(OptimizationsContext);
+  const source = useOptimizationSource();
+  const startStudy = useStartSweepStudy();
 
   const study =
     optimizations.find(
       (optimization) => optimization.origin.experimentId === experiment.id,
     ) ?? null;
+  const canStart =
+    source !== null &&
+    isConnectedOptimization(source) &&
+    experiment.sweep !== null &&
+    experiment.scenario !== null &&
+    experiment.parameterAxes.length > 0 &&
+    experiment.metricSpecs.length > 0 &&
+    experiment.status !== "cancelled" &&
+    !experiment.requestActive &&
+    (study === null || !isOptimizationActive(study));
 
   return {
+    start: canStart
+      ? async (objective) => {
+          await startStudy(experiment, objective);
+          if (study !== null) {
+            removeOptimization(study.id);
+          }
+        }
+      : null,
     study,
     driving:
       study !== null && isOptimizationActive(study)

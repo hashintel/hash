@@ -497,6 +497,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       fixedScenarioValues: compiled.fixedScenarioValues,
       scenario: compiled.scenario,
     });
+    experiment.definition = experimentSdcpn;
     const ownership = options?.ownership;
     if (ownership) {
       experiment.requestActive = true;

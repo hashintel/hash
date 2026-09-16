@@ -381,6 +381,21 @@ describe("startSweepStudy", () => {
     expect(createOptimization).not.toHaveBeenCalled();
   });
 
+  it("uses the experiment's model snapshot when optimization starts after edits", async () => {
+    const createOptimization = fakeCreateOptimization();
+    await startSweepStudy(
+      {
+        ...starter(createOptimization),
+        definition: { ...definition, places: [] },
+      },
+      { ...record, definition },
+      { metricId: "infected", direction: "minimize", steps: 10 },
+    );
+    expect(
+      createOptimization.mock.calls[0]?.[0].model.definition.places,
+    ).toEqual(definition.places);
+  });
+
   it("rejects a metric the experiment does not measure", async () => {
     await expect(
       startSweepStudy(starter(), record, {

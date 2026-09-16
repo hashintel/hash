@@ -10,6 +10,7 @@ import {
 
 import {
   Button,
+  Checkbox,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -80,12 +81,6 @@ import {
   MetricObjectiveControl,
   OptimizationBudget,
 } from "./create-experiment-drawer/metric-optimization";
-import {
-  EMPTY_SWEEP_OBJECTIVE,
-  resolveObjectiveMetricId,
-  sweepObjectiveError,
-  sweepObjectiveFor,
-} from "./create-experiment-drawer/sweep-objective";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
@@ -94,6 +89,12 @@ import {
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "./shared/sweep-objective";
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
@@ -888,6 +889,8 @@ export const CreateExperimentDrawer = ({
   const [constraintDrafts, setConstraintDrafts] =
     useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
   const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
+  const [startOptimizerImmediately, setStartOptimizerImmediately] =
+    useState(false);
   const objectiveGroupName = useId();
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
@@ -929,14 +932,9 @@ export const CreateExperimentDrawer = ({
     enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
   const optimizerConnected =
     optimizationSource !== null && isConnectedOptimization(optimizationSource);
-  // The word on every interval toggle, from the settings and the source
-  // alone — never from how many toggles are on: Optimize where the
-  // in-browser optimizer can drive the sweep, Sweep otherwise.
-  const selection: AdHocFormSelection = !enableParameterSweeps
-    ? "none"
-    : optimizerConnected
-      ? "optimize"
-      : "sweep";
+  const selection: AdHocFormSelection = enableParameterSweeps
+    ? "sweep"
+    : "none";
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -989,10 +987,7 @@ export const CreateExperimentDrawer = ({
     const intervals =
       axes.length === 1 ? "over its interval" : "over their intervals";
     return {
-      text:
-        selection === "optimize"
-          ? `${names} optimized ${intervals} — the study picks the points`
-          : `${names} swept ${intervals} — the sweep computes only the points you select, click on the Surface`,
+      text: `${names} swept ${intervals}`,
       tone: "neutral",
       error: false,
     };
@@ -1008,8 +1003,10 @@ export const CreateExperimentDrawer = ({
 
   // Constraints use a saved scenario's parameter names. Hidden drafts stay in
   // state and are lowered only when their section is enabled.
-  const objectiveEnabled = selection === "optimize" && sweepSummary !== null;
-  const constraintsEnabled = objectiveEnabled && selectedScenario !== undefined;
+  const optimizationAvailable = optimizerConnected && sweepSummary !== null;
+  const objectiveEnabled = optimizationAvailable && startOptimizerImmediately;
+  const constraintsEnabled =
+    optimizationAvailable && selectedScenario !== undefined;
   const constraintLspError = constraintsEnabled
     ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
     : null;
@@ -1089,6 +1086,7 @@ export const CreateExperimentDrawer = ({
     setMetricDrafts([]);
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
+    setStartOptimizerImmediately(false);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1462,6 +1460,15 @@ export const CreateExperimentDrawer = ({
                 >
                   <FocusControls>
                     <div className={metricListStyle}>
+                      {optimizationAvailable ? (
+                        <Checkbox
+                          size="sm"
+                          label="Start optimizer immediately"
+                          value={startOptimizerImmediately}
+                          onChange={setStartOptimizerImmediately}
+                          disabled={isSubmitting}
+                        />
+                      ) : null}
                       <div className={metricHeaderStyle}>
                         <span className={metricCountStyle}>
                           {metricDrafts.length === 0
