@@ -1,3 +1,4 @@
+import { Collapsible } from "@ark-ui/react/collapsible";
 import { use } from "react";
 
 import {
@@ -17,14 +18,13 @@ import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../../react/state/user-settings-context";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { PropertyValue } from "../../../../../../components/property-value";
 import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useCodeNavigation } from "../../../../../../monaco/code-navigation";
-import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { usePlacePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -44,6 +44,25 @@ const optionRowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
+});
+
+const capacityContentStyle = css({
+  overflow: "hidden",
+  "&[data-animate=true]": {
+    animationDuration: "[180ms]",
+    animationTimingFunction: "ease-in-out",
+    "&[data-state=open]": { animationName: "[petrinautExpand]" },
+    "&[data-state=closed]": { animationName: "[petrinautCollapse]" },
+  },
+  "@media (prefers-reduced-motion: reduce)": {
+    animation: "none!",
+  },
+});
+
+const capacityFieldStyle = css({
+  paddingTop: "2",
+  paddingLeft: "6",
+  "& label": { fontWeight: "normal" },
 });
 
 const hintTextStyle = css({
@@ -69,9 +88,11 @@ const arcStyle = css({
  * Rendered as a headerless SubView at the top of the proportional layout.
  */
 const PlaceMainContent: React.FC = () => {
-  const codeNavigation = useCodeNavigation();
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { selectItem } = use(EditorContext);
+  const { showAnimations } = use(UserSettingsContext);
+  const capacityEnabled =
+    place.capacity !== undefined && place.capacity !== null;
 
   const { extensions } = use(SDCPNContext);
   const {
@@ -302,24 +323,6 @@ const PlaceMainContent: React.FC = () => {
                     >
                       View equation
                     </Button>
-                    {codeNavigation.enabled && (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        iconName="code"
-                        onClick={() => {
-                          if (place.differentialEquationId)
-                            codeNavigation.open(
-                              getDocumentUri(
-                                "differential-equation",
-                                place.differentialEquationId,
-                              ),
-                            );
-                        }}
-                      >
-                        Open equation code
-                      </Button>
-                    )}
                   </div>
                 )}
               </>
@@ -330,7 +333,7 @@ const PlaceMainContent: React.FC = () => {
       <Section title="Options">
         <div className={optionRowStyle}>
           <Checkbox
-            size="xs"
+            size="sm"
             label="Component port"
             value={!!place.isPort}
             disabled={isReadOnly}
@@ -340,47 +343,61 @@ const PlaceMainContent: React.FC = () => {
           />
           <HelpTooltip content="Expose this place as an arc endpoint when its subnet is used as a component." />
         </div>
-        <div className={optionRowStyle}>
-          <Checkbox
-            size="xs"
-            label="Token capacity"
-            value={place.capacity !== undefined && place.capacity !== null}
-            disabled={isReadOnly}
-            onChange={(checked) =>
-              updatePlace({
-                placeId: place.id,
-                update: { capacity: checked ? 1 : null },
-              })
-            }
-          />
-          <HelpTooltip content="Limit how many tokens this place can hold. Transitions that would exceed this limit cannot fire." />
-        </div>
-        {place.capacity !== undefined && place.capacity !== null && (
-          <Form.Field label="Maximum tokens" size="sm" disabled={isReadOnly}>
-            <NumberInput
+        <Collapsible.Root open={capacityEnabled} lazyMount unmountOnExit>
+          <div className={optionRowStyle}>
+            <Checkbox
               size="sm"
-              min={0}
-              max={4294967294}
-              value={place.capacity}
-              onChange={(nextCapacity) => {
-                if (
-                  nextCapacity !== null &&
-                  nextCapacity >= 0 &&
-                  nextCapacity <= 4294967294
-                ) {
-                  updatePlace({
-                    placeId: place.id,
-                    update: { capacity: Math.floor(nextCapacity) },
-                  });
-                }
-              }}
+              label="Token capacity"
+              value={capacityEnabled}
               disabled={isReadOnly}
+              onChange={(checked) =>
+                updatePlace({
+                  placeId: place.id,
+                  update: { capacity: checked ? 1 : null },
+                })
+              }
             />
-          </Form.Field>
-        )}
+            <HelpTooltip content="Limit how many tokens this place can hold. Transitions that would exceed this limit cannot fire." />
+          </div>
+          <Collapsible.Content
+            className={capacityContentStyle}
+            data-animate={showAnimations}
+            inert={!capacityEnabled}
+          >
+            <Form.Field
+              label="Maximum tokens"
+              size="xs"
+              layout="inline"
+              inputAlign="end"
+              className={capacityFieldStyle}
+              disabled={isReadOnly}
+            >
+              <NumberInput
+                size="xs"
+                width="maxNumber"
+                min={0}
+                max={4294967294}
+                value={place.capacity}
+                onChange={(nextCapacity) => {
+                  if (
+                    nextCapacity !== null &&
+                    nextCapacity >= 0 &&
+                    nextCapacity <= 4294967294
+                  ) {
+                    updatePlace({
+                      placeId: place.id,
+                      update: { capacity: Math.floor(nextCapacity) },
+                    });
+                  }
+                }}
+                disabled={isReadOnly}
+              />
+            </Form.Field>
+          </Collapsible.Content>
+        </Collapsible.Root>
         <div className={optionRowStyle}>
           <Checkbox
-            size="xs"
+            size="sm"
             label="Default starting place"
             value={!!place.showAsInitialState}
             disabled={isReadOnly}
