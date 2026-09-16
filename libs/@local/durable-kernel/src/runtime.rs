@@ -309,7 +309,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
     ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Rejection>, Report<KernelError>>
     {
         let record = EventRecordV1::new(event).map_err(invalid_event)?;
-        let handle = self.handle_for(&record.partition)?;
+        let handle = self.handle_for(record.partition())?;
         match handle.propose(record).await {
             Ok(ShardCommandOutcome::Applied { .. }) => Ok(Submitted::Applied),
             Ok(ShardCommandOutcome::AlreadyDurable { .. }) => Ok(Submitted::AlreadyDurable),
