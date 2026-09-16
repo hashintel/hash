@@ -394,7 +394,6 @@ pub async fn admin_server(
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");
