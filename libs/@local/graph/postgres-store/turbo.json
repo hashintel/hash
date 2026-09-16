@@ -1,11 +1,6 @@
 {
   "extends": ["//"],
   "tasks": {
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["@apps/hash-graph#start:test:migrate"]
-    },
     "test:integration": {
       "dependsOn": ["^manifest", "@rust/hash-graph-migrations#start:migrate:up"]
     }
