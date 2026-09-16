@@ -1,0 +1,35 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-temporal-client",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:integration": {
+      "command": ["cargo", "nextest", "run", "--tests"]
+    }
+  }
+}

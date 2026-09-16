@@ -167,6 +167,7 @@
     "CARGO_INCREMENTAL"
   ],
   "futureFlags": {
-    "affectedUsingTaskInputs": true
+    "affectedUsingTaskInputs": true,
+    "experimentalTaskCommand": true
   }
 }

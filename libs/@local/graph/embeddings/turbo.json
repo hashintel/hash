@@ -1,0 +1,52 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build:codspeed": {
+      "command": ["cargo", "codspeed", "build", "-p", "hash-graph-embeddings"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph-embeddings",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:codspeed": {
+      "command": ["cargo", "codspeed", "run", "-p", "hash-graph-embeddings"]
+    },
+    "test:miri": {
+      "command": [
+        "cargo",
+        "miri",
+        "nextest",
+        "run",
+        "--",
+        "kernel",
+        "clustering::tests::nearest_centroid_argmax_independent_of_inv_norm"
+      ]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "@rust/hash-graph-embeddings"]
+    }
+  }
+}
