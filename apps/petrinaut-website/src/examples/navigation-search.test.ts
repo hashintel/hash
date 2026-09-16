@@ -12,15 +12,15 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
-  it("routes Notebook within Edit and preserves the selection in shared links", () => {
+  it("routes Definitions within Edit and preserves the selection in shared links", () => {
     const search = {
-      editView: "notebook",
+      editView: "definitions",
       itemType: "transition",
       itemId: "collision",
     } as const;
     const state = sharedSearchToNavigationState(search);
     expect(state.mode).toBe("edit");
-    expect(state.editView).toBe("notebook");
+    expect(state.editView).toBe("definitions");
     expect(navigationStateToSharedSearch(state)).toMatchObject(search);
     expect(
       applyPreviewNavigationUpdate(search, (current) => current),
@@ -28,22 +28,24 @@ describe("navigation state projection", () => {
     expect(sharedSearchToNavigationState({}).editView).toBe("canvas");
   });
 
-  it("opens legacy Notebook links in the Edit workspace", () => {
-    const search = validateSharedExampleSearch({
-      mode: "notebook",
-      itemType: "place",
-      itemId: "space",
-    });
-    expect(search).toMatchObject({
-      mode: "edit",
-      editView: "notebook",
-      itemId: "space",
-    });
-    expect(sharedSearchToNavigationState(search)).toMatchObject({
-      mode: "edit",
-      editView: "notebook",
-    });
-  });
+  it.each([{ mode: "notebook" }, { editView: "notebook" }])(
+    "opens legacy Notebook links in the Edit workspace: %s",
+    (legacy) => {
+      const search = validateSharedExampleSearch({
+        ...legacy,
+        itemType: "place",
+        itemId: "space",
+      });
+      expect(search).toMatchObject({
+        editView: "definitions",
+        itemId: "space",
+      });
+      expect(sharedSearchToNavigationState(search)).toMatchObject({
+        mode: "edit",
+        editView: "definitions",
+      });
+    },
+  );
 
   it("round-trips an expanded Properties Panel section with its selected item", () => {
     const search = {

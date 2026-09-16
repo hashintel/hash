@@ -5,7 +5,7 @@
 The editor is organized around a central canvas where you build your net:
 
 - **Top bar** -- net management menu, optional title field, **Edit / Simulate / Actual** mode switcher, active-experiments indicator, recent-changes history. See [Top bar](#top-bar).
-- **Canvas / Notebook** -- a compact selector at the top-left of Edit, directly below the top bar.
+- **Canvas / Definitions** -- a compact selector floating over Canvas, or beside search in the Definitions toolbar.
 - **Canvas** (center) -- the main workspace where places and transitions are displayed and connected.
 - **Left sidebar** -- the Entities tree: every node, token type, differential equation and parameter in the net, in one hierarchy. See [Left sidebar](#left-sidebar).
 - **Properties panel** (right) -- opens when you select an entity, showing its configurable properties.
@@ -45,11 +45,11 @@ Spans the full editor width and has three sections.
 
 Petrinaut global modes are switched via the centre control in the top bar.
 
-| Mode         | Workspace                                                                                                                                                        |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Edit**     | Canvas or Notebook. Draw and connect nodes on Canvas, or edit the same net as expandable cells in Notebook. Canvas also provides single-run simulation controls. |
-| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                    |
-| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                        |
+| Mode         | Workspace                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edit**     | Canvas or Definitions. Draw and connect nodes on Canvas, or edit the same net as expandable cells in Definitions. Canvas also provides single-run simulation controls. |
+| **Simulate** | Replaces the workspace with the [Scenarios](scenarios.md) and [Experiments](experiments.md) management views.                                                          |
+| **Actual**   | Shows a host-provided live execution source. It is disabled unless the host provides Actual-mode data. See [Actual Mode](actual-mode.md).                              |
 
 In Simulate mode the net structure becomes read-only -- you can still manage scenarios and experiments. You cannot change places, transitions, arcs, types, or parameters. Switch back to Edit mode to modify the net.
 
@@ -57,25 +57,27 @@ In Actual mode the net is also read-only. It shows the Petri net supplied by the
 
 Switching modes does not stop background experiments. The active-experiments indicator remains visible in the top bar from any mode.
 
-## Canvas and Notebook
+## Canvas and Definitions
 
-In **Edit**, use **Canvas / Notebook** at the top-left, directly below the main
-top bar. Both views work on the same net and share the selected entity.
-Switching between them keeps the canvas position and zoom, and the Notebook's
+In **Edit**, use **Canvas / Definitions** to switch views. On Canvas, the selector
+floats below the main header, beside the Entities sidebar when it is open.
+In Definitions, it shares the search and filter toolbar. Both views work on
+the same net and share the selected entity.
+Switching between them keeps the canvas position and zoom, and the Definitions view’s
 scroll position, expanded cells, search, and filters.
 
 **Canvas** shows the diagram, sidebars, Properties Panel, and simulation
 controls. Use it to add or remove nodes and arcs and to arrange the net.
 
-**Notebook** lists places, transitions, types, differential equations, and
+**Definitions** lists places, transitions, types, differential equations, and
 parameters as expandable cells. Open a cell to edit its name, fields, arc
 weights, type assignments, or code. Use the search and kind filters to narrow
 the list, or switch its order between document and dependency order. The graph
 on the right shows how the selected entity connects to the rest of the net.
 
-The selector stays in the same position in both views. On the website, the URL
+On the website, the URL
 records the selected view; Back and Forward switch views, and reloading a
-Notebook link opens Notebook again. Simulate and Actual keep their own
+Definitions link opens Definitions again. Simulate and Actual keep their own
 workspaces.
 
 ## Adding places and transitions

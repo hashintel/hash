@@ -45,9 +45,9 @@ vi.mock("../Notebook/notebook-view", () => ({
   NotebookView: () => {
     const [query, setQuery] = useState("");
     return (
-      <section aria-label="Notebook">
+      <section aria-label="Definitions">
         <input
-          aria-label="Notebook search"
+          aria-label="Definitions search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -161,8 +161,8 @@ describe("EditorView assistant lifecycle", () => {
       assistant,
     );
 
-    rerender(<EditorAtMode mode="edit" view="notebook" />);
-    expect(screen.getByRole("region", { name: "Notebook" })).toBeTruthy();
+    rerender(<EditorAtMode mode="edit" view="definitions" />);
+    expect(screen.getByRole("region", { name: "Definitions" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "AI assistant" })).toBe(
       assistant,
     );
@@ -184,26 +184,29 @@ describe("Edit workspace views", () => {
     render(<EditableWorkspace />);
     const canvas = screen.getByRole("button", { name: "Canvas zoom 1" });
     fireEvent.click(canvas);
-    fireEvent.click(screen.getByRole("radio", { name: "Notebook" }));
-    const notebook = await screen.findByRole("region", { name: "Notebook" });
+    fireEvent.click(screen.getByRole("radio", { name: "Definitions" }));
+    const notebook = await screen.findByRole("region", { name: "Definitions" });
     expect(screen.queryByRole("button", { name: "Canvas zoom 2" })).toBeNull();
-    fireEvent.change(screen.getByRole("textbox", { name: "Notebook search" }), {
-      target: { value: "collision" },
-    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Definitions search" }),
+      {
+        target: { value: "collision" },
+      },
+    );
     notebook.scrollTop = 240;
     fireEvent.click(screen.getByRole("radio", { name: "Canvas" }));
     expect(await screen.findByRole("button", { name: "Canvas zoom 2" })).toBe(
       canvas,
     );
-    expect(screen.queryByRole("region", { name: "Notebook" })).toBeNull();
-    fireEvent.click(screen.getByRole("radio", { name: "Notebook" }));
-    expect(await screen.findByRole("region", { name: "Notebook" })).toBe(
+    expect(screen.queryByRole("region", { name: "Definitions" })).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Definitions" }));
+    expect(await screen.findByRole("region", { name: "Definitions" })).toBe(
       notebook,
     );
     expect(
       (
         screen.getByRole("textbox", {
-          name: "Notebook search",
+          name: "Definitions search",
         }) as HTMLInputElement
       ).value,
     ).toBe("collision");

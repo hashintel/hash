@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -38,12 +38,19 @@ import type { CellOrder } from "./notebook-order";
 
 const containerStyle = css({
   display: "flex",
-  flexDirection: "row",
+  flexDirection: "column",
   width: "full",
   height: "full",
   flex: "[1]",
   minHeight: "[0]",
   backgroundColor: "neutral.s00",
+});
+
+const bodyStyle = css({
+  display: "flex",
+  flex: "[1]",
+  minHeight: "[0]",
+  minWidth: "[0]",
 });
 
 const cellsColumnStyle = css({
@@ -57,8 +64,9 @@ const searchBarStyle = css({
   display: "flex",
   alignItems: "center",
   flexWrap: "wrap",
+  flexShrink: "0",
   gap: "2",
-  paddingX: "4",
+  paddingX: "3",
   paddingY: "2",
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
@@ -118,7 +126,7 @@ const emptyStyle = css({
 });
 
 /**
- * The Notebook view: a code-like rendering of the net where
+ * The Definitions view: a code-like rendering of the net where
  * every entity (place, transition, type, differential equation, parameter)
  * is a one-line cell — inspired by Observable notebooks. Everything an
  * expanded cell shows edits in place through the same mutations as the
@@ -136,12 +144,14 @@ const emptyStyle = css({
  * and searched; rows with dependents end with how many cells depend on them,
  * directly and in total.
  */
-const NotebookViewContent: React.FC = () => {
+type NotebookViewProps = { toolbarStart?: ReactNode };
+
+const NotebookViewContent = ({ toolbarStart }: NotebookViewProps) => {
   const { activeNet } = use(ActiveNetContext);
   const { selection, selectItem } = use(EditorContext);
 
   // The canvas BottomBar (which owns the editor-wide shortcuts) isn't
-  // active in Notebook view, so undo/redo is bound here.
+  // active in Definitions view, so undo/redo is bound here.
   useUndoRedoShortcuts();
 
   const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
@@ -421,202 +431,205 @@ const NotebookViewContent: React.FC = () => {
 
   return (
     <div className={containerStyle}>
-      <div className={cellsColumnStyle}>
-        <div className={searchBarStyle}>
-          <TextInput
-            className={searchInputStyle}
-            size="sm"
-            value={searchQuery}
-            onChange={(value) => setSearchQuery(value)}
-            placeholder={`Search cells… ("/" to focus)`}
-            prefix={{ iconName: "search" }}
-            clearable
-            inputRef={searchInputRef}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowDown") {
-                event.preventDefault();
-                stepSelection(1);
-              } else if (event.key === "ArrowUp") {
-                event.preventDefault();
-                stepSelection(-1);
-              } else if (event.key === "Enter") {
-                event.preventDefault();
-                const firstMatch = visibleCells.find(({ id }) =>
-                  matchesById.has(id),
-                );
-                if (firstMatch) {
-                  selectCell(firstMatch, { focus: true });
-                }
-              } else if (event.key === "Escape") {
-                setSearchQuery("");
-                (event.target as HTMLElement).blur();
+      <div className={searchBarStyle}>
+        {toolbarStart}
+        <TextInput
+          className={searchInputStyle}
+          size="sm"
+          value={searchQuery}
+          onChange={(value) => setSearchQuery(value)}
+          placeholder={`Search definitions… ("/" to focus)`}
+          prefix={{ iconName: "search" }}
+          clearable
+          inputRef={searchInputRef}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              stepSelection(1);
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              stepSelection(-1);
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              const firstMatch = visibleCells.find(({ id }) =>
+                matchesById.has(id),
+              );
+              if (firstMatch) {
+                selectCell(firstMatch, { focus: true });
               }
-            }}
-          />
-          {isSearching && (
-            <span className={matchCountStyle}>
-              {matchesById.size} match{matchesById.size === 1 ? "" : "es"}
-            </span>
-          )}
-          <SegmentedControl<CellOrder>
-            size="xs"
-            value={cellOrder}
-            items={[
-              {
-                value: "document",
-                label: "Document",
-                tooltip: "List cells in the order the net stores them",
-              },
-              {
-                value: "topological",
-                label: "Topological",
-                tooltip:
-                  "Follow token flow, with each type, equation and parameter inlined just before its first use",
-              },
-            ]}
-            onChange={setCellOrder}
-          />
+            } else if (event.key === "Escape") {
+              setSearchQuery("");
+              (event.target as HTMLElement).blur();
+            }
+          }}
+        />
+        {isSearching && (
+          <span className={matchCountStyle}>
+            {matchesById.size} match{matchesById.size === 1 ? "" : "es"}
+          </span>
+        )}
+        <SegmentedControl<CellOrder>
+          size="xs"
+          value={cellOrder}
+          items={[
+            {
+              value: "document",
+              label: "Document",
+              tooltip: "List cells in the order the net stores them",
+            },
+            {
+              value: "topological",
+              label: "Topological",
+              tooltip:
+                "Follow token flow, with each type, equation and parameter inlined just before its first use",
+            },
+          ]}
+          onChange={setCellOrder}
+        />
 
-          <div className={filterGroupStyle}>
-            {CELL_KINDS.map((kind) => (
-              <Button
-                key={kind}
-                size="xs"
-                variant={visibleKinds.has(kind) ? "solid" : "ghost"}
-                tone="neutral"
-                aria-pressed={visibleKinds.has(kind)}
-                onClick={() => toggleKind(kind)}
-              >
-                {CELL_KIND_PLURAL_LABELS[kind]}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className={cellListStyle}>
-          <div
-            ref={(element) => {
-              contentRef.current = element;
-              listFocus.attach(element);
-            }}
-            className={cellListContentStyle}
-            style={{
-              paddingLeft: CONNECTION_GUTTER_WIDTH,
-              paddingRight: CONNECTION_GUTTER_WIDTH,
-            }}
-          >
-            {cells.length === 0 ? (
-              <div className={emptyStyle}>
-                This net is empty — switch to Edit mode to add places and
-                transitions.
-              </div>
-            ) : visibleCells.length === 0 ? (
-              <div className={emptyStyle}>
-                All cell kinds are filtered out — enable a kind above to see
-                cells.
-              </div>
-            ) : (
-              visibleCells.map((cell) => (
-                <NotebookCell
-                  key={cell.id}
-                  net={activeNet}
-                  cell={cell}
-                  isSelected={cell.id === selectedId}
-                  isExpanded={expandedIds.has(cell.id)}
-                  isDimmed={isSearching && !matchesById.has(cell.id)}
-                  nameMatchIndices={matchesById.get(cell.id) ?? null}
-                  dependentCount={dependentCounts.get(cell.id)}
-                  onSelect={() => selectCell(cell)}
-                  onSetExpanded={(expanded) =>
-                    setCellExpanded(cell.id, expanded)
-                  }
-                  rowFocus={{
-                    tabIndex: listFocus.tabIndexFor({
-                      stopId: cell.id,
-                      column: 0,
-                    }),
-                    onFocus: () => {
-                      listFocus.onFocusTarget({
-                        stopId: cell.id,
-                        column: 0,
-                      });
-                      selectCell(cell);
-                    },
-                    onNavigate: listFocus.onKeyDown({
-                      stopId: cell.id,
-                      column: 0,
-                    }),
-                  }}
-                  bodyParts={{
-                    stopIdFor: (partId) => partStopId(cell.id, partId),
-                    focusFor: (partId, column = 0) => {
-                      const stopId = partStopId(cell.id, partId);
-                      return {
-                        tabIndex: listFocus.tabIndexFor({ stopId, column }),
-                        onFocus: () => {
-                          listFocus.onFocusTarget({ stopId, column });
-                          selectCell(cell);
-                        },
-                        onNavigate: listFocus.onKeyDown({ stopId, column }),
-                      };
-                    },
-                    navigateToCell: (cellId) => {
-                      const target = cells.find(({ id }) => id === cellId);
-                      if (target) {
-                        selectCell(target, { focus: true });
-                      }
-                    },
-                  }}
-                  onFocusSearch={focusSearch}
-                />
-              ))
-            )}
-            <ConnectionLines
-              containerRef={contentRef}
-              selectedId={selectedId}
-              visibleCellIds={visibleCells.map(({ id }) => id)}
-              upstreamIds={(selectedConnections?.upstream ?? []).map(
-                ({ id }) => id,
-              )}
-              downstreamIds={(selectedConnections?.downstream ?? []).map(
-                ({ id }) => id,
-              )}
-            />
-          </div>
+        <div className={filterGroupStyle}>
+          {CELL_KINDS.map((kind) => (
+            <Button
+              key={kind}
+              size="xs"
+              variant={visibleKinds.has(kind) ? "solid" : "ghost"}
+              tone="neutral"
+              aria-pressed={visibleKinds.has(kind)}
+              onClick={() => toggleKind(kind)}
+            >
+              {CELL_KIND_PLURAL_LABELS[kind]}
+            </Button>
+          ))}
         </div>
       </div>
 
-      <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
-        <ResizeHandle
-          edge="left"
-          size={explorerWidth}
-          onResize={setExplorerWidth}
-          minSize={MIN_EXPLORER_WIDTH}
-          maxSize={MAX_EXPLORER_WIDTH}
-          label="Resize the graph explorer"
-        />
-        <GraphExplorer
-          connections={selectedConnections}
-          selectedCellId={selectedId}
-          selectedName={selectedName}
-          graph={explorerGraph}
-          isFocusMode={focusOnSelection}
-          canFocus={selectedNodeId !== null}
-          onToggleFocus={() => setFocusOnSelection((previous) => !previous)}
-          onNavigate={navigateToNode}
-        />
+      <div className={bodyStyle}>
+        <div className={cellsColumnStyle}>
+          <div className={cellListStyle}>
+            <div
+              ref={(element) => {
+                contentRef.current = element;
+                listFocus.attach(element);
+              }}
+              className={cellListContentStyle}
+              style={{
+                paddingLeft: CONNECTION_GUTTER_WIDTH,
+                paddingRight: CONNECTION_GUTTER_WIDTH,
+              }}
+            >
+              {cells.length === 0 ? (
+                <div className={emptyStyle}>
+                  This net is empty — switch to Canvas to add places and
+                  transitions.
+                </div>
+              ) : visibleCells.length === 0 ? (
+                <div className={emptyStyle}>
+                  All cell kinds are filtered out — enable a kind above to see
+                  cells.
+                </div>
+              ) : (
+                visibleCells.map((cell) => (
+                  <NotebookCell
+                    key={cell.id}
+                    net={activeNet}
+                    cell={cell}
+                    isSelected={cell.id === selectedId}
+                    isExpanded={expandedIds.has(cell.id)}
+                    isDimmed={isSearching && !matchesById.has(cell.id)}
+                    nameMatchIndices={matchesById.get(cell.id) ?? null}
+                    dependentCount={dependentCounts.get(cell.id)}
+                    onSelect={() => selectCell(cell)}
+                    onSetExpanded={(expanded) =>
+                      setCellExpanded(cell.id, expanded)
+                    }
+                    rowFocus={{
+                      tabIndex: listFocus.tabIndexFor({
+                        stopId: cell.id,
+                        column: 0,
+                      }),
+                      onFocus: () => {
+                        listFocus.onFocusTarget({
+                          stopId: cell.id,
+                          column: 0,
+                        });
+                        selectCell(cell);
+                      },
+                      onNavigate: listFocus.onKeyDown({
+                        stopId: cell.id,
+                        column: 0,
+                      }),
+                    }}
+                    bodyParts={{
+                      stopIdFor: (partId) => partStopId(cell.id, partId),
+                      focusFor: (partId, column = 0) => {
+                        const stopId = partStopId(cell.id, partId);
+                        return {
+                          tabIndex: listFocus.tabIndexFor({ stopId, column }),
+                          onFocus: () => {
+                            listFocus.onFocusTarget({ stopId, column });
+                            selectCell(cell);
+                          },
+                          onNavigate: listFocus.onKeyDown({ stopId, column }),
+                        };
+                      },
+                      navigateToCell: (cellId) => {
+                        const target = cells.find(({ id }) => id === cellId);
+                        if (target) {
+                          selectCell(target, { focus: true });
+                        }
+                      },
+                    }}
+                    onFocusSearch={focusSearch}
+                  />
+                ))
+              )}
+              <ConnectionLines
+                containerRef={contentRef}
+                selectedId={selectedId}
+                visibleCellIds={visibleCells.map(({ id }) => id)}
+                upstreamIds={(selectedConnections?.upstream ?? []).map(
+                  ({ id }) => id,
+                )}
+                downstreamIds={(selectedConnections?.downstream ?? []).map(
+                  ({ id }) => id,
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
+          <ResizeHandle
+            edge="left"
+            size={explorerWidth}
+            onResize={setExplorerWidth}
+            minSize={MIN_EXPLORER_WIDTH}
+            maxSize={MAX_EXPLORER_WIDTH}
+            label="Resize the graph explorer"
+          />
+          <GraphExplorer
+            connections={selectedConnections}
+            selectedCellId={selectedId}
+            selectedName={selectedName}
+            graph={explorerGraph}
+            isFocusMode={focusOnSelection}
+            canFocus={selectedNodeId !== null}
+            onToggleFocus={() => setFocusOnSelection((previous) => !previous)}
+            onNavigate={navigateToNode}
+          />
+        </div>
       </div>
     </div>
   );
 };
 
-export const NotebookView: React.FC = () => (
+export const NotebookView = ({ toolbarStart }: NotebookViewProps) => (
   // The stack must sit above the component whose hooks join the flow: a
   // hook reads the context of its own component's position, so a stack
   // rendered inside NotebookViewContent could never enrol its list.
   <FocusRoot>
     <FocusStack axis="horizontal">
-      <NotebookViewContent />
+      <NotebookViewContent toolbarStart={toolbarStart} />
     </FocusStack>
   </FocusRoot>
 );

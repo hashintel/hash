@@ -121,6 +121,8 @@ const canvasContainerStyle = css({
 });
 
 const workspaceStyle = css({
+  position: "relative",
+  "--edit-view-selector-width": "[180px]",
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
@@ -137,6 +139,11 @@ const openSubmenuStyle = css({
     maxWidth: "[min(600px, 70vw)]",
     maxHeight: "[min(800px, 80vh, var(--available-height, 100vh))]",
   },
+});
+
+const editViewSelectorSpaceStyle = css({
+  width: "[var(--edit-view-selector-width)]",
+  flexShrink: "0",
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -635,12 +642,17 @@ const EditorViewContent = ({
               </Activity>
               <Activity
                 mode={
-                  globalMode === "edit" && editViewMode === "notebook"
+                  globalMode === "edit" && editViewMode === "definitions"
                     ? "visible"
                     : "hidden"
                 }
               >
-                <NotebookView key={petriNetId ?? "no-net"} />
+                <NotebookView
+                  key={petriNetId ?? "no-net"}
+                  toolbarStart={
+                    <div aria-hidden className={editViewSelectorSpaceStyle} />
+                  }
+                />
               </Activity>
             </div>
           )}

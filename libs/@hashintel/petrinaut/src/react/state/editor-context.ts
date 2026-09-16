@@ -15,7 +15,7 @@ export type DraggingStateByNodeId = Record<
 >;
 
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "notebook";
+export type EditViewMode = "canvas" | "definitions";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
