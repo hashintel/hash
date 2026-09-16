@@ -2,7 +2,7 @@
  * @layerRoot ui.views.kanban
  * @role Kanban projection of a status view: columns are labels, cards are tracked instances
  */
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Select } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -353,7 +353,12 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
  * showing its raw key values, time in the current status, and the entry
  * count when it has entered the status more than once.
  */
-export const KanbanView = () => {
+export const KanbanView = ({
+  toolbarStart,
+}: {
+  /** Rendered ahead of the view selector, e.g. to clear a floating control. */
+  toolbarStart?: ReactNode;
+}) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const {
     clearSelection,
@@ -417,6 +422,7 @@ export const KanbanView = () => {
       onClick={handleBackgroundClick}
     >
       <div className={toolbarStyle} data-kanban-interactive="">
+        {toolbarStart}
         <div className={viewSelectStyle}>
           <Select
             required

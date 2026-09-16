@@ -174,7 +174,7 @@ Enable subnet definitions and component instances for hierarchical nets. This op
 
 ### Status views (experimental)
 
-Off by default. Derives per-instance statuses from where each instance's token sits: adds a **Status views** tab to the Simulate panel, an identity picker to token type attributes, a Kanban board toggle above a net that has status views, and a **Status changes** column to Actual mode's Events tab. See [Status Views](status-views.md).
+Off by default. Derives per-instance statuses from where each instance's token sits: adds a **Status views** tab to the Simulate panel, an identity picker to token type attributes, a Kanban option to the view switcher of a net that has status views, and a **Status changes** column to Actual mode's Events tab. See [Status Views](status-views.md).
 
 ### Compilation output (experimental)
 

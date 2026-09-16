@@ -2,7 +2,7 @@
 
 A status view maps net state to named statuses — Todo, In Progress, Blocked, Done — for the instances of one identity, such as tickets or machines. Which status an instance carries is derived from where its token sits; it is never stored, so a status view can never disagree with the net.
 
-Status views are experimental and off by default. Turn on **Settings → Labs → Status views** to show the Status views tab, the identity picker on token type attributes, the Kanban board toggle, the Status changes column, and the Ticket Processing example in the Load example menu. A document's identities and status views are kept either way and round-trip through import and export.
+Status views are experimental and off by default. Turn on **Settings → Labs → Status views** to show the Status views tab, the identity picker on token type attributes, the Kanban board in the view switcher, the Status changes column, and the Ticket Processing example in the Load example menu. A document's identities and status views are kept either way and round-trip through import and export.
 
 Status views power three surfaces:
 
@@ -29,7 +29,7 @@ Open the **Simulate** mode and pick the **Status views** tab, then **Create**. A
 
 ## Kanban board
 
-When the net has at least one status view, a toggle at the top of the canvas switches between the net canvas and the **Kanban board**. Columns are the selected view's labels in order, with the exit label last. Each card is one tracked instance, showing its key value, the time it has spent in its current status, and — when it has entered the status more than once, e.g. through a review loop — the entry count.
+When the net has at least one status view, the view switcher at the top left of the workspace gains a **Kanban** option beside Canvas and Definitions (Canvas and Kanban in Actual mode). The **Kanban board** keeps the side and bottom panels of the canvas. Columns are the selected view's labels in order, with the exit label last. Each card is one tracked instance, showing its key value, the time it has spent in its current status, and — when it has entered the status more than once, e.g. through a review loop — the entry count.
 
 The board reads the same frames as the canvas: simulation playback in Edit mode, or the live stream in Actual mode. Scrub the timeline and the board follows.
 

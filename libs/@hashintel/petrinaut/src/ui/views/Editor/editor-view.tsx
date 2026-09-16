@@ -3,13 +3,9 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState } from "react";
+import { Activity, use, useState, type CSSProperties } from "react";
 
-import {
-  SegmentedControl,
-  type MenuItem,
-  type SegmentedControlItem,
-} from "@hashintel/ds-components";
+import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
@@ -21,11 +17,12 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
-import {
-  EditorContext,
-  type CanvasViewMode,
-} from "../../../react/state/editor-context";
+import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import {
+  useEffectiveEditViewMode,
+  useKanbanViewAvailable,
+} from "../../../react/state/use-effective-edit-view-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -150,19 +147,6 @@ const editViewSelectorSpaceStyle = css({
   flexShrink: "0",
 });
 
-const canvasViewToggleStyle = css({
-  position: "absolute",
-  top: "[12px]",
-  left: "[50%]",
-  transform: "translateX(-50%)",
-  zIndex: "[5]",
-});
-
-const canvasViewToggleItems: SegmentedControlItem<CanvasViewMode>[] = [
-  { value: "canvas", iconName: "diagramNodes", tooltip: "Net canvas" },
-  { value: "kanban", iconName: "squareCheck", tooltip: "Kanban board" },
-];
-
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -217,12 +201,9 @@ const EditorViewContent = ({
   // Get editor context
   const {
     globalMode,
-    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
-    canvasViewMode,
-    setCanvasViewMode,
     editionMode,
     setEditionMode,
     cursorMode,
@@ -233,6 +214,8 @@ const EditorViewContent = ({
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
+  const editViewMode = useEffectiveEditViewMode();
+  const kanbanAvailable = useKanbanViewAvailable();
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -498,8 +481,15 @@ const EditorViewContent = ({
     },
   ];
 
-  const showKanbanToggle =
-    enableStatusViews && (petriNetDefinition.statusViews ?? []).length > 0;
+  // Actual mode has no Definitions view, so its selector appears only once
+  // the Kanban board gives it a second option.
+  const showEditViewSelector =
+    globalMode === "edit" || (globalMode === "actual" && kanbanAvailable);
+  // Three labels need more room than the two the selector is sized for.
+  const workspaceVariables = {
+    "--edit-view-selector-width":
+      globalMode === "edit" && kanbanAvailable ? "232px" : undefined,
+  } as CSSProperties;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -562,14 +552,10 @@ const EditorViewContent = ({
             {globalMode === "simulate" ? (
               <SimulateView />
             ) : (
-              <div className={workspaceStyle}>
-                {globalMode === "edit" && <EditViewSelector />}
+              <div className={workspaceStyle} style={workspaceVariables}>
+                {showEditViewSelector && <EditViewSelector />}
                 <Activity
-                  mode={
-                    globalMode === "actual" || editViewMode === "canvas"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "hidden" : "visible"}
                 >
                   <Box className={canvasContainerStyle}>
                     {/* Left Sidebar - Tools and content panels */}
@@ -579,29 +565,27 @@ const EditorViewContent = ({
                     <PropertiesPanel />
 
                     {/* SDCPN Visualization, or the Kanban projection of a status
-                        view over the same frame source. A net without status
-                        views, or with the Status views setting off, always
-                        shows the canvas: the toggle is hidden then, so a stored
-                        "kanban" preference would otherwise be inescapable. */}
-                    {showKanbanToggle && canvasViewMode === "kanban" ? (
-                      <KanbanView />
-                    ) : (
+                        view over the same frame source */}
+                    <Activity
+                      mode={editViewMode === "kanban" ? "hidden" : "visible"}
+                    >
                       <SDCPNView
                         onControllerChange={registerController}
                         viewportActions={viewportActions}
                       />
-                    )}
-
-                    {showKanbanToggle && (
-                      <div className={canvasViewToggleStyle}>
-                        <SegmentedControl
-                          value={canvasViewMode}
-                          items={canvasViewToggleItems}
-                          onChange={setCanvasViewMode}
-                          size="sm"
-                        />
-                      </div>
-                    )}
+                    </Activity>
+                    <Activity
+                      mode={editViewMode === "kanban" ? "visible" : "hidden"}
+                    >
+                      <KanbanView
+                        toolbarStart={
+                          <div
+                            aria-hidden
+                            className={editViewSelectorSpaceStyle}
+                          />
+                        }
+                      />
+                    </Activity>
 
                     {showEmptyAiHero && (
                       <AiCtaModal
@@ -629,11 +613,7 @@ const EditorViewContent = ({
                   </Box>
                 </Activity>
                 <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "visible" : "hidden"}
                 >
                   <NotebookView
                     key={petriNetId ?? "no-net"}
@@ -646,8 +626,7 @@ const EditorViewContent = ({
             )}
             <Activity
               mode={
-                globalMode === "actual" ||
-                (globalMode === "edit" && editViewMode === "canvas")
+                globalMode !== "simulate" && editViewMode !== "definitions"
                   ? "visible"
                   : "hidden"
               }

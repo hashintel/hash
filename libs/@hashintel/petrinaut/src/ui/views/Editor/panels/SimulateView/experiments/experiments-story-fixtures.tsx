@@ -907,7 +907,6 @@ export function FakeEditorProvider({
     setSimulateViewMode,
     setSearchOpen: () => {},
     triggerPanelAnimation: () => {},
-    setCanvasViewMode: () => {},
     searchInputRef,
   };
 

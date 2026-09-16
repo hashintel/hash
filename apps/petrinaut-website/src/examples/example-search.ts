@@ -24,7 +24,7 @@ import {
  */
 export const sharedModes = ["edit", "simulate", "actual"] as const;
 
-export const sharedEditViews = ["canvas", "definitions"] as const;
+export const sharedEditViews = ["canvas", "definitions", "kanban"] as const;
 
 export const sharedSimulateViews = [
   "scenarios",
