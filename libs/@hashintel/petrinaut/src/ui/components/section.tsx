@@ -19,7 +19,7 @@ const sectionListStyle = css({
   "& > *:not(:last-child)": {
     borderBottomWidth: "[1px]",
     borderBottomStyle: "solid",
-    borderBottomColor: "neutral.a20",
+    borderBottomColor: "neutral.a40",
   },
 });
 
