@@ -5,8 +5,8 @@ import type * as TileDocument from "../atlas-decode/TileDocument";
 /**
  * Addressing for the Morton (Z-order) quadtree the Atlas tile API serves.
  *
- * A coordinate names one quadrant of the 16-bit quantized world: `z` is the
- * quadtree depth (`0..=16`) and `x`/`y` the quadrant at that depth, each below
+ * A coordinate names one quadrant of the renderer's world: `z` is the
+ * frontend's requested depth (`0..=16`) and `x`/`y` the quadrant at that depth, each below
  * `2 ** z`. Every zoom level splits each tile into four, so depth `z` tiles the
  * world into a `2 ** z` by `2 ** z` grid whose cells each span
  * {@link WORLD_SIZE} `>> z` world units.
@@ -19,7 +19,7 @@ import type * as TileDocument from "../atlas-decode/TileDocument";
 const { zero } = Num.u64;
 const two = Num.u64.unsafe(2n);
 
-/** Deepest quadtree zoom the tile grid addresses (the wire allows `0..=16`). */
+/** Deepest tile zoom this frontend requests. The server's Zoom domain extends through 32. */
 export const ATLAS_TILE_MAX_ZOOM = Num.u64.unsafe(16n);
 
 /** Tiles per axis at depth `z`, `2 ** z`. */

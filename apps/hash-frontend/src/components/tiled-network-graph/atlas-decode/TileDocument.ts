@@ -11,6 +11,7 @@ import * as Trailer from "./TileDocument/trailer";
 import * as TypeMask from "./TypeMask";
 
 import type * as Decoder from "./Decoder";
+import type * as Detail from "./Detail";
 import type * as GenerationId from "./GenerationId";
 import type * as Num from "./Num";
 
@@ -124,13 +125,21 @@ export interface DecodeOptions extends Head.Context {
   readonly variant: Num.u64;
   readonly mode: Head.Mode;
   readonly coordinate: Head.Coordinate;
+  readonly detail: Detail.Detail;
 }
 
 const decodeDocument = Result.fn(function* decodeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,
-  { generation, variant, coloredTypeCount, coordinate, mode }: DecodeOptions,
+  {
+    generation,
+    variant,
+    coloredTypeCount,
+    coordinate,
+    mode,
+    detail,
+  }: DecodeOptions,
 ): Result.gen.Return<TileDocument<T>, TileError.DecodeError> {
   yield* checkContext("coloredTypeCount", coloredTypeCount);
 
@@ -206,6 +215,12 @@ const decodeDocument = Result.fn(function* decodeDocument<
           head.coordinate,
         ),
     ),
+    Result.assert(head.hasTrailer === (detail === "auxiliary"), () =>
+      TileError.TileDocumentError.detailMismatch(
+        detail,
+        head.hasTrailer ? "auxiliary" : "minimal",
+      ),
+    ),
   ]).pipe(
     Result.changeContext(() => TileError.TileDocumentError.rejected("request")),
   );
@@ -232,7 +247,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
  *
  * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. Slots this decoder has no table entry for stay encoded, populated or not.
  *
- * The options supply the requested colored-type count and the expected generation, variant, coordinate and mode. A {@link Result.All} retains request mismatches under the request section's error. The caller decides whether a declared trailer satisfies its detail request.
+ * The options supply the requested colored-type count and the expected generation, variant, coordinate, mode and detail. A {@link Result.All} retains request mismatches under the request section's error.
  *
  * @returns The complete document or a {@link TileError.TileDocumentError} whose causes preserve underlying errors and unexpected exceptions. Failure may advance the decoder.
  */

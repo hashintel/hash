@@ -47,7 +47,7 @@ describe("Result equality in tests", () => {
 
 describe("Result.gen", () => {
   it("success_values", () => {
-    const result = Result.gen(function* () {
+    const result = Result.gen(function* sum() {
       const left = yield* Result.ok(1);
       const right = yield* Result.ok(2);
       return left + right;
@@ -60,7 +60,7 @@ describe("Result.gen", () => {
   it("first_error", () => {
     let reachedAfterErr = false;
 
-    const result = Result.gen(function* () {
+    const result = Result.gen(function* stopAtFailure() {
       const value = yield* Result.ok(1);
       const missing = yield* Result.err("boom") as Result.Result<
         number,
@@ -78,7 +78,7 @@ describe("Result.gen", () => {
     const first: Result.Result<number, "a"> = Result.ok(1);
     const second: Result.Result<string, "b"> = Result.ok("two");
 
-    const result = Result.gen(function* () {
+    const result = Result.gen(function* concatenate() {
       const one = yield* first;
       const two = yield* second;
       return `${one}${two}`;
@@ -92,7 +92,7 @@ describe("Result.gen", () => {
     const first: Result.Result<number, "a"> = Result.ok(1);
     const second: Result.Result<string, "b"> = Result.ok("two");
 
-    const result = Result.gen(function* (): Result.gen.Return<
+    const result = Result.gen(function* concatenate(): Result.gen.Return<
       string,
       "a" | "b"
     > {
@@ -109,7 +109,7 @@ describe("Result.gen", () => {
     let cleanedUp = false;
     const failing: Result.Result<number, string> = Result.err("boom");
 
-    const result = Result.gen(function* () {
+    const result = Result.gen(function* cleanup() {
       try {
         return yield* failing;
       } finally {
@@ -397,7 +397,7 @@ describe("Result#pipe", () => {
   it("generator_composition", () => {
     const readByte = (): Result.Result<number, LowLevelError> => Result.ok(7);
 
-    const message = Result.gen(function* () {
+    const message = Result.gen(function* readPair() {
       const first = yield* readByte();
       const second = yield* readByte();
       return first + second;

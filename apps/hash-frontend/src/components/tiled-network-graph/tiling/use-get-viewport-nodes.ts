@@ -254,6 +254,16 @@ export interface ViewportEdge {
   readonly typeId?: VersionedUrl;
 }
 
+/** Formats identities only at the renderer boundary, deduplicating by value. */
+const viewportEdges = (edges: readonly TileEdge[]): ViewportEdge[] => {
+  const byId = new Map<EntityId, ViewportEdge>();
+  for (const edge of edges) {
+    const id = edge.id.toString();
+    byId.set(id, { ...edge, id });
+  }
+  return [...byId.values()];
+};
+
 /** The renderable graph for a viewport: its nodes and the edges among them. */
 export interface ViewportGraph {
   readonly nodes: ViewportNode[];
@@ -542,7 +552,7 @@ export class TileCache {
   }
 
   /** Appends a viewport to the bounded movement history. */
-  recordHistory(rect: Rect, depth: Num.u64): void {
+  recordHistory(rect: Rect, depth: number): void {
     this.#history.push({ rect, depth });
     if (this.#history.length > HISTORY_LENGTH) {
       this.#history.shift();
@@ -632,13 +642,13 @@ export class TileCache {
         return this.#assembleEdges(this.#edgeBucketKeys);
       }
     } else {
-      return (
-        await this.#edgeFetcher(tiles, {
-          priority: "high",
-          detail,
-          signal,
-        })
-      ).edges;
+      const fetched = await this.#edgeFetcher(tiles, {
+        priority: "high",
+        detail,
+        signal,
+      });
+
+      return viewportEdges(fetched.edges);
     }
 
     // Map each delivered node id to the tile that carries it, so an edge's
@@ -703,16 +713,16 @@ export class TileCache {
     return this.#assembleEdges(bucketKeys);
   }
 
-  /** Concatenates the edges of the named buckets; buckets are disjoint (no dedup). */
+  /** Assembles resident edges, converting borrowed identities for the renderer. */
   #assembleEdges(keys: ReadonlySet<string>): ViewportEdge[] {
-    const edges: ViewportEdge[] = [];
+    const edges: TileEdge[] = [];
     for (const key of keys) {
       const entry = this.#edgeEntries.get(key);
       if (entry) {
         edges.push(...entry.edges);
       }
     }
-    return edges;
+    return viewportEdges(edges);
   }
 
   /**
@@ -965,7 +975,15 @@ const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
       depth: INITIAL_TILE_ZOOM,
     };
   }
-  validateViewport(viewport);
+  if (
+    ![viewport.x1, viewport.x2, viewport.y1, viewport.y2, viewport.zoom].every(
+      Number.isFinite,
+    )
+  ) {
+    throw new ViewportTilesError(
+      "viewport coordinates and zoom must be finite",
+    );
+  }
   return {
     rect: clampRectToWorld(viewport),
     depth: tileZoomForViewport(viewport.zoom),
@@ -1400,7 +1418,7 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
    * {@link getAtlasTileMaxZoom}) — past it every tile repeats accumulated
    * content. `null` until the first session bootstraps. A consumer driving the
    * tiling camera bounds its zoom range and requested tile depth by this
-   * rather than assuming the wire ceiling.
+   * rather than assuming the frontend ceiling.
    */
   readonly tileMaxZoom: number | null;
   /** Tiles resident in the cache after the latest load. */

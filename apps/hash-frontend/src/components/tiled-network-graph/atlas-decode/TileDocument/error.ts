@@ -3,6 +3,7 @@ import * as TaggedError from "../TaggedError";
 import type * as CborDecoder from "../CborDecoder";
 import type * as CborPrimitive from "../CborPrimitive";
 import type * as Decoder from "../Decoder";
+import type * as Detail from "../Detail";
 import type * as Envelope from "../Envelope";
 import type * as GenerationId from "../GenerationId";
 import type * as Num from "../Num";
@@ -65,6 +66,11 @@ export type TileDocumentErrorReason =
       readonly expected: Head.Coordinate;
       readonly actual: Head.Coordinate;
     }
+  | {
+      readonly _tag: "detail-mismatch";
+      readonly expected: Detail.Detail;
+      readonly actual: Detail.Detail;
+    }
   /** Independent failures retained as an aggregate in the section error's cause. */
   | { readonly _tag: "section"; readonly section: Section }
   | { readonly _tag: "decode" };
@@ -115,6 +121,9 @@ export class TileDocumentError extends TaggedError.TaggedError<
       case "coordinate-mismatch":
         message = `expected coordinate ${reason.expected.z}/${reason.expected.x}/${reason.expected.y}, received ${reason.actual.z}/${reason.actual.x}/${reason.actual.y}`;
         break;
+      case "detail-mismatch":
+        message = `expected detail ${reason.expected}, received ${reason.actual}`;
+        break;
       case "section":
         message = `${reason.section} checks failed`;
         break;
@@ -164,6 +173,13 @@ export class TileDocumentError extends TaggedError.TaggedError<
       expected,
       actual,
     });
+  }
+
+  static detailMismatch(
+    expected: Detail.Detail,
+    actual: Detail.Detail,
+  ): TileDocumentError {
+    return new TileDocumentError({ _tag: "detail-mismatch", expected, actual });
   }
 
   static rejected(section: Section): TileDocumentError {

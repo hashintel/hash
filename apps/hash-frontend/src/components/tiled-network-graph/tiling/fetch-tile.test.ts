@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { enterPrincipal } from "../../../shared/principal-scoped-state";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
 import {
   buildResponse,
   cborArray,
@@ -14,7 +15,6 @@ import {
   u32le,
 } from "../atlas-decode/fixtures";
 import * as Num from "../atlas-decode/Num";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
 import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
@@ -115,23 +115,25 @@ const BASE = "http://api.test/atlas";
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
 
-const manifestBody = (
-  generation: string,
-  maxZoom = 16,
-  scopeOffset = 0,
-): unknown => ({
+const manifestBody = (generation: string, maxZoom = 16, scopeOffset = 0) => ({
   generation,
   wireVersion: 1,
   variants: ["plain"],
   bucketSchedule: { span: 64, cut: "z+6", maxZoom },
   scopeSchedule: { k: scopeOffset, cut: `z+${6 + scopeOffset}`, maxZoom },
   limits: {
-    coloredTypeIds: 8,
-    edgesTiles: 32,
-    locateEdges: 512,
-    locateProperties: 20,
-    locateLinkTypeIds: 5,
-    locateLinkProperties: 10,
+    tile: { coloredTypeIds: 8 },
+    edges: { tiles: 32, edges: 512 },
+    locate: {
+      coloredTypeIds: 8,
+      edges: 512,
+      properties: 20,
+      linkTypeIds: 5,
+      linkProperties: 10,
+    },
+    translate: { entityIds: 256 },
+    authorityRefreshSeconds: 300,
+    authorityHardSeconds: 3600,
   },
   createdAt: "2026-07-19T16:00:00Z",
 });
@@ -377,11 +379,8 @@ describe("fetchTile", () => {
   });
 
   it("serves a restricted caller, whose cut carries the manifest's k", async () => {
-    // The end-to-end shape of the defect this test was written for: the
-    // manifest publishes k = 1, so the server counts the head from
-    // z + m + k and the session has to carry that sum. Reading m alone
-    // refused every restricted caller at its first tile, with no partial
-    // render and no wrong colours - a contract error.
+    // A nonzero delivery offset is a normal restricted view, not a reason
+    // to refuse its otherwise valid tile response.
     const generation = genHex(0x1a);
     stubTransport({
       "/atlas/current": () => json({ generation }),
@@ -395,10 +394,9 @@ describe("fetchTile", () => {
     expect(nodes).toHaveLength(3);
   });
 
-  it("refuses a restricted tile counted from the corpus span alone", async () => {
-    // The same manifest, with the head the server would send if it had
-    // ignored k. The refusal is the decoder's, and it names firstBucket -
-    // so a desync between the two blocks is loud rather than silent.
+  it("decodes encoded runs without reconstructing a schedule from the manifest", async () => {
+    // Session continuity compares the manifest's cut at renewal. It does not
+    // impose a reconstructed first bucket or run count on the tile decoder.
     const generation = genHex(0x1b);
     stubTransport({
       "/atlas/current": () => json({ generation }),
@@ -408,16 +406,60 @@ describe("fetchTile", () => {
         saltile(tileBytes(0x1b, 3, 5, 1, 6)),
     });
 
-    // The wrapper names the tile and the cause names the contract, so the
-    // detail is one `.cause` away rather than lost.
-    const refusal = await fetchTile(u64(3), u64(13), { baseUrl: BASE }).catch(
-      (error: unknown) => error,
-    );
-    expect(refusal).toBeInstanceOf(FetchTileError);
-    expect((refusal as Error).message).toMatch(
-      /failed to decode tile 3\/5\/1/u,
-    );
-    expect(((refusal as Error).cause as Error).message).toMatch(/firstBucket/u);
+    const { nodes } = await fetchTile(u64(3), u64(13), { baseUrl: BASE });
+    expect(nodes).toHaveLength(3);
+  });
+
+  it("rejects a manifest that does not echo the requested generation", async () => {
+    const generation = genHex(0x1d);
+    const paths = stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(genHex(0x1e)),
+    });
+
+    await expect(
+      fetchTile(u64(1), u64(0), { baseUrl: BASE }),
+    ).rejects.toMatchObject({
+      cause: { message: "manifest generation does not echo the route" },
+    });
+    expect(paths).toHaveLength(2);
+  });
+
+  it.each([{ wireVersion: 2 }, { variants: [] }])(
+    "rejects unsupported manifest capabilities: %s",
+    async (capability) => {
+      const generation = genHex(0x20);
+      const paths = stubTransport({
+        "/atlas/current": () => json({ generation }),
+        [`/atlas/generation/${generation}/manifest`]: () =>
+          json({ ...manifestBody(generation), ...capability }),
+      });
+
+      await expect(
+        fetchTile(u64(1), u64(0), { baseUrl: BASE }),
+      ).rejects.toBeInstanceOf(FetchTileError);
+      expect(paths).toHaveLength(2);
+    },
+  );
+
+  it("rejects missing auxiliary tile detail", async () => {
+    const generation = genHex(0x1f);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () => manifest(generation),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        saltile(tileBytes(0x1f, 1, 1, 0)),
+    });
+
+    await expect(
+      fetchTile(u64(1), u64(1), {
+        baseUrl: BASE,
+        detail: "auxiliary",
+      }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("detail") },
+    });
   });
 
   it("bootstraps once and reuses the session, but does not cache tiles", async () => {
@@ -1372,6 +1414,35 @@ describe("the atlas authority token", () => {
     expect(manifestFetches(seen)).toHaveLength(2);
   });
 
+  it("does not replace a session on a renewal's wrong generation echo", async () => {
+    const generation = genHex(0x65);
+    let expired = false;
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: (request) =>
+        request.authority === null
+          ? manifest(generation)
+          : manifest(genHex(0x66), 16, TOKEN_B),
+      [`/atlas/tile/${generation}/plain/1/1/0`]: () =>
+        expired ? unauthorized() : saltile(tileBytes(0x65, 1, 1, 0)),
+    });
+    await fetchTile(u64(1), u64(1), { baseUrl: BASE });
+    const before = getAtlasSessionRevision();
+    expired = true;
+
+    await expect(
+      fetchTile(u64(1), u64(1), { baseUrl: BASE }),
+    ).rejects.toMatchObject({
+      cause: { message: "manifest generation does not echo the route" },
+    });
+    expect(getAtlasSessionRevision()).toBe(before);
+    expect(
+      seen.filter((request) => request.path.endsWith("/current")),
+    ).toHaveLength(1);
+    expect(manifestFetches(seen)).toHaveLength(2);
+    expect(dataRoutes(seen)).toHaveLength(2);
+  });
+
   it("renews a restricted session at its own sealed cut without ending it", async () => {
     const generation = genHex(0x63);
     // The negative control for the case below, and the reason it is a separate test: a nonzero `k`
@@ -1412,10 +1483,8 @@ describe("the atlas authority token", () => {
     // fresh manifest request. So a session sealed at `k = 2` can be refused and then renewed at
     // `k = 0`, and the renewal's `200` is where the change is visible.
     //
-    // Without the cut comparison the recovery the server promises cannot complete: the renewal
-    // succeeds, the session keeps `m + 2`, and the retry decodes a corpus head counted from `m` and
-    // fails its `firstBucket` check — a terminal decode failure that no recovery path reaches, with
-    // every later tile of the session failing the same way.
+    // Without the cut comparison, renewal would keep rows from the restricted view beside
+    // rows served under the corpus view. The session boundary prevents that attribution mix.
     let corpus = false;
     let minted = TOKEN_A;
     const seen = stubAuthorityTransport({

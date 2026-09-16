@@ -28,10 +28,10 @@
  *    size (tapered by cache fullness) so a fast pan is not starved at six tiles.
  */
 
+import * as Num from "../atlas-decode/Num";
 import {
   atlasTileKey,
   ATLAS_TILE_MAX_ZOOM,
-  type AtlasTileCoordinate,
   WORLD_SIZE,
 } from "./atlas-tile-coordinate";
 import {
@@ -45,6 +45,8 @@ import {
   tileDistance,
   type ViewportRegion,
 } from "./tile-geometry";
+
+import type * as TileDocument from "../atlas-decode/TileDocument";
 
 /** How many recent viewports to retain for movement prediction. */
 export const HISTORY_LENGTH = 5;
@@ -80,6 +82,7 @@ const SMOOTH_WINDOW = 3;
 
 /** Bounds a single predicted zoom step to at most one level either way. */
 const MAX_DEPTH_STEP = 1;
+const MAX_ZOOM = Num.f64.approximate(ATLAS_TILE_MAX_ZOOM);
 
 /** The slice of {@link TileCache} the prefetch scheduler reads and drives. */
 export interface PrefetchCache {
@@ -88,12 +91,12 @@ export interface PrefetchCache {
   /** Recent viewports, oldest first; the last is the current viewport. */
   readonly history: readonly ViewportRegion[];
   /** Whether a tile is already resident. */
-  has(coordinate: AtlasTileCoordinate): boolean;
+  has(coordinate: TileDocument.Coordinate): boolean;
   /**
    * Issues this batch of speculative loads and cancels any still-in-flight
    * prefetch no longer in the batch (superseded speculation).
    */
-  prefetchBatch(coordinates: readonly AtlasTileCoordinate[]): void;
+  prefetchBatch(coordinates: readonly TileDocument.Coordinate[]): void;
 }
 
 /** Tiles to prefetch given cache fullness: 0 when near full, tapering below. */
@@ -142,8 +145,10 @@ const smoothedMovement = (
     if (!newer || !older) {
       break;
     }
+
     sumX += rectCenterX(newer.rect) - rectCenterX(older.rect);
     sumY += rectCenterY(newer.rect) - rectCenterY(older.rect);
+
     const newerWidth = rectWidth(newer.rect);
     const olderWidth = rectWidth(older.rect);
     if (newerWidth > 0 && olderWidth > 0) {
@@ -211,11 +216,7 @@ export const predictNextViewport = (
   const halfHeight = (rectHeight(current.rect) * scale) / 2;
   const centreX = rectCenterX(current.rect) + (panned ? movement.panX : 0);
   const centreY = rectCenterY(current.rect) + (panned ? movement.panY : 0);
-  const depth = clampInt(
-    Math.round(current.depth + depthStep),
-    0,
-    ATLAS_TILE_MAX_ZOOM,
-  );
+  const depth = clampInt(Math.round(current.depth + depthStep), 0, MAX_ZOOM);
 
   return {
     rect: clampRectToWorld({
@@ -229,7 +230,7 @@ export const predictNextViewport = (
 };
 
 /** The one-tile border around a viewport at its depth (plus any new ancestors). */
-const ringTiles = (region: ViewportRegion): AtlasTileCoordinate[] => {
+const ringTiles = (region: ViewportRegion): TileDocument.Coordinate[] => {
   const tileSpan = WORLD_SIZE / 2 ** region.depth;
   const grown = clampRectToWorld({
     x1: region.rect.x1 - tileSpan,
@@ -273,13 +274,17 @@ export const schedulePrefetch = (
   const bias = prediction ?? current;
 
   const seen = new Set<string>();
-  const candidates: { coordinate: AtlasTileCoordinate; distance: number }[] =
-    [];
-  const consider = (coordinate: AtlasTileCoordinate): void => {
+  const candidates: {
+    readonly coordinate: TileDocument.Coordinate;
+    readonly distance: number;
+  }[] = [];
+
+  const consider = (coordinate: TileDocument.Coordinate): void => {
     const key = atlasTileKey(coordinate);
     if (currentKeys.has(key) || seen.has(key) || cache.has(coordinate)) {
       return;
     }
+
     seen.add(key);
     candidates.push({
       coordinate,

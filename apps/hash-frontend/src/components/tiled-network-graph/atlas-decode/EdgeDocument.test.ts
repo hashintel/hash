@@ -466,6 +466,36 @@ describe("EdgeDocument.decode envelope and head", () => {
 });
 
 describe("EdgeDocument.decode request", () => {
+  it.each(["minimal", "auxiliary"] as const)("detail_%s_mismatch", (detail) => {
+    const hasTrailer = detail === "minimal";
+    const buffer = edgesResponse({
+      payloads: [
+        cborMap(
+          defaultHeadEntries({ 2: cborUint(0), 4: cborBool(hasTrailer) }),
+        ),
+        [],
+        [],
+        [],
+      ],
+      tail: hasTrailer
+        ? cborMap([
+            [0, cborArray([])],
+            [1, cborArray([])],
+            [2, cborArray([])],
+          ])
+        : [],
+    });
+    const error = expectSingleSectionError(
+      runDecode(buffer, { ...decodeOptions, detail }),
+      "request",
+    );
+    expect(error.reason).toEqual({
+      _tag: "detail-mismatch",
+      expected: detail,
+      actual: hasTrailer ? "auxiliary" : "minimal",
+    });
+  });
+
   it("generation_mismatch", () => {
     const generation = GenerationId.GenerationId.make(
       new Uint8Array(32).fill(255),

@@ -17,7 +17,7 @@
  *  2. Turn `(zoom, tileIndex)` into the Morton quadrant `(z, x, y)` and POST
  *     the tile request for that quadrant of the canonical variant, in delta
  *     mode with no colored types or detailed data.
- *  3. Decode and identity-check the payload with {@link decodeSaltileTile},
+ *  3. Decode and identity-check the payload with {@link TileDocument.decode},
  *     then pair each `rowId` with its position.
  *
  * SALTILE positions arrive in the wire frame, `[-1, 1]` per axis; this layer's
@@ -40,12 +40,15 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
+import * as CurrentDocument from "../atlas-decode/CurrentDocument";
 import * as Decoder from "../atlas-decode/Decoder";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import {
+  SALTILE_MEDIA_TYPE,
+  SALTILE_WIRE_VERSION,
+} from "../atlas-decode/Envelope";
 import * as Function from "../atlas-decode/Function";
-import * as GenerationId from "../atlas-decode/GenerationId";
 import * as Iterable from "../atlas-decode/Iterable";
-import { parseCurrent, parseManifest } from "../atlas-decode/manifest";
+import * as ManifestDocument from "../atlas-decode/ManifestDocument";
 import * as Num from "../atlas-decode/Num";
 import * as Option from "../atlas-decode/Option";
 import * as Record from "../atlas-decode/Record";
@@ -59,6 +62,7 @@ import {
 } from "./atlas-tile-coordinate";
 
 import type * as Detail from "../atlas-decode/Detail";
+import type * as GenerationId from "../atlas-decode/GenerationId";
 
 /**
  * The atlas surface as a browser addresses it: hash-api's `/atlas` mount.
@@ -160,7 +164,7 @@ export interface FetchTileOptions {
    * order their bit index is assigned. When non-empty each decoded
    * {@link TileNode} carries {@link TileNode.typeIndices}, the queried types the
    * point (or one of its descendants) matches. Capped by the manifest's
-   * `limits.coloredTypeIds`. Defaults to none (no `TYPE_MASK`, no
+   * `limits.tile.coloredTypeIds`. Defaults to none (no `TYPE_MASK`, no
    * `typeIndices`).
    */
   readonly coloredTypeIds?: readonly string[];
@@ -240,9 +244,8 @@ export class AtlasAuthorityEndedError extends FetchTileError {}
  * renewed authority would not serve. That is the same attribution boundary a re-pin and a principal
  * change cross (see {@link sessionRevision}), and no remap exists — the rows must go before the new
  * cut is adopted. Mutating `deliverySpanLog2` in place would keep them beside a view that never
- * held them, and leaving it alone strands the session: every subsequent tile decodes its head at
- * the old cut and fails the `firstBucket` check, which is a terminal decode failure no recovery
- * reaches.
+ * held them. The renewal compares the manifest's cut before continuing the session; tile decoding
+ * does not reconstruct the producer's run schedule.
  *
  * Minted inside {@link renewAtlasAuthority}, which is the only place holding both numbers, and
  * consumed only by {@link canReplaceAtlasSession}.
@@ -390,16 +393,16 @@ interface AtlasAuthority {
    *
    * Not a second source of truth: the entry is built in one place from one variable, and the URL is
    * built from it there (see {@link fetchSaltileSession}). A renewal needs it in this form because
-   * {@link parseManifest} checks the document's echo against the generation the route asked for.
+   * the renewal checks the document's echo against the generation the route asked for.
    */
-  readonly generation: string;
+  readonly generation: GenerationId.GenerationId;
   /**
    * `m + k` as this origin's retained token seals it, `undefined` until a manifest response mints
    * one — or where the bootstrap that would have written it was superseded first.
    *
    * The addend belongs to the token rather than to the generation: `m` is the generation's bucket
    * span exponent and `k` is the delivery offset the *caller's* resolved view sealed. The session
-   * carries the same number for its decoder ({@link SaltileSession.deliverySpanLog2}) and both are
+   * carries the same number ({@link SaltileSession.deliverySpanLog2}) and both are
    * assigned from one expression at the bootstrap, so this is a comparison copy and never a second
    * reading. What it exists for: a renewal can come back at a different cut, and the renewal is the
    * only place that can notice (see {@link AtlasDeliveryCutChangedError}).
@@ -733,7 +736,7 @@ const requestManifest = (
  * for this caller, so a renewal can answer at a different one — and a renewal answering at a cut
  * the session does not decode against ends the session (see {@link AtlasDeliveryCutChangedError}).
  * Comparing the sum `m + k` rather than `k` alone costs nothing and covers both halves of the
- * number the decoder uses.
+ * number the session retains.
  *
  * A document this side cannot read is not evidence that the cut moved: it fails the renewal, which
  * fails the request that needed it, and destroys nothing. The session survives an unreadable answer
@@ -777,12 +780,30 @@ const renewAtlasAuthority = async (url: string): Promise<boolean> => {
     authority.filter,
   )
     .then(async (response) => {
-      const renewed = parseManifest(
+      const renewed = ManifestDocument.decode(
         await readAtlasJson(authority.manifestUrl, response),
-        authority.generation,
+      ).pipe(
+        Result.filter(
+          (document: ManifestDocument.Manifest) =>
+            document.generation.equals(authority.generation),
+          () => new Error("manifest generation does not echo the route"),
+        ),
+        Result.filter(
+          (document: ManifestDocument.Manifest) =>
+            document.wireVersion === SALTILE_WIRE_VERSION,
+          () => new Error("unsupported manifest wireVersion"),
+        ),
+        Result.filter(
+          (document: ManifestDocument.Manifest) => document.variants.length > 0,
+          () => new Error("manifest carries no variants"),
+        ),
+        Result.changeContext(() => new FetchTileError("invalid manifest")),
+        Result.unwrap,
       );
+
       const sealed =
         Math.log2(renewed.bucketSchedule.span) + renewed.scopeSchedule.k;
+
       // `undefined` is the superseded bootstrap's mark: there is no session number to compare
       // against, and inventing one from this document would adopt a cut nobody bound to.
       if (
@@ -886,10 +907,9 @@ export interface SaltileSession {
    *
    * `m` is `log2` of the bucket-schedule span and `k` is the offset the
    * authority token seals, so a restricted caller's addend exceeds the
-   * corpus span exponent. Every consumer wants the sum, because the cut
-   * the server actually served is `z + m + k` (`wire.md`, the runs
-   * contract). Taking `m` alone refused every restricted caller at the
-   * first tile's head.
+   * corpus span exponent. The sum identifies the delivery cut whose rows
+   * the session holds, so renewal compares it before continuing that session.
+   * It is not used to reconstruct an expected tile run schedule.
    */
   readonly deliverySpanLog2: number;
   /** Deepest requestable zoom the manifest allows. */
@@ -897,7 +917,7 @@ export interface SaltileSession {
   /**
    * The deepest tile zoom at which this session's view still delivers new
    * points, from its manifest's `scopeSchedule.maxZoom` — past it every tile
-   * repeats accumulated content. Distinct from both the wire ceiling
+   * repeats accumulated content. Distinct from both the frontend ceiling
    * {@link ATLAS_TILE_MAX_ZOOM} and {@link SaltileSession.maxZoom} (the
    * generation's own route-validity bound): this is the *useful* depth for the
    * resolved view, which may sit shallower than either. The session carries it
@@ -906,13 +926,15 @@ export interface SaltileSession {
    * camera.
    */
   readonly tileMaxZoom: number;
-  /** Cap on the tile list of one edges request (manifest `limits.edgesTiles`). */
+  /** Cap on the tile list of one edges request (manifest `limits.edges.tiles`). */
   readonly edgesTiles: number;
 }
 
 /** The bootstrap and refresh route of one generation: the only route that mints an authority token. */
-const manifestUrl = (baseUrl: string, generation: string): string =>
-  `${baseUrl}/generation/${generation}/manifest`;
+const manifestUrl = (
+  baseUrl: string,
+  generation: GenerationId.GenerationId,
+): string => `${baseUrl}/generation/${generation}/manifest`;
 
 /**
  * The live session's {@link SaltileSession.tileMaxZoom}; `null` until the first
@@ -972,9 +994,13 @@ const fetchSaltileSession = async (
   // caller's AbortSignal: the result is shared across every tile fetch, so one
   // caller aborting must not poison the memoized value.
   const currentUrl = `${baseUrl}/current`;
-  const current = parseCurrent(
+  const current = CurrentDocument.decode(
     await readAtlasJson(currentUrl, await requestCurrent(currentUrl)),
+  ).pipe(
+    Result.changeContext(() => new FetchTileError("invalid current")),
+    Result.unwrap,
   );
+
   const url = manifestUrl(baseUrl, current.generation);
 
   // Register this origin's authority before the response that mints one arrives: retention finds an
@@ -1005,22 +1031,33 @@ const fetchSaltileSession = async (
   // than re-minting the authority of one this client no longer holds a usable token for. Its body,
   // when present, is the filter document naming that view; a bootstrap of the unfiltered view is
   // bodyless.
-  const manifest = parseManifest(
+  const manifest = ManifestDocument.decode(
     await readAtlasJson(
       url,
       await requestManifest(url, "manifest-bootstrap", filter),
     ),
-    current.generation,
+  ).pipe(
+    Result.filter(
+      (document: ManifestDocument.Manifest) =>
+        document.generation.equals(current.generation),
+      () => new Error("manifest generation does not echo the route"),
+    ),
+    Result.filter(
+      (document: ManifestDocument.Manifest) =>
+        document.wireVersion === SALTILE_WIRE_VERSION,
+      () => new Error("unsupported manifest wireVersion"),
+    ),
+    Result.changeContext(() => new FetchTileError("invalid manifest")),
+    Result.unwrap,
   );
 
-  // The manifest's first variant is canonical; `parseManifest` guarantees the
-  // set is non-empty, so it is index 0.
+  // The manifest's first variant is canonical, so it is index 0.
   const [variant] = manifest.variants;
   if (variant === undefined) {
     throw new FetchTileError("manifest carries no variants");
   }
 
-  // One expression, two consumers: the decoder reads it off the session and the renewal compares
+  // One expression, two copies: the session retains its cut and the renewal compares
   // its own document against the authority's copy. Assigning both here is what keeps them one
   // number.
   const deliverySpanLog2 =
@@ -1037,16 +1074,13 @@ const fetchSaltileSession = async (
   }
 
   return {
-    generation: GenerationId.fromHex(current.generation).pipe(
-      Result.changeContext(() => new FetchTileError("invalid generation")),
-      Result.unwrap,
-    ),
+    generation: current.generation,
     variant,
     variantIndex: Num.u64.zero,
     deliverySpanLog2,
     maxZoom: manifest.bucketSchedule.maxZoom,
     tileMaxZoom: manifest.scopeSchedule.maxZoom,
-    edgesTiles: manifest.limits.edgesTiles,
+    edgesTiles: manifest.limits.edges.tiles,
   };
 };
 
@@ -1354,7 +1388,7 @@ const fetchAndDecodeTile = async (
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-  detail: "auxiliary" | "minimal",
+  detail: Detail.Detail,
   coloredTypeIds: readonly string[],
 ): Promise<FetchedTile> => {
   if (coordinate.z > session.maxZoom) {
@@ -1399,6 +1433,11 @@ const fetchAndDecodeTile = async (
       coordinate,
       coloredTypeCount: coloredTypeIds.length,
     }).pipe(
+      Result.filter(
+        (document: TileDocument.TileDocument<ArrayBufferLike>) =>
+          (document.trailer !== null) === (detail === "auxiliary"),
+        () => new Error("tile trailer does not match the requested detail"),
+      ),
       Result.changeContext(
         () =>
           new FetchTileError(

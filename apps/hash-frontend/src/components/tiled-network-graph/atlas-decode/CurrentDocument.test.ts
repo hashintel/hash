@@ -39,15 +39,25 @@ describe("CurrentDocument", () => {
     }
   });
 
-  it.each(["", "00".repeat(31), "AB".repeat(32)])(
+  it.each(["", "00".repeat(31), "AB".repeat(32), `${"0".repeat(63)}\n`])(
     "generation_errors_%s",
     (generation) => {
       const result = CurrentDocument.decode({ generation });
       expect(Result.isErr(result)).toBe(true);
       if (Result.isErr(result)) {
-        expect(result.error.cause).toBeInstanceOf(
-          GenerationId.GenerationIdError,
-        );
+        const cause = result.error.cause;
+        expect(cause).toBeInstanceOf(z.ZodError);
+        if (!(cause instanceof z.ZodError)) {
+          return;
+        }
+        const issue = cause.issues[0];
+        expect(issue?.path).toEqual(["generation"]);
+        expect(issue?.code).toBe("custom");
+        if (issue?.code === "custom") {
+          expect(issue.params?.cause).toBeInstanceOf(
+            GenerationId.GenerationIdError,
+          );
+        }
       }
     },
   );

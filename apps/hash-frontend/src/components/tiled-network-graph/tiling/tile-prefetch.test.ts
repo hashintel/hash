@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  atlasTileKey,
-  type AtlasTileCoordinate,
-} from "./atlas-tile-coordinate";
+import { atlasTileKey } from "./atlas-tile-coordinate";
 import {
   rectCenterX,
   rectWidth,
@@ -16,6 +13,8 @@ import {
   schedulePrefetch,
   type PrefetchCache,
 } from "./tile-prefetch";
+
+import type * as TileDocument from "../atlas-decode/TileDocument";
 
 /** A square viewport region centred at `(cx, cy)`, half-side `half`, at `depth`. */
 const region = (
@@ -34,8 +33,8 @@ const keysOf = (region_: ViewportRegion): Set<string> =>
 const fakeCache = (
   history: ViewportRegion[],
   options: { fullness?: number; cached?: ReadonlySet<string> } = {},
-): PrefetchCache & { readonly prefetched: AtlasTileCoordinate[] } => {
-  const prefetched: AtlasTileCoordinate[] = [];
+): PrefetchCache & { readonly prefetched: TileDocument.Coordinate[] } => {
+  const prefetched: TileDocument.Coordinate[] = [];
   const cached = options.cached ?? new Set<string>();
   return {
     fullness: options.fullness ?? 0,
@@ -149,7 +148,7 @@ describe("schedulePrefetch", () => {
     // The pan is along +x; the ring still reaches the rows above/below (y 8, 11)
     // that a purely-directional predictor would never touch.
     const orthogonal = cache.prefetched.some(
-      ({ z, y }) => z === 5 && (y === 8 || y === 11),
+      ({ z, y }) => z === 5n && (y === 8n || y === 11n),
     );
     expect(orthogonal).toBe(true);
   });

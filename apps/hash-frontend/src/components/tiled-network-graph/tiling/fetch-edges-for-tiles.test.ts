@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
 import {
   buildResponse,
   cborArray,
@@ -11,7 +12,7 @@ import {
   cborUint,
   u32le,
 } from "../atlas-decode/fixtures";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
+import * as Num from "../atlas-decode/Num";
 import { fetchEdgesForTiles } from "./fetch-edges-for-tiles";
 import {
   ATLAS_RETIRED_GENERATION_PROBLEM,
@@ -20,6 +21,9 @@ import {
 } from "./fetch-tile";
 
 const BASE = "http://api.test/atlas";
+
+/** Brands a coordinate literal the test knows is a nonnegative integer. */
+const u64 = (value: number): Num.u64 => Num.u64.unsafe(BigInt(value));
 
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
@@ -31,12 +35,18 @@ const manifestBody = (generation: string, edgesTiles = 32): unknown => ({
   bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
   scopeSchedule: { k: 0, cut: "z+6", maxZoom: 16 },
   limits: {
-    coloredTypeIds: 8,
-    edgesTiles,
-    locateEdges: 512,
-    locateProperties: 20,
-    locateLinkTypeIds: 5,
-    locateLinkProperties: 10,
+    tile: { coloredTypeIds: 8 },
+    edges: { tiles: edgesTiles, edges: 512 },
+    locate: {
+      coloredTypeIds: 8,
+      edges: 512,
+      properties: 20,
+      linkTypeIds: 5,
+      linkProperties: 10,
+    },
+    translate: { entityIds: 256 },
+    authorityRefreshSeconds: 300,
+    authorityHardSeconds: 3600,
   },
   createdAt: "2026-07-19T16:00:00Z",
 });
@@ -177,15 +187,16 @@ describe("fetchEdgesForTiles", () => {
     });
 
     const tiles = [
-      { z: 0, x: 0, y: 0 },
-      { z: 1, x: 1, y: 0 },
+      { z: u64(0), x: u64(0), y: u64(0) },
+      { z: u64(1), x: u64(1), y: u64(0) },
     ];
     const { edges, complete } = await fetchEdgesForTiles(tiles, {
       baseUrl: BASE,
     });
 
     expect(complete).toBe(true);
-    expect(edges).toEqual([
+    expect(edges[0]?.id.bytes).toEqual(new Uint8Array(32).fill(100));
+    expect(edges.map((edge) => ({ ...edge, id: edge.id.toString() }))).toEqual([
       { id: idString(100), source: 7, target: 11 },
       { id: idString(205), source: 11, target: 42 },
     ]);
@@ -193,7 +204,12 @@ describe("fetchEdgesForTiles", () => {
     const edgesRequest = captured.find((entry) =>
       entry.path.includes("/atlas/edges/"),
     );
-    expect(edgesRequest?.body).toEqual({ tiles });
+    expect(edgesRequest?.body).toEqual({
+      tiles: [
+        { z: 0, x: 0, y: 0 },
+        { z: 1, x: 1, y: 0 },
+      ],
+    });
   });
 
   it("sends the auxiliary detail mode and accepts a response with the detail trailer", async () => {
@@ -206,12 +222,12 @@ describe("fetchEdgesForTiles", () => {
         saltile(detailedEdgesBytes(0x77, [7], [11], [100])),
     });
 
-    const { edges } = await fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], {
-      baseUrl: BASE,
-      detail: "auxiliary",
-    });
+    const { edges } = await fetchEdgesForTiles(
+      [{ z: u64(0), x: u64(0), y: u64(0) }],
+      { baseUrl: BASE, detail: "auxiliary" },
+    );
 
-    expect(edges).toEqual([
+    expect(edges.map((edge) => ({ ...edge, id: edge.id.toString() }))).toEqual([
       { id: idString(100), source: 7, target: 11, label: "link 0" },
     ]);
     const edgesRequest = captured.find((entry) =>
@@ -233,9 +249,12 @@ describe("fetchEdgesForTiles", () => {
         saltile(edgesBytes(0x22, [1], [2], [3], false)),
     });
 
-    const { complete } = await fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], {
-      baseUrl: BASE,
-    });
+    const { complete } = await fetchEdgesForTiles(
+      [{ z: u64(0), x: u64(0), y: u64(0) }],
+      {
+        baseUrl: BASE,
+      },
+    );
     expect(complete).toBe(false);
   });
 
@@ -258,9 +277,9 @@ describe("fetchEdgesForTiles", () => {
     });
 
     const tiles = [
-      { z: 1, x: 0, y: 0 },
-      { z: 1, x: 1, y: 0 },
-      { z: 1, x: 0, y: 1 },
+      { z: u64(1), x: u64(0), y: u64(0) },
+      { z: u64(1), x: u64(1), y: u64(0) },
+      { z: u64(1), x: u64(0), y: u64(1) },
     ];
     await fetchEdgesForTiles(tiles, { baseUrl: BASE });
 
@@ -268,7 +287,73 @@ describe("fetchEdgesForTiles", () => {
       entry.path.includes("/atlas/edges/"),
     );
     // Only the first two tiles ride the request; the third is beyond the cap.
-    expect(edgesRequest?.body).toEqual({ tiles: tiles.slice(0, 2) });
+    expect(edgesRequest?.body).toEqual({
+      tiles: [
+        { z: 1, x: 0, y: 0 },
+        { z: 1, x: 1, y: 0 },
+      ],
+    });
+  });
+
+  it("serializes the largest tile coordinates as exact JSON numbers", async () => {
+    const generation = genHex(0x34);
+    const captured = stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/atlas/edges/${generation}/plain`]: () =>
+        saltile(edgesBytes(0x34, [], [], [])),
+    });
+
+    await fetchEdgesForTiles([{ z: u64(16), x: u64(65535), y: u64(65535) }], {
+      baseUrl: BASE,
+    });
+    expect(captured.at(-1)?.body).toEqual({
+      tiles: [{ z: 16, x: 65535, y: 65535 }],
+    });
+  });
+
+  it.each([
+    { z: u64(17), x: u64(0), y: u64(0) },
+    { z: u64(16), x: u64(65536), y: u64(0) },
+    { z: u64(16), x: u64(0), y: Num.u64.maxValue },
+  ])(
+    "rejects out-of-domain coordinates before posting edges: %s",
+    async (tile) => {
+      const generation = genHex(0x35);
+      const captured = stubTransport({
+        "/atlas/current": () => json({ generation }),
+        [`/atlas/generation/${generation}/manifest`]: () =>
+          json(manifestBody(generation)),
+      });
+
+      await expect(
+        fetchEdgesForTiles([tile], { baseUrl: BASE }),
+      ).rejects.toBeInstanceOf(FetchTileError);
+      expect(
+        captured.some((request) => request.path.includes("/atlas/edges/")),
+      ).toBe(false);
+    },
+  );
+
+  it("rejects missing auxiliary edge detail", async () => {
+    const generation = genHex(0x36);
+    stubTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        json(manifestBody(generation)),
+      [`/atlas/edges/${generation}/plain`]: () =>
+        saltile(edgesBytes(0x36, [], [], [])),
+    });
+
+    await expect(
+      fetchEdgesForTiles([{ z: u64(0), x: u64(0), y: u64(0) }], {
+        baseUrl: BASE,
+        detail: "auxiliary",
+      }),
+    ).rejects.toMatchObject({
+      cause: { message: expect.stringContaining("detail") },
+    });
   });
 
   it("re-bootstraps once when the pinned generation is no longer served", async () => {
@@ -286,13 +371,15 @@ describe("fetchEdgesForTiles", () => {
         saltile(edgesBytes(0x55, [1], [2], [9])),
     });
 
-    const pending = fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], {
+    const pending = fetchEdgesForTiles([{ z: u64(0), x: u64(0), y: u64(0) }], {
       baseUrl: BASE,
     });
     active = newGeneration;
     const { edges } = await pending;
 
-    expect(edges).toEqual([{ id: idString(9), source: 1, target: 2 }]);
+    expect(edges.map((edge) => ({ ...edge, id: edge.id.toString() }))).toEqual([
+      { id: idString(9), source: 1, target: 2 },
+    ]);
     const bootstraps = captured.filter((entry) =>
       entry.path.endsWith("/atlas/current"),
     ).length;
@@ -309,7 +396,9 @@ describe("fetchEdgesForTiles", () => {
     });
 
     await expect(
-      fetchEdgesForTiles([{ z: 0, x: 0, y: 0 }], { baseUrl: BASE }),
+      fetchEdgesForTiles([{ z: u64(0), x: u64(0), y: u64(0) }], {
+        baseUrl: BASE,
+      }),
     ).rejects.toBeInstanceOf(FetchTileError);
   });
 });

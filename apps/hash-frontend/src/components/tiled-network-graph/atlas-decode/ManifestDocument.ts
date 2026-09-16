@@ -4,74 +4,76 @@ import * as GenerationId from "./GenerationId";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-const count = z.int().nonnegative();
-const schema = z.object({
-  generation: z.hex().length(64),
-  wireVersion: count,
-  variants: z.array(z.string()),
-  bucketSchedule: z.object({ span: count, cut: z.string(), maxZoom: count }),
-  scopeSchedule: z.object({ k: count, cut: z.string(), maxZoom: count }),
-  limits: z.object({
-    tile: z.object({ coloredTypeIds: count }),
-    edges: z.object({ tiles: count, edges: count }),
-    locate: z.object({
-      coloredTypeIds: count,
-      edges: count,
-      properties: count,
-      linkTypeIds: count,
-      linkProperties: count,
-    }),
-    translate: z.object({ entityIds: count }),
-    authorityRefreshSeconds: count,
-    authorityHardSeconds: count,
-  }),
-  createdAt: z.string().optional(),
-});
-
-type ReadonlyJson<T> = T extends object
-  ? { readonly [Key in keyof T]: ReadonlyJson<T[Key]> }
-  : T;
-
-/** Bootstrap metadata. Authority tokens belong to response headers. */
-export type Manifest = ReadonlyJson<
-  Omit<z.output<typeof schema>, "generation">
-> & {
-  readonly generation: GenerationId.GenerationId;
-};
-
-/** A manifest rejected by its JSON schema or generation parser. */
+/** A manifest rejected by its JSON schema. */
 export class ManifestError extends TaggedError.TaggedError<
   "ManifestError",
-  { readonly _tag: "schema" | "generation" }
+  { readonly _tag: "schema" }
 > {
-  private constructor(section: "schema" | "generation", cause: unknown) {
-    super("ManifestError", { _tag: section }, `invalid manifest ${section}`, {
-      cause,
-    });
+  private constructor(cause: z.ZodError) {
+    super("ManifestError", { _tag: "schema" }, "invalid manifest", { cause });
   }
 
   static schema(cause: z.ZodError): ManifestError {
-    return new ManifestError("schema", cause);
-  }
-
-  static generation(
-    this: void,
-    cause: GenerationId.GenerationIdError,
-  ): ManifestError {
-    return new ManifestError("generation", cause);
+    return new ManifestError(cause);
   }
 }
 
-/** Decodes parsed JSON, preserving complete Zod errors. Output is readonly without runtime freezing. */
-export const decode = Result.fn(function* decode(
-  input: unknown,
-): Result.gen.Return<Manifest, ManifestError> {
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) {
-    return yield* Result.err(ManifestError.schema(parsed.error));
-  }
-  const generation = yield* GenerationId.fromHex(parsed.data.generation).pipe(
-    Result.changeContext(ManifestError.generation),
+const count = z.int().nonnegative();
+const limit = z.uint32();
+const zoom = z.int().min(0).max(32);
+const cut = z
+  .string()
+  .regex(
+    /^z\+(?:[0-9]|[1-5][0-9]|6[0-3])(?![\s\S])/u,
+    "expected a cut from z+0 through z+63",
   );
-  return { ...parsed.data, generation };
+const span = z
+  .number()
+  .min(1)
+  .max(2 ** 63)
+  .refine(
+    (value) => 2 ** Math.round(Math.log2(value)) === value,
+    "expected a power-of-two span",
+  );
+
+const schema = z.object({
+  generation: GenerationId.Schema,
+  wireVersion: z.int().min(0).max(0xffff),
+  variants: z.array(z.string().min(1)),
+  bucketSchedule: z.object({ span, cut, maxZoom: zoom }),
+  scopeSchedule: z.object({ k: zoom, cut, maxZoom: zoom }),
+  limits: z.object({
+    tile: z.object({ coloredTypeIds: limit }),
+    edges: z.object({ tiles: limit, edges: limit }),
+    locate: z.object({
+      coloredTypeIds: limit,
+      edges: limit,
+      properties: limit,
+      linkTypeIds: limit,
+      linkProperties: limit,
+    }),
+    translate: z.object({ entityIds: limit }),
+    authorityRefreshSeconds: count,
+    authorityHardSeconds: count,
+  }),
+  createdAt: z.iso.datetime({ offset: true }).optional(),
 });
+
+type ReadonlyJson<T> = T extends GenerationId.GenerationId
+  ? T
+  : T extends object
+    ? { readonly [Key in keyof T]: ReadonlyJson<T[Key]> }
+    : T;
+
+/** Bootstrap metadata. Authority tokens belong to response headers. */
+export type Manifest = ReadonlyJson<z.output<typeof schema>>;
+
+/** Decodes parsed JSON, preserving complete Zod errors. Output is readonly without runtime freezing. */
+export const decode = (
+  input: unknown,
+): Result.Result<Manifest, ManifestError> => {
+  const parsed = schema.safeParse(input);
+  return parsed.success
+    ? Result.ok(parsed.data)
+    : Result.err(ManifestError.schema(parsed.error));
+};

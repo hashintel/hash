@@ -10,7 +10,7 @@
  * The flow mirrors {@link fetchTile}: it shares the memoized
  * {@link getSaltileSession} (so tile and edge fetches bind to one generation),
  * POSTs the tile list to `/atlas/edges/{generation}/{variant}`, and decodes
- * the `SALTILEE` envelope with {@link decodeSaltileEdges}. Sources and targets
+ * the `SALTILEE` envelope with {@link EdgeDocument.decode}. Sources and targets
  * are node row ids — the same ids {@link fetchTile} attaches to nodes — so an
  * edge references the nodes by their delivered id.
  *
@@ -31,8 +31,13 @@ import * as EdgeDocument from "../atlas-decode/EdgeDocument";
 import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
 import * as Function from "../atlas-decode/Function";
 import * as Iterable from "../atlas-decode/Iterable";
+import * as Num from "../atlas-decode/Num";
 import * as Record from "../atlas-decode/Record";
 import * as Result from "../atlas-decode/Result";
+import {
+  AtlasTileCoordinateError,
+  validateAtlasTileCoordinate,
+} from "./atlas-tile-coordinate";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
@@ -111,7 +116,25 @@ const edgesBody = (
   detail: Detail.Detail,
 ): string =>
   JSON.stringify({
-    tiles: tiles.map(({ z, x, y }) => ({ z, x, y })),
+    tiles: tiles.map((coordinate) => {
+      try {
+        validateAtlasTileCoordinate(coordinate);
+      } catch (error) {
+        if (error instanceof AtlasTileCoordinateError) {
+          throw new FetchTileError(error.message, { cause: error });
+        }
+
+        throw error;
+      }
+
+      // The checked tile domain is z <= 16 and x/y < 2^z, so JSON numbers
+      // represent these coordinates exactly. No unbounded identity is narrowed.
+      return {
+        z: Num.f64.approximate(coordinate.z),
+        x: Num.f64.approximate(coordinate.x),
+        y: Num.f64.approximate(coordinate.y),
+      };
+    }),
     ...(detail === "auxiliary" ? { detail } : {}),
   });
 
@@ -148,6 +171,14 @@ const fetchAndDecodeEdges = async (
       generation: session.generation,
       variant: session.variantIndex,
     }).pipe(
+      Result.filter(
+        (document: EdgeDocument.EdgeDocument<ArrayBufferLike>) =>
+          (document.trailer !== null) === (detail === "auxiliary"),
+        () =>
+          new FetchTileError(
+            "edges trailer does not match the requested detail",
+          ),
+      ),
       Result.changeContext(() => new FetchTileError("failed to decode edges")),
       Result.unwrap,
     );

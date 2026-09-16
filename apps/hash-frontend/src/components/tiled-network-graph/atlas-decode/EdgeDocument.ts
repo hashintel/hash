@@ -11,6 +11,7 @@ import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
 import type * as Decoder from "./Decoder";
+import type * as Detail from "./Detail";
 import type * as Num from "./Num";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
@@ -298,6 +299,7 @@ const decodeTrailer = (
 export interface DecodeOptions {
   readonly generation: GenerationId.GenerationId;
   readonly variant: Num.u64;
+  readonly detail: Detail.Detail;
 }
 
 /** Assembles the envelope's edge columns with their decoded metadata. */
@@ -305,7 +307,11 @@ const decodeDocument = Result.fn(function* decodeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,
-  { generation: expectedGeneration, variant: expectedVariant }: DecodeOptions,
+  {
+    generation: expectedGeneration,
+    variant: expectedVariant,
+    detail,
+  }: DecodeOptions,
 ): Result.gen.Return<EdgeDocument<T>, DecodeError> {
   const [envelope, chunks] = yield* Envelope.decode(decoder);
 
@@ -362,6 +368,12 @@ const decodeDocument = Result.fn(function* decodeDocument<
         head.variant,
       ),
     ),
+    Result.assert(head.hasTrailer === (detail === "auxiliary"), () =>
+      EdgeError.EdgeDocumentError.detailMismatch(
+        detail,
+        head.hasTrailer ? "auxiliary" : "minimal",
+      ),
+    ),
   ]).pipe(
     Result.changeContext(() => EdgeError.EdgeDocumentError.rejected("request")),
   );
@@ -381,7 +393,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
 /**
  * Decodes an edges response into metadata, identity columns and optional detail.
  *
- * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. The response must match the requested generation and variant in {@link DecodeOptions}.
+ * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. The response must match the requested generation, variant and detail in {@link DecodeOptions}.
  *
  * @returns The complete document or an {@link EdgeError.EdgeDocumentError}. Independent validation failures appear in a {@link Result.All} under a section error's cause. Underlying errors and unexpected exceptions retain their causes. Cursor reads stop at their first failure, which may advance the decoder.
  */
