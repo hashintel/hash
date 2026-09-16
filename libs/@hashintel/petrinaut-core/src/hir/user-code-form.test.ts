@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { detectUserCodeForm } from "./user-code-form";
+import {
+  detectStateConstraintForm,
+  detectUserCodeForm,
+} from "./user-code-form";
 
 describe("detectUserCodeForm", () => {
   it.each([
@@ -26,5 +29,26 @@ describe("detectUserCodeForm", () => {
     ["export", "body"],
   ] as const)("classifies %j as %s", (code, expected) => {
     expect(detectUserCodeForm(code)).toBe(expected);
+  });
+});
+
+describe("detectStateConstraintForm", () => {
+  it.each([
+    ["state.places.Queue.count <= 10", "expression"],
+    ["state.places.", "expression"],
+    [
+      "// return is supplied internally\nstate.places.Queue.count > 0",
+      "expression",
+    ],
+    ['state.places["return"].count > 0', "expression"],
+    [
+      "state.places.Queue.tokens.map((token) => { return token; }).length > 0",
+      "expression",
+    ],
+    ["return true;", "body"],
+    ["const count = state.places.Queue.count;\nreturn count > 0;", "body"],
+    ["if (state.places.Queue.count > 0) return true;\nreturn false;", "body"],
+  ] as const)("classifies %j as %s", (code, expected) => {
+    expect(detectStateConstraintForm(code)).toBe(expected);
   });
 });

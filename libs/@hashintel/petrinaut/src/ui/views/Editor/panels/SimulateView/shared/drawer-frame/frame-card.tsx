@@ -22,6 +22,7 @@ const FOOTER_HEIGHT = 24;
 // would give its height up to the cards below once the body overflows.
 const rootStyle = css({
   flexShrink: "0",
+  "& [data-chart-card-subtitle]:empty": { display: "none" },
 });
 
 const foldInnerStyle = css({

@@ -1,9 +1,3 @@
-/**
- * The frame header's headline for a study: where the study is and which step
- * is the best so far, with a verdict chip while it runs. Once settled the
- * line says how the study ended and nothing pretends to still be following.
- * The text yields before the chips do, so the chips never wrap or clip.
- */
 import { Chip, type ChipColor } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -18,20 +12,19 @@ import type { OptimizationRecord } from "../../../../../../../react/optimization
 
 const headerStyle = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-start",
+  flexDirection: "column",
   gap: "2",
   minWidth: "[0]",
   minHeight: "[24px]",
-  fontSize: "sm",
+  fontSize: "xs",
   color: "neutral.s100",
   fontVariantNumeric: "tabular-nums",
 });
 
 const textStyle = css({
   minWidth: "[0]",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  overflowWrap: "anywhere",
 });
 
 const chipSlotStyle = css({

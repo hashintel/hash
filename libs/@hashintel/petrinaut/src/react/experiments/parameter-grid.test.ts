@@ -9,6 +9,7 @@ import {
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
+  pointSweepSelection,
   SWEEP_AXIS_STEPS,
   sweepRunFraction,
 } from "./parameter-grid";
@@ -197,6 +198,22 @@ describe("selections and regions", () => {
         y: { from: 1, to: 1 },
       }),
     ).toEqual({ x: { from: 0, to: 4 }, y: { from: 1, to: 1 } });
+  });
+
+  it("selects midpoint values for missing axes and retains selected points", () => {
+    expect(pointSweepSelection(axes, { x: { from: 3, to: 3 } })).toEqual({
+      x: { from: 3, to: 3 },
+      y: { from: 1, to: 1 },
+    });
+  });
+
+  it("collapses ranges to their nearest valid midpoint", () => {
+    expect(
+      pointSweepSelection(axes, {
+        x: { from: 4, to: 1 },
+        y: { from: -3, to: 9 },
+      }),
+    ).toEqual({ x: { from: 3, to: 3 }, y: { from: 1, to: 1 } });
   });
 });
 

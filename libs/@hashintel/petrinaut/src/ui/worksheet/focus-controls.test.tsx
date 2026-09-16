@@ -97,3 +97,17 @@ it("moves horizontally between native number inputs", () => {
   fireEvent.keyDown(step, { key: "ArrowLeft" });
   expect(document.activeElement).toBe(runs);
 });
+
+it("preserves arrow events for native objective choices inside a focus group", () => {
+  render(
+    <FocusControls>
+      <input type="radio" name="objective" aria-label="First objective" />
+      <input type="radio" name="objective" aria-label="Second objective" />
+      <button type="button">Add metric</button>
+    </FocusControls>,
+  );
+  const first = screen.getByRole("radio", { name: "First objective" });
+  first.focus();
+  expect(fireEvent.keyDown(first, { key: "ArrowDown" })).toBe(true);
+  expect(document.activeElement).toBe(first);
+});

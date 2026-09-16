@@ -1,8 +1,16 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Button,
+  Checkbox,
   Icon,
   LoadingSpinner,
   NumberInput,
@@ -27,7 +35,7 @@ import {
 } from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -69,13 +77,10 @@ import {
   lowerConstraintDrafts,
   stateConstraintGateSpecs,
 } from "./create-experiment-drawer/lower-constraint-drafts";
-import { ObjectiveSection } from "./create-experiment-drawer/objective-section";
 import {
-  EMPTY_SWEEP_OBJECTIVE,
-  resolveObjectiveMetricId,
-  sweepObjectiveError,
-  sweepObjectiveFor,
-} from "./create-experiment-drawer/sweep-objective";
+  MetricObjectiveControl,
+  OptimizationBudget,
+} from "./create-experiment-drawer/metric-optimization";
 import { useCreateOptimizedExperiment } from "./create-optimized-experiment";
 import {
   areMetricLspDiagnosticSummariesEqual,
@@ -84,16 +89,22 @@ import {
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
 import { ExperimentScenarioRun } from "./experiment-scenario-run";
+import {
+  EMPTY_SWEEP_OBJECTIVE,
+  resolveObjectiveMetricId,
+  sweepObjectiveError,
+  sweepObjectiveFor,
+} from "./shared/sweep-objective";
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
 import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
-import type { AdHocFormSelection } from "../../../../../components/ad-hoc-scenario-form/form-context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
   Scenario,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { ReactNode } from "react";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -132,6 +143,10 @@ const metricRowStyle = css({
   borderRadius: "md",
   backgroundColor: "neutral.s00",
   overflow: "hidden",
+  "&[data-objective=true]": {
+    borderColor: "purple.s60",
+    backgroundColor: "purple.s10",
+  },
 });
 
 const metricRowHeaderStyle = css({
@@ -162,6 +177,10 @@ const metricCollapseButtonStyle = css({
   background: "[transparent]",
   color: "neutral.s120",
   cursor: "pointer",
+  _focusVisible: {
+    outline: "[2px solid {colors.neutral.s100}]",
+    outlineOffset: "[2px]",
+  },
 });
 
 const metricCollapseIconStyle = css({
@@ -181,6 +200,14 @@ const metricTitleGroupStyle = css({
 const metricTitleInputStyle = css({
   fontWeight: "semibold",
   marginRight: "1",
+});
+
+const metricTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const metricKindTriggerLabelStyle = css({
@@ -342,23 +369,35 @@ function getMetricSummaryLabel(
   return getMetricKindLabel(metric.kind);
 }
 
-function getDefaultMetricLabel(
-  kind: ExperimentMetricKind,
+const getMetricLabel = (
+  metric: ExperimentMetricDraft,
   sdcpn: SDCPN,
-): string {
-  switch (kind) {
-    case "placeTokenCountMean":
-      return sdcpn.places[0]
-        ? `${sdcpn.places[0].name} tokens`
-        : "Place tokens";
-    case "transitionFiringCount":
-      return sdcpn.transitions[0]
-        ? `${sdcpn.transitions[0].name} firing`
+): string => {
+  switch (metric.kind) {
+    case "placeTokenCountMean": {
+      const selectedPlace = sdcpn.places.find(
+        (place) => place.id === metric.placeId,
+      );
+      return selectedPlace ? `${selectedPlace.name} tokens` : "Place tokens";
+    }
+    case "transitionFiringCount": {
+      const selectedTransition = sdcpn.transitions.find(
+        (transition) => transition.id === metric.transitionId,
+      );
+      const mode =
+        metric.transitionMode === "cumulative" ? "cumulative" : "per frame";
+      return selectedTransition
+        ? `${selectedTransition.name} firing (${mode})`
         : "Transition firing";
+    }
     case "expression":
-      return "Custom metric";
+      return (
+        sdcpn.metrics?.find(
+          (candidate) => candidate.id === metric.sourceMetricId,
+        )?.name ?? metric.label.trim()
+      );
   }
-}
+};
 
 function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   const trimmed = label.trim();
@@ -366,11 +405,6 @@ function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   return new Set([
     "",
     "Custom metric",
-    "Place tokens",
-    "Transition firing",
-    getDefaultMetricLabel("placeTokenCountMean", sdcpn),
-    getDefaultMetricLabel("transitionFiringCount", sdcpn),
-    getDefaultMetricLabel("expression", sdcpn),
     ...(sdcpn.metrics ?? []).map((metric) => metric.name),
   ]).has(trimmed);
 }
@@ -387,7 +421,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
   return {
     id: crypto.randomUUID(),
     kind,
-    label: getDefaultMetricLabel(kind, sdcpn),
+    label: "Custom metric",
     expanded: true,
     placeId: place?.id ?? "",
     transitionId: transition?.id ?? "",
@@ -408,7 +442,7 @@ function buildMetricSpecs(
   }
 
   return drafts.map((draft, index) => {
-    const label = draft.label.trim();
+    const label = getMetricLabel(draft, sdcpn);
 
     if (label === "") {
       throw new Error(`Metric ${index + 1} needs a label`);
@@ -503,12 +537,14 @@ const ExperimentExpressionMetricEditor = ({
   lspDiagnostics,
   readOnly = false,
   onChange,
+  onEscape,
 }: {
   code: string;
   metricSessionId: string;
   lspDiagnostics: MetricLspDiagnosticSummary;
   readOnly?: boolean;
   onChange: (code: string) => void;
+  onEscape: () => void;
 }) => {
   const codeUri = getMetricDocumentUri(metricSessionId);
 
@@ -521,7 +557,12 @@ const ExperimentExpressionMetricEditor = ({
         value={code}
         onChange={(value) => onChange(value ?? "")}
         height="260px"
-        options={readOnly ? { readOnly: true } : undefined}
+        options={{
+          readOnly,
+          tabFocusMode: true,
+          ariaLabel: "Custom metric code",
+        }}
+        onEscape={onEscape}
       />
       {lspDiagnostics.count > 0 ? (
         <span className={codeDiagnosticStyle}>
@@ -537,21 +578,31 @@ const ExperimentMetricRow = ({
   sdcpn,
   kindGroups,
   autoFocusLabel,
+  isObjective,
   onChange,
   onLspDiagnosticsChange,
   onRemove,
+  footer,
+  triggerRef,
 }: {
   metric: ExperimentMetricDraft;
   sdcpn: SDCPN;
   kindGroups: MetricKindGroup[];
   autoFocusLabel: boolean;
-  onChange: (metric: ExperimentMetricDraft) => void;
+  isObjective: boolean;
+  onChange: (metricId: string, patch: Partial<ExperimentMetricDraft>) => void;
   onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
   onRemove: () => void;
+  footer?: ReactNode;
+  triggerRef: (element: HTMLButtonElement | null) => void;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
   const labelInputRef = useRef<HTMLInputElement>(null);
+  const collapseButtonRef = useRef<HTMLButtonElement>(null);
   const didAutoFocusLabelRef = useRef(false);
+  const metricLabel = getMetricLabel(metric, sdcpn);
+  const isCustomMetric =
+    metric.kind === "expression" && metric.sourceMetricId === null;
   const placeOptions: SelectItem<string>[] = sdcpn.places.map((place) => ({
     value: place.id,
     text: place.name,
@@ -563,7 +614,7 @@ const ExperimentMetricRow = ({
     }),
   );
   const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
-    onChange({ ...metric, ...patch });
+    onChange(metric.id, patch);
   };
   const handleKindChange = (kindValue: string) => {
     // A custom metric defined on the model becomes an expression metric
@@ -593,7 +644,7 @@ const ExperimentMetricRow = ({
 
     const nextKind = kindValue as ExperimentMetricKind;
     const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
-      ? getDefaultMetricLabel(nextKind, sdcpn)
+      ? "Custom metric"
       : metric.label;
     const nextPatch: Partial<ExperimentMetricDraft> = {
       kind: nextKind,
@@ -622,20 +673,23 @@ const ExperimentMetricRow = ({
   };
 
   useLayoutEffect(() => {
-    if (!autoFocusLabel || didAutoFocusLabelRef.current) {
+    if (!isCustomMetric || !autoFocusLabel || didAutoFocusLabelRef.current) {
       return;
     }
 
     didAutoFocusLabelRef.current = true;
     labelInputRef.current?.focus();
     labelInputRef.current?.select();
-  }, [autoFocusLabel]);
+  }, [autoFocusLabel, isCustomMetric]);
 
   return (
     <Collapsible.Root
       open={metric.expanded}
       onOpenChange={(details) => updateMetric({ expanded: details.open })}
       className={metricRowStyle}
+      data-objective={isObjective}
+      role="group"
+      aria-label={metricLabel || "Untitled metric"}
     >
       {metric.kind === "expression" ? (
         <ExperimentMetricLspSession
@@ -647,7 +701,14 @@ const ExperimentMetricRow = ({
       <div className={metricRowHeaderStyle}>
         <div className={metricHeaderMainStyle}>
           <Collapsible.Trigger className={metricCollapseButtonStyle} asChild>
-            <button type="button" aria-label="Toggle metric">
+            <button
+              type="button"
+              aria-label="Toggle metric"
+              ref={(element) => {
+                collapseButtonRef.current = element;
+                triggerRef(element);
+              }}
+            >
               <Icon
                 name="chevronRight"
                 size="xs"
@@ -657,21 +718,30 @@ const ExperimentMetricRow = ({
             </button>
           </Collapsible.Trigger>
           <div className={metricTitleGroupStyle}>
-            <TextInput
-              inputRef={labelInputRef}
-              className={metricTitleInputStyle}
-              size="sm"
-              variant="subtle"
-              value={metric.label}
-              placeholder="Untitled metric"
-              aria-label="Metric label"
-              onChange={(label) => {
-                updateMetric({ label });
-              }}
-            />
+            {isCustomMetric ? (
+              <TextInput
+                inputRef={labelInputRef}
+                className={metricTitleInputStyle}
+                size="sm"
+                variant="subtle"
+                value={metric.label}
+                placeholder="Untitled metric"
+                aria-label="Metric label"
+                onChange={(label) => {
+                  updateMetric({ label });
+                }}
+              />
+            ) : (
+              <span className={metricTitleStyle} title={metricLabel}>
+                {metricLabel}
+              </span>
+            )}
           </div>
           <Select
             required
+            aria-label="Metric type"
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- adding a metric explicitly moves focus into its row
+            autoFocus={autoFocusLabel && metric.kind !== "expression"}
             value={
               metric.sourceMetricId
                 ? `${MODEL_METRIC_VALUE_PREFIX}${metric.sourceMetricId}`
@@ -725,6 +795,7 @@ const ExperimentMetricRow = ({
                   <span className={labelStyle}>Place</span>
                   <Select
                     required
+                    aria-label="Place"
                     value={metric.placeId}
                     onChange={(placeId) => updateMetric({ placeId })}
                     items={placeOptions}
@@ -738,6 +809,7 @@ const ExperimentMetricRow = ({
                     <span className={labelStyle}>Transition</span>
                     <Select
                       required
+                      aria-label="Transition"
                       value={metric.transitionId}
                       onChange={(transitionId) =>
                         updateMetric({ transitionId })
@@ -750,6 +822,7 @@ const ExperimentMetricRow = ({
                     <span className={labelStyle}>Count</span>
                     <Select
                       required
+                      aria-label="Count mode"
                       value={metric.transitionMode}
                       onChange={(transitionMode) =>
                         updateMetric({ transitionMode })
@@ -770,10 +843,12 @@ const ExperimentMetricRow = ({
               lspDiagnostics={metric.lspDiagnostics}
               readOnly={metric.sourceMetricId !== null}
               onChange={(code) => updateMetric({ code })}
+              onEscape={() => collapseButtonRef.current?.focus()}
             />
           ) : null}
         </div>
       </Collapsible.Content>
+      {footer}
     </Collapsible.Root>
   );
 };
@@ -790,12 +865,9 @@ export const CreateExperimentDrawer = ({
   onClose,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
-  // Read here, not in ExperimentsProvider: that provider is mounted outside
-  // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, enableParameterSweeps } = use(UserSettingsContext);
   const createOptimizedExperiment = useCreateOptimizedExperiment();
   const { diagnosticsByUri, requestConstraint } = use(LanguageClientContext);
-  const optimizationSource = useOptimizationSource();
+  const optimizationSource = use(PetrinautOptimizationContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -813,12 +885,18 @@ export const CreateExperimentDrawer = ({
   const [constraintDrafts, setConstraintDrafts] =
     useState<ConstraintDraftsState>(EMPTY_CONSTRAINT_DRAFTS);
   const [objectiveDraft, setObjectiveDraft] = useState(EMPTY_SWEEP_OBJECTIVE);
+  const [startOptimizerImmediately, setStartOptimizerImmediately] =
+    useState(false);
+  const objectiveGroupName = useId();
   const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gpuRequested, setGpuRequested] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const addMetricButtonRef = useRef<HTMLButtonElement>(null);
+  const metricTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const effectiveSelectedScenarioId = getEffectiveScenarioSelection(
     scenarios,
@@ -846,18 +924,9 @@ export const CreateExperimentDrawer = ({
     places: petriNetDefinition.places,
     types: extensions.colors ? petriNetDefinition.types : [],
   };
-  const adHocSweeping =
-    enableParameterSweeps && effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
+  const adHocSweeping = effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
   const optimizerConnected =
     optimizationSource !== null && isConnectedOptimization(optimizationSource);
-  // The word on every interval toggle, from the settings and the source
-  // alone — never from how many toggles are on: Optimize where the
-  // in-browser optimizer can drive the sweep, Sweep otherwise.
-  const selection: AdHocFormSelection = !enableParameterSweeps
-    ? "none"
-    : optimizerConnected
-      ? "optimize"
-      : "sweep";
 
   /**
    * The sweep the current interval inputs define. `error` carries the first
@@ -910,10 +979,7 @@ export const CreateExperimentDrawer = ({
     const intervals =
       axes.length === 1 ? "over its interval" : "over their intervals";
     return {
-      text:
-        selection === "optimize"
-          ? `${names} optimized ${intervals} — the study picks the points`
-          : `${names} swept ${intervals} — the sweep computes only the points you select, click on the Surface`,
+      text: `${names} swept ${intervals}`,
       tone: "neutral",
       error: false,
     };
@@ -927,25 +993,18 @@ export const CreateExperimentDrawer = ({
     </span>
   ) : null;
 
-  // An interval toggle is on and the in-browser optimizer can drive the
-  // sweep: creating the experiment starts its study, so the drawer asks for
-  // the objective. Constraints are authored only where a study could read
-  // them by name: a saved scenario's sweep (an ad-hoc definition's generated
-  // names are not authorable). The rows stay in state while the section is
-  // hidden and are never lowered.
-  const objectiveEnabled = selection === "optimize" && sweepSummary !== null;
-  const constraintsEnabled = objectiveEnabled && selectedScenario !== undefined;
+  // Constraints use a saved scenario's parameter names. Hidden drafts stay in
+  // state and are lowered only when their section is enabled.
+  const optimizationAvailable = optimizerConnected && sweepSummary !== null;
+  const objectiveEnabled = optimizationAvailable && startOptimizerImmediately;
+  const constraintsEnabled =
+    optimizationAvailable && selectedScenario !== undefined;
   const constraintLspError = constraintsEnabled
     ? summarizeConstraintLspErrors(diagnosticsByUri, constraintDrafts.rows)
     : null;
-  const objectiveMetrics = metricDrafts.map((metric, index) => ({
-    id: metric.id,
-    label:
-      metric.label.trim() === "" ? `Metric ${index + 1}` : metric.label.trim(),
-  }));
   const objectiveMetricId = resolveObjectiveMetricId(
     objectiveDraft,
-    objectiveMetrics,
+    metricDrafts,
   );
   const objectiveExecution = {
     dt: Number(dt),
@@ -956,14 +1015,13 @@ export const CreateExperimentDrawer = ({
     ? sweepObjectiveError(objectiveDraft, objectiveMetricId, objectiveExecution)
     : null;
 
-  const footerError =
-    error ?? metricFormError ?? objectiveError ?? constraintLspError;
-  const canRun =
-    !isSubmitting &&
-    metricFormError === null &&
-    objectiveError === null &&
-    constraintLspError === null &&
-    sweepSummary?.error !== true;
+  const formError =
+    metricFormError ??
+    objectiveError ??
+    constraintLspError ??
+    (sweepSummary?.error ? sweepSummary.text : null);
+  const footerError = error ?? formError;
+  const canRun = !isSubmitting && formError === null;
   const submitLabel = objectiveEnabled
     ? isSubmitting
       ? "Starting"
@@ -996,7 +1054,7 @@ export const CreateExperimentDrawer = ({
 
   const webGpuAvailable = isWebGpuAvailable();
   const gpu = useGpuAvailability({
-    enabled: open && webGpuEnabled && webGpuAvailable,
+    enabled: open && webGpuAvailable,
     sdcpn: petriNetDefinition,
     extensions,
     metricSpecs: draftMetricSpecs,
@@ -1020,6 +1078,7 @@ export const CreateExperimentDrawer = ({
     setMetricDrafts([]);
     setConstraintDrafts(EMPTY_CONSTRAINT_DRAFTS);
     setObjectiveDraft(EMPTY_SWEEP_OBJECTIVE);
+    setStartOptimizerImmediately(false);
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
@@ -1054,10 +1113,15 @@ export const CreateExperimentDrawer = ({
     ]);
   };
 
-  const handleMetricChange = (nextMetric: ExperimentMetricDraft) => {
+  const handleMetricChange = (
+    metricId: string,
+    patch: Partial<ExperimentMetricDraft>,
+  ) => {
     setError(null);
     setMetricDrafts((prev) =>
-      prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric)),
+      prev.map((metric) =>
+        metric.id === metricId ? { ...metric, ...patch } : metric,
+      ),
     );
   };
 
@@ -1090,8 +1154,15 @@ export const CreateExperimentDrawer = ({
   };
 
   const handleMetricRemove = (metricId: string) => {
+    const index = metricDrafts.findIndex((metric) => metric.id === metricId);
+    const nextMetric = metricDrafts[index + 1] ?? metricDrafts[index - 1];
     setError(null);
     setMetricDrafts((prev) => prev.filter((metric) => metric.id !== metricId));
+    if (nextMetric) {
+      metricTriggerRefs.current.get(nextMetric.id)?.focus();
+    } else {
+      addMetricButtonRef.current?.focus();
+    }
   };
 
   const handleSubmit = async () => {
@@ -1187,6 +1258,7 @@ export const CreateExperimentDrawer = ({
           layer="creation"
           closeDisabled={isSubmitting}
           onClose={handleClose}
+          initialFocusRef={nameInputRef}
         >
           <FocusControls axis="horizontal">
             <SimulationPanel.Header description="Run a Monte Carlo experiment from the current model and scenario" />
@@ -1208,6 +1280,8 @@ export const CreateExperimentDrawer = ({
                       </label>
                       <TextInput
                         htmlForId="experiment-name"
+                        inputRef={nameInputRef}
+                        aria-label="Experiment name"
                         size="sm"
                         value={name}
                         onChange={setName}
@@ -1263,6 +1337,7 @@ export const CreateExperimentDrawer = ({
                         </label>
                         <NumberInput
                           htmlForId="experiment-max-time"
+                          aria-label="Max time (seconds)"
                           size="sm"
                           min={0}
                           step="any"
@@ -1277,7 +1352,7 @@ export const CreateExperimentDrawer = ({
                       {/* A labelled cell in the same grid as Runs / Time step / Max time:
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
-                      {webGpuEnabled && webGpuAvailable && (
+                      {webGpuAvailable && (
                         <div className={fieldStyle}>
                           <span className={labelStyle}>Backend</span>
                           <ComputeBackendToggle
@@ -1340,7 +1415,7 @@ export const CreateExperimentDrawer = ({
                         scenario={selectedScenario}
                         context={adHocFormContext}
                         inputs={paramInputs}
-                        selection={selection}
+                        selection="sweep"
                         onInputsChange={(updates) =>
                           setParamInputs((prev) => {
                             const next = { ...prev };
@@ -1363,44 +1438,35 @@ export const CreateExperimentDrawer = ({
                         state={adHocState ?? EMPTY_AD_HOC_STATE}
                         onChange={setAdHocState}
                         context={adHocFormContext}
-                        selection={selection}
+                        selection="sweep"
                       />
                       {sweepSummaryLine}
                     </>
                   )}
                 </Section>
 
-                {objectiveEnabled ? (
-                  <FocusControls>
-                    <ObjectiveSection
-                      draft={objectiveDraft}
-                      metricId={objectiveMetricId}
-                      metrics={objectiveMetrics}
-                      error={objectiveError}
-                      onChange={setObjectiveDraft}
-                      disabled={isSubmitting}
-                    />
-                  </FocusControls>
-                ) : null}
-
-                {constraintsEnabled ? (
-                  <FocusControls>
-                    <ConstraintsSection
-                      drafts={constraintDrafts}
-                      onChange={setConstraintDrafts}
-                      scenarioParameters={selectedScenario.scenarioParameters}
-                      disabled={isSubmitting}
-                    />
-                  </FocusControls>
-                ) : null}
-
-                <Section title="Metrics" collapsible defaultOpen>
+                <Section
+                  title={objectiveEnabled ? "Metrics & objective" : "Metrics"}
+                  collapsible
+                  defaultOpen
+                >
                   <FocusControls>
                     <div className={metricListStyle}>
+                      {optimizationAvailable ? (
+                        <Checkbox
+                          size="sm"
+                          label="Start optimizer immediately"
+                          value={startOptimizerImmediately}
+                          onChange={setStartOptimizerImmediately}
+                          disabled={isSubmitting}
+                        />
+                      ) : null}
                       <div className={metricHeaderStyle}>
                         <span className={metricCountStyle}>
                           {metricDrafts.length === 0
-                            ? "No experiment metrics"
+                            ? objectiveEnabled
+                              ? "Add a metric to optimize"
+                              : "No experiment metrics"
                             : `${metricDrafts.length} experiment metric${
                                 metricDrafts.length === 1 ? "" : "s"
                               }`}
@@ -1411,6 +1477,7 @@ export const CreateExperimentDrawer = ({
                           size="sm"
                           prefix={<Icon name="plus" size="sm" />}
                           onClick={handleAddMetric}
+                          ref={addMetricButtonRef}
                         >
                           Add metric
                         </Button>
@@ -1423,6 +1490,9 @@ export const CreateExperimentDrawer = ({
                           sdcpn={petriNetDefinition}
                           kindGroups={metricKindGroups}
                           autoFocusLabel={metric.id === metricLabelFocusId}
+                          isObjective={
+                            objectiveEnabled && metric.id === objectiveMetricId
+                          }
                           onChange={handleMetricChange}
                           onLspDiagnosticsChange={(diagnostics) =>
                             handleMetricLspDiagnosticsChange(
@@ -1431,11 +1501,73 @@ export const CreateExperimentDrawer = ({
                             )
                           }
                           onRemove={() => handleMetricRemove(metric.id)}
+                          footer={
+                            objectiveEnabled ? (
+                              <MetricObjectiveControl
+                                metricId={metric.id}
+                                metricLabel={getMetricLabel(
+                                  metric,
+                                  petriNetDefinition,
+                                )}
+                                groupName={objectiveGroupName}
+                                direction={
+                                  metric.id === objectiveMetricId
+                                    ? objectiveDraft.direction
+                                    : null
+                                }
+                                disabled={isSubmitting}
+                                onSelect={() =>
+                                  setObjectiveDraft((draft) => ({
+                                    ...draft,
+                                    metricId: metric.id,
+                                  }))
+                                }
+                                onDirectionChange={(direction) =>
+                                  setObjectiveDraft((draft) => ({
+                                    ...draft,
+                                    direction,
+                                  }))
+                                }
+                              />
+                            ) : undefined
+                          }
+                          triggerRef={(element) => {
+                            if (element) {
+                              metricTriggerRefs.current.set(metric.id, element);
+                            } else {
+                              metricTriggerRefs.current.delete(metric.id);
+                            }
+                          }}
                         />
                       ))}
+
+                      {objectiveEnabled && metricDrafts.length > 0 ? (
+                        <OptimizationBudget
+                          steps={objectiveDraft.steps}
+                          error={objectiveError}
+                          onChange={(steps) =>
+                            setObjectiveDraft((draft) => ({ ...draft, steps }))
+                          }
+                          disabled={isSubmitting}
+                        />
+                      ) : null}
                     </div>
                   </FocusControls>
                 </Section>
+
+                {constraintsEnabled ? (
+                  <FocusControls>
+                    <ConstraintsSection
+                      drafts={constraintDrafts}
+                      onChange={setConstraintDrafts}
+                      scenarioParameters={selectedScenario.scenarioParameters}
+                      placeNames={petriNetDefinition.places.map(
+                        (place) => place.name,
+                      )}
+                      disabled={isSubmitting}
+                    />
+                  </FocusControls>
+                ) : null}
               </SectionList>
             </OverlayScrollArea>
           </SimulationPanel.Body>
@@ -1461,12 +1593,7 @@ export const CreateExperimentDrawer = ({
                   tone="neutral"
                   size="sm"
                   disabled={!canRun}
-                  tooltip={
-                    metricFormError ??
-                    objectiveError ??
-                    constraintLspError ??
-                    undefined
-                  }
+                  tooltip={formError ?? undefined}
                   prefix={
                     isSubmitting ? (
                       <LoadingSpinner size="sm" variant="bars" />

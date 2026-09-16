@@ -354,6 +354,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const experimentId = experiment.id;
     const session = createSweepSession({
       axes,
+      initialSelection: experiment.sweep?.selection,
       runCount: experiment.runCount,
       seed: experiment.seed,
       // Nothing computes until a control moves or an optimizer navigates.
@@ -496,6 +497,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       fixedScenarioValues: compiled.fixedScenarioValues,
       scenario: compiled.scenario,
     });
+    experiment.definition = experimentSdcpn;
     const ownership = options?.ownership;
     if (ownership) {
       experiment.requestActive = true;

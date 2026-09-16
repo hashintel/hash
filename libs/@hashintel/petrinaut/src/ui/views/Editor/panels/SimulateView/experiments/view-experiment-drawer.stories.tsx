@@ -22,7 +22,6 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
  * steps table, in one shape from its first frame.
  */
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
-import { WithUserSettings } from "../simulate-view-story-harness";
 import {
   FakeExperimentsProvider,
   makeConstrainedSweepExperiment,
@@ -221,20 +220,18 @@ const SweepWithStudy = ({
   sweep: ExperimentRecord;
   study: OptimizationRecord;
 }) => (
-  <WithUserSettings overrides={{ enableInBrowserOptimization: true }}>
-    <PetrinautOptimizationContext value={storyOptimizer}>
-      <SDCPNContext value={sirSdcpnContextValue}>
-        <OptimizationsContext value={makeOptimizationsContextValue(study)}>
-          <FakeExperimentsProvider
-            initialExperiments={[sweep]}
-            restreamOnSelectionChange
-          >
-            <DrawerFromContext />
-          </FakeExperimentsProvider>
-        </OptimizationsContext>
-      </SDCPNContext>
-    </PetrinautOptimizationContext>
-  </WithUserSettings>
+  <PetrinautOptimizationContext value={storyOptimizer}>
+    <SDCPNContext value={sirSdcpnContextValue}>
+      <OptimizationsContext value={makeOptimizationsContextValue(study)}>
+        <FakeExperimentsProvider
+          initialExperiments={[sweep]}
+          restreamOnSelectionChange
+        >
+          <DrawerFromContext />
+        </FakeExperimentsProvider>
+      </OptimizationsContext>
+    </SDCPNContext>
+  </PetrinautOptimizationContext>
 );
 
 /** The steps the study has landed in each state: 4 of 30 while it runs, 17 when Stop ended it. */

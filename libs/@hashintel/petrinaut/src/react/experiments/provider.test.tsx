@@ -472,7 +472,7 @@ describe("ExperimentsProvider", () => {
         getValue().setSweepSelection(experimentId, selection);
       });
       expect(getValue().experiments[0]?.sweep?.selection).toEqual({
-        rate: { from: 0, to: 50 },
+        rate: { from: 25, to: 25 },
       });
       expect(worker.sent).toHaveLength(0);
       await act(async () => {
@@ -623,6 +623,7 @@ describe("ExperimentsProvider", () => {
       ]);
       expect(experiment).toMatchObject({
         name: "Initializing experiment",
+        definition: EMPTY_SDCPN,
         status: "initializing",
         sweep: null,
       });
@@ -1711,7 +1712,7 @@ describe("ExperimentsProvider", () => {
 
       expect(experiment).toMatchObject({
         status: "initializing",
-        sweep: { computing: false, selectionKey: "beta=0..50" },
+        sweep: { computing: false, selectionKey: "beta=25" },
         scenario: { id: "scenario" },
       });
       // The session took the move: a batch reached the worker, and the
@@ -1763,7 +1764,7 @@ describe("ExperimentsProvider", () => {
     // Nothing computes until a point is selected.
     expect(getValue().selectedExperiment).toMatchObject({
       status: "idle",
-      sweep: { computing: false, selectionKey: "beta=0..50" },
+      sweep: { computing: false, selectionKey: "beta=25" },
     });
 
     await act(async () => {

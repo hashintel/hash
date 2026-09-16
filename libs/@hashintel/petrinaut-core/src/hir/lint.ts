@@ -18,7 +18,10 @@ import {
   emitBufferMetricJs,
 } from "./emit-buffer-js";
 import { walkHir } from "./hir";
-import { lowerTypeScriptToHir } from "./lower-typescript";
+import {
+  lowerStateConstraintToHir,
+  lowerTypeScriptToHir,
+} from "./lower-typescript";
 import { typecheckHir } from "./typecheck";
 
 import type { HirAnalysis } from "./analyze";
@@ -110,7 +113,10 @@ export function lintHirUserCode(
   options: HirLintOptions = {},
 ): HirLintResult {
   const subsetSeverity = options.subsetSeverity ?? "error";
-  const lowered = lowerTypeScriptToHir(code, context.surface);
+  const lowered =
+    context.surface === "metric" && context.expected === "boolean"
+      ? lowerStateConstraintToHir(code)
+      : lowerTypeScriptToHir(code, context.surface);
 
   if (!lowered.ok) {
     return {

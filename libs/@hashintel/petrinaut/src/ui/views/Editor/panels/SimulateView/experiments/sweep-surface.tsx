@@ -40,7 +40,6 @@ import { surfaceColumnCount } from "../shared/surface-sampling";
 import {
   computingSurfaceField,
   describeVisitedSurface,
-  isPointSelection,
   visitedSurfaceField,
 } from "./sweep-surface/visited-field";
 
@@ -129,6 +128,7 @@ export const SweepSurface = ({
   return (
     <ChartCard
       title="Surface"
+      help="Compare the metric across two parameters. Dots mark sampled points; the shading estimates values between them. Click or drag to sample a point."
       subtitle={surfaceCaption({
         preview:
           preview && xAxis && yAxis
@@ -140,9 +140,6 @@ export const SweepSurface = ({
         text: describeVisitedSurface({
           visitedCount: sweep.visited.length,
           computing: sweep.computing,
-          pointSelection: isPointSelection(selection, axes),
-          runsCompleted: sweep.runsCompleted,
-          runTarget: sweep.runTarget,
           following,
         }),
       })}

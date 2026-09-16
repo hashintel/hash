@@ -143,14 +143,6 @@ const triggerButtonStyle = css({
   },
 });
 
-// Collapsible.Trigger injects aria-expanded, which the ds Button renders as
-// pressed — strip it so the trigger keeps the resting ghost look. data-state
-// still carries open/closed for the chevron rotation.
-const TriggerButton = ({
-  "aria-expanded": _ariaExpanded,
-  ...props
-}: React.ComponentProps<typeof Button>) => <Button {...props} />;
-
 const collapsibleContentStyle = css({
   overflow: "hidden",
   animationDuration: "[200ms]",
@@ -271,7 +263,7 @@ export const Section = ({
         {headerLeft(renderTitle)}
         {renderHeaderAction && <div>{renderHeaderAction()}</div>}
         <Collapsible.Trigger className={triggerButtonStyle} asChild>
-          <TriggerButton
+          <Button
             ref={triggerRef ?? header.attach}
             size="xs"
             variant="ghost"

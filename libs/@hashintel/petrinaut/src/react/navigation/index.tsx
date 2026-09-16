@@ -30,11 +30,7 @@ export type PetrinautSimulateResource =
   | { type: "metric"; id: string }
   | { type: "experiment"; id: string };
 
-export type PetrinautSettingsSection =
-  | "general"
-  | "viewport"
-  | "simulation"
-  | "labs";
+export type PetrinautSettingsSection = "general" | "viewport" | "labs";
 
 export type PetrinautNavigationOverlay =
   | { type: "user-settings"; section?: PetrinautSettingsSection }

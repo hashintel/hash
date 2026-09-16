@@ -70,7 +70,7 @@ export const SettingsHeading = ({
         >
           {section.label}
         </h2>
-        {(section.id === "simulation" || section.id === "labs") && (
+        {section.id === "labs" && (
           <Chip size="xs" color="orange" variant="outline" shape="round">
             Experimental
           </Chip>
