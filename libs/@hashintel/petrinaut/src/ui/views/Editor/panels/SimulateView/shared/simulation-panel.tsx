@@ -113,6 +113,9 @@ const PanelContent = ({
           overflow: "hidden",
           backgroundColor: "neutral.s00",
           borderLeft: "[1px solid {colors.neutral.bd.subtle}]",
+          "[data-simulation-workspace][data-fullscreen=true] &": {
+            borderLeftWidth: "[0]",
+          },
           outline: "none",
           userSelect: "text",
           "&[hidden]": { display: "none" },
