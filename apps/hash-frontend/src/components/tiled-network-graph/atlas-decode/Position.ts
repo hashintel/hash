@@ -1,6 +1,6 @@
-import * as Num from "./Num";
-import * as Result from "./Result";
-import * as TaggedError from "./TaggedError";
+import * as Num from "./num";
+import * as Result from "./result";
+import * as TaggedError from "./tagged-error";
 
 /** A malformed position column or an out-of-range row lookup. */
 export type PositionColumnErrorReason =

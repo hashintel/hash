@@ -1,5 +1,5 @@
 /** Branded fixed-width numbers, named after the Rust types they mirror on the wire. */
-import * as Option from "./Option";
+import * as Option from "./option";
 
 import type { Brand } from "@blockprotocol/type-system";
 

@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import * as Position from "./Position";
-import * as Result from "./Result";
+import * as Position from "./position";
+import * as Result from "./result";
 
 const unwrap = <T, E>(result: Result.Result<T, E>): T => {
   if (Result.isErr(result)) {

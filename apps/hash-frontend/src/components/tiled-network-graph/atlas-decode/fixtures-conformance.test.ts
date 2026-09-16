@@ -10,16 +10,16 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { Decoder } from "./Decoder";
-import * as EdgeDocument from "./EdgeDocument";
-import * as GenerationId from "./GenerationId";
-import * as LocateDocument from "./LocateDocument";
-import * as Option from "./Option";
-import * as Result from "./Result";
-import * as TileDocument from "./TileDocument";
+import { Decoder } from "./decoder";
+import * as EdgeDocument from "./edge-document";
+import * as GenerationId from "./generation-id";
+import * as LocateDocument from "./locate-document";
+import * as Option from "./option";
+import * as Result from "./result";
+import * as TileDocument from "./tile-document";
 
-import type { u64 } from "./Num";
-import type * as TypeMask from "./TypeMask";
+import type { u64 } from "./num";
+import type * as TypeMask from "./type-mask";
 
 const fixturesDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),

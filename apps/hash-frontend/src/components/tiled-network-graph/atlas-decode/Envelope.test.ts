@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Decoder, DecoderError } from "./Decoder";
+import { Decoder, DecoderError } from "./decoder";
 import {
   decode,
   DIRECTORY_ENTRY_BYTES,
@@ -10,10 +10,10 @@ import {
   PREFIX_BYTES,
   SALTILE_WIRE_VERSION,
   type Chunk,
-} from "./Envelope";
+} from "./envelope";
 import { buildResponse } from "./fixtures";
-import * as Option from "./Option";
-import * as Result from "./Result";
+import * as Option from "./option";
+import * as Result from "./result";
 
 type SaltileKind = Parameters<typeof buildResponse>[0];
 

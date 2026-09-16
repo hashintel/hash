@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
-import * as Iterable from "./Iterable";
+import * as Iterable from "./iterable";
 
 describe("Iterable", () => {
   it("zip_acquisition_failure", () => {

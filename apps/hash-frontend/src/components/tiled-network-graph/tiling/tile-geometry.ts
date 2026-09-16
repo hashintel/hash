@@ -12,8 +12,8 @@
  * each spanning `WORLD_SIZE / 2 ** z` units.
  */
 
-import * as Num from "../atlas-decode/Num";
-import * as Option from "../atlas-decode/Option";
+import * as Num from "../atlas-decode/num";
+import * as Option from "../atlas-decode/option";
 import {
   ATLAS_TILE_MAX_ZOOM,
   atlasGridSize,
@@ -22,7 +22,7 @@ import {
   validateAtlasZoom,
 } from "./atlas-tile-coordinate";
 
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as TileDocument from "../atlas-decode/tile-document";
 
 const { zero, one } = Num.u64;
 const two = Num.u64.unsafe(2n);

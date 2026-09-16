@@ -40,17 +40,17 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
-import * as CurrentDocument from "../atlas-decode/CurrentDocument";
-import * as Decoder from "../atlas-decode/Decoder";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
-import * as Function from "../atlas-decode/Function";
-import * as Iterable from "../atlas-decode/Iterable";
-import * as ManifestDocument from "../atlas-decode/ManifestDocument";
-import * as Num from "../atlas-decode/Num";
-import * as Option from "../atlas-decode/Option";
-import * as Record from "../atlas-decode/Record";
-import * as Result from "../atlas-decode/Result";
-import * as TileDocument from "../atlas-decode/TileDocument";
+import * as CurrentDocument from "../atlas-decode/current-document";
+import * as Decoder from "../atlas-decode/decoder";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/envelope";
+import * as Function from "../atlas-decode/function";
+import * as Iterable from "../atlas-decode/iterable";
+import * as ManifestDocument from "../atlas-decode/manifest-document";
+import * as Num from "../atlas-decode/num";
+import * as Option from "../atlas-decode/option";
+import * as Record from "../atlas-decode/record";
+import * as Result from "../atlas-decode/result";
+import * as TileDocument from "../atlas-decode/tile-document";
 import {
   atlasTileAtIndex,
   AtlasTileCoordinateError,
@@ -58,8 +58,8 @@ import {
   WORLD_SIZE,
 } from "./atlas-tile-coordinate";
 
-import type * as Detail from "../atlas-decode/Detail";
-import type * as GenerationId from "../atlas-decode/GenerationId";
+import type * as Detail from "../atlas-decode/detail";
+import type * as GenerationId from "../atlas-decode/generation-id";
 
 /**
  * The atlas surface as a browser addresses it: hash-api's `/atlas` mount.

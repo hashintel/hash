@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
-import * as Option from "./Option";
-import * as Result from "./Result";
+import * as Option from "./option";
+import * as Result from "./result";
 
 describe("Option", () => {
   it.each([null, undefined])("nullable_absence_%s", (value) => {

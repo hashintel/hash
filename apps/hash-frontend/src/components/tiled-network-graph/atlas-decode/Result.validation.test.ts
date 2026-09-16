@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
-import { flow } from "./Function";
-import * as Result from "./Result";
+import { flow } from "./function";
+import * as Result from "./result";
 
 describe("Result.filter", () => {
   it("success_identity", () => {

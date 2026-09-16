@@ -6,7 +6,7 @@
  * @module
  */
 
-import { dual } from "./Function";
+import { dual } from "./function";
 
 /** The positional element tuple produced by {@link zip}. */
 export type Zipped<Sources extends readonly Iterable<unknown>[]> = {

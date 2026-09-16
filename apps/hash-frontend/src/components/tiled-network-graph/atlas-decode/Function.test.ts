@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
-import { flow, pipe, spread } from "./Function";
-import * as Iterable from "./Iterable";
+import { flow, pipe, spread } from "./function";
+import * as Iterable from "./iterable";
 
 describe("Function", () => {
   it("pipe_value_only", () => {

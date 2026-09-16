@@ -116,7 +116,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import * as Num from "../atlas-decode/Num";
+import * as Num from "../atlas-decode/num";
 import {
   ATLAS_ROOT_COORDINATE,
   atlasTileIndex,
@@ -150,8 +150,8 @@ import {
 } from "./tile-geometry";
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
-import type * as Detail from "../atlas-decode/Detail";
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as Detail from "../atlas-decode/detail";
+import type * as TileDocument from "../atlas-decode/tile-document";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 export { WORLD_SIZE } from "./atlas-tile-coordinate";

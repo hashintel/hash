@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
-import { BinaryEntityId } from "../atlas-decode/BinaryEntityId";
-import * as Num from "../atlas-decode/Num";
-import * as Result from "../atlas-decode/Result";
+import { BinaryEntityId } from "../atlas-decode/binary-entity-id";
+import * as Num from "../atlas-decode/num";
+import * as Result from "../atlas-decode/result";
 import {
   clampRectToWorld,
   rectCenterX,
@@ -19,8 +19,8 @@ import {
   type Viewport,
 } from "./use-get-viewport-nodes";
 
-import type * as NodeId from "../atlas-decode/NodeId";
-import type * as TileDocument from "../atlas-decode/TileDocument";
+import type * as NodeId from "../atlas-decode/node-id";
+import type * as TileDocument from "../atlas-decode/tile-document";
 import type { FetchedEdges, TileEdge } from "./fetch-edges-for-tiles";
 import type { FetchedTile, TileNode } from "./fetch-tile";
 /** Brands a zoom or coordinate literal known to be a nonnegative integer. */
