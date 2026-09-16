@@ -114,7 +114,10 @@ const probe = async () => {
         [
           fauxToolCall(
             "mutate_workpiece",
-            { markdown: "# Second synthetic account" },
+            {
+              markdown: "# Second synthetic account",
+              baseRevisionId: "settled-revision",
+            },
             { id: "second-revision" },
           ),
         ],
@@ -144,9 +147,13 @@ const probe = async () => {
         elements: [],
       } satisfies PetrinautAiToolInput<"addType">;
       const generated = names.map((name) =>
-        fauxToolCall(name, name === "addType" ? typeInput : { markdown }, {
-          id: `${caseId}-${name}`,
-        }),
+        fauxToolCall(
+          name,
+          name === "addType" ? typeInput : { markdown, baseRevisionId: null },
+          {
+            id: `${caseId}-${name}`,
+          },
+        ),
       );
       const contextStart = contexts.length;
       faux.setResponses([

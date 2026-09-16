@@ -93,11 +93,11 @@ installFauxProvider({
 });
 const markdown =
   "# A4 synthetic revision\n\nCrash-boundary diagnostic, not elicited testimony. Preserve exact source.\n";
-const response = (id: string, content: string) =>
+const response = (id: string, content: string, baseRevisionId: string | null) =>
   fauxAssistantMessage(
     fauxToolCall(
       "mutate_workpiece",
-      { markdown: content, baseRevisionId: null },
+      { markdown: content, baseRevisionId },
       { id },
     ),
     { stopReason: "toolUse" },
@@ -105,7 +105,7 @@ const response = (id: string, content: string) =>
 faux.setResponses(
   phase === "create"
     ? [
-        response("a4-crash-revision", markdown),
+        response("a4-crash-revision", markdown, null),
         fauxAssistantMessage("Synthetic revision acknowledged."),
       ]
     : Array.from({ length: 6 }, () =>
@@ -164,7 +164,7 @@ const assertRevision = (
   assert(tool?.state === "output-available");
   assert.deepEqual(
     tool.input,
-    { markdown: content },
+    { markdown: content, baseRevisionId: previous?.revisionId ?? null },
     "Raw call input survives",
   );
   assert.deepEqual(
@@ -240,7 +240,11 @@ try {
     const recovered = await client.history();
     save("history", recovered);
     faux.setResponses([
-      response("a4-next-revision", "# Next synthetic diagnostic revision"),
+      response(
+        "a4-next-revision",
+        "# Next synthetic diagnostic revision",
+        "a4-crash-revision",
+      ),
       fauxAssistantMessage("Next revision acknowledged."),
     ]);
     await client.read(

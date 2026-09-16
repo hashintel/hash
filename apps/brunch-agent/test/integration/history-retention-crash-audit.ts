@@ -162,7 +162,7 @@ export const assertCrashRecovery = (
   }
   assert.deepEqual(
     recovered.input,
-    { markdown: receipt.markdown },
+    { markdown: receipt.markdown, baseRevisionId: null },
     "Recovered tool input must match the crashed markdown",
   );
   assert.deepEqual(

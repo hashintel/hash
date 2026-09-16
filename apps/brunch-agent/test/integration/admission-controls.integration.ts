@@ -121,13 +121,13 @@ const typeInput = {
 const question = "What remains unknown?";
 const privateMarkdown =
   "# Workpiece payload must not be spoken\nUnknown timing.";
-const makeCall = (name: string) =>
+const makeCall = (name: string, baseRevisionId: string | null) =>
   fauxToolCall(
     name,
     name === "addType"
       ? typeInput
       : name === "mutate_workpiece"
-        ? { markdown: privateMarkdown }
+        ? { markdown: privateMarkdown, baseRevisionId }
         : { question },
     { id: `${caseId}-${name}` },
   );
@@ -180,7 +180,10 @@ const run = async () => {
           [
             fauxToolCall(
               "mutate_workpiece",
-              { markdown: "# Synthetic settled account\nUnknown timing." },
+              {
+                markdown: "# Synthetic settled account\nUnknown timing.",
+                baseRevisionId: null,
+              },
               { id: `${caseId}-old-revision` },
             ),
           ],
@@ -194,7 +197,8 @@ const run = async () => {
       });
       const seeded = await client.history();
       const requestStart = requests.length;
-      const generated = names.map(makeCall);
+      const baseRevisionId = `${caseId}-old-revision`;
+      const generated = names.map((name) => makeCall(name, baseRevisionId));
       faux.setResponses([
         fauxAssistantMessage(generated, { stopReason: "toolUse" }),
         fauxAssistantMessage([fauxText(question)]),
@@ -299,7 +303,9 @@ const run = async () => {
       const message = fauxAssistantMessage(
         [
           fauxText(text),
-          ...(abort ? [makeCall("addType")] : [makeCall("mutate_workpiece")]),
+          ...(abort
+            ? [makeCall("addType", null)]
+            : [makeCall("mutate_workpiece", null)]),
         ],
         { stopReason: "toolUse" },
       );

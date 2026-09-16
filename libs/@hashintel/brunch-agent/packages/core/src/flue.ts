@@ -123,7 +123,8 @@ export const createMutateWorkpieceTool = (
       // Buffered state commits with the tool batch, not an external effect. A
       // separate step checkpoint could skip an uncommitted write on replay.
       setRevision((previous) => {
-        if (data.baseRevisionId !== (previous?.revisionId ?? null))
+        const isReplay = previous?.revisionId === toolCallId;
+        if (!isReplay && data.baseRevisionId !== (previous?.revisionId ?? null))
           throw new Error(
             "Workpiece baseRevisionId does not name the current revision. Call read_workpiece, reconcile the intended changes against its current Markdown, then resubmit the full document with the current revisionId as baseRevisionId.",
           );
@@ -136,10 +137,9 @@ export const createMutateWorkpieceTool = (
           throw new Error(
             "Workpiece changed while this revision was prepared. Call read_workpiece, reconcile the intended changes against its current Markdown, then resubmit the full document with the current revisionId as baseRevisionId.",
           );
-        revision.ordinal =
-          previous?.revisionId === toolCallId
-            ? previous.ordinal
-            : (previous?.ordinal ?? 0) + 1;
+        revision.ordinal = isReplay
+          ? previous.ordinal
+          : (previous?.ordinal ?? 0) + 1;
         mutation = deriveWorkpieceMutation(previous, prepared.markdown);
         return revision;
       });

@@ -155,6 +155,16 @@ test("requires an explicit base for every workpiece mutation", () => {
   ).toBe(true);
 });
 
+test("replays an already-applied mutation without treating its base as stale", async () => {
+  await run("# First", "replayed", undefined, null);
+  await expect(
+    run("# First", "replayed", undefined, null),
+  ).resolves.toMatchObject({
+    output: { revisionId: "replayed", ordinal: 1 },
+  });
+  expect(current?.ordinal).toBe(1);
+});
+
 test("refuses empty Markdown", async () => {
   await Promise.all(
     ["", " \r\n\t"].map((markdown) =>
