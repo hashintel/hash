@@ -17,7 +17,7 @@ use serde_json::json;
 use sha2::{Digest as _, Sha256};
 
 use crate::{
-    ids::{EventId, JournalRecordDigest, content_digest, content_digest_bytes},
+    ids::{EffectId, EventId, JournalRecordDigest, content_digest_bytes},
     port::{Domain, Prepared},
     registry::{
         self, AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
@@ -122,8 +122,8 @@ pub struct Retry {
 /// # Errors
 ///
 /// Returns an error if the effect cannot be serialized as JSON.
-pub fn effect_id<T: Serialize>(effect: &T) -> Result<String, serde_json::Error> {
-    content_digest("domain-effect:v1", effect)
+pub fn effect_id<T: Serialize>(effect: &T) -> Result<EffectId, serde_json::Error> {
+    content_digest_bytes("domain-effect:v1", effect).map(EffectId::from_bytes)
 }
 
 #[derive(
@@ -1006,7 +1006,8 @@ mod tests {
     use super::{
         DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
         KernelProjection, MAX_EVENT_RECORD_BYTES, MAX_PARTITION_KEY_BYTES, MAX_SNAPSHOT_BYTES,
-        PartitionKey, ProjectionSnapshot, ProjectionSnapshotV1, SimpleDomain, register, shard_of,
+        PartitionKey, ProjectionSnapshot, ProjectionSnapshotV1, SimpleDomain, effect_id, register,
+        shard_of,
     };
     use crate::{
         port::{Domain as _, Prepared},
@@ -1160,6 +1161,22 @@ mod tests {
         let recovered: RecoveredShard<Toy> = opened.recover().await.expect("shard should recover");
         let started = recovered.enable(ShardCommandConfig::default());
         (started.handle.clone(), started)
+    }
+
+    #[test]
+    fn effect_id_wire_format() {
+        let effect = json!({ "customer_id": "customer-1", "name": "Ada Lovelace" });
+        let id = effect_id(&effect).expect("effect should serialize");
+        let expected = "5617d66e306cb0d9b3a6abb95211f169521164124936452f321899df23264bc0";
+        assert_eq!(
+            id.to_string(),
+            expected,
+            "effect IDs should match the fixed idempotency key"
+        );
+        assert_eq!(
+            serde_json::to_value(id).expect("effect ID should serialize"),
+            json!(expected)
+        );
     }
 
     #[test]

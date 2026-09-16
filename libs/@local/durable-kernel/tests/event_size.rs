@@ -8,8 +8,9 @@ use durable_kernel::{
         DomainEvent, EventRecord, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
         shard_of,
     },
+    keyspace::Namespace,
     registry::DurableRecord as _,
-    runtime::{Kernel, KernelConfig, Submitted},
+    runtime::{Kernel, KernelConfig, SnapshotPolicy, Submitted},
     shard_log::{ShardCommandError, ShardCommandErrorKind},
 };
 use error_stack::Report;
@@ -110,11 +111,11 @@ async fn oversized_submission_preserves_recovery() {
     let payload = payload_at_limit();
     let key = payload.partition();
     let mut config = KernelConfig::new(
-        "event-size-test",
+        Namespace::parse("event-size-test").expect("test namespace should be valid"),
         format!("file://{}", directory.path().display()),
     );
-    config.shards = vec![u16::from(shard_of(&key).get())];
-    config.snapshot_every_events = 0;
+    config.shards = vec![shard_of(&key)];
+    config.snapshot_policy = SnapshotPolicy::Disabled;
     config.safe_append_retries = 0;
     let kernel = Kernel::open(config)
         .expect("configuration should be valid")
@@ -152,6 +153,10 @@ async fn oversized_submission_preserves_recovery() {
         .start(NoEffects)
         .await
         .expect("accepted events should recover without snapshots");
+    assert!(
+        recovered.recovery_snapshots().values().all(Option::is_none),
+        "disabled snapshots should leave recovery to the journal"
+    );
     assert_eq!(
         recovered
             .read(&key, |state| state.0)

@@ -1,8 +1,8 @@
 //! Validates SHA-256 IDs and hashes serialized record contents.
 //!
-//! [`EventId`] identifies an event. [`JournalRecordDigest`] detects conflicting contents.
-//! [`content_digest`] hashes a domain label with the serialized bytes. Application executors
-//! use [`crate::domain::effect_id`] to identify external operations.
+//! [`EventId`] identifies an event. [`JournalRecordDigest`] detects conflicting record contents.
+//! Use [`crate::domain::effect_id`] to compute an [`EffectId`] for external operations,
+//! or [`content_digest`] to hash other serialized values with a domain label.
 
 use core::str::FromStr;
 
@@ -100,6 +100,7 @@ macro_rules! digest_id {
 }
 
 digest_id!(EventId, "event ID");
+digest_id!(EffectId, "effect ID");
 digest_id!(JournalRecordDigest, "journal-record digest");
 
 /// Hashes the domain label, a zero byte, and the serialized JSON, in that order.

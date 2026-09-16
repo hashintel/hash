@@ -19,7 +19,10 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
-use core::{num::NonZeroUsize, time::Duration};
+use core::{
+    num::{NonZeroU64, NonZeroUsize},
+    time::Duration,
+};
 
 use error_stack::{Report, ResultExt as _};
 use tokio::task::JoinHandle;
@@ -27,6 +30,7 @@ use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
 
 use crate::{
     domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain, effect_id},
+    ids::EffectId,
     keyspace::{Keyspace, Namespace},
     registry::CompatError,
     routing::Shard,
@@ -54,21 +58,30 @@ pub enum KernelError {
     Internal(String),
 }
 
+/// Controls when a shard saves snapshots.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SnapshotPolicy {
+    Disabled,
+    /// Waits at least this many journal sequence positions between snapshot attempts.
+    Every(NonZeroU64),
+}
+
+const DEFAULT_SNAPSHOT_INTERVAL: NonZeroU64 =
+    NonZeroU64::new(512).expect("default snapshot interval should be nonzero");
+
 #[derive(Debug, Clone)]
 /// Storage and scheduling settings for the shards owned by this process.
 ///
 /// [`new`](Self::new) supplies defaults. Set [`shards`](Self::shards) before opening a kernel.
 pub struct KernelConfig {
     /// Every storage key starts with this namespace.
-    pub name: String,
+    pub name: Namespace,
     /// Storage location expressed as a local file URL or an S3 URL.
     pub blob_url: String,
     pub aws_region: Option<String>,
     /// The kernel rejects submissions routed outside these shards.
-    pub shards: Vec<u16>,
-    /// Attempts a snapshot after this many journal sequence positions have
-    /// passed since the last snapshot. A value of zero disables snapshots.
-    pub snapshot_every_events: u64,
+    pub shards: Vec<Shard>,
+    pub snapshot_policy: SnapshotPolicy,
     /// Idle drivers wait this long. It is also the default retry delay.
     pub poll_interval: Duration,
     /// Maximum queued commands per shard. Submissions wait when the queue is full.
@@ -80,26 +93,28 @@ pub struct KernelConfig {
 }
 
 impl KernelConfig {
-    /// Creates settings with no owned shards and snapshots and retries enabled.
+    /// Enables snapshots and retries. Set [`shards`](Self::shards) before opening a kernel.
     ///
     /// ```
     /// use durable_kernel::{
     ///     domain::{PartitionKey, shard_of},
+    ///     keyspace::Namespace,
     ///     runtime::{Kernel, KernelConfig},
     /// };
     ///
     /// let key = PartitionKey::parse("customers").expect("key should be valid");
-    /// let mut config = KernelConfig::new("customer-sync", "file:///tmp/customer-sync");
-    /// config.shards = vec![u16::from(shard_of(&key).get())];
+    /// let name = Namespace::parse("customer-sync").expect("namespace should be valid");
+    /// let mut config = KernelConfig::new(name, "file:///tmp/customer-sync");
+    /// config.shards = vec![shard_of(&key)];
     /// let kernel = Kernel::open(config).expect("configuration should be valid");
     /// ```
-    pub fn new(name: impl Into<String>, blob_url: impl Into<String>) -> Self {
+    pub fn new(name: Namespace, blob_url: impl Into<String>) -> Self {
         Self {
-            name: name.into(),
+            name,
             blob_url: blob_url.into(),
             aws_region: None,
             shards: Vec::new(),
-            snapshot_every_events: 512,
+            snapshot_policy: SnapshotPolicy::Every(DEFAULT_SNAPSHOT_INTERVAL),
             poll_interval: Duration::from_millis(250),
             channel_capacity: NonZeroUsize::new(64).unwrap_or(NonZeroUsize::MIN),
             safe_append_retries: 3,
@@ -114,35 +129,33 @@ pub struct Kernel {
     config: KernelConfig,
     keyspace: Keyspace,
     shards: Vec<Shard>,
+    shard_capacity: NonZeroU64,
 }
 
 impl Kernel {
-    /// Validates the namespace and shard selection without opening storage.
+    /// Prepares the selected shards for [`start`](Self::start). Repeated shards are opened once.
     ///
     /// # Errors
     ///
-    /// Returns an error for an invalid namespace, an empty shard selection, or an invalid shard
-    /// number.
+    /// Returns an error for an empty shard selection.
     pub fn open(config: KernelConfig) -> Result<Self, Report<KernelError>> {
-        let namespace = Namespace::parse(&config.name)
-            .change_context_lazy(|| KernelError::Config("invalid namespace".to_owned()))?;
-        if config.shards.is_empty() {
-            return Err(Report::new(KernelError::Config(
-                "at least one owned shard is required".to_owned(),
-            )));
-        }
-        let shards = config
+        let shards: Vec<_> = config
             .shards
             .iter()
-            .map(|&value| Shard::try_from(value))
-            .collect::<Result<BTreeSet<_>, _>>()
-            .change_context_lazy(|| KernelError::Config("invalid shard selection".to_owned()))?
+            .copied()
+            .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
+        let shard_capacity = NonZeroU64::new(shards.len() as u64).ok_or_else(|| {
+            Report::new(KernelError::Config(
+                "at least one owned shard is required".to_owned(),
+            ))
+        })?;
         Ok(Self {
-            keyspace: Keyspace::new(namespace),
+            keyspace: Keyspace::new(config.name.clone()),
             config,
             shards,
+            shard_capacity,
         })
     }
 
@@ -176,7 +189,7 @@ impl Kernel {
         let storage = LogStorageOptions {
             blob_url: self.config.blob_url.clone(),
             aws_region: self.config.aws_region.clone(),
-            shard_capacity: self.shards.len() as u64,
+            shard_capacity: self.shard_capacity,
             block_cache_bytes: self.config.block_cache_bytes,
             meta_cache_bytes: self.config.meta_cache_bytes,
         };
@@ -234,7 +247,7 @@ impl Kernel {
                 Arc::clone(&executor),
                 DriverSettings {
                     poll_interval: self.config.poll_interval,
-                    snapshot_every_events: self.config.snapshot_every_events,
+                    snapshot_policy: self.config.snapshot_policy,
                 },
                 running.shutdown.clone(),
             )));
@@ -410,7 +423,7 @@ impl<S: SimpleDomain> Drop for RunningKernel<S> {
 
 struct DriverSettings {
     poll_interval: Duration,
-    snapshot_every_events: u64,
+    snapshot_policy: SnapshotPolicy,
 }
 
 fn command_failure(error: ShardCommandError) -> Report<KernelError> {
@@ -437,7 +450,7 @@ fn settle_driver_error(
 async fn execute_effect<S, X>(
     executor: Arc<X>,
     effect: X::Effect,
-    id: &str,
+    id: &EffectId,
 ) -> Result<Result<Vec<S::Event>, domain::Retry>, Report<KernelError>>
 where
     S: SimpleDomain,
@@ -459,13 +472,13 @@ where
 }
 
 fn retain_planned_effects<E>(
-    effects: &[(String, E)],
-    executed: &mut BTreeSet<String>,
-    retries: &mut BTreeMap<String, tokio::time::Instant>,
+    effects: &[(EffectId, E)],
+    executed: &mut BTreeSet<EffectId>,
+    retries: &mut BTreeMap<EffectId, tokio::time::Instant>,
 ) {
-    let planned_ids: BTreeSet<_> = effects.iter().map(|(id, _)| id.as_str()).collect();
-    executed.retain(|id| planned_ids.contains(id.as_str()));
-    retries.retain(|id, _| planned_ids.contains(id.as_str()));
+    let planned_ids: BTreeSet<_> = effects.iter().map(|(id, _)| *id).collect();
+    executed.retain(|id| planned_ids.contains(id));
+    retries.retain(|id, _| planned_ids.contains(id));
 }
 
 #[expect(
@@ -483,8 +496,8 @@ where
     S: SimpleDomain,
     X: Executor<S>,
 {
-    let mut executed: BTreeSet<String> = BTreeSet::new();
-    let mut retries = BTreeMap::<String, tokio::time::Instant>::new();
+    let mut executed: BTreeSet<EffectId> = BTreeSet::new();
+    let mut retries = BTreeMap::<EffectId, tokio::time::Instant>::new();
     loop {
         if shutdown.is_cancelled() {
             return Ok(());
@@ -564,7 +577,7 @@ where
                 }
             }
         }
-        maybe_snapshot(&handle, settings.snapshot_every_events).await;
+        maybe_snapshot(&handle, settings.snapshot_policy).await;
         let now = tokio::time::Instant::now();
         retries.retain(|_, deadline| *deadline > now);
         if !progressed {
@@ -583,16 +596,14 @@ where
     }
 }
 
-/// A failed snapshot increases the work needed for recovery. The journal still contains the
-/// events.
 async fn maybe_snapshot<S: SimpleDomain>(
     handle: &ShardCommandHandle<Hosted<S>>,
-    every_events: u64,
+    policy: SnapshotPolicy,
 ) {
-    if every_events == 0 {
+    let SnapshotPolicy::Every(interval) = policy else {
         return;
-    }
-    match handle.capture_snapshot(every_events).await {
+    };
+    match handle.capture_snapshot(interval.get()).await {
         Ok(Some(payload)) => {
             let record = payload.into_record(chrono::Utc::now());
             if let Err(error) = handle.commit_snapshot(record).await {
@@ -609,17 +620,17 @@ async fn maybe_snapshot<S: SimpleDomain>(
 #[cfg(test)]
 mod tests {
     use alloc::{collections::BTreeMap, sync::Arc};
-    use core::time::Duration;
+    use core::{num::NonZeroU64, time::Duration};
     use std::sync::Mutex;
 
     use serde::{Deserialize, Serialize};
     use tokio::task::JoinHandle;
 
-    use super::{Kernel, KernelConfig, KernelError, Submitted};
+    use super::{Kernel, KernelConfig, KernelError, SnapshotPolicy, Submitted};
     use crate::{
         domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
-        keyspace::InvalidNamespace,
-        routing::InvalidShard,
+        keyspace::Namespace,
+        routing::Shard,
     };
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -770,13 +781,17 @@ mod tests {
     }
 
     fn config(blob_url: &str, shard: u8) -> KernelConfig {
-        let mut config = KernelConfig::new("kernelapp", blob_url);
+        let mut config = KernelConfig::new(
+            Namespace::parse("kernelapp").expect("test namespace should be valid"),
+            blob_url,
+        );
         config.aws_region = std::env::var("AWS_REGION")
             .or_else(|_missing| std::env::var("AWS_DEFAULT_REGION"))
             .ok();
-        config.shards = vec![u16::from(shard)];
+        config.shards = vec![Shard::from_u8(shard)];
         config.poll_interval = Duration::from_millis(20);
-        config.snapshot_every_events = 2;
+        config.snapshot_policy =
+            SnapshotPolicy::Every(NonZeroU64::new(2).expect("test interval should be nonzero"));
         config
     }
 
@@ -974,33 +989,29 @@ mod tests {
     }
 
     #[test]
-    fn open_invalid_namespace_preserves_cause() {
+    fn open_empty_shards() {
         let mut settings = config("file:///unused", 0);
-        settings.name = "../invalid".to_owned();
+        settings.shards.clear();
         let Err(report) = Kernel::open(settings) else {
-            panic!("namespace traversal should be rejected");
+            panic!("an empty shard selection should be rejected");
         };
-        assert!(matches!(report.current_context(), KernelError::Config(_)));
-        assert_eq!(
-            report.downcast_ref::<InvalidNamespace>(),
-            Some(&InvalidNamespace::UnsafeSegment),
-            "configuration errors should retain the namespace error"
-        );
+        assert!(matches!(
+            report.current_context(),
+            KernelError::Config(message) if message == "at least one owned shard is required"
+        ));
     }
 
     #[test]
-    fn open_invalid_shard_preserves_cause() {
+    fn open_duplicate_shards() {
         let mut settings = config("file:///unused", 0);
-        settings.shards = vec![256];
-        let Err(report) = Kernel::open(settings) else {
-            panic!("shards outside the routing range should be rejected");
-        };
-        assert!(matches!(report.current_context(), KernelError::Config(_)));
+        settings.shards = vec![Shard::from_u8(2), Shard::from_u8(1), Shard::from_u8(2)];
+        let kernel = Kernel::open(settings).expect("repeated shards should be accepted");
         assert_eq!(
-            report.downcast_ref::<InvalidShard>(),
-            Some(&InvalidShard { value: 256 }),
-            "configuration errors should retain the invalid shard value"
+            kernel.shards,
+            vec![Shard::from_u8(1), Shard::from_u8(2)],
+            "shards should be opened once in sorted order"
         );
+        assert_eq!(kernel.shard_capacity.get(), 2);
     }
 
     #[tokio::test]
@@ -1198,9 +1209,7 @@ mod tests {
             &format!("file://{}", blob.path().display()),
             domain::shard_of(&key).get(),
         );
-        settings
-            .shards
-            .push(u16::from(domain::shard_of(&other).get()));
+        settings.shards.push(domain::shard_of(&other));
         let running = Kernel::open(settings)
             .expect("kernel should open")
             .register::<RtDomain>()
@@ -1266,7 +1275,7 @@ mod tests {
         }
         let blob = tempfile::tempdir().expect("blob root tempdir should be created");
         let mut settings = config(&format!("file://{}", blob.path().display()), 0);
-        settings.shards = vec![0, 1];
+        settings.shards = vec![Shard::from_u8(0), Shard::from_u8(1)];
         let kernel = Kernel::open(settings)
             .expect("kernel should open")
             .register::<RtDomain>()

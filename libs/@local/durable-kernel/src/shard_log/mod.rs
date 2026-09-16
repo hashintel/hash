@@ -7,7 +7,7 @@
 //! [`ShardCommandHandle`] serializes submissions and applies each record after it is durable.
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
-use core::{fmt, ops::Bound, time::Duration};
+use core::{fmt, num::NonZeroU64, ops::Bound, time::Duration};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
@@ -207,12 +207,13 @@ impl ShardLogLocation {
     }
 }
 
-/// Storage options supplied by the caller, including the URL, AWS region, and cache sizes.
+/// Storage location and cache budgets shared by the owned shards.
 #[derive(Debug, Clone)]
 pub struct LogStorageOptions {
     pub blob_url: String,
     pub aws_region: Option<String>,
-    pub shard_capacity: u64,
+    /// Number of shards sharing the cache budgets.
+    pub shard_capacity: NonZeroU64,
     pub block_cache_bytes: u64,
     pub meta_cache_bytes: u64,
 }
@@ -262,16 +263,13 @@ pub fn storage_for_path(
     } else {
         format!("{prefix}/{control_path}")
     };
-    let shard_capacity = options.shard_capacity.max(1);
     let block_cache_capacity = options
         .block_cache_bytes
-        .checked_div(shard_capacity)
-        .unwrap_or(0)
+        .div_euclid(options.shard_capacity.get())
         .max(64 * 1024);
     let meta_cache_capacity = options
         .meta_cache_bytes
-        .checked_div(shard_capacity)
-        .unwrap_or(0)
+        .div_euclid(options.shard_capacity.get())
         .max(64 * 1024);
     Ok(StorageConfig::SlateDb(SlateDbStorageConfig {
         path,
