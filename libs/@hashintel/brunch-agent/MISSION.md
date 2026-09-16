@@ -8,7 +8,7 @@ Live, not accepted, on `kostandin/fe-1745-ledger-derived-experiment`, forked fro
 
 **Observed gap.** Nothing in Brunch turns a settled decision, measure, tunable quantity and regime into an experiment. `createExperiment` is a stock-assistant tool, not in Brunch's catalogue; `prepareExperiment` is pure and separable but not exported from `@hashintel/petrinaut/react`; the mounted `mutate_petrinaut_net` union has no scenario or metric operations, so Brunch cannot construct the saved scenario and saved metric every experiment binds to; the skill has no readiness guidance, so the model waits for the words "experiment" or "optimize". The 2026-09-16 demo feedback asked for Brunch to recognise the opportunity itself.
 
-**Next authorized move.** Work package A (scenario and metric operations) needs no upstream change and starts now. The one upstream delta — a named `prepareExperiment` export from `@hashintel/petrinaut/react` with a patch changeset — is approved by Chris and rides on this branch as its own commit; nothing else in Chris's package changes. Paid persona observation of the support-desk case needs separate spend authorization from Lu and is not requested here.
+**Next authorized move.** Work package A (scenario and metric operations) needs no upstream change and starts now. The one upstream delta — canonical preparation exposed without execution — rides on this branch provisionally as a named `prepareExperiment` export with a patch changeset, in its own commit, pending Chris's boundary preference; nothing else in Chris's package changes. Paid persona observation of the support-desk case needs separate spend authorization from Lu and is not requested here.
 
 ### Owner decisions
 
@@ -17,7 +17,7 @@ Live, not accepted, on `kostandin/fe-1745-ledger-derived-experiment`, forked fro
 - **2026-09-16 — Kostandin, constraint scope:** the first demo is constraint-free. Restrictions land in `unsupported`; an observed metric beside them is optional and must be labelled "reported, not enforced". A hard restriction is never weakened or encoded as a penalty.
 - **2026-09-16 — Kostandin, widget scope:** a minimal website-owned "Drafted — not run" widget is authorized. No persistence, draft list, draft status, drawer prefill or broader experiment lifecycle.
 - **2026-09-16 — Kostandin, demo:** the support-desk staffing scenario is the first demo case.
-- **2026-09-16 — Chris, upstream delta:** expose `prepareExperiment` as a named `@hashintel/petrinaut/react` export. No constraint carriage or UI change requested in this cut.
+- **2026-09-16 — Chris, upstream delta:** canonical experiment preparation is exposed without execution; no constraint carriage or UI change is requested in this cut. The boundary — a named `prepareExperiment` export from `@hashintel/petrinaut/react` or `prepareExperiment(request)` on `PetrinautExperimentHost` — is pending Chris's preference. This branch carries the named export provisionally because it is the smaller change and the widget can move to the host method without changing anything else; the commit is dropped or replaced if Chris prefers the host method.
 - **2026-09-16 — Lu, lifecycle:** second live mission on a separate branch; issue FE-1745; PR base is the 7e branch until it merges, and the `MISSION.md` conflict at that point is Lu's call. The consumed draft stays in place as the residual home for material this cut does not admit (constraints, the Inventory example, design E, drawer prefill), because those items have no other home yet; it remains a non-authority draft.
 
 ## Imperative
