@@ -369,6 +369,75 @@ test("admits a completed call that wins the idle race", async () => {
   }
 });
 
+test("does not retry after a complete tool call wins the idle race", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    const claimRetry = vi.fn(() => true);
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const toolCall = fauxToolCall("browser", {}, { id: "completed-call" });
+    const message = fauxAssistantMessage([toolCall], {
+      stopReason: "toolUse",
+    });
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "toolcall_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "{}",
+      partial: message,
+      type: "toolcall_delta",
+    });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      toolCall,
+      type: "toolcall_end",
+    });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await expect(reading).rejects.toMatchObject({
+      code: "model_stream_idle",
+    });
+    expect(claimRetry).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test.each(["missing", "arguments", "identity"] as const)(
   "refuses inconsistent streamed and final browser calls (%s)",
   async (difference) => {

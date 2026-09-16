@@ -181,9 +181,12 @@ class AdmittedStream extends EventStream<
           if (!acknowledged) {
             throw new ModelStreamCancellationUnacknowledgedError();
           }
+          const toolCallCompleted = events.some(
+            (event) => event.type === "toolcall_end",
+          );
           throw new ModelStreamIdleError(
             idleTimeoutMs,
-            idleRecovery.claimRetry(),
+            !toolCallCompleted && idleRecovery.claimRetry(),
           );
         }
         if (next.done) break;
