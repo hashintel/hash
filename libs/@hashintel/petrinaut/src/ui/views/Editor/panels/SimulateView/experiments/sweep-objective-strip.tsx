@@ -1,13 +1,3 @@
-/**
- * The sweep's objective by step, under the Parameters card's sliders: a
- * disclosure row (a dot that breathes while the study drives the sweep, the
- * title, the study's metric with the steps run and the best found, a
- * chevron) over a fold holding the shared objective chart in purple, its
- * axis reaching to the steps asked for while the study runs. Mounted with
- * the drawer of an experiment created with Optimize and kept while the
- * drawer lives; the fold clips height alone, so the plot keeps taking steps
- * while collapsed and reopens on the current picture.
- */
 import { useId, useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
@@ -20,11 +10,13 @@ import {
   ObjectiveHistoryChart,
   type ObjectiveHistoryStyle,
 } from "../shared/objective-history-chart";
+import { BestParameters } from "./sweep-objective-strip/best-parameters";
 import { buildSweepObjectiveHistory } from "./sweep-objective-strip/sweep-objective-history";
 
+import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 
-/** The chart's height in pixels, x axis included; the fold's open height is a constant. */
+/** The chart's height in pixels, x axis included. */
 export const SWEEP_OBJECTIVE_PLOT_HEIGHT = 120;
 
 /** The strip's palette: the purple ramp's light hexes, since a canvas cannot read the tokens. */
@@ -39,6 +31,7 @@ const sweepObjectiveStyle: ObjectiveHistoryStyle = {
 };
 
 const stripStyle = css({
+  containerType: "inline-size",
   marginTop: "3",
   minWidth: "[0]",
   borderTopWidth: "[1px]",
@@ -126,9 +119,25 @@ const summaryStyle = css({
   color: "purple.s100",
 });
 
-// Air under the row so the first dot's halo clears it.
+const contentStyle = css({
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 3fr) minmax(200px, 2fr)",
+  gap: "4",
+  paddingTop: "3",
+  "@container (max-width: 519px)": {
+    gridTemplateColumns: "minmax(0, 1fr)",
+  },
+});
+
 const chartWrapStyle = css({
-  paddingTop: "2",
+  minWidth: "[0]",
+});
+
+const chartTitleStyle = css({
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "purple.s110",
+  marginBottom: "1",
 });
 
 /** `Infected peak · 47 steps · best 650.500`; without a metric name, `0 steps`. */
@@ -146,11 +155,15 @@ const describeHistory = (
 export const SweepObjectiveStrip = ({
   study,
   driving,
+  axes,
+  onViewBest,
 }: {
   /** The study started with the sweep. */
   study: OptimizationRecord;
   /** Whether the study drives the sweep now: the row's dot breathes. */
   driving: boolean;
+  axes: readonly ExperimentParameterAxis[];
+  onViewBest: (() => void) | null;
 }) => {
   const [expanded, setExpanded] = useState(true);
   const foldId = useId();
@@ -169,7 +182,7 @@ export const SweepObjectiveStrip = ({
           <Icon name="chevronDown" size="sm" />
         </span>
         <span className={dotStyle} data-driving={driving} />
-        <span className={titleStyle}>Objective by step</span>
+        <span className={titleStyle}>Optimizer</span>
         <span className={summaryStyle}>
           {describeHistory(
             history.metricName,
@@ -179,20 +192,24 @@ export const SweepObjectiveStrip = ({
         </span>
       </button>
       <Fold open={expanded} id={foldId} data-sweep-objective>
-        <div className={chartWrapStyle}>
-          <ObjectiveHistoryChart
-            points={history.points}
-            plotHeight={SWEEP_OBJECTIVE_PLOT_HEIGHT}
-            style={sweepObjectiveStyle}
-            xMax={history.xMax}
-            // A study about to draw its first step is waited for; one that
-            // ended without a step, failed at start, has run none.
-            emptyLabel={
-              isOptimizationActive(study)
-                ? "Waiting for the first step"
-                : "No steps run"
-            }
-          />
+        <div className={contentStyle}>
+          <div className={chartWrapStyle}>
+            <div className={chartTitleStyle}>Objective by step</div>
+            <ObjectiveHistoryChart
+              points={history.points}
+              plotHeight={SWEEP_OBJECTIVE_PLOT_HEIGHT}
+              style={sweepObjectiveStyle}
+              xMax={history.xMax}
+              // A study about to draw its first step is waited for; one that
+              // ended without a step, failed at start, has run none.
+              emptyLabel={
+                isOptimizationActive(study)
+                  ? "Waiting for the first step"
+                  : "No steps run"
+              }
+            />
+          </div>
+          <BestParameters study={study} axes={axes} onViewBest={onViewBest} />
         </div>
       </Fold>
     </div>

@@ -10,10 +10,7 @@ import {
 
 import { Chip, Dialog, Icon, Select, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { isWebGpuAvailable } from "@hashintel/petrinaut-core";
-import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
-import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { focusLands } from "../../../../worksheet/focus-flow";
@@ -53,12 +50,6 @@ const sections = [
     label: "Viewport",
     icon: "grid",
     description: "Choose how your net looks and responds.",
-  },
-  {
-    id: "simulation",
-    label: "Simulation",
-    icon: "play",
-    description: "Explore more ways to run and optimize your models.",
   },
   {
     id: "labs",
@@ -370,10 +361,6 @@ export const UserSettingsDialog = ({
 }) => {
   const settings = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
-  const optimization = use(PetrinautOptimizationContext);
-  const inBrowserOptimizationOffered =
-    optimization !== null && isConnectedOptimization(optimization);
-  const webGpuAvailable = isWebGpuAvailable();
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
@@ -569,39 +556,6 @@ export const UserSettingsDialog = ({
                           onChange={settings.setPartialSelection}
                         />
                       </SettingsGroup>
-                    </>
-                  )}
-                  {item.id === "simulation" && (
-                    <>
-                      <SettingsGroup title="Experiments">
-                        <SettingToggle
-                          label="WebGPU"
-                          description={
-                            webGpuAvailable
-                              ? "Offer GPU compute for compatible experiments. Each experiment chooses its backend; CPU and GPU results agree statistically, not seed for seed."
-                              : "WebGPU is unavailable in this browser. Experiments use the CPU."
-                          }
-                          value={settings.webGpuEnabled && webGpuAvailable}
-                          onChange={settings.setWebGpuEnabled}
-                          disabled={!webGpuAvailable}
-                        />
-                        <SettingToggle
-                          label="Parameter sweeps"
-                          description="Explore a range of numeric parameter values in one experiment."
-                          value={settings.enableParameterSweeps}
-                          onChange={settings.setEnableParameterSweeps}
-                        />
-                      </SettingsGroup>
-                      {inBrowserOptimizationOffered && (
-                        <SettingsGroup title="Optimization">
-                          <SettingToggle
-                            label="In-browser optimization"
-                            description="Run studies in this browser and stream metrics as each step completes."
-                            value={settings.enableInBrowserOptimization}
-                            onChange={settings.setEnableInBrowserOptimization}
-                          />
-                        </SettingsGroup>
-                      )}
                     </>
                   )}
                   {item.id === "labs" && (

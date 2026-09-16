@@ -21,19 +21,18 @@ import {
   type ExperimentsActionsValue,
   type SweepVisitedCell,
 } from "../experiments/context";
+import { sweepPointFor } from "../experiments/parameter-grid";
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
-import { UserSettingsContext } from "../state/user-settings-context";
 import {
   type OptimizationBest,
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
 import { OptimizationsProvider } from "./provider";
-import { sweepPointFor } from "./provider/create-sweep-trial-evaluator";
 import {
   sirConstrainedOptimizationInput,
   sirOptimizationInput,
@@ -112,21 +111,6 @@ const CaptureNavigation = ({
   return null;
 };
 
-/** Overrides the In-browser optimization setting below the default context. */
-const InBrowserOptimizationSetting = ({
-  enabled,
-  children,
-}: PropsWithChildren<{ enabled: boolean }>) => {
-  const value = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...value, enableInBrowserOptimization: enabled }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 /** Routes the provider's sweep navigations to a fake. */
 const NavigateSweepOverride = ({
   navigateSweep,
@@ -151,7 +135,7 @@ const inertCapabilityMembers = {
 
 /**
  * A connected source whose runs stay quiet until aborted, counting connections
- * and disposals so tests can observe what the setting gates.
+ * and disposals so tests can observe the connection lifecycle.
  */
 const createQuietConnectedSource = () => {
   const calls = { connect: 0, dispose: 0 };
@@ -324,37 +308,33 @@ const createEvaluatingSource = (
 const renderProvider = ({
   source,
   navigateSweep = createNavigateSweep(),
-  enabled = true,
 }: {
-  source: PetrinautConnectedOptimization | PetrinautOptimization;
+  source: PetrinautConnectedOptimization | PetrinautOptimization | null;
   navigateSweep?: ExperimentsActionsValue["navigateSweep"];
-  enabled?: boolean;
 }) => {
   let latest: OptimizationsContextValue | null = null;
   let navigationState: Readonly<PetrinautNavigationState> | null = null;
-  const tree = (isEnabled: boolean) => (
-    <InBrowserOptimizationSetting enabled={isEnabled}>
-      <PetrinautOptimizationContext value={source}>
-        <PetrinautNavigationProvider>
-          <CaptureNavigation
-            onValue={(value) => {
-              navigationState = value;
-            }}
-          />
-          <NavigateSweepOverride navigateSweep={navigateSweep}>
-            <OptimizationsProvider>
-              <CaptureContext
-                onValue={(value) => {
-                  latest = value;
-                }}
-              />
-            </OptimizationsProvider>
-          </NavigateSweepOverride>
-        </PetrinautNavigationProvider>
-      </PetrinautOptimizationContext>
-    </InBrowserOptimizationSetting>
+  const tree = (currentSource: typeof source) => (
+    <PetrinautOptimizationContext value={currentSource}>
+      <PetrinautNavigationProvider>
+        <CaptureNavigation
+          onValue={(value) => {
+            navigationState = value;
+          }}
+        />
+        <NavigateSweepOverride navigateSweep={navigateSweep}>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </NavigateSweepOverride>
+      </PetrinautNavigationProvider>
+    </PetrinautOptimizationContext>
   );
-  const { rerender, unmount } = render(tree(enabled));
+  const { rerender, unmount } = render(tree(source));
   return {
     getValue: () => {
       if (!latest) {
@@ -368,7 +348,7 @@ const renderProvider = ({
       }
       return navigationState;
     },
-    setEnabled: (isEnabled: boolean) => rerender(tree(isEnabled)),
+    setSource: (currentSource: typeof source) => rerender(tree(currentSource)),
     unmount,
   };
 };
@@ -379,14 +359,12 @@ afterEach(() => {
 });
 
 describe("OptimizationsProvider and its source", () => {
-  it("treats a connected source as absent while In-browser optimization is off", async () => {
-    const { source, calls } = createQuietConnectedSource();
-    const { getValue } = renderProvider({ source, enabled: false });
+  it("reports optimization unavailable when the host provides no source", async () => {
+    const { getValue } = renderProvider({ source: null });
 
     await expect(
       getValue().createOptimization(input, { sweep }),
     ).rejects.toThrow("Optimization is unavailable");
-    expect(calls.connect).toBe(0);
     expect(getValue().optimizations).toHaveLength(0);
   });
 
@@ -398,7 +376,7 @@ describe("OptimizationsProvider and its source", () => {
       },
       cancelOptimizationRun: () => Promise.resolve(),
     };
-    const { getValue } = renderProvider({ source: capability, enabled: false });
+    const { getValue } = renderProvider({ source: capability });
 
     await expect(
       getValue().createOptimization(input, { sweep }),
@@ -406,9 +384,11 @@ describe("OptimizationsProvider and its source", () => {
     expect(getValue().optimizations).toHaveLength(0);
   });
 
-  it("connects and disposes a connected source as In-browser optimization is toggled, stopping the studies made through it", async () => {
+  it("connects on the first study and disposes when the host removes the source", async () => {
     const { source, calls } = createQuietConnectedSource();
-    const { getValue, setEnabled } = renderProvider({ source });
+    const { getValue, setSource } = renderProvider({ source });
+
+    expect(calls).toEqual({ connect: 0, dispose: 0 });
 
     await act(async () => {
       await getValue().createOptimization(input, { sweep });
@@ -418,7 +398,7 @@ describe("OptimizationsProvider and its source", () => {
     );
     expect(calls).toEqual({ connect: 1, dispose: 0 });
 
-    setEnabled(false);
+    setSource(null);
     expect(calls).toEqual({ connect: 1, dispose: 1 });
     await waitFor(() =>
       expect(getValue().optimizations[0]?.status).toBe("cancelled"),
@@ -427,7 +407,7 @@ describe("OptimizationsProvider and its source", () => {
       getValue().createOptimization(input, { sweep }),
     ).rejects.toThrow("Optimization is unavailable");
 
-    setEnabled(true);
+    setSource(source);
     await act(async () => {
       await getValue().createOptimization(input, { sweep });
     });
@@ -730,7 +710,7 @@ describe("OptimizationsProvider driving a sweep", () => {
     expect(getValue().optimizations[0]).toMatchObject({ status: "cancelled" });
   });
 
-  it("parks the sweep, uncapped, on the point it was trying when In-browser optimization is switched off mid-study", async () => {
+  it("parks the sweep, uncapped, when the host removes the optimizer mid-study", async () => {
     const { source } = createEvaluatingSource([0.05, 0.02]);
     let releaseStep: (cell: SweepVisitedCell | null) => void = () => {};
     const navigateSweep = vi.fn(
@@ -745,14 +725,14 @@ describe("OptimizationsProvider driving a sweep", () => {
             })
           : Promise.resolve(null),
     );
-    const { getValue, setEnabled } = renderProvider({ source, navigateSweep });
+    const { getValue, setSource } = renderProvider({ source, navigateSweep });
 
     await act(async () => {
       await getValue().createOptimization(input, { sweep });
     });
     await waitFor(() => expect(navigateSweep).toHaveBeenCalledTimes(1));
 
-    act(() => setEnabled(false));
+    act(() => setSource(null));
     // The source is gone before the aborted step reports, so the study's own
     // cancel finds no evaluator: the sweep still parks, uncapped, on the point
     // the step was trying.

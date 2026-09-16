@@ -6,7 +6,11 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
-import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "../../hir";
+import {
+  AMBIENT_INPUT_NAMES,
+  getStateConstraintExpression,
+  type DualFormSurfaceKind,
+} from "../../hir";
 import {
   adHocSlotKey,
   isValidAdHocVariableName,
@@ -822,9 +826,9 @@ export type ConstraintSessionData = {
  *
  * A `parameters` constraint is an expression over `scenario.*` and
  * `parameters.*`, wrapped like a scenario parameter override but checked as
- * boolean. A `state` constraint is a function body over the metric `state`
- * (`state.places.<PlaceName>`) plus ambient `parameters`, wrapped like a
- * metric body but checked as boolean. Empty code yields the defs file only.
+ * boolean. A `state` constraint is an expression or function body over the
+ * metric `state` plus ambient `parameters`, checked as boolean. Empty code
+ * yields the defs file only.
  */
 export function generateConstraintSessionFiles(
   sdcpn: SDCPN,
@@ -855,15 +859,19 @@ export function generateConstraintSessionFiles(
 
   files.set(defsPath, { content: buildMetricStateDefs(sdcpn) });
   if (!emptyCode) {
-    files.set(
-      codePath,
-      metricBodyFile({
-        defsPath,
-        functionName: "__constraint",
-        returnType: "boolean",
-        body: session.code,
-      }),
-    );
+    const file = metricBodyFile({
+      defsPath,
+      functionName: "__constraint",
+      returnType: "boolean",
+      body: session.code,
+    });
+    const expression = getStateConstraintExpression(session.code);
+    if (expression !== undefined) {
+      file.content = expression;
+      file.prefix = `${file.prefix ?? ""}return (\n`;
+      file.suffix = `\n);${file.suffix ?? ""}`;
+    }
+    files.set(codePath, file);
   }
   return files;
 }

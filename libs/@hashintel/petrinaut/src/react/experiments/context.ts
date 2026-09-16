@@ -120,6 +120,8 @@ export type CreateExperimentOptions = {
 
 export type ExperimentRecord = {
   id: string;
+  /** The model snapshot used by the runs and any optimization started later. */
+  definition?: SDCPN;
   /** Compute controls are held until a host request captures its result. */
   requestActive?: boolean;
   name: string;

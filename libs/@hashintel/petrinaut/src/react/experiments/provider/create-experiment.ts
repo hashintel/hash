@@ -21,7 +21,7 @@ import { constraintIndicatorSpecs } from "../constraint-indicators";
 import {
   buildAdHocSweepAxes,
   buildParameterAxis,
-  fullSweepSelection,
+  pointSweepSelection,
 } from "../parameter-grid";
 import { sweepSelectionKey } from "../sweep-session";
 
@@ -367,7 +367,7 @@ export const compileExperimentScenario = async ({
 const idleSweepState = (
   axes: readonly ExperimentParameterAxis[],
 ): ExperimentSweepState => {
-  const selection = fullSweepSelection(axes);
+  const selection = pointSweepSelection(axes, {});
   return {
     selection,
     selectionKey: sweepSelectionKey(axes, selection),

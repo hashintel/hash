@@ -62,18 +62,6 @@ export type UserSettings = {
    */
   showWalkthroughOnInit: boolean;
   /**
-   * Whether the WebGPU backend is offered at all.
-   *
-   * A master switch, not a choice of engine: with it on, each experiment picks
-   * its own backend as it is created, so a GPU and a CPU experiment can run side
-   * by side. Off means the per-experiment control is not shown.
-   *
-   * The backend is a restricted subset engine — bounded state, 32-bit numbers —
-   * and uses a different random generator, so it does not reproduce CPU
-   * trajectories seed for seed (it agrees statistically).
-   */
-  webGpuEnabled: boolean;
-  /**
    * Shows the Compilation tab in the bottom panel, which reports how the net's
    * user code lowered to HIR and what the GPU backend can take.
    *
@@ -81,23 +69,6 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
-  /**
-   * Experimental: offer parameter sweeps. On, every numeric value of the
-   * experiment form gets an interval toggle — reading Sweep, or Optimize when
-   * In-browser optimization is on — that turns its value into an interval.
-   * Off, experiments take fixed values only.
-   */
-  enableParameterSweeps: boolean;
-  /**
-   * Experimental: connect a host-supplied in-browser optimizer. On, the
-   * experiment form's interval toggles read Optimize: creating the experiment
-   * starts a study over the selected intervals, with an Objective and
-   * Constraints chosen in the form. Off, a connected optimizer counts as none
-   * at all, the toggles read Sweep and the sweep waits for a selection; any
-   * running in-browser optimization is cancelled. A remote optimization
-   * capability is unaffected either way.
-   */
-  enableInBrowserOptimization: boolean;
   /**
    * Shows a host's Brunch demo affordances, such as the demo site's
    * prepared-fixture selector. Toggled from a palette command the host
@@ -130,10 +101,7 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
-  setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
-  setEnableParameterSweeps: (value: boolean) => void;
-  setEnableInBrowserOptimization: (value: boolean) => void;
   setBrunchDemoMode: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -166,10 +134,7 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   enableNetComponents: false,
   showWalkthroughOnInit: true,
-  webGpuEnabled: false,
   showCompilationOutput: false,
-  enableParameterSweeps: false,
-  enableInBrowserOptimization: false,
   brunchDemoMode: false,
   subViewPanels: {},
   canvasViewports: {},
@@ -201,10 +166,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setShowWalkthroughOnInit: () => {},
-  setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},
-  setEnableParameterSweeps: () => {},
-  setEnableInBrowserOptimization: () => {},
   setBrunchDemoMode: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},

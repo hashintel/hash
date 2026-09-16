@@ -84,6 +84,12 @@ describe("example search contract", () => {
     ).toBeUndefined();
     expect(
       validateSharedExampleSearch({
+        overlay: "user-settings",
+        settings: "simulation",
+      }),
+    ).toMatchObject({ overlay: "user-settings", settings: undefined });
+    expect(
+      validateSharedExampleSearch({
         overlay: "create-experiment",
         settings: "viewport",
       }).settings,

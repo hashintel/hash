@@ -69,7 +69,7 @@ export type SweepAxisSelection = { from: number; to: number };
 
 /**
  * The navigator's selection: an inclusive position range per swept
- * parameter. The default selection spans every axis whole.
+ * parameter.
  */
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
 
@@ -259,6 +259,23 @@ export function axisPositionFor(
   );
 }
 
+/** The sweep point an optimizer's suggestion lands on. */
+export const sweepPointFor = (
+  axes: readonly ExperimentParameterAxis[],
+  values: Readonly<Record<string, number | boolean>>,
+): SweepSelection | null => {
+  const selection: Record<string, { from: number; to: number }> = {};
+  for (const axis of axes) {
+    const value = values[axis.identifier];
+    if (typeof value !== "number") {
+      return null;
+    }
+    const position = axisPositionFor(axis, value);
+    selection[axis.identifier] = { from: position, to: position };
+  }
+  return selection;
+};
+
 /** The default selection: every axis spans its whole interval. */
 export function fullSweepSelection(
   axes: readonly ExperimentParameterAxis[],
@@ -290,6 +307,19 @@ export function normalizeSweepSelection(
     }),
   );
 }
+
+export const pointSweepSelection = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): SweepSelection => {
+  const normalized = normalizeSweepSelection(axes, selection);
+  return Object.fromEntries(
+    axes.map((axis) => {
+      const position = Math.round(selectionMidpoint(normalized, axis));
+      return [axis.identifier, { from: position, to: position }];
+    }),
+  );
+};
 
 // One prime base per swept axis: two axes sharing a base would draw along a
 // diagonal. A sweep can range every scenario parameter, so the list is long.

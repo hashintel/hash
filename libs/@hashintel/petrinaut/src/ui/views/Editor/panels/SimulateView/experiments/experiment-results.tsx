@@ -1,19 +1,3 @@
-/**
- * An experiment record mapped onto the shared results view-model: the
- * one-line title, the status and the stat columns (errors and simulated time
- * for both kinds; runs and wall-clock time for a plain experiment, the
- * selection's sampling for a sweep), the computing chip and the compute
- * badge, the Parameters card with Stop while a study drives it, its
- * constraints folded behind its footer and, for an experiment created with
- * Optimize, the objective strip under its sliders, the surface for a sweep,
- * one metric card per configured metric, and Remove, Cancel and Close in
- * the footer. While the study drives the sweep the header reads from it:
- * Optimizing, its step as the progress, its step on the batch. Driving or
- * settled, the drawer shows the study: its progress line as the headline,
- * its Steps and Steps clear columns, its Constraints and Sensitivity cards
- * after the metric tiles and its steps table beneath the columns. The shape
- * is fixed by the experiment's kind at creation, never by status.
- */
 import { Fragment, use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
@@ -26,6 +10,7 @@ import {
   isExperimentActive,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
+import { sweepPointFor } from "../../../../../../react/experiments/parameter-grid";
 import {
   constraintAlpha,
   formatRate,
@@ -37,18 +22,20 @@ import {
   type OptimizationRecord,
 } from "../../../../../../react/optimizations/context";
 import { experimentProgressPercent } from "../../../shared/experiment-progress";
-import {
-  describeStepProgress,
-  describeStudyProgress,
-} from "../shared/describe-study-progress";
+import { describeStepProgress } from "../shared/describe-study-progress";
 import { formatCount, formatFixed } from "../shared/format-value";
 import { METRIC_PLOT_HEIGHT, type MetricTile } from "../shared/metric-tiles";
 import { constraintsFold } from "./experiment-results/constraints-fold";
 import { ElapsedStat } from "./experiment-results/elapsed-stat";
+import {
+  ExperimentDetails,
+  type ExperimentDetail,
+} from "./experiment-results/experiment-details";
 import { ParameterImportancePanel } from "./experiment-results/parameter-importance-panel";
 import { StudyConstraintsCard } from "./experiment-results/study-constraints-card";
 import { StudyHeader } from "./experiment-results/study-header";
 import { StudySteps } from "./experiment-results/study-steps";
+import { SweepOptimizeControl } from "./experiment-results/sweep-optimize-control";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepObjectiveStrip } from "./sweep-objective-strip";
 import {
@@ -76,7 +63,7 @@ const STATUS_DISPLAY: Record<
   initializing: { label: "Initializing", tone: "active" },
   running: { label: "Running", tone: "active" },
   optimizing: { label: "Optimizing", tone: "active" },
-  idle: { label: "Idle", tone: "neutral" },
+  idle: { label: "Ready", tone: "neutral" },
   complete: { label: "Complete", tone: "done" },
   error: { label: "Error", tone: "error" },
   cancelled: { label: "Cancelled", tone: "neutral" },
@@ -87,11 +74,8 @@ const WIDEST_STATUS = Object.values(STATUS_DISPLAY)
   .map((entry) => entry.label)
   .reduce((widest, label) => (label.length > widest.length ? label : widest));
 
-/** The widest wall-clock readout `formatDurationMs` prints. */
-const WIDEST_DURATION = "59m 59s";
-
 const PARAMETERS_HELP =
-  "Only the selected combination computes. Move a control and compute follows it; results for visited points are kept and drawn on the Surface. While a study drives the sweep the controls follow its steps.";
+  "Move a slider to choose a parameter value. Results update as you move. During optimization, the sliders follow the values being tested.";
 
 // The ds Button has no purple tone; the optimizer's Stop wears the
 // optimizing purple over the subtle variant.
@@ -105,12 +89,6 @@ const stopButtonStyle = css({
     borderColor: "purple.s80",
   },
 });
-
-/** The frame's one-line title: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
-const describeExperiment = (
-  experiment: Pick<ExperimentRecord, "name" | "scenarioName" | "runCount">,
-): string =>
-  `${experiment.name} · ${experiment.scenarioName ?? "Default scenario"} · ${formatCount(experiment.runCount)} runs`;
 
 /**
  * The sweep's batches as the computing list shows them: a sweep's only
@@ -143,60 +121,38 @@ const settledTime = (experiment: ExperimentRecord): number =>
     ? experiment.maxTime
     : 0;
 
-/**
- * The stat columns after the status pill, each sized for its widest value.
- * A plain experiment's runs and wall clock belong to a run that stops; a
- * sweep's selection carries its sampling instead, and its batches' progress
- * lives in the computing list.
- */
-const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
+const experimentDetailsStats = (
+  experiment: ExperimentRecord,
+): ExperimentDetail[] => {
   const { progress, sweep } = experiment;
   const runCount = formatCount(experiment.runCount);
   const maxTime = formatFixed(experiment.maxTime);
-  // The widest time readout: a fraction just under the maximum, which prints
-  // its three decimals, over the maximum.
-  const widestTime = `${formatFixed(Math.max(0, experiment.maxTime - 0.001))} / ${maxTime}`;
   return [
     sweep
       ? {
           id: "selection",
-          label: "Selection",
-          widest: `${runCount} / ${runCount} runs`,
+          label: "Runs sampled",
           value: {
             text: `${formatCount(sweep.runsSampled)} / ${runCount} runs`,
-          },
-          short: {
-            text: `${formatCount(sweep.runsSampled)} / ${runCount}`,
-            widest: `${runCount} / ${runCount}`,
           },
         }
       : {
           id: "runs",
           label: "Runs",
-          widest: `${runCount} active, ${runCount} complete`,
           value: {
             text: progress
               ? `${formatCount(progress.activeRuns)} active, ${formatCount(progress.completedRuns)} complete`
               : runCount,
           },
-          // Narrow, the finished count alone.
-          short: {
-            text: progress
-              ? `${formatCount(progress.completedRuns)} complete`
-              : runCount,
-            widest: `${runCount} complete`,
-          },
         },
     {
       id: "errors",
       label: "Errors",
-      widest: runCount,
       value: { text: formatCount(progress?.erroredRuns ?? 0) },
     },
     {
       id: "time",
-      label: "Time",
-      widest: widestTime,
+      label: "Simulation time",
       value: {
         text: `${formatFixed(progress?.time ?? settledTime(experiment))} / ${maxTime}`,
       },
@@ -210,8 +166,7 @@ const experimentStats = (experiment: ExperimentRecord): ResultsStat[] => {
       : [
           {
             id: "elapsed",
-            label: "Elapsed",
-            widest: WIDEST_DURATION,
+            label: "Elapsed time",
             value: {
               text: (
                 <ElapsedStat
@@ -234,32 +189,15 @@ const studyRates = (
     ? studyConstraintRates(study.trials, constraintAlpha(study.input))
     : null;
 
-/**
- * The study's stat columns after the experiment's: Steps and, when the
- * study has constraints, Steps clear, each sized for the requested count.
- * No best-step column: the headline and the objective strip carry it.
- */
-export const studyStats = (
+const studyDetailsStats = (
   study: OptimizationRecord,
   rates: StudyConstraintRates | null,
-): ResultsStat[] => {
-  const requested = study.requestedTrials;
+): ExperimentDetail[] => {
   return [
     {
       id: "steps",
       label: "Steps",
-      widest: describeStepProgress({
-        ...study,
-        completedTrials: requested,
-        prunedTrials: 0,
-        failedTrials: 0,
-      }),
       value: { text: describeStepProgress(study) },
-      // Narrow, the count alone: the runs per step go.
-      short: {
-        text: `${finishedTrialCount(study)} / ${requested}`,
-        widest: `${requested} / ${requested}`,
-      },
     },
     ...(rates === null
       ? []
@@ -267,7 +205,6 @@ export const studyStats = (
           {
             id: "steps-clear",
             label: "Steps clear",
-            widest: formatRate(requested, requested),
             value: { text: formatRate(rates.stepsClear, rates.stepsSimulated) },
           },
         ]),
@@ -307,7 +244,7 @@ export type ExperimentResultsDependencies = {
     ExperimentsActionsValue,
     "cancelExperiment" | "removeExperiment" | "setSweepSelection"
   >;
-  /** The study the sweep was created with, which its Parameters card follows. */
+  /** The current study and controls for starting or stopping its search. */
   optimizer: SweepOptimizer;
   /** Leaves the record: after Remove, and from the Close button. */
   onClose: () => void;
@@ -337,22 +274,79 @@ export const experimentResultsModel = (
     following !== null ||
     experiment.status === "cancelled";
   const tone: ChartCardTone = following ? "optimizing" : "default";
-  // The study's displays are there from the drawer's first frame for an
-  // experiment created with Optimize, whatever the study's status.
+  // Keep the study's displays after its search stops or completes.
   const { study } = optimizer;
   const rates = studyRates(study);
+  const bestSelection = study?.best
+    ? sweepPointFor(experiment.parameterAxes, study.best.parameters)
+    : null;
+
+  const detailStats = [
+    ...experimentDetailsStats(experiment),
+    ...(study === null ? [] : studyDetailsStats(study, rates)),
+  ];
+  const runCount = formatCount(experiment.runCount);
+  const completedRuns = formatCount(
+    experiment.progress?.completedRuns ??
+      (experiment.status === "complete" ? experiment.runCount : 0),
+  );
+  const failedRuns = experiment.progress?.erroredRuns ?? 0;
+  const stats: ResultsStat[] = [
+    ...(sweep
+      ? []
+      : [
+          {
+            id: "runs",
+            label: "Completed runs",
+            widest: `${runCount} / ${runCount} runs`,
+            value: {
+              text: `${completedRuns} / ${runCount} runs`,
+            },
+          },
+        ]),
+    ...(study === null
+      ? []
+      : [
+          {
+            id: "steps",
+            label: "Optimization steps",
+            widest: `${study.requestedTrials} / ${study.requestedTrials} steps`,
+            value: {
+              text: `${finishedTrialCount(study)} / ${study.requestedTrials} steps`,
+            },
+          },
+        ]),
+    ...(failedRuns > 0
+      ? [
+          {
+            id: "errors",
+            label: "Failed runs",
+            widest: `${runCount} failed runs`,
+            value: {
+              text: `${formatCount(failedRuns)} failed ${failedRuns === 1 ? "run" : "runs"}`,
+            },
+          },
+        ]
+      : []),
+  ];
 
   return {
     header: {
-      title: describeExperiment(experiment),
-      headline: study === null ? null : <StudyHeader optimization={study} />,
+      title: experiment.name,
+      headline: (
+        <ExperimentDetails
+          key={experiment.id}
+          experiment={experiment}
+          stats={detailStats}
+          batches={experimentComputeBatches(experiment.sweepBatches, following)}
+        >
+          {study === null ? null : <StudyHeader optimization={study} />}
+        </ExperimentDetails>
+      ),
       status: { ...STATUS_DISPLAY[displayStatus], widest: WIDEST_STATUS },
-      stats: [
-        ...experimentStats(experiment),
-        ...(study === null ? [] : studyStats(study, rates)),
-      ],
-      activity: experimentComputeBatches(experiment.sweepBatches, following),
-      compute: experiment,
+      stats,
+      activity: null,
+      compute: null,
       // A driven sweep's own bar would saw once per step; the study's steps
       // finished are what progresses.
       progress: following
@@ -372,7 +366,7 @@ export const experimentResultsModel = (
           {
             id: `parameters-${experiment.id}`,
             title: "Parameters",
-            subtitle: `${experiment.parameterAxes.length} swept`,
+            subtitle: "",
             help: PARAMETERS_HELP,
             // Stop comes and goes inside the card header's fixed height.
             trailing: following ? (
@@ -382,13 +376,19 @@ export const experimentResultsModel = (
                 tone="neutral"
                 size="xs"
                 iconName="stop"
-                tooltip="Stop optimizing; the sweep keeps its point"
+                tooltip="Stop optimization"
                 data-sweep-optimizing
                 disabled={experiment.requestActive}
                 onClick={optimizer.stop}
               >
                 Stop
               </Button>
+            ) : optimizer.start !== null && !locked ? (
+              <SweepOptimizeControl
+                key={experiment.id}
+                experiment={experiment}
+                onStart={optimizer.start}
+              />
             ) : null,
             content: (
               <SweepNavigator
@@ -402,7 +402,14 @@ export const experimentResultsModel = (
                       ? null
                       : {
                           kind: "settled",
-                          summary: describeStudyProgress(study),
+                          summary:
+                            study.status === "complete"
+                              ? "Optimization complete"
+                              : study.status === "cancelled"
+                                ? "Optimization stopped"
+                                : study.status === "error"
+                                  ? "Optimization failed"
+                                  : "Starting optimization",
                         },
                   runsCompleted: sweep.runsCompleted,
                   runsSampled: sweep.runsSampled,
@@ -423,6 +430,16 @@ export const experimentResultsModel = (
                   key={experiment.id}
                   study={study}
                   driving={following !== null}
+                  axes={experiment.parameterAxes}
+                  onViewBest={
+                    locked || bestSelection === null
+                      ? null
+                      : () =>
+                          actions.setSweepSelection(
+                            experiment.id,
+                            bestSelection,
+                          )
+                  }
                 />
               ),
             // The constraints the experiment carries, from creation on; a

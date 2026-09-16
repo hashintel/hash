@@ -5,7 +5,7 @@ import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import {
   axisValueAt,
-  fullSweepSelection,
+  pointSweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
@@ -97,12 +97,12 @@ const StatefulNavigator = ({
   );
 };
 
-export const FullRanges: Story = {
-  name: "Full ranges",
+export const InitialValues: Story = {
+  name: "Initial values",
   render: () => (
     <StatefulNavigator
-      initialSelection={fullSweepSelection(axes)}
-      status={idleStatus}
+      initialSelection={pointSweepSelection(axes, {})}
+      status={{ ...idleStatus, runsCompleted: 0 }}
     />
   ),
 };
@@ -120,24 +120,11 @@ export const PointSelection: Story = {
   ),
 };
 
-export const MixedSelection: Story = {
-  name: "Range and point mixed",
+export const Sampling: Story = {
+  name: "Sampling",
   render: () => (
     <StatefulNavigator
-      initialSelection={{
-        transmission_rate: { from: 10, to: 38 },
-        recovery_days: { from: 6, to: 6 },
-      }}
-      status={idleStatus}
-    />
-  ),
-};
-
-export const SamplingRanges: Story = {
-  name: "Sampling across ranges",
-  render: () => (
-    <StatefulNavigator
-      initialSelection={fullSweepSelection(axes)}
+      initialSelection={pointSweepSelection(axes, {})}
       status={{
         computing: true,
         following: null,
@@ -411,9 +398,8 @@ const realSweepHintStyle: React.CSSProperties = {
 /**
  * The navigator against the real experiments provider: a genuine sweep
  * experiment simulates in browser workers, and moving a slider redirects
- * real compute. With the GPU requested, range selections upload each run's
- * parameter draw to a per-run buffer and run on the GPU too — collapse both
- * parameters to points and the GPU takes over.
+ * real compute. Moving a slider samples the selected values on the requested
+ * backend.
  */
 type RealSweepConfig = {
   runCount: number;
@@ -503,9 +489,6 @@ const RealSweepSession = ({
         {experiment.computeBackend === "webgpu" ? "the GPU" : "the CPU"}
         {experiment.computeBackendFallbackReason
           ? ` — ${experiment.computeBackendFallbackReason}`
-          : ""}
-        {computeBackend === "webgpu"
-          ? " · ranges upload each run's parameter draw to the GPU, so range and point selections both run there when the net qualifies"
           : ""}
       </p>
       <SweepNavigator
@@ -609,7 +592,7 @@ export const RealCpuSweep: StoryObj<RealSweepConfig> = {
 };
 
 export const RealGpuSweep: StoryObj<RealSweepConfig> = {
-  name: "Real compute on GPU (points)",
+  name: "Real compute on GPU",
   args: realSweepArgs,
   argTypes: realSweepArgTypes,
   render: (args) => (

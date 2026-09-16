@@ -18,7 +18,6 @@ import {
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
-import { defaultUserSettings } from "../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { UserSettings } from "./user-settings";
 
@@ -296,24 +295,24 @@ describe("user settings", () => {
     ).toBe("true");
   });
 
-  it("disables unavailable GPU compute and omits an unavailable optimizer", async () => {
-    renderSettings({
-      overlay: { type: "user-settings", section: "simulation" },
-    });
-    await screen.findByRole("tab", { name: "Simulation" });
-    expect(
-      (screen.getByRole("checkbox", { name: "WebGPU" }) as HTMLInputElement)
-        .disabled,
-    ).toBe(true);
-    expect(
-      screen.queryByRole("checkbox", { name: "In-browser optimization" }),
-    ).toBeNull();
-    const simulation = screen.getByRole("tab", { name: "Simulation" });
-    act(() => simulation.focus());
-    fireEvent.keyDown(simulation, { key: "ArrowRight" });
-    expect(document.activeElement).toBe(
-      screen.getByRole("checkbox", { name: "Parameter sweeps" }),
+  it("offers settings without simulation feature flags", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings" } },
+      { kind: "connected", connect: vi.fn() },
     );
+    await screen.findByRole("heading", { name: "General" });
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "General",
+      "Viewport",
+      "Labs",
+    ]);
+    for (const name of [
+      "WebGPU",
+      "Parameter sweeps",
+      "In-browser optimization",
+    ]) {
+      expect(screen.queryByRole("checkbox", { name })).toBeNull();
+    }
   });
 
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
@@ -413,37 +412,11 @@ describe("user settings", () => {
   });
 });
 
-describe("experimental simulation settings", () => {
+describe("Labs settings", () => {
   it("offers Notebook directly in Edit without a Labs setting", async () => {
     renderSettings({ overlay: { type: "user-settings", section: "labs" } });
     await screen.findByRole("heading", { name: "Labs" });
     expect(screen.queryByText("Notebook view")).toBeNull();
-  });
-
-  it("hides the optimization group when the host has no in-browser optimizer", async () => {
-    renderSettings({
-      overlay: { type: "user-settings", section: "simulation" },
-    });
-    await screen.findByRole("heading", { name: "Simulation" });
-    expect(screen.queryByRole("region", { name: "Optimization" })).toBeNull();
-  });
-
-  it("offers optimization settings for a connected optimizer", async () => {
-    renderSettings(
-      { overlay: { type: "user-settings", section: "simulation" } },
-      { kind: "connected", connect: vi.fn() },
-    );
-    expect(
-      await screen.findByRole("region", { name: "Optimization" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("checkbox", { name: "In-browser optimization" }),
-    ).toBeTruthy();
-  });
-
-  it("keep parameter sweeps and in-browser optimization off by default", () => {
-    expect(defaultUserSettings.enableParameterSweeps).toBe(false);
-    expect(defaultUserSettings.enableInBrowserOptimization).toBe(false);
   });
 
   it("offer no Ad-hoc scenarios row: the scenario form is the only scenario form", async () => {
@@ -458,14 +431,7 @@ describe("experimental simulation settings", () => {
   });
 });
 
-describe("WebGPU setting", () => {
-  it("is off by default", () => {
-    // The GPU path is a restricted subset engine with a different random
-    // generator, so it must never be offered — let alone used — without the user
-    // turning it on.
-    expect(defaultUserSettings.webGpuEnabled).toBe(false);
-  });
-
+describe("WebGPU availability", () => {
   it("detects WebGPU support from the host, not a build flag", () => {
     // The runtime gate the control's `disabled` state is derived from.
     vi.stubGlobal("navigator", { gpu: {} });

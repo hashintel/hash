@@ -106,6 +106,7 @@ export const ComputeBackendToggle = ({
         </span>
         <Toggle
           size="sm"
+          aria-label="Run on GPU"
           value={selected}
           onChange={onSelectedChange}
           disabled={!gpu.available}

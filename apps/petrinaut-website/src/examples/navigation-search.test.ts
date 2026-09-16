@@ -133,7 +133,7 @@ describe("navigation state projection", () => {
     },
   );
 
-  it.each(["general", "viewport", "simulation", "labs"] as const)(
+  it.each(["general", "viewport", "labs"] as const)(
     "round-trips the %s settings section in Simulate",
     (settings) => {
       const search = {

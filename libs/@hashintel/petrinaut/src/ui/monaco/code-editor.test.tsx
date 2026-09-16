@@ -1,4 +1,11 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 /**
  * @vitest-environment jsdom
  */
@@ -36,6 +43,7 @@ const FakeEditor: React.FC<EditorProps> = ({ loading, onMount }) => {
     };
     const instance = {
       getModel: () => model,
+      getDomNode: () => document.querySelector('[data-testid="editor"]'),
       setPosition: vi.fn(),
       setSelection: vi.fn(),
       onDidChangeModelContent: vi.fn(),
@@ -46,7 +54,9 @@ const FakeEditor: React.FC<EditorProps> = ({ loading, onMount }) => {
     onMount?.(instance, {} as never);
   }, [mounted, onMount]);
   return mounted ? (
-    <div data-testid="editor" />
+    <div data-testid="editor">
+      <textarea aria-label="Code" />
+    </div>
   ) : (
     <div data-testid="editor-loading">{loading}</div>
   );
@@ -58,31 +68,64 @@ const monacoContext: Promise<MonacoContextValue> = Promise.resolve({
 });
 
 describe("CodeEditor", () => {
-  it("shows the placeholder only once the editor has mounted", async () => {
-    // The inner component suspends on the Monaco module, so the render is
-    // awaited for the module to settle.
+  it.each([true, false])(
+    "shows the placeholder after mounting (singleLine: %s)",
+    async (singleLine) => {
+      // The inner component suspends on the Monaco module, so the render is
+      // awaited for the module to settle.
+      await act(async () => {
+        render(
+          <MonacoContext value={monacoContext}>
+            <Suspense fallback={null}>
+              <CodeEditor
+                singleLine={singleLine}
+                placeholder="Type an expression"
+                value=""
+              />
+            </Suspense>
+          </MonacoContext>,
+        );
+      });
+
+      // While Monaco mounts, its dimmed label has the row; the placeholder
+      // would land at the same inset and read as two labels. (The Suspense
+      // fallback shows the same label first, so wait for the editor's own.)
+      const loading = await screen.findByTestId("editor-loading");
+      expect(loading.textContent).toBe(
+        singleLine ? "Loading..." : "Loading editor...",
+      );
+      expect(screen.queryByText("Type an expression")).toBeNull();
+
+      act(() => {
+        mountGate.release();
+      });
+      await waitFor(() => screen.getByTestId("editor"));
+      expect(screen.getByText("Type an expression")).toBeTruthy();
+      expect(screen.queryByText("Loading...")).toBeNull();
+    },
+  );
+
+  it("handles Escape inside the editor before the containing drawer", async () => {
+    const onEscape = vi.fn();
     await act(async () => {
       render(
         <MonacoContext value={monacoContext}>
           <Suspense fallback={null}>
-            <CodeEditor singleLine placeholder="Type an expression" value="" />
+            <CodeEditor value="" onEscape={onEscape} />
           </Suspense>
+          <button type="button">Outside editor</button>
         </MonacoContext>,
       );
     });
+    await screen.findByTestId("editor-loading");
+    act(() => mountGate.release());
+    const input = await screen.findByRole("textbox", { name: "Code" });
 
-    // While Monaco mounts, its dimmed label has the row; the placeholder
-    // would land at the same inset and read as two labels. (The Suspense
-    // fallback shows the same label first, so wait for the editor's own.)
-    const loading = await screen.findByTestId("editor-loading");
-    expect(loading.textContent).toBe("Loading...");
-    expect(screen.queryByText("Type an expression")).toBeNull();
-
-    act(() => {
-      mountGate.release();
+    expect(fireEvent.keyDown(input, { key: "Escape" })).toBe(false);
+    expect(onEscape).toHaveBeenCalledOnce();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Outside editor" }), {
+      key: "Escape",
     });
-    await waitFor(() => screen.getByTestId("editor"));
-    expect(screen.getByText("Type an expression")).toBeTruthy();
-    expect(screen.queryByText("Loading...")).toBeNull();
+    expect(onEscape).toHaveBeenCalledOnce();
   });
 });
