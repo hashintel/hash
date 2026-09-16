@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Problem Details",
-  "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nResponses always include `type`, `title`, and `status`. `detail` and `instance` are included\nonly when supplied.",
+  "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
   "type": "object",
   "properties": {
     "detail": {
-      "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nClients should use extension members for structured information.",
+      "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
       "type": "string",
       "examples": [
         "This operation requires a machine actor."
@@ -16,17 +16,11 @@
       "type": "string",
       "format": "uri-reference",
       "examples": [
-        "https://example.com/problem-occurrences/01J8M6Y7P9"
+        "https://example.com/problem-occurrences/42"
       ]
     },
-    "parameters": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "status": {
-      "description": "The HTTP status code sent by the origin server for this occurrence.",
+      "description": "The HTTP status code sent with this occurrence.",
       "type": "integer",
       "format": "uint16",
       "examples": [
@@ -36,14 +30,14 @@
       "minimum": 100
     },
     "title": {
-      "description": "A short, human-readable summary of the problem type. It should remain the same across\noccurrences, except for localization.",
+      "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
       "type": "string",
       "examples": [
         "Wrong actor type"
       ]
     },
     "type": {
-      "description": "A URI reference identifying the problem type. `about:blank` means the problem has no\nadditional semantics beyond its HTTP status code.",
+      "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
       "type": "string",
       "format": "uri-reference",
       "default": "about:blank",
@@ -53,9 +47,7 @@
     }
   },
   "required": [
-    "type",
     "title",
-    "status",
-    "parameters"
+    "status"
   ]
 }

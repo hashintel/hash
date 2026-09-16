@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use serde::{
+use serde_core::{
     Serialize, Serializer,
     ser::{Error, Impossible, SerializeMap, SerializeStruct},
 };
@@ -9,11 +9,11 @@ mod key;
 
 struct ExtensionKey<'a, T: ?Sized>(&'a T);
 
-/// Serializes an extension object, rejecting non-objects and reserved member names.
+/// Checks extension member names while serializing an object.
 ///
 /// # Errors
 ///
-/// Returns the serializer's error for invalid extensions or failures in the underlying serializer.
+/// Returns an error for non-object extensions, reserved member names, or serializer failures.
 pub(crate) fn serialize_extensions<E: Serialize, S: Serializer>(
     extensions: &E,
     serializer: S,
@@ -30,13 +30,18 @@ fn check_member<E: Error>(name: &str) -> Result<(), E> {
     Ok(())
 }
 
+#[inline]
+fn non_object_error<E: Error>() -> E {
+    E::custom("problem extensions must serialize as an object")
+}
+
 struct ExtensionSerializer<S>(S);
 
 macro_rules! reject_scalar {
     ($($method:ident($type:ty)),* $(,)?) => {
         $(
             fn $method(self, _: $type) -> Result<Self::Ok, Self::Error> {
-                Err(Self::Error::custom("problem extensions must serialize as an object"))
+                Err(non_object_error())
             }
         )*
     };
@@ -55,16 +60,25 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
 
     reject_scalar! {
         serialize_bool(bool),
-        serialize_i8(i8), serialize_i16(i16), serialize_i32(i32), serialize_i64(i64),
+        serialize_i8(i8),
+        serialize_i16(i16),
+        serialize_i32(i32),
+        serialize_i64(i64),
         serialize_i128(i128),
-        serialize_u8(u8), serialize_u16(u16), serialize_u32(u32), serialize_u64(u64),
+        serialize_u8(u8),
+        serialize_u16(u16),
+        serialize_u32(u32),
+        serialize_u64(u64),
         serialize_u128(u128),
-        serialize_f32(f32), serialize_f64(f64),
-        serialize_char(char), serialize_str(&str), serialize_bytes(&[u8]),
+        serialize_f32(f32),
+        serialize_f64(f64),
+        serialize_char(char),
+        serialize_bytes(&[u8]),
+        serialize_str(&str),
     }
 
     fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        Err(non_object_error())
     }
 
     fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> Result<Self::Ok, Self::Error> {
@@ -72,13 +86,11 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
     }
 
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        Err(Self::Error::custom(
-            "problem extensions must serialize as an object",
-        ))
+        Err(non_object_error())
     }
 
     fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        Err(non_object_error())
     }
 
     fn serialize_unit_variant(
@@ -87,7 +99,7 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
         _: u32,
         _: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        Err(non_object_error())
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
@@ -111,15 +123,11 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
     }
 
     fn serialize_seq(self, _: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        Err(Self::Error::custom(
-            "problem extensions must serialize as an object",
-        ))
+        Err(non_object_error())
     }
 
     fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
-        Err(Self::Error::custom(
-            "problem extensions must serialize as an object",
-        ))
+        Err(non_object_error())
     }
 
     fn serialize_tuple_struct(
@@ -127,9 +135,7 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
         _: &'static str,
         _: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
-        Err(Self::Error::custom(
-            "problem extensions must serialize as an object",
-        ))
+        Err(non_object_error())
     }
 
     fn serialize_tuple_variant(
@@ -153,6 +159,11 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
+        // With arbitrary_precision, serde_json represents numbers as private structs.
+        // Flattening would emit the marker field instead of rejecting the number.
+        if name == "$serde_json::private::Number" {
+            return Err(non_object_error());
+        }
         self.0.serialize_struct(name, len).map(ExtensionMembers)
     }
 
@@ -169,7 +180,7 @@ impl<S: Serializer> Serializer for ExtensionSerializer<S> {
     }
 
     fn collect_str<T: ?Sized + Display>(self, _: &T) -> Result<Self::Ok, Self::Error> {
-        self.serialize_unit()
+        Err(non_object_error())
     }
 
     fn is_human_readable(&self) -> bool {

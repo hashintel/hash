@@ -15,7 +15,7 @@ hash-middleware          = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
-http          = { workspace = true, public = true, features = ["std"] }
+http          = { workspace = true, public = true }
 jsonwebtoken  = { workspace = true, public = true, features = ["aws_lc_rs"] }
 opentelemetry = { workspace = true, public = true, features = ["metrics"] }
 reqwest       = { workspace = true, public = true }

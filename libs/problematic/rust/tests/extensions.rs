@@ -8,7 +8,7 @@ use serde::{
     Serialize, Serializer,
     ser::{Error as _, SerializeMap as _},
 };
-use serde_json::{Value, json};
+use serde_json::{Number, Value, json};
 
 const fn details<E>(extensions: E) -> ProblemDetails<'static, E> {
     ProblemDetails {
@@ -55,7 +55,6 @@ fn assert_serialization<E: Serialize>(extensions: E, expected: &Value) {
     );
 }
 
-/// All standard names are reserved, including occurrence fields absent from the document.
 #[test]
 fn extensions_reserved_map_members() {
     for name in ["type", "title", "status", "detail", "instance"] {
@@ -66,7 +65,6 @@ fn extensions_reserved_map_members() {
     }
 }
 
-/// Validation uses emitted names, while skipped fields do not contribute members.
 #[test]
 fn extensions_reserved_struct_members() {
     #[derive(Serialize)]
@@ -85,7 +83,6 @@ fn extensions_reserved_struct_members() {
     );
 }
 
-/// Only top-level names are reserved; nested objects retain their own member names.
 #[test]
 fn extensions_nested_members() {
     assert_serialization(
@@ -95,7 +92,6 @@ fn extensions_nested_members() {
     );
 }
 
-/// Wrapping an extension preserves both valid object contents and validation failures.
 #[test]
 fn extensions_wrapped_objects() {
     #[derive(Serialize)]
@@ -115,7 +111,6 @@ fn extensions_wrapped_objects() {
     );
 }
 
-/// Nulls, scalars, and sequences fail consistently across the JSON serializers.
 #[test]
 fn extensions_non_objects() {
     for value in [
@@ -128,11 +123,26 @@ fn extensions_non_objects() {
     ] {
         assert_serialization_error(value, "problem extensions must serialize as an object");
     }
+    assert_serialization_error(None::<u8>, "problem extensions must serialize as an object");
     assert_serialization_error((), "problem extensions must serialize as an object");
     assert_serialization_error((1, 2), "problem extensions must serialize as an object");
 }
 
-/// Externally tagged variants contribute a single member named after the serialized variant.
+#[test]
+fn extensions_number_members() {
+    #[derive(Serialize)]
+    struct Extensions {
+        count: Number,
+    }
+
+    assert_serialization(
+        Extensions {
+            count: Number::from(42),
+        },
+        &json!({"type": "about:blank", "title": "Bad Request", "status": 400, "count": 42}),
+    );
+}
+
 #[test]
 fn extensions_enum_members() {
     #[derive(Serialize)]
@@ -198,7 +208,6 @@ impl Serialize for FormattedKey<'_> {
     }
 }
 
-/// Both map APIs check names produced through strings, newtypes, enum keys, and formatting.
 #[test]
 fn extensions_map_key_representations() {
     #[derive(Serialize)]
@@ -259,7 +268,6 @@ impl Serialize for CountedKey<'_> {
     }
 }
 
-/// A stateful key is validated during its only serialization, so its emitted name cannot change.
 #[test]
 fn extensions_map_key_once() {
     for split in [false, true] {
@@ -294,7 +302,6 @@ impl Serialize for BrokenExtensions {
     }
 }
 
-/// Extension and nested value errors retain the underlying serializer's diagnostic.
 #[test]
 fn extensions_serializer_failures() {
     #[derive(Serialize)]
@@ -325,7 +332,6 @@ impl Serialize for BrokenFormat {
     }
 }
 
-/// A formatting failure in a map key propagates as a Serde error.
 #[test]
 fn extensions_key_format_failure() {
     assert_serialization_error(

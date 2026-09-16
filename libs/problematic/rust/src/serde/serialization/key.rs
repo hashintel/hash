@@ -1,7 +1,7 @@
 use alloc::string::String;
 use core::fmt::{Display, Write as _};
 
-use serde::{Serialize, Serializer, ser::Error as _};
+use serde_core::{Serialize, Serializer, ser::Error as _};
 
 use super::{ExtensionKey, check_member};
 
@@ -36,12 +36,20 @@ impl<S: Serializer> Serializer for KeySerializer<S> {
 
     forward_scalar! {
         serialize_bool(bool),
-        serialize_i8(i8), serialize_i16(i16), serialize_i32(i32), serialize_i64(i64),
+        serialize_i8(i8),
+        serialize_i16(i16),
+        serialize_i32(i32),
+        serialize_i64(i64),
         serialize_i128(i128),
-        serialize_u8(u8), serialize_u16(u16), serialize_u32(u32), serialize_u64(u64),
+        serialize_u8(u8),
+        serialize_u16(u16),
+        serialize_u32(u32),
+        serialize_u64(u64),
         serialize_u128(u128),
-        serialize_f32(f32), serialize_f64(f64),
-        serialize_char(char), serialize_bytes(&[u8]),
+        serialize_f32(f32),
+        serialize_f64(f64),
+        serialize_char(char),
+        serialize_bytes(&[u8]),
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {

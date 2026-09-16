@@ -2,9 +2,16 @@
 
 HTTP Problem Details with typed extension members.
 
+## Features
+
+- `serde` enables serialization and deserialization, including borrowing strings from the input.
+- `schemars` enables JSON Schema generation independently of `serde`.
+
+No features are enabled by default.
+
 ## Contributors
 
-`problematic` was created and is maintained by [HASH](https://hash.dev/). As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please create a [GitHub discussion](https://github.com/orgs/hashintel/discussions).
+[HASH](https://hash.dev/) created and maintains `problematic`. Contributions are welcome. Follow the [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) to contribute. Ask questions in [GitHub Discussions](https://github.com/orgs/hashintel/discussions).
 
 ## License
 

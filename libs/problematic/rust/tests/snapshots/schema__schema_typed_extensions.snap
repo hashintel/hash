@@ -1,5 +1,6 @@
 ---
-source: libs/problematic/rust/tests/problem_details.rs
+source: libs/problematic/rust/tests/schema.rs
+assertion_line: 36
 expression: "serde_json :: to_vec_pretty(& schema).expect(\"the schema should serialize\")"
 extension: json
 snapshot_kind: binary
