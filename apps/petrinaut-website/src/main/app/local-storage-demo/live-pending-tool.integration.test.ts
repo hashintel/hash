@@ -6,14 +6,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import {
-  createAssistantMessageEventStream,
-  fauxAssistantMessage,
-  fauxProvider,
-  fauxText,
-  fauxToolCall,
-  type Provider,
-} from "@earendil-works/pi-ai";
+import { fauxProvider } from "@earendil-works/pi-ai";
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -27,6 +20,11 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import { withBufferedToolAdmission } from "../../../../../brunch-agent/src/provider-admission";
+import {
+  createNativeOpenaiToolStall,
+  nativeOpenaiProvider,
+} from "../../../../../brunch-agent/test/native-openai-provider";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -63,33 +61,41 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-test("renders a guarded live tool row before canonical admission", async () => {
-  process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
+test("bounds a native OpenAI tool row that stops after one argument delta", async () => {
+  process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.6-sol";
+  process.env.BRUNCH_CHAT_THINKING = "low";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
-  const upstream = createAssistantMessageEventStream();
-  const providerStarted = Promise.withResolvers<void>();
   const faux = fauxProvider({
-    models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-    provider: "anthropic",
+    models: [{ id: "gpt-5.6-sol", reasoning: true }],
+    provider: "openai",
   });
-  faux.setResponses([
-    fauxAssistantMessage([fauxText("The ledger remains available.")]),
-  ]);
-  let firstRequest = true;
-  const controlledProvider = {
-    ...faux.provider,
-    streamSimple(model, context, options) {
-      if (!firstRequest) {
-        return faux.provider.streamSimple(model, context, options);
-      }
-      firstRequest = false;
-      providerStarted.resolve();
-      return upstream;
-    },
-  } satisfies Provider;
+  const requests: Record<string, unknown>[] = [];
+  const stall = createNativeOpenaiToolStall("mutate_workpiece");
 
   const application = await loadBuiltBrunchApplication();
-  setProvider(controlledProvider);
+  let retryAvailable = true;
+  setProvider(
+    withBufferedToolAdmission(
+      nativeOpenaiProvider(
+        faux.provider,
+        requests,
+        async () => {},
+        stall.response,
+      ),
+      () => true,
+      new Set(),
+      {
+        cancellationTimeoutMs: 100,
+        claimRetry: () => {
+          const claimed = retryAvailable;
+          retryAvailable = false;
+          return claimed;
+        },
+        firstEventTimeoutMs: 3_000,
+        idleTimeoutMs: 500,
+      },
+    ),
+  );
   const identity = {
     conversationId: `live-pending-${crypto.randomUUID()}`,
     principalKey: "live-pending-principal",
@@ -121,8 +127,9 @@ test("renders a guarded live tool row before canonical admission", async () => {
   );
 
   try {
+    const abort = new AbortController();
     const stream = await transport.sendMessages({
-      abortSignal: AbortSignal.timeout(10_000),
+      abortSignal: abort.signal,
       chatId: identity.conversationId,
       messageId: undefined,
       messages: [
@@ -135,7 +142,18 @@ test("renders a guarded live tool row before canonical admission", async () => {
       trigger: "submit-message",
     });
     const submissionId = tracker.submissionForInput("user-live-pending");
-    expect(submissionId).toBeDefined();
+    if (submissionId === undefined) {
+      throw new Error("The submitted message has no Flue submission id.");
+    }
+    const firstAttempt = await Promise.race([
+      stall.reached,
+      new Promise<never>((_resolve, reject) => {
+        setTimeout(
+          () => reject(new Error("The native OpenAI response did not start.")),
+          5_000,
+        );
+      }),
+    ]);
     const pendingMessage = Promise.withResolvers<PetrinautAiMessage>();
     const consumed = (async () => {
       for await (const message of readUIMessageStream<PetrinautAiMessage>({
@@ -145,8 +163,8 @@ test("renders a guarded live tool row before canonical admission", async () => {
           message.parts.some(
             (part) =>
               isToolUIPart(part) &&
-              getToolName(part) === "ping" &&
-              part.toolCallId === "live-read-workpiece" &&
+              getToolName(part) === "mutate_workpiece" &&
+              part.toolCallId === firstAttempt.toolCallId &&
               part.state === "input-streaming",
           )
         ) {
@@ -155,29 +173,7 @@ test("renders a guarded live tool row before canonical admission", async () => {
       }
     })();
 
-    await Promise.race([
-      providerStarted.promise,
-      consumed.then(() => {
-        throw new Error("The response settled before the provider started.");
-      }),
-    ]);
-    const toolCall = fauxToolCall("ping", {}, { id: "live-read-workpiece" });
-    const message = fauxAssistantMessage([toolCall], {
-      stopReason: "toolUse",
-    });
-    upstream.push({ partial: message, type: "start" });
-    upstream.push({
-      contentIndex: 0,
-      partial: message,
-      type: "toolcall_start",
-    });
-    upstream.push({
-      contentIndex: 0,
-      delta: "{",
-      partial: message,
-      type: "toolcall_delta",
-    });
-
+    void consumed.catch(() => {});
     const pending = await Promise.race([
       pendingMessage.promise,
       consumed.then(() => {
@@ -186,7 +182,7 @@ test("renders a guarded live tool row before canonical admission", async () => {
       new Promise<never>((_resolve, reject) => {
         setTimeout(
           () => reject(new Error("Pending row was not rendered.")),
-          5_000,
+          8_000,
         );
       }),
     ]);
@@ -197,7 +193,7 @@ test("renders a guarded live tool row before canonical admission", async () => {
         historyMessage.parts.some(
           (part) =>
             part.type === "dynamic-tool" &&
-            part.toolCallId === "live-read-workpiece",
+            part.toolCallId === firstAttempt.toolCallId,
         ),
       ),
     ).toBe(false);
@@ -214,30 +210,46 @@ test("renders a guarded live tool row before canonical admission", async () => {
         status: "streaming",
       }),
     );
-    const row = screen.getByRole("button", {
-      name: /Checking Brunch connection/u,
-    });
+    const row = screen.getByRole("button", { name: /Updating ledger/u });
     expect(row.getAttribute("aria-busy")).toBe("true");
+    expect(requests).toHaveLength(1);
 
-    upstream.push({
-      contentIndex: 0,
-      partial: message,
-      toolCall,
-      type: "toolcall_end",
-    });
-    upstream.push({ message, reason: "toolUse", type: "done" });
-    await consumed;
+    const outcome = await Promise.race([
+      client.read(submissionId).then(
+        () => "completed" as const,
+        () => "failed" as const,
+      ),
+      new Promise<"still-running">((resolve) => {
+        setTimeout(() => resolve("still-running"), 15_000);
+      }),
+    ]);
+    expect(outcome).toBe("failed");
+    expect(requests).toHaveLength(2);
+    const attempts = stall.attempts();
+    expect(attempts).toHaveLength(2);
+    expect(attempts.at(1)?.toolCallId).not.toBe(firstAttempt.toolCallId);
+    expect(requests.at(1)?.model).toBe(requests.at(0)?.model);
+    expect(requests.at(1)?.reasoning).toEqual(requests.at(0)?.reasoning);
+    await Promise.all(attempts.map((attempt) => attempt.cancelled));
+    await consumed.catch(() => {});
+
+    const afterFailure = await client.history();
+    expect(
+      afterFailure.messages.filter((message) => message.purpose === "user"),
+    ).toHaveLength(1);
+    expect(
+      afterFailure.messages.some((historyMessage) =>
+        historyMessage.parts.some((part) => part.type === "dynamic-tool"),
+      ),
+    ).toBe(false);
   } finally {
-    try {
-      upstream.push({
-        error: fauxAssistantMessage([], { stopReason: "aborted" }),
-        reason: "aborted",
-        type: "error",
-      });
-    } catch {
-      // The successful path already closed the controlled stream.
-    }
     await client.abort().catch(() => undefined);
+    await Promise.race([
+      stall.cancelled,
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 500);
+      }),
+    ]);
     await application.stop();
   }
-}, 20_000);
+}, 25_000);
