@@ -326,6 +326,7 @@ const tileContext = (
   ).pipe(Result.unwrap),
   variant: 7n as Num.u64,
   mode: "delta",
+  detail: "minimal",
   coordinate: {
     z: 2n as Num.u64,
     x: 3n as Num.u64,
@@ -358,6 +359,7 @@ const decodeFixture = (
           y: BigInt(head.coordinate[2]) as Num.u64,
         },
         mode: head.mode === 0 ? "delta" : "total",
+        detail: head.trailer ? "auxiliary" : "minimal",
         ...overrides,
       }),
     ),
@@ -587,6 +589,7 @@ describe("TileDocument.decode request", () => {
       ).pipe(Result.unwrap),
       variant: 8n as Num.u64,
       mode: "total",
+      detail: "auxiliary",
       coordinate: {
         z: 3n as Num.u64,
         x: 4n as Num.u64,
@@ -602,6 +605,7 @@ describe("TileDocument.decode request", () => {
       "variant-mismatch",
       "mode-mismatch",
       "coordinate-mismatch",
+      "detail-mismatch",
     ]);
     const generation = failures[0]?.reason;
     if (generation?._tag !== "generation-mismatch") {
@@ -620,6 +624,11 @@ describe("TileDocument.decode request", () => {
         _tag: "coordinate-mismatch",
         expected: expected.coordinate,
         actual: actual.coordinate,
+      },
+      {
+        _tag: "detail-mismatch",
+        expected: expected.detail,
+        actual: actual.detail,
       },
     ]);
   });
@@ -1347,7 +1356,7 @@ describe("TileDocument.decode consistency", () => {
             [1, list([nul(), tstr("水戸"), nul()])],
           ]),
         }),
-        tileContext(),
+        tileContext({ detail: "auxiliary" }),
       ),
     );
 

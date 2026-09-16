@@ -115,28 +115,30 @@ const edgesBody = (
   tiles: readonly TileDocument.Coordinate[],
   detail: Detail.Detail,
 ): string =>
-  JSON.stringify({
-    tiles: tiles.map((coordinate) => {
-      try {
-        validateAtlasTileCoordinate(coordinate);
-      } catch (error) {
-        if (error instanceof AtlasTileCoordinateError) {
-          throw new FetchTileError(error.message, { cause: error });
+  JSON.stringify(
+    Record.omitUndefined({
+      tiles: tiles.map((coordinate) => {
+        try {
+          validateAtlasTileCoordinate(coordinate);
+        } catch (error) {
+          if (error instanceof AtlasTileCoordinateError) {
+            throw new FetchTileError(error.message, { cause: error });
+          }
+
+          throw error;
         }
 
-        throw error;
-      }
-
-      // The checked tile domain is z <= 16 and x/y < 2^z, so JSON numbers
-      // represent these coordinates exactly. No unbounded identity is narrowed.
-      return {
-        z: Num.f64.approximate(coordinate.z),
-        x: Num.f64.approximate(coordinate.x),
-        y: Num.f64.approximate(coordinate.y),
-      };
+        // The checked tile domain is z <= 16 and x/y < 2^z, so JSON numbers
+        // represent these coordinates exactly. No unbounded identity is narrowed.
+        return {
+          z: Num.f64.approximate(coordinate.z),
+          x: Num.f64.approximate(coordinate.x),
+          y: Num.f64.approximate(coordinate.y),
+        };
+      }),
+      detail: detail === "auxiliary" ? detail : undefined,
     }),
-    ...(detail === "auxiliary" ? { detail } : {}),
-  });
+  );
 
 const fetchAndDecodeEdges = async (
   session: SaltileSession,
@@ -170,15 +172,8 @@ const fetchAndDecodeEdges = async (
     EdgeDocument.decode(decoder, {
       generation: session.generation,
       variant: session.variantIndex,
+      detail,
     }).pipe(
-      Result.filter(
-        (document: EdgeDocument.EdgeDocument<ArrayBufferLike>) =>
-          (document.trailer !== null) === (detail === "auxiliary"),
-        () =>
-          new FetchTileError(
-            "edges trailer does not match the requested detail",
-          ),
-      ),
       Result.changeContext(() => new FetchTileError("failed to decode edges")),
       Result.unwrap,
     );

@@ -42,10 +42,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
 import * as CurrentDocument from "../atlas-decode/CurrentDocument";
 import * as Decoder from "../atlas-decode/Decoder";
-import {
-  SALTILE_MEDIA_TYPE,
-  SALTILE_WIRE_VERSION,
-} from "../atlas-decode/Envelope";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
 import * as Function from "../atlas-decode/Function";
 import * as Iterable from "../atlas-decode/Iterable";
 import * as ManifestDocument from "../atlas-decode/ManifestDocument";
@@ -782,21 +779,8 @@ const renewAtlasAuthority = async (url: string): Promise<boolean> => {
     .then(async (response) => {
       const renewed = ManifestDocument.decode(
         await readAtlasJson(authority.manifestUrl, response),
+        { generation: authority.generation },
       ).pipe(
-        Result.filter(
-          (document: ManifestDocument.Manifest) =>
-            document.generation.equals(authority.generation),
-          () => new Error("manifest generation does not echo the route"),
-        ),
-        Result.filter(
-          (document: ManifestDocument.Manifest) =>
-            document.wireVersion === SALTILE_WIRE_VERSION,
-          () => new Error("unsupported manifest wireVersion"),
-        ),
-        Result.filter(
-          (document: ManifestDocument.Manifest) => document.variants.length > 0,
-          () => new Error("manifest carries no variants"),
-        ),
         Result.changeContext(() => new FetchTileError("invalid manifest")),
         Result.unwrap,
       );
@@ -1036,26 +1020,14 @@ const fetchSaltileSession = async (
       url,
       await requestManifest(url, "manifest-bootstrap", filter),
     ),
+    { generation: current.generation },
   ).pipe(
-    Result.filter(
-      (document: ManifestDocument.Manifest) =>
-        document.generation.equals(current.generation),
-      () => new Error("manifest generation does not echo the route"),
-    ),
-    Result.filter(
-      (document: ManifestDocument.Manifest) =>
-        document.wireVersion === SALTILE_WIRE_VERSION,
-      () => new Error("unsupported manifest wireVersion"),
-    ),
     Result.changeContext(() => new FetchTileError("invalid manifest")),
     Result.unwrap,
   );
 
   // The manifest's first variant is canonical, so it is index 0.
   const [variant] = manifest.variants;
-  if (variant === undefined) {
-    throw new FetchTileError("manifest carries no variants");
-  }
 
   // One expression, two copies: the session retains its cut and the renewal compares
   // its own document against the authority's copy. Assigning both here is what keeps them one
@@ -1432,12 +1404,8 @@ const fetchAndDecodeTile = async (
       mode: "delta",
       coordinate,
       coloredTypeCount: coloredTypeIds.length,
+      detail,
     }).pipe(
-      Result.filter(
-        (document: TileDocument.TileDocument<ArrayBufferLike>) =>
-          (document.trailer !== null) === (detail === "auxiliary"),
-        () => new Error("tile trailer does not match the requested detail"),
-      ),
       Result.changeContext(
         () =>
           new FetchTileError(
