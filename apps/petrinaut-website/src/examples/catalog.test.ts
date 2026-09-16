@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { compileScenario } from "@hashintel/petrinaut-core";
+
 import {
   exampleCatalog,
   exampleSlugs,
@@ -34,7 +36,16 @@ describe("example catalog", () => {
       expect(example.catalog).toBe(entry);
 
       for (const scenario of example.definition.scenarios ?? []) {
+        expect(scenario.initialState.type).toBe("adhoc");
         expect(runtime.scenarioHirById).toHaveProperty(scenario.id);
+        const compiled = compileScenario(
+          scenario,
+          runtime.scenarioHirById[scenario.id]!,
+          example.definition.parameters,
+          example.definition.places,
+          example.definition.types,
+        );
+        expect(compiled.ok, JSON.stringify(compiled)).toBe(true);
 
         for (const parameter of scenario.scenarioParameters) {
           const bounds = entry.parameterBounds[parameter.identifier];

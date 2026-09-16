@@ -29,7 +29,13 @@ const infectedPlace = petriNetDefinition.places.find(
 const { artifacts } = compileHirArtifacts(petriNetDefinition, undefined, {
   includeHir: true,
 });
-const winterWaveHir = lowerScenarioToHir(winterWave);
+const winterWaveHir = lowerScenarioToHir(winterWave, {
+  adHocContext: {
+    places: petriNetDefinition.places,
+    types: petriNetDefinition.types,
+    netParameters: petriNetDefinition.parameters,
+  },
+});
 
 /** The two levers the optimization stories range over. */
 type Levers = { vaccination_coverage: number; contact_reduction: number };

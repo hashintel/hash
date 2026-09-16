@@ -29,6 +29,11 @@ import {
   AdHocScenarioForm,
   FormLayoutColumn,
 } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import {
+  OverlayScrollArea,
+  overlayScrollDrawerBodyStyle,
+  overlayScrollDrawerViewportStyle,
+} from "../../../../../components/overlay-scroll-area";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { SimulationPanel } from "../shared/simulation-panel";
@@ -224,64 +229,72 @@ export const AdHocScenarioAuthoringBody: React.FC<{
 }> = ({ authoring, children }) => {
   const { code } = authoring;
   return (
-    <SimulationPanel.Body>
-      <div className={fieldsStyle}>
-        <Form.Field
-          label="Scenario name"
-          size="sm"
-          errors={
-            authoring.nameError && authoring.name !== ""
-              ? [authoring.nameError]
-              : undefined
+    <SimulationPanel.Body
+      withPadding={false}
+      scrollable={false}
+      className={overlayScrollDrawerBodyStyle}
+    >
+      <OverlayScrollArea viewportClassName={overlayScrollDrawerViewportStyle}>
+        <div className={fieldsStyle}>
+          <Form.Field
+            label="Scenario name"
+            size="sm"
+            errors={
+              authoring.nameError && authoring.name !== ""
+                ? [authoring.nameError]
+                : undefined
+            }
+          >
+            <TextInput
+              size="sm"
+              value={authoring.name}
+              onChange={authoring.setName}
+              invalid={
+                authoring.nameError !== undefined && authoring.name !== ""
+              }
+            />
+          </Form.Field>
+          <Form.Field label="Description" size="sm">
+            <TextArea
+              className={css({ minHeight: "[80px]" })}
+              size="sm"
+              value={authoring.description}
+              onChange={authoring.setDescription}
+            />
+          </Form.Field>
+          {children}
+        </div>
+        <AdHocScenarioForm
+          state={authoring.state}
+          onChange={authoring.setState}
+          context={authoring.context}
+          selection="expose"
+          sessionId={authoring.sessionId}
+          renderLayout={
+            code === undefined
+              ? undefined
+              : ({ variables, parameters }) => (
+                  <FormLayoutColumn>
+                    <SectionList>
+                      <Section title="Variables">{variables}</Section>
+                      {parameters ? (
+                        <Section title="Parameters">{parameters}</Section>
+                      ) : null}
+                      <Section title="Initial state">
+                        <p className={codeNoteStyle}>{codeScenarioNotice}</p>
+                        <CodeEditor
+                          language="typescript"
+                          value={code}
+                          options={{ readOnly: true }}
+                          height={codeSlotHeight}
+                        />
+                      </Section>
+                    </SectionList>
+                  </FormLayoutColumn>
+                )
           }
-        >
-          <TextInput
-            size="sm"
-            value={authoring.name}
-            onChange={authoring.setName}
-            invalid={authoring.nameError !== undefined && authoring.name !== ""}
-          />
-        </Form.Field>
-        <Form.Field label="Description" size="sm">
-          <TextArea
-            className={css({ minHeight: "[80px]" })}
-            size="sm"
-            value={authoring.description}
-            onChange={authoring.setDescription}
-          />
-        </Form.Field>
-        {children}
-      </div>
-      <AdHocScenarioForm
-        state={authoring.state}
-        onChange={authoring.setState}
-        context={authoring.context}
-        selection="expose"
-        sessionId={authoring.sessionId}
-        renderLayout={
-          code === undefined
-            ? undefined
-            : ({ variables, parameters }) => (
-                <FormLayoutColumn>
-                  <SectionList>
-                    <Section title="Variables">{variables}</Section>
-                    {parameters ? (
-                      <Section title="Parameters">{parameters}</Section>
-                    ) : null}
-                    <Section title="Initial state">
-                      <p className={codeNoteStyle}>{codeScenarioNotice}</p>
-                      <CodeEditor
-                        language="typescript"
-                        value={code}
-                        options={{ readOnly: true }}
-                        height={codeSlotHeight}
-                      />
-                    </Section>
-                  </SectionList>
-                </FormLayoutColumn>
-              )
-        }
-      />
+        />
+      </OverlayScrollArea>
     </SimulationPanel.Body>
   );
 };

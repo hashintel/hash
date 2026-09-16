@@ -430,8 +430,125 @@
         "param__draw_enabled": "scenario.draw_enabled"
       },
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: 1,\n  LoadsDelivered: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: 0,\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenConsumed: 0,\n  SteadyNitrogenEvaporated: 0,\n  SteadyNitrogenContents: 42,\n  SteadyNitrogenUllage: 12,\n  SteadyNitrogenUnitsDrawnSinceOrder: 0,\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "draw_enabled",
+              "type": "real",
+              "expression": "1",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__draw_enabled",
+              "expression": "scenario.draw_enabled",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_consumed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_evaporated": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_contents": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "42",
+                "optimize": null
+              }
+            },
+            "place__s1_ullage": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "12",
+                "optimize": null
+              }
+            },
+            "place__s1_units_drawn_since_order": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -449,8 +566,125 @@
         "param__draw_enabled": "scenario.draw_enabled"
       },
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: 1,\n  LoadsDelivered: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: 0,\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenConsumed: 0,\n  SteadyNitrogenEvaporated: 0,\n  SteadyNitrogenContents: 42,\n  SteadyNitrogenUllage: 12,\n  SteadyNitrogenUnitsDrawnSinceOrder: 0,\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "draw_enabled",
+              "type": "real",
+              "expression": "0",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__draw_enabled",
+              "expression": "scenario.draw_enabled",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_consumed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_evaporated": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_contents": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "42",
+                "optimize": null
+              }
+            },
+            "place__s1_ullage": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "12",
+                "optimize": null
+              }
+            },
+            "place__s1_units_drawn_since_order": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     }
   ],
