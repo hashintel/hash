@@ -60,8 +60,8 @@ import {
   shouldShowBrunchCreateNew,
 } from "./editor-view/create-new-net-menu";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
-import { UserSettings } from "./editor-view/user-settings";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
+import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";

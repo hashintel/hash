@@ -134,8 +134,18 @@ const mutationTurn = (
     ? "unknown"
     : "applied",
   omittedOperationStatus?: "applied" | "unattempted",
+  operation: {
+    readonly operationId: string;
+    readonly basisId: string;
+    readonly type: "addPlace" | "updatePlace";
+    readonly input: unknown;
+  } = {
+    operationId: "add-place",
+    basisId: "absent-basis",
+    type: "addPlace",
+    input: oneHopPlace,
+  },
 ): FlueConversationMessage[] => {
-  const operationId = "add-place";
   const batch = mutatePetrinetInputSchema.parse({
     observation: { toolCallId: "read-1", baseHash: sha256Of(pre) },
     bases: [
@@ -145,12 +155,7 @@ const mutationTurn = (
       },
     ],
     operations: [
-      {
-        operationId,
-        basisId: "absent-basis",
-        type: "addPlace",
-        input: oneHopPlace,
-      },
+      operation,
       ...(omittedOperationStatus
         ? [
             {
@@ -165,14 +170,15 @@ const mutationTurn = (
   });
   const attempts: ConstructionMutationAttempt[] = [];
   if (post !== undefined) {
-    const request: ConstructionMutationRequest = {
-      toolCallId: `${toolCallId}:${operationId}`,
-      toolName: "addPlace",
-      input: oneHopPlace,
+    const issuedOperation = batch.operations[0]!;
+    const request = {
+      toolCallId: `${toolCallId}:${issuedOperation.operationId}`,
+      toolName: issuedOperation.type,
+      input: issuedOperation.input,
       binding,
       observationToolCallId: batch.observation.toolCallId,
       requestedBaseHash: batch.observation.baseHash,
-    };
+    } as ConstructionMutationRequest;
     const attempt: ConstructionMutationAttempt = {
       request,
       binding,
@@ -198,8 +204,8 @@ const mutationTurn = (
           outcome === "applied" || outcome === "no-op"
             ? {
                 index: 0,
-                operationId,
-                basisId: "absent-basis",
+                operationId: operation.operationId,
+                basisId: operation.basisId,
                 status: outcome,
                 preHash: sha256Of(pre),
                 postHash: sha256Of(post ?? pre),
@@ -208,8 +214,8 @@ const mutationTurn = (
             : outcome === "failed"
               ? {
                   index: 0,
-                  operationId,
-                  basisId: "absent-basis",
+                  operationId: operation.operationId,
+                  basisId: operation.basisId,
                   status: outcome,
                   preHash: sha256Of(pre),
                   postHash: sha256Of(post ?? pre),
@@ -217,8 +223,8 @@ const mutationTurn = (
                 }
               : {
                   index: 0,
-                  operationId,
-                  basisId: "absent-basis",
+                  operationId: operation.operationId,
+                  basisId: operation.basisId,
                   status: "unknown",
                   preHash: sha256Of(pre),
                   ...(post === undefined ? {} : { postHash: sha256Of(post) }),
@@ -418,10 +424,19 @@ test("a mutation whose declared effects do not verify leaves the current net unr
 test.each([
   {
     outcome: "no-op" as const,
+    definition: oneHopNet,
+    operation: {
+      operationId: "keep-place-name",
+      basisId: "absent-basis",
+      type: "updatePlace" as const,
+      input: { placeId: oneHopPlace.id, update: { name: oneHopPlace.name } },
+    },
     alterAttempt: (attempt: ConstructionMutationAttempt) => attempt,
   },
   {
     outcome: "failed" as const,
+    definition: emptyNet,
+    operation: undefined,
     alterAttempt: (attempt: ConstructionMutationAttempt) => ({
       ...attempt,
       error: "Browser rejected the mutation.",
@@ -429,22 +444,24 @@ test.each([
   },
 ])(
   "a verified $outcome mutation retains its unchanged post as the current net",
-  async ({ outcome, alterAttempt }) => {
+  async ({ outcome, definition, operation, alterAttempt }) => {
     expect(
       await deriveNetFreshness(
         snapshotOf([
-          ...readTurn("read-1", emptyNet),
+          ...readTurn("read-1", definition),
           ...mutationTurn(
             "mutate-1",
-            emptyNet,
-            emptyNet,
+            definition,
+            definition,
             alterAttempt,
             outcome,
+            undefined,
+            operation,
           ),
         ]),
         browser,
       ),
-    ).toEqual({ kind: "current", hash: sha256Of(emptyNet) });
+    ).toEqual({ kind: "current", hash: sha256Of(definition) });
   },
 );
 

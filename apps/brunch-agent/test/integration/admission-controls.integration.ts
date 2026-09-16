@@ -25,6 +25,7 @@ import {
   VALIDATED_CONSTRUCTION_MODE,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
+
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,

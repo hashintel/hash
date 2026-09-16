@@ -3,6 +3,7 @@ import {
   FlueChatAdmissionError,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
 import { sweepOutputSchema } from "../brunch-sweep-output";
 import { brunchClientToolNames } from "./brunch-client-tools";
 

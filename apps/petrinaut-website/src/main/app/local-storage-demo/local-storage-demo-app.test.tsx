@@ -19,6 +19,7 @@ import {
   type MockInstance,
 } from "vitest";
 
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
@@ -1361,13 +1362,8 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
-      "applyAutoLayout",
-      "getLatestNetDefinition",
-      "getNetCompilationErrors",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
-      "mutate_petrinet",
-      "readPetrinautDoc",
       "read_petrinaut_diagnostics",
       "read_petrinaut_docs",
       "read_petrinaut_net",

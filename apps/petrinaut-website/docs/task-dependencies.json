@@ -178,6 +178,7 @@
     },
     "test:unit": {
       "dependsOn": [
+        "@apps/brunch-agent#build",
         "@hashintel/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build",
         "@hashintel/brunch-agent-transport-aisdk#build",

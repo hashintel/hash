@@ -20,6 +20,7 @@ import {
   snapshotToUiMessages,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
+
 import { PING_TOOL_NAME } from "../../src/agents/chat-agent/tools/ping.ts";
 import {
   clientToolNames,
