@@ -402,7 +402,7 @@ impl Driver<'_> {
         kind: SubmitKind,
         coverage: &mut ScheduleCoverage,
     ) {
-        self.proposed.insert(record.event_id);
+        self.proposed.insert(record.event_id());
         let outcome_index = self.journal.outcomes_drawn();
         let result = self.handle().propose(record.clone()).await;
         let window = self.journal.outcomes_since(outcome_index);
@@ -445,7 +445,7 @@ impl Driver<'_> {
                     kind == SubmitKind::Completion,
                     "only an effect completion should be rejected: {kind:?}: {rejection}"
                 );
-                self.rejected.insert(record.event_id);
+                self.rejected.insert(record.event_id());
             }
             Err(error) => match error.kind {
                 ShardCommandErrorKind::InvalidCandidate => {
@@ -481,7 +481,7 @@ impl Driver<'_> {
             request: self.next_request,
         };
         let record = EventRecordV1::new(event).expect("invalid-amount event should encode");
-        let event_id = record.event_id;
+        let event_id = record.event_id();
         self.proposed.insert(event_id);
         match self.handle().propose(record).await {
             Ok(ShardCommandOutcome::Rejected { .. }) => {
@@ -616,7 +616,7 @@ impl Driver<'_> {
         let event = self.fresh_event(counter, amount);
         let record =
             EventRecordV1::new(event).expect("event should encode before the injected crash");
-        self.proposed.insert(record.event_id);
+        self.proposed.insert(record.event_id());
         let handle = self.handle();
         let gated_record = record.clone();
         let in_flight = tokio::spawn(async move { handle.propose(gated_record).await });
@@ -632,7 +632,7 @@ impl Driver<'_> {
         properties::covered(
             coverage,
             &properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT,
-            durable_ids.contains(&record.event_id),
+            durable_ids.contains(&record.event_id()),
         );
         self.started = Self::open_loop(&self.journal, self.shard).await;
         self.observe_recovery(coverage);
@@ -645,7 +645,7 @@ impl Driver<'_> {
             !self
                 .acknowledged
                 .iter()
-                .any(|record| record.event_id == *id)
+                .any(|record| record.event_id() == *id)
         });
         properties::covered(
             coverage,
@@ -668,10 +668,10 @@ impl Driver<'_> {
                 .expect("durable simulation entries should decode")
                 .normalize()
                 .expect("durable simulation entries should normalize");
-            if !reference.event_ids.insert(record.event_id) {
+            if !reference.event_ids.insert(record.event_id()) {
                 continue;
             }
-            match record.event {
+            match record.into_event() {
                 DstEvent::Increment {
                     counter, amount, ..
                 } => {
@@ -727,13 +727,13 @@ impl Driver<'_> {
         for record in &self.acknowledged {
             properties::check(
                 &properties::ACK_IMPLIES_DURABLE,
-                reference.event_ids.contains(&record.event_id),
-                format_args!("acknowledged event {} is not durable", record.event_id),
+                reference.event_ids.contains(&record.event_id()),
+                format_args!("acknowledged event {} is not durable", record.event_id()),
             );
             properties::check(
                 &properties::ACKED_EVENT_SURVIVES_RECOVERY,
-                reference.event_ids.contains(&record.event_id),
-                format_args!("acknowledged event {} vanished", record.event_id),
+                reference.event_ids.contains(&record.event_id()),
+                format_args!("acknowledged event {} vanished", record.event_id()),
             );
         }
         for rejected in &self.rejected {
@@ -831,7 +831,7 @@ pub async fn run_plan(
                     .clone();
                 driver
                     .trace
-                    .push(format!("{step}: duplicate {}", record.event_id));
+                    .push(format!("{step}: duplicate {}", record.event_id()));
                 driver.submit(record, SubmitKind::Duplicate, coverage).await;
             }
             PlannedAction::SubmitInvalid => {

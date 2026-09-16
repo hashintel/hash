@@ -32,7 +32,9 @@ const MAX_EVENT_RECORD_BYTES: usize = 4 * 1024 * 1024;
 
 /// An application event stored in the journal.
 ///
-/// Event IDs are derived from serialized contents, so serialization must be deterministic.
+/// Event IDs are computed from serialized contents. The serialized contents and partition
+/// must stay the same for an event and its clones.
+///
 /// Repeated submissions of the same event are deduplicated. Give distinct actions with
 /// identical payloads a request ID or another distinguishing field.
 ///
@@ -211,17 +213,40 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
 ///
 /// Records are stored under [`DomainEvent::name`], which must be unique to the event type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "version", content = "data", rename_all = "snake_case")]
+#[serde(
+    tag = "version",
+    content = "data",
+    rename_all = "snake_case",
+    bound(deserialize = "E: DomainEvent")
+)]
 pub enum EventRecord<E> {
     V1(EventRecordV1<E>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+/// An event record whose ID and partition match the event.
+#[derive(Debug, Clone, Serialize)]
 pub struct EventRecordV1<E> {
-    pub event_id: EventId,
-    pub partition: PartitionKey,
-    pub event: E,
+    event_id: EventId,
+    partition: PartitionKey,
+    event: E,
+}
+
+impl<'de, E: DomainEvent> Deserialize<'de> for EventRecordV1<E> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Fields<E> {
+            event_id: EventId,
+            partition: PartitionKey,
+            event: E,
+        }
+        let Fields {
+            event_id,
+            partition,
+            event,
+        } = Fields::deserialize(deserializer)?;
+        Self::from_parts(event_id, partition, event).map_err(serde::de::Error::custom)
+    }
 }
 
 fn record_malformed<E: DomainEvent>(message: impl Into<String>) -> CompatError {
@@ -246,6 +271,22 @@ fn derive_event_id<E: DomainEvent>(
 }
 
 impl<E: DomainEvent> EventRecordV1<E> {
+    pub const fn event_id(&self) -> EventId {
+        self.event_id
+    }
+
+    pub const fn partition(&self) -> &PartitionKey {
+        &self.partition
+    }
+
+    pub const fn event(&self) -> &E {
+        &self.event
+    }
+
+    pub fn into_event(self) -> E {
+        self.event
+    }
+
     /// Derives an event’s identity and builds its journal record.
     ///
     /// # Errors
@@ -261,27 +302,40 @@ impl<E: DomainEvent> EventRecordV1<E> {
         })
     }
 
-    fn verify(&self) -> Result<(), CompatError> {
-        if self.event.partition() != self.partition {
+    /// Creates a record from an event and its stored ID and partition.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the ID or partition does not match the event, or if the event
+    /// cannot be serialized.
+    pub fn from_parts(
+        event_id: EventId,
+        partition: PartitionKey,
+        event: E,
+    ) -> Result<Self, CompatError> {
+        let record = Self::new(event)?;
+        if partition != record.partition {
             return Err(CompatError::Conflict {
                 name: E::name(),
                 message: format!(
-                    "record partition {} disagrees with the event's partition",
-                    self.partition
+                    "record partition {partition} does not match the event's partition"
                 ),
             });
         }
-        let expected = derive_event_id(&self.partition, &self.event)?;
-        if self.event_id != expected {
+        if event_id != record.event_id {
             return Err(CompatError::Conflict {
                 name: E::name(),
                 message: format!(
-                    "event ID mismatch: expected {expected}, found {}",
-                    self.event_id
+                    "event ID mismatch: expected {}, found {event_id}",
+                    record.event_id
                 ),
             });
         }
-        Ok(())
+        Ok(Self {
+            event_id,
+            partition,
+            event: record.event,
+        })
     }
 
     fn digest(&self) -> Result<JournalRecordDigest, CompatError> {
@@ -327,8 +381,6 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
     }
 
     fn encode(&self) -> Result<Vec<u8>, CompatError> {
-        let Self::V1(record) = self;
-        record.verify()?;
         let bytes =
             serde_json::to_vec(self).map_err(|error| record_malformed::<E>(error.to_string()))?;
         if bytes.len() > MAX_EVENT_RECORD_BYTES {
@@ -360,11 +412,7 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
                 version: version.to_owned(),
             });
         }
-        let record: Self = serde_json::from_value(value)
-            .map_err(|error| record_malformed::<E>(error.to_string()))?;
-        let Self::V1(inner) = &record;
-        inner.verify()?;
-        Ok(record)
+        serde_json::from_value(value).map_err(|error| record_malformed::<E>(error.to_string()))
     }
 }
 
@@ -373,7 +421,6 @@ impl<E: DomainEvent> VersionedRecord for EventRecord<E> {
 
     fn normalize(self) -> Result<Self::Current, CompatError> {
         let Self::V1(record) = self;
-        record.verify()?;
         Ok(record)
     }
 }
@@ -682,9 +729,6 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         projection: &Self::Projection,
         record: &Self::RecordCurrent,
     ) -> Result<Prepared<Self::Delta>, Self::FoldError> {
-        record.verify().map_err(|error| FoldError::Invalid {
-            message: error.to_string(),
-        })?;
         let digest = record.digest().map_err(|error| FoldError::Invalid {
             message: error.to_string(),
         })?;
@@ -950,6 +994,7 @@ mod tests {
 
     use error_stack::Report;
     use serde::{Deserialize, Serialize};
+    use serde_json::json;
 
     use super::{
         DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
@@ -958,7 +1003,9 @@ mod tests {
     };
     use crate::{
         port::{Domain as _, Prepared},
-        registry::{self, DurableRecord as _, RecordDeclaration, VersionedRecord as _},
+        registry::{
+            self, CompatError, DurableRecord as _, RecordDeclaration, VersionedRecord as _,
+        },
         routing::Shard,
         shard_log::{
             OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandOutcome, ShardLogLocation,
@@ -1093,14 +1140,13 @@ mod tests {
             String::from_utf8(encoded.clone()).expect("encoded record should be valid UTF-8"),
             expected
         );
-        let decoded = EventRecord::<CounterEvent>::decode(&encoded).expect("record should decode");
-        assert_eq!(
-            decoded
-                .normalize()
-                .expect("record should normalize")
-                .event_id,
-            record.event_id
-        );
+        let decoded = EventRecord::<CounterEvent>::decode(&encoded)
+            .expect("record should decode")
+            .normalize()
+            .expect("record should normalize");
+        assert_eq!(decoded.event_id(), record.event_id());
+        assert_eq!(decoded.partition(), record.partition());
+        assert_eq!(decoded.event(), record.event());
     }
 
     #[test]
@@ -1188,18 +1234,65 @@ mod tests {
     }
 
     #[test]
-    fn identities_are_computed_and_forgeries_are_refused() {
-        let record = incremented("orders", 5);
-        let mut forged = incremented("orders", 6);
-        forged.event_id = record.event_id;
-        assert!(forged.verify().is_err());
-        EventRecord::V1(forged)
-            .encode()
-            .expect_err("forged event identity should fail encoding");
+    fn record_from_parts_matching_fields() {
+        let event = CounterEvent::Incremented {
+            counter: "orders".to_owned(),
+            amount: 5,
+        };
+        let expected = incremented("orders", 5);
+        let record =
+            EventRecordV1::from_parts(expected.event_id(), expected.partition().clone(), event)
+                .expect("matching fields should create a record");
+        assert_eq!(record.event_id(), expected.event_id());
+        assert_eq!(record.partition(), expected.partition());
+        assert_eq!(record.event(), expected.event());
+    }
 
-        let mut moved = record;
-        moved.partition = PartitionKey::parse("payments").expect("key should be valid");
-        assert!(moved.verify().is_err());
+    #[test]
+    fn record_from_parts_mismatched_fields() {
+        let record = incremented("orders", 5);
+        let other = incremented("payments", 6);
+        for (event_id, partition) in [
+            (other.event_id(), record.partition()),
+            (record.event_id(), other.partition()),
+        ] {
+            let error =
+                EventRecordV1::from_parts(event_id, partition.clone(), record.event().clone())
+                    .expect_err("mismatched fields should be rejected");
+            assert!(matches!(error, CompatError::Conflict { .. }), "{error}");
+        }
+    }
+
+    #[test]
+    fn record_decode_invalid_fields() {
+        for (field, value, expected_error) in [
+            (
+                "event_id",
+                json!(incremented("orders", 6).event_id()),
+                "event ID mismatch",
+            ),
+            ("partition", json!("payments"), "record partition"),
+            ("extra", json!(true), "unknown field"),
+        ] {
+            let mut data =
+                serde_json::to_value(incremented("orders", 5)).expect("record should serialize");
+            data[field] = value;
+            let error = serde_json::from_value::<EventRecordV1<CounterEvent>>(data.clone())
+                .expect_err("invalid record should fail deserialization");
+            assert!(
+                error.to_string().contains(expected_error),
+                "error should contain {expected_error:?}: {error}"
+            );
+
+            let bytes = serde_json::to_vec(&json!({"version": "v1", "data": data}))
+                .expect("wire record should serialize");
+            let error = EventRecord::<CounterEvent>::decode(&bytes)
+                .expect_err("invalid record should fail decoding");
+            assert!(
+                error.to_string().contains(expected_error),
+                "error should contain {expected_error:?}: {error}"
+            );
+        }
     }
 
     #[test]
@@ -1221,11 +1314,16 @@ mod tests {
             Ok(Prepared::Noop)
         ));
 
-        let mut forged = incremented("orders", 6);
-        forged.event_id = record.event_id;
+        let other_digest = incremented("orders", 6)
+            .digest()
+            .expect("digest should compute");
+        projection.seen.insert(record.event_id(), other_digest);
         assert!(
-            Toy::prepare(&projection, &forged).is_err(),
-            "forged identity should fail verification before the reuse check"
+            matches!(
+                Toy::prepare(&projection, &record),
+                Err(FoldError::ConflictingReuse { event_id }) if event_id == record.event_id()
+            ),
+            "reuse with a different digest should be rejected"
         );
 
         let rejected = incremented("orders", 0);
@@ -1255,8 +1353,6 @@ mod tests {
         .expect_err("a non-advancing sequence should be rejected");
         assert!(error.contains("does not advance"));
 
-        // `normalize` rejects forged identities. Changing the stored digest simulates a
-        // conflict between the digest and the record bytes.
         let other_digest = incremented("orders", 7)
             .digest()
             .expect("digest should compute");

@@ -87,7 +87,7 @@ fn record_size_boundary() {
     assert_eq!(encoded.len(), MAX_RECORD_BYTES);
     let EventRecord::V1(decoded) =
         EventRecord::<Payload>::decode(&encoded).expect("record at the limit should decode");
-    assert_eq!(decoded.event, payload);
+    assert_eq!(decoded.event(), &payload);
 
     let oversized = record(Payload(format!("{}x", payload.0)));
     oversized
