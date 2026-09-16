@@ -17,7 +17,7 @@ The item’s menu in the left sidebar opens its code directly. For a place with 
 
 Use the **Fill panel** button in the section header to expand that section to the full width and height of the Properties Panel’s section area. Its controls stay beside the code. The canvas and the panel’s width stay unchanged.
 
-The expanded header shows a breadcrumb, such as **Transition Collision › Transition Results**. Click the parent name to return to the item’s other properties. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
+The expanded header shows a breadcrumb, such as **Transition Collision › Transition Results**, using the parent’s usual icon and title. Long parent names fade so the code section’s name stays visible. Click the parent name to return to the item’s other properties. Code, undo history, cursor position, and the other sections’ sizes and contents remain in place.
 
 Expanding and returning animate within the section container. These transitions respect the animation setting and your system’s reduced-motion preference.
 
