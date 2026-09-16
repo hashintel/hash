@@ -11,7 +11,7 @@ Select a place, transition, or differential equation in the canvas or left sideb
 - **Differential Equation** contains the equation’s properties and code.
 - **Visualizer** contains a place’s visualization code and preview.
 
-The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **Open equation code** beside its assigned differential equation opens that equation.
+The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **View equation** below its assigned differential equation opens that equation’s properties and code.
 
 ## Fill the panel
 

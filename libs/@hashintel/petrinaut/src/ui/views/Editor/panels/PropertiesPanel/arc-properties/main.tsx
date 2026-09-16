@@ -160,8 +160,8 @@ const DeleteArcAction: React.FC = () => {
 
   return (
     <Button
-      aria-label="Delete"
-      size="xs"
+      aria-label="Delete arc"
+      size="sm"
       variant="ghost"
       tone="error"
       iconName="trash"
@@ -170,7 +170,7 @@ const DeleteArcAction: React.FC = () => {
         clearSelection();
       }}
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete arc"}
     />
   );
 };

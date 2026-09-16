@@ -73,7 +73,7 @@ Differential equations define how token data evolves continuously over time. The
 
 1. Create a differential equation in the **Differential Equations** group (left sidebar).
 2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
-3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place.
+3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place. Click **View equation** below the dropdown to open its definition.
 
 **Function body:**
 
@@ -93,7 +93,7 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 A visualizer renders a custom view of a place's tokens during simulation. It is a React component that returns JSX (SVG is recommended).
 
-**To enable:** select a place, then toggle **Visualizer** in its properties. A code editor opens.
+**To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
 
 ```tsx
 export default Visualization(({ tokens, parameters }) => {
