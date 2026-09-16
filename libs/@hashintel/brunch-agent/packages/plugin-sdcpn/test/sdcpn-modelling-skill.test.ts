@@ -70,13 +70,17 @@ describe("the authored sdcpn-modelling skill directory", () => {
       expect(construct).toContain(
         "Parameters or metrics in the net never trigger a proposal by themselves",
       );
-      expect(instructions).not.toMatch(/asks? for an experiment|says? "optimi/iu);
+      expect(instructions).not.toMatch(
+        /asks? for an experiment|says? "optimi/iu,
+      );
     });
 
     test("states readiness as the conjunction of workpiece meaning and net executability", () => {
       expect(experiment).toContain("**Readiness is the conjunction**");
       expect(experiment).toContain("Structure alone never triggers a proposal");
-      expect(experiment).toContain("The net alone never supplies the objective");
+      expect(experiment).toContain(
+        "The net alone never supplies the objective",
+      );
       expect(experiment).toContain(
         "parameters and metrics recorded but no stated decision, there is nothing to propose",
       );
@@ -94,7 +98,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
 
     test("teaches the request shape without a Brunch experiment schema or constraint claims", () => {
       for (const field of [
-        "scenarioParameterValues[identifier] = { mode: \"range\", min, max }",
+        'scenarioParameterValues[identifier] = { mode: "range", min, max }',
         "objectiveMetricId",
         "`scenarioId`",
         "`maxTime`, `dt`",
@@ -107,19 +111,29 @@ describe("the authored sdcpn-modelling skill directory", () => {
         "The request carries no constraints and no constraint policy",
       );
       expect(experiment).toContain("reported, not enforced");
-      expect(experiment).toContain("Never encode a hard restriction as an objective penalty");
+      expect(experiment).toContain(
+        "Never encode a hard restriction as an objective penalty",
+      );
       expect(experiment).not.toMatch(/constraintPolicy|alpha|α/u);
     });
 
     test("names the draft tool, the honesty wording and the once-only rule", () => {
       expect(experiment).toContain("`draft_petrinaut_experiment`");
-      expect(experiment).toContain("{ experiment, declarations, basis, unsupported }");
-      expect(experiment).toContain('Say "drafted for this session", not "added to the model"');
+      expect(experiment).toContain(
+        "{ experiment, declarations, basis, unsupported }",
+      );
+      expect(experiment).toContain(
+        'Say "drafted for this session", not "added to the model"',
+      );
       expect(experiment).toContain("you never call a run");
       expect(experiment).toContain("## Once, not repeatedly");
       expect(experiment).toContain('an explicit "do not run" is authoritative');
-      expect(experiment).toContain("Do not apply a winning configuration to the model on your own");
-      expect(experiment).toContain("Never open or pre-fill the experiment creation drawer");
+      expect(experiment).toContain(
+        "Do not apply a winning configuration to the model on your own",
+      );
+      expect(experiment).toContain(
+        "Never open or pre-fill the experiment creation drawer",
+      );
     });
 
     test("teaches scenarios and metrics as construction with the typed sweep domain", () => {

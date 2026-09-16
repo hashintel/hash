@@ -1,6 +1,7 @@
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
+  canonicalContent,
   type DraftPetrinautExperimentInput,
   draftPetrinautExperimentInputSchema,
   type DraftPetrinautExperimentOutput,
@@ -12,7 +13,6 @@ import {
   ExperimentHostContext,
   prepareExperiment,
   usePetrinautInstance,
-  useStore,
 } from "@hashintel/petrinaut/react";
 import {
   definePetrinautAiInteractiveTool,
@@ -27,12 +27,15 @@ import {
   summarizeForAgent,
 } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import {
-  type SessionDraft,
-  sessionDrafts,
+  resetSessionDrafts,
+  sessionDraftsFor,
 } from "./brunch-draft-experiment-interactive-tool/session-drafts";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
-import type { PetrinautExperimentRequest } from "@hashintel/petrinaut-core";
+import type {
+  PetrinautExperimentRequest,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -148,7 +151,7 @@ const secondaryButtonStyle = css({
 });
 
 /** Forget every draft, as a reload would. For tests that share the module. */
-export const resetBrunchDraftExperimentSession = sessionDrafts.reset;
+export const resetBrunchDraftExperimentSession = resetSessionDrafts;
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
   DraftPetrinautExperimentInput,
@@ -157,7 +160,10 @@ type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
 
 // Two stable snapshots rather than one fresh object: useSyncExternalStore
 // compares snapshots by identity and would re-render without end otherwise.
-const useSessionDraft = (toolCallId: string) => {
+const useSessionDraft = (
+  sessionDrafts: ReturnType<typeof sessionDraftsFor>,
+  toolCallId: string,
+) => {
   const draft = useSyncExternalStore(sessionDrafts.subscribe, () =>
     sessionDrafts.get().drafts.get(toolCallId),
   );
@@ -202,12 +208,14 @@ export const BrunchDraftExperimentWidget = ({
 }: WidgetProps & { readTitle: () => string }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
-  const { draft, isCurrent } = useSessionDraft(toolCallId);
+  const sessionDrafts = sessionDraftsFor(instance.definition);
+  const { draft, isCurrent } = useSessionDraft(sessionDrafts, toolCallId);
   const preparedOnceRef = useRef(false);
-  const [preparedForRun, setPreparedForRun] = useState<{
-    differs: boolean;
-    error: string | null;
+  const [reviewed, setReviewed] = useState<{
+    prepared: PreparedExperiment;
+    definition: SDCPN;
   } | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
@@ -215,76 +223,103 @@ export const BrunchDraftExperimentWidget = ({
   useEffect(() => {
     if (state !== "awaiting" || preparedOnceRef.current) return;
     preparedOnceRef.current = true;
-    const definition = instance.definition.get();
+    const definition = structuredClone(instance.definition.get());
     const outcome = prepareOrExplain(input.experiment, definition, readTitle());
-    const registered: SessionDraft = {
+    const registered = sessionDrafts.register({
       toolCallId,
       input,
+      definition,
       prepared: outcome.prepared,
       invalid: outcome.error,
       dismissed: false,
       run: { phase: "idle" },
-    };
-    sessionDrafts.register(registered);
+    });
     submit(
-      outcome.prepared
+      registered.prepared
         ? {
             status: "drafted",
             summary: summarizeForAgent(
-              outcome.prepared.request,
-              definition,
-              input.unsupported.length,
+              registered.prepared.request,
+              registered.definition,
+              registered.input.unsupported.length,
             ),
             diagnostics: [
               "No constraints or constraint policy are carried; nothing is enforced.",
-              ...input.unsupported.map(
-                (condition) => `Not carried: ${condition.condition}`,
+              ...registered.input.unsupported.map(
+                (condition) =>
+                  `${condition.blocksRun ? "Run blocked" : "Not carried"}: ${condition.condition}`,
               ),
             ],
           }
         : {
             status: "invalid",
-            summary: `The browser could not prepare this experiment against the current model: ${outcome.error}`,
-            diagnostics: [outcome.error],
+            summary: `The browser could not prepare this experiment against the current model: ${registered.invalid}`,
+            diagnostics: [registered.invalid ?? "Preparation failed"],
           },
     );
-  }, [input, instance, readTitle, state, submit, toolCallId]);
+  }, [input, instance, readTitle, sessionDrafts, state, submit, toolCallId]);
 
-  const definition = useStore(instance.definition);
+  const definition =
+    reviewed?.definition ?? draft?.definition ?? instance.definition.get();
   const request = draft?.prepared?.request ?? null;
+  const blocksRun = input.unsupported.some((condition) => condition.blocksRun);
 
   const onRun = async () => {
-    if (!draft?.prepared || !request) return;
+    // Read synchronously, not from the render closure: duplicate clicks or a
+    // remounted copy of the same card must never start a second experiment.
+    const latest = sessionDrafts.get();
+    const pending = latest.drafts.get(toolCallId);
+    if (
+      !pending?.prepared ||
+      latest.currentToolCallId !== toolCallId ||
+      pending.dismissed ||
+      pending.run.phase !== "idle" ||
+      pending.input.unsupported.some((condition) => condition.blocksRun)
+    )
+      return;
     // Prepare again against the model as it is now: Run must start what the
     // person sees, and a changed metric or parameter is shown before any call.
+    const currentDefinition = structuredClone(instance.definition.get());
     const current = prepareOrExplain(
-      request,
-      instance.definition.get(),
+      pending.prepared.request,
+      currentDefinition,
       readTitle(),
     );
     if (!current.prepared) {
-      setPreparedForRun({ differs: false, error: current.error });
+      setRunError(current.error);
       return;
     }
     if (
-      preparedForRun?.differs !== true &&
-      preparationDiffers(draft.prepared, current.prepared)
+      preparationDiffers(
+        reviewed?.prepared ?? pending.prepared,
+        current.prepared,
+      ) ||
+      canonicalContent(reviewed?.definition ?? pending.definition) !==
+        canonicalContent(currentDefinition)
     ) {
-      setPreparedForRun({ differs: true, error: null });
+      setReviewed({
+        prepared: current.prepared,
+        definition: currentDefinition,
+      });
+      setRunError(null);
       return;
     }
+    setRunError(null);
     const controller = new AbortController();
     sessionDrafts.update(toolCallId, {
       run: { phase: "running", controller, progress: null },
     });
     try {
-      const result = await experimentHost.runExperiment(request, {
-        signal: controller.signal,
-        onProgress: (progress) =>
-          sessionDrafts.update(toolCallId, {
-            run: { phase: "running", controller, progress },
-          }),
-      });
+      const result = await experimentHost.runExperiment(
+        current.prepared.request,
+        {
+          signal: controller.signal,
+          onProgress: (progress) =>
+            sessionDrafts.update(toolCallId, {
+              run: { phase: "running", controller, progress },
+            }),
+        },
+      );
       sessionDrafts.update(toolCallId, { run: { phase: "finished", result } });
     } catch (caught) {
       sessionDrafts.update(toolCallId, {
@@ -379,16 +414,48 @@ export const BrunchDraftExperimentWidget = ({
           ))}
         </ul>
       )}
-      {preparedForRun?.error ? (
-        <p className={errorStyle} role="alert">
-          {preparedForRun.error}
+      {blocksRun ? (
+        <p className={noticeStyle} role="alert">
+          Run is blocked by an unsupported restriction. Ask Brunch to revise the
+          proposal; a reporting-only exploration needs your explicit acceptance.
         </p>
       ) : null}
-      {preparedForRun?.differs ? (
-        <p className={noticeStyle} role="status">
-          The model changed since this was drafted. Run against the current
-          model, or ask Brunch to draft it again.
+      {runError ? (
+        <p className={errorStyle} role="alert">
+          {runError}
         </p>
+      ) : null}
+      {reviewed && draft && canAct ? (
+        <div className={noticeStyle}>
+          <p role="status">
+            The model changed since this was drafted. Review the changes below
+            before running, or ask Brunch to draft it again.
+          </p>
+          <details>
+            <summary>Review model changes</summary>
+            {Object.keys({ ...draft.definition, ...reviewed.definition }).map(
+              (section) => {
+                const before = draft.definition[section as keyof SDCPN];
+                const after = reviewed.definition[section as keyof SDCPN];
+                if (canonicalContent(before) === canonicalContent(after))
+                  return null;
+                return (
+                  <div key={section}>
+                    <strong>{section}</strong>
+                    <pre
+                      className={css({
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "anywhere",
+                      })}
+                    >
+                      {`Before: ${before === undefined ? "not set" : JSON.stringify(before, null, 2)}\nAfter: ${after === undefined ? "removed" : JSON.stringify(after, null, 2)}`}
+                    </pre>
+                  </div>
+                );
+              },
+            )}
+          </details>
+        </div>
       ) : null}
       {draft?.run.phase === "running" ? (
         <p className={bodyStyle} role="status">
@@ -425,10 +492,11 @@ export const BrunchDraftExperimentWidget = ({
           </button>
           <button
             className={primaryButtonStyle}
+            disabled={blocksRun}
             onClick={() => void onRun()}
             type="button"
           >
-            {preparedForRun?.differs ? "Run against current model" : "Run"}
+            {reviewed ? "Run against current model" : "Run"}
           </button>
         </div>
       ) : null}

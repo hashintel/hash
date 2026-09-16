@@ -11,6 +11,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { draftPetrinautExperimentInputSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { createReadableStore } from "@hashintel/petrinaut-core";
 import {
   ExperimentHostContext,
@@ -36,7 +37,6 @@ vi.hoisted(() => {
   });
 });
 
-import type { ReactNode } from "react";
 import type {
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput,
@@ -50,6 +50,7 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautAiInteractiveToolWidgetProps } from "@hashintel/petrinaut/ui";
+import type { ReactNode } from "react";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
 type DistributivePick<T, K extends keyof T> = T extends unknown
@@ -208,6 +209,7 @@ describe("BrunchDraftExperimentWidget", () => {
         {
           condition: "No more than 5% of callers abandon.",
           reason: "The request carries no constraints.",
+          blocksRun: false,
           reportedByMetricId: "metric__abandonment_rate",
         },
       ]),
@@ -224,6 +226,9 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(output.summary).toContain("agents 2–8");
     expect(output.summary).toContain("minimize Average waiting time");
     expect(output.summary).toContain("1 stated restriction is not carried");
+    expect(output.summary).toContain(
+      "3 optimization steps × 5 runs, then 20 runs at the best parameters",
+    );
     expect(output.diagnostics).toEqual([
       "No constraints or constraint policy are carried; nothing is enforced.",
       "Not carried: No more than 5% of callers abandon.",
@@ -255,6 +260,35 @@ describe("BrunchDraftExperimentWidget", () => {
     );
     expect(submit).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
+  });
+
+  it("blocks an unsupported hard restriction unless reporting-only exploration was explicitly accepted", async () => {
+    const runExperiment = vi.fn();
+    const input = draftPetrinautExperimentInputSchema.parse({
+      ...makeInput(),
+      unsupported: [
+        {
+          condition: "Never exceed ten minutes.",
+          reason: "No constraint carriage.",
+        },
+      ],
+    });
+    const { submit } = renderWidget({
+      input,
+      toolCallId: "hard-restriction",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0].diagnostics).toContain(
+      "Run blocked: Never exceed ten minutes.",
+    );
+    const run = screen.getByRole<HTMLButtonElement>("button", { name: "Run" });
+    expect(run.disabled).toBe(true);
+    expect(screen.getByRole("alert").textContent).toContain("Run is blocked");
+    fireEvent.click(run);
+    expect(runExperiment).not.toHaveBeenCalled();
   });
 
   it("reports invalid without a Run button when the model lacks the metric", async () => {
@@ -303,7 +337,9 @@ describe("BrunchDraftExperimentWidget", () => {
     const second = renderWidget({
       input: makeInput(
         makeRequest({
-          scenarioParameterValues: { agents: { mode: "range", min: 3, max: 6 } },
+          scenarioParameterValues: {
+            agents: { mode: "range", min: 3, max: 6 },
+          },
         }),
       ),
       toolCallId: "call_draft_b",
@@ -359,9 +395,7 @@ describe("BrunchDraftExperimentWidget", () => {
       execution: { mode: "optimize", direction: "minimize" },
     });
     expect(seenSignal?.aborted).toBe(false);
-    await waitFor(() =>
-      expect(heading()).toEqual(["Running"]),
-    );
+    await waitFor(() => expect(heading()).toEqual(["Running"]));
     expect(screen.getByRole("status").textContent).toBe(
       "optimizing: 5/15 runs, step 1/3",
     );
@@ -398,6 +432,58 @@ describe("BrunchDraftExperimentWidget", () => {
 
     await waitFor(() => expect(heading()).toEqual(["Run failed"]));
     expect(screen.getByRole("alert").textContent).toBe("Compilation failed");
+  });
+
+  it("requires fresh approval for each model change in simulation-only requests", async () => {
+    const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
+    const definition = createReadableStore(makeDefinition());
+    const { submit } = renderWidget({
+      input: makeInput(
+        makeRequest({
+          execution: { mode: "simulate" },
+          scenarioParameterValues: { agents: { mode: "fixed", value: 4 } },
+        }),
+      ),
+      toolCallId: "simulation-stale",
+      state: awaiting,
+      definition,
+      runExperiment,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    const changed = makeDefinition();
+    changed.scenarios![0]!.initialState = {
+      type: "per_place",
+      content: { queue: "3" },
+    };
+    act(() => definition.set(changed));
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    expect(runExperiment).not.toHaveBeenCalled();
+    expect(screen.getByText(/Before:.*initialState/su).textContent).toContain(
+      '"queue": "3"',
+    );
+
+    const changedAgain = structuredClone(changed);
+    changedAgain.scenarios![0]!.initialState = {
+      type: "per_place",
+      content: { queue: "7" },
+    };
+    act(() => definition.set(changedAgain));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Run against current model" }),
+    );
+    expect(runExperiment).not.toHaveBeenCalled();
+    expect(screen.getByText(/Before:.*initialState/su).textContent).toContain(
+      '"queue": "7"',
+    );
+
+    const confirm = screen.getByRole("button", {
+      name: "Run against current model",
+    });
+    act(() => {
+      confirm.click();
+      confirm.click();
+    });
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(1));
   });
 
   it("stops before running when the model changed since drafting, then runs on the second press", async () => {
@@ -484,9 +570,38 @@ describe("BrunchDraftExperimentWidget", () => {
 
     expect(submit).not.toHaveBeenCalled();
     expect(heading()).toEqual(["Not retained in this session"]);
-    expect(
-      screen.getByText(/prepared in an earlier session/u),
-    ).toBeTruthy();
+    expect(screen.getByText(/prepared in an earlier session/u)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  });
+
+  it("does not revive dismissed drafts on remount or share them with another editor", async () => {
+    const runExperiment = vi.fn();
+    const definition = createReadableStore(makeDefinition());
+    const props = {
+      input: makeInput(),
+      toolCallId: "same-call",
+      state: awaiting,
+      definition,
+      runExperiment,
+    };
+    const first = renderWidget(props);
+    await waitFor(() => expect(first.submit).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    first.unmount();
+    const remounted = renderWidget(props);
+    await waitFor(() => expect(remounted.submit).toHaveBeenCalledTimes(1));
+    expect(heading()).toEqual(["Dismissed"]);
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+
+    const otherEditor = renderWidget({
+      ...props,
+      definition: createReadableStore(makeDefinition()),
+    });
+    await waitFor(() => expect(otherEditor.submit).toHaveBeenCalledTimes(1));
+    expect(heading()).toEqual([
+      "Dismissed",
+      "Drafted — not run · not saved with the document",
+    ]);
+    expect(screen.getAllByRole("button", { name: "Run" })).toHaveLength(1);
   });
 });

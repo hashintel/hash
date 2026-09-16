@@ -27,8 +27,8 @@ import {
 } from "./brunch-panel-transport";
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 
-import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { LspWorkerFactory, SDCPN } from "@hashintel/petrinaut-core";
 
 vi.hoisted(() => {
@@ -101,7 +101,9 @@ const supportDesk: SDCPN = {
     {
       id: "scenario__peak_demand",
       name: "Peak demand",
-      scenarioParameters: [{ identifier: "agents", type: "integer", default: 4 }],
+      scenarioParameters: [
+        { identifier: "agents", type: "integer", default: 4 },
+      ],
       parameterOverrides: {},
       initialState: { type: "per_place", content: {} },
     },
@@ -151,7 +153,9 @@ const draftInput: DraftPetrinautExperimentInput = {
   unsupported: [
     {
       condition: "No caller waits more than ten minutes.",
-      reason: "The request carries no constraints.",
+      reason:
+        "The person accepted reporting-only exploration; the request carries no constraints.",
+      blocksRun: false,
     },
   ],
 };
@@ -256,10 +260,14 @@ test("a streamed draft_petrinaut_experiment call renders the unrun card and repo
         ],
         conversationId: "test",
         requestStop: async () => "already-settled",
-        transport: createBrunchPanelTransport(Promise.resolve(client), tracker, {
-          clientToolNames: batchedConstructionClientToolNames,
-          dynamicClientToolNames: brunchPetrinautDynamicToolNames,
-        }),
+        transport: createBrunchPanelTransport(
+          Promise.resolve(client),
+          tracker,
+          {
+            clientToolNames: batchedConstructionClientToolNames,
+            dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+          },
+        ),
       }}
     />,
   );
@@ -297,21 +305,23 @@ test("a streamed draft_petrinaut_experiment call renders the unrun card and repo
   await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
   const followUp = send.mock.calls[1]![0].message;
   expect(followUp.kind).toBe("signal");
-  const results = JSON.parse(
-    (followUp as { body: string }).body,
-  ) as Array<{ toolCallId: string; toolName: string; output: unknown }>;
+  const results = JSON.parse((followUp as { body: string }).body) as Array<{
+    toolCallId: string;
+    toolName: string;
+    output: unknown;
+  }>;
   expect(results).toHaveLength(1);
   expect(results[0]).toMatchObject({
     toolCallId: "draft-1",
     toolName: draftPetrinautExperimentToolName,
     output: { status: "drafted" },
   });
-  expect(
-    (results[0]!.output as { diagnostics: string[] }).diagnostics,
-  ).toEqual([
-    "No constraints or constraint policy are carried; nothing is enforced.",
-    "Not carried: No caller waits more than ten minutes.",
-  ]);
+  expect((results[0]!.output as { diagnostics: string[] }).diagnostics).toEqual(
+    [
+      "No constraints or constraint policy are carried; nothing is enforced.",
+      "Not carried: No caller waits more than ten minutes.",
+    ],
+  );
   await screen.findByText("Drafted; press Run when you want it started.");
 
   // Nothing ran: the stock active-experiments indicator is absent, and the

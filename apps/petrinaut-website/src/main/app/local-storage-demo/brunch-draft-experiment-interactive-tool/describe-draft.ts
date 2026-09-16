@@ -53,7 +53,7 @@ export const describeExperiment = (
 export const describeBudget = (request: PetrinautExperimentRequest): string => {
   const horizon = `horizon ${formatNumber(request.maxTime)}, step ${formatNumber(request.dt)}`;
   if (request.execution.mode === "optimize") {
-    return `${request.execution.steps} optimization steps × ${request.execution.runsPerStep} runs, ${request.runCount} runs per evaluation, ${horizon}, seed ${request.seed}.`;
+    return `${request.execution.steps} optimization steps × ${request.execution.runsPerStep} runs, then ${request.runCount} runs at the best parameters, ${horizon}, seed ${request.seed}.`;
   }
   return `${request.runCount} runs, ${horizon}, seed ${request.seed}.`;
 };

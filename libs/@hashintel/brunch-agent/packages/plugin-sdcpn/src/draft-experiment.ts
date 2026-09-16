@@ -33,6 +33,12 @@ const unsupportedConditionSchema = z.strictObject({
   reason: nonempty.describe(
     "One line on why the request cannot carry it. The request carries no constraints and no constraint policy, so no restriction is enforced.",
   ),
+  blocksRun: z
+    .boolean()
+    .default(true)
+    .describe(
+      "True for a hard or load-bearing restriction: Run stays unavailable. False only when the person explicitly accepts a reporting-only exploration without enforcing this condition. Omission blocks Run.",
+    ),
   reportedByMetricId: nonempty
     .optional()
     .describe(
@@ -75,6 +81,21 @@ export const draftPetrinautExperimentInputSchema = z
       .describe(
         "Every restriction, threshold or condition the request cannot carry, each with a one-line reason. Empty means the workpiece stated none, not that any is enforced.",
       ),
+  })
+  .superRefine((draft, context) => {
+    for (const [index, condition] of draft.unsupported.entries()) {
+      if (
+        condition.reportedByMetricId &&
+        !draft.experiment.metricIds.includes(condition.reportedByMetricId)
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["unsupported", index, "reportedByMetricId"],
+          message:
+            "A reporting metric must be included in experiment.metricIds.",
+        });
+      }
+    }
   })
   .describe(
     "Draft one experiment for this session from the settled workpiece and the current net. The browser prepares it against the live model and shows it as drafted, not run; the person starts it from that card. Call once when readiness is first reached or when the meaningful configuration changes; a later draft supersedes the earlier one.",

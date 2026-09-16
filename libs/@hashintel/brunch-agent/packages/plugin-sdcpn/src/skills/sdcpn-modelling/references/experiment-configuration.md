@@ -52,7 +52,7 @@ Every proposal carries, in `declarations`:
 - for each chosen budget number (`runCount`, `steps`, `runsPerStep`, `seed`), that it is agent inference and what it respects;
 - what the result must not claim, in the person's words.
 
-Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. An empty list means the workpiece stated no restriction, not that restrictions are enforced.
+Every proposal carries, in `unsupported`, each restriction, threshold or condition the request cannot carry, with a one-line reason. Set `blocksRun: true` for a hard or load-bearing restriction; omission also blocks Run. Set `blocksRun: false` only when the person explicitly accepts a reporting-only exploration, and record that acceptance in the basis. A reporting metric does not itself authorize running. If `reportedByMetricId` is present, include it in `experiment.metricIds`. An empty list means the workpiece stated no restriction, not that restrictions are enforced.
 
 Every element cites its `basis`: the settled revision and locators of the workpiece passages it derives from, in the same declared-basis shape `mutate_petrinaut_net` uses. Agent-inferred numbers cite the passage they were inferred from with the inference named.
 
@@ -65,7 +65,7 @@ When ready, do two things in one turn, in this order:
 
 The tool drafts a proposal for this session and returns `{ status, summary, diagnostics }`. It does not run anything, save anything with the document or navigate. Say "drafted for this session", not "added to the model". The person runs it from the drafted card's Run action; you never call a run, and if they approve in conversation, point them to that card rather than acting for them. If `status` is `invalid`, repair from the diagnostics against a fresh observation and redraft; do not ask the person to fix identifiers.
 
-If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call so the person reads it before deciding to run.
+If a load-bearing restriction lands in `unsupported`, state that gap in the sentence before the tool call and explain that Run is blocked. Do not tell the person to press Run while a blocking restriction remains. If they explicitly accept a reporting-only exploration, settle that acceptance and redraft without claiming the restriction is enforced.
 
 ## Once, not repeatedly
 

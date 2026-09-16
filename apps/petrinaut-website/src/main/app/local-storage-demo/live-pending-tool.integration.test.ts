@@ -321,7 +321,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     expect(erroredRows).toHaveLength(2);
     expect(
       erroredRows.every(
-        (toolRow) => toolRow.getAttribute("aria-busy") !== "true",
+        (erroredRow) => erroredRow.getAttribute("aria-busy") !== "true",
       ),
     ).toBe(true);
     expect(stall.chronology()).toEqual([

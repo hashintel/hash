@@ -3,6 +3,7 @@ import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plug
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
+  SDCPN,
 } from "@hashintel/petrinaut-core";
 
 /**
@@ -23,6 +24,8 @@ export type SessionDraftRun =
 export type SessionDraft = {
   toolCallId: string;
   input: DraftPetrinautExperimentInput;
+  /** Frozen model the person reviewed, including simulation-only inputs. */
+  definition: SDCPN;
   /** What the card prepared against the model at draft time; null if refused. */
   prepared: PreparedExperiment | null;
   /** Why preparation refused, when it did. */
@@ -36,36 +39,58 @@ type SessionDraftsState = {
   drafts: ReadonlyMap<string, SessionDraft>;
 };
 
-let state: SessionDraftsState = { currentToolCallId: null, drafts: new Map() };
-const listeners = new Set<() => void>();
-
-const publish = (next: SessionDraftsState) => {
-  state = next;
-  for (const listener of listeners) listener();
+const createSessionDrafts = () => {
+  let state: SessionDraftsState = {
+    currentToolCallId: null,
+    drafts: new Map(),
+  };
+  const listeners = new Set<() => void>();
+  const publish = (next: SessionDraftsState) => {
+    state = next;
+    for (const listener of listeners) listener();
+  };
+  return {
+    subscribe: (listener: () => void): (() => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    get: (): SessionDraftsState => state,
+    /** Remounting an existing card must not revive it or supersede a newer one. */
+    register: (draft: SessionDraft): SessionDraft => {
+      const existing = state.drafts.get(draft.toolCallId);
+      if (existing) return existing;
+      const drafts = new Map(state.drafts);
+      drafts.set(draft.toolCallId, draft);
+      publish({ currentToolCallId: draft.toolCallId, drafts });
+      return draft;
+    },
+    update: (
+      toolCallId: string,
+      patch: Partial<Omit<SessionDraft, "toolCallId">>,
+    ) => {
+      const existing = state.drafts.get(toolCallId);
+      if (!existing) return;
+      const drafts = new Map(state.drafts);
+      drafts.set(toolCallId, { ...existing, ...patch });
+      publish({ ...state, drafts });
+    },
+  };
 };
 
-export const sessionDrafts = {
-  subscribe: (listener: () => void): (() => void) => {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
-  get: (): SessionDraftsState => state,
-  /** A new draft supersedes whichever draft was current. */
-  register: (draft: SessionDraft) => {
-    const drafts = new Map(state.drafts);
-    drafts.set(draft.toolCallId, draft);
-    publish({ currentToolCallId: draft.toolCallId, drafts });
-  },
-  update: (
-    toolCallId: string,
-    patch: Partial<Omit<SessionDraft, "toolCallId">>,
-  ) => {
-    const existing = state.drafts.get(toolCallId);
-    if (!existing) return;
-    const drafts = new Map(state.drafts);
-    drafts.set(toolCallId, { ...existing, ...patch });
-    publish({ ...state, drafts });
-  },
-  /** Test seam: forget every draft, as a reload would. */
-  reset: () => publish({ currentToolCallId: null, drafts: new Map() }),
+// The definition store survives panel remounts, but belongs to one editor.
+// Weak keys release drafts when that editor is disposed rather than retaining
+// every model and run in a tab-wide singleton.
+let sessions = new WeakMap<object, ReturnType<typeof createSessionDrafts>>();
+export const sessionDraftsFor = (definitionStore: object) => {
+  let drafts = sessions.get(definitionStore);
+  if (!drafts) {
+    drafts = createSessionDrafts();
+    sessions.set(definitionStore, drafts);
+  }
+  return drafts;
+};
+
+/** Test seam: forget every editor's drafts, as a reload would. */
+export const resetSessionDrafts = () => {
+  sessions = new WeakMap();
 };

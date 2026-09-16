@@ -106,6 +106,28 @@ describe("draft_petrinaut_experiment input schema", () => {
     const parsed = draftPetrinautExperimentInputSchema.parse(input);
     expect(parsed.experiment.execution.mode).toBe("optimize");
     expect(parsed.unsupported[0]?.reportedByMetricId).toBe("metric-late");
+    expect(parsed.unsupported[0]?.blocksRun).toBe(true);
+    expect(
+      draftPetrinautExperimentInputSchema.parse({
+        ...input,
+        unsupported: [{ ...input.unsupported[0], blocksRun: false }],
+      }).unsupported[0]?.blocksRun,
+    ).toBe(false);
+  });
+
+  test("rejects claiming that an unselected metric will be reported", () => {
+    const result = draftPetrinautExperimentInputSchema.safeParse({
+      ...input,
+      unsupported: [
+        { ...input.unsupported[0], reportedByMetricId: "metric-not-selected" },
+      ],
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual([
+      "unsupported",
+      0,
+      "reportedByMetricId",
+    ]);
   });
 
   test("accepts an absent basis when its reason is stated", () => {

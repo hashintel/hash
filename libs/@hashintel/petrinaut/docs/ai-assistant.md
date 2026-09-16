@@ -256,6 +256,26 @@ A request with no saved result and no active run shows **Not running**.
 Ask the assistant to run a new experiment. **Cancel** is available only for
 experiments running in this panel.
 
+### Brunch-drafted experiments
+
+On the Petrinaut website, Brunch can propose an experiment when your modelling
+conversation establishes a decision, objective, parameter range, operating
+regime and horizon. The card says **Drafted — not run · not saved with the
+document**. Review its settings, declarations and unsupported restrictions,
+then choose **Run** or **Dismiss**. Brunch can continue the conversation while
+the card waits; drafting never starts execution.
+
+An unsupported hard restriction disables **Run**. A metric labelled
+**reported, not enforced** only measures a condition; it does not enforce it.
+If you explicitly accept a reporting-only exploration, ask Brunch for a revised
+proposal. When the model changes after drafting, the card shows the changed
+model sections for review and requires confirmation before running.
+
+A later proposal replaces the earlier draft in that editor. Drafts are not
+saved with the document and must be drafted again after a reload or reopening
+the editor. Started runs use the normal active indicator and **Simulate →
+Experiments** results; the card offers **Cancel** while running.
+
 ## Read-only behaviour
 
 Whether the assistant can change the net depends on the editor state:
