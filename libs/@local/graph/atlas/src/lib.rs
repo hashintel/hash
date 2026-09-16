@@ -23,14 +23,14 @@
 //! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
 //!   evaluation, and materialization. `salt::runner::operator` holds the entry points the `cli`
 //!   commands drive, over the live store and over a dump directory.
-//! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
+//! - `serve` - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Using the crate
 //!
 //! A caller outside this crate reaches a published generation over HTTP. [`cli`] carries the
 //! operator commands that fit a generation over the live store and serve the active one through the
-//! [`api`] router the graph binary hosts. The Rust items behind that router are crate-internal by
-//! design. [`serve::Atlas`] carries the worked example for the read path.
+//! `api` router the graph binary hosts. The Rust items behind that router are crate-internal by
+//! design. `serve::Atlas` carries the worked example for the read path.
 //!
 //! # Crate features
 //!
@@ -49,10 +49,10 @@
 //!
 //! Opening a generation validates every artifact once.
 //!
-//! [`serve::Atlas::open`] maps and validates every serving artifact and their cross-artifact
+//! `serve::Atlas::open` maps and validates every serving artifact and their cross-artifact
 //! agreement a single time, so every read after that is an mmap gather and a wire encode, never a
 //! decode. Every published artifact is a plain file mapped whole by `mmap`, so serving cost after
-//! open is page-cache and address-space bound rather than parse bound. An opened [`serve::Atlas`]
+//! open is page-cache and address-space bound rather than parse bound. An opened `serve::Atlas`
 //! is `Send + Sync` and immutable, so a caller can keep one in an `Arc` across requests for the
 //! process lifetime of the generation. Reads are synchronous and CPU-bound over mapped memory, so
 //! an async transport schedules them on a compute pool rather than inline on its own runtime
@@ -62,8 +62,8 @@
 //!
 //! Serving and fitting never combine implicitly.
 //!
-//! [`cli::ServeCommand`] opens an already-published generation and never fits one. An empty or
-//! unfitted root fails the open with a named [`cli::ServeError::Missing`] rather than fitting on
+//! `cli::ServeCommand` opens an already-published generation and never fits one. An empty or
+//! unfitted root fails the open with a named `cli::ServeError::Missing` rather than fitting on
 //! demand.
 //!
 //! ## Workspace dependencies
@@ -122,18 +122,31 @@
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
-// Operator-command machinery is unconditional library code whose one consumer, the command
-// shell, sits behind `cli`, so a build without `cli` marks that machinery dead rather than
-// finding real rot. Bench machinery carries `cfg(any(test, feature = "bench"))` per item, so the
-// dead-code lint is live on every other item in every unit with `cli` on.
-#![cfg_attr(not(feature = "cli"), allow(dead_code))]
-// The documentation's audience is the crate's developers. Module docs link private items on
-// purpose, and readers view the docs under `--document-private-items`, where those links resolve.
-#![allow(rustdoc::private_intra_doc_links)]
+// TODO(BE-850): remove once all changes have landed
+#![allow(
+    unused_crate_dependencies,
+    unused_features,
+    dead_code,
+    unreachable_pub,
+    unused_imports,
+    rustdoc::broken_intra_doc_links
+)]
+// #![cfg_attr(
+//     not(feature = "cli"),
+//     allow(
+//         dead_code,
+//         reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
+//     )
+// )]
+#![allow(
+    rustdoc::private_intra_doc_links,
+    reason = "the crate is largely internal, for a user it makes more sense to read the full \
+              docs, instead of just the outer public shell. Having arbitrary separation hurts \
+              that exploration."
+)]
 extern crate alloc;
 
 mod allocator;
-pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod bitset;
@@ -151,4 +164,3 @@ pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
-pub(crate) mod serve;
