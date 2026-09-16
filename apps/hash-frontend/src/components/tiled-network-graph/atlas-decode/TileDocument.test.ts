@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import * as CborDecoder from "./CborDecoder";
 import * as Decoder from "./Decoder";
 import * as Envelope from "./Envelope";
+import * as GenerationId from "./GenerationId";
 import * as Option from "./Option";
 import * as Result from "./Result";
 import * as TileDocument from "./TileDocument";
@@ -66,7 +67,7 @@ const readFixture = (
 
 const runDecode = (
   buffer: ArrayBuffer,
-  context: TileDocument.Context,
+  context: TileDocument.DecodeOptions,
 ): Result.Result<
   TileDocument.TileDocument<ArrayBuffer>,
   TileDocument.TileDocumentError
@@ -125,7 +126,7 @@ const asTileDocumentError = (
 
 const sectionFailures = (
   error: TileDocument.TileDocumentError,
-  section: "slot" | "columns" | "head" | "trailer",
+  section: "slot" | "columns" | "head" | "trailer" | "request",
 ): unknown[] => {
   expect(error.reason).toEqual({ _tag: "section", section });
   expect(error.cause).toBeInstanceOf(Result.All);
@@ -317,22 +318,49 @@ const tileResponse = ({
   );
 
 const tileContext = (
-  overrides: Partial<TileDocument.Context> = {},
-): TileDocument.Context => ({
+  overrides: Partial<TileDocument.DecodeOptions> = {},
+): TileDocument.DecodeOptions => ({
+  generation: GenerationId.GenerationId.make(
+    new Uint8Array(generationBytes),
+  ).pipe(Result.unwrap),
+  variant: 7n as Decoder.U64,
+  mode: "delta",
+  coordinate: {
+    z: 2n as Decoder.U64,
+    x: 3n as Decoder.U64,
+    y: 1n as Decoder.U64,
+  },
   coloredTypeCount: 0,
   ...overrides,
 });
 
 const decodeFixture = (
   name: string,
-  overrides: Partial<TileDocument.Context> = {},
+  overrides: Partial<TileDocument.DecodeOptions> = {},
 ): {
   document: TileDocument.TileDocument<ArrayBuffer>;
   sidecar: TileSidecar;
 } => {
   const { buffer, sidecar } = readFixture(name);
-  const document = expectOk(runDecode(buffer, tileContext(overrides)));
   const { head } = sidecar;
+  const document = expectOk(
+    runDecode(
+      buffer,
+      tileContext({
+        generation: GenerationId.GenerationId.fromHex(head.generation).pipe(
+          Result.unwrap,
+        ),
+        variant: BigInt(head.variant) as Decoder.U64,
+        coordinate: {
+          z: BigInt(head.coordinate[0]) as Decoder.U64,
+          x: BigInt(head.coordinate[1]) as Decoder.U64,
+          y: BigInt(head.coordinate[2]) as Decoder.U64,
+        },
+        mode: head.mode === 0 ? "delta" : "total",
+        ...overrides,
+      }),
+    ),
+  );
 
   expect(hexOf(document.generation.bytes)).toBe(head.generation);
   expect(document.variant).toBe(BigInt(head.variant));
@@ -476,6 +504,100 @@ describe("TileDocument.decode against the wire fixtures", () => {
     );
     expect(document.delivered).toBe(30n);
     expect(document.children).toBe(5n);
+  });
+});
+
+describe("TileDocument.decode request", () => {
+  it("equal_values", () => {
+    const options = tileContext();
+    const document = expectOk(runDecode(tileResponse(), options));
+    expect(document.coordinate).toEqual(options.coordinate);
+    expect(document.generation.equals(options.generation)).toBe(true);
+  });
+
+  it.each(["z", "x", "y"] as const)("coordinate_%s_mismatch", (axis) => {
+    const actual = tileContext().coordinate;
+    const coordinate = {
+      ...actual,
+      [axis]: (actual[axis] + 1n) as Decoder.U64,
+    };
+    const failures = sectionFailures(
+      expectError(runDecode(tileResponse(), tileContext({ coordinate }))),
+      "request",
+    ).map(asTileDocumentError);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.reason).toEqual({
+      _tag: "coordinate-mismatch",
+      expected: coordinate,
+      actual,
+    });
+  });
+
+  it("coordinate_u64_exact", () => {
+    const x = 0xffff_ffff_ffff_ffffn as Decoder.U64;
+    const coordinate = { ...tileContext().coordinate, x };
+    const buffer = tileResponse({
+      head: { 2: list([uint(coordinate.z), uint(x), uint(coordinate.y)]) },
+    });
+    expect(
+      expectOk(runDecode(buffer, tileContext({ coordinate }))).coordinate.x,
+    ).toBe(x);
+    const expected = { ...coordinate, x: (x - 1n) as Decoder.U64 };
+    const failures = sectionFailures(
+      expectError(runDecode(buffer, tileContext({ coordinate: expected }))),
+      "request",
+    ).map(asTileDocumentError);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.reason).toEqual({
+      _tag: "coordinate-mismatch",
+      expected,
+      actual: coordinate,
+    });
+  });
+
+  it("independent_request_failures", () => {
+    const actual = tileContext();
+    const expected = tileContext({
+      generation: GenerationId.GenerationId.make(
+        new Uint8Array(32).fill(255),
+      ).pipe(Result.unwrap),
+      variant: 8n as Decoder.U64,
+      mode: "total",
+      coordinate: {
+        z: 3n as Decoder.U64,
+        x: 4n as Decoder.U64,
+        y: 5n as Decoder.U64,
+      },
+    });
+    const failures = sectionFailures(
+      expectError(runDecode(tileResponse(), expected)),
+      "request",
+    ).map(asTileDocumentError);
+    expect(failures.map((failure) => failure.reason._tag)).toEqual([
+      "generation-mismatch",
+      "variant-mismatch",
+      "mode-mismatch",
+      "coordinate-mismatch",
+    ]);
+    const generation = failures[0]?.reason;
+    if (generation?._tag !== "generation-mismatch") {
+      throw new Error("expected a generation mismatch");
+    }
+    expect(generation.expected).toBe(expected.generation);
+    expect(generation.actual.equals(actual.generation)).toBe(true);
+    expect(failures.slice(1).map((failure) => failure.reason)).toEqual([
+      {
+        _tag: "variant-mismatch",
+        expected: expected.variant,
+        actual: actual.variant,
+      },
+      { _tag: "mode-mismatch", expected: expected.mode, actual: actual.mode },
+      {
+        _tag: "coordinate-mismatch",
+        expected: expected.coordinate,
+        actual: actual.coordinate,
+      },
+    ]);
   });
 });
 
@@ -745,7 +867,7 @@ describe("TileDocument.decode consistency", () => {
             7: list([uint(1), uint(1), uint(1)]),
           },
         }),
-        tileContext(),
+        tileContext({ mode: "total" }),
       ),
     );
     expect(document.runs).toEqual([1n, 1n, 1n]);
@@ -761,7 +883,7 @@ describe("TileDocument.decode consistency", () => {
             7: list([uint(1), uint(0), uint(0), uint(0), uint(2)]),
           },
         }),
-        tileContext(),
+        tileContext({ mode: "total" }),
       ),
     );
 
@@ -784,7 +906,13 @@ describe("TileDocument.decode consistency", () => {
             ]),
           },
         }),
-        tileContext(),
+        tileContext({
+          coordinate: {
+            z: 0n as Decoder.U64,
+            x: 0n as Decoder.U64,
+            y: 0n as Decoder.U64,
+          },
+        }),
       ),
     );
 

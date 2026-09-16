@@ -3,6 +3,7 @@ import { validateVersionedUrl } from "@blockprotocol/type-system";
 import * as BinaryEntityId from "./BinaryEntityId";
 import * as CborDecoder from "./CborDecoder";
 import * as CborPrimitive from "./CborPrimitive";
+import * as EdgeError from "./EdgeDocument/error";
 import * as Envelope from "./Envelope";
 import * as GenerationId from "./GenerationId";
 import * as NodeId from "./NodeId";
@@ -12,101 +13,15 @@ import * as TaggedError from "./TaggedError";
 import type * as Decoder from "./Decoder";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
-/** Invalid edges metadata, missing payloads or inconsistent column lengths. */
-export type EdgeDocumentErrorReason =
-  | {
-      readonly _tag: "invalid-kind";
-      readonly actual: Envelope.Envelope["kind"];
-    }
-  | {
-      readonly _tag: "unknown-field";
-      readonly section: "head" | "trailer";
-      readonly key: Decoder.U64;
-    }
-  | { readonly _tag: "missing-field"; readonly field: string }
-  | {
-      readonly _tag: "length";
-      readonly field: string;
-      readonly expected: Decoder.U64;
-      readonly actual: number;
-    }
-  | {
-      readonly _tag: "invalid-field";
-      readonly field: string;
-      readonly detail: string;
-    }
-  | {
-      readonly _tag: "section";
-      readonly section: "head" | "columns" | "trailer";
-    }
-  | { readonly _tag: "decode" };
-
-/** An edges document failure with its structured reason and optional cause. */
-export class EdgeDocumentError extends TaggedError.TaggedError<
-  "EdgeDocumentError",
-  EdgeDocumentErrorReason
-> {
-  /** Describes a rejected field, payload or nested decoding failure. */
-  constructor(reason: EdgeDocumentErrorReason, options?: ErrorOptions) {
-    let message: string;
-
-    switch (reason._tag) {
-      case "invalid-kind":
-        message = `expected SALTILEE, received ${reason.actual}`;
-        break;
-      case "unknown-field":
-        message = `unknown ${reason.section} key ${reason.key}`;
-        break;
-      case "missing-field":
-        message = `missing ${reason.field}`;
-        break;
-      case "length":
-        message = `${reason.field} requires ${reason.expected} entries, received ${reason.actual}`;
-        break;
-      case "invalid-field":
-        message = `${reason.field}: ${reason.detail}`;
-        break;
-      case "section":
-        message = `invalid edges ${reason.section}`;
-        break;
-      case "decode":
-        message = "unable to decode edges document";
-        break;
-    }
-
-    super("EdgeDocumentError", reason, message, options);
-  }
-
-  static rejected(section: "head" | "columns" | "trailer"): EdgeDocumentError {
-    return new EdgeDocumentError({ _tag: "section", section });
-  }
-
-  static missingField(field: string): EdgeDocumentError {
-    return new EdgeDocumentError({ _tag: "missing-field", field });
-  }
-
-  static invalidField(
-    field: string,
-    detail = "invalid value",
-  ): EdgeDocumentError {
-    return new EdgeDocumentError({ _tag: "invalid-field", field, detail });
-  }
-
-  static invalidLength(
-    field: string,
-    expected: Decoder.U64,
-    actual: number,
-  ): EdgeDocumentError {
-    return new EdgeDocumentError({ _tag: "length", field, expected, actual });
-  }
-}
+export type { EdgeDocumentErrorReason } from "./EdgeDocument/error";
+export { EdgeDocumentError } from "./EdgeDocument/error";
 
 /** Writable fields during map visitation. */
 type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 
 /** Errors propagated before attaching the edges document context. */
 type DecodeError =
-  | EdgeDocumentError
+  | EdgeError.EdgeDocumentError
   | Envelope.EnvelopeError
   | Decoder.DecoderError
   | CborDecoder.CborDecoderError
@@ -167,7 +82,7 @@ const readHead = Result.fn(function* readHead(
         break;
       default:
         return yield* Result.err(
-          new EdgeDocumentError({
+          new EdgeError.EdgeDocumentError({
             _tag: "unknown-field",
             section: "head",
             key,
@@ -178,22 +93,22 @@ const readHead = Result.fn(function* readHead(
 
   return yield* Result.all([
     Result.fromNullable(partial.generation, () =>
-      EdgeDocumentError.missingField("head.generation"),
+      EdgeError.EdgeDocumentError.missingField("head.generation"),
     ),
     Result.fromNullable(partial.variant, () =>
-      EdgeDocumentError.missingField("head.variant"),
+      EdgeError.EdgeDocumentError.missingField("head.variant"),
     ),
     Result.fromNullable(partial.count, () =>
-      EdgeDocumentError.missingField("head.count"),
+      EdgeError.EdgeDocumentError.missingField("head.count"),
     ),
     Result.fromNullable(partial.complete, () =>
-      EdgeDocumentError.missingField("head.complete"),
+      EdgeError.EdgeDocumentError.missingField("head.complete"),
     ),
     Result.fromNullable(partial.hasTrailer, () =>
-      EdgeDocumentError.missingField("head.hasTrailer"),
+      EdgeError.EdgeDocumentError.missingField("head.hasTrailer"),
     ),
   ]).pipe(
-    Result.changeContext(() => EdgeDocumentError.rejected("head")),
+    Result.changeContext(() => EdgeError.EdgeDocumentError.rejected("head")),
     Result.map(([generation, variant, count, complete, hasTrailer]) => ({
       generation,
       variant,
@@ -214,7 +129,8 @@ const decodeHead = (bytes: Uint8Array): Result.Result<Head, DecodeError> =>
 const checkCount = (field: string, expected: Decoder.U64) =>
   Result.filter(
     (column: { readonly length: number }) => BigInt(column.length) === expected,
-    (column) => EdgeDocumentError.invalidLength(field, expected, column.length),
+    (column) =>
+      EdgeError.EdgeDocumentError.invalidLength(field, expected, column.length),
   );
 
 /** Borrows a node column or returns invalid storage or a header-count mismatch. */
@@ -223,7 +139,10 @@ const decodeNodeIdColumn =
   <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
     NodeId.NodeIdColumn.decode(bytes).pipe(
       Result.changeContext(() =>
-        EdgeDocumentError.invalidField(field, "invalid node column width"),
+        EdgeError.EdgeDocumentError.invalidField(
+          field,
+          "invalid node column width",
+        ),
       ),
       checkCount(field, count),
     );
@@ -234,7 +153,7 @@ const decodeIdentities =
   <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
     BinaryEntityId.BinaryEntityIdColumn.decode(bytes).pipe(
       Result.changeContext(() =>
-        EdgeDocumentError.invalidField(
+        EdgeError.EdgeDocumentError.invalidField(
           "identities",
           "invalid identity column width",
         ),
@@ -243,25 +162,27 @@ const decodeIdentities =
     );
 
 /** Accepts a versioned URL or returns a trailer field error. */
-const typeUrlVisitor: CborDecoder.CborVisitor<VersionedUrl, EdgeDocumentError> =
-  {
-    expecting: "a versioned type URL",
-    visitTextString: (value) => {
-      const parsed = validateVersionedUrl(value);
+const typeUrlVisitor: CborDecoder.CborVisitor<
+  VersionedUrl,
+  EdgeError.EdgeDocumentError
+> = {
+  expecting: "a versioned type URL",
+  visitTextString: (value) => {
+    const parsed = validateVersionedUrl(value);
 
-      if (parsed.type === "Err") {
-        return Result.err(
-          new EdgeDocumentError({
-            _tag: "invalid-field",
-            field: "trailer.typeTable",
-            detail: "expected a versioned URL",
-          }),
-        );
-      }
+    if (parsed.type === "Err") {
+      return Result.err(
+        new EdgeError.EdgeDocumentError({
+          _tag: "invalid-field",
+          field: "trailer.typeTable",
+          detail: "expected a versioned URL",
+        }),
+      );
+    }
 
-      return Result.ok(parsed.inner);
-    },
-  };
+    return Result.ok(parsed.inner);
+  },
+};
 
 /** Accepts a label or its explicit absence. */
 const labelVisitor: CborDecoder.CborVisitor<string | null, never> = {
@@ -304,7 +225,7 @@ const visitTrailer = (count: Decoder.U64) =>
           break;
         default:
           return yield* Result.err(
-            new EdgeDocumentError({
+            new EdgeError.EdgeDocumentError({
               _tag: "unknown-field",
               section: "trailer",
               key,
@@ -315,19 +236,23 @@ const visitTrailer = (count: Decoder.U64) =>
 
     const [typeTable, linkLabels, typeIndexes] = yield* Result.all([
       Result.fromNullable(types, () =>
-        EdgeDocumentError.missingField("trailer.typeTable"),
+        EdgeError.EdgeDocumentError.missingField("trailer.typeTable"),
       ),
       Result.fromNullable(labels, () =>
-        EdgeDocumentError.missingField("trailer.linkLabels"),
+        EdgeError.EdgeDocumentError.missingField("trailer.linkLabels"),
       ),
       Result.fromNullable(indexes, () =>
-        EdgeDocumentError.missingField("trailer.linkTypeIds"),
+        EdgeError.EdgeDocumentError.missingField("trailer.linkTypeIds"),
       ),
-    ]).pipe(Result.changeContext(() => EdgeDocumentError.rejected("trailer")));
+    ]).pipe(
+      Result.changeContext(() =>
+        EdgeError.EdgeDocumentError.rejected("trailer"),
+      ),
+    );
 
     if (new Set(typeTable).size !== typeTable.length) {
       return yield* Result.err(
-        new EdgeDocumentError({
+        new EdgeError.EdgeDocumentError({
           _tag: "invalid-field",
           field: "trailer.typeTable",
           detail: "entries must be unique",
@@ -344,7 +269,7 @@ const visitTrailer = (count: Decoder.U64) =>
 
       if (index >= BigInt(typeTable.length)) {
         return yield* Result.err(
-          new EdgeDocumentError({
+          new EdgeError.EdgeDocumentError({
             _tag: "invalid-field",
             field: "trailer.linkTypeIds",
             detail: `index ${index} is outside the type table`,
@@ -385,7 +310,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
 
   if (envelope.kind !== "SALTILEE") {
     return yield* Result.err(
-      new EdgeDocumentError({
+      new EdgeError.EdgeDocumentError({
         _tag: "invalid-kind",
         actual: envelope.kind,
       }),
@@ -404,7 +329,9 @@ const decodeDocument = Result.fn(function* decodeDocument<
     Envelope.indexChunk(chunks, 3).pipe(
       Result.andThen(decodeIdentities(head.count)),
     ),
-  ]).pipe(Result.changeContext(() => EdgeDocumentError.rejected("columns")));
+  ]).pipe(
+    Result.changeContext(() => EdgeError.EdgeDocumentError.rejected("columns")),
+  );
 
   let trailer: EdgeDocumentTrailer | null = null;
   if (head.hasTrailer) {
@@ -413,7 +340,7 @@ const decodeDocument = Result.fn(function* decodeDocument<
     trailer = yield* decodeTrailer(bytes, head.count);
   } else if (decoder.remaining !== 0) {
     return yield* Result.err(
-      new EdgeDocumentError({
+      new EdgeError.EdgeDocumentError({
         _tag: "invalid-field",
         field: "head.hasTrailer",
         detail: "undeclared trailing bytes",
@@ -421,17 +348,21 @@ const decodeDocument = Result.fn(function* decodeDocument<
     );
   }
 
-  yield* Result.assert(head.generation.equals(expectedGeneration), () =>
-    EdgeDocumentError.invalidField(
-      "head.generation",
-      `expected ${expectedGeneration}, received ${head.generation}`,
+  yield* Result.all([
+    Result.assert(head.generation.equals(expectedGeneration), () =>
+      EdgeError.EdgeDocumentError.generationMismatch(
+        expectedGeneration,
+        head.generation,
+      ),
     ),
-  );
-  yield* Result.assert(head.variant === expectedVariant, () =>
-    EdgeDocumentError.invalidField(
-      "head.variant",
-      `expected ${expectedVariant}, received ${head.variant}`,
+    Result.assert(head.variant === expectedVariant, () =>
+      EdgeError.EdgeDocumentError.variantMismatch(
+        expectedVariant,
+        head.variant,
+      ),
     ),
+  ]).pipe(
+    Result.changeContext(() => EdgeError.EdgeDocumentError.rejected("request")),
   );
 
   return {
@@ -451,22 +382,25 @@ const decodeDocument = Result.fn(function* decodeDocument<
  *
  * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. The response must match the requested generation and variant in {@link DecodeOptions}.
  *
- * @returns The complete document or an {@link EdgeDocumentError}. Independent validation failures appear in a {@link Result.All} under a section error's cause. Underlying errors and unexpected exceptions retain their causes. Cursor reads stop at their first failure, which may advance the decoder.
+ * @returns The complete document or an {@link EdgeError.EdgeDocumentError}. Independent validation failures appear in a {@link Result.All} under a section error's cause. Underlying errors and unexpected exceptions retain their causes. Cursor reads stop at their first failure, which may advance the decoder.
  */
 export const decode = <T extends ArrayBufferLike>(
   decoder: Decoder.Decoder<T>,
   options: DecodeOptions,
-): Result.Result<EdgeDocument<T>, EdgeDocumentError> =>
+): Result.Result<EdgeDocument<T>, EdgeError.EdgeDocumentError> =>
   Result.catch(
     () => decodeDocument(decoder, options),
-    (cause) => Result.err(new EdgeDocumentError({ _tag: "decode" }, { cause })),
+    (cause) =>
+      Result.err(
+        new EdgeError.EdgeDocumentError({ _tag: "decode" }, { cause }),
+      ),
   ).pipe(
     Result.changeContextIf(
       TaggedError.is("ArrayVisitorError"),
-      (error) => new EdgeDocumentError(error.reason),
+      (error) => new EdgeError.EdgeDocumentError(error.reason),
     ),
     Result.changeContextIf(
       TaggedError.isNot("EdgeDocumentError"),
-      () => new EdgeDocumentError({ _tag: "decode" }),
+      () => new EdgeError.EdgeDocumentError({ _tag: "decode" }),
     ),
   );

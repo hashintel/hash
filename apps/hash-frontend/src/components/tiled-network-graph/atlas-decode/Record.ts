@@ -16,8 +16,11 @@ type UndefinedKeys<T> = {
  * The result of {@link omitUndefined}: keys that admitted `undefined` become optional with `undefined` excluded from their value. `readonly` modifiers are retained.
  */
 export type OmitUndefined<T> = Simplify<
-  Pick<T, Exclude<keyof T, UndefinedKeys<T>>> & {
-    [Key in keyof Pick<T, UndefinedKeys<T>>]?: Exclude<T[Key], undefined>;
+  Pick<T, Exclude<Extract<keyof T, string | number>, UndefinedKeys<T>>> & {
+    [Key in keyof Pick<
+      T,
+      Extract<UndefinedKeys<T>, string | number>
+    >]?: Exclude<T[Key], undefined>;
   }
 >;
 
@@ -38,7 +41,12 @@ export const omitUndefined = <T extends object>(
   const copy: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(record)) {
     if (value !== undefined) {
-      copy[key] = value;
+      Object.defineProperty(copy, key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
     }
   }
   return copy as OmitUndefined<T>;

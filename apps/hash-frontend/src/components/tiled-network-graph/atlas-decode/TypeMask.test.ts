@@ -170,7 +170,7 @@ describe("TypeMask", () => {
       9,
     ).pipe(Result.unwrap);
     expect(column.stride).toBe(2);
-    expect([...column].map((mask) => [...mask.iter()])).toEqual([[0], [8]]);
+    expect([...column].map((mask) => [...mask])).toEqual([[0], [8]]);
     expect(column.at(1).pipe(Result.unwrap).has(8).pipe(Result.unwrap)).toBe(
       true,
     );
@@ -183,7 +183,7 @@ describe("TypeMask", () => {
     ).pipe(Result.unwrap);
     const mask = column.at(0).pipe(Result.unwrap);
     const expected = Array.from({ length: typeCount }, (_, index) => index);
-    expect([...mask.iter()]).toEqual(expected);
+    expect([...mask]).toEqual(expected);
     expect([...mask]).toEqual(expected);
   });
 
@@ -192,7 +192,7 @@ describe("TypeMask", () => {
       Result.unwrap,
     );
     const mask = column.at(0).pipe(Result.unwrap);
-    expect([...mask.iter()]).toEqual([]);
+    expect([...mask]).toEqual([]);
     expect([...mask]).toEqual([]);
   });
 
@@ -202,7 +202,7 @@ describe("TypeMask", () => {
       9,
     ).pipe(Result.unwrap);
     const mask = column.at(0).pipe(Result.unwrap);
-    const first = mask.iter();
+    const first = mask[Symbol.iterator]();
     const second = mask[Symbol.iterator]();
     expect(first.next()).toEqual({ done: false, value: 0 });
     expect(first.next()).toEqual({ done: false, value: 2 });

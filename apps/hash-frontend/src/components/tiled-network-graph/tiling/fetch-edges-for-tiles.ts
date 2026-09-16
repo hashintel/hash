@@ -33,7 +33,6 @@ import * as Function from "../atlas-decode/Function";
 import * as Iterable from "../atlas-decode/Iterable";
 import * as Record from "../atlas-decode/Record";
 import * as Result from "../atlas-decode/Result";
-import { SaltileDetail } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
@@ -43,8 +42,9 @@ import {
 } from "./fetch-tile";
 
 import type * as BinaryEntityId from "../atlas-decode/BinaryEntityId";
+import type * as Detail from "../atlas-decode/Detail";
 import type * as NodeId from "../atlas-decode/NodeId";
-import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
+import type * as TileDocument from "../atlas-decode/TileDocument";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** One decoded edge: its link-entity identity and the node rows it connects. */
@@ -98,7 +98,7 @@ export interface FetchEdgesForTilesOptions {
    * trailer (link labels and type references). Defaults to `"minimal"`. See
    * {@link FetchTileOptions.detail}.
    */
-  readonly detail?: SaltileDetail;
+  readonly detail?: Detail.Detail;
 }
 
 /** The edges route for a session; the variant name addresses it, as for tiles. */
@@ -107,22 +107,22 @@ const edgesUrl = (session: SaltileSession, baseUrl: string): string =>
 
 /** The JSON body: the tile list, plus the detail mode only when auxiliary. */
 const edgesBody = (
-  tiles: readonly AtlasTileCoordinate[],
-  detail: SaltileDetail,
+  tiles: readonly TileDocument.Coordinate[],
+  detail: Detail.Detail,
 ): string =>
   JSON.stringify({
     tiles: tiles.map(({ z, x, y }) => ({ z, x, y })),
-    ...(detail === SaltileDetail.Auxiliary ? { detail } : {}),
+    ...(detail === "auxiliary" ? { detail } : {}),
   });
 
 const fetchAndDecodeEdges = async (
   session: SaltileSession,
-  tiles: readonly AtlasTileCoordinate[],
+  tiles: readonly TileDocument.Coordinate[],
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-  detail: SaltileDetail,
+  detail: Detail.Detail,
 ): Promise<FetchedEdges> => {
   const response = await requestAtlas(
     edgesUrl(session, baseUrl),
@@ -195,17 +195,15 @@ const fetchAndDecodeEdges = async (
  *   payload fails to decode or does not belong to the active generation.
  */
 export const fetchEdgesForTiles = async (
-  tiles: readonly AtlasTileCoordinate[],
-  options: FetchEdgesForTilesOptions = {},
-): Promise<FetchedEdges> => {
-  const {
+  tiles: readonly TileDocument.Coordinate[],
+  {
     baseUrl = ATLAS_API_BASE_URL,
     signal,
     retry,
     priority,
-    detail = SaltileDetail.Minimal,
-  } = options;
-
+    detail = "minimal",
+  }: FetchEdgesForTilesOptions = {},
+): Promise<FetchedEdges> => {
   if (tiles.length === 0) {
     return { edges: [], complete: true };
   }

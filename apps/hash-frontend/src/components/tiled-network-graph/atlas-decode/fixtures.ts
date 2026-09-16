@@ -1,30 +1,42 @@
 /**
- * Reference byte builders for SALTILE fixtures: hand-built responses
- * for decoder tests, and the shape the checked-in goldens grow from.
- * Test support - not exported from the package surface.
+ * Byte builders for decoder tests.
  *
- * CBOR integers and floats are big-endian per RFC 8949; envelope
- * integers and column payloads are little-endian per the wire.
+ * CBOR integers and floats are big-endian. Envelope fields and column payloads are little-endian.
  */
 
-import {
-  DIRECTORY_ENTRY_BYTES,
-  PAYLOAD_ALIGNMENT,
-  PREFIX_BYTES,
-  type SaltileKind,
-} from "./wire";
+import * as Envelope from "./Envelope";
 
-export const cborUint = (value: number, major = 0): number[] => {
+export const cborUint = (value: number | bigint, major = 0): number[] => {
+  if (typeof value === "number" && !Number.isSafeInteger(value)) {
+    throw new RangeError(
+      "use bigint for a CBOR magnitude outside safe integer range",
+    );
+  }
+  const integer = BigInt(value);
+  if (integer < 0n || integer > 0xffff_ffff_ffff_ffffn) {
+    throw new RangeError("CBOR integer magnitude must fit u64");
+  }
+
   const base = major * 32;
-  if (value < 24) {
-    return [base + value];
+  if (integer < 24n) {
+    return [base + Number(integer)];
   }
-  if (value <= 0xff) {
-    return [base + 24, value];
+  if (integer <= 0xffn) {
+    return [base + 24, Number(integer)];
   }
-  const wide = new DataView(new ArrayBuffer(2));
-  wide.setUint16(0, value, false);
-  return [base + 25, ...new Uint8Array(wide.buffer)];
+  if (integer <= 0xffffn) {
+    const bytes = new DataView(new ArrayBuffer(2));
+    bytes.setUint16(0, Number(integer), false);
+    return [base + 25, ...new Uint8Array(bytes.buffer)];
+  }
+  if (integer <= 0xffff_ffffn) {
+    const bytes = new DataView(new ArrayBuffer(4));
+    bytes.setUint32(0, Number(integer), false);
+    return [base + 26, ...new Uint8Array(bytes.buffer)];
+  }
+  const bytes = new DataView(new ArrayBuffer(8));
+  bytes.setBigUint64(0, integer, false);
+  return [base + 27, ...new Uint8Array(bytes.buffer)];
 };
 
 export const cborBstr = (bytes: number[]): number[] => [
@@ -73,24 +85,25 @@ export const u32le = (values: number[]): number[] => {
   return [...new Uint8Array(view.buffer)];
 };
 
-const kindBytes: Record<SaltileKind, number> = {
-  tile: 0x54,
-  edges: 0x45,
-  locate: 0x4c,
-};
+const kinds = {
+  tile: "SALTILET",
+  edges: "SALTILEE",
+  locate: "SALTILEL",
+} as const satisfies Record<string, Envelope.Envelope["kind"]>;
 
 /**
  * Builds one response: prefix, offset directory, payloads sequential
  * in slot order (null = absent slot), optional self-delimiting tail.
  */
 export const buildResponse = (
-  kind: SaltileKind,
+  kind: keyof typeof kinds,
   payloads: (number[] | null)[],
   tail: number[] = [],
 ): ArrayBuffer => {
-  const base = PREFIX_BYTES + payloads.length * DIRECTORY_ENTRY_BYTES;
+  const base =
+    Envelope.PREFIX_BYTES + payloads.length * Envelope.DIRECTORY_ENTRY_BYTES;
   const directory = new DataView(
-    new ArrayBuffer(payloads.length * DIRECTORY_ENTRY_BYTES),
+    new ArrayBuffer(payloads.length * Envelope.DIRECTORY_ENTRY_BYTES),
   );
   const body: number[] = [];
   let cursor = base;
@@ -98,33 +111,24 @@ export const buildResponse = (
     if (payload === null) {
       continue;
     }
-    directory.setUint32(slot * DIRECTORY_ENTRY_BYTES, cursor, true);
+    directory.setUint32(slot * Envelope.DIRECTORY_ENTRY_BYTES, cursor, true);
     directory.setUint32(
-      slot * DIRECTORY_ENTRY_BYTES + 4,
+      slot * Envelope.DIRECTORY_ENTRY_BYTES + 4,
       cursor + payload.length,
       true,
     );
     body.push(...payload);
     cursor += payload.length;
-    while (cursor % PAYLOAD_ALIGNMENT !== 0) {
+    while (cursor % Envelope.PAYLOAD_ALIGNMENT !== 0) {
       body.push(0);
       cursor += 1;
     }
   }
-  const prefix = new DataView(new ArrayBuffer(PREFIX_BYTES));
-  for (const [index, byte] of [
-    0x53,
-    0x41,
-    0x4c,
-    0x54,
-    0x49,
-    0x4c,
-    0x45,
-    kindBytes[kind],
-  ].entries()) {
-    prefix.setUint8(index, byte);
+  const prefix = new DataView(new ArrayBuffer(Envelope.PREFIX_BYTES));
+  for (const [index, character] of [...kinds[kind]].entries()) {
+    prefix.setUint8(index, character.charCodeAt(0));
   }
-  prefix.setUint16(8, 1, true);
+  prefix.setUint16(8, Envelope.SALTILE_WIRE_VERSION, true);
   prefix.setUint16(12, payloads.length, true);
   return new Uint8Array([
     ...new Uint8Array(prefix.buffer),

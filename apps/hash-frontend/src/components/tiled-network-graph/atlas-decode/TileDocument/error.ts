@@ -5,9 +5,10 @@ import type * as CborPrimitive from "../CborPrimitive";
 import type * as Decoder from "../Decoder";
 import type * as Envelope from "../Envelope";
 import type * as GenerationId from "../GenerationId";
+import type * as Head from "./head";
 
 /** Document sections that group independent validation failures. */
-export type Section = "slot" | "columns" | "head" | "trailer";
+export type Section = "slot" | "columns" | "head" | "trailer" | "request";
 
 /** Invalid tile metadata, missing payloads, or columns the head does not describe. */
 export type TileDocumentErrorReason =
@@ -42,6 +43,26 @@ export type TileDocumentErrorReason =
       readonly _tag: "invalid-context";
       readonly field: string;
       readonly value: number;
+    }
+  | {
+      readonly _tag: "generation-mismatch";
+      readonly expected: GenerationId.GenerationId;
+      readonly actual: GenerationId.GenerationId;
+    }
+  | {
+      readonly _tag: "variant-mismatch";
+      readonly expected: Decoder.U64;
+      readonly actual: Decoder.U64;
+    }
+  | {
+      readonly _tag: "mode-mismatch";
+      readonly expected: Head.Mode;
+      readonly actual: Head.Mode;
+    }
+  | {
+      readonly _tag: "coordinate-mismatch";
+      readonly expected: Head.Coordinate;
+      readonly actual: Head.Coordinate;
     }
   /** Independent failures retained as an aggregate in the section error's cause. */
   | { readonly _tag: "section"; readonly section: Section }
@@ -81,6 +102,18 @@ export class TileDocumentError extends TaggedError.TaggedError<
       case "invalid-context":
         message = `${reason.field} must be a nonnegative safe integer, received ${reason.value}`;
         break;
+      case "generation-mismatch":
+        message = `expected generation ${reason.expected}, received ${reason.actual}`;
+        break;
+      case "variant-mismatch":
+        message = `expected variant ${reason.expected}, received ${reason.actual}`;
+        break;
+      case "mode-mismatch":
+        message = `expected mode ${reason.expected}, received ${reason.actual}`;
+        break;
+      case "coordinate-mismatch":
+        message = `expected coordinate ${reason.expected.z}/${reason.expected.x}/${reason.expected.y}, received ${reason.actual.z}/${reason.actual.x}/${reason.actual.y}`;
+        break;
       case "section":
         message = `${reason.section} checks failed`;
         break;
@@ -90,6 +123,46 @@ export class TileDocumentError extends TaggedError.TaggedError<
     }
 
     super("TileDocumentError", reason, message, options);
+  }
+
+  static generationMismatch(
+    expected: GenerationId.GenerationId,
+    actual: GenerationId.GenerationId,
+  ): TileDocumentError {
+    return new TileDocumentError({
+      _tag: "generation-mismatch",
+      expected,
+      actual,
+    });
+  }
+
+  static variantMismatch(
+    expected: Decoder.U64,
+    actual: Decoder.U64,
+  ): TileDocumentError {
+    return new TileDocumentError({
+      _tag: "variant-mismatch",
+      expected,
+      actual,
+    });
+  }
+
+  static modeMismatch(
+    expected: Head.Mode,
+    actual: Head.Mode,
+  ): TileDocumentError {
+    return new TileDocumentError({ _tag: "mode-mismatch", expected, actual });
+  }
+
+  static coordinateMismatch(
+    expected: Head.Coordinate,
+    actual: Head.Coordinate,
+  ): TileDocumentError {
+    return new TileDocumentError({
+      _tag: "coordinate-mismatch",
+      expected,
+      actual,
+    });
   }
 
   static rejected(section: Section): TileDocumentError {

@@ -298,6 +298,18 @@ export const fromNullable: {
     value === null || value === undefined ? err(onNull()) : ok(value),
 );
 
+/** Rejects undefined while retaining null and every other value. */
+export const fromUndefined: {
+  <E>(onUndefined: () => E): <T>(value: T) => Result<Exclude<T, undefined>, E>;
+  <T, E>(value: T, onUndefined: () => E): Result<Exclude<T, undefined>, E>;
+} = dual(
+  2,
+  <T, E>(value: T, onUndefined: () => E): Result<Exclude<T, undefined>, E> =>
+    value === undefined
+      ? err(onUndefined())
+      : ok(value as Exclude<T, undefined>),
+);
+
 /** Throws the error if the result is an error, otherwise returns the value. */
 export const unwrap = <T, E extends Error>(result: Result<T, E>): T =>
   result._tag === "ok"
