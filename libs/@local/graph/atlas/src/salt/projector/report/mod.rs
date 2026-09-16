@@ -8,7 +8,7 @@
 
 #[expect(
     dead_code,
-    reason = "the replay report's CLI adapter is unbuilt; the commit registering that subcommand \
-              consumes this module and deletes this expectation"
+    reason = "no CLI subcommand consumes the replay report, and nothing else in the crate reaches \
+              this module"
 )]
 pub(crate) mod replay;

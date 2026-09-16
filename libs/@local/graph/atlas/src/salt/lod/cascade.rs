@@ -14,7 +14,7 @@ use hashql_core::{
 
 use super::rank::Ranking;
 use crate::{
-    identity::ImportanceRank,
+    math::Log2,
     morton::{Depth, MortonKey},
 };
 
@@ -70,7 +70,8 @@ pub(crate) fn buckets<R: Id>(
     // the same invariant. Therefore one pass per depth suffices to preserve coverage and one
     // delivered representative per cell below the catch-all.
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         seen.clear();
         for &row in ranking.row_of_rank.iter() {
@@ -115,10 +116,10 @@ pub(crate) fn buckets<R: Id>(
 /// result and scratch storage. Each point enters and leaves the stack at most once. Sorting the
 /// input is a separate cost.
 #[must_use]
-pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
+pub(crate) fn separation_buckets_in<T, P: Ord, A: Allocator, S: Allocator>(
     points: &[T],
     key: impl Fn(&T) -> MortonKey,
-    rank: impl Fn(&T) -> ImportanceRank,
+    rank: impl Fn(&T) -> P,
     alloc: A,
     scratch: S,
 ) -> Box<[Depth], A> {
@@ -129,7 +130,8 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
         "the points must ascend by (key, rank)",
     );
 
-    let separation = |left: &T, right: &T| key(left).shared_depth(key(right)).saturating_add(1);
+    let separation =
+        |left: &T, right: &T| key(left).shared_depth(key(right)).saturating_add(Log2::ONE);
 
     // The stack holds the points whose nearest better-ranked right neighbour is still unseen, ranks
     // ascending from bottom to top. The point that pops an entry is that neighbour, and
@@ -168,10 +170,10 @@ pub(crate) fn separation_buckets_in<T, A: Allocator, S: Allocator>(
 /// Uses the global allocator for both output and scratch storage. Input requirements and the bucket
 /// formula are those of [`separation_buckets_in`].
 #[must_use]
-pub(crate) fn separation_buckets<T>(
+pub(crate) fn separation_buckets<T, P: Ord>(
     points: &[T],
     key: impl Fn(&T) -> MortonKey,
-    rank: impl Fn(&T) -> ImportanceRank,
+    rank: impl Fn(&T) -> P,
 ) -> Box<[Depth]> {
     separation_buckets_in(points, key, rank, Global, Global)
 }
@@ -203,7 +205,7 @@ pub(crate) struct CoverageGap {
 #[cfg(any(test, feature = "bench"))]
 #[expect(
     clippy::panic_in_result_fn,
-    reason = "mismatched row counts are a programmer error, not a coverage gap"
+    reason = "mismatched row counts violate the assignment's input contract"
 )]
 pub(crate) fn verify_coverage<R: Id>(
     keys: &IdSlice<R, MortonKey>,
@@ -220,7 +222,8 @@ pub(crate) fn verify_coverage<R: Id>(
 
     let mut covered = HashSet::new();
     for depth in 0..=deepest.get() {
-        let depth = Depth::new(depth).expect("every depth at or below `deepest` is a valid depth");
+        let depth =
+            Depth::try_new(depth).expect("every depth at or below `deepest` is a valid depth");
 
         covered.clear();
         covered.extend(

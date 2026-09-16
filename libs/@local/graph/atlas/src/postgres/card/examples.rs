@@ -785,15 +785,20 @@ fn example_statement<'params>(
     BoundStatement::new(&statement, binder, columns)
 }
 
-// A window count includes the row it annotates, so the value is at least
-// 1 and the fallback never fires.
-fn frequency(value: i64) -> u64 {
+/// Reads a window count back as an unsigned frequency.
+///
+/// The conversion accepts any `i64`. A non-negative value, including zero, converts to itself.
+/// A negative value falls back to `1`. A window `COUNT` always includes the row it annotates:
+/// its result is at least `1`, and at this call site the fallback never fires.
+const fn frequency(value: i64) -> u64 {
     u64::try_from(value).unwrap_or(1)
 }
 
-// The bound rides to Postgres as a bigint; a configuration large enough
-// to overflow it saturates to "no bound".
-fn pool_bound(count: usize, factor: usize) -> i64 {
+/// Sizes the candidate pool a query draws examples from.
+///
+/// The query binds the bound to Postgres as a bigint. A configuration large enough
+/// to overflow it saturates to "no bound".
+const fn pool_bound(count: usize, factor: usize) -> i64 {
     i64::try_from(count.saturating_mul(factor)).unwrap_or(i64::MAX)
 }
 

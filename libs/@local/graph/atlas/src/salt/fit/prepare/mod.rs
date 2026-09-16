@@ -28,8 +28,11 @@ pub(crate) mod identity;
 pub(crate) mod instance;
 pub(crate) mod norm;
 
+mod provider;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::provider::IdentityProvider;
 
 /// Writing the node representation matrix failed.
 #[derive(Debug)]

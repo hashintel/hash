@@ -11,20 +11,27 @@
 //! memo records row identities. Payload bytes resolve at read time against the table that owns
 //! them.
 
+#[cfg(test)]
+use hashql_core::id::bit_vec::RowRef;
 use hashql_core::id::{
     Id as _, IdVec,
-    bit_vec::{BitMatrix, RowRef},
+    bit_vec::{BitMatrix, BitRelations as _},
 };
 
-use crate::{identity::OntologyRowId, salt::postings::artifact::PostingsArchive};
+use super::artifact::Membership;
+use crate::{
+    bitset::DenseBitSlice,
+    identity::{BasePosition, OntologyRowId},
+    salt::postings::artifact::PostingsArchive,
+};
 
 /// A cycle preventing a children-first ordering of the parent graph.
 ///
 /// Type inheritance requires an acyclic parent graph. This error reports a cycle in the supplied
 /// parent edges.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ParentCycle {
-    /// Types entangled in cycles: every type whose descendant set never settled.
+pub(crate) struct ParentCycle {
+    /// Types whose descendant sets never settled: cycle members and all of their ancestors.
     pub entangled: u64,
 }
 
@@ -60,8 +67,10 @@ pub(crate) struct IconSource {
 /// resolves the memoized icon ancestor.
 #[derive(Debug, Clone)]
 pub(crate) struct ClosureMap {
+    /// Reflexive descendant reachability for each ontology row.
     bits: BitMatrix<OntologyRowId, OntologyRowId>,
     icon_sources: IdVec<OntologyRowId, Option<IconSource>>,
+    memberships: IdVec<OntologyRowId, Option<Box<DenseBitSlice<BasePosition>>>>,
 }
 
 impl ClosureMap {
@@ -172,18 +181,54 @@ impl ClosureMap {
             icon_sources[r#type] = best;
         }
 
-        Ok(Self { bits, icon_sources })
+        let mut memberships = IdVec::new();
+        for r#type in bits.rows() {
+            let row = bits.row(r#type);
+            if row.count() == 1 {
+                continue;
+            }
+
+            let mut membership = DenseBitSlice::new_empty(
+                usize::try_from(postings.points())
+                    .expect("resident point domains should fit usize"),
+            );
+            for col in row {
+                match postings
+                    .membership(col)
+                    .expect("membership should be available")
+                {
+                    Membership::List(base_positions) => {
+                        for &position in base_positions {
+                            membership.insert(position);
+                        }
+                    }
+                    Membership::Dense(direct) => {
+                        membership.union(direct);
+                    }
+                }
+            }
+
+            memberships.insert(r#type, membership);
+        }
+
+        Ok(Self {
+            bits,
+            icon_sources,
+            memberships,
+        })
     }
 
     /// Returns the type domain `T`.
     #[inline]
     #[must_use]
+    #[cfg(test)] // The postings tests check the derived domain against the fixture.
     pub(crate) const fn types(&self) -> usize {
         self.bits.row_domain_size()
     }
 
     /// Borrows `type_row`'s descendant row, when the row is in domain.
     #[must_use]
+    #[cfg(test)] // The postings tests verify the derivation against hand-derived descendant rows.
     pub(crate) fn descendants(&self, type_row: OntologyRowId) -> Option<RowRef<'_, OntologyRowId>> {
         (type_row.as_usize() < self.bits.row_domain_size()).then(|| self.bits.row(type_row))
     }
@@ -193,8 +238,19 @@ impl ClosureMap {
     /// Returns [`None`] outside the type domain or for an icon-free cone. Equal-depth candidates
     /// resolve to the earlier parent in the artifact's ascending-row parent order.
     #[must_use]
-    pub(crate) const fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
-        self.icon_sources[type_row]
+    pub(crate) fn icon_source(&self, type_row: OntologyRowId) -> Option<IconSource> {
+        self.icon_sources.lookup(type_row).copied()
+    }
+
+    /// Borrows the base positions of every instance of `type_row` or of a type descending from it.
+    ///
+    /// Returns [`None`] outside the type domain and for a type whose only descendant is itself,
+    /// whose instances the postings' direct membership already names.
+    pub(crate) fn membership(
+        &self,
+        type_row: OntologyRowId,
+    ) -> Option<&DenseBitSlice<BasePosition>> {
+        self.memberships.lookup(type_row).map(|slice| &**slice)
     }
 
     /// Returns whether `descendant` descends from `ancestor` (a type descends from itself).

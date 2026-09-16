@@ -24,8 +24,6 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
     Debug,
     Copy,
     Clone,
-    PartialEq,
-    Eq,
     PartialOrd,
     Ord,
     serde::Serialize,
@@ -41,38 +39,52 @@ const DIGEST_BYTES: usize = <sha2::Sha256 as sha2::digest::OutputSizeUser>::Outp
 #[serde(transparent)]
 #[schemars(transparent)]
 #[repr(transparent)]
-pub struct Sha256Digest(HexBytes<DIGEST_BYTES>);
+pub(crate) struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 
 // byte arrays have identical representations on little- and big-endian targets.
 crate::dataset::offline::portable::self_archived!(Sha256Digest);
 
 impl Sha256Digest {
-    /// The digest width, bytes.
-    pub const BYTES: usize = DIGEST_BYTES;
-
     /// Adopts `bytes` as a digest without computing anything.
     ///
     /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this
     /// value names. This constructor cannot verify that.
     #[must_use]
     #[inline]
-    pub const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
+    #[cfg(test)] // document codec tests need digests with chosen byte patterns.
+    pub(crate) const fn from_bytes_unchecked(bytes: [u8; DIGEST_BYTES]) -> Self {
         Self(HexBytes::new(bytes))
     }
 
     /// Returns the raw SHA-256 bytes.
     #[must_use]
     #[inline]
-    pub const fn to_bytes(self) -> [u8; DIGEST_BYTES] {
+    pub(crate) const fn to_bytes(self) -> [u8; DIGEST_BYTES] {
         self.0.into_inner()
     }
 
-    pub fn of(value: impl AsRef<[u8]>) -> Self {
+    /// Returns the SHA-256 of `value`'s bytes, computed in one pass.
+    #[must_use]
+    pub(crate) fn of(value: impl AsRef<[u8]>) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(value.as_ref());
         hasher.finalize()
     }
 }
+
+const impl PartialEq for Sha256Digest {
+    /// Compares the two digests' bytes.
+    ///
+    /// The impl is manual and `const` so that a const context - a compile-time manifest check,
+    /// say - can compare digests. It is not a constant-time comparison, which a digest does not
+    /// need: it names public content rather than guarding a secret.
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+const impl Eq for Sha256Digest {}
 
 impl fmt::Display for Sha256Digest {
     #[inline]

@@ -16,7 +16,7 @@ use rand_xoshiro::Xoshiro256PlusPlus;
 use super::{AnchorRowId, ControlMovement, Movement, MovementError, PairMovement};
 use crate::{
     identity::NodeRowId,
-    math::{DNonNegative, FinitePointField, KdTree, Vec2, d_non_negative},
+    math::{DNonNegative, FinitePointField, KdTree, Vec2, d_non_negative, nz},
     salt::ladder::paired::fixtures::frame,
 };
 
@@ -139,12 +139,8 @@ fn an_exact_distance_tie_resolves_by_row_identity() {
         Vec2::new(0.0, 1.0),
         Vec2::new(1.0, 0.0),
     ];
-    let movement = Movement::new(
-        frame(&points),
-        frame(&points),
-        NonZero::new(2).expect("two is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&points), frame(&points), nz!(2))
+        .expect("the frames are finite and equal");
     let scratch = Scratch::new();
 
     // row 1 breaks the distance tie ahead of partner 2. Reversing the partners excludes that
@@ -191,12 +187,8 @@ fn a_partner_outside_one_step_ranks_over_the_union_domain() {
         Vec2::new(0.5, 0.0),
         Vec2::new(9.0, 9.0),
     ];
-    let movement = Movement::new(
-        frame(&zero),
-        frame(&canonical),
-        NonZero::new(2).expect("two is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&zero), frame(&canonical), nz!(2))
+        .expect("the frames are finite and equal");
     let scratch = Scratch::new();
 
     assert_eq!(
@@ -225,12 +217,8 @@ fn a_partner_outside_one_step_ranks_over_the_union_domain() {
 fn control_readings_are_displacement_and_anchor_proximity() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 4.0)];
     let canonical = [Vec2::new(0.0, 0.0), Vec2::new(3.0, 16.0)];
-    let movement = Movement::new(
-        frame(&zero),
-        frame(&canonical),
-        NonZero::new(1).expect("one is nonzero"),
-    )
-    .expect("the frames are finite and equal");
+    let movement = Movement::new(frame(&zero), frame(&canonical), nz!(1))
+        .expect("the frames are finite and equal");
 
     let anchor_frame = [Vec2::new(0.0, 0.0), Vec2::new(10.0, 0.0)];
     let anchors = KdTree::build(FinitePointField::new_unchecked(
@@ -251,7 +239,7 @@ fn control_readings_are_displacement_and_anchor_proximity() {
 fn mismatched_rows() {
     let zero = [Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0)];
     let short = [Vec2::new(0.0, 0.0)];
-    let k = NonZero::new(1).expect("one is nonzero");
+    let k = nz!(1);
 
     assert_eq!(
         Movement::new(frame(&zero), frame(&short), k).expect_err("the row counts disagree"),

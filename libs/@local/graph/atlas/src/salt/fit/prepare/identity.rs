@@ -23,15 +23,21 @@
 //! [`Dataset::EdgeId`]: crate::dataset::Dataset::EdgeId
 
 use core::{error::Error, fmt, marker::PhantomData};
-use std::io;
+use std::{io, path::Path};
 
 use fst::Streamer as _;
 use hashql_core::id::{IdSlice, IdVec};
 use zerocopy::{FromBytes as _, TryFromBytes as _};
 
+use super::IdentityProvider;
 use crate::{
-    file::identity::{
-        Key, KeyKind, Kind, PayloadSpan, Row, read::IdentityFile, write::write_regions,
+    file::{
+        ArtifactFile,
+        identity::{
+            Key, KeyKind, Kind, PayloadSpan, Row,
+            read::{IdentityFile, OpenIdentityError},
+            write::write_regions,
+        },
     },
     integrity::{Sha256, Sha256Digest, Writer},
 };
@@ -104,7 +110,7 @@ where
 
 /// A structurally valid identity file whose contents violate the table's domain invariants.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum InvalidIdentityFile {
+pub(crate) enum InvalidIdentityFile {
     /// The file covers a different row domain.
     Domain { expected: Kind, actual: Kind },
     /// The file's key kind is not the id type's.
@@ -166,7 +172,51 @@ impl fmt::Display for InvalidIdentityFile {
 
 impl Error for InvalidIdentityFile {}
 
-/// A written identity table reopened as its mapped lookup surface.
+/// Opening a written identity table as its typed lookup surface failed.
+#[derive(Debug)]
+pub(crate) enum OpenIdentityTableArchiveError {
+    /// The identity file failed to open.
+    Open(OpenIdentityError),
+    /// The file violates the table's domain invariants.
+    Invalid(InvalidIdentityFile),
+}
+
+const impl From<InvalidIdentityFile> for OpenIdentityTableArchiveError {
+    fn from(error: InvalidIdentityFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+const impl From<OpenIdentityError> for OpenIdentityTableArchiveError {
+    fn from(error: OpenIdentityError) -> Self {
+        Self::Open(error)
+    }
+}
+
+impl fmt::Display for OpenIdentityTableArchiveError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the identity file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(
+                    fmt,
+                    "the identity file violates the table's domain invariants: {error}"
+                )
+            }
+        }
+    }
+}
+
+impl Error for OpenIdentityTableArchiveError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
+/// A validated, memory-mapped mapping between source identities and rows.
 ///
 /// Construction validates the identity bijection and payload spans. The source identity type is
 /// `K`, and `R` is the row domain.
@@ -175,6 +225,22 @@ pub(crate) struct IdentityTableArchive<K, R> {
     file: IdentityFile,
     id: PhantomData<K>,
     row: PhantomData<R>,
+}
+
+impl<K, R> ArtifactFile for IdentityTableArchive<K, R>
+where
+    K: Key,
+    R: Row,
+{
+    type Error = OpenIdentityTableArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let file = IdentityFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
 }
 
 impl<K, R> IdentityTableArchive<K, R>
@@ -211,7 +277,7 @@ where
             row: PhantomData,
         };
 
-        let ids = table.ids().as_raw();
+        let ids = table.keys().as_raw();
         let index = table.file.index();
         if index.len() as u64 != table.file.rows() {
             return Err(InvalidIdentityFile::IndexSize {
@@ -256,7 +322,7 @@ where
 
     /// Views the id column, in row order.
     #[must_use]
-    pub(crate) fn ids(&self) -> &IdSlice<R, K> {
+    pub(crate) fn keys(&self) -> &IdSlice<R, K> {
         IdSlice::from_raw(
             <[K]>::ref_from_bytes(self.file.keys())
                 .expect("open validated the key kind and `K` is unaligned"),
@@ -275,24 +341,50 @@ where
         self.file.rows()
     }
 
-    /// Returns the id of `row`, or [`None`] beyond the domain.
-    #[must_use]
-    pub(crate) fn id(&self, row: R) -> Option<K> {
-        self.ids().get(row).copied()
+    /// Iterates the rows carrying a non-empty display payload, in row order.
+    pub(crate) fn displayed_rows(&self) -> impl Iterator<Item = R> {
+        self.spans()
+            .iter_enumerated()
+            .filter(|&(_, span)| span.length() > 0)
+            .map(|(row, _)| row)
+    }
+}
+
+impl<K, R> IdentityProvider<K, R> for IdentityTableArchive<K, R>
+where
+    K: Key,
+    R: Row,
+{
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
+    )]
+    #[inline]
+    fn count(&self) -> usize {
+        self.len() as usize
     }
 
-    /// Returns the row carrying `id`, or [`None`] when no row does.
-    #[must_use]
-    pub(crate) fn row_of(&self, id: K) -> Option<R> {
-        self.file.index().get(id.as_bytes()).map(R::from_u64)
+    #[inline]
+    fn key_of(&self, row: R) -> Option<K> {
+        self.keys().get(row).copied()
+    }
+
+    #[inline]
+    fn row_of(&self, key: K) -> Option<R> {
+        self.file.index().get(key.as_bytes()).map(R::from_u64)
+    }
+
+    #[inline]
+    fn payload_of_key(&self, key: K) -> Option<&<K as Key>::Payload> {
+        let key = self.row_of(key)?;
+        self.payload_of_row(key)
     }
 
     #[expect(
         clippy::cast_possible_truncation,
         reason = "`Self::new` bounded every span by the payload region, whose length is a `usize`"
     )]
-    #[must_use]
-    pub(crate) fn payload_of(&self, row: R) -> Option<&K::Payload> {
+    fn payload_of_row(&self, row: R) -> Option<&<K as Key>::Payload> {
         let span = self.spans().get(row)?;
         let offset = span.offset() as usize;
         let length = span.length() as usize;
@@ -302,14 +394,6 @@ where
         // otherwise, and the mapped file is immutable under the `crate::file` publish contract.
         // Therefore the bytes validated there are the bytes sliced here.
         Some(unsafe { <K::Payload>::try_ref_from_bytes(bytes).unwrap_unchecked() })
-    }
-
-    /// Iterates the rows carrying a non-empty display payload, in row order.
-    pub(crate) fn displayed_rows(&self) -> impl Iterator<Item = R> {
-        self.spans()
-            .iter_enumerated()
-            .filter(|&(_, span)| span.length() > 0)
-            .map(|(row, _)| row)
     }
 }
 
@@ -329,12 +413,14 @@ mod tests {
             memory::{MemoryNodeId, MemoryOntologyId},
         },
         file::{
+            ArtifactFile as _,
             identity::{FileHeader, KeyKind, Kind, PaddedFileHeader, read::IdentityFile},
             region::write_region,
         },
         identity::{NodeRowId, OntologyRowId},
         integrity::Sha256Digest,
         postgres::id::ArchivedOntologyTypeUuid,
+        salt::fit::prepare::IdentityProvider as _,
     };
 
     /// A per-test scratch file path under the system temp directory.
@@ -388,7 +474,7 @@ mod tests {
     /// `row_of` with misses answering `None`, and `payload_of_row` slices the interned region
     /// including the empty label.
     #[test]
-    fn written_table_reopens_with_all_three_translations() {
+    fn lookup_translations() {
         let (path, digest) = written_fixture("roundtrip.idnt");
 
         // The digest is the digest of the written bytes.
@@ -405,31 +491,31 @@ mod tests {
         // row → id → row round-trips for every row, and misses answer `None`.
         for (position, id) in IDS.iter().enumerate() {
             let row = NodeRowId::new(position as u64);
-            assert_eq!(table.id(row), Some(*id));
+            assert_eq!(table.key_of(row), Some(*id));
             assert_eq!(table.row_of(*id), Some(row));
         }
-        assert_eq!(table.id(NodeRowId::new(3)), None);
+        assert_eq!(table.key_of(NodeRowId::new(3)), None);
         assert_eq!(table.row_of(MemoryNodeId::new(0)), None);
 
         // row → payload slices the interned region, the empty label included.
         assert_eq!(
-            table.payload_of(NodeRowId::new(0)),
+            table.payload_of_row(NodeRowId::new(0)),
             Some(legend("beta").as_ref())
         );
         assert_eq!(
-            table.payload_of(NodeRowId::new(1)),
+            table.payload_of_row(NodeRowId::new(1)),
             Some(legend("alpha").as_ref())
         );
         assert_eq!(
-            table.payload_of(NodeRowId::new(2)),
+            table.payload_of_row(NodeRowId::new(2)),
             Some(legend("").as_ref())
         );
-        assert_eq!(table.payload_of(NodeRowId::new(3)), None);
+        assert_eq!(table.payload_of_row(NodeRowId::new(3)), None);
     }
 
     /// An empty table writes, reopens with zero rows, and answers `None` for any lookup.
     #[test]
-    fn empty_table_round_trips() {
+    fn roundtrip_empty() {
         let table = IdentityTable::<OntologyRowId, MemoryOntologyId>::new();
         let mut bytes = Vec::new();
         let _digest = table
@@ -450,7 +536,7 @@ mod tests {
     /// Writing a table in which two rows carry one key panics with the documented message.
     #[test]
     #[should_panic(expected = "two rows carry one key")]
-    fn table_refuses_duplicate_ids_at_write() {
+    fn write_duplicate_ids() {
         let mut table = IdentityTable::<NodeRowId, _>::new();
         table.push(MemoryNodeId::new(7));
         table.push(MemoryNodeId::new(7));
@@ -464,8 +550,8 @@ mod tests {
     /// Six hundred ids whose byte order differs from their value order write and look up correctly
     /// in both directions, with a miss beyond the domain answering `None`.
     #[test]
-    fn lookups_hold_at_six_hundred_rows() {
-        // Little-endian bytes of 0..600 sort unlike the values, so the write path's ordering
+    fn lookups_nonmonotone_large_domain() {
+        // Little-endian bytes of 0..600 sort unlike the values. The write path's ordering
         // and the index lookups both face a non-monotone id column.
         let mut table = IdentityTable::<NodeRowId, _>::new();
         for id in 0..600_u64 {
@@ -491,14 +577,17 @@ mod tests {
                 Some(NodeRowId::new(row)),
                 "row {row}"
             );
-            assert_eq!(table.id(NodeRowId::new(row)), Some(MemoryNodeId::new(row)));
+            assert_eq!(
+                table.key_of(NodeRowId::new(row)),
+                Some(MemoryNodeId::new(row))
+            );
         }
         assert_eq!(table.row_of(MemoryNodeId::new(600)), None);
     }
 
     /// Opening a node table as an ontology table fails with `Domain` naming both kinds.
     #[test]
-    fn archive_refuses_a_foreign_row_domain() {
+    fn archive_foreign_row_domain() {
         let (path, _digest) = written_fixture("foreign-domain.idnt");
 
         assert_matches!(
@@ -514,7 +603,7 @@ mod tests {
 
     /// Opening a `u64` keyed table under a UUID key type fails with `KeyKind` naming both kinds.
     #[test]
-    fn archive_refuses_a_foreign_id_type() {
+    fn archive_foreign_id_type() {
         let (path, _digest) = written_fixture("foreign-id.idnt");
 
         assert_matches!(
@@ -533,7 +622,7 @@ mod tests {
     /// Moving a byte of the id column under an intact index fails the open with
     /// `ColumnDisagreement` naming the row.
     #[test]
-    fn archive_refuses_a_disagreeing_id_column() {
+    fn archive_disagreeing_id_column() {
         let (path, _digest) = written_fixture("disagreeing-column.idnt");
 
         // Row 0's first column byte moves under the index: the file stays structurally valid
@@ -555,7 +644,7 @@ mod tests {
     /// A span whose length overreaches the payload region fails the open with `SpanOutOfBounds`
     /// naming the row.
     #[test]
-    fn archive_refuses_a_span_beyond_the_payload() {
+    fn archive_span_out_of_bounds() {
         let (path, _digest) = written_fixture("overreaching-span.idnt");
 
         // Three eight-byte ids pad to one region unit each for column and index. The span
@@ -574,7 +663,7 @@ mod tests {
 
     /// A label byte no UTF-8 sequence contains fails the typed open with `Payload` naming the row.
     #[test]
-    fn archive_refuses_a_payload_that_is_not_utf8() {
+    fn archive_invalid_utf8_payload() {
         let (path, _digest) = written_fixture("invalid-payload.idnt");
 
         // The payload region starts at 0x4000 and row 0's span selects its first twelve bytes:
@@ -597,7 +686,7 @@ mod tests {
     /// A hand-built file whose index holds fewer entries than its rows fails the typed open with
     /// `IndexSize` carrying both counts.
     #[test]
-    fn archive_refuses_an_index_missing_a_row() {
+    fn archive_missing_index_row() {
         // Hand-crafted geometry the writer refuses to produce: two rows whose index carries one
         // entry. The format accepts it, and the typed open is what refuses.
         let keys = [U64::<LE>::new(1), U64::<LE>::new(2)];

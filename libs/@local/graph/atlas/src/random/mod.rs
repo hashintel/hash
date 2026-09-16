@@ -221,8 +221,7 @@ pub(crate) fn acceptance_sample_size(
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the ratio of two negative logarithms is strictly positive and finite, and the \
-                  saturating float-to-integer conversion is the narrowing itself"
+        reason = "deliberately saturate the rounded floating-point budget to the usize range"
     )]
     let samples = samples as usize;
 

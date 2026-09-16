@@ -57,6 +57,7 @@ use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     device::PhysicalDevice,
     file::{
+        ArtifactFile as _,
         array::ArrayFile,
         attraction::read::AttractionFile,
         generation::{GenerationId, GenerationRoot},
@@ -359,7 +360,7 @@ impl<'source> LadderSources<'source> {
         let PlacementOptions::Projector(options) =
             &repository.metadata.reproducibility.config.placement
         else {
-            panic!("the generation placed rows by landmark baseline; no ladder exists to read");
+            panic!("ladder reporting requires projector placement");
         };
 
         let evidence = repository
@@ -370,7 +371,7 @@ impl<'source> LadderSources<'source> {
             .expect("a projector placement records its training evidence")
             .ladder
             .as_ref()
-            .expect("the corpus carries relation force; a forceless ladder never publishes");
+            .expect("should contain recorded ladder evidence for reporting");
 
         let schedule = options.ladder.conditions.values();
         assert_eq!(

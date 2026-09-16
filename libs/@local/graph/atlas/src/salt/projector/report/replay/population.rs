@@ -55,7 +55,7 @@ hashql_core::id::newtype! {
 }
 
 /// One stable identity's rows in both generations.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(super) struct StablePair {
     /// The identity's earlier-generation row.
     pub earlier_row: NodeRowId,
@@ -79,7 +79,7 @@ pub(super) struct Populations {
 ///
 /// The representative is the class's lowest-later-row member: a deterministic rule, independent
 /// of any draw.
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(super) struct StableClass {
     /// The representative member's rows.
     pub representative: StablePair,

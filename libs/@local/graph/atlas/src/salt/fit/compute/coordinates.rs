@@ -6,6 +6,7 @@ use hashql_core::id::IdSlice;
 
 use crate::{
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, OpenArrayError},
         generation::StagedGeneration,
         repository::Binding,

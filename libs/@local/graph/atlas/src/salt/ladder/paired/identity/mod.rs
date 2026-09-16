@@ -155,8 +155,7 @@ impl DrawRule {
     /// Returns [`EncodeError`] for serialization or output-write failure.
     #[expect(
         clippy::unused_self,
-        reason = "the receiver is the recognition proof: only `RuleIdentity::recognize` mints it, \
-                  and a later identity's dispatch consumes it"
+        reason = "the receiver limits these operations to a recognized draw rule"
     )]
     fn write_preimage(
         self,
@@ -211,8 +210,7 @@ impl DrawRule {
     /// subject families.
     #[expect(
         clippy::unused_self,
-        reason = "the receiver is the recognition proof: only `RuleIdentity::recognize` mints it, \
-                  and a later identity's dispatch consumes it"
+        reason = "the receiver limits these operations to a recognized draw rule"
     )]
     #[must_use]
     fn order_key(self, salt: DrawSalt, subject: &[u8]) -> OrderKey {

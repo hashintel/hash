@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::num::NonZero;
+use core::assert_matches;
 use std::{collections::HashMap, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -23,7 +23,7 @@ use super::{
 use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN, unit_fraction},
+    math::{AlignedVecN, BoxedVecN, nz, unit_fraction},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     progress::NoProgress,
     salt::{
@@ -32,14 +32,14 @@ use crate::{
     },
 };
 
-/// A nonzero literal, checked at compile time.
-macro_rules! nz {
-    ($value:expr) => {
-        const { NonZero::new($value).expect("the literal is nonzero") }
-    };
-}
-
-/// A fresh per-test dump directory under the system temp directory.
+/// Returns the dump path for `name` after attempting to remove its directory.
+///
+/// Relative names resolve against a process-specific path under the system temporary directory. A
+/// failed removal can leave existing contents in place. This helper creates no directory.
+///
+/// # Panics
+///
+/// Panics if the system temporary directory's path is not UTF-8.
 fn scratch(name: &str) -> Utf8PathBuf {
     let directory = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the system temp path is UTF-8")
@@ -79,7 +79,7 @@ fn vector<const N: usize>(seed: u8) -> BoxedVecN<N> {
 /// Asserts that a served embedding borrows its bytes from inside one stream file's mapping.
 #[expect(
     clippy::ptr_arg,
-    reason = "the assertion discriminates the Cow's arms, so the Cow itself is the subject"
+    reason = "the assertion discriminates the Cow's arms: the Cow itself is the subject"
 )]
 #[track_caller]
 fn assert_borrowed_from<const N: usize>(map: &[u8], embedding: &Cow<'_, AlignedVecN<N>>) {
@@ -750,15 +750,13 @@ async fn open_refuses_a_tampered_stream() {
 
     let error =
         OfflineDataset::open(&directory).expect_err("a tampered stream must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::Digest {
-                kind: StreamKind::Nodes,
-                ..
-            },
-        ),
-        "the refusal names the tampered stream: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::Digest {
+            kind: StreamKind::Nodes,
+            ..
+        },
+        "the refusal names the tampered stream: {error}"
     );
 }
 
@@ -790,15 +788,13 @@ async fn open_refuses_a_defective_archive() {
 
     let error =
         OfflineDataset::open(&directory).expect_err("a defective archive must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::Archive {
-                kind: StreamKind::Nodes,
-                ..
-            },
-        ),
-        "the refusal names the defective stream: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::Archive {
+            kind: StreamKind::Nodes,
+            ..
+        },
+        "the refusal names the defective stream: {error}"
     );
 }
 
@@ -836,17 +832,15 @@ async fn open_refuses_an_embedding_position_outside_the_column() {
 
     let error = OfflineDataset::open(&directory)
         .expect_err("an out-of-column embedding position must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::EmbeddingPosition {
-                kind: StreamKind::Edges,
-                record: 0,
-                position: 3,
-                embeddings: 1,
-            },
-        ),
-        "the refusal names the defective record: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::EmbeddingPosition {
+            kind: StreamKind::Edges,
+            record: 0,
+            position: 3,
+            embeddings: 1,
+        },
+        "the refusal names the defective record: {error}"
     );
 }
 

@@ -173,10 +173,10 @@ impl PairAggregates {
             distance: MovementAggregate::over(&distances),
             rank: MovementAggregate::over(&ranks),
             contracting: UnitFraction::ratio(contracted, count).expect(
-                "the loop counts each reading at most once, so the part is within its total",
+                "the loop counts each reading at most once. The subset count is within the total",
             ),
             rank_improving: UnitFraction::ratio(improved, count).expect(
-                "the loop counts each reading at most once, so the part is within its total",
+                "the loop counts each reading at most once. The subset count is within the total",
             ),
         }
     }
@@ -322,7 +322,7 @@ impl ControlDecile {
             let stratum = uppers
                 .iter()
                 .position(|&upper| reading.anchor_distance <= upper)
-                .expect("a drawn control is a candidate, so its reading is in the census range");
+                .expect("a drawn control is a candidate. Its reading is within the census range");
             members[stratum].push(DFinite::from(reading.displacement));
         }
 
@@ -425,14 +425,13 @@ fn nearest_rank<T: Copy>(sorted: &[T], fraction: f64) -> T {
 
     #[expect(
         clippy::cast_precision_loss,
-        reason = "reading populations stay far below exact f64 integer precision"
+        reason = "population conversion uses f64 arithmetic as documented"
     )]
     let population = sorted.len() as f64;
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "the rank is a positive product of a fraction with the population, so it never \
-                  exceeds the population and never carries a sign"
+        reason = "the non-negative rounded rank is the specified index calculation"
     )]
     let rank = (fraction * population).ceil() as usize;
     sorted[rank - 1]

@@ -138,7 +138,7 @@ impl Fixture {
                 .into_boxed_slice(),
         );
         let landmarks = landmark_pool(rows, &mut rng);
-        let plan = crate::salt::fit::ProjectorOptions::ratified().plan;
+        let plan = crate::salt::fit::ProjectorOptions::live().plan;
 
         // The mined frame comes from the production miner over a synthetic
         // coordinate frame: pooled hard negatives at the real quota. The
@@ -159,7 +159,7 @@ impl Fixture {
             graph.view(),
             indexes.protection.view(),
             ProtectionConfig::default(),
-            crate::salt::fit::ProjectorOptions::ratified().miner,
+            crate::salt::fit::ProjectorOptions::live().miner,
         )
         .mine(&field);
 
@@ -420,7 +420,7 @@ impl<'fixture> Stepper<'fixture> {
 /// The constants stay cost-neutral. They steer values and never operation counts. The relation
 /// energy is present, as in the ladder regime the ratified schedule spends most steps in.
 fn objective_options() -> ObjectiveOptions {
-    let ratified = crate::salt::fit::ProjectorOptions::ratified();
+    let ratified = crate::salt::fit::ProjectorOptions::live();
     ObjectiveOptions {
         affinity: AffinityEnergy::new(
             AffinityCurve::new(positive!(1.0), positive!(1.0)),
@@ -572,7 +572,7 @@ fn landmark_pool(rows: usize, rng: &mut Xoshiro256PlusPlus) -> Vec<SupportAnchor
             rng.random_range(-1.0..=1.0_f32),
         ),
         radius: non_negative!(0.1),
-        weight: 1.0,
+        weight: positive!(1.0),
     })
     .take(LANDMARK_POOL)
     .collect()

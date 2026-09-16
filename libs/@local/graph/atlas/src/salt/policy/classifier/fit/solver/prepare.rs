@@ -36,7 +36,7 @@ use super::{
 };
 use crate::{
     dataset::CANONICAL_DIMENSIONS,
-    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DPositive},
+    math::{AlignedDVecN, AlignedVecN, BoxedDVecN, DPositive, d_positive, nz},
     salt::policy::GeometryClass,
 };
 
@@ -73,23 +73,16 @@ pub(crate) enum PreparationError {
 }
 
 /// Solver-relevant knobs consumed by preparation.
-///
-/// Every field carries a default, so `PreparationSettings { .. }` is the deployment configuration.
-/// The tolerance default admits targets whose sums carry division rounding only.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparationSettings {
     /// L2 penalty `λ` on contrast coefficients.
     ///
     /// The penalty never reaches the intercepts.
     pub regularization: DPositive = DPositive::ONE,
     /// Unit-sum tolerance for raw targets, in ulps of one.
-    pub target_sum_tolerance_ulps: NonZero<u32> = const {
-        NonZero::new(16).expect("sixteen is nonzero")
-    },
+    pub target_sum_tolerance_ulps: NonZero<u32> = nz!(16),
     /// Floor on the initial Hessian diagonal, as a fraction of the largest curvature.
-    pub curvature_relative_floor: DPositive = const {
-        DPositive::new(1.0e-12).expect("the floor is positive")
-    },
+    pub curvature_relative_floor: DPositive = d_positive!(1.0e-12),
 }
 
 /// Canonicalization and scaling evidence of one successful preparation.

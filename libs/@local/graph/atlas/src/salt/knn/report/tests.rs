@@ -1,4 +1,7 @@
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::{
+    assert_matches,
+    sync::atomic::{AtomicU64, Ordering},
+};
 use std::{fs, path::PathBuf};
 
 use zerocopy::IntoBytes as _;
@@ -6,7 +9,10 @@ use zerocopy::IntoBytes as _;
 use super::{Representations, SetupError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    file::array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    file::{
+        ArtifactFile as _,
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    },
 };
 
 /// A scratch array file for mapped representation fixtures.
@@ -84,5 +90,5 @@ fn rows_refuse_another_width() {
     let written = TempFile::representation_rows(&[1.0, 2.0], 8);
     let opened = representations(&written);
 
-    assert!(matches!(opened.rows(), Err(SetupError::Width)));
+    assert_matches!(opened.rows(), Err(SetupError::Width));
 }

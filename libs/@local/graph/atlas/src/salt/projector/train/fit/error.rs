@@ -228,15 +228,15 @@ where
                 fmt.write_str("the semantic graph carries no edge weight to train against")
             }
             Self::UnbaselinedRadius => fmt.write_str(
-                "the boundary sits at step zero, so the Proximal radius would be measured on an \
-                 untrained map; give the opening segment steps",
+                "the boundary lies at step zero, and the Proximal radius would be measured on an \
+                 untrained map: give the opening segment steps",
             ),
             Self::MissingProximalReviews => fmt.write_str(
                 "the attraction index carries Proximal force but no reviewed-Proximal verdict \
                  covers any of it; confirm Proximal types in review",
             ),
             Self::CoincidentWithoutProximal => fmt.write_str(
-                "the attraction index carries Coincident force but no Proximal force, so no \
+                "the attraction index carries Coincident force but no Proximal force, and no \
                  reviewed-Proximal measurement can set the radius the relation energy composes \
                  with; train with the relation evidence withheld",
             ),
@@ -248,7 +248,7 @@ where
             Self::Refresh(error) => error.fmt(fmt),
             Self::Step(error) => error.fmt(fmt),
             Self::ScheduleChanged { .. } => fmt.write_str(
-                "the resumed schedule differs from the one the opening segment ran under; resume \
+                "the resumed schedule differs from the one the opening segment ran under: resume \
                  with the schedule the checkpoint was trained under",
             ),
             Self::Ruler(error) => error.fmt(fmt),
@@ -263,11 +263,11 @@ where
                 "the declared canonical step index {step} lies outside the training curriculum",
             ),
             Self::EmptyTargetPopulation => fmt.write_str(
-                "the target estimand's declared unit population carries no mass; the run belongs \
-                 to the vacuous-record taxonomy",
+                "the target estimand's declared unit population carries no mass, and the run is \
+                 vacuous",
             ),
             Self::TargetWithoutUnitDraws => fmt.write_str(
-                "the target objective needs relation-type draws and the plan draws none; give the \
+                "the target objective needs relation-type draws and the plan draws none: give the \
                  plan a positive relation-type count",
             ),
             Self::PenaltyWithoutForceAtEquality => fmt.write_str(

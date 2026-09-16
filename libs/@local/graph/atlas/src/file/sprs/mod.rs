@@ -57,7 +57,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -165,7 +165,7 @@ pub(crate) enum Version {
     zerocopy::Unaligned,
 )]
 #[repr(u8)]
-pub enum IndexVariant {
+pub(crate) enum IndexVariant {
     U16 = 0x00,
     U32 = 0x01,
     U64 = 0x02,
@@ -210,7 +210,7 @@ impl IndexVariant {
     zerocopy::Unaligned,
 )]
 #[repr(u8)]
-pub enum ValueTag {
+pub(crate) enum ValueTag {
     Opaque = 0x00,
     U8 = 0x01,
     U16 = 0x02,

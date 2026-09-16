@@ -267,7 +267,8 @@ impl<T: Portable> Column<T> {
         assert_eq!(
             serializer.pos(),
             tail,
-            "the column is the serializer's tail, so nothing else may write between pushes",
+            "the serializer position must equal the column tail. No other write may occur between \
+             pushes",
         );
 
         let resolver = value

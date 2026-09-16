@@ -312,8 +312,8 @@ impl<'corpus, const N: usize> Quotient<'corpus, N> {
 #[cfg(test)]
 #[expect(
     clippy::significant_drop_tightening,
-    reason = "each test's scratch directory backs the quotient's mapped distinct matrix, so it \
-              lives to the end of the assertions on purpose"
+    reason = "each test's scratch directory backs the quotient's mapped distinct matrix and \
+              therefore lives to the end of the assertions on purpose"
 )]
 mod tests {
     use hashql_core::id::Id as _;

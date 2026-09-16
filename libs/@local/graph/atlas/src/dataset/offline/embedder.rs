@@ -36,8 +36,8 @@ impl core::fmt::Display for MissingCardText {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             fmt,
-            "the dump holds no embedding for card-text hash {}, so the fit renders a text the \
-             dump command never embedded (differing annotation flags are the usual cause)",
+            "the dump holds no embedding for card-text hash {}. Differing annotation flags can \
+             cause this mismatch: use a dump whose flags match the fit's",
             self.hash,
         )
     }

@@ -51,7 +51,7 @@ where
             ScaledFrame::new(frame, &scales),
             calibration_options(self.options),
         );
-        warn_boundary_findings(&calibration, self.options.lens.temperature());
+        warn_boundary_findings(&calibration, self.options.lens.temperature);
 
         let (frozen, radius) = match calibration.radius() {
             Some(radius) => (radius, FrozenRadius::Measured { radius }),
@@ -61,14 +61,14 @@ where
             None => return Err(TrainError::MissingProximalReviews),
         };
 
-        let energy =
-            self.options
-                .lens
-                .energy(frozen)
-                .ok_or_else(|| TrainError::DegenerateRadius {
-                    radius: frozen,
-                    coincident: self.options.lens.coincident().radius(),
-                })?;
+        let energy = self
+            .options
+            .lens
+            .energy(frozen)
+            .ok_or(TrainError::DegenerateRadius {
+                radius: frozen,
+                coincident: self.options.lens.coincident.radius,
+            })?;
 
         Ok((
             energy,
@@ -85,8 +85,8 @@ where
 pub(super) const fn calibration_options(options: &TrainOptions) -> CalibrationOptions {
     CalibrationOptions::new(
         options.plan.relation_cap,
-        options.lens.epsilon(),
-        options.lens.temperature(),
+        options.lens.epsilon,
+        options.lens.temperature,
     )
 }
 

@@ -1,7 +1,7 @@
 #![expect(
     clippy::float_cmp,
-    reason = "fixture vectors use exactly representable components, so placement and round-trips \
-              must reproduce them bit-identically"
+    reason = "placement and round-trips must preserve the fixture's exactly representable \
+              components"
 )]
 use core::{assert_matches, future::ready};
 use std::sync::Mutex;
@@ -492,7 +492,7 @@ async fn three_row_table() -> super::CardEmbeddingTable {
 #[tokio::test]
 #[expect(
     clippy::little_endian_bytes,
-    reason = "the array format pins its data to canonical little-endian bytes"
+    reason = "the fixture decodes native f32 bytes assuming a little-endian test host"
 )]
 async fn writes_the_embedding_matrix_as_an_array_file() {
     let table = three_row_table().await;

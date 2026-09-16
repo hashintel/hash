@@ -45,15 +45,31 @@ mod tests;
 
 pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
+/// A relation-lens schedule awaiting length, baseline and ordering checks.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct UnvalidatedConditions(Cow<'static, [NonNegative]>);
+
+impl TryFrom<UnvalidatedConditions> for Conditions {
+    type Error = ConditionsError;
+
+    fn try_from(UnvalidatedConditions(values): UnvalidatedConditions) -> Result<Self, Self::Error> {
+        Self::new(values)
+    }
+}
+
+impl From<Conditions> for UnvalidatedConditions {
+    fn from(conditions: Conditions) -> Self {
+        Self(conditions.values)
+    }
+}
+
 /// A validated relation-lens condition schedule.
 ///
-/// Construction validates the schedule. A schedule has at least two steps and opens at the
-/// zero-condition step that every other step measures against. The steps ascend strictly, and
-/// every value is finite and non-negative with a canonical sign of zero by construction
-/// ([`NonNegative`]), so a step's bits identify its value in reproducibility records with no
-/// `-0.0` alias to guard against. A [`Cow`] carries the values so the reference schedule is a
-/// constant.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A schedule has at least two steps and opens at the zero-condition step, `0.0`. Every later value
+/// strictly exceeds its predecessor. [`NonNegative`] supplies finite, non-negative values with
+/// canonical positive zero: a step's bits identify its value without a `-0.0` alias.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedConditions", into = "UnvalidatedConditions")]
 pub(crate) struct Conditions {
     values: Cow<'static, [NonNegative]>,
 }
@@ -149,11 +165,9 @@ pub(crate) struct Field<'coordinates, I> {
 
 /// The projection schedule and the condition selected for canonical coordinates.
 ///
-/// The canonical value names a schedule member exactly ([`select_canonical`]): equality on
-/// [`NonNegative`] is bit equality. A value outside the schedule is a configuration
-/// contradiction, and [`Self::canonical_index`] decides the membership from the options alone,
-/// so a fit refuses the contradiction before it trains.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The canonical value must name a schedule member exactly: equality on [`NonNegative`] is bit
+/// equality. Use [`Self::canonical_index`] to check membership before projection.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LadderOptions {
     /// The condition schedule, [`Conditions::REFERENCE`] by default.
     pub conditions: Conditions = Conditions::REFERENCE,

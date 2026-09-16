@@ -5,7 +5,7 @@ use camino::Utf8PathBuf;
 use hashql_core::id::Id as _;
 use sprs::CsMatViewI;
 
-use super::{Adjacency, AdjacencyArchive, EdgeList, InvalidAdjacencyFile};
+use super::{Adjacency, AdjacencyArchive, EdgeList, artifact::InvalidAdjacencyFile};
 use crate::{
     file::{
         WriteInto as _,
@@ -191,7 +191,7 @@ fn violated_list_invariants_are_rejected() {
 #[test]
 #[expect(
     clippy::little_endian_bytes,
-    reason = "the surgery edits the format's pinned little-endian fencepost region"
+    reason = "the fixture edits the format's little-endian fencepost region"
 )]
 fn shifted_fencepost_column_is_rejected() {
     let dir = scratch("shifted");

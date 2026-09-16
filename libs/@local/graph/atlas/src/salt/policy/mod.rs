@@ -11,7 +11,7 @@
 //! attraction stays bounded while a mistaken repulsion destroys local structure.
 #![expect(clippy::empty_enums, reason = "zerocopy derive")]
 
-use core::{fmt, mem, ops};
+use core::{fmt, marker::PhantomData, mem, ops};
 
 use crate::{
     identity::OntologyRowId,
@@ -26,8 +26,10 @@ mod precedence;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use self::precedence::PolicySource;
 pub(crate) use self::precedence::{
-    Classification, CoincidentAdmission, PolicyOverride, PolicySource, ResolveError, resolve,
+    Classification, CoincidentAdmission, PolicyOverride, ResolveError, resolve,
 };
 
 /// Geometry classes a relation type distributes over.
@@ -103,13 +105,42 @@ impl fmt::Display for GeometryClass {
     }
 }
 
+/// A decoded posterior does not sum to one.
+#[derive(Debug)]
+struct UnvalidatedPosteriorError {
+    _marker: PhantomData<()>,
+}
+
+impl fmt::Display for UnvalidatedPosteriorError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("posterior must sum to one")
+    }
+}
+
+/// Raw posterior components admitted by [`Posterior::new`].
+#[derive(Debug, serde::Deserialize)]
+struct UnvalidatedPosterior([UnitFraction; GeometryClass::COUNT]);
+
+impl TryFrom<UnvalidatedPosterior> for Posterior {
+    type Error = UnvalidatedPosteriorError;
+
+    fn try_from(
+        UnvalidatedPosterior(components): UnvalidatedPosterior,
+    ) -> Result<Self, Self::Error> {
+        Self::new(components).ok_or(UnvalidatedPosteriorError {
+            _marker: PhantomData,
+        })
+    }
+}
+
 /// A distribution over the geometry classes.
 ///
 /// Components are [`UnitFraction`]s stored in class order and sum to one within floating-point
 /// rounding. Construction sites are the softmax (which satisfies the invariant by construction) and
 /// validated artifact reads.
 // The sum invariant excludes byte-level constructors: no zerocopy derives.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedPosterior")]
 pub(crate) struct Posterior([UnitFraction; GeometryClass::COUNT]);
 
 impl Posterior {
@@ -125,18 +156,17 @@ impl Posterior {
     /// and zero is a legal component. Rejecting negative zero would make admission depend on the
     /// sign bit of a value arithmetic treats as zero.
     #[must_use]
-    pub(crate) fn new(components: [f64; GeometryClass::COUNT]) -> Option<Self> {
-        let mut validated = [UnitFraction::ZERO; GeometryClass::COUNT];
-        for (slot, value) in validated.iter_mut().zip(components) {
-            *slot = UnitFraction::new(value)?;
-        }
+    pub(crate) fn new(components: [UnitFraction; GeometryClass::COUNT]) -> Option<Self> {
+        let sum = components
+            .iter()
+            .map(|component| component.get())
+            .sum::<f64>();
 
-        let sum = components.iter().sum::<f64>();
         if (sum - 1.0).abs() > Self::SUM_TOLERANCE {
             return None;
         }
 
-        Some(Self(validated))
+        Some(Self(components))
     }
 
     /// Computes the temperature-scaled softmax of class logits.

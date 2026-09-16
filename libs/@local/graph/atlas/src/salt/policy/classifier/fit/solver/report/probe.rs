@@ -82,7 +82,7 @@ pub(crate) struct ProbeSettings {
     clippy::print_stdout,
     clippy::use_debug,
     clippy::too_many_lines,
-    reason = "the probe's receipt dump is its whole output; terminals and outcomes format through \
+    reason = "the probe's receipt dump is its whole output, terminals and outcomes format through \
               their debug forms, and the dump is one linear script"
 )]
 pub(crate) async fn probe_fold(
@@ -104,14 +104,13 @@ pub(crate) async fn probe_fold(
             DPositive::new(strength).expect("the strength override is positive and finite");
         println!(
             "regularization: configured {:e} overridden to {:e}",
-            config.solver.preparation.regularization.get(),
-            strength.get(),
+            config.solver.preparation.regularization, strength,
         );
         config.solver.preparation.regularization = strength;
     } else {
         println!(
             "regularization: configured {:e}",
-            config.solver.preparation.regularization.get(),
+            config.solver.preparation.regularization,
         );
     }
 
@@ -267,7 +266,7 @@ fn replay_to_outer(
 ) -> (AcceptedPoint, DPositive) {
     let config = &problem.config;
     let mut control = SolverControl {
-        radius: config.radius_initial,
+        radius: config.radius_initial(),
         consecutive_rejections: 0,
         outer_iterations_started: 0,
         counters,
@@ -331,7 +330,7 @@ fn replay_to_outer(
         let actual = accepted.objective - trial_objective;
         let ratio = actual / predicted;
 
-        if ratio < config.eta_accept {
+        if ratio < config.eta_accept() {
             control.counters.reject_finite_candidate();
             rejected(&mut control, config)
                 .expect("the production solve continued past this rejection");
@@ -350,13 +349,13 @@ fn replay_to_outer(
         control.counters.accept_candidate();
         control.consecutive_rejections = 0;
 
-        if inner.is_boundary() && ratio >= config.eta_expand {
-            // A product of positives above the ceiling, +∞ included, lands on the finite
-            // maximum, so the clamp re-enters the domain. Growth by a factor above one never
-            // falls to zero.
+        if inner.is_boundary() && ratio >= config.eta_expand() {
+            // A product of positives above the ceiling, +∞ included, clamps to the finite
+            // maximum, and the clamp therefore re-enters the domain. Growth by a factor above
+            // one never falls to zero.
             control.radius = DPositive::new_unchecked(
-                (config.expansion_factor.get() * control.radius.get())
-                    .min(config.radius_maximum.get()),
+                (config.expansion_factor().get() * control.radius.get())
+                    .min(config.radius_maximum().get()),
             );
         }
     }

@@ -1,5 +1,8 @@
 //! The standalone binary's command line and entry point.
 
+#[cfg(feature = "cli")]
+use core::panic::UnwindSafe;
+
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
 
@@ -7,6 +10,8 @@ use clap::{Parser, Subcommand, ValueHint};
 use super::EmbedderArgs;
 use super::{DumpArgs, FitArgs, PostgresArgs, ReportCommand, RootArgs};
 use crate::integrity::SecretString;
+#[cfg(feature = "cli")]
+use crate::progress::Progress;
 
 /// The standalone atlas binary's command line.
 ///
@@ -180,6 +185,31 @@ fn log_filter() -> tracing_subscriber::EnvFilter {
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }
 
+/// Runs a prepared fit against the selected data source.
+///
+/// # Errors
+///
+/// Returns the connection or fit failure.
+#[cfg(feature = "cli")]
+async fn run_fit(
+    command: super::FitCommand<impl Progress<Detached: UnwindSafe> + Sync>,
+    source: FitSource,
+) -> Result<super::FitVerdict, DashboardError> {
+    match source {
+        FitSource::Live { store, credential } => {
+            let mut client = store.connect().await.map_err(DashboardError::Connect)?;
+            command
+                .run(&mut client, credential)
+                .await
+                .map_err(DashboardError::Fit)
+        }
+        FitSource::Offline(dump) => command
+            .run_offline(&dump)
+            .await
+            .map_err(DashboardError::Fit),
+    }
+}
+
 /// Runs one fit on the live dashboard, restoring the terminal before rendering anything.
 ///
 /// This installs the subscriber globally rather than around the run, because the pipeline reports
@@ -214,20 +244,7 @@ async fn fit_on_dashboard(
     let outcome = async {
         let command = super::FitCommand::new(root, args).with_progress(observer);
 
-        match source {
-            FitSource::Live { store, credential } => {
-                let mut client = store.connect().await.map_err(DashboardError::Connect)?;
-
-                command
-                    .run(&mut client, credential)
-                    .await
-                    .map_err(DashboardError::Fit)
-            }
-            FitSource::Offline(dump) => command
-                .run_offline(&dump)
-                .await
-                .map_err(DashboardError::Fit),
-        }
+        run_fit(command, source).await
     }
     .await;
 
@@ -237,6 +254,31 @@ async fn fit_on_dashboard(
     restored.map_err(DashboardError::Terminal)?;
 
     Ok(verdict)
+}
+
+/// Runs a fit without a dashboard and renders its verdict or failure chain.
+#[cfg(feature = "cli")]
+async fn fit_logged(root: RootArgs, source: FitSource, args: FitArgs) -> std::process::ExitCode {
+    let command = super::FitCommand::new(root, args);
+
+    let result = match source {
+        FitSource::Live { store, credential } => {
+            let mut client = match store.connect().await {
+                Ok(client) => client,
+                Err(error) => return render_failure(error),
+            };
+            command.run(&mut client, credential).await
+        }
+        FitSource::Offline(dump) => command.run_offline(&dump).await,
+    };
+
+    match result {
+        Ok(verdict) => {
+            render_verdict(verdict);
+            std::process::ExitCode::SUCCESS
+        }
+        Err(error) => render_failure(error),
+    }
 }
 
 /// Runs the standalone atlas binary.
@@ -292,28 +334,7 @@ pub async fn main() -> std::process::ExitCode {
             openai_api_key,
             offline,
             tui: false,
-        } => {
-            let command = super::FitCommand::new(root, *args);
-            let result = match fit_source(store, openai_api_key, offline) {
-                FitSource::Live { store, credential } => {
-                    let mut client = match store.connect().await {
-                        Ok(client) => client,
-                        Err(error) => return render_failure(error),
-                    };
-
-                    command.run(&mut client, credential).await
-                }
-                FitSource::Offline(dump) => command.run_offline(&dump).await,
-            };
-
-            match result {
-                Ok(verdict) => {
-                    render_verdict(verdict);
-                    std::process::ExitCode::SUCCESS
-                }
-                Err(error) => render_failure(error),
-            }
-        }
+        } => fit_logged(root, fit_source(store, openai_api_key, offline), *args).await,
 
         Command::Report { command } => match command.run().await {
             // The probe dumps its records as it solves and hands back no
@@ -345,6 +366,8 @@ pub async fn main() -> std::process::ExitCode {
 
 #[cfg(all(test, feature = "cli"))]
 mod tests {
+    use core::assert_matches;
+
     use camino::Utf8PathBuf;
     use clap::Parser as _;
 
@@ -382,14 +405,14 @@ mod tests {
             "dump",
         ])
         .expect("an offline fit needs neither the key nor the store flags");
-        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
+        std::fs::remove_dir_all(&root).expect("should remove the parsed generation root");
 
-        assert!(matches!(
+        assert_matches!(
             cli.command,
             Command::Fit {
                 offline: Some(_),
                 ..
             }
-        ));
+        );
     }
 }

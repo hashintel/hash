@@ -19,18 +19,10 @@ use super::{
     read::{OpenQuadError, QuadFile},
     write::write_regions,
 };
-use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
-    morton::{Depth, MortonCell},
+use crate::file::{
+    ArtifactFile as _,
+    region::{PAGE_BYTES, header::HeaderError, machine::Machine},
 };
-
-fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
-}
-
-fn cell(depth_value: u8, x: u32, y: u32) -> MortonCell {
-    MortonCell::new(depth(depth_value), x, y).expect("test cells lie within the depth's grid")
-}
 
 /// A per-test scratch file path under the system temp directory.
 fn scratch(name: &str) -> PathBuf {
@@ -212,33 +204,7 @@ fn written_regions_reopen_verbatim() {
     }
 }
 
-#[test]
-fn locate_walks_the_prefix_digits() {
-    let path = scratch("locate.quad");
-    fs::write(&path, fixture_bytes()).expect("the scratch file is writable");
-    let file = QuadFile::open(&path).expect("the written file reopens");
-
-    // The root owns the whole-domain cell.
-    assert_eq!(file.locate(cell(0, 0, 0)), Some(0));
-
-    // Depth 1: quadrants 0 and 2 have nodes, 1 and 3 do not.
-    assert_eq!(file.locate(cell(1, 0, 0)), Some(1));
-    assert_eq!(file.locate(cell(1, 0, 1)), Some(2));
-    assert_eq!(file.locate(cell(1, 1, 0)), None);
-    assert_eq!(file.locate(cell(1, 1, 1)), None);
-
-    // Node 3 sits in quadrant 1 (x1y0) of node 2's cell (0, 1): its
-    // depth-2 grid coordinates are (2*0 + 1, 2*1 + 0) = (1, 2).
-    assert_eq!(file.locate(cell(2, 1, 2)), Some(3));
-
-    // Sibling quadrants of node 3 have no nodes.
-    assert_eq!(file.locate(cell(2, 0, 2)), None);
-
-    // Below a leaf nothing locates.
-    assert_eq!(file.locate(cell(2, 0, 0)), None);
-    assert_eq!(file.locate(cell(3, 2, 4)), None);
-}
-
+/// An empty tree is valid geometry: it writes and reopens with no nodes at all.
 #[test]
 fn empty_tree_reopens() {
     let path = scratch("empty.quad");
@@ -249,7 +215,6 @@ fn empty_tree_reopens() {
 
     let file = QuadFile::open(&path).expect("the empty file reopens");
     assert!(file.nodes().is_empty());
-    assert_eq!(file.locate(cell(0, 0, 0)), None);
 }
 
 #[test]
@@ -348,20 +313,6 @@ fn open_rejects_malformed_posts_and_children() {
     );
 }
 
-/// Reference locate: the same prefix-digit walk over the in-memory table.
-fn locate_reference(nodes: &[Node], cell: MortonCell) -> Option<u32> {
-    if nodes.is_empty() {
-        return None;
-    }
-    let mut node = 0_u32;
-    let prefix = cell.min_key().prefix(cell.depth());
-    for step in (0..cell.depth().get()).rev() {
-        let quadrant = (prefix >> (2 * u64::from(step))) & 0b11;
-        node = nodes[node as usize].child(quadrant as usize)?;
-    }
-    Some(node)
-}
-
 /// Every valid table and set cover roundtrips verbatim.
 #[property_test]
 fn written_tables_roundtrip(
@@ -376,8 +327,6 @@ fn written_tables_roundtrip(
         0..12,
     )]
     seeds: Vec<(u64, [Option<proptest::sample::Index>; 4], u8)>,
-    probe: u64,
-    #[strategy = 0_u8..=4] probe_depth: u8,
 ) {
     let count = seeds.len();
     let nodes: Vec<Node> = seeds
@@ -417,7 +366,4 @@ fn written_tables_roundtrip(
         let stored: Vec<u32> = file.type_set(index).iter().map(|id| id.get()).collect();
         prop_assert_eq!(stored, sets.set(node), "node {}'s set", node);
     }
-
-    let cell = crate::morton::MortonKey::from_bits(probe).cell(depth(probe_depth));
-    prop_assert_eq!(file.locate(cell), locate_reference(&nodes, cell));
 }

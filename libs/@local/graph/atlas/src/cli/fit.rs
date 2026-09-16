@@ -1,6 +1,6 @@
 //! The fit command that runs one production generation over the live store or a dump directory.
 
-use core::{error::Error, fmt, num::NonZero, time::Duration};
+use core::{error::Error, fmt, num::NonZero, panic::UnwindSafe, time::Duration};
 use std::{io, time::Instant};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -302,7 +302,10 @@ where
         self,
         client: &mut Client,
         credential: EmbedderArgs,
-    ) -> Result<FitVerdict, FitError> {
+    ) -> Result<FitVerdict, FitError>
+    where
+        P::Detached: UnwindSafe,
+    {
         // The math kernels reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
@@ -356,10 +359,16 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`FitError`] naming the step that failed: the run itself, or writing the
-    /// admission report. A refused dump arrives in the run's own chain, exactly as a refused
-    /// supply document does.
-    pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError> {
+    /// Returns [`FitError`] if fitting the dump or writing the admission report fails.
+    ///
+    /// # Panics
+    ///
+    /// [`verify_cpu_baseline`](crate::math::kernel::verify_cpu_baseline) runs first, as in
+    /// [`Self::run`].
+    pub async fn run_offline(self, dump: &Utf8Path) -> Result<FitVerdict, FitError>
+    where
+        P::Detached: UnwindSafe,
+    {
         // The math kernels reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 

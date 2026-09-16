@@ -311,41 +311,17 @@ pub(crate) struct BatchAnchor {
     pub row: BatchRowId,
     pub target: Vec2,
     pub radius: NonNegative,
-    pub weight: f32,
+    pub weight: Positive,
 }
 
 /// Validated support-term constants.
 ///
 /// `threshold` is the Huber threshold on the normalized residual. `epsilon` both guards the radius
 /// division and smooths the distance at coincidence.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SupportOptions {
-    threshold: Positive,
-    epsilon: Positive,
-}
-
-impl SupportOptions {
-    /// Creates support constants.
-    ///
-    /// Both values carry their domain in the type, so construction validates nothing.
-    #[must_use]
-    pub(crate) const fn new(threshold: Positive, epsilon: Positive) -> Self {
-        Self { threshold, epsilon }
-    }
-
-    /// Returns the Huber threshold.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn threshold(self) -> Positive {
-        self.threshold
-    }
-
-    /// Returns the radius guard.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn epsilon(self) -> Positive {
-        self.epsilon
-    }
+    pub threshold: Positive,
+    pub epsilon: Positive,
 }
 
 /// The materialized anchor set of one support term, on one device.
@@ -396,7 +372,7 @@ impl<B: Backend> SupportTargets<B> {
             .collect::<Vec<_>>();
         let weights = anchors
             .iter()
-            .map(|anchor| anchor.weight)
+            .map(|anchor| anchor.weight.get())
             .collect::<Vec<_>>();
 
         Some(Self {

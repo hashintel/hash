@@ -6,8 +6,7 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "fixtures use exactly representable values, so the asserted constants are exact \
-              contracts"
+    reason = "the asserted constants are exactly representable, and equality on them is exact"
 )]
 
 use core::assert_matches;
@@ -426,5 +425,5 @@ fn the_quantile_reads_positive_scales_alone() {
         &twin_table(8).view(),
         params(0.25, 0.25),
     )
-    .expect("the quantile reads the positive scales, so the window stays open");
+    .expect("the window stays open because the quantile reads the positive scales alone");
 }

@@ -1,7 +1,7 @@
 #![expect(
     clippy::float_cmp,
-    reason = "symmetry is bit-exact by construction and saturated memberships are exactly one; \
-              both are contracts, not coincidences"
+    reason = "the fixtures check exact symmetry, saturated memberships and same-kernel SIMD \
+              results"
 )]
 
 use core::{assert_matches, simd::f32x8};

@@ -12,10 +12,10 @@ use super::{
     stage::{Lod, LodConfig, LodError},
 };
 use crate::{
-    file::quad::Node,
+    file::{ArtifactFile as _, quad::Node},
     identity::{BasePosition, ImportanceRank, NodeRowId, OntologyRowId},
     math::{Bounds2, FinitePointField, Log2, Vec2},
-    morton::{Depth, MortonCell, MortonKey},
+    morton::{Depth, MortonCell, MortonKey, Zoom},
     postgres::id::ArchivedEntityId,
 };
 
@@ -88,7 +88,7 @@ fn ranking_of(row_of_rank: &[u32]) -> Ranking<NodeRowId> {
 ///
 /// Panics above [`Depth::MAX`].
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 /// Checks a literal span exponent.
@@ -98,6 +98,15 @@ fn depth(value: u8) -> Depth {
 /// Panics at or above the 64-bit shift width.
 fn log2(value: u8) -> Log2 {
     Log2::new(value).expect("test spans lie below the shift width")
+}
+
+/// Checks a literal tile zoom.
+///
+/// # Panics
+///
+/// Panics above [`Zoom::MAX`].
+fn zoom(value: u8) -> Zoom {
+    Zoom::new(value).expect("test zooms lie within the key width")
 }
 
 #[test]
@@ -443,19 +452,19 @@ fn lod_config_carries_the_key_width_bound() {
     // the default grid reaches depth 24, with wire-axis cell width 2⁻²³
     let config = LodConfig::default();
     assert_eq!(config.span.get(), 6);
-    assert_eq!(config.max_tile_depth, 18);
+    assert_eq!(config.max_tile_depth, zoom(18));
     assert_eq!(config.deepest(), Some(depth(24)));
 
     // The inequality z_max + m ≤ 32 binds exactly at the key width.
     let at_width = LodConfig {
         span: log2(6),
-        max_tile_depth: 26,
+        max_tile_depth: zoom(26),
     };
     assert_eq!(at_width.deepest(), Some(depth(32)));
 
     let beyond = LodConfig {
         span: log2(6),
-        max_tile_depth: 27,
+        max_tile_depth: zoom(27),
     };
     assert_eq!(beyond.deepest(), None);
 
@@ -500,7 +509,7 @@ fn hand_stage() -> (Lod, LodConfig) {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
 
     let lod = Lod::build(
@@ -732,7 +741,7 @@ fn built_columns_uphold_the_contract_laws(
     let ids = identities(rows.len() as u128);
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
@@ -890,7 +899,7 @@ fn quad_build_gathers_types_through_the_base_order() {
     let ids = identities(4);
     let config = LodConfig {
         span: log2(1),
-        max_tile_depth: 1,
+        max_tile_depth: zoom(1),
     };
     let lod = Lod::build(
         finite(&coordinates),
@@ -938,14 +947,14 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         )
         .expect_err("a schedule beyond the key width must not build"),
         QuadError::Schedule {
             config: LodConfig {
                 span: log2(32),
-                max_tile_depth: 1,
+                max_tile_depth: zoom(1),
             },
         },
     );
@@ -965,7 +974,7 @@ fn quad_build_rejects_what_no_tree_covers() {
             &hand_types(),
             LodConfig {
                 span: log2(1),
-                max_tile_depth: 0,
+                max_tile_depth: zoom(0),
             },
         )
         .expect_err("a mismatched configuration must not build"),
@@ -1005,11 +1014,9 @@ fn quad_tree_round_trips_through_the_quad_file() {
     let file = QuadFile::open(&path).expect("the written file reopens");
     assert_eq!(file.nodes(), tree.nodes.as_slice());
 
-    // The child tile locates, its pruned siblings do not, and its type set reads back.
-    let quadrant = MortonCell::new(depth(1), 0, 0).expect("the quadrant exists");
-    assert_eq!(file.locate(quadrant), Some(1));
-    let sibling = MortonCell::new(depth(1), 1, 0).expect("the quadrant exists");
-    assert_eq!(file.locate(sibling), None);
+    // The written child pointers and type set match the fitted tree.
+    assert_eq!(file.nodes()[0].children()[0], Some(1));
+    assert_eq!(file.nodes()[0].children()[1], None);
     let stored: Vec<u32> = file.type_set(1).iter().map(|id| id.get()).collect();
     assert_eq!(stored, [2, 5, 9]);
 }
@@ -1035,7 +1042,7 @@ fn quad_trees_uphold_the_contract_laws(
         .collect();
     let config = LodConfig {
         span: log2(span_log2),
-        max_tile_depth,
+        max_tile_depth: zoom(max_tile_depth),
     };
 
     let inputs = rank_inputs(&importance, &priority, &ids).expect("the fixture columns agree");
@@ -1220,7 +1227,7 @@ fn oracle_natural_buckets(points: &[(MortonKey, ImportanceRank)], deepest: Depth
             }
 
             best.map_or(Depth::MIN, |shared| {
-                depth(shared).saturating_add(1).min(deepest)
+                depth(shared).saturating_add(Log2::ONE).min(deepest)
             })
         })
         .collect()

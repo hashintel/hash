@@ -5,8 +5,8 @@
 
 #![expect(
     clippy::float_cmp,
-    reason = "fixture coordinates are small integers, so squared distances and dyadic rank \
-              weights are exact in both the reference and the kd-tree path"
+    reason = "fixture coordinates are small integers, and squared distances and dyadic rank \
+              weights are therefore exact in both the reference and the kd-tree path"
 )]
 
 use core::num::NonZero;
@@ -37,12 +37,12 @@ fn nonzero(value: usize) -> NonZero<usize> {
 
 /// Miner options from plain neighbour count, margin, maximum weight and rank exponent.
 fn options(neighbours: usize, margin: usize, maximum_weight: f32, exponent: f32) -> MinerOptions {
-    MinerOptions::new(
-        nonzero(neighbours),
-        nonzero(margin),
-        Positive::new(maximum_weight).expect("test weight bounds are positive"),
-        Positive::new(exponent).expect("test exponents are positive"),
-    )
+    MinerOptions {
+        neighbours: nonzero(neighbours),
+        search_margin: nonzero(margin),
+        maximum_weight: Positive::new(maximum_weight).expect("test weight bounds are positive"),
+        rank_exponent: Positive::new(exponent).expect("test exponents are positive"),
+    }
 }
 
 /// Builds a symmetric semantic graph from undirected weighted edges.
@@ -128,8 +128,14 @@ fn relation_indexes(
 /// A hard channel tripping at the given evidence mass.
 fn hard_config(threshold: f32) -> ProtectionConfig {
     ProtectionConfig::new(
-        ChannelConfig::new(0.0, threshold).expect("the fixture channel is in domain"),
-        ChannelConfig::new(0.0, threshold).expect("the fixture channel is in domain"),
+        ChannelConfig {
+            floor: UnitFraction::ZERO,
+            threshold: NonNegative::new(threshold).expect("the threshold is non-negative"),
+        },
+        ChannelConfig {
+            floor: UnitFraction::ZERO,
+            threshold: NonNegative::new(threshold).expect("the threshold is non-negative"),
+        },
         true,
     )
     .expect("the fixture channels are ordered")
@@ -157,7 +163,7 @@ fn reference_mine(
     config: ProtectionConfig,
     options: MinerOptions,
 ) -> Vec<Vec<(u32, f32)>> {
-    let quota = options.neighbours().get();
+    let quota = options.neighbours.get();
     (0..coordinates.len())
         .map(|row| {
             let mut candidates: Vec<(f32, usize)> = (0..coordinates.len())
@@ -263,7 +269,7 @@ fn mined_rows_match_a_brute_force_reference() {
         // Every weight satisfies the bounded rank-weight contract.
         for &(_, weight) in expected {
             assert!(weight > 0.0);
-            assert!(weight <= options.maximum_weight());
+            assert!(weight <= options.maximum_weight);
         }
     }
 

@@ -66,7 +66,7 @@ impl core::fmt::Display for QuadError {
             Self::Schedule { config } => write!(
                 fmt,
                 "the schedule needs {} + {} subdivisions where a 64-bit Morton key resolves {}",
-                config.max_tile_depth,
+                config.max_tile_depth.get(),
                 config.span.get(),
                 Depth::MAX.get(),
             ),
@@ -219,12 +219,8 @@ impl WriteInto for QuadTree {
     }
 }
 
-/// The measurements of one quadtree build.
-///
-/// What the manifest records so that data rather than taste drives a revision of the configuration.
-/// These are build census numbers rather than evidence, and the metadata's `Evidence` section holds
-/// the admission checks.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Node, depth, and type-entry counts for calibrating a quadtree schedule.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QuadMeasurements {
     /// Nodes in the table.
     pub nodes: u64,

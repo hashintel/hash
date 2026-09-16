@@ -1,4 +1,4 @@
-//! Runs one production generation over a dump directory.
+use core::panic::UnwindSafe;
 
 use camino::Utf8Path;
 
@@ -20,19 +20,21 @@ use crate::{
 ///
 /// # Errors
 ///
-/// Returns a [`RunError`] naming the step that failed, in the order the steps run: admitting the
-/// supplied verdicts, quality-thresholds, annotation-corpus, or classifier documents, opening the
-/// dump directory, indexing its embedding stream, or the run itself.
-pub(crate) async fn offline<P: Progress + Sync>(
+/// Returns [`RunError`] when supplied-document resolution, dump opening, embedding indexing or the
+/// generation run fails, in that order.
+pub(crate) async fn offline<P>(
     dump: &Utf8Path,
     root: GenerationRoot,
     device: PinnedDevice,
     options: Options<P>,
-) -> Result<Summary, RunError> {
+) -> Result<Summary, RunError>
+where
+    P: Progress<Detached: UnwindSafe> + Sync,
+{
     let resolved = resolve(&options, device)?;
 
-    let dataset = OfflineDataset::open(dump).map_err(RunError::Dump)?;
-    let embedder = dataset.embedder().map_err(RunError::DumpEmbedder)?;
+    let dataset = OfflineDataset::open(dump)?;
+    let embedder = dataset.embedder()?;
 
     let outcome = run(
         &dataset,
@@ -43,8 +45,7 @@ pub(crate) async fn offline<P: Progress + Sync>(
         resolved.runner,
         &options.progress,
     )
-    .await
-    .map_err(RunError::OfflineRun)?;
+    .await?;
 
     Ok(summary(&outcome))
 }

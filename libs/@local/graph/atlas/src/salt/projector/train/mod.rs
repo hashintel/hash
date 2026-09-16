@@ -128,80 +128,19 @@ impl<N> Error for StepError<N> where N: fmt::Debug + fmt::Display {}
 /// coefficient is finite and non-negative.
 ///
 /// The relation coefficient is the lens-independent factor. The training loop multiplies it by the
-/// step's step, so a zero step contributes nothing regardless of the configured value.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// training step's lens value `η`, and a zero lens contributes nothing regardless of the
+/// configured value.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Coefficients {
-    semantic: Positive,
-    ordinary: NonNegative,
-    hard: NonNegative,
-    relation: NonNegative,
-    anchor: NonNegative,
-    landmark: NonNegative,
+    pub semantic: Positive,
+    pub ordinary: NonNegative,
+    pub hard: NonNegative,
+    pub relation: NonNegative,
+    pub anchor: NonNegative,
+    pub landmark: NonNegative,
 }
 
 impl Coefficients {
-    /// Assembles objective coefficients.
-    #[must_use]
-    pub(crate) const fn new(
-        semantic: Positive,
-        ordinary: NonNegative,
-        hard: NonNegative,
-        relation: NonNegative,
-        anchor: NonNegative,
-        landmark: NonNegative,
-    ) -> Self {
-        Self {
-            semantic,
-            ordinary,
-            hard,
-            relation,
-            anchor,
-            landmark,
-        }
-    }
-
-    /// Returns the semantic attraction coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn semantic(self) -> Positive {
-        self.semantic
-    }
-
-    /// Returns the ordinary repulsion coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn ordinary(self) -> NonNegative {
-        self.ordinary
-    }
-
-    /// Returns the hard-negative repulsion coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn hard(self) -> NonNegative {
-        self.hard
-    }
-
-    /// Returns the lens-independent relation coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn relation(self) -> NonNegative {
-        self.relation
-    }
-
-    /// Returns the temporal-anchor support coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn anchor(self) -> NonNegative {
-        self.anchor
-    }
-
-    /// Returns the landmark support coefficient.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn landmark(self) -> NonNegative {
-        self.landmark
-    }
-
     /// Normalizes the coefficient bases by their objective masses.
     ///
     /// Semantic and ordinary by the total semantic edge weight, hard by the corpus row count, and
@@ -240,17 +179,17 @@ impl Coefficients {
                 .narrow_lossy()
         };
 
-        Self::new(
-            Positive::new(scaled(self.semantic.into(), weight.get()).get()).expect(
+        Self {
+            semantic: Positive::new(scaled(self.semantic.into(), weight.get()).get()).expect(
                 "a quotient leaves the positive domain only for a weight total more than 38 \
                  orders from its base",
             ),
-            scaled(self.ordinary, weight.get()),
-            scaled(self.hard, rows as f64),
-            self.relation,
-            scaled(self.anchor, anchor_pool as f64),
-            scaled(self.landmark, landmark_pool as f64),
-        )
+            ordinary: scaled(self.ordinary, weight.get()),
+            hard: scaled(self.hard, rows as f64),
+            relation: self.relation,
+            anchor: scaled(self.anchor, anchor_pool as f64),
+            landmark: scaled(self.landmark, landmark_pool as f64),
+        }
     }
 }
 
@@ -259,7 +198,7 @@ impl Coefficients {
 /// A zero count disables its family for the run. The semantic draw and the relation cap are
 /// structurally positive because a batch without semantic pairs cannot train and a zero cap would
 /// admit no edges from a selected type.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BatchPlan {
     /// Semantic positive pairs per step, drawn weight-proportionally.
     pub semantic_pairs: NonZero<usize>,
@@ -282,7 +221,7 @@ pub(crate) struct BatchPlan {
 /// Every field is a validated value. The struct is plain wiring. The relation energy is absent
 /// exactly while the run has no frozen Proximal radius - the opening semantic-only segment - and
 /// the loop supplies it when the ladder opens.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ObjectiveOptions {
     /// The semantic affinity energy shared by attraction and both repulsion families.
     pub affinity: AffinityEnergy,

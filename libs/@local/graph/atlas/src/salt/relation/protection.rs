@@ -41,7 +41,7 @@ use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
     file::sprs::{SprsValue, ValueTag},
-    math::NonNegative,
+    math::{NonNegative, UnitFraction},
 };
 
 /// A sparse evidence matrix with `u32` partner columns and `u64` row pointers.
@@ -65,7 +65,7 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
     Clone,
     PartialEq,
     Default,
-    zerocopy::FromBytes,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
@@ -73,9 +73,9 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 #[repr(C)]
 pub(crate) struct PairEvidence {
     /// The applicability-discounted evidence maximum, `max(c · (p_C + p_P) · a)`.
-    pub discounted: f32,
+    pub discounted: NonNegative,
     /// The undiscounted evidence maximum, `max(c · (p_C + p_P))`.
-    pub undiscounted: f32,
+    pub undiscounted: NonNegative,
 }
 
 impl PairEvidence {
@@ -85,8 +85,9 @@ impl PairEvidence {
     /// module's floor identity, `self` must contain valid aggregated evidence.
     #[inline]
     #[must_use]
-    pub(crate) fn mass(self, floor: f32) -> f32 {
-        self.discounted.max(floor * self.undiscounted)
+    pub(crate) const fn mass(self, floor: UnitFraction) -> NonNegative {
+        let undiscounted = self.undiscounted * floor;
+        self.discounted.max(undiscounted)
     }
 }
 
@@ -97,52 +98,24 @@ impl SprsValue for PairEvidence {
 
 /// One protection channel's applicability floor and admission threshold, valid by construction.
 ///
-/// The floor lifts a relation's calibrated applicability before it enters the channel's mass, so a
-/// relation too unfamiliar to earn pull can still retain enough evidence to veto repulsion. A floor
-/// of 0 leaves applicability undisturbed. The threshold is the mass at which the channel protects.
-/// A threshold of 0 protects every linked pair, the conservative reading of link evidence. Floors
-/// and thresholds jointly determine the protected set. Calibration fixes them together from
-/// reviewed validation pairs.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// Flooring applicability preserves protection evidence for unfamiliar relations even when low
+/// applicability reduces their attraction. A floor of zero leaves applicability undisturbed. The
+/// threshold is the mass at which the channel protects. Both are zero by default, protecting every
+/// stored pair, including zero-evidence pairs. Calibrate floors and thresholds together against
+/// labeled validation pairs.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ChannelConfig {
-    floor: f32 = 0.0,
-    threshold: f32 = 0.0,
+    pub floor: UnitFraction = UnitFraction::ZERO,
+    pub threshold: NonNegative = NonNegative::ZERO,
 }
 
 impl ChannelConfig {
     /// Returns whether the floored mass reaches the channel's threshold.
     ///
-    /// Returns [`None`] unless the floor lies in `0.0..=1.0` and the threshold is finite and
-    /// non-negative. The default is floor 0, threshold 0.
-    #[must_use]
-    pub(crate) const fn new(floor: f32, threshold: f32) -> Option<Self> {
-        if !(floor >= 0.0 && floor <= 1.0) {
-            return None;
-        }
-        if !(threshold.is_finite() && threshold >= 0.0) {
-            return None;
-        }
-        Some(Self { floor, threshold })
-    }
-
-    /// Returns the applicability floor.
+    /// `evidence` must satisfy [`ProtectionIndex`]'s value invariants.
     #[inline]
     #[must_use]
-    pub(crate) const fn floor(self) -> f32 {
-        self.floor
-    }
-
-    /// Returns the admission threshold.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn threshold(self) -> f32 {
-        self.threshold
-    }
-
-    /// Returns whether `evidence` clears the channel.
-    #[inline]
-    #[must_use]
-    pub(crate) fn protects(self, evidence: PairEvidence) -> bool {
+    pub(crate) const fn protects(self, evidence: PairEvidence) -> bool {
         evidence.mass(self.floor) >= self.threshold
     }
 }
@@ -153,12 +126,49 @@ const impl Default for ChannelConfig {
     }
 }
 
+/// Protection channels whose floors or thresholds violate their shared ordering.
+#[derive(Debug)]
+struct UnvalidatedProtectionConfigError {
+    _marker: PhantomData<()>,
+}
+
+impl fmt::Display for UnvalidatedProtectionConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("the ordinary channel must be less conservative than the hard channel")
+    }
+}
+
+/// Protection settings awaiting the cross-channel ordering check.
+#[derive(Debug, serde::Deserialize)]
+struct UnvalidatedProtectionConfig {
+    hard: ChannelConfig,
+    ordinary: ChannelConfig,
+    protect_ordinary: bool,
+}
+
+impl TryFrom<UnvalidatedProtectionConfig> for ProtectionConfig {
+    type Error = UnvalidatedProtectionConfigError;
+
+    fn try_from(
+        UnvalidatedProtectionConfig {
+            hard,
+            ordinary,
+            protect_ordinary,
+        }: UnvalidatedProtectionConfig,
+    ) -> Result<Self, Self::Error> {
+        Self::new(hard, ordinary, protect_ordinary).ok_or(UnvalidatedProtectionConfigError {
+            _marker: PhantomData,
+        })
+    }
+}
+
 /// Both channels' query-time protection settings, valid by construction.
 ///
 /// The channels satisfy `ordinary.floor ≤ hard.floor` and `hard.threshold ≤ ordinary.threshold`:
-/// hard negatives are aimed at specific pairs, so their channel warrants at least as much caution
-/// in the floor and no more evidence to trip in the threshold.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// the hard channel is at least as conservative as the ordinary channel. Both channels use floor
+/// zero and threshold zero by default, with ordinary protection enabled.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedProtectionConfig")]
 pub(crate) struct ProtectionConfig {
     hard: ChannelConfig = ChannelConfig::default(),
     ordinary: ChannelConfig = ChannelConfig::default(),
@@ -303,8 +313,7 @@ pub(crate) enum ProtectionValidationError {
     NotSquare { rows: usize, columns: usize },
     /// A row references itself.
     SelfEdge { row: usize },
-    /// A stored evidence component is not finite or negative.
-    EvidenceOutOfRange { row: usize, column: usize },
+
     /// A stored evidence pair has `discounted > undiscounted`.
     EvidenceOrdering { row: usize, column: usize },
     /// The matrix stores an edge in one direction only.
@@ -324,11 +333,6 @@ impl fmt::Display for ProtectionValidationError {
                 "the protection matrix spans {rows} rows by {columns} columns",
             ),
             Self::SelfEdge { row } => write!(fmt, "row {row} references itself"),
-            Self::EvidenceOutOfRange { row, column } => write!(
-                fmt,
-                "the evidence between rows {row} and {column} has a non-finite or negative \
-                 component",
-            ),
             Self::EvidenceOrdering { row, column } => write!(
                 fmt,
                 "the evidence between rows {row} and {column} discounts above its undiscounted \
@@ -400,13 +404,6 @@ fn validate_row(
     for (column, &evidence) in stored.iter() {
         if column == row {
             return Err(ProtectionValidationError::SelfEdge { row });
-        }
-
-        let in_range = NonNegative::new(evidence.discounted).is_some()
-            && NonNegative::new(evidence.undiscounted).is_some();
-
-        if !in_range {
-            return Err(ProtectionValidationError::EvidenceOutOfRange { row, column });
         }
 
         if evidence.discounted > evidence.undiscounted {
@@ -502,7 +499,7 @@ where
     /// Returns the stored entry count, counting each pair twice.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The relation tests count stored pairs.
+    #[cfg(test)]
     pub(crate) fn entries(&self) -> usize {
         self.0.nnz()
     }
