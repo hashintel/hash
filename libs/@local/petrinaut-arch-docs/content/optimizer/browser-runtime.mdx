@@ -27,12 +27,11 @@ The channel is the [sweep evaluator](layer:react.optimizations.sweep-evaluator),
 the one `PetrinautOptimizationChannel` left. The event schema
 ([the contract](layer:core.optimization)) is the same for both variants.
 
-The provider reaches the source through `useOptimizationSource()`, which
-returns a connected source only while the experimental **In-browser
-optimization** user setting is on. Off, the hook returns `null`: the
-creation and results optimizer controls and the Constraints section hide, and the provider disposes the
-connection, which cancels every run made through it. A remote capability passes through the hook unchanged, and the
-provider refuses to start a study on it.
+The provider reads the host source from `PetrinautOptimizationContext` and
+connects it when the first study starts. A connected source makes optimizer
+controls available in creation and results. Removing or replacing the host
+source disposes the connection and cancels its runs. A remote capability
+does not offer these controls, and the provider refuses to start a study on it.
 
 ![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 

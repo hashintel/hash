@@ -255,8 +255,6 @@ const createdSweep = (
   );
 
 const TestProviders = ({
-  webGpuEnabled,
-  enableParameterSweeps = false,
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => createdExperiment("experiment-test"),
   removeExperiment = () => {},
@@ -265,8 +263,6 @@ const TestProviders = ({
   languageClient,
   optimizationSource = null,
 }: {
-  webGpuEnabled: boolean;
-  enableParameterSweeps?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
   createExperiment?: (
     input: CreateExperimentInput,
@@ -275,15 +271,12 @@ const TestProviders = ({
   setSelectedExperimentId?: (experimentId: string | null) => void;
   createOptimization?: OptimizationsContextValue["createOptimization"];
   languageClient?: LanguageClientContextValue;
-  /** The host's optimizer; the In-browser optimization setting follows it on. */
+  /** The host's optimizer. */
   optimizationSource?: PetrinautOptimizationSource | null;
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const settings: UserSettingsContextValue = {
     ...defaultUserSettings,
-    webGpuEnabled,
-    enableParameterSweeps,
-    enableInBrowserOptimization: optimizationSource !== null,
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
@@ -304,11 +297,8 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
     setShowWalkthroughOnInit: () => {},
-    setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
-    setEnableParameterSweeps: () => {},
     setCanvasViewport: () => {},
-    setEnableInBrowserOptimization: () => {},
     setBrunchDemoMode: () => {},
     updateSubViewSection: () => {},
   };
@@ -471,15 +461,16 @@ const selectedSideLabel = (): string | null =>
   findGpuRow()!.querySelector("[data-selected='true']")?.textContent ?? null;
 
 describe("CreateExperimentDrawer GPU switch", () => {
-  it("is absent entirely when WebGPU is not enabled in settings", () => {
-    render(<TestProviders webGpuEnabled={false} />);
+  it("is absent when the browser has no WebGPU support", () => {
+    vi.stubGlobal("navigator", {});
+    render(<TestProviders />);
 
     expect(document.querySelector("[data-backend-state]")).toBeNull();
     expect(screen.queryByText("GPU")).toBeNull();
   });
 
   it("offers the switch for a net the GPU can run", async () => {
-    render(<TestProviders webGpuEnabled />);
+    render(<TestProviders />);
 
     // The analysis is asynchronous, and the toggle is disabled until it lands —
     // the same state as unavailable, which is why the row publishes which it is.
@@ -496,9 +487,7 @@ describe("CreateExperimentDrawer GPU switch", () => {
   });
 
   it("greys the switch out and explains why when the net cannot run", async () => {
-    render(
-      <TestProviders webGpuEnabled sdcpnContextValue={colouredContextValue} />,
-    );
+    render(<TestProviders sdcpnContextValue={colouredContextValue} />);
 
     await waitFor(() => {
       expect(backendState()).toBe("unavailable");
@@ -521,7 +510,7 @@ describe("CreateExperimentDrawer GPU switch", () => {
     // The submitted backend and the switch's own state read the same derived
     // value, so a net edited into ineligibility after the switch was flipped
     // cannot leave a GPU experiment queued behind a switch that looks off.
-    const { rerender } = render(<TestProviders webGpuEnabled />);
+    const { rerender } = render(<TestProviders />);
 
     await waitFor(() => {
       expect(backendState()).toBe("available");
@@ -533,9 +522,7 @@ describe("CreateExperimentDrawer GPU switch", () => {
     });
     expect(selectedSideLabel()).toBe("GPU");
 
-    rerender(
-      <TestProviders webGpuEnabled sdcpnContextValue={colouredContextValue} />,
-    );
+    rerender(<TestProviders sdcpnContextValue={colouredContextValue} />);
 
     await waitFor(() => {
       expect(backendState()).toBe("unavailable");
@@ -544,9 +531,7 @@ describe("CreateExperimentDrawer GPU switch", () => {
   });
 
   it("keeps the switch off by default even for an eligible net", async () => {
-    // The setting offers the choice; it does not make it. A GPU-capable net still
-    // gets a CPU experiment unless the user flips this.
-    render(<TestProviders webGpuEnabled />);
+    render(<TestProviders />);
 
     await waitFor(() => {
       expect(backendState()).toBe("available");
@@ -558,28 +543,9 @@ describe("CreateExperimentDrawer GPU switch", () => {
   });
 });
 
-describe("CreateExperimentDrawer parameter sweeps setting", () => {
-  it("offers no Sweep toggle while the setting is off", async () => {
-    render(
-      <TestProviders
-        webGpuEnabled={false}
-        sdcpnContextValue={sweptContextValue}
-      />,
-    );
-
-    // The run form's parameter row renders; only the Sweep pill is missing.
-    await screen.findByText("transmission_rate");
-    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
-  });
-
-  it("offers a Sweep toggle per numeric parameter when the setting is on and no optimizer is wired", async () => {
-    render(
-      <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
-        sdcpnContextValue={sweptContextValue}
-      />,
-    );
+describe("CreateExperimentDrawer parameter sweeps", () => {
+  it("offers a Sweep toggle by default without an optimizer", async () => {
+    render(<TestProviders sdcpnContextValue={sweptContextValue} />);
 
     expect(
       await screen.findByRole("button", { name: "Sweep transmission_rate" }),
@@ -592,8 +558,6 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
   it("reads Sweep on the toggle for a remote-only optimizer, which cannot drive a sweep", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={remoteSource}
       />,
@@ -607,8 +571,6 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
   it("keeps Sweep on the toggle when the in-browser optimizer is available", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
       />,
@@ -625,15 +587,11 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
   it("keeps the word when a second toggle flips", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={twoParametersContextValue}
         optimizationSource={connectedSource}
       />,
     );
 
-    // The word follows the settings and the source, never the toggle count:
-    // the first toggle relabels nothing.
     fireEvent.click(
       await screen.findByRole("button", { name: "Sweep transmission_rate" }),
     );
@@ -645,12 +603,7 @@ describe("CreateExperimentDrawer parameter sweeps setting", () => {
   });
 
   it("tells a saved scenario without parameters apart from an empty form", async () => {
-    render(
-      <TestProviders
-        webGpuEnabled={false}
-        sdcpnContextValue={unparameterizedContextValue}
-      />,
-    );
+    render(<TestProviders sdcpnContextValue={unparameterizedContextValue} />);
 
     expect(
       await screen.findByText("This scenario exposes no parameters"),
@@ -678,14 +631,8 @@ const adHocContextValue: SDCPNContextValue = {
 };
 
 describe("CreateExperimentDrawer ad-hoc sweeps", () => {
-  it("offers a Sweep toggle on the ad-hoc form's values when parameter sweeps are on", async () => {
-    render(
-      <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
-        sdcpnContextValue={adHocContextValue}
-      />,
-    );
+  it("offers a Sweep toggle on the ad-hoc form's values by default", async () => {
+    render(<TestProviders sdcpnContextValue={adHocContextValue} />);
 
     const toggle = await screen.findByLabelText("Sweep Rate");
     expect(toggle).toBeInstanceOf(HTMLElement);
@@ -701,8 +648,6 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
   it("reads Sweep on the ad-hoc form's toggle for a remote-only optimizer", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={remoteSource}
       />,
@@ -716,8 +661,6 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
   it("keeps Sweep on the ad-hoc toggle when the in-browser optimizer is available", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={connectedSource}
       />,
@@ -729,26 +672,12 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     expect(screen.queryByLabelText("Optimize Rate")).toBeNull();
   });
 
-  it("offers no interval toggle on the ad-hoc form while sweeps are off", async () => {
-    render(
-      <TestProviders
-        webGpuEnabled={false}
-        sdcpnContextValue={adHocContextValue}
-      />,
-    );
-
-    await screen.findByText("Rate");
-    expect(screen.queryByRole("button", { name: /^Sweep / })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Optimize / })).toBeNull();
-  });
-
-  it("hands the form's draft to the experiment with sweeps off, never as a sweep", async () => {
+  it("passes an unswept ad-hoc draft with interval support available", async () => {
     const createExperiment = vi.fn((_input: CreateExperimentInput) =>
       createdExperiment("experiment-adhoc"),
     );
     render(
       <TestProviders
-        webGpuEnabled={false}
         sdcpnContextValue={adHocContextValue}
         createExperiment={createExperiment}
       />,
@@ -766,7 +695,7 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     const input = createExperiment.mock.calls[0]![0];
     expect(input.scenarioId).toBeNull();
     expect(input.adHocScenario?.variables).toHaveLength(1);
-    expect(input.adHocSweeps).toBe(false);
+    expect(input.adHocSweeps).toBe(true);
   });
 });
 
@@ -866,8 +795,6 @@ const openConstrainedSweep = async (
 ) => {
   const rendered = render(
     <TestProviders
-      webGpuEnabled={false}
-      enableParameterSweeps
       sdcpnContextValue={sweptContextValue}
       optimizationSource={connectedSource}
       languageClient={makeLoweringLanguageClient()}
@@ -885,10 +812,9 @@ const openConstrainedSweep = async (
 const codeOf = (row: HTMLElement) => within(row).getByRole("textbox");
 
 describe("CreateExperimentDrawer constraints", () => {
-  it("offers no Constraints section while parameter sweeps are off", () => {
+  it("offers no Constraints section until an interval is selected", () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
       />,
@@ -899,8 +825,6 @@ describe("CreateExperimentDrawer constraints", () => {
   it("offers Constraints for a manual sweep before opting into optimization", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
       />,
@@ -926,8 +850,6 @@ describe("CreateExperimentDrawer constraints", () => {
   it("offers no Constraints section for a remote-only optimizer, which cannot evaluate a sweep", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={remoteSource}
       />,
@@ -940,8 +862,6 @@ describe("CreateExperimentDrawer constraints", () => {
   it("offers no Constraints section for an ad-hoc sweep, whose generated names are not authorable", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={connectedSource}
       />,
@@ -1046,8 +966,6 @@ describe("CreateExperimentDrawer constraints", () => {
       diagnosticsByUri: LanguageClientContextValue["diagnosticsByUri"],
     ) => (
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
         languageClient={{ ...languageClient, diagnosticsByUri }}
@@ -1296,7 +1214,7 @@ describe("CreateExperimentDrawer constraints", () => {
   });
 
   it("rules the GPU out while a state constraint is drafted, since its indicator aggregates over time", async () => {
-    await openConstrainedSweep({ webGpuEnabled: true });
+    await openConstrainedSweep();
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
     await waitFor(() => {
       expect(backendState()).toBe("available");
@@ -1333,7 +1251,6 @@ describe("CreateExperimentDrawer metric selection", () => {
     async (collapsed) => {
       render(
         <TestProviders
-          webGpuEnabled={false}
           sdcpnContextValue={{
             ...sirSdcpnContextValue,
             petriNetDefinition: {
@@ -1425,8 +1342,6 @@ describe("CreateExperimentDrawer objective", () => {
       const createOptimization = vi.fn(() => Promise.resolve("study"));
       render(
         <TestProviders
-          webGpuEnabled={false}
-          enableParameterSweeps
           sdcpnContextValue={sweptContextValue}
           optimizationSource={connectedSource}
           createExperiment={createExperiment}
@@ -1468,7 +1383,6 @@ describe("CreateExperimentDrawer objective", () => {
   it("offers no objective controls for a plain experiment", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
       />,
@@ -1480,11 +1394,7 @@ describe("CreateExperimentDrawer objective", () => {
 
   it("offers no objective controls under the Sweep word, with or without a remote optimizer", async () => {
     const { unmount } = render(
-      <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
-        sdcpnContextValue={sweptContextValue}
-      />,
+      <TestProviders sdcpnContextValue={sweptContextValue} />,
     );
     flipInterval("transmission_rate", "Sweep");
     expect(await findFooterButton("Create sweep")).toBeTruthy();
@@ -1493,8 +1403,6 @@ describe("CreateExperimentDrawer objective", () => {
 
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={remoteSource}
       />,
@@ -1507,8 +1415,6 @@ describe("CreateExperimentDrawer objective", () => {
   it("unifies metrics and the objective after opting into immediate optimization", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={sweptContextValue}
         optimizationSource={connectedSource}
       />,
@@ -1555,8 +1461,6 @@ describe("CreateExperimentDrawer objective", () => {
   it("offers objective controls for No scenario, and no Constraints", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={connectedSource}
       />,
@@ -1575,8 +1479,6 @@ describe("CreateExperimentDrawer objective", () => {
   it("keeps the unified section and the Optimize word while an ad-hoc bound is being edited", async () => {
     render(
       <TestProviders
-        webGpuEnabled={false}
-        enableParameterSweeps
         sdcpnContextValue={adHocContextValue}
         optimizationSource={connectedSource}
       />,

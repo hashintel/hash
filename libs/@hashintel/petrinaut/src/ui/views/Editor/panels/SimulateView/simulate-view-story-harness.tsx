@@ -147,11 +147,6 @@ export const SimulateViewStoryStage = ({ children }: PropsWithChildren) => {
   );
 };
 
-const defaultRunnableSettings: Partial<UserSettings> = {
-  enableParameterSweeps: true,
-  enableInBrowserOptimization: true,
-};
-
 /**
  * SimulateView over a real example model with the real experiments and
  * optimizations providers, so the stories run simulations for real. Children
@@ -167,7 +162,7 @@ export const RunnableSimulateViewStory = ({
   example: StoryExample;
   initialSimulateViewMode?: SimulateViewMode;
   optimization?: PetrinautOptimizationSource | null;
-  /** Settings pinned on top of the In-browser optimization setting. */
+  /** Settings used by this story. */
   settings?: Partial<UserSettings>;
 }>) => {
   const sdcpnContextValue = createSdcpnContextValue(example);
@@ -184,9 +179,7 @@ export const RunnableSimulateViewStory = ({
           <MonacoProvider>
             <NotificationsProvider>
               <UserSettingsProvider>
-                <WithUserSettings
-                  overrides={{ ...defaultRunnableSettings, ...settings }}
-                >
+                <WithUserSettings overrides={settings ?? {}}>
                   <FakeEditorProvider
                     initialSimulateViewMode={initialSimulateViewMode}
                   >

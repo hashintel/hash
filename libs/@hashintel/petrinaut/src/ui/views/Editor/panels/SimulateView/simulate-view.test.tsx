@@ -2,11 +2,9 @@
  * @vitest-environment jsdom
  */
 import { cleanup, render, screen } from "@testing-library/react";
-import { use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { FakeEditorProvider } from "./experiments/experiments-story-fixtures";
 import { SimulateViewTabs } from "./simulate-view";
 
@@ -62,27 +60,9 @@ const connectedSource: PetrinautConnectedOptimization = {
   }),
 };
 
-/** Overrides the In-browser optimization setting below the default context. */
-const InBrowserOptimizationSetting = ({
-  enabled,
-  children,
-}: {
-  enabled: boolean;
-  children: ReactNode;
-}) => {
-  const value = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...value, enableInBrowserOptimization: enabled }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 afterEach(cleanup);
 
-/** The tab list, whatever optimization source the host provides and whatever the setting says. */
+/** The tab list, whatever optimization source the host provides. */
 const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
   const { container, unmount } = render(
     wrap(
@@ -99,7 +79,7 @@ const tabsUnder = (wrap: (view: ReactNode) => ReactNode): string[] => {
 };
 
 describe("SimulateView tabs", () => {
-  it("are Experiments and Scenarios whatever the optimization source and setting", () => {
+  it("are Experiments and Scenarios whatever the optimization source", () => {
     expect(tabsUnder((view) => view)).toEqual(["Experiments", "Scenarios"]);
     expect(
       tabsUnder((view) => (
@@ -108,17 +88,13 @@ describe("SimulateView tabs", () => {
         </PetrinautOptimizationContext>
       )),
     ).toEqual(["Experiments", "Scenarios"]);
-    for (const enabled of [false, true]) {
-      expect(
-        tabsUnder((view) => (
-          <InBrowserOptimizationSetting enabled={enabled}>
-            <PetrinautOptimizationContext value={connectedSource}>
-              {view}
-            </PetrinautOptimizationContext>
-          </InBrowserOptimizationSetting>
-        )),
-      ).toEqual(["Experiments", "Scenarios"]);
-    }
+    expect(
+      tabsUnder((view) => (
+        <PetrinautOptimizationContext value={connectedSource}>
+          {view}
+        </PetrinautOptimizationContext>
+      )),
+    ).toEqual(["Experiments", "Scenarios"]);
     expect(screen.queryByText("Optimizations")).toBeNull();
   });
 });

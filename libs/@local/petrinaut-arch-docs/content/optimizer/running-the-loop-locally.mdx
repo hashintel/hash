@@ -50,13 +50,12 @@ The editor starts a study during experiment creation or later from the
 results' **Parameters → Optimize** action. It requires a parameter sweep
 and a connected source: the
 [browser runtime](layer:core.optimization.browser), which the demo website
-(`apps/petrinaut-website`) mounts and `useOptimizationSource()` returns while
-the experimental **In-browser optimization** setting is on. A plain
+(`apps/petrinaut-website`) supplies through `PetrinautOptimizationContext`. A plain
 `turbo run dev` in `@apps/petrinaut-website` therefore runs every study in the
 tab with no service involved ([the browser runtime](doc:optimizer/browser-runtime)
 covers that path), and the website has no service-backed route.
 
-A remote capability such as the service passes through the hook, but the
+A remote capability such as the service can use the same context, but the
 editor offers no optimizer controls for it: the **With real optimizer** story and
 the HASH embed's bridge mount the capability without a surface that starts a
 study. Driving a sweep study through a remote evaluator is a follow-up; until

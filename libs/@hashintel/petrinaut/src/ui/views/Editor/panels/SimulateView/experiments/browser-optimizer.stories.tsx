@@ -161,7 +161,6 @@ export const SirGpuRequested: Story = {
       {...args}
       example={sirModel}
       sweep={seasonalFluSweep}
-      settings={{ webGpuEnabled: true }}
     />
   ),
 };
@@ -207,7 +206,7 @@ export const Manual: Story = {
   parameters: {
     docs: {
       description: {
-        story: `The real optimizer with the In-browser optimization and Parameter sweeps settings on and the Experiments tab open, and no experiment: the entry point for hand-testing the Create Experiment drawer's Optimize toggles, Objective and Constraints sections, and the results drawer opening already optimizing. ${firstRunNote} ${watchForNote} ${gpuNote}`,
+        story: `The real optimizer with the Experiments tab open and no experiment: the entry point for hand-testing Sweep toggles, metric objectives, constraints, and optimizer startup during creation or from results. ${firstRunNote} ${watchForNote} ${gpuNote}`,
       },
     },
   },
@@ -216,7 +215,6 @@ export const Manual: Story = {
       {...args}
       example={sirModel}
       sweep={seasonalFluSweep}
-      settings={{ webGpuEnabled: true }}
     />
   ),
 };
