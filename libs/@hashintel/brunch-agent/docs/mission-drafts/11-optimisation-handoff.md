@@ -2,7 +2,7 @@
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
-**Demo allocation:** [Mission 7d](../../MISSION.md) owns worked-example completion, assessment of Chris's experiment API and in-memory configuration-only assistance. Consume its evidence at cut time; configuration is not execution or consumer acceptance. [Distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope. This draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
+**Demo allocation:** worked-example completion is archived under [Mission 7d](../mission-archive/7d-complete-worked-example-demo-and-configure-experiment.md); assessment of Chris's experiment API and configuration-only assistance now live in [Draft Mission 8](8-experiment-configuration-from-the-ledger.md), which ends at an unstarted configuration the user runs in their own browser. Consume that evidence at cut time; configuration is not execution or consumer acceptance. [Distribution and portfolio breadth](worked-example-distribution-and-breadth.md) remain beyond-demo, unscheduled scope. This draft retains the accepted Chris/Yannis handoff, quantitative strategy and six consumer decisions below.
 
 ## Cold-start reads
 
@@ -111,7 +111,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 - Existing Petrinaut serialization, scenario, optimization, and UI contracts are terrain to inspect with Chris and Yannis. Their tests establish only what the current product can represent or execute; they do not establish acceptance, package shape, or experiment credibility.
 - Accepted Missions 7, 9, and 10 artifacts must provide the exact conversation, bounded workpiece revisions, canonical evidence citations, declared basis, observed mutation trace, revised region, revision disposition, and deployed witness from which Mission 11 broadens. Their eventual archive/evidence paths replace these draft joins.
-- The [Mission 8 successor](../../MISSION.next.md#mission-8-successor) inherits a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
+- The [hosted deployment successor](../../MISSION.next.md#hosted-deployment-successor) inherits a published ECS-startable application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
 - **ORACLE GAP — consumer contract:** record Chris and Yannis' acceptance of all six decisions and one concrete fixture before this draft is cut.
 - **ORACLE GAP — selected complete model:** the consumer question must expose what completeness and credibility mean for this SDCPN; name the exact human or executable oracle only after that question exists.
 - **ORACLE GAP — outer handoff:** the accepted contract must name the witnessed action and observation that distinguish “can begin the experiment” from receipt of an unusable artifact.
@@ -127,7 +127,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - Selected upstream source: the genuine conversation, settled workpiece revisions, and adjudication accepted by Mission 7; Mission 4 itself closed without a full-run candidate and the Mission 6 prepared fixture is not promoted.
 - Missions 7, 9, and 10: accepted conversation, settled revisions, declared basis, mutation records, identity epochs, repeat and change behaviour, revision and patch-locality evidence, and the witnessed real path Mission 11 must broaden.
 - Early consumer discovery: the non-binding record of one candidate question, minimum semantics, execution boundary, outputs, and credibility checks gathered before Mission 9's region selection.
-- Mission 8 actual contract: published ECS-startable application artifact plus still-open SRE-1013 / remote-proof handoff; no remote deployment is assumed.
+- Hosted deployment (historical Mission 8) actual contract: published ECS-startable application artifact plus still-open SRE-1013 / remote-proof handoff; no remote deployment is assumed.
 - Chris/Yannis: written acceptance of the six consumer decisions and one fixture.
 - Petrinaut: current serialization, scenario, optimization, and host capabilities are inspected as existing terrain and used only where the consumer contract accepts them.
 
@@ -138,7 +138,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - **RISK:** package design precedes consumer acceptance. **Impact:** speculative topology becomes accidental infrastructure. **Cheapest validation:** make the six decisions and fixture the hard re-entry gate.
 - **RISK:** “complete” degrades into non-empty or parser-valid. **Impact:** the experiment may be meaningless. **Cheapest validation:** derive completeness and credibility from the accepted question before cutting the mission.
 - **RISK:** rehearsal substitutes curated artifacts for the real path. **Impact:** it proves staging rather than the product. **Cheapest validation:** inspect stable artifact identities, declared basis, and observed records across the witnessed six beats.
-- **RISK:** local Mission 8 evidence is mistaken for deployment. **Impact:** the outer handoff cannot honestly run. **Cheapest validation:** inspect the remote proof matrix and owner acceptance before scheduling the witness.
+- **RISK:** local deployment evidence is mistaken for deployment. **Impact:** the outer handoff cannot honestly run. **Cheapest validation:** inspect the remote proof matrix and owner acceptance before scheduling the witness.
 
 ## Accepted constraints and guarded invariants
 
@@ -149,7 +149,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 - Preserve the known semantic artifact floor and honest assumptions, omissions, losses, and limits.
 - Use Petrinaut's current contracts only where accepted; do not copy their shapes into Brunch or couple directly to an optimizer speculatively.
 - Keep Brunch as the default `process-sdcpn` assistant and stock Petrinaut AI as a feature-flagged alternate with canonical tools and separate history.
-- Do not represent Mission 8's local application evidence as remote deployment.
+- Do not represent the historical deployment mission's local application evidence as remote deployment.
 - Do not invent a generic export platform, graph database, ontology, regeneration engine, TUI, or generalized runtime.
 
 ## Cross-cutting obligations

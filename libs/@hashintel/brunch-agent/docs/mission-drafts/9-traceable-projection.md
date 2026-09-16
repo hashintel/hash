@@ -24,7 +24,7 @@ A fresh builder must resolve these authorities and evidence before choosing a me
 - [`../../packages/transport-aisdk/src/client-tool-history.ts`](../../packages/transport-aisdk/src/client-tool-history.ts) and the Mission 7 mutation-record contract — how browser results are correlated and deduplicated by call id.
 - [`../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), [`templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md), and [`references/pn-construction.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/references/pn-construction.md) — construction posture as Mission 7 leaves it.
 - [`../reference/architecture/flue-routing.md`](../reference/architecture/flue-routing.md) — the per-conversation versus cross-conversation state distinction that governs the document-scoped owner this mission may need.
-- [Mission 8 successor](../../MISSION.next.md#mission-8-successor) — application artifact landed on `main` through #9495/#9487/#9573; SRE-1013 still owns ECS provisioning and the remote proof matrix. The historical deployment branch stopped at the application boundary. Mission 9 names local posture unless a Mission 8 successor has landed.
+- [Hosted deployment successor](../../MISSION.next.md#hosted-deployment-successor) — application artifact landed on `main` through #9495/#9487/#9573; SRE-1013 still owns ECS provisioning and the remote proof matrix. The historical deployment branch stopped at the application boundary. Mission 9 names local posture unless the hosted deployment successor has landed.
 - [`../../../petrinaut/docs/ai-assistant.md`](../../../petrinaut/docs/ai-assistant.md) and [`drawing-a-net.md`](../../../petrinaut/docs/drawing-a-net.md) — user-visible projection behaviour must update the user guide and prompt screenshot replacement.
 
 The accepted Mission 7 region, proving scenario, mutation-record shape, and passage policy are not yet canonical paths. Name them from accepted predecessor evidence when this draft is cut.
@@ -213,7 +213,7 @@ Do not defer repeat idempotence, changed-input identity, retirement, or concurre
 - **No observer or automatic workpiece revision.** Mission 9 projects the current accepted revision; it does not consolidate evidence or decide reviewer authority. Guard: no scheduler, fold queue, or canonical workpiece writes outside `mutate_workpiece` called by the foreground agent.
 - **One agent, one mounted job skill, existing panel door.** Guard: composition and dependency inventory.
 - **Stock assistant remains independent.** Guard: path isolation and host witness.
-- **Deployment claims match observed evidence.** Guard: name local posture unless a Mission 8 successor has landed.
+- **Deployment claims match observed evidence.** Guard: name local posture unless the hosted deployment successor has landed.
 - **Paid provider evidence requires cut-time authorization and a stated budget.** Guard: the live mission records model, maximum calls, and spend ceiling before execution.
 
 ## Cross-cutting obligations
