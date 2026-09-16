@@ -75,7 +75,7 @@ describe("Manifest", () => {
   });
 
   it("nested_limits", () => {
-    const document = Result.unwrap(Manifest.decode(input()));
+    const document = Result.unwrap(Manifest.decode(input(), decodeOptions));
     expect(document.generation).toBeInstanceOf(GenerationId.GenerationId);
     expect(document.generation.toString()).toBe(input().generation);
     expect(document.bucketSchedule.maxZoom).toBe(12);
@@ -89,12 +89,15 @@ describe("Manifest", () => {
 
   it("optional_created_at_unknown_keys", () => {
     const document = Result.unwrap(
-      Manifest.decode({
-        ...input(),
-        createdAt: "2026-09-16T00:00:00Z",
-        authority: "header-only",
-        extra: true,
-      }),
+      Manifest.decode(
+        {
+          ...input(),
+          createdAt: "2026-09-16T00:00:00Z",
+          authority: "header-only",
+          extra: true,
+        },
+        decodeOptions,
+      ),
     );
     expect(document.createdAt).toBe("2026-09-16T00:00:00Z");
     expect(document).not.toHaveProperty("authority");
@@ -103,15 +106,18 @@ describe("Manifest", () => {
 
   it("schema_issues", () => {
     const value = input();
-    const result = Manifest.decode({
-      ...value,
-      variants: [5],
-      limits: {
-        ...value.limits,
-        locate: { ...value.limits.locate, edges: "512" },
-        tile: {},
+    const result = Manifest.decode(
+      {
+        ...value,
+        variants: [5],
+        limits: {
+          ...value.limits,
+          locate: { ...value.limits.locate, edges: "512" },
+          tile: {},
+        },
       },
-    });
+      decodeOptions,
+    );
     expect(Result.isErr(result)).toBe(true);
     if (!Result.isErr(result)) {
       return;
@@ -129,7 +135,10 @@ describe("Manifest", () => {
   });
 
   it("generation_errors", () => {
-    const result = Manifest.decode({ ...input(), generation: "AB".repeat(32) });
+    const result = Manifest.decode(
+      { ...input(), generation: "AB".repeat(32) },
+      decodeOptions,
+    );
     expect(Result.isErr(result)).toBe(true);
     if (Result.isErr(result)) {
       expect(result.error.reason._tag).toBe("schema");
@@ -153,7 +162,8 @@ describe("Manifest", () => {
     "iso_timestamp_%s",
     (createdAt) => {
       expect(
-        Result.unwrap(Manifest.decode({ ...input(), createdAt })).createdAt,
+        Result.unwrap(Manifest.decode({ ...input(), createdAt }, decodeOptions))
+          .createdAt,
       ).toBe(createdAt);
     },
   );
@@ -165,7 +175,7 @@ describe("Manifest", () => {
     "2026-09-16T00:00:00",
     null,
   ])("invalid_timestamp_%s", (createdAt) => {
-    const result = Manifest.decode({ ...input(), createdAt });
+    const result = Manifest.decode({ ...input(), createdAt }, decodeOptions);
     expect(Result.isErr(result)).toBe(true);
     if (Result.isErr(result)) {
       expect(result.error.cause).toBeInstanceOf(z.ZodError);
@@ -181,10 +191,13 @@ describe("Manifest", () => {
       const value = input();
       expect(
         Result.isErr(
-          Manifest.decode({
-            ...value,
-            bucketSchedule: { ...value.bucketSchedule, span },
-          }),
+          Manifest.decode(
+            {
+              ...value,
+              bucketSchedule: { ...value.bucketSchedule, span },
+            },
+            decodeOptions,
+          ),
         ),
       ).toBe(true);
     },
@@ -194,10 +207,13 @@ describe("Manifest", () => {
     const value = input();
     expect(
       Result.unwrap(
-        Manifest.decode({
-          ...value,
-          bucketSchedule: { ...value.bucketSchedule, span },
-        }),
+        Manifest.decode(
+          {
+            ...value,
+            bucketSchedule: { ...value.bucketSchedule, span },
+          },
+          decodeOptions,
+        ),
       ).bucketSchedule.span,
     ).toBe(span);
   });
@@ -208,18 +224,24 @@ describe("Manifest", () => {
       const value = input();
       expect(
         Result.isErr(
-          Manifest.decode({
-            ...value,
-            bucketSchedule: { ...value.bucketSchedule, cut },
-          }),
+          Manifest.decode(
+            {
+              ...value,
+              bucketSchedule: { ...value.bucketSchedule, cut },
+            },
+            decodeOptions,
+          ),
         ),
       ).toBe(true);
       expect(
         Result.isErr(
-          Manifest.decode({
-            ...value,
-            scopeSchedule: { ...value.scopeSchedule, cut },
-          }),
+          Manifest.decode(
+            {
+              ...value,
+              scopeSchedule: { ...value.scopeSchedule, cut },
+            },
+            decodeOptions,
+          ),
         ),
       ).toBe(true);
     },
@@ -228,51 +250,70 @@ describe("Manifest", () => {
   it("encoded_ranges", () => {
     const value = input();
     expect(
-      Result.isErr(Manifest.decode({ ...value, wireVersion: 2 ** 16 })),
-    ).toBe(true);
-    expect(Result.isErr(Manifest.decode({ ...value, variants: [""] }))).toBe(
-      true,
-    );
-    expect(
       Result.isErr(
-        Manifest.decode({
-          ...value,
-          scopeSchedule: { ...value.scopeSchedule, k: 33 },
-        }),
+        Manifest.decode({ ...value, wireVersion: 2 ** 16 }, decodeOptions),
       ),
     ).toBe(true);
     expect(
       Result.isErr(
-        Manifest.decode({
-          ...value,
-          bucketSchedule: { ...value.bucketSchedule, maxZoom: 33 },
-        }),
+        Manifest.decode({ ...value, variants: [""] }, decodeOptions),
       ),
     ).toBe(true);
     expect(
       Result.isErr(
-        Manifest.decode({
-          ...value,
-          limits: { ...value.limits, edges: { tiles: 2 ** 32, edges: 1 } },
-        }),
+        Manifest.decode(
+          {
+            ...value,
+            scopeSchedule: { ...value.scopeSchedule, k: 33 },
+          },
+          decodeOptions,
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isErr(
+        Manifest.decode(
+          {
+            ...value,
+            bucketSchedule: { ...value.bucketSchedule, maxZoom: 33 },
+          },
+          decodeOptions,
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      Result.isErr(
+        Manifest.decode(
+          {
+            ...value,
+            limits: { ...value.limits, edges: { tiles: 2 ** 32, edges: 1 } },
+          },
+          decodeOptions,
+        ),
       ),
     ).toBe(true);
     const document = Result.unwrap(
-      Manifest.decode({
-        ...value,
-        bucketSchedule: { span: 2 ** 63, cut: "z+63", maxZoom: 32 },
-        scopeSchedule: { k: 32, cut: "z+0", maxZoom: 32 },
-      }),
+      Manifest.decode(
+        {
+          ...value,
+          bucketSchedule: { span: 2 ** 63, cut: "z+63", maxZoom: 32 },
+          scopeSchedule: { k: 32, cut: "z+0", maxZoom: 32 },
+        },
+        decodeOptions,
+      ),
     );
     expect(document.bucketSchedule.maxZoom).toBe(32);
   });
 
   it("generation_and_field_issues", () => {
-    const result = Manifest.decode({
-      ...input(),
-      generation: "AB".repeat(32),
-      createdAt: "invalid",
-    });
+    const result = Manifest.decode(
+      {
+        ...input(),
+        generation: "AB".repeat(32),
+        createdAt: "invalid",
+      },
+      decodeOptions,
+    );
     expect(Result.isErr(result)).toBe(true);
     if (Result.isErr(result) && result.error.cause instanceof z.ZodError) {
       expect(result.error.cause.issues.map((issue) => issue.path)).toEqual([
@@ -283,8 +324,12 @@ describe("Manifest", () => {
   });
 
   it("readonly_output", () => {
-    const document = Result.unwrap(Manifest.decode(input()));
-    expectTypeOf(document.variants).toEqualTypeOf<readonly string[]>();
+    const document = Result.unwrap(Manifest.decode(input(), decodeOptions));
+    expectTypeOf(document.wireVersion).toEqualTypeOf<1>();
+    expectTypeOf(document.variants).toEqualTypeOf<
+      readonly [string, ...string[]]
+    >();
+    expectTypeOf(document.variants[0]).toEqualTypeOf<string>();
     expectTypeOf(document.scopeSchedule).toEqualTypeOf<{
       readonly k: number;
       readonly cut: string;
@@ -304,17 +349,18 @@ describe("Manifest", () => {
     const value = input();
     expect(
       Result.isOk(
-        Manifest.decode({
-          ...value,
-          wireVersion: 2,
-          variants: [],
-          bucketSchedule: { span: 4, cut: "z+2", maxZoom: 0 },
-          limits: {
-            ...value.limits,
-            authorityRefreshSeconds: 10,
-            authorityHardSeconds: 1,
+        Manifest.decode(
+          {
+            ...value,
+            bucketSchedule: { span: 4, cut: "z+2", maxZoom: 0 },
+            limits: {
+              ...value.limits,
+              authorityRefreshSeconds: 10,
+              authorityHardSeconds: 1,
+            },
           },
-        }),
+          decodeOptions,
+        ),
       ),
     ).toBe(true);
   });

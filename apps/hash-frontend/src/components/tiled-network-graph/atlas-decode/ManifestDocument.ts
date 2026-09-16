@@ -1,20 +1,40 @@
 import * as z from "zod";
 
+import { SALTILE_WIRE_VERSION } from "./Envelope";
 import * as GenerationId from "./GenerationId";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-/** A manifest rejected by its JSON schema. */
+export type ManifestErrorReason =
+  | { readonly _tag: "schema" }
+  | {
+      readonly _tag: "generation-mismatch";
+      readonly expected: GenerationId.GenerationId;
+      readonly actual: GenerationId.GenerationId;
+    };
+
+/** A manifest rejected by its JSON schema or requested generation. */
 export class ManifestError extends TaggedError.TaggedError<
   "ManifestError",
-  { readonly _tag: "schema" }
+  ManifestErrorReason
 > {
-  private constructor(cause: z.ZodError) {
-    super("ManifestError", { _tag: "schema" }, "invalid manifest", { cause });
+  private constructor(reason: ManifestErrorReason, options?: ErrorOptions) {
+    const message =
+      reason._tag === "schema"
+        ? "invalid manifest"
+        : `expected generation ${reason.expected}, received ${reason.actual}`;
+    super("ManifestError", reason, message, options);
   }
 
   static schema(cause: z.ZodError): ManifestError {
-    return new ManifestError(cause);
+    return new ManifestError({ _tag: "schema" }, { cause });
+  }
+
+  static generationMismatch(
+    expected: GenerationId.GenerationId,
+    actual: GenerationId.GenerationId,
+  ): ManifestError {
+    return new ManifestError({ _tag: "generation-mismatch", expected, actual });
   }
 }
 
@@ -36,10 +56,12 @@ const span = z
     "expected a power-of-two span",
   );
 
+const variant = z.string().min(1);
+
 const schema = z.object({
   generation: GenerationId.Schema,
-  wireVersion: z.int().min(0).max(0xffff),
-  variants: z.array(z.string().min(1)),
+  wireVersion: z.literal(SALTILE_WIRE_VERSION),
+  variants: z.tuple([variant]).rest(variant),
   bucketSchedule: z.object({ span, cut, maxZoom: zoom }),
   scopeSchedule: z.object({ k: zoom, cut, maxZoom: zoom }),
   limits: z.object({
@@ -68,12 +90,24 @@ type ReadonlyJson<T> = T extends GenerationId.GenerationId
 /** Bootstrap metadata. Authority tokens belong to response headers. */
 export type Manifest = ReadonlyJson<z.output<typeof schema>>;
 
-/** Decodes parsed JSON, preserving complete Zod errors. Output is readonly without runtime freezing. */
+export interface DecodeOptions {
+  readonly generation: GenerationId.GenerationId;
+}
+
+/** Decodes a supported manifest against the requested generation. */
 export const decode = (
   input: unknown,
+  { generation }: DecodeOptions,
 ): Result.Result<Manifest, ManifestError> => {
   const parsed = schema.safeParse(input);
-  return parsed.success
-    ? Result.ok(parsed.data)
-    : Result.err(ManifestError.schema(parsed.error));
+  if (!parsed.success) {
+    return Result.err(ManifestError.schema(parsed.error));
+  }
+
+  return Result.filter(
+    Result.ok(parsed.data),
+    (document) => document.generation.equals(generation),
+    (document) =>
+      ManifestError.generationMismatch(generation, document.generation),
+  );
 };

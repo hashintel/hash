@@ -421,7 +421,7 @@ describe("fetchTile", () => {
     await expect(
       fetchTile(u64(1), u64(0), { baseUrl: BASE }),
     ).rejects.toMatchObject({
-      cause: { message: "manifest generation does not echo the route" },
+      cause: { reason: { _tag: "generation-mismatch" } },
     });
     expect(paths).toHaveLength(2);
   });
@@ -458,7 +458,20 @@ describe("fetchTile", () => {
         detail: "auxiliary",
       }),
     ).rejects.toMatchObject({
-      cause: { message: expect.stringContaining("detail") },
+      cause: {
+        reason: { _tag: "section", section: "request" },
+        cause: {
+          errors: [
+            {
+              reason: {
+                _tag: "detail-mismatch",
+                expected: "auxiliary",
+                actual: "minimal",
+              },
+            },
+          ],
+        },
+      },
     });
   });
 
@@ -1433,7 +1446,7 @@ describe("the atlas authority token", () => {
     await expect(
       fetchTile(u64(1), u64(1), { baseUrl: BASE }),
     ).rejects.toMatchObject({
-      cause: { message: "manifest generation does not echo the route" },
+      cause: { reason: { _tag: "generation-mismatch" } },
     });
     expect(getAtlasSessionRevision()).toBe(before);
     expect(
