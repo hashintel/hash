@@ -1598,8 +1598,239 @@
         "param__service_wear_limit": "scenario.service_wear_limit"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "9",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1647,8 +1878,239 @@
         "param__service_wear_limit": "scenario.service_wear_limit"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1696,8 +2158,239 @@
         "param__service_wear_limit": "scenario.service_wear_limit"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.25",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1751,8 +2444,251 @@
         "param__severe_route_wear_limit": "scenario.severe_route_wear_limit"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "severe_route_wear_limit",
+              "type": "real",
+              "expression": "0.35",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__severe_route_wear_limit",
+              "expression": "scenario.severe_route_wear_limit",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1800,8 +2736,239 @@
         "param__service_wear_limit": "scenario.service_wear_limit"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "1",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1855,8 +3022,251 @@
         "param__parts_lead_time": "scenario.parts_lead_time"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "1",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "parts_lead_time",
+              "type": "real",
+              "expression": "72",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__parts_lead_time",
+              "expression": "scenario.parts_lead_time",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1916,8 +3326,263 @@
         "param__base_speed_mean": "scenario.base_speed_mean"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: scenario.base_severity_mean,\n    speed_factor: scenario.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_severity_mean",
+              "type": "real",
+              "expression": "1.4",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_speed_mean",
+              "type": "real",
+              "expression": "0.8",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_severity_mean",
+              "expression": "scenario.base_severity_mean",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_speed_mean",
+              "expression": "scenario.base_speed_mean",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -1977,8 +3642,263 @@
         "param__base_speed_mean": "scenario.base_speed_mean"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: scenario.base_severity_mean,\n    speed_factor: scenario.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_severity_mean",
+              "type": "real",
+              "expression": "0.9",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_speed_mean",
+              "type": "real",
+              "expression": "1.1",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_severity_mean",
+              "expression": "scenario.base_severity_mean",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_speed_mean",
+              "expression": "scenario.base_speed_mean",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -2044,8 +3964,275 @@
         "param__mountain_rate": "scenario.mountain_rate"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: parameters.base_severity_mean,\n    speed_factor: parameters.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "motorway_rate",
+              "type": "real",
+              "expression": "0.105",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "urban_rate",
+              "type": "real",
+              "expression": "0.1425",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "mountain_rate",
+              "type": "real",
+              "expression": "0.072",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__motorway_rate",
+              "expression": "scenario.motorway_rate",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__urban_rate",
+              "expression": "scenario.urban_rate",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__mountain_rate",
+              "expression": "scenario.mountain_rate",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "parameters.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -2123,8 +4310,299 @@
         "param__mountain_rate": "scenario.mountain_rate"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: scenario.base_severity_mean,\n    speed_factor: scenario.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_severity_mean",
+              "type": "real",
+              "expression": "1.4",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_speed_mean",
+              "type": "real",
+              "expression": "0.8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "motorway_rate",
+              "type": "real",
+              "expression": "0.105",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "urban_rate",
+              "type": "real",
+              "expression": "0.1425",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "mountain_rate",
+              "type": "real",
+              "expression": "0.072",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_severity_mean",
+              "expression": "scenario.base_severity_mean",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_speed_mean",
+              "expression": "scenario.base_speed_mean",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__motorway_rate",
+              "expression": "scenario.motorway_rate",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__urban_rate",
+              "expression": "scenario.urban_rate",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__mountain_rate",
+              "expression": "scenario.mountain_rate",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -2190,8 +4668,275 @@
         "param__base_speed_mean": "scenario.base_speed_mean"
       },
       "initialState": {
-        "type": "code",
-        "content": "const fleet = range(scenario.trucks).map((index) => ({\n    brake_wear: (index / scenario.trucks) * 0.1,\n    engine_wear: (index / scenario.trucks) * 0.08,\n    tyre_wear: (index / scenario.trucks) * 0.12,\n    km_remaining: 0,\n    route_distance: 0,\n    service_remaining: 0,\n    route_class: 0,\n    load_due: 0,\n    load_revenue: 0,\n    age: 0,\n    loads_done: 0,\n    unplanned: 0,\n    road_severity: scenario.base_severity_mean,\n    speed_factor: scenario.base_speed_mean,\n    conditions_clock: 0,\n    fuel_burned: 0,\n    hours_driven: 0,\n    rest_remaining: 0,\n    fuel_rate: 0,\n  }));\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n  };"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "trucks",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "drivers",
+              "type": "integer",
+              "expression": "8",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "bays",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "technicians",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "spares",
+              "type": "integer",
+              "expression": "10",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "recovery_units",
+              "type": "integer",
+              "expression": "2",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "service_wear_limit",
+              "type": "real",
+              "expression": "0.5",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "severe_route_wear_limit",
+              "type": "real",
+              "expression": "0.35",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_severity_mean",
+              "type": "real",
+              "expression": "1.4",
+              "exposed": true,
+              "optimize": null
+            },
+            {
+              "name": "base_speed_mean",
+              "type": "real",
+              "expression": "0.8",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__service_wear_limit",
+              "expression": "scenario.service_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__severe_route_wear_limit",
+              "expression": "scenario.severe_route_wear_limit",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_severity_mean",
+              "expression": "scenario.base_severity_mean",
+              "optimize": null
+            },
+            {
+              "parameterId": "param__base_speed_mean",
+              "expression": "scenario.base_speed_mean",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__available": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "template",
+                  "count": {
+                    "expression": "scenario.trucks",
+                    "optimize": null
+                  },
+                  "cells": [
+                    {
+                      "expression": "(i / scenario.trucks) * 0.1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.08",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "(i / scenario.trucks) * 0.12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__load_board": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__drivers": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.drivers",
+                "optimize": null
+              }
+            },
+            "place__bays": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.bays",
+                "optimize": null
+              }
+            },
+            "place__technicians": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.technicians",
+                "optimize": null
+              }
+            },
+            "place__spares": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.spares",
+                "optimize": null
+              }
+            },
+            "place__recovery": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "scenario.recovery_units",
+                "optimize": null
+              }
+            },
+            "place__conditions": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "scenario.base_severity_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "scenario.base_speed_mean",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__rest": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__rest_events": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            }
+          }
+        }
       }
     }
   ],

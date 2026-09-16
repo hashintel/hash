@@ -219,12 +219,66 @@ export default TransitionKernel(() => {
           param__service_rate: "scenario.service_rate",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place__waiting: "12",
-            place__free_staff: "3",
-            place__serving: "0",
-            place__served: "0",
+            variables: [
+              {
+                name: "arrival_rate",
+                type: "real",
+                expression: "1.2",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "service_rate",
+                type: "real",
+                expression: "0.5",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param__arrival_rate",
+                expression: "scenario.arrival_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "param__service_rate",
+                expression: "scenario.service_rate",
+                optimize: null,
+              },
+            ],
+            places: {
+              place__waiting: {
+                kind: "uncoloured",
+                count: {
+                  expression: "12",
+                  optimize: null,
+                },
+              },
+              place__free_staff: {
+                kind: "uncoloured",
+                count: {
+                  expression: "3",
+                  optimize: null,
+                },
+              },
+              place__serving: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place__served: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },
