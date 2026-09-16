@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canonicalSearchString,
   sharedOverlays,
   sharedSimulateViews,
   validateSharedExampleSearch,
@@ -12,6 +13,39 @@ import {
 } from "./navigation-search";
 
 describe("navigation state projection", () => {
+  it.each([
+    { mode: "edit", editView: "canvas" },
+    { mode: "edit", editView: "definitions" },
+    { mode: "actual", editView: "canvas" },
+  ] as const)(
+    "round-trips $mode/$editView URLs with remembered simulation resources",
+    (destination) => {
+      const baseline = sharedSearchToNavigationState({
+        mode: destination.mode,
+      });
+      for (const resourceType of ["scenario", "experiment"] as const) {
+        for (const presentation of [undefined, "fullscreen"] as const) {
+          const state = {
+            ...sharedSearchToNavigationState(
+              { resourceType, resourceId: "record / one", presentation },
+              baseline,
+            ),
+            ...destination,
+          };
+          const url = canonicalSearchString(
+            navigationStateToSharedSearch(state, baseline),
+          );
+          const search = validateSharedExampleSearch(
+            Object.fromEntries(new URLSearchParams(url)),
+          );
+          expect(sharedSearchToNavigationState(search, baseline)).toEqual(
+            state,
+          );
+        }
+      }
+    },
+  );
+
   it("routes Definitions within Edit and preserves the selection in shared links", () => {
     const search = {
       editView: "definitions",

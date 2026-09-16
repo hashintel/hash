@@ -137,9 +137,11 @@ export const navigationStateToSharedSearch = (
     subnet: state.subnetId ?? undefined,
     expandedPanel: state.expandedSubView?.container,
     expandedSection: state.expandedSubView?.id,
-    // Omitted at the baseline, so an untouched page keeps a clean URL and the
-    // decode above puts the baseline back.
-    mode: mode === modeToSearch(baseline.mode) ? undefined : mode,
+    // Resource links imply Simulate unless they explicitly name a mode.
+    mode:
+      state.simulateResource || mode !== modeToSearch(baseline.mode)
+        ? mode
+        : undefined,
     editView:
       editView === editViewToSearch(baseline.editView) ? undefined : editView,
     view:

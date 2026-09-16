@@ -28,4 +28,6 @@ A docked AI assistant takes space beside the main view and the simulation panel.
 
 On the Petrinaut website, the address includes the open experiment or scenario and whether it is fullscreen. Browser **Back** and **Forward** restore that view and its size.
 
+Switching to Edit or Actual keeps that mode on refresh or when sharing the link. The remembered resource and its size remain available when you return to Simulate.
+
 A scenario link requires the same model with that scenario saved. A link to a creation panel opens an empty form. Experiments belong to the current session; opening an experiment link after that session has ended shows an unavailable message and does not rerun it.
