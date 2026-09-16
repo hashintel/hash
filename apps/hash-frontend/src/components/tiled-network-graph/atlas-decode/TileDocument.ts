@@ -1,5 +1,7 @@
 import * as Envelope from "./Envelope";
+import { flow } from "./Function";
 import * as NodeId from "./NodeId";
+import * as Option from "./Option";
 import * as Position from "./Position";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
@@ -47,12 +49,12 @@ export interface TileDocument<T extends ArrayBufferLike> {
   readonly global: Head.TileDocumentGlobal | null;
   readonly positions: Position.PositionColumn<T>;
   readonly rowIds: NodeId.NodeIdColumn<T>;
-  /** Null when the request supplied no colored types. */
-  readonly typeMask: TypeMask.TypeMaskColumn<T> | null;
+  /** Absent when the request supplied no colored types. */
+  readonly typeMask: Option.Option<TypeMask.TypeMaskColumn<T>>;
   readonly trailer: Trailer.TileDocumentTrailer | null;
 }
 
-const contextCount = (
+const checkContext = (
   field: keyof Head.Context,
   value: number,
 ): Result.Result<void, TileError.TileDocumentError> => {
@@ -69,34 +71,11 @@ const contextCount = (
   return Result.ok(undefined);
 };
 
-const indexChunk = <T extends ArrayBufferLike>(
-  chunks: readonly Envelope.Chunk<T>[],
-  index: number,
-): Result.Result<Uint8Array<T>, TileError.TileDocumentError> => {
-  const bytes = chunks[index]?.bytes;
-  if (bytes === null || bytes === undefined) {
-    return Result.err(
-      new TileError.TileDocumentError({ _tag: "missing-slot", slot: index }),
-    );
-  }
-
-  return Result.ok(bytes);
-};
-
-const checkCount = (
-  actual: number,
-  expected: Decoder.U64,
-  field: string,
-): Result.Result<void, TileError.TileDocumentError> =>
+const checkCount = (field: string, expected: Decoder.U64) =>
   Result.filter(
-    (actual) => BigInt(actual) === expected,
-    () =>
-      new TileError.TileDocumentError({
-        _tag: "length",
-        field,
-        expected,
-        actual,
-      }),
+    (column: { readonly length: number }) => BigInt(column.length) === expected,
+    (column) =>
+      TileError.TileDocumentError.invalidLength(field, expected, column.length),
   );
 
 const decodePositions = <T extends ArrayBufferLike>(
@@ -104,39 +83,55 @@ const decodePositions = <T extends ArrayBufferLike>(
   delivered: Decoder.U64,
 ): Result.Result<Position.PositionColumn<T>, TileError.TileDocumentError> =>
   Position.PositionColumn.decode(bytes).pipe(
-    Result.changeContext(TileError.invalidField("positions")),
-    Result.andThen(checkCount("positions", delivered)),
+    Result.changeContext(() =>
+      TileError.TileDocumentError.invalidField("positions"),
+    ),
+    checkCount("positions", delivered),
   );
 
-const decodeRowIds = <T extends Uint8Array>(
+const decodeRowIds = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
   delivered: Decoder.U64,
 ) =>
   NodeId.NodeIdColumn.decode(bytes).pipe(
-    Result.changeContext(TileError.invalidField("rowIds")),
-    Result.andThen(checkCount("rowIds", delivered)),
+    Result.changeContext(() =>
+      TileError.TileDocumentError.invalidField("rowIds"),
+    ),
+    checkCount("rowIds", delivered),
   );
 
 const decodeTypeMask = <T extends ArrayBufferLike>(
   bytes: Option.Option<Uint8Array<T>>,
   delivered: Decoder.U64,
+  coloredTypeCount: number,
 ) =>
-  Option.map(
-    bytes,
-    flow(
-      TypeMask.TypeMaskColumn.decode,
-      Result.changeContext(TileError.invalidField("typeMask")),
-      Result.andThen(checkCount("typeMask", delivered)),
+  Option.transposeResult(
+    Option.map(
+      bytes,
+      flow(
+        TypeMask.TypeMaskColumn.decode(coloredTypeCount),
+        Result.changeContext(() =>
+          TileError.TileDocumentError.invalidField("typeMask"),
+        ),
+        checkCount("typeMask", delivered),
+      ),
     ),
   );
+
+export interface DecodeOptions extends Head.Context {
+  readonly generation: GenerationId.GenerationId;
+  readonly variant: Decoder.U64;
+  readonly mode: Head.Mode;
+  readonly coordinate: Head.Coordinate;
+}
 
 const decodeDocument = Result.fn(function* decodeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,
-  context: Head.Context,
+  { generation, variant, coloredTypeCount, coordinate }: DecodeOptions,
 ): Result.gen.Return<TileDocument<T>, TileError.DecodeError> {
-  yield* contextCount("coloredTypeCount", context.coloredTypeCount);
+  yield* checkContext("coloredTypeCount", coloredTypeCount);
 
   const [envelope, chunks] = yield* Envelope.decode(decoder);
 
@@ -150,33 +145,50 @@ const decodeDocument = Result.fn(function* decodeDocument<
   }
 
   const [head, positionsChunk, rowIdsChunk, typeMaskChunk] = yield* Result.all([
-    indexChunk(chunks, 0).pipe(Result.andThen(Head.decode)),
-    indexChunk(chunks, 1),
-    indexChunk(chunks, 2),
-    Result.ok(Option.fromNullable(chunks[3])),
-  ]).pipe(Result.changeContext(TileError.rejected("slot")));
+    Envelope.indexChunk(chunks, 0).pipe(Result.andThen(Head.decode)),
+    Envelope.indexChunk(chunks, 1),
+    Envelope.indexChunk(chunks, 2),
+    Result.ok(Envelope.getChunk(chunks, 3)),
+  ]).pipe(
+    Result.changeContext(() => TileError.TileDocumentError.rejected("slot")),
+  );
 
   yield* Option.match(typeMaskChunk, {
-    onSome: () => Result.assert(head.coloredTypeCount !== 0),
-    onNone: () => Result.assert(head.coloredTypeCount === 0),
+    onSome: () =>
+      Result.assert(coloredTypeCount !== 0, () =>
+        TileError.TileDocumentError.unexpectedSlot(3),
+      ),
+    onNone: () =>
+      Result.assert(coloredTypeCount === 0, () =>
+        Envelope.EnvelopeError.missingSlot(3),
+      ),
   });
 
   const [positions, rowIds, typeMask] = yield* Result.all([
     decodePositions(positionsChunk, head.delivered),
     decodeRowIds(rowIdsChunk, head.delivered),
-    decodeTypeMask(typeMaskChunk, head.delivered),
-  ]).pipe(Result.changeContext(TileError.rejected("columns")));
+    decodeTypeMask(typeMaskChunk, head.delivered, context.coloredTypeCount),
+  ]).pipe(
+    Result.changeContext(() => TileError.TileDocumentError.rejected("columns")),
+  );
 
   let trailer: Trailer.TileDocumentTrailer | null = null;
   if (head.hasTrailer) {
     const bytes = yield* decoder.nextUint8Array(decoder.remaining);
     trailer = yield* Trailer.decode(bytes, head.delivered);
   } else if (decoder.remaining !== 0) {
-    return yield* TileError.invalidField(
-      "head.trailer",
-      "undeclared trailing bytes",
+    return yield* Result.err(
+      TileError.TileDocumentError.invalidField(
+        "head.trailer",
+        "undeclared trailing bytes",
+      ),
     );
   }
+
+  yield* Result.assert(head.generation.equals(generation), () => {});
+  yield* Result.assert(head.variant === variant, () => {});
+  yield* Result.assert(head.mode === mode, () => {});
+  yield* Result.assert(head.coordinate === coordinate, () => {}); // TODO: needs proper thing
 
   return {
     generation: head.generation,
@@ -206,10 +218,10 @@ const decodeDocument = Result.fn(function* decodeDocument<
  */
 export const decode = <T extends ArrayBufferLike>(
   decoder: Decoder.Decoder<T>,
-  context: Head.Context,
+  options: DecodeOptions,
 ): Result.Result<TileDocument<T>, TileError.TileDocumentError> =>
   Result.catch(
-    () => decodeDocument(decoder, context),
+    () => decodeDocument(decoder, options),
     (cause) =>
       Result.err(
         new TileError.TileDocumentError({ _tag: "decode" }, { cause }),

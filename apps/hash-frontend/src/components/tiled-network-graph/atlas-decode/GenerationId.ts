@@ -30,23 +30,32 @@ export class GenerationIdError extends TaggedError.TaggedError<
   }
 }
 
-/** A 32-byte generation identity, borrowed from binary input or allocated by {@link GenerationId.fromHex}. */
+/**
+ * A 32-byte generation identity, borrowed from binary input or allocated by {@link GenerationId.fromHex}.
+ *
+ * Keep its buffer attached and unchanged while using the identity.
+ */
 export class GenerationId {
   readonly #inner: Uint8Array;
 
-  /**
-   * Borrows a generation identity.
-   *
-   * @throws {GenerationIdError} If the byte length is not 32.
-   */
-  constructor(inner: Uint8Array) {
-    if (inner.byteLength !== 32) {
-      throw new GenerationIdError({
-        _tag: "invalid-length",
-        byteLength: inner.byteLength,
-      });
-    }
+  private constructor(inner: Uint8Array) {
     this.#inner = inner;
+  }
+
+  /** Borrows exactly 32 bytes or returns an invalid-length error. */
+  static make(
+    this: void,
+    inner: Uint8Array,
+  ): Result.Result<GenerationId, GenerationIdError> {
+    if (inner.byteLength !== 32) {
+      return Result.err(
+        new GenerationIdError({
+          _tag: "invalid-length",
+          byteLength: inner.byteLength,
+        }),
+      );
+    }
+    return Result.ok(new GenerationId(inner));
   }
 
   /**
@@ -55,6 +64,7 @@ export class GenerationId {
    * Returns {@link GenerationIdError} unless the input contains exactly 64 lowercase hexadecimal digits. Success allocates a new 32-byte buffer.
    */
   static fromHex(
+    this: void,
     value: string,
   ): Result.Result<GenerationId, GenerationIdError> {
     if (value.length !== 64 || /[^0-9a-f]/u.test(value)) {
@@ -66,6 +76,16 @@ export class GenerationId {
       bytes[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16);
     }
     return Result.ok(new GenerationId(bytes));
+  }
+
+  /** Binary and hexadecimal decodes of the same identity compare equal. */
+  equals(other: GenerationId): boolean {
+    for (let index = 0; index < this.#inner.length; index += 1) {
+      if (this.#inner[index] !== other.#inner[index]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Formats the identity as 64 lowercase hexadecimal digits, preserving leading zeroes. */
@@ -87,15 +107,7 @@ export class GenerationId {
 export const Visitor: CborDecoder.CborVisitor<GenerationId, GenerationIdError> =
   {
     expecting: "a 32-byte generation identity",
-    visitByteString: (value) =>
-      Result.catch(
-        () => Result.ok(new GenerationId(value)),
-        (cause) => {
-          if (cause instanceof GenerationIdError) {
-            return Result.err(cause);
-          }
-
-          throw cause;
-        },
-      ),
+    visitByteString: GenerationId.make,
   };
+
+export const fromHex = GenerationId.fromHex;

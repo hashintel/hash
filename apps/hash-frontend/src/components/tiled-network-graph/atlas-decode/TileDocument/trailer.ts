@@ -55,10 +55,14 @@ const readTrailer = Result.fn(function* readTrailer(
   }
 
   return yield* Result.all([
-    TileError.required(labels, "trailer.labels"),
-    TileError.required(icons, "trailer.icons"),
+    Result.fromNullable(labels, () =>
+      TileError.TileDocumentError.missingField("trailer.labels"),
+    ),
+    Result.fromNullable(icons, () =>
+      TileError.TileDocumentError.missingField("trailer.icons"),
+    ),
   ]).pipe(
-    Result.changeContext(TileError.rejected("trailer")),
+    Result.changeContext(() => TileError.TileDocumentError.rejected("trailer")),
     Result.map(([labelColumn, iconColumn]) => ({
       labels: labelColumn,
       icons: iconColumn,

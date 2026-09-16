@@ -40,25 +40,17 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { registerPrincipalScopedReset } from "../../../shared/principal-scoped-state";
-import {
-  generationBytes,
-  parseCurrent,
-  parseManifest,
-} from "../atlas-decode/manifest";
-import {
-  decodeSaltileTile,
-  type SaltileTileRequest,
-} from "../atlas-decode/tile";
-import {
-  SALTILE_MEDIA_TYPE,
-  SaltileDetail,
-  SaltileMode,
-} from "../atlas-decode/wire";
-import {
-  ATLAS_TILE_MAX_ZOOM,
-  atlasTileKey,
-  type AtlasTileCoordinate,
-} from "./atlas-tile-coordinate";
+import * as Decoder from "../atlas-decode/Decoder";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import * as Function from "../atlas-decode/Function";
+import * as GenerationId from "../atlas-decode/GenerationId";
+import * as Iterable from "../atlas-decode/Iterable";
+import { parseCurrent, parseManifest } from "../atlas-decode/manifest";
+import * as Option from "../atlas-decode/Option";
+import * as Record from "../atlas-decode/Record";
+import * as Result from "../atlas-decode/Result";
+import * as TileDocument from "../atlas-decode/TileDocument";
+import { ATLAS_TILE_MAX_ZOOM, atlasTileKey } from "./atlas-tile-coordinate";
 import { WORLD_SIZE } from "./tile-geometry";
 
 /**
@@ -875,14 +867,13 @@ export const requestAtlas = async (
  * same generation and share one bootstrap.
  */
 export interface SaltileSession {
-  /** Active generation, 64 hex characters; addresses the tile route. */
-  readonly generation: string;
-  /** The same generation as 32 raw bytes; checked against the HEAD echo. */
-  readonly generationBytes: Uint8Array;
+  readonly generation: GenerationId.GenerationId;
+
   /** Canonical variant name; addresses the tile route. */
   readonly variant: string;
   /** Canonical variant's index in the manifest set; checked against the HEAD echo. */
-  readonly variantIndex: number;
+  readonly variantIndex: Decoder.U64;
+
   /**
    * The delivery cut's addend for this caller: `m + k`.
    *
@@ -1039,10 +1030,12 @@ const fetchSaltileSession = async (
   }
 
   return {
-    generation: current.generation,
-    generationBytes: generationBytes(current.generation),
+    generation: GenerationId.fromHex(current.generation).pipe(
+      Result.changeContext(() => new FetchTileError("invalid generation")),
+      Result.unwrap,
+    ),
     variant,
-    variantIndex: 0,
+    variantIndex: 0n as Decoder.U64,
     deliverySpanLog2,
     maxZoom: manifest.bucketSchedule.maxZoom,
     tileMaxZoom: manifest.scopeSchedule.maxZoom,
@@ -1347,70 +1340,33 @@ registerPrincipalScopedReset(() => {
   clearAtlasSessionCache();
 });
 
-/**
- * Reads the LSB-first type bitmask for the point at `index` into the ascending
- * list of matched {@link FetchTileOptions.coloredTypeIds} indices. `stride` is
- * the per-point byte count (`ceil(count / 8)`); bit `k` of byte `b` names the
- * queried type at index `b * 8 + k`. `count` caps the scan so padding bits in
- * the final byte are never read as types. Shared with the locate transport
- * (`fetch-locate.ts`), whose TYPE_MASK column is laid out identically.
- */
-export const typeIndicesAt = (
-  typeMask: Uint8Array,
-  index: number,
-  stride: number,
-  count: number,
-): number[] => {
-  const indices: number[] = [];
-  const base = index * stride;
-  for (let byte = 0; byte < stride; byte += 1) {
-    // Arithmetic bit-walk (the codebase bans bitwise operators): the low bit is
-    // the parity, and dividing by two shifts the next bit down, so bits are read
-    // LSB-first — the order the wire assigns type indices within a byte.
-    let bits = typeMask[base + byte] ?? 0;
-    for (let bit = 0; bit < 8; bit += 1) {
-      const type = byte * 8 + bit;
-      if (type >= count) {
-        break;
-      }
-      if (bits % 2 === 1) {
-        indices.push(type);
-      }
-      bits = Math.floor(bits / 2);
-    }
-  }
-  return indices;
-};
-
 const fetchAndDecodeTile = async (
   session: SaltileSession,
-  coordinate: AtlasTileCoordinate,
+  coordinate: TileDocument.Coordinate,
   baseUrl: string,
   signal: AbortSignal | undefined,
   retries: number | undefined,
   priority: RequestPriority | undefined,
-  detail: SaltileDetail,
+  detail: "auxiliary" | "minimal",
   coloredTypeIds: readonly string[],
 ): Promise<FetchedTile> => {
-  const { z, x, y } = coordinate;
-  if (z > session.maxZoom) {
+  if (coordinate.z > session.maxZoom) {
     throw new FetchTileError(
-      `zoom ${z} is beyond the manifest maxZoom ${session.maxZoom}`,
+      `zoom ${coordinate.z} is beyond the manifest maxZoom ${session.maxZoom}`,
     );
   }
 
-  const tileUrl = `${baseUrl}/tile/${session.generation}/${session.variant}/${z}/${x}/${y}`;
-  // Delta mode. `coloredTypeIds` conditions the TYPE_MASK column, and the detail
-  // trailer (per-point labels and icons) rides only when the caller asks; an
-  // empty query serializes to `{}`, the all-defaults body.
-  const body = JSON.stringify({
-    ...(coloredTypeIds.length > 0 ? { coloredTypeIds } : {}),
-    ...(detail === SaltileDetail.Auxiliary ? { detail } : {}),
-  });
+  const tileUrl = `${baseUrl}/tile/${session.generation}/${session.variant}/${atlasTileKey(coordinate)}`;
+
   const tileResponse = await requestAtlas(
     tileUrl,
     SALTILE_MEDIA_TYPE,
-    body,
+    JSON.stringify(
+      Record.omitUndefined({
+        coloredTypeIds: coloredTypeIds.length > 0 ? coloredTypeIds : undefined,
+        detail: detail === "auxiliary" ? "auxiliary" : undefined,
+      }),
+    ),
     signal,
     retries,
     priority,
@@ -1424,71 +1380,57 @@ const fetchAndDecodeTile = async (
       )} arrived as ${contentType}; expected ${SALTILE_MEDIA_TYPE}`,
     );
   }
+
   const buffer = await tileResponse.arrayBuffer();
+  const decoder = new Decoder.Decoder(new DataView(buffer));
 
-  const request: SaltileTileRequest = {
-    generation: session.generationBytes,
-    variant: session.variantIndex,
-    coordinate,
-    mode: SaltileMode.Delta,
-    deliverySpanLog2: session.deliverySpanLog2,
-    coloredTypeIdCount: coloredTypeIds.length,
-    detail,
-  };
-
-  let tile;
-  try {
-    tile = decodeSaltileTile(buffer, request);
-  } catch (cause) {
-    throw new FetchTileError(
-      `failed to decode tile ${atlasTileKey(coordinate)}`,
-      { cause },
+  const { children, positions, rowIds, typeMask, trailer } =
+    TileDocument.decode(decoder, {
+      generation: session.generation,
+      variant: session.variantIndex,
+      mode: "delta",
+      coordinate,
+      coloredTypeCount: coloredTypeIds.length,
+    }).pipe(
+      Result.changeContext(
+        () =>
+          new FetchTileError(
+            `failed to decode tile ${atlasTileKey(coordinate)}`,
+          ),
+      ),
+      Result.unwrap,
     );
-  }
 
   // Wire frame [-1, 1] onto the layer's world [0, WORLD_SIZE): an exact
   // power-of-two scale; the tile grids already align.
   const scale = WORLD_SIZE / 2;
-  const { delivered, positions, rowIds, typeMask } = tile;
-  // The detail trailer's columns are delivered-order-aligned; absent (null) on
-  // the geometry-only response, so a node simply carries no label/icon there.
-  const labels = tile.detail?.labels;
-  const icons = tile.detail?.icons;
-  // The type mask is present exactly when colored types were requested; its
-  // stride is the per-point byte count carrying one bit per queried type.
-  const maskStride = Math.ceil(coloredTypeIds.length / 8);
-  const nodes: TileNode[] = Array.from({ length: delivered });
-  for (let index = 0; index < delivered; index += 1) {
-    const id = rowIds[index];
-    const wireX = positions[index * 2];
-    const wireY = positions[index * 2 + 1];
-    // Unreachable: `decodeSaltileTile` guarantees these array lengths. The guard
-    // satisfies the strict typed-array index type without a non-null assertion.
-    if (id === undefined || wireX === undefined || wireY === undefined) {
-      throw new FetchTileError(
-        `tile ${atlasTileKey(coordinate)} record ${index} is truncated`,
-      );
-    }
-    const worldX = (wireX + 1) * scale;
-    const worldY = (wireY + 1) * scale;
-    const label = labels?.[index] ?? undefined;
-    const icon = icons?.[index] ?? undefined;
-    const typeIndices = typeMask
-      ? typeIndicesAt(typeMask, index, maskStride, coloredTypeIds.length)
-      : undefined;
-    nodes[index] = {
-      id,
-      x: worldX,
-      y: worldY,
-      ...(label !== undefined ? { label } : {}),
-      ...(icon !== undefined ? { icon } : {}),
-      ...(typeIndices !== undefined ? { typeIndices } : {}),
-    };
-  }
+
+  const nodes = Function.pipe(
+    [
+      rowIds,
+      positions,
+      Option.unwrapOrElse(typeMask, () => Iterable.repeat(null)),
+      trailer?.icons ?? Iterable.repeat(null),
+      trailer?.labels ?? Iterable.repeat(null),
+    ],
+    Function.spread(Iterable.zip),
+    Iterable.map(
+      ([id, [x, y], type, icon, label]): TileNode =>
+        Record.omitUndefined({
+          id,
+          x: (x + 1) * scale,
+          y: (y + 1) * scale,
+          label: label ?? undefined,
+          icon: icon ?? undefined,
+          typeIndices: type ? [...type] : undefined,
+        }),
+    ),
+    Iterable.collect(),
+  );
 
   // `children` is the occupancy bitmask of the four Morton children below this
   // cut; 0 means nothing deeper exists, i.e. the subtree is fully delivered.
-  return { nodes, complete: tile.children === 0 };
+  return { nodes, complete: children === 0n };
 };
 
 /**
@@ -1510,17 +1452,15 @@ const fetchAndDecodeTile = async (
 export const fetchTile = async (
   zoom: number,
   tileIndex: number,
-  options: FetchTileOptions = {},
-): Promise<FetchedTile> => {
-  const {
+  {
     baseUrl = ATLAS_API_BASE_URL,
     signal,
     retry,
     priority,
-    detail = SaltileDetail.Minimal,
+    detail = "minimal",
     coloredTypeIds = [],
-  } = options;
-
+  }: FetchTileOptions = {},
+): Promise<FetchedTile> => {
   if (!Number.isInteger(zoom) || zoom < 0 || zoom > ATLAS_TILE_MAX_ZOOM) {
     throw new FetchTileError(
       `zoom ${zoom} must be an integer in 0..=${ATLAS_TILE_MAX_ZOOM}`,
@@ -1537,10 +1477,10 @@ export const fetchTile = async (
   }
 
   // Row-major un-flattening: `tileIndex = y * gridSize + x`, top-left origin.
-  const coordinate: AtlasTileCoordinate = {
-    z: zoom,
-    x: tileIndex % gridSize,
-    y: Math.floor(tileIndex / gridSize),
+  const coordinate = {
+    z: BigInt(zoom) as Decoder.U64,
+    x: BigInt(tileIndex % gridSize) as Decoder.U64,
+    y: BigInt(Math.floor(tileIndex / gridSize)) as Decoder.U64,
   };
 
   return withAtlasSession(baseUrl, (session) =>

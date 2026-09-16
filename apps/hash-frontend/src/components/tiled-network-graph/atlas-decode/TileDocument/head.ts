@@ -71,9 +71,11 @@ const modeVisitor: CborDecoder.CborVisitor<Mode, TileError.TileDocumentError> =
           return Result.ok<Mode>("total");
 
         default:
-          return TileError.invalidField(
-            "head.mode",
-            `expected 0 (delta) or 1 (total), received ${value}`,
+          return Result.err(
+            TileError.TileDocumentError.invalidField(
+              "head.mode",
+              `expected 0 (delta) or 1 (total), received ${value}`,
+            ),
           );
       }
     },
@@ -169,10 +171,14 @@ const readGlobal = Result.fn(function* readGlobal(
   }
 
   return yield* Result.all([
-    TileError.required(partial.visible, "head.global.visible"),
-    TileError.required(partial.minResolution, "head.global.minResolution"),
+    Result.fromNullable(partial.visible, () =>
+      TileError.TileDocumentError.missingField("head.global.visible"),
+    ),
+    Result.fromNullable(partial.minResolution, () =>
+      TileError.TileDocumentError.missingField("head.global.minResolution"),
+    ),
   ]).pipe(
-    Result.changeContext(TileError.rejected("head")),
+    Result.changeContext(() => TileError.TileDocumentError.rejected("head")),
     Result.map(([visible, minResolution]) => ({
       visible,
       bounds: partial.bounds ?? null,
@@ -241,17 +247,35 @@ const readHead = Result.fn(function* readHead(
   }
 
   return yield* Result.all([
-    TileError.required(partial.generation, "head.generation"),
-    TileError.required(partial.variant, "head.variant"),
-    TileError.required(partial.coordinate, "head.coordinate"),
-    TileError.required(partial.mode, "head.mode"),
-    TileError.required(partial.delivered, "head.delivered"),
-    TileError.required(partial.firstBucket, "head.firstBucket"),
-    TileError.required(partial.runs, "head.runs"),
-    TileError.required(partial.children, "head.children"),
-    TileError.required(partial.hasTrailer, "head.trailer"),
+    Result.fromNullable(partial.generation, () =>
+      TileError.TileDocumentError.missingField("head.generation"),
+    ),
+    Result.fromNullable(partial.variant, () =>
+      TileError.TileDocumentError.missingField("head.variant"),
+    ),
+    Result.fromNullable(partial.coordinate, () =>
+      TileError.TileDocumentError.missingField("head.coordinate"),
+    ),
+    Result.fromNullable(partial.mode, () =>
+      TileError.TileDocumentError.missingField("head.mode"),
+    ),
+    Result.fromNullable(partial.delivered, () =>
+      TileError.TileDocumentError.missingField("head.delivered"),
+    ),
+    Result.fromNullable(partial.firstBucket, () =>
+      TileError.TileDocumentError.missingField("head.firstBucket"),
+    ),
+    Result.fromNullable(partial.runs, () =>
+      TileError.TileDocumentError.missingField("head.runs"),
+    ),
+    Result.fromNullable(partial.children, () =>
+      TileError.TileDocumentError.missingField("head.children"),
+    ),
+    Result.fromNullable(partial.hasTrailer, () =>
+      TileError.TileDocumentError.missingField("head.trailer"),
+    ),
   ]).pipe(
-    Result.changeContext(TileError.rejected("head")),
+    Result.changeContext(() => TileError.TileDocumentError.rejected("head")),
     Result.map(
       ([
         generation,
@@ -307,9 +331,11 @@ const checkChildren = (
 ): Result.Result<void, TileError.TileDocumentError> =>
   // Completeness uses zero as “no occupied children”; only the four child bits can contribute.
   head.children > 15n
-    ? TileError.invalidField(
-        "head.children",
-        `expected a four-child occupancy mask, received ${head.children}`,
+    ? Result.err(
+        TileError.TileDocumentError.invalidField(
+          "head.children",
+          `expected a four-child occupancy mask, received ${head.children}`,
+        ),
       )
     : Result.ok(undefined);
 
@@ -319,11 +345,11 @@ const checkGlobal = (
   // Camera framing needs the visible extent even when this tile delivers no points.
   if (head.global === null) {
     return head.coordinate.z === 0n
-      ? TileError.missingField("head.global")
+      ? Result.err(TileError.TileDocumentError.missingField("head.global"))
       : Result.ok(undefined);
   }
   return head.global.bounds === null && head.global.visible !== 0n
-    ? TileError.missingField("head.global.bounds")
+    ? Result.err(TileError.TileDocumentError.missingField("head.global.bounds"))
     : Result.ok(undefined);
 };
 
@@ -336,6 +362,8 @@ export const decode = Result.fn(function* decode(
     checkRunSum(head),
     checkChildren(head),
     checkGlobal(head),
-  ]).pipe(Result.changeContext(TileError.rejected("head")));
+  ]).pipe(
+    Result.changeContext(() => TileError.TileDocumentError.rejected("head")),
+  );
   return head;
 });

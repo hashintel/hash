@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { CborDecoder, CborDecoderError } from "./CborDecoder";
 import { cborBstr } from "./fixtures";
@@ -26,58 +26,41 @@ const expectOk = <T>(result: Result.Result<T, unknown>): T => {
   return result.value;
 };
 
-type Constructor<E> = new (...args: never[]) => E;
+describe("GenerationId.make", () => {
+  it("private_constructor", () => {
+    expectTypeOf<typeof GenerationId>().not.toMatchTypeOf<
+      new (bytes: Uint8Array) => unknown
+    >();
+  });
 
-/** Catches a synchronous constructor throw. */
-const expectThrows = <E extends Error>(
-  fn: () => unknown,
-  ctor: Constructor<E>,
-): E => {
-  try {
-    fn();
-  } catch (error) {
-    expect(error).toBeInstanceOf(ctor);
-    if (error instanceof ctor) {
-      return error;
-    }
-  }
-  throw new Error("expected a throw");
-};
-
-describe("GenerationId constructor", () => {
-  it("accepts_32_bytes_borrowed", () => {
+  it("borrowed_identity", () => {
     const bytes = identityBytes();
-    const generation = new GenerationId(bytes);
+    const generation = expectOk(GenerationId.make(bytes));
     expect(generation.bytes).toBe(bytes);
   });
 
-  it.each([0, 16, 31, 33, 64])(
-    "rejects_length_other_than_32_%i",
-    (byteLength) => {
-      const error = expectThrows(
-        () => new GenerationId(new Uint8Array(byteLength)),
-        GenerationIdError,
-      );
-      expect(error.reason).toEqual({
-        _tag: "invalid-length",
-        byteLength,
-      });
-    },
-  );
+  it.each([0, 16, 31, 33, 64])("invalid_width_%i", (byteLength) => {
+    const error = expectErr(GenerationId.make(new Uint8Array(byteLength)));
+    expect(error).toBeInstanceOf(GenerationIdError);
+    expect(error.reason).toEqual({
+      _tag: "invalid-length",
+      byteLength,
+    });
+  });
 });
 
 describe("GenerationId hexadecimal conversion", () => {
   const hex =
     "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
-  it("parses_and_formats_each_byte_in_order", () => {
+  it("hex_roundtrip", () => {
     const generation = expectOk(GenerationId.fromHex(hex));
     expect(generation.bytes).toEqual(identityBytes());
     expect(generation.toString()).toBe(hex);
   });
 
-  it("preserves_leading_zeroes", () => {
-    expect(new GenerationId(new Uint8Array(32)).toString()).toBe(
+  it("leading_zeroes", () => {
+    expect(expectOk(GenerationId.make(new Uint8Array(32))).toString()).toBe(
       "0".repeat(64),
     );
     const maximum = "f".repeat(64);
@@ -86,13 +69,15 @@ describe("GenerationId hexadecimal conversion", () => {
     );
   });
 
-  it("formats_only_the_borrowed_subview", () => {
+  it("borrowed_subview", () => {
     const bytes = new Uint8Array(80).fill(0xff);
     bytes.set(identityBytes(), 3);
-    expect(new GenerationId(bytes.subarray(3, 35)).toString()).toBe(hex);
+    expect(expectOk(GenerationId.make(bytes.subarray(3, 35))).toString()).toBe(
+      hex,
+    );
   });
 
-  it("allocates_distinct_storage_for_each_parse", () => {
+  it("distinct_parse_storage", () => {
     const first = expectOk(GenerationId.fromHex(hex));
     const second = expectOk(GenerationId.fromHex(hex));
     expect(first.bytes.buffer).not.toBe(second.bytes.buffer);
@@ -108,15 +93,44 @@ describe("GenerationId hexadecimal conversion", () => {
     ` ${hex}`,
     `${hex}\n`,
     "０".repeat(64),
-  ])("rejects_noncanonical_hex_%j", (value) => {
+  ])("noncanonical_hex_%j", (value) => {
     expect(expectErr(GenerationId.fromHex(value)).reason).toEqual({
       _tag: "invalid-hex",
     });
   });
 });
 
+describe("GenerationId.equals", () => {
+  it("separate_storage", () => {
+    const generation = expectOk(GenerationId.make(identityBytes()));
+    const parsed = expectOk(GenerationId.fromHex(generation.toString()));
+    expect(generation.bytes.buffer).not.toBe(parsed.bytes.buffer);
+    expect(generation.equals(parsed)).toBe(true);
+    expect(parsed.equals(generation)).toBe(true);
+    expect(generation.equals(generation)).toBe(true);
+  });
+
+  it("subview", () => {
+    const backing = new Uint8Array(80).fill(255);
+    backing.set(identityBytes(), 37);
+    const generation = expectOk(GenerationId.make(backing.subarray(37, 69)));
+    expect(
+      generation.equals(expectOk(GenerationId.make(identityBytes()))),
+    ).toBe(true);
+  });
+
+  it.each([0, 15, 31])("different_byte_%i", (index) => {
+    const bytes = identityBytes();
+    bytes[index] = 255;
+    const generation = expectOk(GenerationId.make(bytes));
+    const other = expectOk(GenerationId.make(identityBytes()));
+    expect(generation.equals(other)).toBe(false);
+    expect(other.equals(generation)).toBe(false);
+  });
+});
+
 describe("GenerationId.Visitor", () => {
-  it("constructs_from_cbor_byte_string", () => {
+  it("byte_string", () => {
     const bytes = identityBytes();
     const payload = Uint8Array.from(cborBstr([...bytes]));
     const result = new CborDecoder(payload).decode(Visitor);
@@ -126,7 +140,7 @@ describe("GenerationId.Visitor", () => {
     expect([...generation.bytes]).toEqual([...bytes]);
   });
 
-  it("borrows_bytes_from_decoder_buffer", () => {
+  it("borrowed_bytes", () => {
     const bytes = identityBytes();
     const payload = Uint8Array.from(cborBstr([...bytes]));
     const generation = expectOk(new CborDecoder(payload).decode(Visitor));
@@ -135,7 +149,7 @@ describe("GenerationId.Visitor", () => {
     expect(generation.bytes.buffer).toBe(payload.buffer);
   });
 
-  it("wrong_length_is_domain_error_not_throw", () => {
+  it("invalid_width", () => {
     const payload = Uint8Array.from(cborBstr([1, 2, 3]));
     const result = new CborDecoder(payload).decode(Visitor);
 
@@ -144,7 +158,7 @@ describe("GenerationId.Visitor", () => {
     expect(error.reason).toEqual({ _tag: "invalid-length", byteLength: 3 });
   });
 
-  it("rejects_non_byte_string_value", () => {
+  it("unexpected_kind", () => {
     // 0x01 is the unsigned integer 1, a category Visitor does not accept.
     const result = new CborDecoder(Uint8Array.of(0x01)).decode(Visitor);
 

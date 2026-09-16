@@ -20,7 +20,7 @@ import {
   cborUint,
   u32le,
 } from "./fixtures";
-import { GenerationIdError } from "./GenerationId";
+import * as GenerationId from "./GenerationId";
 import { NodeIdColumnError } from "./NodeId";
 import * as Result from "./Result";
 import { DIRECTORY_ENTRY_BYTES, PAYLOAD_ALIGNMENT, PREFIX_BYTES } from "./wire";
@@ -78,13 +78,20 @@ const edgesResponse = ({
   return buildResponse("edges", [...slots], tail);
 };
 
-/** Decodes an edges response without request context. */
+const decodeOptions: EdgeDocument.DecodeOptions = {
+  generation: GenerationId.GenerationId.make(
+    new Uint8Array(generationBytes),
+  ).pipe(Result.unwrap),
+  variant: 7n,
+};
+
 const runDecode = (
   buffer: ArrayBuffer,
+  options: EdgeDocument.DecodeOptions = decodeOptions,
 ): Result.Result<
   EdgeDocument.EdgeDocument<ArrayBuffer>,
   EdgeDocument.EdgeDocumentError
-> => EdgeDocument.decode(new Decoder(new DataView(buffer)));
+> => EdgeDocument.decode(new Decoder(new DataView(buffer)), options);
 
 /** Unwraps a successful Result, failing the test if it is an Err. */
 const unwrap = <T, E>(result: Result.Result<T, E>): T => {
@@ -115,11 +122,13 @@ const expectError = (
   return result.error;
 };
 
-/** Returns every document error retained under a section's aggregate. */
+type SectionMember = EdgeDocument.EdgeDocumentError | Envelope.EnvelopeError;
+
+/** Returns every error retained under a section's aggregate. */
 const expectSectionErrors = (
   result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
   section: "head" | "columns" | "trailer",
-): EdgeDocument.EdgeDocumentError[] => {
+): SectionMember[] => {
   const error = expectError(result);
   expect(error.reason).toEqual({ _tag: "section", section });
   expect(error.cause).toBeInstanceOf(Result.All);
@@ -127,9 +136,11 @@ const expectSectionErrors = (
     throw new Error("expected an aggregate cause");
   }
   return error.cause.errors.map((member: unknown) => {
-    expect(member).toBeInstanceOf(EdgeDocument.EdgeDocumentError);
-    if (!(member instanceof EdgeDocument.EdgeDocumentError)) {
-      throw new Error("expected a document error member");
+    if (
+      !(member instanceof EdgeDocument.EdgeDocumentError) &&
+      !(member instanceof Envelope.EnvelopeError)
+    ) {
+      throw new Error("expected a document or envelope error member");
     }
     return member;
   });
@@ -139,7 +150,7 @@ const expectSectionErrors = (
 const expectSingleSectionError = (
   result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
   section: "head" | "columns" | "trailer",
-): EdgeDocument.EdgeDocumentError => {
+): SectionMember => {
   const errors = expectSectionErrors(result, section);
   expect(errors).toHaveLength(1);
   return errors[0]!;
@@ -319,7 +330,7 @@ describe("EdgeDocument.decode geometry", () => {
     new Uint8Array(outer).set(new Uint8Array(inner), embeddedOffset);
     const view = new DataView(outer, embeddedOffset, inner.byteLength);
 
-    const doc = expectOk(EdgeDocument.decode(new Decoder(view)));
+    const doc = expectOk(EdgeDocument.decode(new Decoder(view), decodeOptions));
 
     expect(doc.generation.bytes.buffer).toBe(outer);
     expect([...doc.generation.bytes]).toEqual(generationBytes);
@@ -444,10 +455,53 @@ describe("EdgeDocument.decode envelope and head", () => {
     const error = expectError(runDecode(edgesResponse({ head: entries })));
 
     expect(error.reason).toEqual({ _tag: "decode" });
-    expect(error.cause).toBeInstanceOf(GenerationIdError);
-    expect((error.cause as GenerationIdError).reason).toEqual({
+    expect(error.cause).toBeInstanceOf(GenerationId.GenerationIdError);
+    expect((error.cause as GenerationId.GenerationIdError).reason).toEqual({
       _tag: "invalid-length",
       byteLength: 16,
+    });
+  });
+});
+
+describe("EdgeDocument.decode request", () => {
+  it("generation_mismatch", () => {
+    const generation = GenerationId.GenerationId.make(
+      new Uint8Array(32).fill(255),
+    ).pipe(Result.unwrap);
+    const error = expectError(
+      runDecode(edgesResponse(), { ...decodeOptions, generation }),
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: "head.generation",
+      detail: `expected ${generation}, received ${decodeOptions.generation}`,
+    });
+  });
+
+  it("variant_mismatch", () => {
+    const error = expectError(
+      runDecode(edgesResponse(), { ...decodeOptions, variant: 8n }),
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: "head.variant",
+      detail: "expected 8, received 7",
+    });
+  });
+
+  it("variant_u64_exact", () => {
+    const variant = (1n << 64n) - 1n;
+    const buffer = edgesResponse({
+      head: defaultHeadEntries({ 1: cborUint(variant) }),
+    });
+    expectOk(runDecode(buffer, { ...decodeOptions, variant }));
+    const error = expectError(
+      runDecode(buffer, { ...decodeOptions, variant: variant - 1n }),
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: "head.variant",
+      detail: `expected ${variant - 1n}, received ${variant}`,
     });
   });
 });
@@ -469,7 +523,12 @@ describe("EdgeDocument.decode columns", () => {
       { _tag: "length", field: "targets", expected: 3n, actual: 0 },
       { _tag: "missing-slot", slot: 3 },
     ]);
-    expect(errors[0]!.cause).toBeInstanceOf(NodeIdColumnError);
+    expect(errors[0]).toBeInstanceOf(EdgeDocument.EdgeDocumentError);
+    expect((errors[0] as EdgeDocument.EdgeDocumentError).cause).toBeInstanceOf(
+      NodeIdColumnError,
+    );
+    expect(errors[1]).toBeInstanceOf(EdgeDocument.EdgeDocumentError);
+    expect(errors[2]).toBeInstanceOf(Envelope.EnvelopeError);
   });
 
   it.each([
@@ -489,6 +548,7 @@ describe("EdgeDocument.decode columns", () => {
       runDecode(buildResponse("edges", payloads)),
       "columns",
     );
+    expect(error).toBeInstanceOf(Envelope.EnvelopeError);
     expect(error.reason).toEqual({ _tag: "missing-slot", slot });
   });
 
@@ -517,10 +577,10 @@ describe("EdgeDocument.decode columns", () => {
   });
 
   it.each([
-    { name: "descending", rows: [0, 2, 1], index: 2 },
-    { name: "duplicate", rows: [0, 0, 1], index: 1 },
-  ])("unordered_identities_$name", ({ rows, index }) => {
-    const error = expectSingleSectionError(
+    { name: "descending", rows: [0, 2, 1] },
+    { name: "duplicate", rows: [0, 0, 1] },
+  ])("identity_delivery_order_$name", ({ rows }) => {
+    const document = expectOk(
       runDecode(
         edgesResponse({
           payloads: [
@@ -531,18 +591,12 @@ describe("EdgeDocument.decode columns", () => {
           ],
         }),
       ),
-      "columns",
     );
-    expect(error.reason).toEqual({
-      _tag: "invalid-field",
-      field: "identities",
-      detail: "identities must be strictly ascending",
-    });
-    expect(error.cause).toBeInstanceOf(BinaryEntityIdError);
-    expect((error.cause as BinaryEntityIdError).reason).toEqual({
-      _tag: "unordered",
-      index,
-    });
+    expect(
+      [...document.identities].map((identity) => [...identity.bytes]),
+    ).toEqual(rows.map((row) => identityRow(row)));
+    expect([...document.sources]).toEqual(sourcesDefault);
+    expect([...document.targets]).toEqual(targetsDefault);
   });
 
   it("mismatched_identities_count", () => {
@@ -859,7 +913,14 @@ describe("EdgeDocument.decode real fixture", () => {
 
   it("g6_edges", () => {
     const { buffer, sidecar } = readWireFixture("g6-edges");
-    const doc = expectOk(runDecode(buffer));
+    const doc = expectOk(
+      runDecode(buffer, {
+        generation: GenerationId.GenerationId.fromHex(
+          sidecar.head.generation,
+        ).pipe(Result.unwrap),
+        variant: BigInt(sidecar.head.variant),
+      }),
+    );
 
     expect([...doc.generation.bytes]).toEqual([
       ...bytesFromHex(sidecar.head.generation),

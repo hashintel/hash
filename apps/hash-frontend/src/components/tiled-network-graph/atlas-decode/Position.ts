@@ -3,9 +3,6 @@ import * as TaggedError from "./TaggedError";
 
 import type * as Decoder from "./Decoder";
 
-/** An x/y pair stored as single-precision coordinates. */
-export type Position = readonly [x: Decoder.F32, y: Decoder.F32];
-
 /** A malformed position column or an out-of-range row lookup. */
 export type PositionColumnErrorReason =
   | { readonly _tag: "invalid-length"; readonly byteLength: number }
@@ -35,6 +32,9 @@ export class PositionColumnError extends TaggedError.TaggedError<
   }
 }
 
+/** An x/y pair stored as single-precision coordinates. */
+export type Position = readonly [x: Decoder.F32, y: Decoder.F32];
+
 /**
  * Borrows interleaved little-endian coordinate pairs.
  *
@@ -47,18 +47,32 @@ export class PositionColumn<
 
   /**
    * Borrows a view containing whole {@link Position} rows.
-   *
-   * @throws {@link PositionColumnError} if the byte length is not divisible by eight.
    */
-  constructor(view: DataView<T>) {
+  private constructor(view: DataView<T>) {
+    this.#view = view;
+  }
+
+  static make<T extends ArrayBufferLike>(
+    view: DataView<T>,
+  ): Result.Result<PositionColumn<T>, PositionColumnError> {
     if (view.byteLength % 8 !== 0) {
-      throw new PositionColumnError({
-        _tag: "invalid-length",
-        byteLength: view.byteLength,
-      });
+      return Result.err(
+        new PositionColumnError({
+          _tag: "invalid-length",
+          byteLength: view.byteLength,
+        }),
+      );
     }
 
-    this.#view = view;
+    return Result.ok(new PositionColumn(view));
+  }
+
+  static decode<T extends ArrayBufferLike>(
+    bytes: Uint8Array<T>,
+  ): Result.Result<PositionColumn<T>, PositionColumnError> {
+    return PositionColumn.make(
+      new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+    );
   }
 
   /** The number of complete coordinate pairs. */

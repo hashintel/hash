@@ -18,7 +18,6 @@ export type EdgeDocumentErrorReason =
       readonly _tag: "invalid-kind";
       readonly actual: Envelope.Envelope["kind"];
     }
-  | { readonly _tag: "missing-slot"; readonly slot: number }
   | {
       readonly _tag: "unknown-field";
       readonly section: "head" | "trailer";
@@ -55,9 +54,6 @@ export class EdgeDocumentError extends TaggedError.TaggedError<
       case "invalid-kind":
         message = `expected SALTILEE, received ${reason.actual}`;
         break;
-      case "missing-slot":
-        message = `required edges slot ${reason.slot} is absent`;
-        break;
       case "unknown-field":
         message = `unknown ${reason.section} key ${reason.key}`;
         break;
@@ -80,7 +76,42 @@ export class EdgeDocumentError extends TaggedError.TaggedError<
 
     super("EdgeDocumentError", reason, message, options);
   }
+
+  static rejected(section: "head" | "columns" | "trailer"): EdgeDocumentError {
+    return new EdgeDocumentError({ _tag: "section", section });
+  }
+
+  static missingField(field: string): EdgeDocumentError {
+    return new EdgeDocumentError({ _tag: "missing-field", field });
+  }
+
+  static invalidField(
+    field: string,
+    detail = "invalid value",
+  ): EdgeDocumentError {
+    return new EdgeDocumentError({ _tag: "invalid-field", field, detail });
+  }
+
+  static invalidLength(
+    field: string,
+    expected: Decoder.U64,
+    actual: number,
+  ): EdgeDocumentError {
+    return new EdgeDocumentError({ _tag: "length", field, expected, actual });
+  }
 }
+
+/** Writable fields during map visitation. */
+type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+
+/** Errors propagated before attaching the edges document context. */
+type DecodeError =
+  | EdgeDocumentError
+  | Envelope.EnvelopeError
+  | Decoder.DecoderError
+  | CborDecoder.CborDecoderError
+  | CborPrimitive.ArrayVisitorError
+  | GenerationId.GenerationIdError;
 
 /** Per-edge labels and representative types in delivery order. */
 export interface EdgeDocumentTrailer {
@@ -101,9 +132,6 @@ export interface EdgeDocument<T extends ArrayBufferLike> {
   readonly trailer: EdgeDocumentTrailer | null;
 }
 
-/** Writable fields during map visitation. */
-type Mutable<T> = { -readonly [P in keyof T]: T[P] };
-
 /** Edges header fields that determine column sizes and trailer presence. */
 interface Head {
   readonly generation: GenerationId.GenerationId;
@@ -112,31 +140,6 @@ interface Head {
   readonly complete: boolean;
   readonly hasTrailer: boolean;
 }
-
-/** Errors propagated before attaching the edges document context. */
-type DecodeError =
-  | EdgeDocumentError
-  | Envelope.EnvelopeError
-  | Decoder.DecoderError
-  | CborDecoder.CborDecoderError
-  | CborPrimitive.ArrayVisitorError
-  | GenerationId.GenerationIdError;
-
-/** Returns a required field or a missing-field error. */
-const required = <T>(
-  value: T | undefined,
-  field: string,
-): Result.Result<T, EdgeDocumentError> => {
-  if (value === undefined) {
-    return Result.err(new EdgeDocumentError({ _tag: "missing-field", field }));
-  }
-
-  return Result.ok(value);
-};
-
-/** Adds document context above an aggregate of independent validation failures. */
-const rejected = (section: "head" | "columns" | "trailer") => () =>
-  new EdgeDocumentError({ _tag: "section", section });
 
 /** Reads the fields needed to interpret edge columns and the trailer. */
 const readHead = Result.fn(function* readHead(
@@ -174,13 +177,23 @@ const readHead = Result.fn(function* readHead(
   }
 
   return yield* Result.all([
-    required(partial.generation, "head.generation"),
-    required(partial.variant, "head.variant"),
-    required(partial.count, "head.count"),
-    required(partial.complete, "head.complete"),
-    required(partial.hasTrailer, "head.hasTrailer"),
+    Result.fromNullable(partial.generation, () =>
+      EdgeDocumentError.missingField("head.generation"),
+    ),
+    Result.fromNullable(partial.variant, () =>
+      EdgeDocumentError.missingField("head.variant"),
+    ),
+    Result.fromNullable(partial.count, () =>
+      EdgeDocumentError.missingField("head.count"),
+    ),
+    Result.fromNullable(partial.complete, () =>
+      EdgeDocumentError.missingField("head.complete"),
+    ),
+    Result.fromNullable(partial.hasTrailer, () =>
+      EdgeDocumentError.missingField("head.hasTrailer"),
+    ),
   ]).pipe(
-    Result.changeContext(rejected("head")),
+    Result.changeContext(() => EdgeDocumentError.rejected("head")),
     Result.map(([generation, variant, count, complete, hasTrailer]) => ({
       generation,
       variant,
@@ -198,81 +211,36 @@ const decodeHead = (bytes: Uint8Array): Result.Result<Head, DecodeError> =>
     visitMap: readHead,
   });
 
-/** Checks a column's row count against its header declaration. */
-const checkCount = (
-  actual: number,
-  expected: Decoder.U64,
-  field: string,
-): Result.Result<void, EdgeDocumentError> => {
-  if (BigInt(actual) !== expected) {
-    return Result.err(
-      new EdgeDocumentError({ _tag: "length", field, expected, actual }),
-    );
-  }
-
-  return Result.ok(undefined);
-};
+const checkCount = (field: string, expected: Decoder.U64) =>
+  Result.filter(
+    (column: { readonly length: number }) => BigInt(column.length) === expected,
+    (column) => EdgeDocumentError.invalidLength(field, expected, column.length),
+  );
 
 /** Borrows a node column or returns invalid storage or a header-count mismatch. */
-const decodeNodeIdColumn = <T extends ArrayBufferLike>(
-  bytes: Uint8Array<T>,
-  count: Decoder.U64,
-  field: string,
-) =>
-  Result.catch(
-    () =>
-      Result.ok(
-        new NodeId.NodeIdColumn(
-          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-        ),
+const decodeNodeIdColumn =
+  (count: Decoder.U64, field: string) =>
+  <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
+    NodeId.NodeIdColumn.decode(bytes).pipe(
+      Result.changeContext(() =>
+        EdgeDocumentError.invalidField(field, "invalid node column width"),
       ),
-    (cause) => {
-      if (!(cause instanceof NodeId.NodeIdColumnError)) {
-        throw cause;
-      }
-      return Result.err(
-        new EdgeDocumentError(
-          { _tag: "invalid-field", field, detail: "invalid node column width" },
-          { cause },
-        ),
-      );
-    },
-  ).pipe(
-    Result.andThen((column) =>
-      checkCount(column.length, count, field).pipe(Result.map(() => column)),
-    ),
-  );
+      checkCount(field, count),
+    );
 
 /** Borrows an identity column after validating its width and count. */
-const decodeIdentities = Result.fn(function* decodeIdentities<
-  T extends ArrayBufferLike,
->(bytes: Uint8Array<T>, count: Decoder.U64) {
-  const column = yield* Result.catch(
-    () =>
-      Result.ok(
-        new BinaryEntityId.BinaryEntityIdColumn(
-          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+const decodeIdentities =
+  (count: Decoder.U64) =>
+  <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
+    BinaryEntityId.BinaryEntityIdColumn.decode(bytes).pipe(
+      Result.changeContext(() =>
+        EdgeDocumentError.invalidField(
+          "identities",
+          "invalid identity column width",
         ),
       ),
-    (cause) => {
-      if (!(cause instanceof BinaryEntityId.BinaryEntityIdError)) {
-        throw cause;
-      }
-      return Result.err(
-        new EdgeDocumentError(
-          {
-            _tag: "invalid-field",
-            field: "identities",
-            detail: "invalid identity column width",
-          },
-          { cause },
-        ),
-      );
-    },
-  );
-  yield* checkCount(column.length, count, "identities");
-  return column;
-});
+      checkCount("identities", count),
+    );
 
 /** Accepts a versioned URL or returns a trailer field error. */
 const typeUrlVisitor: CborDecoder.CborVisitor<VersionedUrl, EdgeDocumentError> =
@@ -308,82 +276,88 @@ const typeIndexVisitor: CborDecoder.CborVisitor<Decoder.U64 | null, never> = {
 };
 
 /** Reads edge detail and resolves its interned type references. */
-const readTrailer = Result.fn(function* readTrailer(
-  access: CborDecoder.CborMapAccess,
-  count: Decoder.U64,
-): Result.gen.Return<EdgeDocumentTrailer, DecodeError> {
-  let types: VersionedUrl[] | undefined;
-  let labels: (string | null)[] | undefined;
-  let indexes: (Decoder.U64 | null)[] | undefined;
+const visitTrailer = (count: Decoder.U64) =>
+  Result.fn(function* decodeTrailer(
+    access: CborDecoder.CborMapAccess,
+  ): Result.gen.Return<EdgeDocumentTrailer, DecodeError> {
+    let types: VersionedUrl[] | undefined;
+    let labels: (string | null)[] | undefined;
+    let indexes: (Decoder.U64 | null)[] | undefined;
 
-  while (access.remaining > 0) {
-    const key = yield* access.readKey();
-    switch (key) {
-      case 0n:
-        types = yield* access.readValue(
-          CborPrimitive.array(typeUrlVisitor, "trailer.typeTable"),
-        );
-        break;
-      case 1n:
-        labels = yield* access.readValue(
-          CborPrimitive.array(labelVisitor, "trailer.linkLabels", count),
-        );
-        break;
-      case 2n:
-        indexes = yield* access.readValue(
-          CborPrimitive.array(typeIndexVisitor, "trailer.linkTypeIds", count),
-        );
-        break;
-      default:
-        return yield* Result.err(
-          new EdgeDocumentError({
-            _tag: "unknown-field",
-            section: "trailer",
-            key,
-          }),
-        );
-    }
-  }
-
-  const [typeTable, linkLabels, typeIndexes] = yield* Result.all([
-    required(types, "trailer.typeTable"),
-    required(labels, "trailer.linkLabels"),
-    required(indexes, "trailer.linkTypeIds"),
-  ]).pipe(Result.changeContext(rejected("trailer")));
-
-  if (new Set(typeTable).size !== typeTable.length) {
-    return yield* Result.err(
-      new EdgeDocumentError({
-        _tag: "invalid-field",
-        field: "trailer.typeTable",
-        detail: "entries must be unique",
-      }),
-    );
-  }
-
-  const linkTypeIds: (VersionedUrl | null)[] = [];
-  for (const index of typeIndexes) {
-    if (index === null) {
-      linkTypeIds.push(null);
-      continue;
+    while (access.remaining > 0) {
+      const key = yield* access.readKey();
+      switch (key) {
+        case 0n:
+          types = yield* access.readValue(
+            CborPrimitive.array(typeUrlVisitor, "trailer.typeTable"),
+          );
+          break;
+        case 1n:
+          labels = yield* access.readValue(
+            CborPrimitive.array(labelVisitor, "trailer.linkLabels", count),
+          );
+          break;
+        case 2n:
+          indexes = yield* access.readValue(
+            CborPrimitive.array(typeIndexVisitor, "trailer.linkTypeIds", count),
+          );
+          break;
+        default:
+          return yield* Result.err(
+            new EdgeDocumentError({
+              _tag: "unknown-field",
+              section: "trailer",
+              key,
+            }),
+          );
+      }
     }
 
-    if (index >= BigInt(typeTable.length)) {
+    const [typeTable, linkLabels, typeIndexes] = yield* Result.all([
+      Result.fromNullable(types, () =>
+        EdgeDocumentError.missingField("trailer.typeTable"),
+      ),
+      Result.fromNullable(labels, () =>
+        EdgeDocumentError.missingField("trailer.linkLabels"),
+      ),
+      Result.fromNullable(indexes, () =>
+        EdgeDocumentError.missingField("trailer.linkTypeIds"),
+      ),
+    ]).pipe(Result.changeContext(() => EdgeDocumentError.rejected("trailer")));
+
+    if (new Set(typeTable).size !== typeTable.length) {
       return yield* Result.err(
         new EdgeDocumentError({
           _tag: "invalid-field",
-          field: "trailer.linkTypeIds",
-          detail: `index ${index} is outside the type table`,
+          field: "trailer.typeTable",
+          detail: "entries must be unique",
         }),
       );
     }
 
-    // the table length bounds this conversion and lookup.
-    linkTypeIds.push(typeTable[Number(index)]!);
-  }
+    const linkTypeIds: (VersionedUrl | null)[] = [];
+    for (const index of typeIndexes) {
+      if (index === null) {
+        linkTypeIds.push(null);
+        continue;
+      }
 
-  return { typeTable, linkLabels, linkTypeIds };
-});
+      if (index >= BigInt(typeTable.length)) {
+        return yield* Result.err(
+          new EdgeDocumentError({
+            _tag: "invalid-field",
+            field: "trailer.linkTypeIds",
+            detail: `index ${index} is outside the type table`,
+          }),
+        );
+      }
+
+      // the table length bounds this conversion and lookup.
+      linkTypeIds.push(typeTable[Number(index)]!);
+    }
+
+    return { typeTable, linkLabels, linkTypeIds };
+  });
 
 /** Constructs trailer detail or returns a schema, reference or CBOR error. */
 const decodeTrailer = (
@@ -392,27 +366,20 @@ const decodeTrailer = (
 ): Result.Result<EdgeDocumentTrailer, DecodeError> =>
   new CborDecoder.CborDecoder(bytes).decode({
     expecting: "an edges trailer",
-    visitMap: (access) => readTrailer(access, count),
+    visitMap: visitTrailer(count),
   });
 
-/** Returns a present slot, retaining empty views for zero-edge columns. */
-const requiredSlot = <T extends ArrayBufferLike>(
-  chunks: readonly Envelope.Chunk<T>[],
-  slot: number,
-): Result.Result<Uint8Array<T>, EdgeDocumentError> => {
-  const bytes = chunks[slot]?.bytes;
-  if (bytes === null || bytes === undefined) {
-    return Result.err(new EdgeDocumentError({ _tag: "missing-slot", slot }));
-  }
-
-  return Result.ok(bytes);
-};
+export interface DecodeOptions {
+  readonly generation: GenerationId.GenerationId;
+  readonly variant: Decoder.U64;
+}
 
 /** Assembles the envelope's edge columns with their decoded metadata. */
-const readDocument = Result.fn(function* readDocument<
+const decodeDocument = Result.fn(function* decodeDocument<
   T extends ArrayBufferLike,
 >(
   decoder: Decoder.Decoder<T>,
+  { generation: expectedGeneration, variant: expectedVariant }: DecodeOptions,
 ): Result.gen.Return<EdgeDocument<T>, DecodeError> {
   const [envelope, chunks] = yield* Envelope.decode(decoder);
 
@@ -425,30 +392,25 @@ const readDocument = Result.fn(function* readDocument<
     );
   }
 
-  const head = yield* decodeHead(yield* requiredSlot(chunks, 0));
+  const head = yield* decodeHead(yield* Envelope.indexChunk(chunks, 0));
 
   const [sources, targets, identities] = yield* Result.all([
-    requiredSlot(chunks, 1).pipe(
-      Result.andThen((bytes) =>
-        decodeNodeIdColumn(bytes, head.count, "sources"),
-      ),
+    Envelope.indexChunk(chunks, 1).pipe(
+      Result.andThen(decodeNodeIdColumn(head.count, "sources")),
     ),
-    requiredSlot(chunks, 2).pipe(
-      Result.andThen((bytes) =>
-        decodeNodeIdColumn(bytes, head.count, "targets"),
-      ),
+    Envelope.indexChunk(chunks, 2).pipe(
+      Result.andThen(decodeNodeIdColumn(head.count, "targets")),
     ),
-    requiredSlot(chunks, 3).pipe(
-      Result.andThen((bytes) => decodeIdentities(bytes, head.count)),
+    Envelope.indexChunk(chunks, 3).pipe(
+      Result.andThen(decodeIdentities(head.count)),
     ),
-  ]).pipe(Result.changeContext(rejected("columns")));
+  ]).pipe(Result.changeContext(() => EdgeDocumentError.rejected("columns")));
 
   let trailer: EdgeDocumentTrailer | null = null;
   if (head.hasTrailer) {
-    trailer = yield* decodeTrailer(
-      yield* decoder.nextUint8Array(decoder.remaining),
-      head.count,
-    );
+    const bytes = yield* decoder.nextUint8Array(decoder.remaining);
+
+    trailer = yield* decodeTrailer(bytes, head.count);
   } else if (decoder.remaining !== 0) {
     return yield* Result.err(
       new EdgeDocumentError({
@@ -458,6 +420,19 @@ const readDocument = Result.fn(function* readDocument<
       }),
     );
   }
+
+  yield* Result.assert(head.generation.equals(expectedGeneration), () =>
+    EdgeDocumentError.invalidField(
+      "head.generation",
+      `expected ${expectedGeneration}, received ${head.generation}`,
+    ),
+  );
+  yield* Result.assert(head.variant === expectedVariant, () =>
+    EdgeDocumentError.invalidField(
+      "head.variant",
+      `expected ${expectedVariant}, received ${head.variant}`,
+    ),
+  );
 
   return {
     generation: head.generation,
@@ -474,15 +449,16 @@ const readDocument = Result.fn(function* readDocument<
 /**
  * Decodes an edges response into metadata, identity columns and optional detail.
  *
- * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. Generation and variant identify the response and remain available for request validation.
+ * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. The response must match the requested generation and variant in {@link DecodeOptions}.
  *
  * @returns The complete document or an {@link EdgeDocumentError}. Independent validation failures appear in a {@link Result.All} under a section error's cause. Underlying errors and unexpected exceptions retain their causes. Cursor reads stop at their first failure, which may advance the decoder.
  */
 export const decode = <T extends ArrayBufferLike>(
   decoder: Decoder.Decoder<T>,
+  options: DecodeOptions,
 ): Result.Result<EdgeDocument<T>, EdgeDocumentError> =>
   Result.catch(
-    () => readDocument(decoder),
+    () => decodeDocument(decoder, options),
     (cause) => Result.err(new EdgeDocumentError({ _tag: "decode" }, { cause })),
   ).pipe(
     Result.changeContextIf(
