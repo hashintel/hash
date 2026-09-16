@@ -272,12 +272,12 @@ export const ConstraintsSection = ({
     state: null,
   });
   const parameterName = scenarioParameters[0]?.identifier;
-  const placeName = placeNames[0];
+  const placeName = placeNames.find((name) => /^[A-Za-z_$][\w$]*$/.test(name));
   const placeholders: Record<ConstraintSpace, string> = {
     parameters: parameterName
       ? `scenario.${parameterName} > 0`
       : "parameters.rate > 0",
-    state: `return state.places[${JSON.stringify(placeName ?? "Queue")}].count <= 10;`,
+    state: `state.places.${placeName ?? "PlaceName"}.count <= 10`,
   };
 
   const removeRow = (row: ConstraintDraft) => {

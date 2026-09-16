@@ -25,6 +25,7 @@ import ts from "typescript";
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,
+  detectStateConstraintForm,
   detectUserCodeForm,
   type DualFormSurfaceKind,
 } from "./user-code-form";
@@ -1871,6 +1872,20 @@ function bareBodyPrefix(surface: DualFormSurfaceKind): string {
 }
 
 const BARE_BODY_SUFFIX = "\n}";
+
+/** Lowers either state-constraint form with spans relative to the authored source. */
+export const lowerStateConstraintToHir = (
+  code: string,
+): LowerTypeScriptResult => {
+  const expression = detectStateConstraintForm(code) === "expression";
+  return lowerWrappedBodyToHir(
+    code,
+    "metric",
+    expression ? `${METRIC_PREFIX}return (\n` : METRIC_PREFIX,
+    expression ? `\n);${METRIC_SUFFIX}` : METRIC_SUFFIX,
+    (lowering) => lowering.lowerMetricModule(),
+  );
+};
 
 /**
  * Lowers user-authored TypeScript to an `HirFunction`.

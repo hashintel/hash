@@ -110,12 +110,18 @@ describe("lowerConstraint", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("lowers a boolean state condition to a state constraint", () => {
+  it.each([
+    "state.places.Queue.count <= 10",
+    "\n// Keep the queue small\nstate.places.Queue.count <= 10 // limit",
+    "state.places.Queue.count <= 10 &&\nparameters.rate > 0",
+    "return state.places.Queue.count <= 10;",
+    "const count = state.places.Queue.count;\nreturn count <= 10;",
+  ])("lowers a boolean state condition: %s", (code) => {
     const result = lowerConstraint(
       {
         space: "state",
         id: "c-queue",
-        code: "return state.places.Queue.count <= 10;",
+        code,
       },
       context,
     );
@@ -125,20 +131,40 @@ describe("lowerConstraint", () => {
     }
     expect(result.constraint).toMatchObject({
       space: "state",
+      code,
       hir: { surface: "metric", params: [{ name: "state" }] },
     });
   });
 
-  it("rejects a state condition returning a number", () => {
-    const result = lowerConstraint(
-      { space: "state", id: "c", code: "return state.places.Queue.count;" },
-      context,
-    );
+  it.each(["state.places.Queue.count", "return state.places.Queue.count;"])(
+    "rejects a non-boolean state condition: %s",
+    (code) => {
+      const result = lowerConstraint(
+        { space: "state", id: "c", code },
+        context,
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) {
+        return;
+      }
+      expect(result.diagnostics[0]?.message).toContain("boolean");
+    },
+  );
+
+  it("positions an unknown-place error on the authored expression", () => {
+    const code = "\nstate.places.Missing.count < 10";
+    const result = lowerConstraint({ space: "state", id: "c", code }, context);
     expect(result.ok).toBe(false);
     if (result.ok) {
       return;
     }
-    expect(result.diagnostics[0]?.message).toContain("boolean");
+    const diagnostic = result.diagnostics[0]!;
+    expect(
+      code.slice(
+        diagnostic.span.start,
+        diagnostic.span.start + diagnostic.span.length,
+      ),
+    ).toBe("Missing");
   });
 
   it("produces constraints the list schema accepts verbatim", () => {
@@ -151,7 +177,7 @@ describe("lowerConstraint", () => {
         {
           space: "state",
           id: "b",
-          code: "return state.places.Queue.count > 0;",
+          code: "state.places.Queue.count > 0",
         },
         context,
       ),

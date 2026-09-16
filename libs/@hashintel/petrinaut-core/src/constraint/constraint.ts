@@ -98,7 +98,7 @@ export const stateConstraintSchema = z
   .meta({
     id: "StateConstraint",
     description:
-      "One boolean condition over the simulation state, authored like a metric body but returning boolean, e.g. `return state.places.Queue.count <= 10;`. Observed while a run goes.",
+      "One boolean condition over the simulation state, e.g. `state.places.Queue.count <= 10`. A function body with an explicit return is also accepted. Observed while a run goes.",
   });
 
 export const constraintSchema = z

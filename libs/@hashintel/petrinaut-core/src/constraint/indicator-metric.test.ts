@@ -106,11 +106,12 @@ describe("wrapHirAsIndicator", () => {
 });
 
 describe("compileStateConstraintIndicator", () => {
-  it("emits a program that reads 1 where the condition holds and 0 where it fails", () => {
-    const artifact = compileStateConstraintIndicator(
-      lowerState("return state.places.Queue.count <= 10;"),
-      sdcpn,
-    );
+  it.each([
+    "state.places.Queue.count <= 10",
+    "return state.places.Queue.count <= 10;",
+    "const count = state.places.Queue.count;\nreturn count <= 10;",
+  ])("evaluates pass and fail for %s", (code) => {
+    const artifact = compileStateConstraintIndicator(lowerState(code), sdcpn);
     expect(artifact).not.toBeNull();
     expect(evaluateAt(artifact!, { Queue: 4 })).toBe(1);
     expect(evaluateAt(artifact!, { Queue: 10 })).toBe(1);

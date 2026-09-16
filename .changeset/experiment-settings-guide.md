@@ -2,4 +2,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Update the assistant's guide summaries for experiment controls and settings available without simulation feature flags.
+Accept state constraint expressions without an explicit return while preserving existing code bodies. Update the assistant's guide summaries for experiment controls and settings available without simulation feature flags.
