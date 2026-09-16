@@ -27,12 +27,8 @@ runs:
         read -r -a scopes <<< "${SCOPE//$'\n'/ }"
         for scope in "${scopes[@]}"; do
           case "$scope" in
-            @hashintel/brunch-agent)
-              copy .config/oxlint/brunch
-              ;;
             # The app's product tests execute evaluation runners and inspect committed evidence.
             @apps/brunch-agent)
-              copy .config/oxlint/brunch
               copy libs/@hashintel/brunch-agent/docs
               copy libs/@hashintel/brunch-agent/evaluations
               ;;
@@ -44,11 +40,12 @@ runs:
       run: |
         cp -R oxfmt.config.ts infra/ out/
 
-        # Every dot-file except `.git`; what `turbo prune` already wrote stays as it is.
+        # Every dot-file except `.git`, merged into what `turbo prune` already wrote there (the
+        # pruned `.cargo/config.toml`, the `.claude/hooks` workspace), which stays as it is.
         shopt -s dotglob nullglob
         for entry in .[!.]*; do
           [ "$entry" = .git ] && continue
-          [ -e "out/$entry" ] || cp -R "$entry" out/
+          rsync --archive --ignore-existing "$entry" out/
         done
 
     - name: Remove old repository files
