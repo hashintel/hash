@@ -4,6 +4,10 @@ import { lowerConstraint } from "@hashintel/petrinaut-core/hir";
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core/optimization";
 
 import {
+  sweepPointFor,
+  type ExperimentParameterAxis,
+} from "../../experiments/parameter-grid";
+import {
   sirConstrainedOptimizationInput,
   sirOptimizationInput,
   sirOptimizationMetric,
@@ -13,10 +17,8 @@ import {
 import {
   createSweepTrialEvaluator,
   snappedSweepValues,
-  sweepPointFor,
 } from "./create-sweep-trial-evaluator";
 
-import type { ExperimentParameterAxis } from "../../experiments/parameter-grid";
 import type {
   PetrinautOptimizationManifest,
   PetrinautOptimizationTrialRequest,

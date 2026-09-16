@@ -463,9 +463,7 @@ describe("ViewExperimentDrawer in the frame", () => {
     renderDrawer(sweep);
 
     expect(document.querySelector("[data-sweep-objective]")).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /^Objective by step/u }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Optimizer/u })).toBeNull();
   });
 
   it("reads the strip's row as 0 steps, without a metric, when the sweep's only study failed before its first step", () => {
@@ -480,12 +478,13 @@ describe("ViewExperimentDrawer in the frame", () => {
       }),
     );
 
-    const row = screen.getByRole("button", { name: /^Objective by step/u });
-    expect(row.textContent).toMatch(/step0 steps$/u);
+    const row = screen.getByRole("button", { name: /^Optimizer/u });
+    expect(row.textContent).toMatch(/Optimizer0 steps$/u);
     // Nothing is coming: the fold says so instead of waiting for a step.
     expect(screen.getByTestId("objective-history").dataset.emptyLabel).toBe(
       "No steps run",
     );
+    expect(screen.getByText("No best result found")).toBeTruthy();
   });
 
   it("waits for the first step in the strip's fold while the driving study has drawn none yet", () => {
@@ -503,12 +502,14 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.getByTestId("objective-history").dataset.emptyLabel).toBe(
       "Waiting for the first step",
     );
+    expect(screen.getByText("Waiting for the first result")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "View best" })).toBeNull();
   });
 
   it("draws the study's objective under the sliders while it drives the sweep and once it settles, at one layout", () => {
     const signatures = (["running", "cancelled"] as const).map((status) => {
       const view = renderDrawerWithStudy({ ...sweep, status: "idle" }, status);
-      const row = screen.getByRole("button", { name: /^Objective by step/u });
+      const row = screen.getByRole("button", { name: /^Optimizer/u });
       expect(row.textContent).toMatch(/ · 4 steps · best 650\.500$/u);
       expect(row.getAttribute("aria-expanded")).toBe("true");
       expect(document.querySelector("[data-sweep-objective]")).toBeTruthy();
@@ -536,7 +537,7 @@ describe("ViewExperimentDrawer in the frame", () => {
       },
       "cancelled",
     );
-    const row = screen.getByRole("button", { name: /^Objective by step/u });
+    const row = screen.getByRole("button", { name: /^Optimizer/u });
     const clip = document.querySelector<HTMLElement>("[data-sweep-objective]")!;
     expect(row.getAttribute("aria-controls")).toBe(clip.id);
     expect(clip.hasAttribute("inert")).toBe(false);
@@ -569,6 +570,46 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.getAllByTestId("metric-timeline").length).toBe(
       sweep.metricSpecs.length,
     );
+  });
+});
+
+describe("best parameters", () => {
+  const best = {
+    trial: 2,
+    objective: 650.5,
+    parameters: { transmission_rate: 0.356, recovery_days: 10 },
+  };
+
+  it.each(["complete", "cancelled", "error"] as const)(
+    "keeps best values after a %s search while the selection is elsewhere",
+    (status) => {
+      renderDrawerWithStudies(sweep, sweepStudy(sweep, { status, best }));
+      const panel = within(
+        screen.getByRole("region", { name: "Best parameters" }),
+      );
+      expect(panel.getByText("Best found")).toBeTruthy();
+      expect(panel.getByText("650.500 · Step 3")).toBeTruthy();
+      expect(panel.getByText("Transmission rate")).toBeTruthy();
+      expect(panel.getByText("0.356")).toBeTruthy();
+      expect(panel.getByText("Recovery days")).toBeTruthy();
+      expect(panel.getByText("10")).toBeTruthy();
+      expect(
+        (panel.getByRole("button", { name: "View best" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false);
+    },
+  );
+
+  it("shows best so far without letting navigation interrupt the optimizer", () => {
+    renderDrawerWithStudies(
+      sweep,
+      sweepStudy(sweep, { status: "running", best }),
+    );
+    expect(screen.getByText("Best so far")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "View best" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });
 
@@ -612,7 +653,7 @@ describe("the Stop control", () => {
       { cancelOptimization },
     );
 
-    const row = screen.getByRole("button", { name: /^Objective by step/u });
+    const row = screen.getByRole("button", { name: /^Optimizer/u });
     expect(row.textContent).toMatch(/ · 3 steps · best 700\.250$/u);
     expect(screen.getByTestId("objective-history").dataset.xMax).toBe("30");
     expect(screen.getByText(/^Testing step 4/u)).toBeTruthy();

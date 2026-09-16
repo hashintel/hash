@@ -509,6 +509,60 @@ describe("experimentResultsModel with the optimizer", () => {
     ).toBe(false);
   });
 
+  it("restores all best parameter values together on the sweep grid", () => {
+    const setSweepSelection = vi.fn();
+    const finished = {
+      ...study,
+      status: "complete" as const,
+      best: {
+        trial: 2,
+        objective: 650.5,
+        parameters: { transmission_rate: 0.356, recovery_days: 10 },
+      },
+    };
+    const result = model(idleSweep, {
+      actions: { ...dependencies.actions, setSweepSelection },
+      optimizer: withStudy(finished),
+    });
+    const strip = propsOf<{ onViewBest: () => void }>(result.bands[0]!.below);
+    expect(setSweepSelection).not.toHaveBeenCalled();
+    strip.onViewBest();
+    expect(setSweepSelection).toHaveBeenCalledExactlyOnceWith(idleSweep.id, {
+      transmission_rate: { from: 32, to: 32 },
+      recovery_days: { from: 8, to: 8 },
+    });
+  });
+
+  it("does not restore best values while locked or with an incomplete best result", () => {
+    const best = {
+      trial: 2,
+      objective: 650.5,
+      parameters: { transmission_rate: 0.356, recovery_days: 10 },
+    };
+    for (const result of [
+      model(idleSweep, { optimizer: withStudy({ ...study, best }, driving) }),
+      model(
+        { ...idleSweep, requestActive: true },
+        { optimizer: withStudy({ ...study, status: "complete", best }) },
+      ),
+      model(
+        { ...idleSweep, status: "cancelled" },
+        { optimizer: withStudy({ ...study, status: "complete", best }) },
+      ),
+      model(idleSweep, {
+        optimizer: withStudy({
+          ...study,
+          status: "complete",
+          best: { ...best, parameters: { transmission_rate: 0.356 } },
+        }),
+      }),
+    ]) {
+      expect(
+        propsOf<{ onViewBest: unknown }>(result.bands[0]!.below).onViewBest,
+      ).toBeNull();
+    }
+  });
+
   it("stops the study before cancelling the sweep", () => {
     const stop = vi.fn();
     const cancelExperiment = vi.fn();

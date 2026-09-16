@@ -10,6 +10,7 @@ import {
   isExperimentActive,
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
+import { sweepPointFor } from "../../../../../../react/experiments/parameter-grid";
 import {
   constraintAlpha,
   formatRate,
@@ -276,6 +277,9 @@ export const experimentResultsModel = (
   // Keep the study's displays after its search stops or completes.
   const { study } = optimizer;
   const rates = studyRates(study);
+  const bestSelection = study?.best
+    ? sweepPointFor(experiment.parameterAxes, study.best.parameters)
+    : null;
 
   const detailStats = [
     ...experimentDetailsStats(experiment),
@@ -426,6 +430,16 @@ export const experimentResultsModel = (
                   key={experiment.id}
                   study={study}
                   driving={following !== null}
+                  axes={experiment.parameterAxes}
+                  onViewBest={
+                    locked || bestSelection === null
+                      ? null
+                      : () =>
+                          actions.setSweepSelection(
+                            experiment.id,
+                            bestSelection,
+                          )
+                  }
                 />
               ),
             // The constraints the experiment carries, from creation on; a

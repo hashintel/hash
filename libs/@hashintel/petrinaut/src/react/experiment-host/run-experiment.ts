@@ -1,6 +1,5 @@
-import { axisValueAt } from "../experiments/parameter-grid";
+import { axisValueAt, sweepPointFor } from "../experiments/parameter-grid";
 import { sweepCellObjective } from "../experiments/sweep-cell-objective";
-import { sweepPointFor } from "../optimizations/provider/create-sweep-trial-evaluator";
 import { prepareExperiment } from "./prepare-experiment";
 
 import type {

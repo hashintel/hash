@@ -21,6 +21,7 @@ import {
   type ExperimentsActionsValue,
   type SweepVisitedCell,
 } from "../experiments/context";
+import { sweepPointFor } from "../experiments/parameter-grid";
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
@@ -32,7 +33,6 @@ import {
   type OptimizationsContextValue,
 } from "./context";
 import { OptimizationsProvider } from "./provider";
-import { sweepPointFor } from "./provider/create-sweep-trial-evaluator";
 import {
   sirConstrainedOptimizationInput,
   sirOptimizationInput,

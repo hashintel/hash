@@ -30,7 +30,7 @@ import {
 import { resolveTrialScenarioBindings } from "@hashintel/petrinaut-core/optimization";
 
 import { sweepCellPassCount } from "../../experiments/constraint-indicators";
-import { axisPositionFor, axisValueAt } from "../../experiments/parameter-grid";
+import { axisValueAt, sweepPointFor } from "../../experiments/parameter-grid";
 import { constraintNameIn } from "../constraint-rates";
 import {
   hasParameterConstraints,
@@ -62,23 +62,6 @@ export type SweepTrialEvaluator = PetrinautOptimizationChannel & {
    * the sweep on the best step; any later settle changes nothing.
    */
   settle: (best: OptimizationBest | null | undefined) => void;
-};
-
-/** The sweep point an optimizer's suggestion lands on. */
-export const sweepPointFor = (
-  axes: readonly ExperimentParameterAxis[],
-  values: Readonly<Record<string, number | boolean>>,
-): SweepSelection | null => {
-  const selection: Record<string, { from: number; to: number }> = {};
-  for (const axis of axes) {
-    const value = values[axis.identifier];
-    if (typeof value !== "number") {
-      return null;
-    }
-    const position = axisPositionFor(axis, value);
-    selection[axis.identifier] = { from: position, to: position };
-  }
-  return selection;
 };
 
 /**

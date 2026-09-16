@@ -4,6 +4,7 @@ import {
   type ExperimentRecord,
   ExperimentsContext,
 } from "../../../../../../react/experiments/context";
+import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
 import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
 import {
@@ -28,6 +29,8 @@ import {
   makeExperiment,
   makeParameterSweepExperiment,
   sirSdcpnContextValue,
+  sweepFixtureScenario,
+  syntheticSweepObjective,
 } from "./experiments-story-fixtures";
 import {
   fakeConstrainedStudyInput,
@@ -216,9 +219,11 @@ const sweepStudy = (
 const SweepWithStudy = ({
   sweep,
   study,
+  presentation = "panel",
 }: {
   sweep: ExperimentRecord;
   study: OptimizationRecord;
+  presentation?: "panel" | "inline";
 }) => (
   <PetrinautOptimizationContext value={storyOptimizer}>
     <SDCPNContext value={sirSdcpnContextValue}>
@@ -227,7 +232,7 @@ const SweepWithStudy = ({
           initialExperiments={[sweep]}
           restreamOnSelectionChange
         >
-          <DrawerFromContext />
+          <DrawerFromContext presentation={presentation} />
         </FakeExperimentsProvider>
       </OptimizationsContext>
     </SDCPNContext>
@@ -349,4 +354,90 @@ export const OptimizedWithImportance: Story = {
 export const OptimizedBelowImportanceFloor: Story = {
   name: "Sweep, optimized below the importance floor",
   render: () => <ImportanceSweep steps={30} />,
+};
+
+const BestParametersSweep = ({
+  status,
+  waiting = false,
+}: {
+  status: OptimizationRecord["status"];
+  waiting?: boolean;
+}) => {
+  const sweep = {
+    ...makeParameterSweepExperiment(),
+    scenario: sweepFixtureScenario,
+  };
+  const input = buildSweepOptimizationInput({
+    title: "SIR",
+    definition: sirSdcpnContextValue.petriNetDefinition,
+    experiment: sweep,
+    metric: { id: "infected", name: "Infected", code: "return 0;" },
+    objective: { direction: "maximize", steps: 6 },
+    runsPerStep: 8,
+  });
+  const parameters = [
+    { transmission_rate: 0.18, recovery_days: 5 },
+    { transmission_rate: 0.42, recovery_days: 17 },
+    { transmission_rate: 0.356, recovery_days: 10 },
+    { transmission_rate: 0.244, recovery_days: 14 },
+    { transmission_rate: 0.3, recovery_days: 8 },
+    { transmission_rate: 0.34, recovery_days: 9 },
+  ];
+  const trials: OptimizationRecord["trials"] = waiting
+    ? []
+    : parameters
+        .slice(0, status === "running" ? 4 : undefined)
+        .map((values, trial) => ({
+          type: "trial",
+          trial,
+          state: "complete",
+          parameters: values,
+          objective: syntheticSweepObjective(
+            values.transmission_rate,
+            values.recovery_days,
+          ),
+          best: null,
+        }));
+  return (
+    <SweepWithStudy
+      sweep={sweep}
+      presentation="inline"
+      study={sweepStudy(sweep, {
+        id: "best-parameters-study",
+        input,
+        trials,
+        status,
+        steps: trials.length,
+        startedAgoMs: 90_000,
+      })}
+    />
+  );
+};
+
+export const BestParameters: Story = {
+  name: "Best parameters, explore and return",
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The completed optimizer keeps its best parameters beside the objective history. Move either slider, then choose View best to restore both values and their results.",
+      },
+    },
+  },
+  render: () => <BestParametersSweep status="complete" />,
+};
+
+export const BestParametersRunning: Story = {
+  name: "Best parameters, optimizing",
+  render: () => <BestParametersSweep status="running" />,
+};
+
+export const BestParametersWaiting: Story = {
+  name: "Best parameters, waiting for a result",
+  render: () => <BestParametersSweep status="running" waiting />,
+};
+
+export const BestParametersStopped: Story = {
+  name: "Best parameters, stopped",
+  render: () => <BestParametersSweep status="cancelled" />,
 };

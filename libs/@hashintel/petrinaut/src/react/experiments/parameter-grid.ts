@@ -259,6 +259,23 @@ export function axisPositionFor(
   );
 }
 
+/** The sweep point an optimizer's suggestion lands on. */
+export const sweepPointFor = (
+  axes: readonly ExperimentParameterAxis[],
+  values: Readonly<Record<string, number | boolean>>,
+): SweepSelection | null => {
+  const selection: Record<string, { from: number; to: number }> = {};
+  for (const axis of axes) {
+    const value = values[axis.identifier];
+    if (typeof value !== "number") {
+      return null;
+    }
+    const position = axisPositionFor(axis, value);
+    selection[axis.identifier] = { from: position, to: position };
+  }
+  return selection;
+};
+
 /** The default selection: every axis spans its whole interval. */
 export function fullSweepSelection(
   axes: readonly ExperimentParameterAxis[],
