@@ -651,7 +651,7 @@ __metadata:
     http-terminator: "npm:3.2.0"
     immer: "npm:10.1.3"
     install: "npm:0.13.0"
-    js-yaml: "npm:4.3.1"
+    js-yaml: "npm:4.3.2"
     jsonpath: "npm:1.3.0"
     keyv: "npm:5.6.0"
     lodash: "npm:4.18.1"
@@ -7896,7 +7896,7 @@ __metadata:
     "@webgpu/types": "npm:0.1.71"
     elkjs: "npm:0.11.0"
     immer: "npm:10.1.3"
-    js-yaml: "npm:4.3.1"
+    js-yaml: "npm:4.3.2"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     pyodide: "npm:314.0.6"
@@ -9850,7 +9850,7 @@ __metadata:
     "@types/js-yaml": "npm:^4"
     "@types/node": "npm:22.18.13"
     dependency-cruiser: "npm:18.0.0"
-    js-yaml: "npm:4.3.1"
+    js-yaml: "npm:4.3.2"
     oxlint: "npm:1.63.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -9914,7 +9914,7 @@ __metadata:
     fs-extra: "npm:11.3.2"
     globby: "npm:15.0.0"
     ignore: "npm:7.0.5"
-    js-yaml: "npm:4.3.1"
+    js-yaml: "npm:4.3.2"
     regex-parser: "npm:2.3.1"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -17987,7 +17987,7 @@ __metadata:
     eslint: "npm:9.39.4"
     execa: "npm:9.6.0"
     graphql: "npm:16.11.0"
-    js-yaml: "npm:4.3.1"
+    js-yaml: "npm:4.3.2"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -32987,14 +32987,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:4.3.1, js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1, js-yaml@npm:^4.3.0":
-  version: 4.3.1
-  resolution: "js-yaml@npm:4.3.1"
+"js-yaml@npm:4.3.2, js-yaml@npm:^4.1.0, js-yaml@npm:^4.1.1, js-yaml@npm:^4.3.0":
+  version: 4.3.2
+  resolution: "js-yaml@npm:4.3.2"
   dependencies:
     argparse: "npm:^2.0.1"
   bin:
     js-yaml: bin/js-yaml.js
-  checksum: 10c0/13c500ca322e0c3f8c81686e6ecda96d2ea37b45247a420c17c7db36932d6965cc27391abc2d1a104501600e7f0d947a5f8b7be6db619c4fefa87901b3512807
+  checksum: 10c0/dedd34c2e8fef1d504687f1bc94ed0ee1311a1f78770fa2800352c6d59c635ccf555009d74e9afe529ae62199da2b1ccef30e53dc84dcd8d2d8187c22574bc97
   languageName: node
   linkType: hard
 
