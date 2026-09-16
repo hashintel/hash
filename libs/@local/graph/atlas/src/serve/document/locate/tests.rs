@@ -1466,7 +1466,7 @@ struct CompletenessCase<'selection> {
     properties_complete: bool,
 }
 
-/// Complete type coverage requires a resolved source with nonempty, fully selected direct types.
+/// A resolved source is type-complete if a nonempty selection covers every direct type.
 #[test]
 fn trailer_completeness() {
     let fixture = Fixture::new("locate-trailer-completeness");
@@ -1488,10 +1488,10 @@ fn trailer_completeness() {
             properties_complete: false,
         },
         CompletenessCase {
-            name: "empty",
+            name: "empty-source-types",
             source_types: Vec::new(),
             selection: &alpha_only,
-            expected_types_complete: false,
+            expected_types_complete: true,
             properties_complete: true,
         },
         CompletenessCase {
@@ -1509,6 +1509,7 @@ fn trailer_completeness() {
             properties_complete: false,
         },
     ];
+
     for CompletenessCase {
         name: case,
         source_types,
@@ -1568,6 +1569,67 @@ fn trailer_completeness() {
             trailer.link_properties_complete.iter().collect::<Vec<_>>(),
             [EdgeSlot::from_usize(1)],
             "should pass the link property completeness set through"
+        );
+    }
+}
+
+#[test]
+fn trailer_selection_empty() {
+    let fixture = Fixture::new("locate-trailer-selection-empty");
+    for source_types in [Vec::new(), vec![FakeResolver::url("alpha")]] {
+        let mut response = FakeResolver::resolved(3, 2);
+        response.nodes[NodeSlot::MIN] = Some(LocateNode {
+            type_urls: source_types,
+        });
+        let resolver = FakeResolver::answering(response);
+        let document = LocateDocument::new(
+            fixture.scene(),
+            fixture.entity_source(NodeRowId::new(1)),
+            &LocateDocumentOptions {
+                types: Fixture::no_types(),
+                limits: LocateLimits { .. },
+                resolver: &resolver,
+            },
+        )
+        .expect("should construct with an empty type selection");
+        assert!(
+            !document.trailer.type_ids_complete,
+            "should report incomplete types for an empty selection even with no source types"
+        );
+    }
+}
+
+#[test]
+fn trailer_source_missing() {
+    let fixture = Fixture::new("locate-trailer-source-missing");
+    let alpha = FakeResolver::url("alpha");
+    let selection = [ArchivedOntologyTypeUuid::from_url(&alpha)];
+
+    for missing_node in [false, true] {
+        let mut response = FakeResolver::resolved(3, 2);
+        response.nodes[NodeSlot::MIN] = Some(LocateNode {
+            type_urls: vec![alpha.clone()],
+        });
+        if missing_node {
+            response.nodes[NodeSlot::MIN] = None;
+        } else {
+            response.source_properties = None;
+        }
+        let resolver = FakeResolver::answering(response);
+        let document = LocateDocument::new(
+            fixture.scene(),
+            fixture.entity_source(NodeRowId::new(1)),
+            &LocateDocumentOptions {
+                types: OntologySelection::new(&selection),
+                limits: LocateLimits { .. },
+                resolver: &resolver,
+            },
+        )
+        .expect("should construct with missing source details");
+        assert!(
+            !document.trailer.type_ids_complete,
+            "should report incomplete types when either source query has no row (missing node: \
+             {missing_node})"
         );
     }
 }

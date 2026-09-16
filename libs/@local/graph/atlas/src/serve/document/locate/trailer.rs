@@ -72,7 +72,7 @@ impl<'details> LocateTrailer<'details> {
     ) -> Result<Self, Report<LocateDocumentError>> {
         let type_ids_complete = source_properties.is_some()
             && nodes[NodeSlot::MIN].details.as_ref().is_some_and(|source| {
-                !source.type_urls.is_empty()
+                !types.is_empty()
                     && source
                         .type_urls
                         .iter()
