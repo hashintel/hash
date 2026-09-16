@@ -74,6 +74,7 @@ export const nullable = <T, E>(
     expecting: `${element.expecting} or null`,
     visitNull: () => Result.ok(null),
   };
+
   const methods = [
     "visitUnsignedInteger",
     "visitNegativeInteger",
@@ -85,6 +86,7 @@ export const nullable = <T, E>(
     "visitArray",
     "visitMap",
   ] as const;
+
   for (const name of methods) {
     const method = element[name];
     if (method !== undefined) {

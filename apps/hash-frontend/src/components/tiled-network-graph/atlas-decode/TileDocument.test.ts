@@ -4,10 +4,12 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import * as CborDecoder from "./CborDecoder";
 import * as Decoder from "./Decoder";
+import * as Envelope from "./Envelope";
+import * as Option from "./Option";
 import * as Result from "./Result";
 import * as TileDocument from "./TileDocument";
-import * as TypeMask from "./TypeMask";
 
 const fixturesDir = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -111,8 +113,21 @@ const reasons = (error: unknown): string[] => {
   return tags;
 };
 
-const failures = (error: TileDocument.TileDocumentError): unknown[] => {
-  expect(error.reason._tag).toBe("section");
+const asTileDocumentError = (
+  value: unknown,
+): TileDocument.TileDocumentError => {
+  expect(value).toBeInstanceOf(TileDocument.TileDocumentError);
+  if (!(value instanceof TileDocument.TileDocumentError)) {
+    throw new Error("expected a tile document error");
+  }
+  return value;
+};
+
+const sectionFailures = (
+  error: TileDocument.TileDocumentError,
+  section: "slot" | "columns" | "head" | "trailer",
+): unknown[] => {
+  expect(error.reason).toEqual({ _tag: "section", section });
   expect(error.cause).toBeInstanceOf(Result.All);
   if (!(error.cause instanceof Result.All)) {
     throw new Error("expected independent failures");
@@ -343,7 +358,7 @@ const decodeFixture = (
 
 describe("TileDocument.decode against the wire fixtures", () => {
   it("fixture_delta_nonroot", () => {
-    const { document, sidecar } = decodeFixture("g1-minimal-tile", {
+    const { document } = decodeFixture("g1-minimal-tile", {
       coloredTypeCount: 8,
     });
 
@@ -353,19 +368,17 @@ describe("TileDocument.decode against the wire fixtures", () => {
     expect(document.global).toBeNull();
     expect(document.trailer).toBeNull();
 
-    const mask = document.typeMask;
-    if (mask === null) {
+    if (!Option.isSome(document.typeMask)) {
       throw new Error("expected a type mask column");
     }
+    const mask = document.typeMask.value;
     expect(mask.stride).toBe(1);
-    expect([...mask].map((row) => [...row])).toEqual(
-      (sidecar.typeMask ?? []).map((byte) => [byte]),
-    );
-    expect(expectOk(mask.types(0))).toEqual([0]);
-    expect(expectOk(mask.types(1))).toEqual([0, 2]);
-    expect(expectOk(mask.types(2))).toEqual([]);
-    expect(expectOk(mask.has(1, 2))).toBe(true);
-    expect(expectOk(mask.has(1, 1))).toBe(false);
+    expect([...mask].map((row) => [...row])).toEqual([[0], [0, 2], []]);
+    expect([...expectOk(mask.at(0))]).toEqual([0]);
+    expect([...expectOk(mask.at(1))]).toEqual([0, 2]);
+    expect([...expectOk(mask.at(2))]).toEqual([]);
+    expect(expectOk(expectOk(mask.at(1)).has(2))).toBe(true);
+    expect(expectOk(expectOk(mask.at(1)).has(1))).toBe(false);
   });
 
   it("fixture_root_global", () => {
@@ -386,7 +399,7 @@ describe("TileDocument.decode against the wire fixtures", () => {
     expect(document.firstBucket).toBe(0n);
     expect(document.runs).toHaveLength(3);
     expect(document.children).toBe(15n);
-    expect(document.typeMask).toBeNull();
+    expect(Option.isNone(document.typeMask)).toBe(true);
   });
 
   it("fixture_total_two_byte_mask", () => {
@@ -398,12 +411,13 @@ describe("TileDocument.decode against the wire fixtures", () => {
     expect(document.firstBucket).toBe(0n);
     expect(document.runs).toHaveLength(4);
     expect(document.children).toBe(0n);
-    expect(document.typeMask?.stride).toBe(2);
-    expect(document.typeMask).toHaveLength(6);
-    expect(expectOk(document.typeMask?.types(4) ?? Result.ok([]))).toEqual([7]);
-    expect(expectOk(document.typeMask?.types(5) ?? Result.ok([]))).toEqual([
-      0, 8,
-    ]);
+    if (!Option.isSome(document.typeMask)) {
+      throw new Error("expected a type mask column");
+    }
+    expect(document.typeMask.value.stride).toBe(2);
+    expect(document.typeMask.value).toHaveLength(6);
+    expect([...expectOk(document.typeMask.value.at(4))]).toEqual([7]);
+    expect([...expectOk(document.typeMask.value.at(5))]).toEqual([0, 8]);
   });
 
   it("fixture_empty_root", () => {
@@ -412,7 +426,7 @@ describe("TileDocument.decode against the wire fixtures", () => {
     expect(document.delivered).toBe(0n);
     expect(document.positions).toHaveLength(0);
     expect([...document.rowIds]).toEqual([]);
-    expect(document.typeMask).toBeNull();
+    expect(Option.isNone(document.typeMask)).toBe(true);
     expect(document.global?.visible).toBe(0n);
     expect(document.global?.bounds).toBeNull();
     expect(document.global?.minResolution).toBe(0n);
@@ -441,9 +455,10 @@ describe("TileDocument.decode against the wire fixtures", () => {
     expect(low.document.firstBucket).toBe(26n);
     expect(high.document.firstBucket).toBe(27n);
     expect(high.sidecar.appended).not.toBeNull();
-    expect(expectOk(low.document.typeMask?.types(3) ?? Result.ok([]))).toEqual([
-      0, 1,
-    ]);
+    if (!Option.isSome(low.document.typeMask)) {
+      throw new Error("expected a type mask column");
+    }
+    expect([...expectOk(low.document.typeMask.value.at(3))]).toEqual([0, 1]);
   });
 
   it("fixture_scoped_declaration", () => {
@@ -472,15 +487,38 @@ describe("TileDocument.decode consistency", () => {
         tileContext(),
       ),
     );
-    expect(error.reason).toEqual({ _tag: "section", section: "head" });
-    expect(failures(error)).toMatchObject([
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
       { reason: { _tag: "missing-field", field: "head.generation" } },
       { reason: { _tag: "missing-field", field: "head.variant" } },
       { reason: { _tag: "missing-field", field: "head.delivered" } },
     ]);
   });
 
+  it("slot_multiple_failures_aggregate", () => {
+    const buffer = tileResponse({ head: { 1: null } });
+    const view = new DataView(buffer);
+    view.setUint32(16 + 8 * 2, 0, true);
+    view.setUint32(16 + 8 * 2 + 4, 0, true);
+
+    const error = expectError(runDecode(buffer, tileContext()));
+    const [headError, rowIdsError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      { reason: { _tag: "missing-field", field: "head.variant" } },
+    ]);
+    expect(rowIdsError).toBeInstanceOf(Envelope.EnvelopeError);
+    expect((rowIdsError as Envelope.EnvelopeError).reason).toEqual({
+      _tag: "missing-slot",
+      slot: 2,
+    });
+  });
+
   it("columns_mixed_failures_aggregate", () => {
+    // Mask presence must pass for both column failures to reach the aggregate.
     const buffer = tileResponse({
       rowIds: [1],
       positions: [0.5, -0.25, 1.5, -1.25, 2.5, 0],
@@ -491,17 +529,13 @@ describe("TileDocument.decode consistency", () => {
       directory.getUint32(16 + 8 + 4, true) - 4,
       true,
     );
-    const error = expectError(
-      runDecode(buffer, tileContext({ coloredTypeCount: 1 })),
-    );
-    expect(error.reason).toEqual({ _tag: "section", section: "columns" });
-    expect(failures(error)).toMatchObject([
+    const error = expectError(runDecode(buffer, tileContext()));
+    expect(sectionFailures(error, "columns")).toMatchObject([
       {
         reason: { _tag: "invalid-field", field: "positions" },
         cause: { reason: { _tag: "invalid-length", byteLength: 20 } },
       },
       { reason: { _tag: "length", field: "rowIds", expected: 3n, actual: 1 } },
-      { reason: { _tag: "missing-slot", slot: 3 } },
     ]);
   });
 
@@ -518,8 +552,10 @@ describe("TileDocument.decode consistency", () => {
         tileContext(),
       ),
     );
-    expect(error.reason).toEqual({ _tag: "section", section: "head" });
-    expect(failures(error)).toMatchObject([
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
       { reason: { _tag: "run-sum", expected: 3n, actual: 2n } },
       { reason: { _tag: "invalid-field", field: "head.children" } },
       { reason: { _tag: "missing-field", field: "head.global" } },
@@ -533,8 +569,7 @@ describe("TileDocument.decode consistency", () => {
         tileContext(),
       ),
     );
-    expect(error.reason).toEqual({ _tag: "section", section: "trailer" });
-    expect(failures(error)).toMatchObject([
+    expect(sectionFailures(error, "trailer")).toMatchObject([
       { reason: { _tag: "missing-field", field: "trailer.labels" } },
       { reason: { _tag: "missing-field", field: "trailer.icons" } },
     ]);
@@ -568,13 +603,13 @@ describe("TileDocument.decode consistency", () => {
       [2.5, -2.25],
     ]);
     expect(document.generation.bytes.buffer).toBe(buffer.buffer);
-    const mask = document.typeMask;
-    if (mask === null) {
+    if (!Option.isSome(document.typeMask)) {
       throw new Error("expected a type mask");
     }
-    const row = expectOk(mask.at(0));
-    expect(row.buffer).toBe(buffer.buffer);
-    expect([...row]).toEqual([1]);
+    const row = expectOk(document.typeMask.value.at(0));
+    expect([...row]).toEqual([0]);
+    buffer.fill(0);
+    expect([...row]).toEqual([]);
   });
   it("kind_edges", () => {
     const error = expectError(
@@ -621,10 +656,9 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ head: { 5: uint(1) } }), tileContext()),
     );
 
-    expect(error.reason).toEqual({
-      _tag: "unknown-field",
-      section: "head",
-      key: 5n,
+    const [unknownFieldError] = sectionFailures(error, "slot");
+    expect(unknownFieldError).toMatchObject({
+      reason: { _tag: "unknown-field", section: "head", key: 5n },
     });
   });
 
@@ -633,10 +667,12 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ head: { 4: null } }), tileContext()),
     );
 
-    expect(reasons(error)).toEqual(["section", "missing-field"]);
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "missing-field", field: "head.delivered" },
-    });
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      { reason: { _tag: "missing-field", field: "head.delivered" } },
+    ]);
   });
 
   it("mode_invalid", () => {
@@ -644,9 +680,9 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ head: { 3: uint(2) } }), tileContext()),
     );
 
-    expect(error.reason).toMatchObject({
-      _tag: "invalid-field",
-      field: "head.mode",
+    const [modeError] = sectionFailures(error, "slot");
+    expect(modeError).toMatchObject({
+      reason: { _tag: "invalid-field", field: "head.mode" },
     });
   });
 
@@ -658,11 +694,14 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(error.reason).toEqual({
-      _tag: "length",
-      field: "head.coordinate",
-      expected: 3n,
-      actual: 2,
+    const [lengthError] = sectionFailures(error, "slot");
+    expect(lengthError).toMatchObject({
+      reason: {
+        _tag: "length",
+        field: "head.coordinate",
+        expected: 3n,
+        actual: 2,
+      },
     });
   });
 
@@ -671,10 +710,12 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ head: { 9: uint(16) } }), tileContext()),
     );
 
-    expect(reasons(error)).toEqual(["section", "invalid-field"]);
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "invalid-field", field: "head.children" },
-    });
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      { reason: { _tag: "invalid-field", field: "head.children" } },
+    ]);
   });
 
   it("delta_first_bucket", () => {
@@ -757,13 +798,18 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ head: { 7: list([uint(2)]) } }), tileContext()),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: {
-        _tag: "run-sum",
-        expected: 3n,
-        actual: 2n,
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      {
+        reason: {
+          _tag: "run-sum",
+          expected: 3n,
+          actual: 2n,
+        },
       },
-    });
+    ]);
   });
 
   it.each([0, 3])("root_global_missing_%i", (count) => {
@@ -783,9 +829,12 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "missing-field", field: "head.global" },
-    });
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      { reason: { _tag: "missing-field", field: "head.global" } },
+    ]);
   });
 
   it("global_bounds_missing", () => {
@@ -803,9 +852,12 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "missing-field", field: "head.global.bounds" },
-    });
+    const [headError] = sectionFailures(error, "slot");
+    expect(
+      sectionFailures(asTileDocumentError(headError), "head"),
+    ).toMatchObject([
+      { reason: { _tag: "missing-field", field: "head.global.bounds" } },
+    ]);
   });
 
   it("global_bounds_empty", () => {
@@ -842,11 +894,14 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(error.reason).toEqual({
-      _tag: "length",
-      field: "head.global.bounds",
-      expected: 4n,
-      actual: 3,
+    const [lengthError] = sectionFailures(error, "slot");
+    expect(lengthError).toMatchObject({
+      reason: {
+        _tag: "length",
+        field: "head.global.bounds",
+        expected: 4n,
+        actual: 3,
+      },
     });
   });
 
@@ -866,7 +921,11 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(reasons(error)).toEqual(["decode", "unexpected-kind"]);
+    const [cborError] = sectionFailures(error, "slot");
+    expect(cborError).toBeInstanceOf(CborDecoder.CborDecoderError);
+    expect((cborError as CborDecoder.CborDecoderError).reason).toMatchObject({
+      _tag: "unexpected-kind",
+    });
   });
 
   it("integer_noncanonical", () => {
@@ -877,7 +936,11 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(reasons(error)).toEqual(["decode", "invalid-encoding"]);
+    const [cborError] = sectionFailures(error, "slot");
+    expect(cborError).toBeInstanceOf(CborDecoder.CborDecoderError);
+    expect((cborError as CborDecoder.CborDecoderError).reason).toMatchObject({
+      _tag: "invalid-encoding",
+    });
   });
 
   it("positions_count_mismatch", () => {
@@ -892,7 +955,7 @@ describe("TileDocument.decode consistency", () => {
     );
 
     expect(reasons(error)).toEqual(["section", "length"]);
-    expect(failures(error)[0]).toMatchObject({
+    expect(sectionFailures(error, "columns")[0]).toMatchObject({
       reason: {
         _tag: "length",
         field: "positions",
@@ -911,7 +974,7 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(failures(error)[0]).toMatchObject({
+    expect(sectionFailures(error, "columns")[0]).toMatchObject({
       reason: { _tag: "length", field: "positions", expected: huge, actual: 3 },
     });
   });
@@ -923,8 +986,11 @@ describe("TileDocument.decode consistency", () => {
     view.setUint32(16 + 8 * 2 + 4, 0, true);
     const error = expectError(runDecode(buffer, tileContext()));
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "missing-slot", slot: 2 },
+    const [rowIdsError] = sectionFailures(error, "slot");
+    expect(rowIdsError).toBeInstanceOf(Envelope.EnvelopeError);
+    expect((rowIdsError as Envelope.EnvelopeError).reason).toEqual({
+      _tag: "missing-slot",
+      slot: 2,
     });
   });
 
@@ -933,9 +999,7 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ typeMask: [1, 2, 3] }), tileContext()),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "unexpected-slot", slot: 3 },
-    });
+    expect(error.reason).toEqual({ _tag: "unexpected-slot", slot: 3 });
   });
 
   it("type_mask_absent", () => {
@@ -943,8 +1007,11 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse(), tileContext({ coloredTypeCount: 4 })),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "missing-slot", slot: 3 },
+    expect(error.reason).toEqual({ _tag: "decode" });
+    expect(error.cause).toBeInstanceOf(Envelope.EnvelopeError);
+    expect((error.cause as Envelope.EnvelopeError).reason).toEqual({
+      _tag: "missing-slot",
+      slot: 3,
     });
   });
 
@@ -963,8 +1030,11 @@ describe("TileDocument.decode consistency", () => {
 
     expect(document.delivered).toBe(0n);
     expect(document.positions).toHaveLength(0);
-    expect(document.typeMask).toHaveLength(0);
-    expect(document.typeMask?.stride).toBe(1);
+    if (!Option.isSome(document.typeMask)) {
+      throw new Error("expected a type mask column");
+    }
+    expect(document.typeMask.value).toHaveLength(0);
+    expect(document.typeMask.value.stride).toBe(1);
   });
 
   it("type_mask_unrequested_empty", () => {
@@ -972,9 +1042,7 @@ describe("TileDocument.decode consistency", () => {
       runDecode(tileResponse({ typeMask: [] }), tileContext()),
     );
 
-    expect(failures(error)[0]).toMatchObject({
-      reason: { _tag: "unexpected-slot", slot: 3 },
-    });
+    expect(error.reason).toEqual({ _tag: "unexpected-slot", slot: 3 });
   });
 
   it("type_mask_width", () => {
@@ -985,7 +1053,7 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(failures(error)[0]).toMatchObject({
+    expect(sectionFailures(error, "columns")[0]).toMatchObject({
       reason: { _tag: "invalid-field", field: "typeMask" },
     });
   });
@@ -998,7 +1066,7 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(failures(error)[0]).toMatchObject({
+    expect(sectionFailures(error, "columns")[0]).toMatchObject({
       reason: { _tag: "length", field: "typeMask", expected: 3n, actual: 4 },
     });
   });
@@ -1011,10 +1079,13 @@ describe("TileDocument.decode consistency", () => {
       ),
     );
 
-    expect(document.typeMask?.stride).toBe(1);
-    expect(expectOk(document.typeMask?.types(0) ?? Result.ok([]))).toEqual([0]);
-    expect(expectOk(document.typeMask?.types(1) ?? Result.ok([]))).toEqual([1]);
-    expect(expectOk(document.typeMask?.types(2) ?? Result.ok([]))).toEqual([]);
+    if (!Option.isSome(document.typeMask)) {
+      throw new Error("expected a type mask column");
+    }
+    expect(document.typeMask.value.stride).toBe(1);
+    expect([...expectOk(document.typeMask.value.at(0))]).toEqual([0]);
+    expect([...expectOk(document.typeMask.value.at(1))]).toEqual([1]);
+    expect([...expectOk(document.typeMask.value.at(2))]).toEqual([]);
   });
 
   it("trailer_absent", () => {
@@ -1091,7 +1162,7 @@ describe("TileDocument.decode consistency", () => {
     );
 
     expect(reasons(error)).toEqual(["section", "missing-field"]);
-    expect(failures(error)[0]).toMatchObject({
+    expect(sectionFailures(error, "trailer")[0]).toMatchObject({
       reason: { _tag: "missing-field", field: "trailer.icons" },
     });
   });
@@ -1167,84 +1238,5 @@ describe("TileDocument.decode consistency", () => {
     expect(Result.isErr(TileDocument.decode(decoder, tileContext()))).toBe(
       true,
     );
-  });
-});
-
-describe("TypeMaskColumn", () => {
-  it("type_index_above_signed_32_bit", () => {
-    const type = 2 ** 31;
-    const bytes = new Uint8Array(Math.floor(type / 8) + 1);
-    bytes[bytes.length - 1] = 1;
-    const column = new TypeMask.TypeMaskColumn(bytes, type + 1);
-    expect(expectOk(column.has(0, type))).toBe(true);
-    expect(expectOk(column.has(0, type - 1))).toBe(false);
-  });
-
-  it("empty_column_stride", () => {
-    const column = new TypeMask.TypeMaskColumn(new Uint8Array(), 9);
-    expect(column.length).toBe(0);
-    expect(column.typeCount).toBe(9);
-    expect(column.stride).toBe(2);
-    expect([...column]).toEqual([]);
-  });
-
-  it.each([0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
-    "type_count_invalid_%s",
-    (typeCount) => {
-      expect(
-        () => new TypeMask.TypeMaskColumn(new Uint8Array(), typeCount),
-      ).toThrow(TypeMask.TypeMaskColumnError);
-    },
-  );
-
-  it.each([-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
-    "row_index_invalid_%s",
-    (index) => {
-      const column = new TypeMask.TypeMaskColumn(Uint8Array.of(1), 1);
-      expect(Result.isErr(column.at(index))).toBe(true);
-      expect(Result.isErr(column.has(index, 0))).toBe(true);
-      expect(Result.isErr(column.types(index))).toBe(true);
-    },
-  );
-
-  it.each([-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
-    "type_index_invalid_%s",
-    (type) => {
-      const column = new TypeMask.TypeMaskColumn(Uint8Array.of(1), 1);
-      expect(Result.isErr(column.has(0, type))).toBe(true);
-    },
-  );
-  it("storage_width", () => {
-    expect(
-      () => new TypeMask.TypeMaskColumn(Uint8Array.of(1, 2, 3), 9),
-    ).toThrow(TypeMask.TypeMaskColumnError);
-  });
-
-  it("lookup_out_of_range", () => {
-    const column = new TypeMask.TypeMaskColumn(Uint8Array.of(1, 2), 3);
-
-    expect(expectError(column.at(2)).reason).toEqual({
-      _tag: "invalid-index",
-      index: 2,
-      length: 2,
-    });
-    expect(expectError(column.has(0, 3)).reason).toEqual({
-      _tag: "invalid-type",
-      type: 3,
-      typeCount: 3,
-    });
-  });
-
-  it("mask_stride_and_padding", () => {
-    const column = new TypeMask.TypeMaskColumn(
-      Uint8Array.of(0x01, 0x02, 0x00, 0x01),
-      9,
-    );
-
-    expect(column).toHaveLength(2);
-    expect([...expectOk(column.at(0))]).toEqual([0x01, 0x02]);
-    expect(expectOk(column.types(0))).toEqual([0]);
-    expect(expectOk(column.has(1, 8))).toBe(true);
-    expect(expectOk(column.types(1))).toEqual([8]);
   });
 });

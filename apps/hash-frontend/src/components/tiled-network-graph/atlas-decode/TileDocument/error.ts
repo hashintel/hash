@@ -1,4 +1,3 @@
-import * as Result from "../Result";
 import * as TaggedError from "../TaggedError";
 
 import type * as CborDecoder from "../CborDecoder";
@@ -8,7 +7,7 @@ import type * as Envelope from "../Envelope";
 import type * as GenerationId from "../GenerationId";
 
 /** Document sections that group independent validation failures. */
-export type Section = "columns" | "head" | "trailer";
+export type Section = "slot" | "columns" | "head" | "trailer";
 
 /** Invalid tile metadata, missing payloads, or columns the head does not describe. */
 export type TileDocumentErrorReason =
@@ -16,7 +15,6 @@ export type TileDocumentErrorReason =
       readonly _tag: "invalid-kind";
       readonly actual: Envelope.Envelope["kind"];
     }
-  | { readonly _tag: "missing-slot"; readonly slot: number }
   | { readonly _tag: "unexpected-slot"; readonly slot: number }
   | {
       readonly _tag: "unknown-field";
@@ -45,7 +43,7 @@ export type TileDocumentErrorReason =
       readonly field: string;
       readonly value: number;
     }
-  /** Failures of independent checks, stored in the cause's {@link Result.All.errors}. */
+  /** Independent failures retained as an aggregate in the section error's cause. */
   | { readonly _tag: "section"; readonly section: Section }
   | { readonly _tag: "decode" };
 
@@ -61,9 +59,6 @@ export class TileDocumentError extends TaggedError.TaggedError<
     switch (reason._tag) {
       case "invalid-kind":
         message = `expected SALTILET, received ${reason.actual}`;
-        break;
-      case "missing-slot":
-        message = `required tile slot ${reason.slot} is absent`;
         break;
       case "unexpected-slot":
         message = `tile slot ${reason.slot} is present`;
@@ -96,6 +91,33 @@ export class TileDocumentError extends TaggedError.TaggedError<
 
     super("TileDocumentError", reason, message, options);
   }
+
+  static rejected(section: Section): TileDocumentError {
+    return new TileDocumentError({ _tag: "section", section });
+  }
+
+  static missingField(field: string): TileDocumentError {
+    return new TileDocumentError({ _tag: "missing-field", field });
+  }
+
+  static invalidField(
+    field: string,
+    detail = "invalid value",
+  ): TileDocumentError {
+    return new TileDocumentError({ _tag: "invalid-field", field, detail });
+  }
+
+  static invalidLength(
+    field: string,
+    expected: bigint,
+    actual: number,
+  ): TileDocumentError {
+    return new TileDocumentError({ _tag: "length", field, expected, actual });
+  }
+
+  static unexpectedSlot(slot: number): TileDocumentError {
+    return new TileDocumentError({ _tag: "unexpected-slot", slot });
+  }
 }
 
 /** Errors propagated before attaching the tile document context. */
@@ -106,35 +128,3 @@ export type DecodeError =
   | CborDecoder.CborDecoderError
   | CborPrimitive.ArrayVisitorError
   | GenerationId.GenerationIdError;
-
-/** Rejects a field the schema requires to be present. */
-export const missingField = (
-  field: string,
-): Result.Result<never, TileDocumentError> =>
-  Result.err(new TileDocumentError({ _tag: "missing-field", field }));
-
-/** Returns a required field or a missing-field error. */
-export const required = <T>(
-  value: T | undefined,
-  field: string,
-): Result.Result<T, TileDocumentError> => {
-  if (value === undefined) {
-    return missingField(field);
-  }
-
-  return Result.ok(value);
-};
-
-/** Rejects a field the schema requires to hold a specific shape. */
-export const invalidField = (
-  field: string,
-  detail: string,
-  options?: ErrorOptions,
-): Result.Result<never, TileDocumentError> =>
-  Result.err(
-    new TileDocumentError({ _tag: "invalid-field", field, detail }, options),
-  );
-
-/** Adds section context above independent validation failures. */
-export const rejected = (section: Section) => () =>
-  new TileDocumentError({ _tag: "section", section });

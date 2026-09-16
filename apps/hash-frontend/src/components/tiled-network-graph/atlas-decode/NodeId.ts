@@ -42,20 +42,33 @@ export class NodeIdColumnError extends TaggedError.TaggedError<
 export class NodeIdColumn<T extends ArrayBufferLike> {
   readonly #buffer: DataView<T>;
 
-  /**
-   * Borrows a whole number of 4-byte identities.
-   *
-   * @throws {NodeIdColumnError} If the byte length is not divisible by 4.
-   */
-  constructor(buffer: DataView<T>) {
+  private constructor(buffer: DataView<T>) {
+    this.#buffer = buffer;
+  }
+
+  /** Borrows storage containing whole four-byte identities. */
+  static make<T extends ArrayBufferLike>(
+    buffer: DataView<T>,
+  ): Result.Result<NodeIdColumn<T>, NodeIdColumnError> {
     if (buffer.byteLength % 4 !== 0) {
-      throw new NodeIdColumnError({
-        _tag: "invalid-length",
-        byteLength: buffer.byteLength,
-      });
+      return Result.err(
+        new NodeIdColumnError({
+          _tag: "invalid-length",
+          byteLength: buffer.byteLength,
+        }),
+      );
     }
 
-    this.#buffer = buffer;
+    return Result.ok(new NodeIdColumn(buffer));
+  }
+
+  /** Decodes the supplied byte range without copying its storage. */
+  static decode<T extends ArrayBufferLike>(
+    bytes: Uint8Array<T>,
+  ): Result.Result<NodeIdColumn<T>, NodeIdColumnError> {
+    return NodeIdColumn.make(
+      new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+    );
   }
 
   /** Number of identities in the column. */

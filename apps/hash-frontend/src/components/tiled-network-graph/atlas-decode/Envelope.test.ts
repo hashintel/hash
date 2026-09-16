@@ -4,10 +4,13 @@ import { Decoder, DecoderError } from "./Decoder";
 import {
   decode,
   EnvelopeError,
+  getChunk,
+  indexChunk,
   SALTILE_WIRE_VERSION,
   type Chunk,
 } from "./Envelope";
 import { buildResponse } from "./fixtures";
+import * as Option from "./Option";
 import * as Result from "./Result";
 import { DIRECTORY_ENTRY_BYTES, PREFIX_BYTES, type SaltileKind } from "./wire";
 
@@ -46,6 +49,41 @@ const expectOk = <T>(result: Result.Result<T, unknown>): T => {
   }
   return result.value;
 };
+
+describe("Envelope chunk lookup", () => {
+  it("payload_borrowed", () => {
+    const [, chunks] = expectOk(
+      decode(decoderOf(buildResponse("tile", tileSkeleton()))),
+    );
+    const bytes = expectOk(indexChunk(chunks, 1));
+    expect(bytes).toBe(chunks[1]?.bytes);
+    const optional = getChunk(chunks, 1);
+    expect(Option.isSome(optional)).toBe(true);
+    if (Option.isSome(optional)) {
+      expect(optional.value).toBe(bytes);
+    }
+  });
+
+  it.each([3, 9, -1, 0.5, NaN])("absent_slot_%s", (slot) => {
+    const [, chunks] = expectOk(
+      decode(decoderOf(buildResponse("tile", tileSkeleton()))),
+    );
+    expect(getChunk(chunks, slot)).toEqual(Option.none());
+    const error = expectErr(indexChunk(chunks, slot));
+    expect(error).toBeInstanceOf(EnvelopeError);
+    expect(error.reason).toEqual({ _tag: "missing-slot", slot });
+  });
+
+  it("present_empty", () => {
+    const payloads = tileSkeleton();
+    payloads[3] = [];
+    const [, chunks] = expectOk(
+      decode(decoderOf(buildResponse("tile", payloads))),
+    );
+    expect(Option.isSome(getChunk(chunks, 3))).toBe(true);
+    expect(expectOk(indexChunk(chunks, 3))).toHaveLength(0);
+  });
+});
 
 describe("Envelope.decode success", () => {
   it("present_and_absent_slots", () => {

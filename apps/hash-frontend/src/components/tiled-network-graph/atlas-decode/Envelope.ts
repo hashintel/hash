@@ -1,7 +1,10 @@
+import * as Option from "./Option";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
 import type * as Decoder from "./Decoder";
+
+export const SALTILE_MEDIA_TYPE = "application/vnd.hash.saltile-v1";
 
 /** The supported binary envelope version. */
 export const SALTILE_WIRE_VERSION = 1;
@@ -18,6 +21,7 @@ export type EnvelopeErrorReason =
       readonly actual: number;
       readonly expected: number;
     }
+  | { readonly _tag: "missing-slot"; readonly slot: number }
   | { readonly _tag: "invalid-layout"; readonly detail: string }
   | { readonly _tag: "decode" };
 
@@ -37,6 +41,9 @@ export class EnvelopeError extends TaggedError.TaggedError<
       case "invalid-version":
         message = `invalid version: ${reason.actual}, expected ${reason.expected}`;
         break;
+      case "missing-slot":
+        message = `required envelope slot ${reason.slot} is absent`;
+        break;
       case "invalid-layout":
         message = reason.detail;
         break;
@@ -46,6 +53,10 @@ export class EnvelopeError extends TaggedError.TaggedError<
     }
 
     super("EnvelopeError", reason, message, options);
+  }
+
+  static missingSlot(slot: number): EnvelopeError {
+    return new EnvelopeError({ _tag: "missing-slot", slot });
   }
 }
 
@@ -68,6 +79,22 @@ export interface Chunk<T extends ArrayBufferLike> {
   readonly end: Decoder.U32;
   readonly bytes: Uint8Array<T> | null;
 }
+
+/** Borrows an optional payload, preserving present-empty columns. */
+export const getChunk = <T extends ArrayBufferLike>(
+  chunks: readonly Chunk<T>[],
+  index: number,
+): Option.Option<Uint8Array<T>> => Option.fromNullable(chunks[index]?.bytes);
+
+/** Borrows a required payload or identifies the absent slot. */
+export const indexChunk = <T extends ArrayBufferLike>(
+  chunks: readonly Chunk<T>[],
+  index: number,
+): Result.Result<Uint8Array<T>, EnvelopeError> =>
+  Option.match(getChunk(chunks, index), {
+    onSome: (bytes) => Result.ok(bytes),
+    onNone: () => Result.err(EnvelopeError.missingSlot(index)),
+  });
 
 /** Returns a directory or prefix validation error. */
 const invalidLayout = (detail: string): Result.Result<never, EnvelopeError> =>

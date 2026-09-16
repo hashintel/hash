@@ -36,44 +36,30 @@ const expectOk = <T>(result: Result.Result<T, unknown>): T => {
   return result.value;
 };
 
-type Constructor<E> = new (...args: never[]) => E;
+describe("BinaryEntityId.make", () => {
+  it("private_constructor", () => {
+    expectTypeOf<typeof BinaryEntityId>().not.toMatchTypeOf<
+      new (bytes: Uint8Array) => unknown
+    >();
+    expectTypeOf<typeof BinaryEntityIdColumn>().not.toMatchTypeOf<
+      new (view: DataView) => unknown
+    >();
+  });
 
-/** Catches a synchronous constructor throw. */
-const expectThrows = <E extends Error>(
-  fn: () => unknown,
-  ctor: Constructor<E>,
-): E => {
-  try {
-    fn();
-  } catch (error) {
-    expect(error).toBeInstanceOf(ctor);
-    if (error instanceof ctor) {
-      return error;
-    }
-  }
-  throw new Error("expected a throw");
-};
-
-describe("BinaryEntityId constructor", () => {
-  it("accepts_exactly_32_bytes", () => {
+  it("borrowed_identity", () => {
     const bytes = identityBytes();
-    const identity = new BinaryEntityId(bytes);
+    const identity = expectOk(BinaryEntityId.make(bytes));
     expect(identity.bytes).toBe(bytes);
   });
 
-  it.each([0, 16, 31, 33, 64])(
-    "rejects_length_other_than_32_%i",
-    (byteLength) => {
-      const error = expectThrows(
-        () => new BinaryEntityId(new Uint8Array(byteLength)),
-        BinaryEntityIdError,
-      );
-      expect(error.reason).toEqual({
-        _tag: "identity-length",
-        byteLength,
-      });
-    },
-  );
+  it.each([0, 16, 31, 33, 64])("invalid_width_%i", (byteLength) => {
+    const error = expectErr(BinaryEntityId.make(new Uint8Array(byteLength)));
+    expect(error).toBeInstanceOf(BinaryEntityIdError);
+    expect(error.reason).toEqual({
+      _tag: "identity-length",
+      byteLength,
+    });
+  });
 });
 
 describe("BinaryEntityId.toString", () => {
@@ -112,7 +98,7 @@ describe("BinaryEntityId.toString", () => {
       0xde,
       0xf0,
     );
-    const formatted = new BinaryEntityId(bytes).toString();
+    const formatted = expectOk(BinaryEntityId.make(bytes)).toString();
     expectTypeOf(formatted).toEqualTypeOf<TypeSystem.EntityId>();
     expect(formatted).toBe(
       "00112233-4455-4677-8899-aabbccddeeff~fedcba98-7654-4321-9234-56789abcdef0",
@@ -122,7 +108,7 @@ describe("BinaryEntityId.toString", () => {
   it("nil_and_max", () => {
     const bytes = new Uint8Array(32);
     bytes.fill(0xff, 16);
-    expect(new BinaryEntityId(bytes).toString()).toBe(
+    expect(expectOk(BinaryEntityId.make(bytes)).toString()).toBe(
       "00000000-0000-0000-0000-000000000000~ffffffff-ffff-ffff-ffff-ffffffffffff",
     );
   });
@@ -130,7 +116,7 @@ describe("BinaryEntityId.toString", () => {
   it("bounded_subview", () => {
     const backing = new Uint8Array(80).fill(0xff);
     backing.fill(0, 37, 69);
-    const identity = new BinaryEntityId(backing.subarray(37, 69));
+    const identity = expectOk(BinaryEntityId.make(backing.subarray(37, 69)));
     expect(identity.toString()).toBe(
       "00000000-0000-0000-0000-000000000000~00000000-0000-0000-0000-000000000000",
     );
@@ -138,24 +124,28 @@ describe("BinaryEntityId.toString", () => {
   });
 });
 
-describe("BinaryEntityIdColumn constructor", () => {
+describe("BinaryEntityIdColumn.make", () => {
   it("accepts_multiple_of_32", () => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(64)));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(viewOf(new Uint8Array(64))),
+    );
     expect(column.length).toBe(2);
   });
 
   it("accepts_zero_length", () => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(0)));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(viewOf(new Uint8Array(0))),
+    );
     expect(column.length).toBe(0);
   });
 
   it.each([1, 16, 31, 33, 63])(
     "rejects_length_not_divisible_by_32_%i",
     (byteLength) => {
-      const error = expectThrows(
-        () => new BinaryEntityIdColumn(viewOf(new Uint8Array(byteLength))),
-        BinaryEntityIdError,
+      const error = expectErr(
+        BinaryEntityIdColumn.make(viewOf(new Uint8Array(byteLength))),
       );
+      expect(error).toBeInstanceOf(BinaryEntityIdError);
       expect(error.reason).toEqual({
         _tag: "column-length",
         byteLength,
@@ -164,12 +154,37 @@ describe("BinaryEntityIdColumn constructor", () => {
   );
 });
 
+describe("BinaryEntityIdColumn.decode versus .make", () => {
+  it("decode_matches_make_from_an_equivalent_view", () => {
+    const backing = new Uint8Array(64);
+    backing.set(identityBytes(0), 0);
+    backing.set(identityBytes(100), 32);
+    const decoded = expectOk(BinaryEntityIdColumn.decode(backing));
+    const made = expectOk(BinaryEntityIdColumn.make(viewOf(backing)));
+    expect([...expectOk(decoded.at(0)).bytes]).toEqual([
+      ...expectOk(made.at(0)).bytes,
+    ]);
+  });
+
+  it("decode_bounds_lookups_to_a_byte_subarray", () => {
+    const backing = new Uint8Array(96);
+    backing.set(identityBytes(1), 16);
+    // A column decoded from a subarray sees only its own 32 bytes.
+    const column = expectOk(
+      BinaryEntityIdColumn.decode(backing.subarray(16, 48)),
+    );
+
+    expect(column.length).toBe(1);
+    expect([...expectOk(column.at(0)).bytes]).toEqual([...identityBytes(1)]);
+  });
+});
+
 describe("BinaryEntityIdColumn.at", () => {
   it("borrows_identity_bytes_at_index", () => {
     const backing = new Uint8Array(64);
     backing.set(identityBytes(0), 0);
     backing.set(identityBytes(100), 32);
-    const column = new BinaryEntityIdColumn(viewOf(backing));
+    const column = expectOk(BinaryEntityIdColumn.make(viewOf(backing)));
 
     const first = expectOk(column.at(0));
     const second = expectOk(column.at(1));
@@ -189,7 +204,9 @@ describe("BinaryEntityIdColumn.at", () => {
     { name: "at_length", index: 2 },
     { name: "past_length", index: 99 },
   ])("rejects_invalid_index_$name", ({ index }) => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(64)));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(viewOf(new Uint8Array(64))),
+    );
     const error = expectErr(column.at(index));
     expect(error).toBeInstanceOf(BinaryEntityIdError);
     expect(error.reason).toEqual({
@@ -200,7 +217,9 @@ describe("BinaryEntityIdColumn.at", () => {
   });
 
   it("rejects_index_on_empty_column", () => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(0)));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(viewOf(new Uint8Array(0))),
+    );
     const error = expectErr(column.at(0));
     expect(error.reason).toEqual({
       _tag: "invalid-index",
@@ -213,7 +232,9 @@ describe("BinaryEntityIdColumn.at", () => {
     const backing = new ArrayBuffer(96);
     new Uint8Array(backing).set(identityBytes(1), 16);
     // A column carved from a larger buffer sees only its own 32 bytes.
-    const column = new BinaryEntityIdColumn(new DataView(backing, 16, 32));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(new DataView(backing, 16, 32)),
+    );
 
     expect(column.length).toBe(1);
     expect([...expectOk(column.at(0)).bytes]).toEqual([...identityBytes(1)]);
@@ -223,57 +244,6 @@ describe("BinaryEntityIdColumn.at", () => {
       index: 1,
       length: 1,
     });
-  });
-});
-
-describe("BinaryEntityIdColumn.validateOrder", () => {
-  it.each([0, 1])("accepts_%i_rows", (rows) => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(rows * 32)));
-    expect(column.validateOrder()).toMatchObject({ _tag: "ok" });
-  });
-
-  it.each([0, 15, 16, 31])("compares_unsigned_byte_%i", (offset) => {
-    const backing = new Uint8Array(64);
-    backing[offset] = 0x7f;
-    backing[32 + offset] = 0x80;
-    const column = new BinaryEntityIdColumn(viewOf(backing));
-    expect(column.validateOrder()).toMatchObject({ _tag: "ok" });
-    backing[offset] = 0x81;
-    expect(expectErr(column.validateOrder()).reason).toEqual({
-      _tag: "unordered",
-      index: 1,
-    });
-  });
-
-  it("rejects_duplicate_rows", () => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(64)));
-    expect(expectErr(column.validateOrder()).reason).toEqual({
-      _tag: "unordered",
-      index: 1,
-    });
-  });
-
-  it("reports_the_first_unordered_row", () => {
-    const backing = new Uint8Array(128);
-    backing[32] = 2;
-    backing[64] = 1;
-    const column = new BinaryEntityIdColumn(viewOf(backing));
-    expect(expectErr(column.validateOrder()).reason).toEqual({
-      _tag: "unordered",
-      index: 2,
-    });
-  });
-
-  it("respects_unaligned_subview_boundaries_without_mutation", () => {
-    const backing = new Uint8Array(100).fill(0xff);
-    backing.fill(0, 3, 67);
-    backing[66] = 1;
-    const before = backing.slice();
-    const column = new BinaryEntityIdColumn(
-      new DataView(backing.buffer, 3, 64),
-    );
-    expect(column.validateOrder()).toMatchObject({ _tag: "ok" });
-    expect(backing).toEqual(before);
   });
 });
 
@@ -310,7 +280,7 @@ describe("BinaryEntityIdColumn iteration", () => {
     const backing = new Uint8Array(64);
     backing.set(identityBytes(0), 0);
     backing.set(identityBytes(50), 32);
-    const column = new BinaryEntityIdColumn(viewOf(backing));
+    const column = expectOk(BinaryEntityIdColumn.make(viewOf(backing)));
 
     const identities = [...column];
     expect(identities).toHaveLength(2);
@@ -319,7 +289,9 @@ describe("BinaryEntityIdColumn iteration", () => {
   });
 
   it("iterates_zero_identities_empty_column", () => {
-    const column = new BinaryEntityIdColumn(viewOf(new Uint8Array(0)));
+    const column = expectOk(
+      BinaryEntityIdColumn.make(viewOf(new Uint8Array(0))),
+    );
     expect([...column]).toEqual([]);
   });
 });

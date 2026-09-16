@@ -1,3 +1,5 @@
+import type * as TileDocument from "../atlas-decode/TileDocument";
+
 /**
  * Addressing for the Morton (Z-order) quadtree the Atlas tile API serves.
  *
@@ -13,7 +15,7 @@
  */
 
 /** Deepest quadtree zoom the tile grid addresses (the wire allows `0..=16`). */
-export const ATLAS_TILE_MAX_ZOOM = 16;
+export const ATLAS_TILE_MAX_ZOOM = 16n;
 
 /**
  * Width and height of the world axis the grid tiles over. The renderer's world
@@ -22,16 +24,6 @@ export const ATLAS_TILE_MAX_ZOOM = 16;
  * one world unit per cell.
  */
 export const ATLAS_TILE_AXIS_SIZE = 65_536;
-
-/** One quadrant of the Atlas quadtree at a given zoom depth. */
-export interface AtlasTileCoordinate {
-  /** Quadtree depth, `0..={@link ATLAS_TILE_MAX_ZOOM}`. */
-  readonly z: number;
-  /** Quadrant column at depth `z`; `0..(2 ** z)`. */
-  readonly x: number;
-  /** Quadrant row at depth `z`; `0..(2 ** z)`. */
-  readonly y: number;
-}
 
 /** Half-open world-coordinate extent a tile covers: `[minimum, maximum)`. */
 export interface AtlasTileBounds {
@@ -53,24 +45,25 @@ export class AtlasTileCoordinateError extends Error {
  *   `0..={@link ATLAS_TILE_MAX_ZOOM}`, or `x`/`y` is not an integer inside the
  *   `2 ** z` by `2 ** z` grid.
  */
-export const validateAtlasTileCoordinate = (
-  coordinate: AtlasTileCoordinate,
-): void => {
-  const { z, x, y } = coordinate;
-
-  if (!Number.isInteger(z) || z < 0 || z > ATLAS_TILE_MAX_ZOOM) {
+export const validateAtlasTileCoordinate = ({
+  z,
+  x,
+  y,
+}: TileDocument.Coordinate): void => {
+  if (z < 0n || z > ATLAS_TILE_MAX_ZOOM) {
     throw new AtlasTileCoordinateError(
       `tile zoom ${z} is outside 0..=${ATLAS_TILE_MAX_ZOOM}`,
     );
   }
 
-  const gridSize = 2 ** z;
-  if (!Number.isInteger(x) || x < 0 || x >= gridSize) {
+  const gridSize = 2n ** z;
+  if (x < 0n || x >= gridSize) {
     throw new AtlasTileCoordinateError(
       `tile x ${x} is outside the ${gridSize} by ${gridSize} grid at zoom ${z}`,
     );
   }
-  if (!Number.isInteger(y) || y < 0 || y >= gridSize) {
+
+  if (y < 0n || y >= gridSize) {
     throw new AtlasTileCoordinateError(
       `tile y ${y} is outside the ${gridSize} by ${gridSize} grid at zoom ${z}`,
     );
@@ -82,15 +75,15 @@ export const validateAtlasTileCoordinate = (
  * exclusive, matching the tile wire's `[minimum, maximum)` point membership.
  */
 export const atlasTileBounds = (
-  coordinate: AtlasTileCoordinate,
+  coordinate: TileDocument.Coordinate,
 ): AtlasTileBounds => {
   validateAtlasTileCoordinate(coordinate);
 
   // Exact integer division: the axis is a power of two and `z <= 16`, so the
   // span runs from 65536 (z = 0) down to 1 (z = 16) with no remainder.
-  const span = ATLAS_TILE_AXIS_SIZE / 2 ** coordinate.z;
-  const minimumX = coordinate.x * span;
-  const minimumY = coordinate.y * span;
+  const span = ATLAS_TILE_AXIS_SIZE / 2 ** Number(coordinate.z);
+  const minimumX = Number(coordinate.x) * span;
+  const minimumY = Number(coordinate.y) * span;
 
   return {
     minimumX,
@@ -101,5 +94,5 @@ export const atlasTileBounds = (
 };
 
 /** Stable `z/x/y` key for a tile, used in cache keys and error detail. */
-export const atlasTileKey = (coordinate: AtlasTileCoordinate): string =>
+export const atlasTileKey = (coordinate: TileDocument.Coordinate): string =>
   `${coordinate.z}/${coordinate.x}/${coordinate.y}`;

@@ -8,6 +8,8 @@
  * @module
  */
 
+import { dual } from "./Function";
+
 /** Sequential composition shared by {@link Ok} and {@link Err}. */
 abstract class ResultBase<out T, out E> {
   // overloaded methods on a union need identical signatures. Both variants retain T and E for their shared pipe method.
@@ -133,62 +135,6 @@ export const isErr = <T, E>(result: Result<T, E>): result is Err<T, E> =>
   result._tag === "err";
 
 /**
- * An overloaded signature usable both data-last (`f(...args)(self)`) and
- * data-first (`f(self, ...args)`).
- *
- * The data-first overload must be declared last: `Parameters` and
- * `ReturnType` resolve overloaded types through their final signature, and
- * {@link dual} relies on that to type-check the implementation.
- */
-type DualSignature = {
-  (...args: never[]): (self: never) => unknown;
-  (self: never, ...args: never[]): unknown;
-};
-
-/** A fixed-length parameter tuple, excluding rest and optional parameters. */
-type FixedArity<Args extends readonly unknown[]> = number extends Args["length"]
-  ? never
-  : Args extends Required<Args>
-    ? Args
-    : never;
-
-/** The implementation signature of a data-first call. */
-type DataFirst<Signature extends DualSignature> = (
-  ...args: FixedArity<Parameters<Signature>>
-) => ReturnType<Signature>;
-
-/**
- * Supports immediate application and partial application of one operation.
- *
- * The arity must equal the final overload's parameter count. Calls with one fewer argument return a function awaiting the first argument.
- *
- * @throws {TypeError} When the call has neither supported argument count.
- */
-const dual = <Signature extends DualSignature>(
-  arity: FixedArity<Parameters<Signature>>["length"],
-  body: DataFirst<Signature>,
-): Signature => {
-  const call = body as (...args: unknown[]) => unknown;
-
-  const dispatch = (...args: unknown[]): unknown => {
-    if (args.length === arity) {
-      return call(...args);
-    }
-    if (args.length === arity - 1) {
-      return (self: unknown) => call(self, ...args);
-    }
-    throw new TypeError(
-      `expected ${arity} or ${arity - 1} arguments, received ${args.length}`,
-    );
-  };
-
-  // `dispatch` is deliberately untyped: the overloads in `Signature` are the
-  // only description of which argument shapes are valid, and they cannot be
-  // reconstructed from a runtime arity check.
-  return dispatch as unknown as Signature;
-};
-
-/**
  * Runs a result-producing thunk and handles thrown exceptions.
  *
  * The thunk runs once. Its returned result is preserved unchanged. A thrown value is passed to the handler, which may fail or recover. Only synchronous exceptions are handled.
@@ -296,6 +242,69 @@ export const andThen: {
   ): Result<U, E1 | E2> =>
     isOk(result) ? func(result.value) : err(result.error),
 );
+
+/** Keeps a successful value when the predicate holds. Existing failures pass through. */
+export const filter: {
+  <T, U extends T, F>(
+    refinement: (value: T) => value is U,
+    onFalse: (value: T) => F,
+  ): <Value extends T, E>(result: Result<Value, E>) => Result<Value & U, E | F>;
+  <T, F>(
+    predicate: (value: T) => boolean,
+    onFalse: (value: T) => F,
+  ): <Value extends T, E>(result: Result<Value, E>) => Result<Value, E | F>;
+  <T, E, U extends T, F>(
+    result: Result<T, E>,
+    refinement: (value: T) => value is U,
+    onFalse: (value: T) => F,
+  ): Result<U, E | F>;
+  <T, E, F>(
+    result: Result<T, E>,
+    predicate: (value: T) => boolean,
+    onFalse: (value: T) => F,
+  ): Result<T, E | F>;
+} = dual(
+  3,
+  <T, E, F>(
+    result: Result<T, E>,
+    predicate: (value: T) => boolean,
+    onFalse: (value: T) => F,
+  ): Result<T, E | F> => {
+    if (isErr(result) || predicate(result.value)) {
+      return result;
+    }
+
+    return err(onFalse(result.value));
+  },
+);
+
+/** Represents a condition as a result, constructing its error only on failure. */
+export const assert: {
+  <E>(onFalse: () => E): (condition: boolean) => Result<void, E>;
+  <E>(condition: boolean, onFalse: () => E): Result<void, E>;
+} = dual(
+  2,
+  <E>(condition: boolean, onFalse: () => E): Result<void, E> =>
+    condition ? ok(undefined) : err(onFalse()),
+);
+
+/** Rejects null and undefined while retaining every other value. */
+export const fromNullable: {
+  <E>(onNull: () => E): <T>(value: T) => Result<NonNullable<T>, E>;
+  <T, E>(value: T, onNull: () => E): Result<NonNullable<T>, E>;
+} = dual(
+  2,
+  <T, E>(value: T, onNull: () => E): Result<NonNullable<T>, E> =>
+    value === null || value === undefined ? err(onNull()) : ok(value),
+);
+
+/** Throws the error if the result is an error, otherwise returns the value. */
+export const unwrap = <T, E extends Error>(result: Result<T, E>): T =>
+  result._tag === "ok"
+    ? result.value
+    : (() => {
+        throw result.error;
+      })();
 
 /** Rejects self-context so a failed rewrap cannot create its own cause cycle. */
 const contextualizeError = <E1, E2 extends Error>(

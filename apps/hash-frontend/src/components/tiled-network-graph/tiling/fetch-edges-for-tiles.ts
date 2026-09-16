@@ -26,8 +26,14 @@
  * token says nothing is stale.
  */
 
-import { decodeSaltileEdges } from "../atlas-decode/edges";
-import { SALTILE_MEDIA_TYPE, SaltileDetail } from "../atlas-decode/wire";
+import { Decoder } from "../atlas-decode/Decoder";
+import * as EdgeDocument from "../atlas-decode/EdgeDocument";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import * as Function from "../atlas-decode/Function";
+import * as Iterable from "../atlas-decode/Iterable";
+import * as Record from "../atlas-decode/Record";
+import * as Result from "../atlas-decode/Result";
+import { SaltileDetail } from "../atlas-decode/wire";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
@@ -36,8 +42,10 @@ import {
   type SaltileSession,
 } from "./fetch-tile";
 
+import type * as BinaryEntityId from "../atlas-decode/BinaryEntityId";
+import type * as NodeId from "../atlas-decode/NodeId";
 import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** One decoded edge: its link-entity identity and the node rows it connects. */
 export interface TileEdge {
@@ -47,11 +55,11 @@ export interface TileEdge {
    * The identity is the edge's identity on every binary surface and is
    * stable across generations.
    */
-  readonly id: EntityId;
+  readonly id: BinaryEntityId.BinaryEntityId;
   /** Source node row id — matches a {@link TileNode.id}. */
-  readonly source: number;
+  readonly source: NodeId.NodeId;
   /** Target node row id — matches a {@link TileNode.id}. */
-  readonly target: number;
+  readonly target: NodeId.NodeId;
   /** Link-entity label, present with the detail trailer. */
   readonly label?: string;
   /**
@@ -131,42 +139,42 @@ const fetchAndDecodeEdges = async (
       `edges arrived as ${contentType}; expected ${SALTILE_MEDIA_TYPE}`,
     );
   }
+
   const buffer = await response.arrayBuffer();
+  const decoder = new Decoder(new DataView(buffer));
 
-  let decoded;
-  try {
-    decoded = decodeSaltileEdges(buffer, {
-      generation: session.generationBytes,
+  const { complete, sources, targets, identities, trailer } =
+    EdgeDocument.decode(decoder, {
+      generation: session.generation,
       variant: session.variantIndex,
-      detail,
-    });
-  } catch (cause) {
-    throw new FetchTileError("failed to decode edges", { cause });
-  }
+    }).pipe(
+      Result.changeContext(() => new FetchTileError("failed to decode edges")),
+      Result.unwrap,
+    );
 
-  const { count, sources, targets, edgeIds, detail: trailer } = decoded;
-  const edges: TileEdge[] = new Array<TileEdge>(count);
-  for (let index = 0; index < count; index += 1) {
-    const id = edgeIds[index];
-    const source = sources[index];
-    const target = targets[index];
-    // Unreachable: `decodeSaltileEdges` guarantees these column lengths. The
-    // guard satisfies the strict typed-array index type without an assertion.
-    if (id === undefined || source === undefined || target === undefined) {
-      throw new FetchTileError(`edges record ${index} is truncated`);
-    }
-    const label = trailer?.linkLabels[index] ?? undefined;
-    const typeId = trailer?.linkTypeIds[index] ?? undefined;
-    edges[index] = {
-      id,
-      source,
-      target,
-      ...(label !== undefined ? { label } : {}),
-      ...(typeId !== undefined ? { typeId } : {}),
-    };
-  }
+  const edges = Function.pipe(
+    [
+      sources,
+      targets,
+      identities,
+      trailer?.linkLabels ?? Iterable.repeat(null),
+      trailer?.linkTypeIds ?? Iterable.repeat(null),
+    ],
+    Function.spread(Iterable.zip),
+    Iterable.map(
+      ([source, target, id, label, typeId]): TileEdge =>
+        Record.omitUndefined({
+          id,
+          source,
+          target,
+          label: label ?? undefined,
+          typeId: typeId ?? undefined,
+        }),
+    ),
+    Iterable.collect(),
+  );
 
-  return { edges, complete: decoded.complete };
+  return { edges, complete };
 };
 
 /**
