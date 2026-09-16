@@ -6,6 +6,7 @@ HTTP Problem Details with typed extension members.
 
 - `serde` enables serialization and deserialization, including borrowing strings from the input.
 - `schemars` enables JSON Schema generation independently of `serde`.
+- `error-stack` enables attaching problems to reports and includes `serde`.
 
 No features are enabled by default.
 

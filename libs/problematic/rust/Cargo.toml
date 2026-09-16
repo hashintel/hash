@@ -11,6 +11,7 @@ exclude           = ["package.json", "turbo.json", "docs/task-dependencies.json"
 
 [dependencies]
 # Public workspace dependencies
+error-stack = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
 http = { workspace = true, public = true }
@@ -22,14 +23,23 @@ serde_core = { workspace = true, public = true, optional = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde = { workspace = true, optional = true, features = ["alloc", "derive"] }
+erased-serde = { workspace = true, optional = true, features = ["alloc"] }
+serde        = { workspace = true, optional = true, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 insta      = { workspace = true, features = ["json"] }
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 
 [[test]]
+name              = "error_stack"
+required-features = ["error-stack"]
+
+[[test]]
 name              = "extensions"
+required-features = ["serde"]
+
+[[test]]
+name              = "problem"
 required-features = ["serde"]
 
 [[test]]
@@ -41,8 +51,9 @@ name              = "schema"
 required-features = ["schemars"]
 
 [features]
-schemars = ["dep:schemars"]
-serde    = ["dep:serde_core", "dep:serde"]
+error-stack = ["dep:error-stack", "dep:erased-serde", "serde"]
+schemars    = ["dep:schemars"]
+serde       = ["dep:serde_core", "dep:serde"]
 
 [lints]
 workspace = true

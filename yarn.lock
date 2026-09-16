@@ -15580,6 +15580,8 @@ __metadata:
 "@rust/problematic@workspace:libs/problematic/rust":
   version: 0.0.0-use.local
   resolution: "@rust/problematic@workspace:libs/problematic/rust"
+  dependencies:
+    "@rust/error-stack": "workspace:*"
   languageName: unknown
   linkType: soft
 
