@@ -748,7 +748,27 @@ export const classifyMutationOutcome = (
     return { outcome: "unknown" };
   if (attempt.request.requestedBaseHash !== attempt.pre.sha256)
     return { outcome: unchanged ? "stale" : "unknown" };
-  if (unchanged) return { outcome: "no-op" };
+  if (unchanged) {
+    // Unchanged observations are a no-op only when the canonical action can
+    // derive that result; an invalid target must not be laundered as success.
+    try {
+      return {
+        outcome:
+          canonicalContent(
+            expectedNodeDefinition(attempt.request, attempt.pre.definition),
+          ) === canonicalContent(attempt.post.definition)
+            ? "no-op"
+            : "unknown",
+      };
+    } catch (error) {
+      return {
+        outcome: "unknown",
+        reason: `expected definition unavailable: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
+    }
+  }
   if (
     attempt.request.toolName === "updateArcWeight" ||
     attempt.request.toolName === "updateArcType"

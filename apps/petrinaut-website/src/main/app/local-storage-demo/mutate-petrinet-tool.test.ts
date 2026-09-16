@@ -688,6 +688,36 @@ describe("mutate_petrinet automatic host tool", () => {
     instance.dispose();
   });
 
+  test("reports an arc with a missing transition as failed", async () => {
+    const instance = createInstance();
+    const tool = createMutatePetrinetAutomaticTool(binding);
+    const invalidArc = {
+      ...arc,
+      operationId: "wire-missing-transition",
+      input: { ...arc.input, transitionId: "missing" },
+    };
+
+    const output = mutatePetrinetOutputSchema.parse(
+      await run(
+        tool,
+        instance,
+        inputFor(instance, [place, invalidArc]),
+        "batch-missing-transition",
+      ),
+    );
+
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "failed",
+    ]);
+    expect(output.outcomes[1]).toMatchObject({
+      operationId: "wire-missing-transition",
+      preHash: output.postHash,
+      postHash: output.postHash,
+    });
+    instance.dispose();
+  });
+
   test("hands the host the thrown value behind a failed operation without changing the outcome", async () => {
     const instance = createInstance();
     const onOperationFailure =

@@ -73,7 +73,7 @@ describe("native root node construction", () => {
     createPetrinautActions((mutate) => mutate(post)).addPlace(place);
     const req = request("addPlace", place);
     expect(outcome(req, pre, post)).toBe("applied");
-    expect(outcome(req, pre, pre)).toBe("no-op");
+    expect(outcome(req, pre, pre)).toBe("unknown");
     const wrong = structuredClone(post);
     wrong.places[0]!.capacity = 9;
     expect(outcome(req, pre, wrong)).toBe("unknown");

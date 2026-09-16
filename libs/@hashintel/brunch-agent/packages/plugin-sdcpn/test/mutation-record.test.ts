@@ -149,6 +149,31 @@ describe("root addArc transition semantics", () => {
     );
   });
 
+  test("rejects a no-op record whose arc names a missing transition", async () => {
+    const missingTransitionRequest: ArcMutationRequest = {
+      ...request,
+      toolCallId: "missing-transition-call",
+      input: { ...request.input, transitionId: "missing-transition" },
+    };
+    const unchanged = observe(pre);
+    const attempt: ArcMutationAttempt = {
+      request: missingTransitionRequest,
+      binding: missingTransitionRequest.binding,
+      pre: unchanged,
+      post: unchanged,
+      outcome: "no-op",
+      effects: deriveMutationEffects(
+        missingTransitionRequest,
+        pre,
+        unchanged.definition,
+      ),
+    };
+
+    await expect(verifyMutationAttempt(attempt)).rejects.toThrow(
+      "not supported by its observations",
+    );
+  });
+
   test("accepts the exact canonical colored output-arc footprint including generated kernel code", async () => {
     const before: SDCPN = {
       ...structuredClone(pre),
@@ -310,10 +335,20 @@ describe("root addArc transition semantics", () => {
 
   test("does not attribute failed, no-op, stale or unknown attempts as applied changes", () => {
     const attempt = applied();
+    const duplicateRequest = {
+      ...request,
+      requestedBaseHash: attempt.post!.sha256,
+    };
     const unchanged = {
       ...attempt,
-      post: attempt.pre,
-      effects: deriveMutationEffects(request, pre, pre),
+      request: duplicateRequest,
+      pre: attempt.post!,
+      post: attempt.post!,
+      effects: deriveMutationEffects(
+        duplicateRequest,
+        attempt.post!.definition,
+        attempt.post!.definition,
+      ),
     };
     expect(observedMutationOutcome(unchanged)).toBe("no-op");
     expect(observedMutationOutcome({ ...unchanged, error: "Rejected" })).toBe(

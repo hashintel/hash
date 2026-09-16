@@ -286,7 +286,7 @@ describe("native typed state construction", () => {
     ]);
     expect(deriveMutationEffects(req, before, after).derived).toHaveLength(2);
     expect(outcome(req, before, after)).toBe("applied");
-    expect(outcome(req, before, before)).toBe("no-op");
+    expect(outcome(req, before, before)).toBe("unknown");
   });
   test("explicit scenario correction only attributes actual changed cells", () => {
     const before = setup();
