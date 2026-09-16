@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::marker::Destruct;
 
 #[cfg(feature = "serde")]
 use ::serde::{Deserialize, Serialize};
@@ -32,7 +33,7 @@ const fn default_type_uri() -> Cow<'static, str> {
     derive(schemars::JsonSchema),
     schemars(title = "Problem Details")
 )]
-pub struct ProblemDetails<'a, E> {
+pub struct ProblemDetails<'a, E = NoExtensions> {
     /// A URI reference identifying the problem type. Use `about:blank` when the HTTP status code
     /// fully describes the problem type. If `type` is omitted during deserialization, it defaults
     /// to `about:blank`.
@@ -115,4 +116,36 @@ pub struct ProblemDetails<'a, E> {
         )
     )]
     pub extensions: E,
+}
+
+impl<'a, E> ProblemDetails<'a, E> {
+    /// Sets the human-readable explanation of this occurrence.
+    #[must_use]
+    pub const fn detail(mut self, detail: impl [const] Into<Cow<'a, str>>) -> Self {
+        self.detail = Some(detail.into());
+        self
+    }
+
+    /// Sets the URI reference identifying this occurrence.
+    #[must_use]
+    pub const fn instance(mut self, instance: impl [const] Into<Cow<'a, str>>) -> Self {
+        self.instance = Some(instance.into());
+        self
+    }
+
+    /// Replaces the extension members, changing their type.
+    #[must_use]
+    pub const fn extensions<F>(self, extensions: F) -> ProblemDetails<'a, F>
+    where
+        E: [const] Destruct,
+    {
+        ProblemDetails {
+            type_uri: self.type_uri,
+            title: self.title,
+            status: self.status,
+            detail: self.detail,
+            instance: self.instance,
+            extensions,
+        }
+    }
 }

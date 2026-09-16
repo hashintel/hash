@@ -6,6 +6,7 @@
 //! The optional `serde` feature enables serialization and deserialization. The `schemars` feature
 //! independently adds JSON Schema support to [`ProblemDetails`] and [`NoExtensions`].
 
+#![feature(const_convert, const_destruct, const_trait_impl)]
 #![cfg_attr(doc, feature(doc_cfg))]
 
 extern crate alloc;

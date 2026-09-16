@@ -114,14 +114,7 @@ fn details_static_metadata() {
 
     let detail = String::from("The limit must be a positive integer.");
     let instance = String::from("https://example.com/problem-occurrences/42");
-    let details = ProblemDetails {
-        type_uri: INVALID_PARAMETERS.type_uri.clone(),
-        title: INVALID_PARAMETERS.title.clone(),
-        status: INVALID_PARAMETERS.status.as_u16(),
-        detail: Some(Cow::Borrowed(&detail)),
-        instance: Some(Cow::Borrowed(&instance)),
-        extensions: NoExtensions {},
-    };
+    let details = INVALID_PARAMETERS.detail(&detail).instance(&instance);
 
     assert_eq!(
         serde_json::to_value(&details).expect("the mixed-lifetime details should serialize"),
