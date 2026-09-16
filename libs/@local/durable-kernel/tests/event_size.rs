@@ -35,12 +35,17 @@ struct PayloadCount(usize);
 
 impl Fold<Payload> for PayloadCount {
     type Rejection = Infallible;
+    type Validated = usize;
 
-    fn validate(&self, _: &Payload) -> Result<(), Report<Infallible>> {
-        Ok(())
+    fn validate(&self, _: &Payload) -> Result<Self::Validated, Report<Infallible>> {
+        Ok(self.0 + 1)
     }
 
-    fn apply(&mut self, _: &Payload) {
+    fn apply(&mut self, validated: Self::Validated) {
+        self.0 = validated;
+    }
+
+    fn replay(&mut self, _: &Payload) {
         self.0 += 1;
     }
 }

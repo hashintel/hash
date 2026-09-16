@@ -79,10 +79,62 @@ enum DeliveryRejection {
     NotPending { delivery: String },
 }
 
+enum RelayChange {
+    Queue {
+        delivery: String,
+        pending: Pending,
+    },
+    RecordFailure {
+        delivery: String,
+        failed_attempts: u32,
+    },
+    Deliver {
+        delivery: String,
+        attempt: u32,
+    },
+    Abandon {
+        delivery: String,
+        attempts: u32,
+    },
+}
+
+impl RelayQueue {
+    fn change_for(&self, event: &RelayEvent) -> RelayChange {
+        match event {
+            RelayEvent::Accepted { delivery, body } => RelayChange::Queue {
+                delivery: delivery.clone(),
+                pending: Pending {
+                    body: body.clone(),
+                    failed_attempts: 0,
+                },
+            },
+            RelayEvent::AttemptFailed { delivery, attempt } => RelayChange::RecordFailure {
+                delivery: delivery.clone(),
+                failed_attempts: self
+                    .pending
+                    .get(delivery)
+                    .map_or(*attempt, |pending| pending.failed_attempts.max(*attempt)),
+            },
+            RelayEvent::Delivered { delivery, attempt } => RelayChange::Deliver {
+                delivery: delivery.clone(),
+                attempt: *attempt,
+            },
+            RelayEvent::Abandoned { delivery, attempts } => RelayChange::Abandon {
+                delivery: delivery.clone(),
+                attempts: *attempts,
+            },
+        }
+    }
+}
+
 impl Fold<RelayEvent> for RelayQueue {
     type Rejection = DeliveryRejection;
+    type Validated = RelayChange;
 
-    fn validate(&self, event: &RelayEvent) -> Result<(), error_stack::Report<Self::Rejection>> {
+    fn validate(
+        &self,
+        event: &RelayEvent,
+    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
         match event {
             RelayEvent::Accepted { delivery, .. }
                 if self.delivered.contains_key(delivery)
@@ -106,34 +158,36 @@ impl Fold<RelayEvent> for RelayQueue {
             RelayEvent::Accepted { .. }
             | RelayEvent::AttemptFailed { .. }
             | RelayEvent::Delivered { .. }
-            | RelayEvent::Abandoned { .. } => Ok(()),
+            | RelayEvent::Abandoned { .. } => Ok(self.change_for(event)),
         }
     }
 
-    fn apply(&mut self, event: &RelayEvent) {
-        match event {
-            RelayEvent::Accepted { delivery, body } => {
-                self.pending
-                    .entry(delivery.clone())
-                    .or_insert_with(|| Pending {
-                        body: body.clone(),
-                        failed_attempts: 0,
-                    });
+    fn apply(&mut self, validated: Self::Validated) {
+        match validated {
+            RelayChange::Queue { delivery, pending } => {
+                self.pending.entry(delivery).or_insert(pending);
             }
-            RelayEvent::AttemptFailed { delivery, attempt } => {
-                if let Some(pending) = self.pending.get_mut(delivery) {
-                    pending.failed_attempts = pending.failed_attempts.max(*attempt);
+            RelayChange::RecordFailure {
+                delivery,
+                failed_attempts,
+            } => {
+                if let Some(pending) = self.pending.get_mut(&delivery) {
+                    pending.failed_attempts = failed_attempts;
                 }
             }
-            RelayEvent::Delivered { delivery, attempt } => {
-                self.pending.remove(delivery);
-                self.delivered.insert(delivery.clone(), *attempt);
+            RelayChange::Deliver { delivery, attempt } => {
+                self.pending.remove(&delivery);
+                self.delivered.insert(delivery, attempt);
             }
-            RelayEvent::Abandoned { delivery, attempts } => {
-                self.pending.remove(delivery);
-                self.abandoned.insert(delivery.clone(), *attempts);
+            RelayChange::Abandon { delivery, attempts } => {
+                self.pending.remove(&delivery);
+                self.abandoned.insert(delivery, attempts);
             }
         }
+    }
+
+    fn replay(&mut self, event: &RelayEvent) {
+        self.apply(self.change_for(event));
     }
 }
 
