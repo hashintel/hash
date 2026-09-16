@@ -487,6 +487,26 @@ export const launchPersona = async (
   report(`Run: ${run}`);
   const stop = new AbortController();
   const started: ChildProcess[] = [];
+  let servicesStopRequested = false;
+  const stopStartedServices = () => {
+    if (servicesStopRequested) return;
+    servicesStopRequested = true;
+    for (const child of started) {
+      if (!child.pid || child.exitCode !== null || child.signalCode !== null)
+        continue;
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          !("code" in error) ||
+          error.code !== "ESRCH"
+        ) {
+          throw error;
+        }
+      }
+    }
+  };
   let browser:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
@@ -797,6 +817,9 @@ export const launchPersona = async (
           recordedAt: new Date().toISOString(),
         });
         report(`Launcher Stop: ${stopDisposition.settlement}.`);
+        // Settlement is durable now; stop services before slower browser cleanup
+        // so terminal Ctrl-C cannot orphan the launcher's process groups.
+        stopStartedServices();
       }
       await bridge?.close();
       if (pane)
@@ -817,10 +840,7 @@ export const launchPersona = async (
           await browser?.close();
         }
       } finally {
-        for (const child of started) {
-          if (child.pid && child.exitCode === null && child.signalCode === null)
-            process.kill(-child.pid, "SIGTERM");
-        }
+        stopStartedServices();
         report(`Retained run: ${run}`);
       }
     } finally {
