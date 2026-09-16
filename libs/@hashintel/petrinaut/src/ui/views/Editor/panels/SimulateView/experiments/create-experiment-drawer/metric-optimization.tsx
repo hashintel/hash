@@ -17,11 +17,16 @@ const objectiveStyle = css({
   justifyContent: "space-between",
   flexWrap: "wrap",
   gap: "2",
-  padding: "[8px 16px]",
-  minHeight: "[48px]",
+  padding: "[4px 12px]",
+  minHeight: "[34px]",
   borderTopWidth: "[1px]",
   borderTopStyle: "solid",
   borderTopColor: "neutral.bd.subtle",
+  backgroundColor: "neutral.s20",
+  "&[data-objective=true]": {
+    borderTopColor: "purple.s40",
+    backgroundColor: "purple.s30",
+  },
 });
 
 const budgetStyle = css({
@@ -73,11 +78,12 @@ export const MetricObjectiveControl = ({
 }) => (
   <div
     className={objectiveStyle}
+    data-objective={direction !== null}
     role="group"
     aria-label={`Optimization for ${metricLabel}`}
   >
     <Radio
-      size="sm"
+      size="xs"
       name={groupName}
       htmlValue={metricId}
       label="Use as objective"
@@ -91,7 +97,7 @@ export const MetricObjectiveControl = ({
     />
     {direction !== null ? (
       <SegmentedControl
-        size="sm"
+        size="xs"
         aria-label="Direction"
         items={directionItems}
         value={direction}

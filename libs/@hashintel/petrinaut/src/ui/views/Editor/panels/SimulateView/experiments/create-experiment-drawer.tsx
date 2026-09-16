@@ -143,6 +143,10 @@ const metricRowStyle = css({
   borderRadius: "md",
   backgroundColor: "neutral.s00",
   overflow: "hidden",
+  "&[data-objective=true]": {
+    borderColor: "purple.s60",
+    backgroundColor: "purple.s10",
+  },
 });
 
 const metricRowHeaderStyle = css({
@@ -570,6 +574,7 @@ const ExperimentMetricRow = ({
   sdcpn,
   kindGroups,
   autoFocusLabel,
+  isObjective,
   onChange,
   onLspDiagnosticsChange,
   onRemove,
@@ -580,7 +585,8 @@ const ExperimentMetricRow = ({
   sdcpn: SDCPN;
   kindGroups: MetricKindGroup[];
   autoFocusLabel: boolean;
-  onChange: (metric: ExperimentMetricDraft) => void;
+  isObjective: boolean;
+  onChange: (metricId: string, patch: Partial<ExperimentMetricDraft>) => void;
   onLspDiagnosticsChange: (diagnostics: MetricLspDiagnosticSummary) => void;
   onRemove: () => void;
   footer?: ReactNode;
@@ -602,7 +608,7 @@ const ExperimentMetricRow = ({
     }),
   );
   const updateMetric = (patch: Partial<ExperimentMetricDraft>) => {
-    onChange({ ...metric, ...patch });
+    onChange(metric.id, patch);
   };
   const handleKindChange = (kindValue: string) => {
     // A custom metric defined on the model becomes an expression metric
@@ -679,6 +685,7 @@ const ExperimentMetricRow = ({
       open={metric.expanded}
       onOpenChange={(details) => updateMetric({ expanded: details.open })}
       className={metricRowStyle}
+      data-objective={isObjective}
       role="group"
       aria-label={metricLabel || "Untitled metric"}
     >
@@ -1114,10 +1121,15 @@ export const CreateExperimentDrawer = ({
     ]);
   };
 
-  const handleMetricChange = (nextMetric: ExperimentMetricDraft) => {
+  const handleMetricChange = (
+    metricId: string,
+    patch: Partial<ExperimentMetricDraft>,
+  ) => {
     setError(null);
     setMetricDrafts((prev) =>
-      prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric)),
+      prev.map((metric) =>
+        metric.id === metricId ? { ...metric, ...patch } : metric,
+      ),
     );
   };
 
@@ -1477,6 +1489,9 @@ export const CreateExperimentDrawer = ({
                           sdcpn={petriNetDefinition}
                           kindGroups={metricKindGroups}
                           autoFocusLabel={metric.id === metricLabelFocusId}
+                          isObjective={
+                            objectiveEnabled && metric.id === objectiveMetricId
+                          }
                           onChange={handleMetricChange}
                           onLspDiagnosticsChange={(diagnostics) =>
                             handleMetricLspDiagnosticsChange(

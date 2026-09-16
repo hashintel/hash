@@ -9,7 +9,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
@@ -58,21 +58,38 @@ import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/
 import type { ReactNode } from "react";
 
 vi.mock("../../../../../monaco/code-editor", () => ({
-  // Monaco needs a context this tree does not provide, and the editor is not
-  // what these tests are about.
   CodeEditor: ({
     onChange,
     value,
+    options,
   }: {
     onChange: (value: string) => void;
     value: string;
-  }) => (
-    <textarea
-      aria-label="Metric code"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  ),
+    options?: { readOnly?: boolean };
+  }) => {
+    const changeHandlerRef = useRef(onChange);
+    const previousValueRef = useRef(value);
+
+    // Monaco's read-only value sync emits through the previous change listener.
+    useEffect(() => {
+      if (options?.readOnly && previousValueRef.current !== value) {
+        changeHandlerRef.current(value);
+      }
+      previousValueRef.current = value;
+    }, [value, options?.readOnly]);
+    useEffect(() => {
+      changeHandlerRef.current = onChange;
+    }, [onChange]);
+
+    return (
+      <textarea
+        aria-label="Metric code"
+        value={value}
+        readOnly={options?.readOnly}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  },
 }));
 
 vi.mock("@hashintel/ds-components", async (importOriginal) => {
@@ -1308,6 +1325,75 @@ describe("CreateExperimentDrawer constraints", () => {
       expect(backendState()).toBe("available");
     });
   });
+});
+
+describe("CreateExperimentDrawer metric selection", () => {
+  it.each([false, true])(
+    "switches model metrics and returns to custom or built-in metrics when collapsed=%s",
+    async (collapsed) => {
+      render(
+        <TestProviders
+          webGpuEnabled={false}
+          sdcpnContextValue={{
+            ...sirSdcpnContextValue,
+            petriNetDefinition: {
+              ...sirSdcpnContextValue.petriNetDefinition,
+              metrics: [
+                { id: "first", name: "First metric", code: "return 1;" },
+                { id: "second", name: "Second metric", code: "return 2;" },
+              ],
+            },
+          }}
+        />,
+      );
+      fireEvent.click(
+        await screen.findByRole("button", { name: /Add metric/ }),
+      );
+      const metricType = screen.getByLabelText(
+        "Metric type",
+      ) as HTMLSelectElement;
+      fireEvent.change(metricType, { target: { value: "model:first" } });
+      fireEvent.change(screen.getByLabelText("Metric label"), {
+        target: { value: "My metric" },
+      });
+      if (collapsed) {
+        fireEvent.click(screen.getByRole("button", { name: "Toggle metric" }));
+      }
+
+      fireEvent.change(metricType, { target: { value: "model:second" } });
+      expect(metricType.value).toBe("model:second");
+      expect(
+        (screen.getByLabelText("Metric label") as HTMLInputElement).value,
+      ).toBe("My metric");
+      if (collapsed) {
+        fireEvent.click(screen.getByRole("button", { name: "Toggle metric" }));
+      }
+      const code = screen.getByLabelText("Metric code") as HTMLTextAreaElement;
+      expect(code.value).toBe("return 2;");
+      expect(code.readOnly).toBe(true);
+
+      fireEvent.change(metricType, { target: { value: "expression" } });
+      expect(metricType.value).toBe("expression");
+      expect(code.readOnly).toBe(false);
+      fireEvent.change(code, { target: { value: "return 3;" } });
+      fireEvent.change(metricType, { target: { value: "model:first" } });
+      expect(metricType.value).toBe("model:first");
+      expect(code.value).toBe("return 1;");
+
+      fireEvent.change(metricType, {
+        target: { value: "placeTokenCountMean" },
+      });
+      expect(screen.queryByLabelText("Metric label")).toBeNull();
+      expect(
+        screen.getByRole("group", { name: "Susceptible tokens" }),
+      ).toBeTruthy();
+      fireEvent.change(metricType, {
+        target: { value: "transitionFiringCount" },
+      });
+      expect(screen.getByLabelText("Transition")).toBeTruthy();
+      expect(screen.queryByLabelText("Metric label")).toBeNull();
+    },
+  );
 });
 
 const objectiveRadio = (metricLabel: string) =>
