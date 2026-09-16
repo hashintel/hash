@@ -17,6 +17,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
     expect(sdcpnModellingSkill.description).toContain("process model");
     expect(Object.keys(sdcpnModellingSkill.files ?? {}).sort()).toEqual([
       "references/checks.md",
+      "references/experiment-configuration.md",
       "references/pn-construction.md",
       "references/profile.md",
       "templates/workpiece.md",
@@ -44,10 +45,91 @@ describe("the authored sdcpn-modelling skill directory", () => {
     const workpiece = readSkillFile("templates/workpiece.md");
     const construction = readSkillFile("references/pn-construction.md");
     const checks = readSkillFile("references/checks.md");
+    const experiment = readSkillFile("references/experiment-configuration.md");
     expect(profile).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(workpiece).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(construction).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(checks).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
+    expect(experiment).not.toMatch(
+      /Vestera|truck fleet|semiconductor|support desk|support operation|agents on duty/iu,
+    );
+  });
+
+  describe("experiment readiness guidance", () => {
+    const instructions = sdcpnModellingSkill.instructions;
+    const experiment = readSkillFile("references/experiment-configuration.md");
+    const construction = readSkillFile("references/pn-construction.md");
+
+    test("is hooked into the Construct disposition, not a separate phase or keyword", () => {
+      const construct = instructions.slice(
+        instructions.indexOf("### Construct"),
+        instructions.indexOf("### Check and deliver"),
+      );
+      expect(construct).toContain("references/experiment-configuration.md");
+      expect(construct).toContain("ordinary construction");
+      expect(construct).toContain(
+        "Parameters or metrics in the net never trigger a proposal by themselves",
+      );
+      expect(instructions).not.toMatch(/asks? for an experiment|says? "optimi/iu);
+    });
+
+    test("states readiness as the conjunction of workpiece meaning and net executability", () => {
+      expect(experiment).toContain("**Readiness is the conjunction**");
+      expect(experiment).toContain("Structure alone never triggers a proposal");
+      expect(experiment).toContain("The net alone never supplies the objective");
+      expect(experiment).toContain(
+        "parameters and metrics recorded but no stated decision, there is nothing to propose",
+      );
+      for (const source of [
+        "What the model must answer, compare, or support",
+        "Goals, measures, constraints, and thresholds",
+        "What the result must not claim",
+        "definition.scenarios[]",
+        "definition.metrics[]",
+        "read_petrinaut_diagnostics",
+      ]) {
+        expect(experiment).toContain(source);
+      }
+    });
+
+    test("teaches the request shape without a Brunch experiment schema or constraint claims", () => {
+      for (const field of [
+        "scenarioParameterValues[identifier] = { mode: \"range\", min, max }",
+        "objectiveMetricId",
+        "`scenarioId`",
+        "`maxTime`, `dt`",
+        "`runCount`, `runsPerStep`, `steps`, `seed`",
+        "steps × runsPerStep ≤ 10,000",
+      ]) {
+        expect(experiment).toContain(field);
+      }
+      expect(experiment).toContain(
+        "The request carries no constraints and no constraint policy",
+      );
+      expect(experiment).toContain("reported, not enforced");
+      expect(experiment).toContain("Never encode a hard restriction as an objective penalty");
+      expect(experiment).not.toMatch(/constraintPolicy|alpha|α/u);
+    });
+
+    test("names the draft tool, the honesty wording and the once-only rule", () => {
+      expect(experiment).toContain("`draft_petrinaut_experiment`");
+      expect(experiment).toContain("{ experiment, declarations, basis, unsupported }");
+      expect(experiment).toContain('Say "drafted for this session", not "added to the model"');
+      expect(experiment).toContain("you never call a run");
+      expect(experiment).toContain("## Once, not repeatedly");
+      expect(experiment).toContain('an explicit "do not run" is authoritative');
+      expect(experiment).toContain("Do not apply a winning configuration to the model on your own");
+      expect(experiment).toContain("Never open or pre-fill the experiment creation drawer");
+    });
+
+    test("teaches scenarios and metrics as construction with the typed sweep domain", () => {
+      expect(construction).toContain("`addScenario`");
+      expect(construction).toContain("`addMetric`");
+      expect(construction).toContain("a count is an `integer` parameter");
+      expect(construction).toContain("`parameterOverrides`");
+      expect(experiment).toContain("never rounding in code");
+      expect(experiment).toContain("A `boolean` parameter rejects ranges");
+    });
   });
 
   test("names the mounted construction read tool", () => {

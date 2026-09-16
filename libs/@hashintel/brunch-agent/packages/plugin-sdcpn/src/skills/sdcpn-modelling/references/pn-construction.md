@@ -23,10 +23,11 @@ When Petrinaut construction tools are mounted, their accepted schemas and the in
 | Ordering, branching, joining, triggers, and practiced decision rules | Arcs, guards, priorities, and explicit enabling state |
 | Resource consumption, reservation, release, and read-only use | Consumed tokens, held and returned resource tokens, or read behavior |
 | Continuous change | Dynamics on real-valued colour elements when a rate, threshold, or objective makes it consequential |
-| Metrics and objectives | Simulation metrics where representable; qualitative goals and unsupported weights remain in the workpiece |
+| Metrics and objectives | Saved metrics (`addMetric`) where representable; qualitative goals and unsupported weights remain in the workpiece |
+| Named operating regimes and decisions the person may vary | Saved scenarios (`addScenario`) carrying a per-place initial state and typed scenario parameters; a count is an `integer` parameter, a proportion a `ratio`, a continuous quantity a `real` |
 | Data bindings and validation criteria | Workpiece obligations until a separate integration represents them |
 
-A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node.
+A physical location becomes target structure only through its recorded operational effect; it is not automatically a Petri-net place. A simulation scenario is assembled from initial state, boundary conditions, parameters, and candidate policies rather than represented as one process node; when the workpiece names such a regime, save it as a scenario so later runs and experiments can name it. A scenario parameter reaches the net in two ways: a `per_place` initial-state expression reads it as `scenario.<identifier>` (keys are place IDs), and `parameterOverrides` maps an existing net-level parameter ID to such an expression, so a tunable that transition code reads through `parameters.<variableName>` needs both the net parameter and the override. Metric code reads the simulated state, not scenario parameters.
 
 ## Petrinaut tool sequence
 
