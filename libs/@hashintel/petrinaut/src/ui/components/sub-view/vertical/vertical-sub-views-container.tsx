@@ -80,7 +80,10 @@ const breadcrumbStyle = css({
   gap: "2",
   flex: "1",
   minWidth: "0",
-  fontSize: "xs",
+  pl: "1",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "neutral.s100",
   lineHeight: "[20px]",
 });
 
@@ -89,19 +92,19 @@ const parentTitleStyle = css({
   border: "[0]",
   backgroundColor: "[transparent]",
   padding: "0",
-  maxWidth: "[60%]",
-  "&:only-child": { maxWidth: "full" },
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[0 1 auto]",
   minWidth: "0",
   overflow: "hidden",
-  textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   textAlign: "left",
-  color: "fg.muted",
-  fontWeight: "medium",
+  font: "[inherit]",
+  color: "[inherit]",
   cursor: "pointer",
   transition: "[color 140ms ease]",
   _hover: {
-    color: "neutral.s120",
     textDecoration: "underline",
     textUnderlineOffset: "[3px]",
   },
@@ -119,11 +122,9 @@ const breadcrumbSeparatorStyle = css({
 });
 
 const breadcrumbCurrentStyle = css({
-  fontWeight: "medium",
-  color: "neutral.s120",
-  minWidth: "0",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
   whiteSpace: "nowrap",
 });
 
@@ -283,9 +284,9 @@ const sectionToggleStyle = css({
 });
 
 const sectionToggleLabelStyle = css({
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  display: "flex",
+  alignItems: "center",
+  minWidth: "0",
 });
 
 const sectionToggleIconStyle = css({
@@ -303,6 +304,9 @@ const sectionToggleIconExpandedStyle = css({
 });
 
 const infoTooltipWrapperStyle = css({
+  display: "flex",
+  alignItems: "center",
+  flexShrink: 0,
   opacity: "[0]",
   transition: "[opacity 150ms ease-out]",
 });
@@ -326,13 +330,27 @@ const headerIconStyle = css({
   color: "neutral.s85",
 });
 
-const mainTitleStyle = css({
-  fontWeight: "medium",
-  fontSize: "sm",
-  color: "neutral.s100",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+const mainTitleStyle = cva({
+  base: {
+    fontWeight: "medium",
+    fontSize: "sm",
+    lineHeight: "[20px]",
+    color: "neutral.s100",
+    minWidth: "0",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+  },
+  variants: {
+    fadeOverflow: {
+      true: {
+        paddingRight: "3",
+        maskImage:
+          "[linear-gradient(to right, black calc(100% - 12px), transparent)]",
+      },
+      false: { textOverflow: "ellipsis" },
+    },
+  },
+  defaultVariants: { fadeOverflow: false },
 });
 
 /**
@@ -400,6 +418,7 @@ interface SubViewHeaderProps {
   onExpand?: () => void;
   onRestore?: () => void;
   parentTitle: string;
+  parentIcon?: SubView["icon"];
 }
 
 const SubViewHeader: React.FC<SubViewHeaderProps> = ({
@@ -416,6 +435,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   onExpand,
   onRestore,
   parentTitle,
+  parentIcon: ParentIcon,
 }) => (
   <div
     data-subview-header
@@ -437,7 +457,14 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
           className={parentTitleStyle}
           onClick={onRestore}
         >
-          {parentTitle}
+          {ParentIcon && (
+            <span aria-hidden="true" className={headerIconStyle}>
+              <ParentIcon size={HEADER_ICON_SIZE} />
+            </span>
+          )}
+          <span className={mainTitleStyle({ fadeOverflow: true })}>
+            {parentTitle}
+          </span>
         </button>
         {parentTitle !== title && (
           <>
@@ -450,6 +477,11 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
               className={breadcrumbCurrentStyle}
             >
               {title}
+              {tooltip && (
+                <span data-info-tooltip className={infoTooltipWrapperStyle}>
+                  <HelpTooltip align="center" content={tooltip} />
+                </span>
+              )}
             </span>
           </>
         )}
@@ -457,14 +489,14 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
     ) : main ? (
       <div data-subview-title className={mainHeaderContentStyle}>
         {HeaderIcon && (
-          <span className={headerIconStyle}>
+          <span aria-hidden="true" className={headerIconStyle}>
             <HeaderIcon size={HEADER_ICON_SIZE} />
           </span>
         )}
         {renderTitle ? (
           renderTitle()
         ) : (
-          <span className={mainTitleStyle}>{title}</span>
+          <span className={mainTitleStyle()}>{title}</span>
         )}
       </div>
     ) : (
@@ -492,10 +524,10 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
           <Icon name="chevronRight" size="xxs" />
         </div>
         <span className={sectionToggleLabelStyle}>
-          {title}
+          <span className={mainTitleStyle()}>{title}</span>
           {tooltip && (
             <span data-info-tooltip className={infoTooltipWrapperStyle}>
-              <HelpTooltip content={tooltip} />
+              <HelpTooltip align="center" content={tooltip} />
             </span>
           )}
         </span>
@@ -547,8 +579,8 @@ export const VerticalSubViewsContainer: React.FC<
     use(UserSettingsContext);
   const { containerRef, maximizedId, isRestoring, maximize, restore } =
     useSubViewMaximization(name, subViews, showAnimations);
-  const parentTitle =
-    subViews.find((subView) => subView.main)?.title ?? "Properties";
+  const parentSubView = subViews.find((subView) => subView.main);
+  const parentTitle = parentSubView?.title ?? "Properties";
 
   const containerSettings = subViewPanels[name];
 
@@ -659,6 +691,7 @@ export const VerticalSubViewsContainer: React.FC<
                   }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                   parentTitle={parentTitle}
+                  parentIcon={parentSubView?.icon}
                   onRestore={fillsContainer ? restore : undefined}
                   onExpand={
                     subView.canMaximize && !fillsContainer
