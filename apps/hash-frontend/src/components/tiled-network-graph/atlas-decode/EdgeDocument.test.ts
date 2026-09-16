@@ -115,6 +115,36 @@ const expectError = (
   return result.error;
 };
 
+/** Returns every document error retained under a section's aggregate. */
+const expectSectionErrors = (
+  result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
+  section: "head" | "columns" | "trailer",
+): EdgeDocument.EdgeDocumentError[] => {
+  const error = expectError(result);
+  expect(error.reason).toEqual({ _tag: "section", section });
+  expect(error.cause).toBeInstanceOf(Result.All);
+  if (!(error.cause instanceof Result.All)) {
+    throw new Error("expected an aggregate cause");
+  }
+  return error.cause.errors.map((member: unknown) => {
+    expect(member).toBeInstanceOf(EdgeDocument.EdgeDocumentError);
+    if (!(member instanceof EdgeDocument.EdgeDocumentError)) {
+      throw new Error("expected a document error member");
+    }
+    return member;
+  });
+};
+
+/** Checks that a section retains exactly one failure, still inside an aggregate. */
+const expectSingleSectionError = (
+  result: Result.Result<unknown, EdgeDocument.EdgeDocumentError>,
+  section: "head" | "columns" | "trailer",
+): EdgeDocument.EdgeDocumentError => {
+  const errors = expectSectionErrors(result, section);
+  expect(errors).toHaveLength(1);
+  return errors[0]!;
+};
+
 /**
  * Replicates buildResponse's sequential, 8-aligned slot layout, so tests
  * can locate an exact byte offset (a padding byte, a column's first byte)
@@ -363,11 +393,26 @@ describe("EdgeDocument.decode envelope and head", () => {
     const entries = defaultHeadEntries().filter(
       ([entryKey]) => entryKey !== key,
     );
-    const error = expectError(runDecode(edgesResponse({ head: entries })));
+    const error = expectSingleSectionError(
+      runDecode(edgesResponse({ head: entries })),
+      "head",
+    );
     expect(error.reason).toEqual({
       _tag: "missing-field",
       field: `head.${name}`,
     });
+  });
+
+  it("all_missing_head_fields", () => {
+    const errors = expectSectionErrors(
+      runDecode(edgesResponse({ head: [] })),
+      "head",
+    );
+    expect(errors.map((error) => error.reason)).toEqual(
+      ["generation", "variant", "count", "complete", "hasTrailer"].map(
+        (field) => ({ _tag: "missing-field", field: `head.${field}` }),
+      ),
+    );
   });
 
   it("unknown_head_field", () => {
@@ -408,6 +453,25 @@ describe("EdgeDocument.decode envelope and head", () => {
 });
 
 describe("EdgeDocument.decode columns", () => {
+  it("independent_column_failures", () => {
+    const errors = expectSectionErrors(
+      runDecode(
+        buildResponse("edges", [cborMap(defaultHeadEntries()), [1], [], null]),
+      ),
+      "columns",
+    );
+    expect(errors.map((error) => error.reason)).toEqual([
+      {
+        _tag: "invalid-field",
+        field: "sources",
+        detail: "invalid node column width",
+      },
+      { _tag: "length", field: "targets", expected: 3n, actual: 0 },
+      { _tag: "missing-slot", slot: 3 },
+    ]);
+    expect(errors[0]!.cause).toBeInstanceOf(NodeIdColumnError);
+  });
+
   it.each([
     { name: "sources", slot: 1 },
     { name: "targets", slot: 2 },
@@ -421,7 +485,10 @@ describe("EdgeDocument.decode columns", () => {
     ];
     payloads[slot] = null;
 
-    const error = expectError(runDecode(buildResponse("edges", payloads)));
+    const error = expectSingleSectionError(
+      runDecode(buildResponse("edges", payloads)),
+      "columns",
+    );
     expect(error.reason).toEqual({ _tag: "missing-slot", slot });
   });
 
@@ -437,12 +504,44 @@ describe("EdgeDocument.decode columns", () => {
     ];
     payloads[slot] = u32le(rows.slice(0, 2));
 
-    const error = expectError(runDecode(buildResponse("edges", payloads)));
+    const error = expectSingleSectionError(
+      runDecode(buildResponse("edges", payloads)),
+      "columns",
+    );
     expect(error.reason).toEqual({
       _tag: "length",
       field: name,
       expected: 3n,
       actual: 2,
+    });
+  });
+
+  it.each([
+    { name: "descending", rows: [0, 2, 1], index: 2 },
+    { name: "duplicate", rows: [0, 0, 1], index: 1 },
+  ])("unordered_identities_$name", ({ rows, index }) => {
+    const error = expectSingleSectionError(
+      runDecode(
+        edgesResponse({
+          payloads: [
+            cborMap(defaultHeadEntries()),
+            u32le(sourcesDefault),
+            u32le(targetsDefault),
+            rows.flatMap((row) => identityRow(row)),
+          ],
+        }),
+      ),
+      "columns",
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: "identities",
+      detail: "identities must be strictly ascending",
+    });
+    expect(error.cause).toBeInstanceOf(BinaryEntityIdError);
+    expect((error.cause as BinaryEntityIdError).reason).toEqual({
+      _tag: "unordered",
+      index,
     });
   });
 
@@ -454,7 +553,10 @@ describe("EdgeDocument.decode columns", () => {
       [0, 1].flatMap((row) => identityRow(row)),
     ];
 
-    const error = expectError(runDecode(buildResponse("edges", payloads)));
+    const error = expectSingleSectionError(
+      runDecode(buildResponse("edges", payloads)),
+      "columns",
+    );
     expect(error.reason).toEqual({
       _tag: "length",
       field: "identities",
@@ -466,7 +568,7 @@ describe("EdgeDocument.decode columns", () => {
   it.each([
     { name: "sources", slot: 1 },
     { name: "targets", slot: 2 },
-  ] as const)("partial_row_width_$name", ({ slot }) => {
+  ] as const)("partial_row_width_$name", ({ name, slot }) => {
     // 3 bytes: not a whole number of 4-byte node identities.
     const payloads: (number[] | null)[] = [
       cborMap(defaultHeadEntries()),
@@ -476,8 +578,15 @@ describe("EdgeDocument.decode columns", () => {
     ];
     payloads[slot] = [1, 2, 3];
 
-    const error = expectError(runDecode(buildResponse("edges", payloads)));
-    expect(error.reason).toEqual({ _tag: "decode" });
+    const error = expectSingleSectionError(
+      runDecode(buildResponse("edges", payloads)),
+      "columns",
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: name,
+      detail: "invalid node column width",
+    });
     expect(error.cause).toBeInstanceOf(NodeIdColumnError);
     expect((error.cause as NodeIdColumnError).reason).toEqual({
       _tag: "invalid-length",
@@ -494,8 +603,15 @@ describe("EdgeDocument.decode columns", () => {
       [...identityRow(0), 1, 2, 3],
     ];
 
-    const error = expectError(runDecode(buildResponse("edges", payloads)));
-    expect(error.reason).toEqual({ _tag: "decode" });
+    const error = expectSingleSectionError(
+      runDecode(buildResponse("edges", payloads)),
+      "columns",
+    );
+    expect(error.reason).toEqual({
+      _tag: "invalid-field",
+      field: "identities",
+      detail: "invalid identity column width",
+    });
     expect(error.cause).toBeInstanceOf(BinaryEntityIdError);
     expect((error.cause as BinaryEntityIdError).reason).toEqual({
       _tag: "column-length",
@@ -505,6 +621,24 @@ describe("EdgeDocument.decode columns", () => {
 });
 
 describe("EdgeDocument.decode trailer", () => {
+  it("all_missing_trailer_fields", () => {
+    const errors = expectSectionErrors(
+      runDecode(
+        edgesResponse({
+          head: defaultHeadEntries({ 4: cborBool(true) }),
+          tail: cborMap([]),
+        }),
+      ),
+      "trailer",
+    );
+    expect(errors.map((error) => error.reason)).toEqual(
+      ["typeTable", "linkLabels", "linkTypeIds"].map((field) => ({
+        _tag: "missing-field",
+        field: `trailer.${field}`,
+      })),
+    );
+  });
+
   it("undeclared_trailer_bytes", () => {
     // hasTrailer is false (the default head), but the response carries a
     // tail anyway.

@@ -3,10 +3,13 @@ import * as TypeSystem from "@blockprotocol/type-system";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-/** Invalid identity storage or an index outside an identity column. */
+import type * as CborDecoder from "./CborDecoder";
+
+/** Invalid identity storage, ordering or an index outside an identity column. */
 export type BinaryEntityIdErrorReason =
   | { readonly _tag: "identity-length"; readonly byteLength: number }
   | { readonly _tag: "column-length"; readonly byteLength: number }
+  | { readonly _tag: "unordered"; readonly index: number }
   | {
       readonly _tag: "invalid-index";
       readonly index: number;
@@ -29,6 +32,9 @@ export class BinaryEntityIdError extends TaggedError.TaggedError<
       case "column-length":
         message = `entity identity column length ${reason.byteLength} is not a multiple of 32 bytes`;
         break;
+      case "unordered":
+        message = `entity identity at row ${reason.index} must sort after its preceding row`;
+        break;
       case "invalid-index":
         message = `entity identity index ${reason.index} is outside ${reason.length} rows`;
         break;
@@ -41,7 +47,7 @@ export class BinaryEntityIdError extends TaggedError.TaggedError<
 /**
  * A web UUID followed by an entity UUID, borrowing 32 bytes.
  *
- * Keep the buffer attached and unchanged while using the identity. Its string representation is the live {@link TypeSystem.EntityId}, without a draft component.
+ * Keep the buffer attached and unchanged while using the identity. Its string representation is an {@link TypeSystem.EntityId} without a draft component.
  */
 export class BinaryEntityId {
   readonly #inner: Uint8Array;
@@ -69,12 +75,14 @@ export class BinaryEntityId {
       if (index === 4 || index === 6 || index === 8 || index === 10) {
         uuid += "-";
       }
+
       uuid += this.#inner[offset + index]!.toString(16).padStart(2, "0");
     }
+
     return uuid;
   }
 
-  /** Formats the live entity identity as lowercase `webUuid~entityUuid`. */
+  /** Formats the entity identity as lowercase `webUuid~entityUuid`. */
   toString(): TypeSystem.EntityId {
     // Each half is a complete UUID in byte order, with its role fixed by the binary representation.
     return TypeSystem.entityIdFromComponents(
@@ -144,6 +152,38 @@ export class BinaryEntityIdColumn<T extends ArrayBufferLike> {
     return Result.ok(this.#read(index));
   }
 
+  /** Compares adjacent rows by unsigned bytes in web/entity order. */
+  #compareRows(index: number): number {
+    const current = index * 32;
+    const previous = current - 32;
+    for (let offset = 0; offset < 32; offset += 1) {
+      const difference =
+        this.#buffer.getUint8(previous + offset) -
+        this.#buffer.getUint8(current + offset);
+      if (difference !== 0) {
+        return difference;
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Validates strictly ascending byte order without sorting or copying identities.
+   *
+   * Returns {@link BinaryEntityIdError} at the first duplicate or descending row. Empty and single-row columns succeed. Validation compares adjacent rows and applies to the buffer's current contents.
+   */
+  validateOrder(): Result.Result<void, BinaryEntityIdError> {
+    for (let index = 1; index < this.length; index += 1) {
+      if (this.#compareRows(index) >= 0) {
+        return Result.err(
+          new BinaryEntityIdError({ _tag: "unordered", index }),
+        );
+      }
+    }
+
+    return Result.ok(undefined);
+  }
+
   /** Iterates borrowed identities in column order. */
   *[Symbol.iterator](): IterableIterator<BinaryEntityId> {
     for (let index = 0; index < this.length; index += 1) {
@@ -151,3 +191,22 @@ export class BinaryEntityIdColumn<T extends ArrayBufferLike> {
     }
   }
 }
+
+/** Borrows an entity identity from a CBOR byte string. */
+export const Visitor: CborDecoder.CborVisitor<
+  BinaryEntityId,
+  BinaryEntityIdError
+> = {
+  expecting: "a 32-byte entity identity",
+  visitByteString: (value) =>
+    Result.catch(
+      () => Result.ok(new BinaryEntityId(value)),
+      (cause) => {
+        if (cause instanceof BinaryEntityIdError) {
+          return Result.err(cause);
+        }
+
+        throw cause;
+      },
+    ),
+};

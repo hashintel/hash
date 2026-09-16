@@ -36,6 +36,10 @@ export type EdgeDocumentErrorReason =
       readonly field: string;
       readonly detail: string;
     }
+  | {
+      readonly _tag: "section";
+      readonly section: "head" | "columns" | "trailer";
+    }
   | { readonly _tag: "decode" };
 
 /** An edges document failure with its structured reason and optional cause. */
@@ -65,6 +69,9 @@ export class EdgeDocumentError extends TaggedError.TaggedError<
         break;
       case "invalid-field":
         message = `${reason.field}: ${reason.detail}`;
+        break;
+      case "section":
+        message = `invalid edges ${reason.section}`;
         break;
       case "decode":
         message = "unable to decode edges document";
@@ -127,6 +134,10 @@ const required = <T>(
   return Result.ok(value);
 };
 
+/** Adds document context above an aggregate of independent validation failures. */
+const rejected = (section: "head" | "columns" | "trailer") => () =>
+  new EdgeDocumentError({ _tag: "section", section });
+
 /** Reads the fields needed to interpret edge columns and the trailer. */
 const readHead = Result.fn(function* readHead(
   access: CborDecoder.CborMapAccess,
@@ -169,6 +180,7 @@ const readHead = Result.fn(function* readHead(
     required(partial.complete, "head.complete"),
     required(partial.hasTrailer, "head.hasTrailer"),
   ]).pipe(
+    Result.changeContext(rejected("head")),
     Result.map(([generation, variant, count, complete, hasTrailer]) => ({
       generation,
       variant,
@@ -201,33 +213,66 @@ const checkCount = (
   return Result.ok(undefined);
 };
 
-/** Borrows a node column or returns a header-count mismatch. */
+/** Borrows a node column or returns invalid storage or a header-count mismatch. */
 const decodeNodeIdColumn = <T extends ArrayBufferLike>(
   bytes: Uint8Array<T>,
   count: Decoder.U64,
   field: string,
-) => {
-  const column = new NodeId.NodeIdColumn(
-    new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+) =>
+  Result.catch(
+    () =>
+      Result.ok(
+        new NodeId.NodeIdColumn(
+          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+        ),
+      ),
+    (cause) => {
+      if (!(cause instanceof NodeId.NodeIdColumnError)) {
+        throw cause;
+      }
+      return Result.err(
+        new EdgeDocumentError(
+          { _tag: "invalid-field", field, detail: "invalid node column width" },
+          { cause },
+        ),
+      );
+    },
+  ).pipe(
+    Result.andThen((column) =>
+      checkCount(column.length, count, field).pipe(Result.map(() => column)),
+    ),
   );
 
-  return Result.map(checkCount(column.length, count, field), () => column);
-};
-
-/** Borrows an identity column or returns a header-count mismatch. */
-const decodeIdentities = <T extends ArrayBufferLike>(
-  bytes: Uint8Array<T>,
-  count: Decoder.U64,
-) => {
-  const column = new BinaryEntityId.BinaryEntityIdColumn(
-    new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+/** Borrows an identity column after validating its width and count. */
+const decodeIdentities = Result.fn(function* decodeIdentities<
+  T extends ArrayBufferLike,
+>(bytes: Uint8Array<T>, count: Decoder.U64) {
+  const column = yield* Result.catch(
+    () =>
+      Result.ok(
+        new BinaryEntityId.BinaryEntityIdColumn(
+          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+        ),
+      ),
+    (cause) => {
+      if (!(cause instanceof BinaryEntityId.BinaryEntityIdError)) {
+        throw cause;
+      }
+      return Result.err(
+        new EdgeDocumentError(
+          {
+            _tag: "invalid-field",
+            field: "identities",
+            detail: "invalid identity column width",
+          },
+          { cause },
+        ),
+      );
+    },
   );
-
-  return Result.map(
-    checkCount(column.length, count, "identities"),
-    () => column,
-  );
-};
+  yield* checkCount(column.length, count, "identities");
+  return column;
+});
 
 /** Accepts a versioned URL or returns a trailer field error. */
 const typeUrlVisitor: CborDecoder.CborVisitor<VersionedUrl, EdgeDocumentError> =
@@ -304,7 +349,7 @@ const readTrailer = Result.fn(function* readTrailer(
     required(types, "trailer.typeTable"),
     required(labels, "trailer.linkLabels"),
     required(indexes, "trailer.linkTypeIds"),
-  ]);
+  ]).pipe(Result.changeContext(rejected("trailer")));
 
   if (new Set(typeTable).size !== typeTable.length) {
     return yield* Result.err(
@@ -396,7 +441,7 @@ const readDocument = Result.fn(function* readDocument<
     requiredSlot(chunks, 3).pipe(
       Result.andThen((bytes) => decodeIdentities(bytes, head.count)),
     ),
-  ]);
+  ]).pipe(Result.changeContext(rejected("columns")));
 
   let trailer: EdgeDocumentTrailer | null = null;
   if (head.hasTrailer) {
@@ -431,7 +476,7 @@ const readDocument = Result.fn(function* readDocument<
  *
  * Columns and generation bytes borrow the input. Keep its buffer attached and unchanged while using the document. Generation and variant identify the response and remain available for request validation.
  *
- * @returns The complete document or an {@link EdgeDocumentError}. Underlying errors and unexpected exceptions are retained as causes. Failure may advance the decoder.
+ * @returns The complete document or an {@link EdgeDocumentError}. Independent validation failures appear in a {@link Result.All} under a section error's cause. Underlying errors and unexpected exceptions retain their causes. Cursor reads stop at their first failure, which may advance the decoder.
  */
 export const decode = <T extends ArrayBufferLike>(
   decoder: Decoder.Decoder<T>,

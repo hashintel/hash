@@ -208,6 +208,7 @@ describe("Result.catch", () => {
           try {
             return yield* Result.err("original");
           } finally {
+            // eslint-disable-next-line no-unsafe-finally -- this case verifies an exception thrown by generator cleanup.
             throw cause;
           }
         }),
@@ -283,6 +284,26 @@ describe("dual functions", () => {
 describe("changeContextIf", () => {
   const isLowLevelError = (error: unknown): error is LowLevelError =>
     error instanceof LowLevelError;
+
+  it("self_context", () => {
+    const original = new LowLevelError("read failed");
+    const result = Result.err(original);
+    expect(() => Result.changeContext(result, () => original)).toThrow(
+      TypeError,
+    );
+    expect(() =>
+      Result.changeContextIf(result, isLowLevelError, () => original),
+    ).toThrow(TypeError);
+    expect(original.cause).toBeUndefined();
+  });
+
+  it("frozen_context", () => {
+    const replacement = Object.freeze(new HighLevelError("decode"));
+    expect(() =>
+      Result.changeContext(Result.err("read failed"), () => replacement),
+    ).toThrow(TypeError);
+    expect(replacement.cause).toBeUndefined();
+  });
 
   const lowLevel: Result.Result<number, LowLevelError | HighLevelError> =
     Result.err(new LowLevelError("low"));
