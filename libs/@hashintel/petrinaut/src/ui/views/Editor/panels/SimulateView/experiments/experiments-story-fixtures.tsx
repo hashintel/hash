@@ -14,6 +14,12 @@ import {
   type SweepVisitedCell,
 } from "../../../../../../react/experiments/context";
 import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
+import { useLatest } from "../../../../../../react/hooks/use-latest";
+import {
+  usePetrinautNavigation,
+  simulateDrawerToNavigationResource,
+  simulateDrawerToNavigationOverlay,
+} from "../../../../../../react/navigation";
 import {
   EditorContext,
   initialEditorState,
@@ -569,6 +575,7 @@ export function FakeExperimentsProvider({
    */
   restreamOnSelectionChange?: boolean;
 }) {
+  const navigationRef = useLatest(usePetrinautNavigation());
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
   );
@@ -740,7 +747,16 @@ export function FakeExperimentsProvider({
   // Built once: every callback closes over stable setters and refs, so the
   // actions context holds still across publishes the way the real one does.
   const [actions] = useState<ExperimentsActionsValue>(() => ({
-    setSelectedExperimentId,
+    setSelectedExperimentId: (id) => {
+      setSelectedExperimentId(id);
+      navigationRef.current.navigate(
+        {
+          simulateResource: id === null ? null : { type: "experiment", id },
+          overlay: null,
+        },
+        { cause: "user", action: "simulation-resource" },
+      );
+    },
     createExperiment: (input) => {
       const experiment = createFakeExperiment(input);
       setExperiments((current) => [experiment, ...current]);
@@ -825,6 +841,7 @@ export function FakeEditorProvider({
   children: ReactNode;
   initialSimulateViewMode?: SimulateViewMode;
 }) {
+  const navigation = usePetrinautNavigation();
   const [simulateViewMode, setSimulateViewMode] = useState<SimulateViewMode>(
     initialSimulateViewMode,
   );
@@ -869,7 +886,17 @@ export function FakeEditorProvider({
     setDraggingStateByNodeId: () => {},
     updateDraggingStateByNodeId: () => {},
     simulateDrawer,
-    setSimulateDrawer,
+    setSimulateDrawer: (drawer) => {
+      setSimulateDrawer(drawer);
+      navigation.navigate(
+        (current) => ({
+          ...current,
+          simulateResource: simulateDrawerToNavigationResource(drawer, current),
+          overlay: simulateDrawerToNavigationOverlay(drawer, current.overlay),
+        }),
+        { cause: "user", action: "overlay" },
+      );
+    },
     setAiAssistantOpen: () => {},
     toggleAiAssistant: () => {},
     resetDraggingState: () => {},

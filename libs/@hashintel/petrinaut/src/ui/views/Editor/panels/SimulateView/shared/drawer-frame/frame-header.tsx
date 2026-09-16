@@ -23,6 +23,7 @@ import { createContext, type ReactNode, use, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { simulationHeaderHeight } from "../simulation-header";
 import { Fold } from "./fold";
 import { FrameAnimateContext } from "./frame-animate-context";
 import { useOverflows } from "./use-overflows";
@@ -30,9 +31,9 @@ import { useOverflows } from "./use-overflows";
 import type { FrameHeaderEngagement } from "./use-header-engaged";
 
 /** The header's height in pixels at rest with labelled columns: the title line, the gap, the strip and the padding. */
-export const FRAME_HEADER_HEIGHT = 74;
+export const FRAME_HEADER_HEIGHT = simulationHeaderHeight + 38;
 /** The header's height in pixels once the body has scrolled: the title line and the padding. */
-export const FRAME_HEADER_CONDENSED_HEIGHT = 36;
+export const FRAME_HEADER_CONDENSED_HEIGHT = simulationHeaderHeight;
 
 /** How the stats render: as labelled columns on their own line, or as compact chips beside the title. */
 export type FrameStatsDensity = "full" | "compact";
@@ -48,8 +49,8 @@ const rootStyle = css({
   boxSizing: "border-box",
   minWidth: "[0]",
   overflow: "hidden",
-  paddingTop: "1.5",
-  paddingBottom: "1.5",
+  paddingTop: "[14px]",
+  paddingBottom: "[14px]",
   paddingLeft: "5",
   paddingRight: "5",
   backgroundColor: "neutral.s00",
@@ -402,7 +403,7 @@ export const FrameStatusPill = ({
 
 export type FrameHeaderProps = {
   /** One line, ellipsized when narrow: `SIR transmission sweep · Seasonal Flu · 100 runs`. */
-  title: string;
+  title: ReactNode;
   /** The title line's right side while at rest: a live readout such as the study's progress line. */
   headline?: ReactNode | null;
   /** The strip: `FrameStat` columns. Echoed as inert compact chips on the title line while condensed. */
@@ -412,8 +413,7 @@ export type FrameHeaderProps = {
   /** The bar along the bottom edge, 0 to 100. Always drawn. */
   progress: number;
   condensed: boolean;
-  /** Room kept clear on the right for a close button the surrounding chrome draws. */
-  closeGutter?: number;
+  controls?: ReactNode;
   /** The pointer and focus handlers that hold the header open while the body is scrolled. */
   engagement: FrameHeaderEngagement;
 };
@@ -454,7 +454,7 @@ export const FrameHeader = ({
   badge,
   progress,
   condensed,
-  closeGutter = 0,
+  controls,
   engagement,
 }: FrameHeaderProps) => {
   const animate = use(FrameAnimateContext);
@@ -467,7 +467,6 @@ export const FrameHeader = ({
       data-frame-header
       data-condensed={condensed}
       data-animate={animate}
-      style={{ paddingRight: closeGutter > 0 ? closeGutter : undefined }}
       {...engagement}
     >
       <div className={titleRowStyle}>
@@ -487,6 +486,7 @@ export const FrameHeader = ({
           )}
           <CompactStats stats={stats} badge={badge} />
         </div>
+        {controls}
       </div>
       {/* The strip stays reachable while folded: focus into it grows the header. */}
       <Fold open={!condensed} keepAccessible data-frame-stats>

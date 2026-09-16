@@ -8,14 +8,17 @@ import { useBottomBarLayout } from "./use-bottom-bar-layout";
 
 const laneRef = createRef<HTMLDivElement>();
 const barRef = createRef<HTMLDivElement>();
+let laneWidth = 2000;
 
 vi.mock("../../../../../react/hooks/use-element-size", () => ({
-  useElementSize: (ref: unknown) => ({ width: ref === laneRef ? 2000 : 600 }),
+  useElementSize: (ref: unknown) => ({
+    width: ref === laneRef ? laneWidth : 600,
+  }),
 }));
 
 afterEach(cleanup);
 
-it("centers on the full editor and moves only to clear occupied space", () => {
+it("centers in the available main view as sibling panels resize it", () => {
   const defaults = renderHook(() => use(EditorContext)).result.current;
   let editor = {
     ...defaults,
@@ -41,15 +44,18 @@ it("centers on the full editor and moves only to clear occupied space", () => {
   );
   expect(result.current.offsetX).toBe(0);
   editor = { ...editor, isAiAssistantOpen: true };
+  laneWidth = 1580;
   rerender();
   expect(result.current.offsetX).toBe(0);
   expect(result.current.isCollapsed).toBe(false);
 
   editor = { ...editor, hasSelection: true };
+  laneWidth = 1200;
   rerender();
-  expect(result.current.offsetX).toBe(-182);
+  expect(result.current.offsetX).toBe(-162);
 
   editor = { ...editor, aiAssistantPlacement: "floating" };
+  laneWidth = 2000;
   rerender();
   expect(result.current.offsetX).toBe(0);
 
@@ -58,9 +64,11 @@ it("centers on the full editor and moves only to clear occupied space", () => {
     aiAssistantPlacement: "docked",
     aiAssistantWidth: 1000,
   };
+  laneWidth = 1000;
   rerender();
   expect(result.current.isCollapsed).toBe(true);
   editor = { ...editor, isAiAssistantOpen: false };
+  laneWidth = 2000;
   rerender();
   expect(result.current.offsetX).toBe(0);
   expect(result.current.isCollapsed).toBe(false);

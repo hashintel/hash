@@ -70,6 +70,35 @@ describe("navigation state projection", () => {
       applyPreviewNavigationUpdate(search, (current) => current),
     ).toMatchObject(search);
   });
+
+  it.each(["scenario", "experiment"] as const)(
+    "opens a direct %s link and preserves its presentation through Preview",
+    (resourceType) => {
+      const search = {
+        resourceType,
+        resourceId: "record / one",
+        presentation: "fullscreen" as const,
+      };
+      const state = sharedSearchToNavigationState(search);
+      expect(state.mode).toBe("simulate");
+      expect(state.simulateView).toBe(
+        resourceType === "scenario" ? "scenarios" : "experiments",
+      );
+      expect(state.simulateResource).toEqual({
+        type: resourceType,
+        id: "record / one",
+      });
+      expect(state.simulatePresentation).toBe("fullscreen");
+      expect(navigationStateToSharedSearch(state)).toMatchObject(search);
+      expect(
+        applyPreviewNavigationUpdate(search, (current) => ({
+          ...current,
+          subnetId: "subnet",
+        })),
+      ).toMatchObject(search);
+    },
+  );
+
   it.each(["general", "viewport", "simulation", "labs"] as const)(
     "round-trips the %s settings section in Simulate",
     (settings) => {
