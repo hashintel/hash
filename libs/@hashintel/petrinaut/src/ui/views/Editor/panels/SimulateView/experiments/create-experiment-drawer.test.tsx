@@ -1352,19 +1352,21 @@ describe("CreateExperimentDrawer metric selection", () => {
       const metricType = screen.getByLabelText(
         "Metric type",
       ) as HTMLSelectElement;
-      fireEvent.change(metricType, { target: { value: "model:first" } });
+      fireEvent.change(metricType, { target: { value: "expression" } });
       fireEvent.change(screen.getByLabelText("Metric label"), {
         target: { value: "My metric" },
       });
+      fireEvent.change(metricType, { target: { value: "model:first" } });
+      expect(screen.queryByLabelText("Metric label")).toBeNull();
+      expect(screen.getByRole("group", { name: "First metric" })).toBeTruthy();
       if (collapsed) {
         fireEvent.click(screen.getByRole("button", { name: "Toggle metric" }));
       }
 
       fireEvent.change(metricType, { target: { value: "model:second" } });
       expect(metricType.value).toBe("model:second");
-      expect(
-        (screen.getByLabelText("Metric label") as HTMLInputElement).value,
-      ).toBe("My metric");
+      expect(screen.queryByLabelText("Metric label")).toBeNull();
+      expect(screen.getByRole("group", { name: "Second metric" })).toBeTruthy();
       if (collapsed) {
         fireEvent.click(screen.getByRole("button", { name: "Toggle metric" }));
       }
@@ -1374,6 +1376,9 @@ describe("CreateExperimentDrawer metric selection", () => {
 
       fireEvent.change(metricType, { target: { value: "expression" } });
       expect(metricType.value).toBe("expression");
+      expect(
+        (screen.getByLabelText("Metric label") as HTMLInputElement).value,
+      ).toBe("My metric");
       expect(code.readOnly).toBe(false);
       fireEvent.change(code, { target: { value: "return 3;" } });
       fireEvent.change(metricType, { target: { value: "model:first" } });
