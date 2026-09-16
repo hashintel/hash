@@ -74,8 +74,15 @@ const MIN_ZOOM_DEBOUNCE_MS = 100;
 const paneStyle = css({
   width: "[100%]",
   height: "[100%]",
+  "&[data-animated=false]": {
+    "--canvas-focus-duration": "0ms",
+  },
   "& .react-flow__pane": {
     cursor: `var(--pane-cursor) !important`,
+  },
+  "& .react-flow__node, & .arc-strokes, & .minimap-shape": {
+    transition: "[opacity var(--canvas-focus-duration, 200ms) ease]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
   // A node outside the neighbourhood recedes from here, whole: card, label,
   // token count and handles together, so nothing of it stays at full strength
@@ -111,6 +118,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const {
     compactNodes,
     showMinimap,
+    showAnimations,
     partialSelection,
     enableAutomaticArcConnections,
   } = use(UserSettingsContext);
@@ -234,6 +242,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
     <CanvasControllerContext value={controller}>
       <div
         className={paneStyle}
+        data-animated={showAnimations}
         data-focus-active={scene.focusActive ? "" : undefined}
         style={{
           // @ts-expect-error CSS variables work at runtime, but are not in the type system
