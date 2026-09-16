@@ -45,7 +45,8 @@ const PanelContent = ({
     layer === "resource" &&
     (state.overlay?.type === "create-scenario" ||
       state.overlay?.type === "create-experiment");
-  const fullscreen = state.simulatePresentation === "fullscreen";
+  const fullscreen =
+    state.mode === "simulate" && state.simulatePresentation === "fullscreen";
 
   useEffect(() => {
     if (hidden) {
@@ -139,7 +140,9 @@ const SimulationPanelRoot = (props: SimulationPanelProps) => {
 export const SimulationPanelControls = () => {
   const navigation = usePetrinautNavigation();
   const { onClose, closeDisabled } = use(PanelContext);
-  const expanded = navigation.state.simulatePresentation === "fullscreen";
+  const expanded =
+    navigation.state.mode === "simulate" &&
+    navigation.state.simulatePresentation === "fullscreen";
   const label = expanded ? "Show as panel" : "Expand to fullscreen";
 
   return (
@@ -159,13 +162,28 @@ export const SimulationPanelControls = () => {
         tooltip={label}
         onClick={() =>
           navigation.navigate(
-            (current) => ({
-              ...current,
-              simulatePresentation:
-                current.simulatePresentation === "fullscreen"
-                  ? "panel"
-                  : "fullscreen",
-            }),
+            (current) => {
+              const simulateView =
+                current.overlay?.type === "create-scenario"
+                  ? "scenarios"
+                  : current.overlay?.type === "create-experiment"
+                    ? "experiments"
+                    : current.simulateView;
+              return {
+                ...current,
+                mode: "simulate",
+                simulateView,
+                simulateResource:
+                  simulateView === current.simulateView
+                    ? current.simulateResource
+                    : null,
+                simulatePresentation:
+                  current.mode === "simulate" &&
+                  current.simulatePresentation === "fullscreen"
+                    ? "panel"
+                    : "fullscreen",
+              };
+            },
             { cause: "user", action: "simulation-presentation" },
           )
         }
@@ -185,7 +203,8 @@ export const SimulationPanelControls = () => {
 
 export const SimulationPanelTitle = ({ title }: { title: string }) => {
   const { state } = usePetrinautNavigation();
-  const expanded = state.simulatePresentation === "fullscreen";
+  const expanded =
+    state.mode === "simulate" && state.simulatePresentation === "fullscreen";
   const section =
     state.overlay?.type === "create-scenario"
       ? "Scenarios"

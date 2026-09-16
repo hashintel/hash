@@ -12,7 +12,9 @@ Drag the divider between the list and the panel to adjust their widths. The pane
 
 Click **Expand to fullscreen** in the panel header to cover the list while keeping the vertical tabs visible. The header shows the tab and resource names, such as **Scenarios › Mars Orbit**. Click **Show as panel** to return to the side-by-side layout. The same form or results stay open: unsaved edits, expanded charts, and scroll position carry across the resize.
 
-Each tab remembers its selected resource and panel or fullscreen presentation during the session. Returning to a fullscreen resource shows it at full size immediately. Save scenario edits before switching tabs; unsaved form edits are not retained across tab changes.
+Each tab remembers its selected resource and panel or fullscreen presentation while the current model is open. Opening another model clears these remembered selections. Returning to a fullscreen resource shows it at full size immediately. Save scenario edits before switching tabs; unsaved form edits are not retained across tab changes.
+
+Fullscreen belongs to Simulate. Expanding a creation form from Edit opens its Simulate tab. Switching to Edit or Actual leaves the creation form in a side panel so the main view remains usable and your draft stays open.
 
 Expanding and collapsing animate the panel width and the tab name in the header when **Animations** is enabled in Settings. Both respect your system's reduced-motion preference.
 

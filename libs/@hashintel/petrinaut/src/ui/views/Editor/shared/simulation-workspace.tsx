@@ -29,10 +29,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
   const { state } = usePetrinautNavigation();
   const { showAnimations } = use(UserSettingsContext);
   const fullscreen =
-    state.simulatePresentation === "fullscreen" &&
-    (state.mode === "simulate" ||
-      state.overlay?.type === "create-scenario" ||
-      state.overlay?.type === "create-experiment");
+    state.mode === "simulate" && state.simulatePresentation === "fullscreen";
   const location = `${state.mode}/${state.simulateView}/${state.simulateResource?.type}/${state.simulateResource?.id}/${state.overlay?.type}`;
   const [presentation, setPresentation] = useState({
     location,

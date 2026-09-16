@@ -94,9 +94,14 @@ it("opens resources with one click and keeps arrow selection in the list as pane
 const NavigationProbe = () => {
   const { state } = usePetrinautNavigation();
   return (
-    <output aria-label="Presentation">
-      {state.simulatePresentation ?? "panel"}
-    </output>
+    <>
+      <output aria-label="Presentation">
+        {state.simulatePresentation ?? "panel"}
+      </output>
+      <output aria-label="Simulation route">
+        {state.mode}/{state.simulateView}/{state.simulateResource?.id ?? "none"}
+      </output>
+    </>
   );
 };
 
@@ -305,5 +310,112 @@ it.each([
     fireEvent.click(screen.getByRole("button", { name: "Switch mode" }));
     expect(screen.queryByRole("region", { name: "Results" })).toBeNull();
     expect(mainViewAction.closest("[inert]")).toBeNull();
+  },
+);
+
+it.each(["create-scenario", "create-experiment"] as const)(
+  "keeps the canvas interactive for an Edit link to fullscreen %s",
+  (type) => {
+    const view = render(
+      <PetrinautNavigationProvider
+        initialState={{
+          mode: "edit",
+          overlay: { type },
+          simulateResource: { type: "experiment", id: "previous" },
+          simulatePresentation: "fullscreen",
+        }}
+      >
+        <SimulationWorkspace>
+          <button type="button">Canvas action</button>
+          <SimulationPanel title="Create" layer="creation" onClose={() => {}}>
+            <SimulationPanel.Header />
+            <input aria-label="Draft name" defaultValue="Draft" />
+          </SimulationPanel>
+        </SimulationWorkspace>
+        <NavigationProbe />
+      </PetrinautNavigationProvider>,
+    );
+    const canvas = screen.getByText("Canvas action");
+    const draft = screen.getByRole("textbox", { name: "Draft name" });
+    expect(canvas.closest("[inert]")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand to fullscreen" }),
+    );
+    expect(canvas.closest("[inert]")).not.toBeNull();
+    expect(screen.getByLabelText("Simulation route").textContent).toBe(
+      type === "create-scenario"
+        ? "simulate/scenarios/none"
+        : "simulate/experiments/previous",
+    );
+    expect(screen.getByRole("textbox", { name: "Draft name" })).toBe(draft);
+    expect(
+      screen.getByRole("heading", {
+        name: `${type === "create-scenario" ? "Scenarios" : "Experiments"} Create`,
+      }),
+    ).toBeTruthy();
+    expect(
+      view.container
+        .querySelector("[data-simulation-workspace]")
+        ?.getAttribute("data-fullscreen"),
+    ).toBe("true");
+  },
+);
+
+it.each([
+  { mode: "edit", editView: "canvas" },
+  { mode: "edit", editView: "definitions" },
+  { mode: "actual" },
+] as const)(
+  "keeps creation drafts beside the main view when leaving fullscreen for $mode/$editView",
+  (destination) => {
+    const CreationViews = () => {
+      const { navigate } = usePetrinautNavigation();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(destination, { cause: "user", action: "mode" })
+            }
+          >
+            Switch mode
+          </button>
+          <SimulationWorkspace>
+            <button type="button">Main view action</button>
+            <SimulationPanel title="Create" layer="creation" onClose={() => {}}>
+              <SimulationPanel.Header />
+              <input aria-label="Draft name" defaultValue="Draft" />
+            </SimulationPanel>
+          </SimulationWorkspace>
+        </>
+      );
+    };
+    render(
+      <PetrinautNavigationProvider
+        initialState={{
+          mode: "simulate",
+          overlay: { type: "create-experiment" },
+          simulatePresentation: "fullscreen",
+        }}
+      >
+        <CreationViews />
+      </PetrinautNavigationProvider>,
+    );
+    const mainView = screen.getByText("Main view action");
+    const draft = screen.getByRole("textbox", { name: "Draft name" });
+    fireEvent.change(draft, { target: { value: "Unsaved draft" } });
+    expect(mainView.closest("[inert]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Switch mode" }));
+    expect(mainView.closest("[inert]")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Draft name" })).toBe(draft);
+    expect(draft).toHaveProperty("value", "Unsaved draft");
+    expect(
+      screen.getByRole("button", { name: "Expand to fullscreen" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand to fullscreen" }),
+    );
+    expect(mainView.closest("[inert]")).not.toBeNull();
+    expect(screen.getByRole("textbox", { name: "Draft name" })).toBe(draft);
   },
 );
