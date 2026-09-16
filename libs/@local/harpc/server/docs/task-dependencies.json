@@ -1,23 +1,25 @@
 {
-  "package": "@rust/harpc-server",
+  "package": "harpc-server",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/harpc-client",
-    "@rust/harpc-codec",
-    "@rust/harpc-net",
-    "@rust/harpc-system",
-    "@rust/harpc-tower",
-    "@rust/harpc-types"
+    "error-stack",
+    "harpc-client",
+    "harpc-codec",
+    "harpc-net",
+    "harpc-system",
+    "harpc-tower",
+    "harpc-types",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -27,6 +29,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

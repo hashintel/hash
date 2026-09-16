@@ -46,7 +46,7 @@
       ]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hash-graph-embeddings"]
+      "command": ["mise", "run", "test:unit", "hash-graph-embeddings"]
     }
   }
 }

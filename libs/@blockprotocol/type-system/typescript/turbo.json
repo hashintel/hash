@@ -2,22 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "manifest": {
-      "dependsOn": ["^manifest", "@blockprotocol/type-system-rs#manifest"]
+      "dependsOn": ["^manifest", "type-system#manifest"]
     },
     "codegen": {
-      "dependsOn": [
-        "@blockprotocol/type-system-rs#build:types",
-        "@blockprotocol/type-system-rs#build:wasm"
-      ],
+      "dependsOn": ["type-system#build:types", "type-system#build:wasm"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
           "globs": ["types/index.snap.d.ts", "pkg/type-system.d.ts"],
-          "from": [
-            "@blockprotocol/type-system-rs#build:types",
-            "@blockprotocol/type-system-rs#build:wasm"
-          ]
+          "from": ["type-system#build:types", "type-system#build:wasm"]
         }
       ],
       "outputs": ["src/generated/**"]

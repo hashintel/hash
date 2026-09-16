@@ -1,27 +1,28 @@
 {
-  "package": "@rust/hash-graph-benches",
+  "package": "hash-graph-benches",
   "dependencies": [
-    "@apps/hash-graph",
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-graph-api",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-postgres-store",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-test-data",
-    "@rust/hash-graph-type-fetcher",
-    "@rust/hash-repo-chores",
-    "@rust/hash-telemetry"
+    "error-stack",
+    "hash-graph-api",
+    "hash-graph-authorization",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-test-data",
+    "hash-graph-type-fetcher",
+    "hash-repo-chores",
+    "hash-telemetry",
+    "type-system"
   ],
   "tasks": {
     "bench:integration": {
       "dependsOn": [
-        "@apps/hash-graph#start:healthcheck"
+        "hash-graph#start:healthcheck"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros",
+        "hash-graph"
       ]
     },
     "bench:integration:manual": {
@@ -37,18 +38,21 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:integration": {
       "dependsOn": [
-        "@apps/hash-graph#start:test:healthcheck"
+        "hash-graph#start:test:healthcheck"
       ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros",
+        "hash-graph"
       ]
     },
     "test:integration:manual": {

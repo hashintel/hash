@@ -17,7 +17,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/error-stack",
+        "error-stack",
         "--test-strategy=extremes"
       ]
     },
@@ -33,7 +33,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/error-stack",
+        "error-stack",
         "--test-strategy=extremes"
       ]
     }

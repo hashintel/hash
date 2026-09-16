@@ -52,7 +52,7 @@
       ]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hashql-core"]
+      "command": ["mise", "run", "test:unit", "hashql-core"]
     }
   }
 }

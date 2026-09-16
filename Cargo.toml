@@ -54,6 +54,9 @@ members = [
 ]
 resolver = "3"
 
+[workspace.metadata]
+name = "hash"
+
 [workspace.package]
 authors = ["HASH"]
 edition = "2024"
@@ -449,8 +452,8 @@ shadow_same                      = "allow"
 unneeded_field_pattern           = "allow" # Actually, the opposite would be a great lint
 
 [patch.crates-io]
-specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
+specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 
 libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
 libp2p-allow-block-list  = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }

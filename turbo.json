@@ -22,14 +22,10 @@
     "codegen": {},
     "doc:dependency-diagram": {
       "cache": false,
-      "dependsOn": ["@rust/hash-repo-chores#build"]
-    },
-    "//#sync:turborepo": {
-      "cache": false
+      "dependsOn": ["hash-repo-chores#build"]
     },
     "//#doc:task-dependencies": {
-      "cache": false,
-      "dependsOn": ["//#sync:turborepo"]
+      "cache": false
     },
     "build": {},
     // An image copies the repository and generates and builds inside it, so the host
@@ -168,6 +164,7 @@
   ],
   "futureFlags": {
     "affectedUsingTaskInputs": true,
+    "experimentalCargoWorkspaces": true,
     "experimentalTaskCommand": true
   }
 }

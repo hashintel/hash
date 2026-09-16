@@ -1,25 +1,33 @@
 {
-  "package": "@blockprotocol/type-system-rs",
+  "package": "type-system",
   "dependencies": [
-    "@rust/error-stack",
-    "@rust/hash-codec",
-    "@rust/hash-codegen",
-    "@rust/hash-graph-temporal-versioning"
+    "error-stack",
+    "hash-codec",
+    "hash-codegen",
+    "hash-graph-temporal-versioning"
   ],
   "tasks": {
     "build:types": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "build:wasm": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -29,6 +37,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
@@ -37,10 +48,16 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit:doc": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     }
   }
 }

@@ -25,17 +25,13 @@
       "dependsOn": ["codegen", "^build"]
     },
     "start:migrate": {
-      "dependsOn": ["codegen", "^build", "@apps/hash-graph#start:healthcheck"]
+      "dependsOn": ["codegen", "^build", "hash-graph#start:healthcheck"]
     },
     "start": {
       "dependsOn": ["start:migrate"]
     },
     "start:test:migrate": {
-      "dependsOn": [
-        "codegen",
-        "^build",
-        "@apps/hash-graph#start:test:healthcheck"
-      ]
+      "dependsOn": ["codegen", "^build", "hash-graph#start:test:healthcheck"]
     },
     "start:test": {
       "dependsOn": ["start:test:migrate"]

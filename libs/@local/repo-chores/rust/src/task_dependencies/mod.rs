@@ -11,12 +11,14 @@
 //! its own reach into, and the packages nested in any of those directories, whose files turbo
 //! counts as the surrounding package's own.
 //!
-//! Only tasks turbo reports a command for are recorded: a task without a command never
-//! executes — turbo folds its hash into its dependents and skips it. An edge to such a task
-//! is replaced by the commanded tasks behind it, so a list stays what turbo runs first.
+//! A package's document lists the tasks the package implements: a `package.json` script or a
+//! `command` in a `turbo.json`. Turbo also runs tasks nobody declared — the ones its Cargo
+//! toolchain brings for every crate — and tasks without a command it skips, folding their
+//! hash into their dependents. An edge to a skipped task is replaced by the commanded tasks
+//! behind it, so a list stays what turbo runs first.
 //!
 //! The graph is read from `turbo run --dry=json`, the only view that reports a task's
-//! command; `affectedTasks` serves to enumerate the task names to plan.
+//! command; the `turbo.json` files enumerate the task names to plan.
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use core::error;
@@ -71,10 +73,17 @@ struct TurboConfig {
     tasks: BTreeMap<String, serde_json::Value>,
 }
 
-/// The task names to plan, and the subset a `turbo.json` declares.
-struct TaskNames {
-    all: Vec<String>,
-    declared: BTreeSet<String>,
+#[derive(Debug, serde::Deserialize)]
+struct PackageJson {
+    #[serde(default)]
+    scripts: BTreeMap<String, serde_json::Value>,
+}
+
+/// What the packages declare: the task names to plan, and per package the tasks it
+/// implements, through a `package.json` script or a `command` in a `turbo.json`.
+struct Declarations {
+    names: BTreeSet<String>,
+    implemented: BTreeMap<String, BTreeSet<String>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -84,7 +93,6 @@ struct Package {
     path: String,
     direct_dependencies: Items<Named>,
     all_dependencies: Items<Named>,
-    tasks: Items<Named>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -217,36 +225,52 @@ where
     Ok(response.data)
 }
 
-/// Every task name a package could run.
+/// Reads a file that may not exist.
+async fn read_optional(path: &Path) -> Result<Option<String>, Report<TaskDependenciesError>> {
+    match fs::read_to_string(path).await {
+        Ok(contents) => Ok(Some(contents)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => {
+            Err(Report::new(error)
+                .change_context(TaskDependenciesError::ReadFile(path.to_path_buf())))
+        }
+    }
+}
+
+/// Whether a `turbo.json` task entry carries a command turbo runs.
+fn has_command(definition: &serde_json::Value) -> bool {
+    definition
+        .get("command")
+        .is_some_and(|command| !command.is_null())
+}
+
+/// The task names the `turbo.json` files declare, and the tasks each package implements.
 ///
-/// Two sources, because neither is complete on its own: a package's `tasks` carry the ones
-/// turbo synthesizes for a Cargo crate, which no `turbo.json` declares, while the
-/// `turbo.json` files carry the declared names, which that query drops for a crate. Names
-/// nothing implements are dropped by the dry run.
-///
-/// `affectedTasks` would list both but answers with the tasks of the packages a diff
-/// touches, which would tie the documents to the branch they are generated on.
-async fn task_names(
+/// A `turbo.json` key `package#task` configures another package's task: it is not a name to
+/// run, but a `command` under it implements the task for that package. Names nothing
+/// implements are dropped by the dry run.
+async fn declarations(
     root: &Path,
     packages: &[Package],
-) -> Result<TaskNames, Report<TaskDependenciesError>> {
-    let mut declared = BTreeSet::new();
-    let mut names: BTreeSet<String> = packages
-        .iter()
-        .flat_map(|package| &package.tasks.items)
-        .map(|task| task.name.clone())
-        .filter(|name| !name.contains('#'))
-        .collect();
+) -> Result<Declarations, Report<TaskDependenciesError>> {
+    let mut names = BTreeSet::new();
+    let mut implemented: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
 
     for package in packages {
-        let path = root.join(&package.path).join("turbo.json");
-        let contents = match fs::read_to_string(&path).await {
-            Ok(contents) => contents,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => {
-                return Err(Report::new(error)
-                    .change_context(TaskDependenciesError::ReadFile(path.clone())));
-            }
+        let directory = root.join(&package.path);
+
+        if let Some(contents) = read_optional(&directory.join("package.json")).await? {
+            let manifest: PackageJson = serde_json::from_str(&contents)
+                .change_context_lazy(|| TaskDependenciesError::ReadFile(directory.clone()))?;
+            implemented
+                .entry(package.name.clone())
+                .or_default()
+                .extend(manifest.scripts.into_keys());
+        }
+
+        let path = directory.join("turbo.json");
+        let Some(contents) = read_optional(&path).await? else {
+            continue;
         };
 
         // `turbo.json` allows comments, which serde_json does not.
@@ -259,11 +283,19 @@ async fn task_names(
         let config: TurboConfig = serde_json::from_str(&stripped)
             .change_context_lazy(|| TaskDependenciesError::ReadFile(path.clone()))?;
 
-        // A `package#task` key configures another package's task, it is not a name to run.
-        declared.extend(config.tasks.into_keys().filter(|name| !name.contains('#')));
+        for (key, definition) in config.tasks {
+            let (owner, task) = match key.split_once('#') {
+                Some((owner, task)) => (owner.to_owned(), task.to_owned()),
+                None => {
+                    names.insert(key.clone());
+                    (package.name.clone(), key)
+                }
+            };
+            if has_command(&definition) {
+                implemented.entry(owner).or_default().insert(task);
+            }
+        }
     }
-
-    names.extend(declared.iter().cloned());
 
     if names.is_empty() {
         return Err(
@@ -271,10 +303,7 @@ async fn task_names(
         );
     }
 
-    Ok(TaskNames {
-        all: names.into_iter().collect(),
-        declared,
-    })
+    Ok(Declarations { names, implemented })
 }
 
 /// Task names turbo refused to run.
@@ -290,16 +319,13 @@ fn rejected_names(stderr: &str) -> BTreeSet<&str> {
 
 /// The task graph turbo would execute for `names`.
 ///
-/// A name that no package both declares and implements makes turbo refuse the whole
-/// invocation, so rejected names are dropped and the run is retried.
+/// A name that no package implements makes turbo refuse the whole invocation, so rejected
+/// names are dropped and the run is retried.
 async fn dry_run(
     root: &Path,
-    names: TaskNames,
+    names: &BTreeSet<String>,
 ) -> Result<Vec<DryRunTask>, Report<TaskDependenciesError>> {
-    let TaskNames {
-        all: mut names,
-        declared,
-    } = names;
+    let mut names: Vec<&str> = names.iter().map(String::as_str).collect();
 
     loop {
         let output = Command::new("turbo")
@@ -325,19 +351,12 @@ async fn dry_run(
             );
         }
 
-        // A name that only a `package.json` script carries is a candidate turbo was never
-        // meant to accept; a declared one that nothing implements is a stale declaration.
-        let (stale, scripts): (Vec<&str>, Vec<&str>) =
-            rejected.iter().partition(|name| declared.contains(**name));
-
-        if !stale.is_empty() {
-            tracing::warn!(?stale, "Dropping declared task names no package implements");
-        }
-        if !scripts.is_empty() {
-            tracing::debug!(?scripts, "Dropping task names no turbo.json declares");
-        }
+        tracing::warn!(
+            ?rejected,
+            "Dropping declared task names no package implements"
+        );
         let planned = names.len();
-        names.retain(|name| !rejected.contains(name.as_str()));
+        names.retain(|name| !rejected.contains(name));
 
         // Without a shrinking name list the same invocation would be retried forever.
         if names.len() == planned {
@@ -514,6 +533,7 @@ fn local_name(package: &str, id: String) -> String {
 fn documents(
     packages: Vec<Package>,
     tasks: &[DryRunTask],
+    implemented: &BTreeMap<String, BTreeSet<String>>,
 ) -> Result<BTreeMap<String, Document>, Report<TaskDependenciesError>> {
     let by_id: BTreeMap<&str, &DryRunTask> = tasks
         .iter()
@@ -553,7 +573,11 @@ fn documents(
         .collect();
 
     for task in tasks {
-        if task.command == NONEXISTENT {
+        if task.command == NONEXISTENT
+            || !implemented
+                .get(&task.package)
+                .is_some_and(|tasks| tasks.contains(&task.task))
+        {
             continue;
         }
         let Some(document) = documents.get_mut(task.package.as_str()) else {
@@ -655,15 +679,15 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
     let packages: PackagesData = query(
         &root,
         "{ packages { items { name path directDependencies { items { name } } allDependencies { \
-         items { name } } tasks { items { name } } } } }",
+         items { name } } } } }",
         TaskDependenciesError::PackageList,
     )
     .await?;
 
-    let names = task_names(&root, &packages.packages.items).await?;
-    tracing::debug!(count = names.all.len(), "Found task names");
+    let Declarations { names, implemented } = declarations(&root, &packages.packages.items).await?;
+    tracing::debug!(count = names.len(), "Found task names");
 
-    let tasks = dry_run(&root, names).await?;
+    let tasks = dry_run(&root, &names).await?;
 
     // The marker is what separates the tasks turbo runs from the ones it skips; a graph
     // without a single skipped task means it stopped matching.
@@ -673,7 +697,7 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
             .expand());
     }
 
-    let documents = documents(packages.packages.items, &tasks)?;
+    let documents = documents(packages.packages.items, &tasks, &implemented)?;
     if documents.is_empty() {
         return Err(Report::new(TaskDependenciesError::PackageList)
             .attach("turbo reported no packages with a directory")

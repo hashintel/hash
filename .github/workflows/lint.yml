@@ -243,12 +243,6 @@ jobs:
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
-      - name: Validate package.json generated from Cargo.toml
-        if: ${{ success() || failure() }}
-        run: |
-          mise run sync:turborepo
-          git --no-pager diff --exit-code --color '**/package.json'
-
       - name: Validate Dependency Diagrams
         if: ${{ success() || failure() }}
         run: |

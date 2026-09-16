@@ -13,7 +13,6 @@
   "ignore": [
     "@apps/*",
     "@local/*",
-    "@rust/*",
     "@tests/*",
     "@hashintel/block-design-system",
     "@hashintel/design-system",
