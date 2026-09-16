@@ -166,6 +166,8 @@ describe("constraint session diagnostics", () => {
 
   it.each([
     "state.places.P.count > 3",
+    "state.places.P.count > 3;",
+    "state.places.P.count > 3 /* minimum */; // required",
     "// return is implicit\nstate.places.P.count > 3 &&\nparameters.weight > 0 // weight",
     'return state.places["P"].count > 3;',
     "const count = state.places.P.count;\nreturn count > 3;",
@@ -183,7 +185,7 @@ describe("constraint session diagnostics", () => {
   );
 
   it("positions TypeScript errors on the authored expression", () => {
-    const code = "\nstate.places.Missing.count > 0";
+    const code = "\nstate.places.Missing.count > 0; // minimum";
     const server = makeServer(session("state", code));
     const diagnostics = server.getSemanticDiagnostics(CODE_PATH);
     expect(diagnostics).toHaveLength(1);

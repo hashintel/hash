@@ -112,6 +112,8 @@ describe("lowerConstraint", () => {
 
   it.each([
     "state.places.Queue.count <= 10",
+    "state.places.Queue.count <= 10;",
+    "state.places.Queue.count <= 10 /* limit */; // keep small",
     "\n// Keep the queue small\nstate.places.Queue.count <= 10 // limit",
     "state.places.Queue.count <= 10 &&\nparameters.rate > 0",
     "return state.places.Queue.count <= 10;",
@@ -152,7 +154,7 @@ describe("lowerConstraint", () => {
   );
 
   it("positions an unknown-place error on the authored expression", () => {
-    const code = "\nstate.places.Missing.count < 10";
+    const code = "\nstate.places.Missing.count < 10; // limit";
     const result = lowerConstraint({ space: "state", id: "c", code }, context);
     expect(result.ok).toBe(false);
     if (result.ok) {

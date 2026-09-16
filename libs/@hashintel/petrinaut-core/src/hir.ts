@@ -100,6 +100,7 @@ export {
   AMBIENT_INPUT_NAMES,
   detectStateConstraintForm,
   detectUserCodeForm,
+  getStateConstraintExpression,
   type DualFormSurfaceKind,
   type UserCodeForm,
 } from "./hir/user-code-form";

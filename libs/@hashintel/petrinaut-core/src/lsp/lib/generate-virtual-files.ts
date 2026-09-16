@@ -8,7 +8,7 @@ import {
 } from "../../extensions";
 import {
   AMBIENT_INPUT_NAMES,
-  detectStateConstraintForm,
+  getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "../../hir";
 import {
@@ -865,7 +865,9 @@ export function generateConstraintSessionFiles(
       returnType: "boolean",
       body: session.code,
     });
-    if (detectStateConstraintForm(session.code) === "expression") {
+    const expression = getStateConstraintExpression(session.code);
+    if (expression !== undefined) {
+      file.content = expression;
       file.prefix = `${file.prefix ?? ""}return (\n`;
       file.suffix = `\n);${file.suffix ?? ""}`;
     }
