@@ -1,0 +1,55 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build:codspeed": {
+      "command": ["cargo", "codspeed", "build", "-p", "hashql-mir"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hashql-mir",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:codspeed": {
+      "command": ["cargo", "codspeed", "run", "-p", "hashql-mir"]
+    },
+    "test:miri": {
+      "command": [
+        "cargo",
+        "miri",
+        "nextest",
+        "run",
+        "--",
+        "changed_bitor",
+        "interpret::locals::tests",
+        "interpret::value::r#struct::tests",
+        "pass::execution::block_partitioned_vec::tests",
+        "pass::execution::cost::tests"
+      ]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "@rust/hashql-mir"]
+    }
+  }
+}

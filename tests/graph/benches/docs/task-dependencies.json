@@ -24,6 +24,9 @@
         "@rust/darwin-kperf-codegen"
       ]
     },
+    "bench:integration:manual": {
+      "dependsOn": []
+    },
     "fix:clippy": {
       "dependsOn": []
     },
@@ -46,6 +49,9 @@
       "affectedBy": [
         "@rust/darwin-kperf-codegen"
       ]
+    },
+    "test:integration:manual": {
+      "dependsOn": []
     }
   }
 }
