@@ -116,11 +116,8 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import { SaltileDetail } from "../atlas-decode/wire";
-import {
-  atlasTileKey,
-  type AtlasTileCoordinate,
-} from "./atlas-tile-coordinate";
+import * as Num from "../atlas-decode/Num";
+import { atlasTileKey } from "./atlas-tile-coordinate";
 import {
   fetchEdgesForTiles,
   type FetchedEdges,
@@ -150,6 +147,8 @@ import {
 } from "./tile-geometry";
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
+import type * as Detail from "../atlas-decode/Detail";
+import type * as TileDocument from "../atlas-decode/TileDocument";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 export { tileZoomForViewport, WORLD_SIZE } from "./tile-geometry";
@@ -276,13 +275,13 @@ export interface TileFetchControls {
    * {@link FetchTileOptions.detail}. The cache sets this per load from the
    * viewport's detail mode.
    */
-  readonly detail?: SaltileDetail;
+  readonly detail?: Detail.Detail;
 }
 
 /** Fetches one tile — its nodes plus completeness — addressed as `fetchTile` does. */
 export type TileFetcher = (
-  zoom: number,
-  tileIndex: number,
+  zoom: Num.u64,
+  tileIndex: Num.u64,
   controls?: TileFetchControls,
 ) => Promise<FetchedTile>;
 
@@ -291,7 +290,7 @@ export type TileFetcher = (
  * in one call, as {@link fetchEdgesForTiles} does.
  */
 export type EdgesFetcher = (
-  tiles: readonly AtlasTileCoordinate[],
+  tiles: readonly TileDocument.Coordinate[],
   controls?: TileFetchControls,
 ) => Promise<FetchedEdges>;
 
@@ -310,26 +309,6 @@ export class ViewportTilesError extends Error {
   override readonly name = "ViewportTilesError";
 }
 
-const isFiniteNumber = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value);
-
-const validateViewport = (viewport: Viewport): void => {
-  const fields: ReadonlyArray<readonly [string, number]> = [
-    ["x1", viewport.x1],
-    ["x2", viewport.x2],
-    ["y1", viewport.y1],
-    ["y2", viewport.y2],
-    ["zoom", viewport.zoom],
-  ];
-  for (const [name, value] of fields) {
-    if (!isFiniteNumber(value)) {
-      throw new ViewportTilesError(
-        `viewport.${name} must be a finite number, got ${String(value)}`,
-      );
-    }
-  }
-};
-
 /** Whether a cached tile arrived because a viewport required it, or ahead of need. */
 type TileOrigin = "required" | "prefetch";
 
@@ -341,13 +320,12 @@ type TileOrigin = "required" | "prefetch";
  * {@link TileCache.load} refetches it when a later load asks for detail.
  */
 const inFlightDetailServes = (
-  have: SaltileDetail,
-  want: SaltileDetail,
-): boolean =>
-  have === SaltileDetail.Auxiliary || want === SaltileDetail.Minimal;
+  have: Detail.Detail,
+  want: Detail.Detail,
+): boolean => have === "auxiliary" || want === "minimal";
 
 interface CacheEntry {
-  readonly coordinate: AtlasTileCoordinate;
+  readonly coordinate: TileDocument.Coordinate;
   readonly nodes: readonly TileNode[];
   /** Whether the tile delivered its whole subtree; drives the descent's pruning. */
   readonly complete: boolean;
@@ -360,7 +338,7 @@ interface CacheEntry {
 /** An in-flight tile fetch plus the detail mode it will deliver. */
 interface InflightFetch {
   /** The `detail` mode the pending fetch requested. */
-  readonly detail: SaltileDetail;
+  readonly detail: Detail.Detail;
   /** The abort signal owned by a prefetch, absent for a required load. */
   readonly signal: AbortSignal | undefined;
   readonly promise: Promise<readonly TileNode[]>;
@@ -398,7 +376,7 @@ const estimateEdgeBytes = (edges: readonly TileEdge[]): number =>
  */
 interface EdgeCacheEntry {
   /** The one or two node tiles this bucket's edges connect. */
-  readonly tiles: readonly AtlasTileCoordinate[];
+  readonly tiles: readonly TileDocument.Coordinate[];
   readonly edges: readonly TileEdge[];
   readonly bytes: number;
 }
@@ -410,8 +388,8 @@ interface EdgeCacheEntry {
  * so pinning a node tile also pins its intra-tile edges.
  */
 const edgeBucketKey = (
-  a: AtlasTileCoordinate,
-  b: AtlasTileCoordinate,
+  a: TileDocument.Coordinate,
+  b: TileDocument.Coordinate,
 ): string => {
   const keyA = atlasTileKey(a);
   const keyB = atlasTileKey(b);
@@ -514,7 +492,7 @@ export class TileCache {
     };
   }
 
-  has(coordinate: AtlasTileCoordinate): boolean {
+  has(coordinate: TileDocument.Coordinate): boolean {
     return this.#entries.has(atlasTileKey(coordinate));
   }
 
@@ -523,7 +501,7 @@ export class TileCache {
    * is not resident. The descent reads this right after a load to decide whether
    * to step into the tile's children (only incomplete tiles are descended).
    */
-  completeOf(coordinate: AtlasTileCoordinate): boolean | undefined {
+  completeOf(coordinate: TileDocument.Coordinate): boolean | undefined {
     return this.#entries.get(atlasTileKey(coordinate))?.complete;
   }
 
@@ -560,7 +538,7 @@ export class TileCache {
   }
 
   /** Appends a viewport to the bounded movement history. */
-  recordHistory(rect: Rect, depth: number): void {
+  recordHistory(rect: Rect, depth: Num.u64): void {
     this.#history.push({ rect, depth });
     if (this.#history.length > HISTORY_LENGTH) {
       this.#history.shift();
@@ -576,12 +554,12 @@ export class TileCache {
    * load, but completed auxiliary detail is not retained in the geometry cache.
    */
   async load(
-    coordinate: AtlasTileCoordinate,
-    detail: SaltileDetail = SaltileDetail.Minimal,
+    coordinate: TileDocument.Coordinate,
+    detail: Detail.Detail = "minimal",
   ): Promise<readonly TileNode[]> {
     const key = atlasTileKey(coordinate);
     const cached = this.#entries.get(key);
-    if (cached && detail === SaltileDetail.Minimal) {
+    if (cached && detail === "minimal") {
       // A required load landing on a prefetched tile is the prefetch paying off.
       if (cached.origin === "prefetch" && !cached.used) {
         cached.used = true;
@@ -629,8 +607,8 @@ export class TileCache {
    * superseded viewport must not re-aim the edge signature or pins.
    */
   async loadEdges(
-    tiles: readonly AtlasTileCoordinate[],
-    detail: SaltileDetail = SaltileDetail.Minimal,
+    tiles: readonly TileDocument.Coordinate[],
+    detail: Detail.Detail = "minimal",
     signal?: AbortSignal,
   ): Promise<ViewportEdge[]> {
     signal?.throwIfAborted();
@@ -641,7 +619,7 @@ export class TileCache {
 
     // Fast path: only minimal edge geometry is cache-resident. Auxiliary detail
     // always crosses the request-time store seam again.
-    if (detail === SaltileDetail.Minimal) {
+    if (detail === "minimal") {
       if (
         signature === this.#edgeSignature &&
         [...this.#edgeBucketKeys].every((key) => this.#edgeEntries.has(key))
@@ -661,7 +639,7 @@ export class TileCache {
 
     // Map each delivered node id to the tile that carries it, so an edge's
     // endpoints resolve to the bucket (single tile, or tile pair) it belongs to.
-    const nodeToTile = new Map<number | string, AtlasTileCoordinate>();
+    const nodeToTile = new Map<number | string, TileDocument.Coordinate>();
     for (const tile of tiles) {
       const entry = this.#entries.get(atlasTileKey(tile));
       if (!entry) {
@@ -674,7 +652,7 @@ export class TileCache {
 
     const fetched = await this.#edgeFetcher(tiles, {
       priority: "high",
-      detail: SaltileDetail.Minimal,
+      detail: "minimal",
       signal,
     });
     // The await above is the seam a supersession slips through: the successor
@@ -684,7 +662,7 @@ export class TileCache {
     // Bucket the flat edge list by its endpoints' tiles.
     const buckets = new Map<
       string,
-      { readonly tiles: AtlasTileCoordinate[]; readonly edges: TileEdge[] }
+      { readonly tiles: TileDocument.Coordinate[]; readonly edges: TileEdge[] }
     >();
     for (const edge of fetched.edges) {
       const sourceTile = nodeToTile.get(edge.source);
@@ -740,7 +718,7 @@ export class TileCache {
    * slow link, on the required loads it was starving). A prefetch already
    * claimed by a required load (see {@link load}) is never cancelled.
    */
-  prefetchBatch(coordinates: readonly AtlasTileCoordinate[]): void {
+  prefetchBatch(coordinates: readonly TileDocument.Coordinate[]): void {
     const wanted = new Set(coordinates.map(atlasTileKey));
     for (const [key, controller] of [...this.#prefetchControllers]) {
       if (!wanted.has(key)) {
@@ -759,7 +737,7 @@ export class TileCache {
    * held. Auxiliary viewports skip the prefetch scheduler because their required
    * loads cannot consume a minimal prefetch.
    */
-  #prefetchOne(coordinate: AtlasTileCoordinate): void {
+  #prefetchOne(coordinate: TileDocument.Coordinate): void {
     const key = atlasTileKey(coordinate);
     if (this.#entries.has(key) || this.#inflight.has(key)) {
       return;
@@ -773,16 +751,16 @@ export class TileCache {
       key,
       coordinate,
       "prefetch",
-      SaltileDetail.Minimal,
+      "minimal",
       controller.signal,
     ).catch(() => undefined);
   }
 
   #fetch(
     key: string,
-    coordinate: AtlasTileCoordinate,
+    coordinate: TileDocument.Coordinate,
     origin: TileOrigin,
-    detail: SaltileDetail,
+    detail: Detail.Detail,
     signal?: AbortSignal,
   ): Promise<readonly TileNode[]> {
     const pending = this.#fetcher(coordinate.z, tileIndexOf(coordinate), {
@@ -820,7 +798,7 @@ export class TileCache {
 
   #store(
     key: string,
-    coordinate: AtlasTileCoordinate,
+    coordinate: TileDocument.Coordinate,
     fetched: FetchedTile,
     origin: TileOrigin,
   ): void {
@@ -850,7 +828,7 @@ export class TileCache {
   /** Stores one edge bucket, updating byte use and the cascade reverse index. */
   #storeEdgeBucket(
     key: string,
-    tiles: readonly AtlasTileCoordinate[],
+    tiles: readonly TileDocument.Coordinate[],
     edges: readonly TileEdge[],
   ): void {
     const existing = this.#edgeEntries.get(key);
@@ -889,7 +867,7 @@ export class TileCache {
       return;
     }
     const viewport = this.#viewport;
-    const distanceOf = (coordinate: AtlasTileCoordinate): number =>
+    const distanceOf = (coordinate: TileDocument.Coordinate): number =>
       viewport ? tileDistance(coordinate, viewport.rect, viewport.depth) : 0;
 
     // Node tiles and edge buckets share the budget. Each candidate carries the
@@ -996,10 +974,10 @@ const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
  */
 type TileLoad =
   | {
-      readonly coordinate: AtlasTileCoordinate;
+      readonly coordinate: TileDocument.Coordinate;
       readonly nodes: readonly TileNode[];
     }
-  | { readonly coordinate: AtlasTileCoordinate; readonly error: unknown };
+  | { readonly coordinate: TileDocument.Coordinate; readonly error: unknown };
 
 /** Options for {@link getViewportNodes}. */
 export interface GetViewportNodesOptions {
@@ -1011,7 +989,7 @@ export interface GetViewportNodesOptions {
    * ancestors, which render alongside) so every visible node is labelled.
    * Defaults to `"minimal"` (the geometry-only compact view).
    */
-  readonly detail?: SaltileDetail;
+  readonly detail?: Detail.Detail;
   /**
    * Aborts the call when the viewport it serves is superseded (the query
    * layer's signal). An aborted call rejects with the signal's reason at its
@@ -1066,7 +1044,7 @@ export const getViewportNodes = async (
   cache: TileCache,
   options: GetViewportNodesOptions = {},
 ): Promise<ViewportGraph> => {
-  const { detail = SaltileDetail.Minimal, signal } = options;
+  const { detail = "minimal", signal } = options;
   signal?.throwIfAborted();
   const { rect, depth: targetDepth } = resolveViewport(viewport);
 
@@ -1076,7 +1054,7 @@ export const getViewportNodes = async (
 
   const nodes = new Map<number | string, ViewportNode>();
   const requiredKeys = new Set<string>();
-  const loadedTiles: AtlasTileCoordinate[] = [];
+  const loadedTiles: TileDocument.Coordinate[] = [];
   let attempted = 0;
   let failures = 0;
   let firstError: unknown;
@@ -1085,7 +1063,9 @@ export const getViewportNodes = async (
   // current depth: the rect-covering children of the previous depth's *incomplete*
   // tiles. A complete tile has delivered its whole subtree, so it is a leaf and
   // its children are never requested.
-  let frontier: AtlasTileCoordinate[] = [{ z: 0, x: 0, y: 0 }];
+  let frontier: TileDocument.Coordinate[] = [
+    { z: Num.u64.unsafe(0n), x: Num.u64.unsafe(0n), y: Num.u64.unsafe(0n) },
+  ];
   for (let z = 0; z <= targetDepth && frontier.length > 0; z += 1) {
     for (const coordinate of frontier) {
       requiredKeys.add(atlasTileKey(coordinate));
@@ -1107,7 +1087,7 @@ export const getViewportNodes = async (
     // re-pin this call's tiles under it and skew its eviction and prefetch.
     signal?.throwIfAborted();
 
-    const next: AtlasTileCoordinate[] = [];
+    const next: TileDocument.Coordinate[] = [];
     for (const load of loads) {
       attempted += 1;
       if (!("nodes" in load)) {
@@ -1159,7 +1139,7 @@ export const getViewportNodes = async (
   // load can consume the geometry prefetch. Auxiliary loads always refetch
   // detail, so issuing minimal prefetches for them would spend every hit twice.
   cache.recordHistory(rect, targetDepth);
-  if (detail === SaltileDetail.Minimal) {
+  if (detail === "minimal") {
     schedulePrefetch(cache, requiredKeys);
   }
 
@@ -1377,7 +1357,7 @@ export interface UseGetViewportNodesOptions {
    * refetches the viewport while the cache keeps only geometry. Defaults to
    * `"minimal"`.
    */
-  readonly detail?: SaltileDetail;
+  readonly detail?: Detail.Detail;
   /**
    * Versioned type URLs to colour by: each visible {@link ViewportNode} carries
    * the queried types it matches as {@link ViewportNode.typeIndices} (the tile
@@ -1431,12 +1411,12 @@ export interface UseGetViewportNodesResult extends AtlasQueryState<ViewportGraph
 const viewportKey = (
   viewport: Viewport | null,
   baseUrl: string,
-  detail: SaltileDetail,
+  detail: Detail.Detail,
   coloredTypeIds: readonly string[],
 ): string => {
   // The detail mode is part of the key: crossing the detail threshold must
   // refetch rather than serve the cached minimal result.
-  const detailKey = detail === SaltileDetail.Auxiliary ? "|detail" : "";
+  const detailKey = detail === "auxiliary" ? "|detail" : "";
   // The colored-type set is part of the key too: changing it recreates the
   // cache (see `useGetViewportNodes`), and the key must change alongside so the
   // now-empty cache refetches rather than serving the previous colouring.
@@ -1477,7 +1457,7 @@ export const useGetViewportNodes = (
     maxBytes,
     fetcher,
     edgesFetcher,
-    detail = SaltileDetail.Minimal,
+    detail = "minimal",
     coloredTypeIds = EMPTY_COLORED_TYPE_IDS,
     filter,
   } = options;

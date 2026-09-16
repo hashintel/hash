@@ -94,7 +94,8 @@ export class TypeMask<T extends ArrayBufferLike> implements Iterable<number> {
 
   #has(type: number): boolean {
     const byte = this.#bytes[Math.floor(type / 8)]!;
-    // eslint-disable-next-line no-bitwise -- Read the requested least-significant-bit-first mask bit.
+    // Read the requested least-significant-bit-first mask bit.
+    // eslint-disable-next-line no-bitwise
     return (byte & (1 << (type % 8))) !== 0;
   }
 

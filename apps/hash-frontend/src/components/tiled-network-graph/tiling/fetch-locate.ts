@@ -39,16 +39,18 @@
  * yields a byte-identical response through either domain.
  */
 
-import {
-  decodeSaltileLocate,
-  type SaltileProperties,
-} from "../atlas-decode/locate";
-import { SALTILE_MEDIA_TYPE } from "../atlas-decode/wire";
+import * as Decoder from "../atlas-decode/Decoder";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import * as Function from "../atlas-decode/Function";
+import * as Iterable from "../atlas-decode/Iterable";
+import * as LocateDocument from "../atlas-decode/LocateDocument";
+import * as Option from "../atlas-decode/Option";
+import * as Record from "../atlas-decode/Record";
+import * as Result from "../atlas-decode/Result";
 import {
   ATLAS_API_BASE_URL,
   FetchTileError,
   requestAtlas,
-  typeIndicesAt,
   withAtlasSession,
   type SaltileSession,
 } from "./fetch-tile";
@@ -202,74 +204,85 @@ const fetchAndDecodeLocate = async (
       `locate arrived as ${contentType}; expected ${SALTILE_MEDIA_TYPE}`,
     );
   }
+
   const buffer = await response.arrayBuffer();
+  const decoder = new Decoder.Decoder(new DataView(buffer));
 
-  let decoded;
-  try {
-    decoded = decodeSaltileLocate(buffer, {
-      generation: session.generationBytes,
-      variant: session.variantIndex,
-      coloredTypeIdCount: coloredTypeIds.length,
-    });
-  } catch (cause) {
-    throw new FetchTileError("failed to decode locate", { cause });
-  }
-
-  const { count, positions, rowIds, typeMask, detail } = decoded;
   // Wire frame [-1, 1] onto the layer's world [0, WORLD_SIZE): an exact
   // power-of-two scale, as in the tile transport.
   const scale = WORLD_SIZE / 2;
-  const maskStride = Math.ceil(coloredTypeIds.length / 8);
-  const nodes: LocateNode[] = new Array<LocateNode>(count);
-  for (let index = 0; index < count; index += 1) {
-    const id = rowIds[index];
-    const wireX = positions[index * 2];
-    const wireY = positions[index * 2 + 1];
-    // Unreachable: the decoder guarantees these array lengths. The guard
-    // satisfies the strict typed-array index type without an assertion.
-    if (id === undefined || wireX === undefined || wireY === undefined) {
-      throw new FetchTileError(`locate node ${index} is truncated`);
-    }
-    const label = detail.labels[index] ?? undefined;
-    const typeId = detail.typeIds[index] ?? undefined;
-    // The trailer's property map belongs to the source alone; neighbours
-    // leave `properties` undefined (their detail is one locate away).
-    const properties = index === 0 ? detail.properties : undefined;
-    const typeIndices = typeMask
-      ? typeIndicesAt(typeMask, index, maskStride, coloredTypeIds.length)
-      : undefined;
-    nodes[index] = {
-      id,
-      x: (wireX + 1) * scale,
-      y: (wireY + 1) * scale,
-      ...(label !== undefined ? { label } : {}),
-      ...(typeId !== undefined ? { typeId } : {}),
-      ...(typeIndices !== undefined ? { typeIndices } : {}),
-      ...(properties !== undefined ? { properties } : {}),
-    };
-  }
 
-  const { edgesCount, sources, targets, edgeIds } = decoded;
-  const edges: LocateEdge[] = new Array<LocateEdge>(edgesCount);
-  for (let index = 0; index < edgesCount; index += 1) {
-    const id = edgeIds[index];
-    const source = sources[index];
-    const target = targets[index];
-    if (id === undefined || source === undefined || target === undefined) {
-      throw new FetchTileError(`locate edge ${index} is truncated`);
-    }
-    const label = detail.linkLabels[index] ?? undefined;
-    edges[index] = {
-      id,
-      source,
-      target,
-      ...(label !== undefined ? { label } : {}),
-      typeIds: detail.linkTypeIds[index] ?? [],
-      typeIdsComplete: detail.linkTypeIdsComplete[index] ?? false,
-      properties: detail.linkProperties[index] ?? null,
-      propertiesComplete: detail.linkPropertiesComplete[index] ?? false,
-    };
-  }
+  const { positions, rowIds, typeMask, sources, targets, edgeIds, trailer } =
+    LocateDocument.decode(decoder, {
+      generation: session.generation,
+      variant: session.variantIndex,
+      coloredTypeCount: coloredTypeIds.length,
+    }).pipe(
+      Result.changeContext(() => new FetchTileError("failed to decode locate")),
+      Result.unwrap,
+    );
+
+  const nodes = Function.pipe(
+    [
+      rowIds,
+      positions,
+      Option.unwrapOrElse(typeMask, () => Iterable.repeat(null)),
+      trailer.labels,
+      trailer.typeIds,
+      trailer.properties ?? Iterable.repeat(undefined),
+    ],
+    Function.spread(Iterable.zip),
+    Iterable.map(
+      ([rowId, [x, y], typeMask, label, typeId, properties]): LocateNode =>
+        Record.omitUndefined({
+          id: rowId,
+          x: (x + 1) * scale,
+          y: (y + 1) * scale,
+          typeMask: typeMask ? [...typeMask] : undefined,
+          label: label ?? undefined,
+          typeId,
+          properties,
+        }),
+    ),
+    Iterable.collect(),
+  );
+
+  const edges = Function.pipe(
+    [
+      edgeIds,
+      sources,
+      targets,
+      trailer.linkLabels,
+      trailer.linkTypeIds,
+      trailer.linkTypeIdsComplete,
+      trailer.linkProperties,
+      trailer.linkPropertiesComplete,
+    ],
+    Function.spread(Iterable.zip),
+    Iterable.map(
+      ([
+        edgeId,
+        source,
+        target,
+        label,
+        typeId,
+        typeIdComplete,
+        properties,
+        propertiesComplete,
+      ]): LocateEdge =>
+        Record.omitUndefined({
+          id: edgeId,
+          source,
+          target,
+          label: label ?? undefined,
+          typeId,
+          typeIdComplete,
+          properties,
+          propertiesComplete,
+        }),
+    ),
+    Iterable.collect(),
+  );
 
   return {
     entityId: decoded.entityId,

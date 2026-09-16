@@ -3,7 +3,7 @@ import * as CborPrimitive from "../CborPrimitive";
 import * as Result from "../Result";
 import * as TileError from "./error";
 
-import type * as Decoder from "../Decoder";
+import type * as Num from "../Num";
 
 /** Per-point labels and icons in delivered order. */
 export interface TileDocumentTrailer {
@@ -15,7 +15,7 @@ export interface TileDocumentTrailer {
 
 const readTrailer = Result.fn(function* readTrailer(
   access: CborDecoder.CborMapAccess,
-  delivered: Decoder.U64,
+  delivered: Num.u64,
 ): Result.gen.Return<TileDocumentTrailer, TileError.DecodeError> {
   let labels: (string | null)[] | undefined;
   let icons: (string | null)[] | undefined;
@@ -73,7 +73,7 @@ const readTrailer = Result.fn(function* readTrailer(
 /** Constructs trailer detail or returns a schema or CBOR error. */
 export const decode = (
   bytes: Uint8Array,
-  delivered: Decoder.U64,
+  delivered: Num.u64,
 ): Result.Result<TileDocumentTrailer, TileError.DecodeError> =>
   new CborDecoder.CborDecoder(bytes).decode({
     expecting: "a tile trailer",

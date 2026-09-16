@@ -4,24 +4,24 @@ import * as GenerationId from "../GenerationId";
 import * as Result from "../Result";
 import * as TileError from "./error";
 
-import type * as Decoder from "../Decoder";
+import type * as Num from "../Num";
 
 /** A tile address, exactly as encoded. */
 export interface Coordinate {
-  readonly z: Decoder.U64;
-  readonly x: Decoder.U64;
-  readonly y: Decoder.U64;
+  readonly z: Num.u64;
+  readonly x: Num.u64;
+  readonly y: Num.u64;
 }
 
 /** Delivery mode: an increment over the ancestors' cuts, or their accumulated view. */
 export type Mode = "delta" | "total";
 
-/** A tight wire-frame extent as `[minX, minY, maxX, maxY]`. */
+/** A finite wire-frame extent as `[minX, minY, maxX, maxY]`, with ordered endpoints. */
 export type Bounds = readonly [
-  minX: Decoder.F32,
-  minY: Decoder.F32,
-  maxX: Decoder.F32,
-  maxY: Decoder.F32,
+  minX: Num.f32,
+  minY: Num.f32,
+  maxX: Num.f32,
+  maxY: Num.f32,
 ];
 
 /**
@@ -31,11 +31,11 @@ export type Bounds = readonly [
  */
 export interface TileDocumentGlobal {
   /** Visible points at this response's zoom. */
-  readonly visible: Decoder.U64;
+  readonly visible: Num.u64;
   /** Extent of the entire visible set, or null when that set is empty. */
   readonly bounds: Bounds | null;
   /** Deepest bucket the visible set occupies: the coarsest cut delivering all of it. */
-  readonly minResolution: Decoder.U64;
+  readonly minResolution: Num.u64;
 }
 
 /** Request parameters needed to interpret a tile response. */
@@ -49,14 +49,14 @@ type Mutable<T> = { -readonly [P in keyof T]: T[P] };
 /** Tile header fields that describe the columns and the trailer. */
 export interface Head {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
+  readonly variant: Num.u64;
   readonly coordinate: Coordinate;
   readonly mode: Mode;
-  readonly delivered: Decoder.U64;
-  readonly firstBucket: Decoder.U64;
-  readonly runs: readonly Decoder.U64[];
+  readonly delivered: Num.u64;
+  readonly firstBucket: Num.u64;
+  readonly runs: readonly Num.u64[];
   readonly global: TileDocumentGlobal | null;
-  readonly children: Decoder.U64;
+  readonly children: Num.u64;
   readonly hasTrailer: boolean;
 }
 
@@ -137,8 +137,18 @@ const boundsVisitor: CborDecoder.CborVisitor<
     const minY = yield* access.readElement(CborPrimitive.float32);
     const maxX = yield* access.readElement(CborPrimitive.float32);
     const maxY = yield* access.readElement(CborPrimitive.float32);
+    const bounds: Bounds = [minX, minY, maxX, maxY];
 
-    return [minX, minY, maxX, maxY];
+    yield* Result.assert(
+      bounds.every(Number.isFinite) && minX <= maxX && minY <= maxY,
+      () =>
+        TileError.TileDocumentError.invalidField(
+          "head.global.bounds",
+          "expected finite bounds with ordered minima and maxima",
+        ),
+    );
+
+    return bounds;
   }),
 };
 

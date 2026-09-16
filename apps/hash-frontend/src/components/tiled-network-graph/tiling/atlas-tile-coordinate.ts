@@ -1,3 +1,5 @@
+import * as Num from "../atlas-decode/Num";
+
 import type * as TileDocument from "../atlas-decode/TileDocument";
 
 /**
@@ -15,7 +17,7 @@ import type * as TileDocument from "../atlas-decode/TileDocument";
  */
 
 /** Deepest quadtree zoom the tile grid addresses (the wire allows `0..=16`). */
-export const ATLAS_TILE_MAX_ZOOM = 16n;
+export const ATLAS_TILE_MAX_ZOOM = Num.u64.unsafe(16n);
 
 /**
  * Width and height of the world axis the grid tiles over. The renderer's world
@@ -27,10 +29,10 @@ export const ATLAS_TILE_AXIS_SIZE = 65_536;
 
 /** Half-open world-coordinate extent a tile covers: `[minimum, maximum)`. */
 export interface AtlasTileBounds {
-  readonly minimumX: number;
-  readonly maximumX: number;
-  readonly minimumY: number;
-  readonly maximumY: number;
+  readonly minimumX: Num.u64;
+  readonly maximumX: Num.u64;
+  readonly minimumY: Num.u64;
+  readonly maximumY: Num.u64;
 }
 
 /** A tile coordinate fell outside the addressable quadtree. */

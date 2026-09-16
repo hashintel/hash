@@ -1,18 +1,6 @@
+import * as Num from "./Num";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
-
-import type { Brand } from "@blockprotocol/type-system";
-
-export type U8 = Brand<number, "u8">;
-export type U16 = Brand<number, "u16">;
-export type U32 = Brand<number, "u32">;
-export type U64 = Brand<bigint, "u64">;
-export type I8 = Brand<number, "i8">;
-export type I16 = Brand<number, "i16">;
-export type I32 = Brand<number, "i32">;
-export type I64 = Brand<bigint, "i64">;
-export type F32 = Brand<number, "f32">;
-export type F64 = Brand<number, "f64">;
 
 /** A byte-range or text-decoding failure. */
 export type DecoderErrorReason =
@@ -126,93 +114,93 @@ export class Decoder<T extends ArrayBufferLike> {
     });
   }
 
-  nextU8(): Result.Result<U8, DecoderError> {
+  nextU8(): Result.Result<Num.u8, DecoderError> {
     return Result.map(this.#checkOffsetLength(1), () => {
       const value = this.#view.getUint8(this.#byteOffset);
       this.#byteOffset += 1;
 
-      return value as U8;
+      return Num.u8.unsafe(value);
     });
   }
 
-  nextU16(): Result.Result<U16, DecoderError> {
+  nextU16(): Result.Result<Num.u16, DecoderError> {
     return Result.map(this.#checkOffsetLength(2), () => {
       const value = this.#view.getUint16(this.#byteOffset, true);
       this.#byteOffset += 2;
 
-      return value as U16;
+      return Num.u16.unsafe(value);
     });
   }
 
-  nextU32(): Result.Result<U32, DecoderError> {
+  nextU32(): Result.Result<Num.u32, DecoderError> {
     return Result.map(this.#checkOffsetLength(4), () => {
       const value = this.#view.getUint32(this.#byteOffset, true);
       this.#byteOffset += 4;
 
-      return value as U32;
+      return Num.u32.unsafe(value);
     });
   }
 
-  nextU64(): Result.Result<U64, DecoderError> {
+  nextU64(): Result.Result<Num.u64, DecoderError> {
     return Result.map(this.#checkOffsetLength(8), () => {
       const value = this.#view.getBigUint64(this.#byteOffset, true);
       this.#byteOffset += 8;
 
-      return value as U64;
+      return Num.u64.unsafe(value);
     });
   }
 
-  nextI8(): Result.Result<I8, DecoderError> {
+  nextI8(): Result.Result<Num.i8, DecoderError> {
     return Result.map(this.#checkOffsetLength(1), () => {
       const value = this.#view.getInt8(this.#byteOffset);
       this.#byteOffset += 1;
 
-      return value as I8;
+      return Num.i8.unsafe(value);
     });
   }
 
-  nextI16(): Result.Result<I16, DecoderError> {
+  nextI16(): Result.Result<Num.i16, DecoderError> {
     return Result.map(this.#checkOffsetLength(2), () => {
       const value = this.#view.getInt16(this.#byteOffset, true);
       this.#byteOffset += 2;
 
-      return value as I16;
+      return Num.i16.unsafe(value);
     });
   }
 
-  nextI32(): Result.Result<I32, DecoderError> {
+  nextI32(): Result.Result<Num.i32, DecoderError> {
     return Result.map(this.#checkOffsetLength(4), () => {
       const value = this.#view.getInt32(this.#byteOffset, true);
       this.#byteOffset += 4;
 
-      return value as I32;
+      return Num.i32.unsafe(value);
     });
   }
 
-  nextI64(): Result.Result<I64, DecoderError> {
+  nextI64(): Result.Result<Num.i64, DecoderError> {
     return Result.map(this.#checkOffsetLength(8), () => {
       const value = this.#view.getBigInt64(this.#byteOffset, true);
       this.#byteOffset += 8;
 
-      return value as I64;
+      return Num.i64.unsafe(value);
     });
   }
 
-  nextF32(): Result.Result<F32, DecoderError> {
+  nextF32(): Result.Result<Num.f32, DecoderError> {
     return Result.map(this.#checkOffsetLength(4), () => {
       const value = this.#view.getFloat32(this.#byteOffset, true);
       this.#byteOffset += 4;
 
-      return value as F32;
+      return Num.f32.unsafe(value);
     });
   }
 
-  nextF64(): Result.Result<F64, DecoderError> {
+  nextF64(): Result.Result<Num.f64, DecoderError> {
     return Result.map(this.#checkOffsetLength(8), () => {
       const value = this.#view.getFloat64(this.#byteOffset, true);
       this.#byteOffset += 8;
 
-      return value as F64;
+      return Num.f64.unsafe(value);
     });
   }
 

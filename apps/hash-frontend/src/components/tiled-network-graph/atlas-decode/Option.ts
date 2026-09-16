@@ -36,6 +36,41 @@ export const map: {
     isSome(option) ? some(transform(option.value)) : option,
 );
 
+/** Keeps a present value when the predicate holds, narrowing it for a refinement. Absence passes through. */
+export const filter: {
+  <T, U extends T>(
+    refinement: (value: T) => value is U,
+  ): <Value extends T>(option: Option<Value>) => Option<Value & U>;
+  <T>(
+    predicate: (value: T) => boolean,
+  ): <Value extends T>(option: Option<Value>) => Option<Value>;
+  <T, U extends T>(
+    option: Option<T>,
+    refinement: (value: T) => value is U,
+  ): Option<U>;
+  <T>(option: Option<T>, predicate: (value: T) => boolean): Option<T>;
+} = dual(
+  2,
+  <T>(option: Option<T>, predicate: (value: T) => boolean): Option<T> =>
+    isSome(option) && !predicate(option.value) ? none() : option,
+);
+
+/** Wraps a value as present when the predicate holds, narrowing it for a refinement. */
+export const liftPredicate: {
+  <T, U extends T>(
+    refinement: (value: T) => value is U,
+  ): <Value extends T>(value: Value) => Option<Value & U>;
+  <T>(
+    predicate: (value: T) => boolean,
+  ): <Value extends T>(value: Value) => Option<Value>;
+  <T, U extends T>(value: T, refinement: (value: T) => value is U): Option<U>;
+  <T>(value: T, predicate: (value: T) => boolean): Option<T>;
+} = dual(
+  2,
+  <T>(value: T, predicate: (value: T) => boolean): Option<T> =>
+    predicate(value) ? some(value) : none(),
+);
+
 /** Evaluates the handler for the selected variant. */
 export const match: {
   <T, Present, Absent>(handlers: {

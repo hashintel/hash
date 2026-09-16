@@ -11,6 +11,7 @@ import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
 import type * as Decoder from "./Decoder";
+import type * as Num from "./Num";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export type { EdgeDocumentErrorReason } from "./EdgeDocument/error";
@@ -38,8 +39,8 @@ export interface EdgeDocumentTrailer {
 /** Edges metadata with equally sized, borrowed identity columns. */
 export interface EdgeDocument<T extends ArrayBufferLike> {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
-  readonly count: Decoder.U64;
+  readonly variant: Num.u64;
+  readonly count: Num.u64;
   readonly complete: boolean;
   readonly sources: NodeId.NodeIdColumn<T>;
   readonly targets: NodeId.NodeIdColumn<T>;
@@ -50,8 +51,8 @@ export interface EdgeDocument<T extends ArrayBufferLike> {
 /** Edges header fields that determine column sizes and trailer presence. */
 interface Head {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
-  readonly count: Decoder.U64;
+  readonly variant: Num.u64;
+  readonly count: Num.u64;
   readonly complete: boolean;
   readonly hasTrailer: boolean;
 }
@@ -126,7 +127,7 @@ const decodeHead = (bytes: Uint8Array): Result.Result<Head, DecodeError> =>
     visitMap: readHead,
   });
 
-const checkCount = (field: string, expected: Decoder.U64) =>
+const checkCount = (field: string, expected: Num.u64) =>
   Result.filter(
     (column: { readonly length: number }) => BigInt(column.length) === expected,
     (column) =>
@@ -135,7 +136,7 @@ const checkCount = (field: string, expected: Decoder.U64) =>
 
 /** Borrows a node column or returns invalid storage or a header-count mismatch. */
 const decodeNodeIdColumn =
-  (count: Decoder.U64, field: string) =>
+  (count: Num.u64, field: string) =>
   <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
     NodeId.NodeIdColumn.decode(bytes).pipe(
       Result.changeContext(() =>
@@ -149,7 +150,7 @@ const decodeNodeIdColumn =
 
 /** Borrows an identity column after validating its width and count. */
 const decodeIdentities =
-  (count: Decoder.U64) =>
+  (count: Num.u64) =>
   <T extends ArrayBufferLike>(bytes: Uint8Array<T>) =>
     BinaryEntityId.BinaryEntityIdColumn.decode(bytes).pipe(
       Result.changeContext(() =>
@@ -191,19 +192,19 @@ const labelVisitor: CborDecoder.CborVisitor<string | null, never> = {
 };
 
 /** Accepts an intern-table index or its explicit absence. */
-const typeIndexVisitor: CborDecoder.CborVisitor<Decoder.U64 | null, never> = {
+const typeIndexVisitor: CborDecoder.CborVisitor<Num.u64 | null, never> = {
   ...CborPrimitive.nullable(CborPrimitive.unsigned),
   expecting: "a type index or null",
 };
 
 /** Reads edge detail and resolves its interned type references. */
-const visitTrailer = (count: Decoder.U64) =>
+const visitTrailer = (count: Num.u64) =>
   Result.fn(function* decodeTrailer(
     access: CborDecoder.CborMapAccess,
   ): Result.gen.Return<EdgeDocumentTrailer, DecodeError> {
     let types: VersionedUrl[] | undefined;
     let labels: (string | null)[] | undefined;
-    let indexes: (Decoder.U64 | null)[] | undefined;
+    let indexes: (Num.u64 | null)[] | undefined;
 
     while (access.remaining > 0) {
       const key = yield* access.readKey();
@@ -287,7 +288,7 @@ const visitTrailer = (count: Decoder.U64) =>
 /** Constructs trailer detail or returns a schema, reference or CBOR error. */
 const decodeTrailer = (
   bytes: Uint8Array,
-  count: Decoder.U64,
+  count: Num.u64,
 ): Result.Result<EdgeDocumentTrailer, DecodeError> =>
   new CborDecoder.CborDecoder(bytes).decode({
     expecting: "an edges trailer",
@@ -296,7 +297,7 @@ const decodeTrailer = (
 
 export interface DecodeOptions {
   readonly generation: GenerationId.GenerationId;
-  readonly variant: Decoder.U64;
+  readonly variant: Num.u64;
 }
 
 /** Assembles the envelope's edge columns with their decoded metadata. */

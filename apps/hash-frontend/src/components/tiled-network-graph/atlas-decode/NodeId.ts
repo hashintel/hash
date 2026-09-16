@@ -1,11 +1,11 @@
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
-import type * as Decoder from "./Decoder";
+import type * as Num from "./Num";
 import type { Brand } from "@blockprotocol/type-system";
 
 /** An opaque node identity within one generation. */
-export type NodeId = Brand<Decoder.U32, "NodeId">;
+export type NodeId = Brand<Num.u32, "NodeId">;
 
 /** Invalid column storage or an index outside its rows. */
 export type NodeIdColumnErrorReason =

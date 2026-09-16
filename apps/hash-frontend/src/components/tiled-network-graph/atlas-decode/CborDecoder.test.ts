@@ -10,7 +10,7 @@ import {
 } from "./CborDecoder";
 import * as Result from "./Result";
 
-import type { F32, F64, U64 } from "./Decoder";
+import type { f32, f64, u64 } from "./Num";
 
 /** A generic value tree constructed by a visitor for the profile tests. */
 type Value =
@@ -23,7 +23,7 @@ type Value =
   | readonly Value[]
   | ReadonlyMap<bigint, Value>;
 
-const unsignedVisitor: CborVisitor<U64, never> = {
+const unsignedVisitor: CborVisitor<u64, never> = {
   expecting: "an unsigned integer",
   visitUnsignedInteger: Result.ok,
 };
@@ -31,11 +31,11 @@ const bytesVisitor: CborVisitor<Uint8Array, never> = {
   expecting: "a byte string",
   visitByteString: Result.ok,
 };
-const float32Visitor: CborVisitor<F32, never> = {
+const float32Visitor: CborVisitor<f32, never> = {
   expecting: "a single-precision float",
   visitFloat32: Result.ok,
 };
-const float64Visitor: CborVisitor<F64, never> = {
+const float64Visitor: CborVisitor<f64, never> = {
   expecting: "a double-precision float",
   visitFloat64: Result.ok,
 };
@@ -89,7 +89,7 @@ class Header {
   /** Retains the generation bytes and variant index. */
   constructor(
     readonly generation: Uint8Array,
-    readonly variant: U64,
+    readonly variant: u64,
   ) {}
 }
 
@@ -173,8 +173,8 @@ describe("CborDecoder scalars", () => {
     const second = new CborDecoder(double).decode(float64Visitor);
     expect(first).toMatchObject({ _tag: "ok", value: 1.5 });
     expect(second).toMatchObject({ _tag: "ok", value: 1.5 });
-    expectTypeOf(first).toEqualTypeOf<Result.Result<F32, CborDecoderError>>();
-    expectTypeOf(second).toEqualTypeOf<Result.Result<F64, CborDecoderError>>();
+    expectTypeOf(first).toEqualTypeOf<Result.Result<f32, CborDecoderError>>();
+    expectTypeOf(second).toEqualTypeOf<Result.Result<f64, CborDecoderError>>();
     expectError(
       new CborDecoder(single).decode(float64Visitor),
       "unexpected-kind",
@@ -580,7 +580,7 @@ describe("CborDecoder access", () => {
   });
 
   it("partial_map", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "a map",
       visitMap: (map) => map.readKey(),
     };
@@ -592,7 +592,7 @@ describe("CborDecoder access", () => {
   });
 
   it("value_without_key", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "a map",
       visitMap: (map) => map.readValue(unsignedVisitor),
     };
@@ -604,7 +604,7 @@ describe("CborDecoder access", () => {
   });
 
   it("key_without_value", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "a map",
       visitMap: (map) =>
         Result.gen(function* readDuplicateKey() {
@@ -620,7 +620,7 @@ describe("CborDecoder access", () => {
   });
 
   it("exhausted_array", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "an array",
       visitArray: (array) => array.readElement(unsignedVisitor),
     };
@@ -746,7 +746,7 @@ describe("CborDecoder access", () => {
   });
 
   it("reentrant_array_access", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "an array",
       visitArray: (array) =>
         array.readElement({
@@ -762,7 +762,7 @@ describe("CborDecoder access", () => {
   });
 
   it("reentrant_map_access", () => {
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "a map",
       visitMap: (map) =>
         Result.gen(function* readReentrantValue() {
@@ -791,7 +791,7 @@ describe("CborDecoder access", () => {
 
   it("reentrant_decode", () => {
     const decoder = new CborDecoder(Uint8Array.of(0));
-    const visitor: CborVisitor<U64, never> = {
+    const visitor: CborVisitor<u64, never> = {
       expecting: "an unsigned integer",
       visitUnsignedInteger: () => decoder.decode(unsignedVisitor),
     };

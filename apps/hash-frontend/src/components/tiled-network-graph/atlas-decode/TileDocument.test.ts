@@ -8,6 +8,7 @@ import * as CborDecoder from "./CborDecoder";
 import * as Decoder from "./Decoder";
 import * as Envelope from "./Envelope";
 import * as GenerationId from "./GenerationId";
+import * as Num from "./Num";
 import * as Option from "./Option";
 import * as Result from "./Result";
 import * as TileDocument from "./TileDocument";
@@ -323,12 +324,12 @@ const tileContext = (
   generation: GenerationId.GenerationId.make(
     new Uint8Array(generationBytes),
   ).pipe(Result.unwrap),
-  variant: 7n as Decoder.U64,
+  variant: 7n as Num.u64,
   mode: "delta",
   coordinate: {
-    z: 2n as Decoder.U64,
-    x: 3n as Decoder.U64,
-    y: 1n as Decoder.U64,
+    z: 2n as Num.u64,
+    x: 3n as Num.u64,
+    y: 1n as Num.u64,
   },
   coloredTypeCount: 0,
   ...overrides,
@@ -350,11 +351,11 @@ const decodeFixture = (
         generation: GenerationId.GenerationId.fromHex(head.generation).pipe(
           Result.unwrap,
         ),
-        variant: BigInt(head.variant) as Decoder.U64,
+        variant: BigInt(head.variant) as Num.u64,
         coordinate: {
-          z: BigInt(head.coordinate[0]) as Decoder.U64,
-          x: BigInt(head.coordinate[1]) as Decoder.U64,
-          y: BigInt(head.coordinate[2]) as Decoder.U64,
+          z: BigInt(head.coordinate[0]) as Num.u64,
+          x: BigInt(head.coordinate[1]) as Num.u64,
+          y: BigInt(head.coordinate[2]) as Num.u64,
         },
         mode: head.mode === 0 ? "delta" : "total",
         ...overrides,
@@ -519,7 +520,7 @@ describe("TileDocument.decode request", () => {
     const actual = tileContext().coordinate;
     const coordinate = {
       ...actual,
-      [axis]: (actual[axis] + 1n) as Decoder.U64,
+      [axis]: (actual[axis] + 1n) as Num.u64,
     };
     const failures = sectionFailures(
       expectError(runDecode(tileResponse(), tileContext({ coordinate }))),
@@ -534,7 +535,7 @@ describe("TileDocument.decode request", () => {
   });
 
   it("coordinate_u64_exact", () => {
-    const x = 0xffff_ffff_ffff_ffffn as Decoder.U64;
+    const x = 0xffff_ffff_ffff_ffffn as Num.u64;
     const coordinate = { ...tileContext().coordinate, x };
     const buffer = tileResponse({
       head: { 2: list([uint(coordinate.z), uint(x), uint(coordinate.y)]) },
@@ -542,7 +543,7 @@ describe("TileDocument.decode request", () => {
     expect(
       expectOk(runDecode(buffer, tileContext({ coordinate }))).coordinate.x,
     ).toBe(x);
-    const expected = { ...coordinate, x: (x - 1n) as Decoder.U64 };
+    const expected = { ...coordinate, x: (x - 1n) as Num.u64 };
     const failures = sectionFailures(
       expectError(runDecode(buffer, tileContext({ coordinate: expected }))),
       "request",
@@ -561,12 +562,12 @@ describe("TileDocument.decode request", () => {
       generation: GenerationId.GenerationId.make(
         new Uint8Array(32).fill(255),
       ).pipe(Result.unwrap),
-      variant: 8n as Decoder.U64,
+      variant: 8n as Num.u64,
       mode: "total",
       coordinate: {
-        z: 3n as Decoder.U64,
-        x: 4n as Decoder.U64,
-        y: 5n as Decoder.U64,
+        z: 3n as Num.u64,
+        x: 4n as Num.u64,
+        y: 5n as Num.u64,
       },
     });
     const failures = sectionFailures(
@@ -908,9 +909,9 @@ describe("TileDocument.decode consistency", () => {
         }),
         tileContext({
           coordinate: {
-            z: 0n as Decoder.U64,
-            x: 0n as Decoder.U64,
-            y: 0n as Decoder.U64,
+            z: 0n as Num.u64,
+            x: 0n as Num.u64,
+            y: 0n as Num.u64,
           },
         }),
       ),
@@ -1031,6 +1032,81 @@ describe("TileDocument.decode consistency", () => {
         actual: 3,
       },
     });
+  });
+
+  it.each([
+    [NaN, 0, 1, 1],
+    [0, NaN, 1, 1],
+    [0, 0, NaN, 1],
+    [0, 0, 1, NaN],
+    [Infinity, 0, 1, 1],
+    [0, Infinity, 1, 1],
+    [0, 0, Infinity, 1],
+    [0, 0, 1, Infinity],
+    [-Infinity, 0, 1, 1],
+    [0, -Infinity, 1, 1],
+    [0, 0, -Infinity, 1],
+    [0, 0, 1, -Infinity],
+    [1, 0, -1, 1],
+    [0, 1, 1, -1],
+  ])("global_bounds_invalid_%s_%s_%s_%s", (minX, minY, maxX, maxY) => {
+    const error = expectError(
+      runDecode(
+        tileResponse({
+          head: {
+            2: list([uint(0), uint(0), uint(0)]),
+            8: map([
+              [0, uint(3)],
+              [1, list([minX, minY, maxX, maxY].map(float32))],
+              [2, uint(5)],
+            ]),
+          },
+        }),
+        tileContext({
+          coordinate: {
+            z: Num.u64.unsafe(0n),
+            x: Num.u64.unsafe(0n),
+            y: Num.u64.unsafe(0n),
+          },
+        }),
+      ),
+    );
+
+    expect(sectionFailures(error, "slot")).toMatchObject([
+      { reason: { _tag: "invalid-field", field: "head.global.bounds" } },
+    ]);
+  });
+
+  it.each([
+    [-0, -0, 0, 0],
+    [-0.5, -2, -0.5, 3],
+    [-2, 0, 3, 0],
+    [-3.4028234663852886e38, -1, 3.4028234663852886e38, 1],
+  ])("global_bounds_valid_%s_%s_%s_%s", (minX, minY, maxX, maxY) => {
+    const bounds = [minX, minY, maxX, maxY];
+    const document = expectOk(
+      runDecode(
+        tileResponse({
+          head: {
+            2: list([uint(0), uint(0), uint(0)]),
+            8: map([
+              [0, uint(3)],
+              [1, list(bounds.map(float32))],
+              [2, uint(5)],
+            ]),
+          },
+        }),
+        tileContext({
+          coordinate: {
+            z: Num.u64.unsafe(0n),
+            x: Num.u64.unsafe(0n),
+            y: Num.u64.unsafe(0n),
+          },
+        }),
+      ),
+    );
+
+    expect(document.global?.bounds).toEqual(bounds);
   });
 
   it("global_bounds_f64", () => {

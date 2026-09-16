@@ -3,6 +3,7 @@ import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
 
 import type * as Decoder from "./Decoder";
+import type * as Num from "./Num";
 
 export const SALTILE_MEDIA_TYPE = "application/vnd.hash.saltile-v1";
 
@@ -70,10 +71,10 @@ export class EnvelopeError extends TaggedError.TaggedError<
 /** The validated prefix shared by tile, edges and locate documents. */
 export interface Envelope {
   readonly kind: "SALTILEE" | "SALTILEL" | "SALTILET";
-  readonly version: Decoder.U16;
-  readonly flags: Decoder.U16;
-  readonly slots: Decoder.U16;
-  readonly reserved: Decoder.U16;
+  readonly version: Num.u16;
+  readonly flags: Num.u16;
+  readonly slots: Num.u16;
+  readonly reserved: Num.u16;
 }
 
 /**
@@ -82,8 +83,8 @@ export interface Envelope {
  * An absent section has zero offsets and null bytes. A present section may have an empty view, as in a zero-row column. Keep the input buffer attached and unchanged while using the view.
  */
 export interface Chunk<T extends ArrayBufferLike> {
-  readonly start: Decoder.U32;
-  readonly end: Decoder.U32;
+  readonly start: Num.u32;
+  readonly end: Num.u32;
   readonly bytes: Uint8Array<T> | null;
 }
 
