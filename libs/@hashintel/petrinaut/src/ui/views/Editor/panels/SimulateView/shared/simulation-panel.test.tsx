@@ -259,9 +259,13 @@ it("keeps canvas shortcuts from handling keys pressed in the panel", () => {
   }
 });
 
-it.each(["edit", "notebook", "actual"] as const)(
-  "keeps the main view interactive when leaving fullscreen results for %s",
-  (mode) => {
+it.each([
+  { mode: "edit", editView: "canvas" },
+  { mode: "edit", editView: "notebook" },
+  { mode: "actual" },
+] as const)(
+  "keeps the main view interactive when leaving fullscreen results for $mode/$editView",
+  (destination) => {
     const ModeViews = () => {
       const { state, navigate } = usePetrinautNavigation();
       return (
@@ -269,7 +273,7 @@ it.each(["edit", "notebook", "actual"] as const)(
           <button
             type="button"
             onClick={() =>
-              navigate({ mode }, { cause: "user", action: "mode" })
+              navigate(destination, { cause: "user", action: "mode" })
             }
           >
             Switch mode
