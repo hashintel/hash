@@ -509,6 +509,29 @@ describe("TileDocument.decode against the wire fixtures", () => {
 });
 
 describe("TileDocument.decode request", () => {
+  it.each(["minimal", "auxiliary"] as const)("detail_%s_mismatch", (detail) => {
+    const hasTrailer = detail === "minimal";
+    const buffer = tileResponse({
+      head: { 10: bool(hasTrailer) },
+      tail: hasTrailer
+        ? map([
+            [0, list([nul(), nul(), nul()])],
+            [1, list([nul(), nul(), nul()])],
+          ])
+        : [],
+    });
+    const failures = sectionFailures(
+      expectError(runDecode(buffer, tileContext({ detail }))),
+      "request",
+    ).map(asTileDocumentError);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]?.reason).toEqual({
+      _tag: "detail-mismatch",
+      expected: detail,
+      actual: hasTrailer ? "auxiliary" : "minimal",
+    });
+  });
+
   it("equal_values", () => {
     const options = tileContext();
     const document = expectOk(runDecode(tileResponse(), options));

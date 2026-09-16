@@ -1,5 +1,6 @@
 import * as TaggedError from "../TaggedError";
 
+import type * as Detail from "../Detail";
 import type * as Envelope from "../Envelope";
 import type * as GenerationId from "../GenerationId";
 import type * as Num from "../Num";
@@ -40,6 +41,11 @@ export type EdgeDocumentErrorReason =
       readonly expected: Num.u64;
       readonly actual: Num.u64;
     }
+  | {
+      readonly _tag: "detail-mismatch";
+      readonly expected: Detail.Detail;
+      readonly actual: Detail.Detail;
+    }
   | { readonly _tag: "section"; readonly section: Section }
   | { readonly _tag: "decode" };
 
@@ -74,6 +80,9 @@ export class EdgeDocumentError extends TaggedError.TaggedError<
       case "variant-mismatch":
         message = `expected variant ${reason.expected}, received ${reason.actual}`;
         break;
+      case "detail-mismatch":
+        message = `expected detail ${reason.expected}, received ${reason.actual}`;
+        break;
       case "section":
         message = `invalid edges ${reason.section}`;
         break;
@@ -105,6 +114,13 @@ export class EdgeDocumentError extends TaggedError.TaggedError<
       expected,
       actual,
     });
+  }
+
+  static detailMismatch(
+    expected: Detail.Detail,
+    actual: Detail.Detail,
+  ): EdgeDocumentError {
+    return new EdgeDocumentError({ _tag: "detail-mismatch", expected, actual });
   }
 
   static rejected(section: Section): EdgeDocumentError {

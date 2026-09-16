@@ -34,6 +34,7 @@ import {
   type NetworkGraphSelection,
 } from "@hashintel/ds-components";
 import {
+  createFormattedValueParts,
   formatDataValue,
   type FormattedValuePart,
   type MergedDataTypeSingleSchema,
@@ -53,8 +54,6 @@ import {
   fetchLocate,
   type LocatedEntity,
   type LocateEdge,
-  type SaltileProperties,
-  type SaltilePropertyValue,
 } from "../../../components/tiled-network-graph/tiling/fetch-locate";
 import {
   ATLAS_API_BASE_URL,
@@ -83,6 +82,7 @@ import {
   typeColorRanks,
 } from "./shared/type-colors";
 
+import type * as LocateDocument from "../../../components/tiled-network-graph/atlas-decode/LocateDocument";
 import type { NetworkGraphSearchResult } from "../../../components/tiled-network-graph/network-graph-search";
 import type { TypeColorOverrides } from "./shared/type-colors";
 import type { AvailableType } from "./shared/use-available-types";
@@ -369,7 +369,12 @@ const shortPropName = (url: string): string => {
  * metadata, so the schema is synthesised from the value's primitive type — no
  * unit labels resolve, but the styling matches.
  */
-const formatPropValue = (value: SaltilePropertyValue): FormattedValuePart[] => {
+const formatPropValue = (
+  value: LocateDocument.Scalar,
+): FormattedValuePart[] => {
+  if (typeof value === "bigint") {
+    return createFormattedValueParts({ inner: value.toString() });
+  }
   const schema: MergedDataTypeSingleSchema =
     value === null
       ? { type: "null", description: "" }
@@ -738,12 +743,10 @@ export const NetworkGraphView = ({
   // and its formatted value, falling back to the base URL's last segment.
   const propertyRows = useCallback(
     (
-      properties: SaltileProperties | null | undefined,
+      properties: LocateDocument.Properties | null | undefined,
     ): LocatedEntityDetail["properties"] =>
-      Object.entries(properties ?? {}).map(([baseUrl, value]) => ({
-        key:
-          propertyTitleByBaseUrl.get(baseUrl as BaseUrl) ??
-          shortPropName(baseUrl),
+      Array.from(properties ?? [], ([baseUrl, value]) => ({
+        key: propertyTitleByBaseUrl.get(baseUrl) ?? shortPropName(baseUrl),
         value: formatPropValue(value),
       })),
     [propertyTitleByBaseUrl],

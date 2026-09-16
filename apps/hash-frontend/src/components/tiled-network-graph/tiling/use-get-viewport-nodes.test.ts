@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BinaryEntityId } from "../atlas-decode/BinaryEntityId";
+import * as Num from "../atlas-decode/Num";
+import * as Result from "../atlas-decode/Result";
 import {
   getViewportNodes,
   TileCache,
@@ -10,10 +13,22 @@ import {
   type Viewport,
 } from "./use-get-viewport-nodes";
 
-import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
+import type * as NodeId from "../atlas-decode/NodeId";
+import type * as TileDocument from "../atlas-decode/TileDocument";
 import type { FetchedEdges, TileEdge } from "./fetch-edges-for-tiles";
 import type { FetchedTile, TileNode } from "./fetch-tile";
-import type { EntityId } from "@blockprotocol/type-system";
+/** Brands a zoom or coordinate literal known to be a nonnegative integer. */
+const u64 = (value: number): Num.u64 => Num.u64.unsafe(BigInt(value));
+
+/** Fresh borrowed identity storage, even when the identity value repeats. */
+const edgeId = (value: number): BinaryEntityId => {
+  const bytes = new Uint8Array(32);
+  new DataView(bytes.buffer).setUint32(28, value);
+  return BinaryEntityId.make(bytes).pipe(Result.unwrap);
+};
+
+/** All fixture node identities fit the wire's u32 domain. */
+const nodeId = (value: number): NodeId.NodeId => value as NodeId.NodeId;
 
 /**
  * A fetcher returning three unique nodes per tile, tracking calls per tile.
@@ -22,16 +37,16 @@ import type { EntityId } from "@blockprotocol/type-system";
  * descent walks to the viewport's target depth (the pre-LOD behaviour).
  */
 const countingFetcher = (
-  complete: (zoom: number, tileIndex: number) => boolean = () => false,
+  complete: (zoom: Num.u64, tileIndex: Num.u64) => boolean = () => false,
 ): TileFetcher & {
   readonly calls: Map<string, number>;
   total: () => number;
 } => {
   const calls = new Map<string, number>();
-  const fetcher = (zoom: number, tileIndex: number): Promise<FetchedTile> => {
+  const fetcher = (zoom: Num.u64, tileIndex: Num.u64): Promise<FetchedTile> => {
     const key = `${zoom}/${tileIndex}`;
     calls.set(key, (calls.get(key) ?? 0) + 1);
-    const base = zoom * 1_000_000 + tileIndex * 10;
+    const base = Number(zoom) * 1_000_000 + Number(tileIndex) * 10;
     return Promise.resolve({
       nodes: [
         { id: base, x: 1, y: 1 },
@@ -71,8 +86,8 @@ const deferredEdgesFetcher = (): EdgesFetcher & {
 /** An edges fetcher returning a fixed edge list, recording each call's tiles. */
 const stubEdges = (
   edges: TileEdge[],
-): EdgesFetcher & { readonly calls: AtlasTileCoordinate[][] } => {
-  const calls: AtlasTileCoordinate[][] = [];
+): EdgesFetcher & { readonly calls: TileDocument.Coordinate[][] } => {
+  const calls: TileDocument.Coordinate[][] = [];
   const fetcher: EdgesFetcher = (tiles) => {
     calls.push([...tiles]);
     return Promise.resolve({ edges, complete: true });
@@ -93,7 +108,7 @@ const labellingFetcher = (): TileFetcher & {
   const fetcher: TileFetcher = (zoom, tileIndex, controls) => {
     const detailed = controls?.detail === "auxiliary";
     calls.push({ key: `${zoom}/${tileIndex}`, detailed });
-    const base = zoom * 1_000_000 + tileIndex * 10;
+    const base = Number(zoom) * 1_000_000 + Number(tileIndex) * 10;
     const node = (id: number): TileNode =>
       detailed ? { id, x: 1, y: 1, label: `n${id}` } : { id, x: 1, y: 1 };
     return Promise.resolve({
@@ -204,7 +219,7 @@ describe("getViewportNodes", () => {
   it("stops the descent at a tile that reports its subtree complete", async () => {
     // The root delivers its whole subtree (complete), so its children are never
     // requested even though the viewport's target depth is 1.
-    const rootComplete = countingFetcher((zoom) => zoom === 0);
+    const rootComplete = countingFetcher((zoom) => zoom === 0n);
     const cache = new TileCache({
       fetcher: rootComplete,
       edgesFetcher: noEdges,
@@ -260,7 +275,7 @@ describe("getViewportNodes", () => {
     // out without taking its siblings down.
     const base = countingFetcher();
     const partial: TileFetcher = (zoom, tileIndex, controls) =>
-      zoom === 1 && tileIndex === 0
+      zoom === 1n && tileIndex === 0n
         ? Promise.reject(new Error("gap"))
         : base(zoom, tileIndex, controls);
     const { nodes } = await getViewportNodes(
@@ -276,7 +291,7 @@ describe("getViewportNodes", () => {
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
     // Prime a depth-1 neighbour the viewport below never covers: the top-right
     // quadrant { z: 1, x: 1, y: 0 } (row-major index 1).
-    await cache.load({ z: 1, x: 1, y: 0 });
+    await cache.load({ z: u64(1), x: u64(1), y: u64(0) });
 
     // A viewport wholly inside the top-left quadrant. Its descent covers the root
     // and only { z: 1, x: 0, y: 0 }.
@@ -302,7 +317,8 @@ describe("getViewportNodes", () => {
     // The pan crosses into depth-5 column x=7, beyond the second viewport's own
     // columns (5..6), so prediction should have pulled it into the cache.
     const prefetched =
-      cache.has({ z: 5, x: 7, y: 4 }) || cache.has({ z: 5, x: 7, y: 5 });
+      cache.has({ z: u64(5), x: u64(7), y: u64(4) }) ||
+      cache.has({ z: u64(5), x: u64(7), y: u64(5) });
     expect(prefetched).toBe(true);
   });
 
@@ -376,7 +392,7 @@ describe("getViewportNodes", () => {
     const priorityFetcher: TileFetcher = (zoom, tileIndex, controls) => {
       priorities.push(controls?.priority);
       return Promise.resolve({
-        nodes: [{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }],
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
         complete: false,
       });
     };
@@ -406,7 +422,7 @@ describe("getViewportNodes", () => {
         });
       }
       return Promise.resolve({
-        nodes: [{ id: zoom * 1_000 + tileIndex, x: 0, y: 0 }],
+        nodes: [{ id: Number(zoom) * 1_000 + Number(tileIndex), x: 0, y: 0 }],
         complete: false,
       });
     };
@@ -428,9 +444,9 @@ describe("getViewportNodes edges", () => {
     // A world-covering depth-1 viewport delivers the root (ids 0..2) and four
     // depth-1 tiles ({ z:1 } base = 1_000_000 + tileIndex * 10).
     const edgesFetcher = stubEdges([
-      { id: "id-500" as EntityId, source: 0, target: 1 }, // within the root tile
-      { id: "id-501" as EntityId, source: 1_000_000, target: 1_000_001 }, // within tile z1/0
-      { id: "id-502" as EntityId, source: 1_000_000, target: 1_000_010 }, // z1/0 <-> z1/1
+      { id: edgeId(500), source: nodeId(0), target: nodeId(1) }, // within the root tile
+      { id: edgeId(501), source: nodeId(1_000_000), target: nodeId(1_000_001) }, // within tile z1/0
+      { id: edgeId(502), source: nodeId(1_000_000), target: nodeId(1_000_010) }, // z1/0 <-> z1/1
     ]);
     const cache = new TileCache({ fetcher, edgesFetcher });
 
@@ -443,21 +459,48 @@ describe("getViewportNodes edges", () => {
     expect(edgesFetcher.calls).toHaveLength(1);
     expect(edgesFetcher.calls[0]).toHaveLength(5);
     expect(edges.map((edge) => edge.id).sort()).toEqual([
-      "id-500",
-      "id-501",
-      "id-502",
+      edgeId(500).toString(),
+      edgeId(501).toString(),
+      edgeId(502).toString(),
     ]);
     // Two single-tile buckets plus one tile-pair bucket.
     expect(cache.edgeBucketCount).toBe(3);
   });
 
+  it.each(["minimal", "auxiliary"] as const)(
+    "deduplicates %s edges by identity bytes, not borrowed object identity",
+    async (detail) => {
+      const firstId = edgeId(600);
+      const sameId = edgeId(600);
+      expect(firstId).not.toBe(sameId);
+      const edgesFetcher = stubEdges([
+        { id: firstId, source: nodeId(0), target: nodeId(1) },
+        { id: sameId, source: nodeId(0), target: nodeId(1) },
+        { id: edgeId(601), source: nodeId(0), target: nodeId(1) },
+      ]);
+      const cache = new TileCache({
+        fetcher: countingFetcher(() => true),
+        edgesFetcher,
+      });
+
+      const { edges } = await getViewportNodes(null, cache, { detail });
+      expect(edges.map((edge) => edge.id)).toEqual([
+        firstId.toString(),
+        edgeId(601).toString(),
+      ]);
+      const repeated = await getViewportNodes(null, cache, { detail });
+      expect(repeated.edges).toEqual(edges);
+      expect(edgesFetcher.calls).toHaveLength(detail === "minimal" ? 1 : 2);
+    },
+  );
+
   it("serves repeated minimal edges from cache but refetches auxiliary detail", async () => {
     const fetcher = countingFetcher();
     const controls: Array<string | undefined> = [];
     const edge: TileEdge = {
-      id: "id-700" as EntityId,
-      source: 1_000_000,
-      target: 1_000_010,
+      id: edgeId(700),
+      source: nodeId(1_000_000),
+      target: nodeId(1_000_010),
     };
     const edgesFetcher: EdgesFetcher = (_tiles, options) => {
       controls.push(options?.detail);
@@ -537,7 +580,7 @@ describe("getViewportNodes cancellation", () => {
     expect(cache.prefetchStats.issued).toBe(0);
     // The in-flight tile still landed: geometry is viewport-independent, and
     // the load may be shared with the viewport that superseded this one.
-    expect(cache.has({ z: 0, x: 0, y: 0 })).toBe(true);
+    expect(cache.has({ z: u64(0), x: u64(0), y: u64(0) })).toBe(true);
   });
 
   it("does not rewrite resident edge state when aborted during the edge fetch", async () => {
@@ -547,9 +590,9 @@ describe("getViewportNodes cancellation", () => {
     const viewport = viewportAt(32_768, 32_768, 30_000, 1);
     // Crosses tiles z1/0 and z1/1 (countingFetcher's id scheme).
     const crossEdge: TileEdge = {
-      id: "id-800" as EntityId,
-      source: 1_000_000,
-      target: 1_000_010,
+      id: edgeId(800),
+      source: nodeId(1_000_000),
+      target: nodeId(1_000_010),
     };
     const controller = new AbortController();
 
@@ -615,7 +658,7 @@ describe("getViewportNodes detailed data", () => {
         resolveFetch = resolve;
       });
     const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
-    const coordinate = { z: 0, x: 0, y: 0 };
+    const coordinate = { z: u64(0), x: u64(0), y: u64(0) };
 
     const auxiliary = cache.load(coordinate, "auxiliary");
     const minimal = cache.load(coordinate);
@@ -660,7 +703,9 @@ describe("getViewportNodes detailed data", () => {
     expect(fetcher.calls.length).toBe(firstDetailedCalls * 2);
     expect(second.nodes.every((node) => node.label !== undefined)).toBe(true);
     expect(cache.tileCount).toBe(1);
-    expect((await cache.load({ z: 0, x: 0, y: 0 }))[0]?.label).toBeUndefined();
+    expect(
+      (await cache.load({ z: u64(0), x: u64(0), y: u64(0) }))[0]?.label,
+    ).toBeUndefined();
   });
 });
 
@@ -671,17 +716,17 @@ describe("TileCache", () => {
 
   it("shares one in-flight fetch between concurrent loads", async () => {
     const fetcher = vi.fn(
-      (zoom: number, tileIndex: number): Promise<FetchedTile> =>
+      (zoom: Num.u64, tileIndex: Num.u64): Promise<FetchedTile> =>
         Promise.resolve({
-          nodes: [{ id: zoom * 100 + tileIndex, x: 0, y: 0 }],
+          nodes: [{ id: Number(zoom) * 100 + Number(tileIndex), x: 0, y: 0 }],
           complete: false,
         }),
     );
     const cache = new TileCache({ fetcher });
 
     const [a, b] = await Promise.all([
-      cache.load({ z: 3, x: 1, y: 2 }),
-      cache.load({ z: 3, x: 1, y: 2 }),
+      cache.load({ z: u64(3), x: u64(1), y: u64(2) }),
+      cache.load({ z: u64(3), x: u64(1), y: u64(2) }),
     ]);
 
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -694,7 +739,7 @@ describe("TileCache", () => {
       const fetcher = deferredFetcher();
       const { requests } = fetcher;
       const cache = new TileCache({ fetcher });
-      const coordinate = { z: 3, x: 1, y: 2 };
+      const coordinate = { z: u64(3), x: u64(1), y: u64(2) };
 
       const minimal = cache.load(coordinate);
       const minimalSettlement = minimal.then(
@@ -732,7 +777,7 @@ describe("TileCache", () => {
       const fetcher = deferredFetcher();
       const { requests } = fetcher;
       const cache = new TileCache({ fetcher });
-      const coordinate = { z: 3, x: 1, y: 2 };
+      const coordinate = { z: u64(3), x: u64(1), y: u64(2) };
 
       cache.prefetchBatch([coordinate]);
       const auxiliary = cache.load(coordinate, "auxiliary");
@@ -766,7 +811,7 @@ describe("TileCache", () => {
     const fetcher = deferredFetcher();
     const { requests } = fetcher;
     const cache = new TileCache({ fetcher });
-    const coordinate = { z: 3, x: 1, y: 2 };
+    const coordinate = { z: u64(3), x: u64(1), y: u64(2) };
 
     cache.prefetchBatch([coordinate]);
     const auxiliary = cache.load(coordinate, "auxiliary");
@@ -789,7 +834,7 @@ describe("TileCache", () => {
     const fetcher = deferredFetcher();
     const { requests } = fetcher;
     const cache = new TileCache({ fetcher });
-    const coordinate = { z: 3, x: 1, y: 2 };
+    const coordinate = { z: u64(3), x: u64(1), y: u64(2) };
 
     cache.prefetchBatch([coordinate]);
     const auxiliary = cache.load(coordinate, "auxiliary");
@@ -823,14 +868,14 @@ describe("TileCache", () => {
     // is deterministic regardless of load order.
     await Promise.all(
       Array.from({ length: 20 }, (_unused, x) =>
-        cache.load({ z: 5, x, y: 20 }),
+        cache.load({ z: u64(5), x: u64(x), y: u64(20) }),
       ),
     );
-    await cache.load({ z: 5, x: 0, y: 0 }); // the pinned tile (index 0)
+    await cache.load({ z: u64(5), x: u64(0), y: u64(0) }); // the pinned tile (index 0)
 
     expect(cache.byteEstimate).toBeLessThanOrEqual(cache.maxBytes);
     expect(cache.tileCount).toBeLessThanOrEqual(3);
-    expect(cache.has({ z: 5, x: 0, y: 0 })).toBe(true);
+    expect(cache.has({ z: u64(5), x: u64(0), y: u64(0) })).toBe(true);
   });
 
   it("does not let a load issued before a generation re-pin enter the replaced cache", async () => {
@@ -840,7 +885,7 @@ describe("TileCache", () => {
       settle = resolve;
     });
     const cache = new TileCache({ fetcher: () => inFlight });
-    const pending = cache.load({ z: 2, x: 1, y: 1 });
+    const pending = cache.load({ z: u64(2), x: u64(1), y: u64(1) });
 
     // The re-pin (the transport's `404` refresh landing on another generation).
     // `useGetViewportNodes` names the session revision in the memo that builds this
@@ -858,21 +903,21 @@ describe("TileCache", () => {
     settle({ nodes: [{ id: 111, x: 0, y: 0 }], complete: true });
     await pending;
 
-    const nodes = await replaced.load({ z: 2, x: 1, y: 1 });
+    const nodes = await replaced.load({ z: u64(2), x: u64(1), y: u64(1) });
 
     // The deferred result stayed in the store it was issued from, which the view
     // no longer reads; the live store holds only the new generation's row.
     expect(nodes.map(({ id }) => id)).toEqual([555]);
-    expect(cache.has({ z: 2, x: 1, y: 1 })).toBe(true);
+    expect(cache.has({ z: u64(2), x: u64(1), y: u64(1) })).toBe(true);
     expect(replaced.tileCount).toBe(1);
   });
 
   it("evicts a tile-pair edge bucket when an endpoint tile is evicted", async () => {
     const fetcher = countingFetcher();
-    const tileA = { z: 5, x: 0, y: 0 }; // nodes 5_000_000..02
-    const tileB = { z: 5, x: 1, y: 0 }; // tileIndex 1 → nodes 5_000_010..12
+    const tileA = { z: u64(5), x: u64(0), y: u64(0) }; // nodes 5_000_000..02
+    const tileB = { z: u64(5), x: u64(1), y: u64(0) }; // tileIndex 1 → nodes 5_000_010..12
     const edgesFetcher = stubEdges([
-      { id: "id-900" as EntityId, source: 5_000_000, target: 5_000_010 }, // crosses A <-> B
+      { id: edgeId(900), source: nodeId(5_000_000), target: nodeId(5_000_010) }, // crosses A <-> B
     ]);
     // Budget for exactly the two node tiles plus the one pair bucket.
     const cache = new TileCache({
@@ -890,7 +935,7 @@ describe("TileCache", () => {
     // Move far away (clearing pins), then load a tile near the new viewport: the
     // furthest resident tile (A or B) is evicted, cascading to the pair bucket.
     cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5);
-    await cache.load({ z: 5, x: 29, y: 29 });
+    await cache.load({ z: u64(5), x: u64(29), y: u64(29) });
 
     expect(cache.edgeBucketCount).toBe(0);
     expect(cache.has(tileA) && cache.has(tileB)).toBe(false);

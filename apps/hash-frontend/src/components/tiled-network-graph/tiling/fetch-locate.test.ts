@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { enterPrincipal } from "../../../shared/principal-scoped-state";
+import { SALTILE_MEDIA_TYPE } from "../atlas-decode/Envelope";
+import { WORLD_SIZE } from "./atlas-tile-coordinate";
 import { fetchLocate } from "./fetch-locate";
 import {
   ATLAS_AUTHORITY_HEADER,
@@ -10,7 +14,6 @@ import {
   getSaltileSession,
   subscribeToAtlasSessionRevision,
 } from "./fetch-tile";
-
 /**
  * Locate's half of the session-replacement contract.
  *
@@ -24,7 +27,14 @@ import {
  * what happens to the session, so no locate wire fixture is needed to pin it.
  */
 
+import type * as LocateDocument from "../atlas-decode/LocateDocument";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+
 const BASE = "http://api.test/atlas";
+const COLORED_TYPES: readonly VersionedUrl[] = [
+  "https://t.test/person/v/3" as VersionedUrl,
+  "https://t.test/authored/v/1" as VersionedUrl,
+];
 
 const genHex = (byte: number): string =>
   byte.toString(16).padStart(2, "0").repeat(32);
@@ -42,12 +52,18 @@ const manifestBody = (generation: string): unknown => ({
   bucketSchedule: { span: 64, cut: "z+6", maxZoom: 16 },
   scopeSchedule: { k: 0, cut: "z+6", maxZoom: 16 },
   limits: {
-    coloredTypeIds: 8,
-    edgesTiles: 32,
-    locateEdges: 512,
-    locateProperties: 20,
-    locateLinkTypeIds: 5,
-    locateLinkProperties: 10,
+    tile: { coloredTypeIds: 8 },
+    edges: { tiles: 32, edges: 16384 },
+    locate: {
+      coloredTypeIds: 8,
+      edges: 512,
+      properties: 20,
+      linkTypeIds: 5,
+      linkProperties: 10,
+    },
+    translate: { entityIds: 1024 },
+    authorityRefreshSeconds: 480,
+    authorityHardSeconds: 600,
   },
   createdAt: "2026-07-19T16:00:00Z",
 });
@@ -105,6 +121,7 @@ const unknownEntity = (): Response =>
 interface RecordedRequest {
   readonly path: string;
   readonly authority: string | null;
+  readonly body: unknown;
 }
 
 /** Stubs global fetch with canned routes, recording each path and presented token. */
@@ -119,6 +136,10 @@ const stubAuthorityTransport = (
     const request: RecordedRequest = {
       path: new URL(url, BASE).pathname,
       authority: new Headers(init?.headers).get(ATLAS_AUTHORITY_HEADER),
+      body:
+        typeof init?.body === "string"
+          ? (JSON.parse(init.body) as unknown)
+          : undefined,
     };
     seen.push(request);
     const route = routes[request.path];
@@ -146,6 +167,129 @@ describe("fetchLocate and its session", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     clearAtlasSessionCache();
+  });
+
+  it("maps a decoded locate without truncating nodes to source properties", async () => {
+    const generation = genHex(0x77);
+    const bytes = readFileSync(
+      new URL(
+        "../../../../../../libs/@local/graph/atlas/fixtures/wire/g7-locate.saltile",
+        import.meta.url,
+      ),
+    );
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, TOKEN_A),
+      [`/atlas/locate/${generation}/plain`]: () =>
+        new Response(new Uint8Array(bytes), {
+          headers: { "content-type": SALTILE_MEDIA_TYPE },
+        }),
+    });
+    const document = await fetchLocate(61, {
+      baseUrl: BASE,
+      retry: 0,
+      coloredTypeIds: COLORED_TYPES,
+    });
+    expect(seen.at(-1)?.body).toEqual({
+      row: 61,
+      coloredTypeIds: [
+        "https://t.test/person/v/3",
+        "https://t.test/authored/v/1",
+      ],
+    });
+    expect(document.nodes.map((node) => node.id)).toEqual([61, 11, 21, 41]);
+    expect(document.nodes.map((node) => node.typeIndices)).toEqual([
+      [0],
+      [0],
+      [],
+      [1],
+    ]);
+    expect(document.nodes[0]).toMatchObject({
+      x: 0.8125 * WORLD_SIZE,
+      y: 0.375 * WORLD_SIZE,
+      typeId: "https://t.test/person/v/3",
+    });
+    expect(document.nodes[1]).not.toHaveProperty("label");
+    expect(document.nodes[1]).not.toHaveProperty("typeId");
+    expect(document.nodes[0]?.properties).toEqual(
+      new Map<string, LocateDocument.Scalar>([
+        ["https://x.test/age/", -3n],
+        ["https://x.test/name/", "Ada"],
+        ["https://x.test/ok/", true],
+        ["https://x.test/score/", 0.5],
+      ]),
+    );
+    for (const neighbour of document.nodes.slice(1)) {
+      expect(neighbour).not.toHaveProperty("properties");
+    }
+    expect(document.edges.map((edge) => [edge.source, edge.target])).toEqual([
+      [61, 11],
+      [41, 61],
+      [21, 41],
+    ]);
+    expect(document.edges[0]?.typeIds).toEqual([
+      "https://t.test/person/v/3",
+      "https://t.test/authored/v/1",
+    ]);
+    expect(document.edges.map((edge) => edge.typeIdsComplete)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect(document.edges.map((edge) => edge.propertiesComplete)).toEqual([
+      true,
+      false,
+      true,
+    ]);
+    expect([...document.edges[0]!.properties!.values()]).toEqual([
+      977n,
+      null,
+      -2.5,
+    ]);
+    expect(document.edges[1]?.properties).toBeNull();
+    expect(document.edges[2]?.properties).toEqual(new Map());
+    expect(typeof document.entityId).toBe("string");
+    expect(document.edges.every((edge) => typeof edge.id === "string")).toBe(
+      true,
+    );
+    expect(document).toMatchObject({
+      cell: { z: 3n, x: 5n, y: 2n },
+      zoom: 3n,
+      complete: false,
+      typeIdsComplete: true,
+      propertiesComplete: false,
+    });
+  });
+
+  it("rejects a decoded locate from another generation without retiring the session", async () => {
+    const generation = genHex(0x78);
+    const bytes = readFileSync(
+      new URL(
+        "../../../../../../libs/@local/graph/atlas/fixtures/wire/g7-locate.saltile",
+        import.meta.url,
+      ),
+    );
+    const seen = stubAuthorityTransport({
+      "/atlas/current": () => json({ generation }),
+      [`/atlas/generation/${generation}/manifest`]: () =>
+        manifest(generation, TOKEN_A),
+      [`/atlas/locate/${generation}/plain`]: () =>
+        new Response(new Uint8Array(bytes), {
+          headers: { "content-type": SALTILE_MEDIA_TYPE },
+        }),
+    });
+    await getSaltileSession(BASE);
+    const revision = getAtlasSessionRevision();
+    await expect(
+      fetchLocate(61, {
+        baseUrl: BASE,
+        retry: 0,
+        coloredTypeIds: COLORED_TYPES,
+      }),
+    ).rejects.toThrow("failed to decode locate");
+    expect(getAtlasSessionRevision()).toBe(revision);
+    expect(bootstraps(seen)).toHaveLength(1);
   });
 
   it("replaces the session when a locate renewal is refused", async () => {
