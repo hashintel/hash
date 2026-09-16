@@ -1,7 +1,6 @@
+import * as Num from "./Num";
 import * as Result from "./Result";
 import * as TaggedError from "./TaggedError";
-
-import type * as Num from "./Num";
 
 /** A malformed position column or an out-of-range row lookup. */
 export type PositionColumnErrorReason =
@@ -82,8 +81,8 @@ export class PositionColumn<
 
   #read(index: number): Position {
     return [
-      this.#view.getFloat32(index * 8, true) as Num.f32,
-      this.#view.getFloat32(index * 8 + 4, true) as Num.f32,
+      Num.f32.unsafe(this.#view.getFloat32(index * 8, true)),
+      Num.f32.unsafe(this.#view.getFloat32(index * 8 + 4, true)),
     ];
   }
 
