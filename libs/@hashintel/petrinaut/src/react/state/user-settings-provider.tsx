@@ -43,6 +43,7 @@ type PersistedUserSettings = Partial<UserSettings> & {
    * scenario form, so the key is dropped on the next write.
    */
   enableAdHocScenarios?: boolean;
+  enableNotebookView?: boolean;
 };
 
 const loadSettings = (): UserSettings => {
@@ -56,6 +57,7 @@ const loadSettings = (): UserSettings => {
         useEntitiesTreeView: _useEntitiesTreeView,
         enableOptimizationSurface: _enableOptimizationSurface,
         enableAdHocScenarios: _enableAdHocScenarios,
+        enableNotebookView: _enableNotebookView,
         ...parsed
       } = JSON.parse(raw) as PersistedUserSettings;
       return {
@@ -130,8 +132,6 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, partialSelection: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
-    setEnableNotebookView: (value: boolean) =>
-      setState((prev) => ({ ...prev, enableNotebookView: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     setWebGpuEnabled: (value: boolean) =>

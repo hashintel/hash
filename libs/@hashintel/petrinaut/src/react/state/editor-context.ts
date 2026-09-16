@@ -14,7 +14,8 @@ export type DraggingStateByNodeId = Record<
   { dragging: boolean; position: { x: number; y: number } }
 >;
 
-export type EditorGlobalMode = "edit" | "simulate" | "actual" | "notebook";
+export type EditorGlobalMode = "edit" | "simulate" | "actual";
+export type EditViewMode = "canvas" | "notebook";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
@@ -44,6 +45,7 @@ export type SimulateDrawerState =
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
+  editViewMode?: EditViewMode;
   simulateViewMode?: SimulateViewMode;
   simulateDrawer?: SimulateDrawerState;
   selection?: SelectionMap;
@@ -70,6 +72,7 @@ export type TimelineView =
  */
 export type EditorState = {
   globalMode: EditorGlobalMode;
+  editViewMode: EditViewMode;
   editionMode: EditorEditionMode;
   cursorMode: CursorMode;
   isLeftSidebarOpen: boolean;
@@ -138,6 +141,7 @@ export type EditorActions = {
   /** Navigate several editor surfaces as one app-history transition. */
   navigateTo: (target: EditorNavigationTarget) => void;
   setGlobalMode: (mode: EditorGlobalMode) => void;
+  setEditViewMode: (view: EditViewMode) => void;
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
   setLeftSidebarOpen: (isOpen: boolean) => void;
@@ -194,6 +198,7 @@ export type EditorContextValue = EditorState &
 
 export const initialEditorState: EditorState = {
   globalMode: "edit",
+  editViewMode: "canvas",
   editionMode: "cursor",
   cursorMode: "pan",
   isLeftSidebarOpen: true,
@@ -227,6 +232,7 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
   navigateTo: () => {},
   setGlobalMode: () => {},
+  setEditViewMode: () => {},
   setEditionMode: () => {},
   setCursorMode: () => {},
   setLeftSidebarOpen: () => {},

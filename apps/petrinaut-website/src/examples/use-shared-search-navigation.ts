@@ -37,6 +37,7 @@ const mergeSharedSearch = (
     selection: shared.selection,
     expandedSubView: shared.expandedSubView,
     mode: shared.mode,
+    editView: shared.editView,
     simulateView: shared.simulateView,
     overlay: shared.overlay,
   };

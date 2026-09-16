@@ -41,6 +41,8 @@ const containerStyle = css({
   flexDirection: "row",
   width: "full",
   height: "full",
+  flex: "[1]",
+  minHeight: "[0]",
   backgroundColor: "neutral.s00",
 });
 
@@ -116,13 +118,13 @@ const emptyStyle = css({
 });
 
 /**
- * The experimental Notebook view: a code-like rendering of the net where
+ * The Notebook view: a code-like rendering of the net where
  * every entity (place, transition, type, differential equation, parameter)
  * is a one-line cell — inspired by Observable notebooks. Everything an
  * expanded cell shows edits in place through the same mutations as the
  * properties panel — names, fields, arc weights, type assignments, and the
  * code editors; only adding and removing nodes, arcs, and fields stays in
- * Edit mode. Cells are
+ * Canvas view. Cells are
  * closed by default and stay as the user leaves them: the caret or
  * ArrowRight/ArrowLeft opens and closes, ArrowUp/ArrowDown moves the
  * selection, and "/" focuses the fuzzy name search. Selecting a cell draws
@@ -139,7 +141,7 @@ const NotebookViewContent: React.FC = () => {
   const { selection, selectItem } = use(EditorContext);
 
   // The canvas BottomBar (which owns the editor-wide shortcuts) isn't
-  // mounted in notebook mode, so undo/redo is bound here.
+  // active in Notebook view, so undo/redo is bound here.
   useUndoRedoShortcuts();
 
   const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(
@@ -303,7 +305,12 @@ const NotebookViewContent: React.FC = () => {
     },
   });
 
+  const revealedSelectionRef = useRef<string | null>(null);
   useEffect(() => {
+    if (selectedId === revealedSelectionRef.current) {
+      return;
+    }
+    revealedSelectionRef.current = selectedId;
     if (selectedId === null) {
       return;
     }

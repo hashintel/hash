@@ -606,22 +606,16 @@ export const UserSettingsDialog = ({
                   )}
                   {item.id === "labs" && (
                     <>
-                      <SettingsGroup title="Modeling">
-                        <SettingToggle
-                          label="Notebook view"
-                          description="Explore your net as expandable, read-only cells in a Notebook tab."
-                          value={settings.enableNotebookView}
-                          onChange={settings.setEnableNotebookView}
-                        />
-                        {extensions.subnets && (
+                      {extensions.subnets && (
+                        <SettingsGroup title="Modeling">
                           <SettingToggle
                             label="Net Components"
                             description="Build hierarchical nets with subnet definitions and component instances."
                             value={settings.enableNetComponents}
                             onChange={settings.setEnableNetComponents}
                           />
-                        )}
-                      </SettingsGroup>
+                        </SettingsGroup>
+                      )}
                       <SettingsGroup title="Developer tools">
                         <SettingToggle
                           label="Compilation output"

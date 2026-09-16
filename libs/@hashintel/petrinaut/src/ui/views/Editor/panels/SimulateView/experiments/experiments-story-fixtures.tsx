@@ -840,6 +840,7 @@ export function FakeEditorProvider({
     simulateViewMode,
     navigateTo: () => {},
     setGlobalMode: () => {},
+    setEditViewMode: () => {},
     setEditionMode: () => {},
     setAddComponentMode: () => {},
     setCursorMode: () => {},

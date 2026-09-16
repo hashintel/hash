@@ -18,6 +18,7 @@ import {
   selectionFromInput,
   selectionToSearch,
   type SharedExampleSearch,
+  type SharedEditView,
   type SharedMode,
   type SharedOverlay,
   type SharedSimulateView,
@@ -26,6 +27,7 @@ import {
 import type { PetrinautPreviewNavigationState } from "@hashintel/petrinaut/preview";
 import type {
   EditorGlobalMode,
+  EditViewMode,
   PetrinautNavigationOverlay,
   PetrinautNavigationState,
   PetrinautNavigationUpdater,
@@ -60,6 +62,8 @@ const scenarioToSearch = (
  * editor fails this file's type check until the contract decides whether the
  * URL should carry it.
  */
+const editViewToSearch = (view: EditViewMode): SharedEditView => view;
+
 const modeToSearch = (mode: EditorGlobalMode): SharedMode => mode;
 
 const simulateViewToSearch = (view: SimulateViewMode): SharedSimulateView =>
@@ -84,6 +88,7 @@ export const sharedSearchToNavigationState = (
   subnetId: search.subnet ?? null,
   selection: selectionFromInput(search as Record<string, unknown>),
   mode: search.mode ?? baseline.mode,
+  editView: search.editView ?? baseline.editView,
   expandedSubView:
     search.expandedPanel && search.expandedSection
       ? { container: search.expandedPanel, id: search.expandedSection }
@@ -100,6 +105,7 @@ export const navigationStateToSharedSearch = (
   baseline: PetrinautNavigationState = defaultPetrinautNavigationState,
 ): SharedExampleSearch => {
   const mode = modeToSearch(state.mode);
+  const editView = editViewToSearch(state.editView);
   const view = simulateViewToSearch(state.simulateView);
   const overlay = overlayToSearch(state.overlay);
   return {
@@ -110,6 +116,8 @@ export const navigationStateToSharedSearch = (
     // Omitted at the baseline, so an untouched page keeps a clean URL and the
     // decode above puts the baseline back.
     mode: mode === modeToSearch(baseline.mode) ? undefined : mode,
+    editView:
+      editView === editViewToSearch(baseline.editView) ? undefined : editView,
     view:
       view === simulateViewToSearch(baseline.simulateView) ? undefined : view,
     overlay:
@@ -149,6 +157,7 @@ export const applyPreviewNavigationUpdate = (
   update: PetrinautNavigationUpdater<PetrinautPreviewNavigationState>,
 ): SharedExampleSearch => ({
   mode: search.mode,
+  editView: search.editView,
   view: search.view,
   overlay: search.overlay,
   settings: search.settings,

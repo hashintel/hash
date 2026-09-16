@@ -23,13 +23,13 @@ A quick map of the things you'll encounter:
 
 Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
 
-- **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
+- **Edit** -- Canvas and Notebook views for editing the same net, plus single-run simulation playback on Canvas.
 - **Simulate** -- a separate management surface for scenarios and experiments.
 - **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
 
 ## Contents
 
-- [Drawing a Net](drawing-a-net.md) -- Top bar, canvas, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
+- [Drawing a Net](drawing-a-net.md) -- Top bar, Canvas and Notebook views, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
 - [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
