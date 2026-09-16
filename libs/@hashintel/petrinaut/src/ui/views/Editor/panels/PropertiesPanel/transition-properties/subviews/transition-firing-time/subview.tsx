@@ -193,6 +193,7 @@ const TransitionFiringTimeContent: React.FC = () => {
 
 export const transitionFiringTimeSubView: SubView = {
   id: "transition-firing-time",
+  canMaximize: true,
   title: "Firing Time",
   defaultCollapsed: true,
   tooltip:

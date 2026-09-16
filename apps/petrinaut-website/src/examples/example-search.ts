@@ -67,6 +67,8 @@ export type SharedExampleSearch = {
   view?: SharedSimulateView;
   overlay?: SharedOverlay;
   settings?: (typeof sharedSettingsSections)[number];
+  expandedPanel?: string;
+  expandedSection?: string;
 };
 
 /** The keys this contract owns. Anything else in a URL is foreign. */
@@ -79,6 +81,8 @@ const sharedSearchKeys = [
   "view",
   "overlay",
   "settings",
+  "expandedPanel",
+  "expandedSection",
 ] as const satisfies readonly (keyof SharedExampleSearch)[];
 
 // `.catch(undefined)` is the contract's whole validation story: anything a URL
@@ -127,6 +131,12 @@ export const validateSharedExampleSearch = (
   mode: optionalMode.parse(input.mode),
   view: optionalSimulateView.parse(input.view),
   overlay: optionalOverlay.parse(input.overlay),
+  expandedPanel: optionalNonEmptyString.parse(input.expandedSection)
+    ? optionalNonEmptyString.parse(input.expandedPanel)
+    : undefined,
+  expandedSection: optionalNonEmptyString.parse(input.expandedPanel)
+    ? optionalNonEmptyString.parse(input.expandedSection)
+    : undefined,
   settings:
     input.overlay === "user-settings"
       ? z

@@ -260,6 +260,7 @@ const VisualizerHeaderAction: React.FC = () => {
 
 export const placeVisualizerSubView: SubView = {
   id: "place-visualizer",
+  canMaximize: true,
   title: "Visualizer",
   tooltip:
     "Custom visualization of tokens in this place, defined by visualizer code.",

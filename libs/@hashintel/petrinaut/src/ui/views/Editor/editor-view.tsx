@@ -47,6 +47,7 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -140,7 +141,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView = ({
+const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
   slots,
@@ -650,3 +651,11 @@ export const EditorView = ({
     </ExperimentalIconProvider>
   );
 };
+
+export const EditorView = (
+  props: React.ComponentProps<typeof EditorViewContent>,
+) => (
+  <CodeNavigationProvider>
+    <EditorViewContent {...props} />
+  </CodeNavigationProvider>
+);

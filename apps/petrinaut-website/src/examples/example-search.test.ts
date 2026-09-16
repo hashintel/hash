@@ -8,6 +8,26 @@ import {
 } from "./example-search";
 
 describe("example search contract", () => {
+  it("carries expanded sections as complete panel and section pairs", () => {
+    const expanded = {
+      expandedPanel: "transition-properties",
+      expandedSection: "transition-results",
+    };
+    expect(validateSharedExampleSearch(expanded)).toMatchObject(expanded);
+    expect(canonicalSearchString(expanded)).toBe(
+      "expandedPanel=transition-properties&expandedSection=transition-results",
+    );
+    for (const input of [
+      { expandedPanel: "transition-properties" },
+      { expandedSection: "transition-results" },
+      { expandedPanel: 42, expandedSection: "transition-results" },
+      { expandedPanel: "transition-properties", expandedSection: "" },
+    ]) {
+      const search = validateSharedExampleSearch(input);
+      expect(search.expandedPanel).toBeUndefined();
+      expect(search.expandedSection).toBeUndefined();
+    }
+  });
   it("validates settings sections only for the user settings dialog", () => {
     expect(
       validateSharedExampleSearch({
