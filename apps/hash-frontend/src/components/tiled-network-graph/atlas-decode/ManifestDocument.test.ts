@@ -70,8 +70,24 @@ describe("Manifest", () => {
       throw new Error("expected a schema error");
     }
     expect(result.error.cause.issues.map((issue) => issue.path)).toEqual([
-      ["variants"],
+      ["variants", 0],
     ]);
+  });
+
+  it("multiple_variants", () => {
+    const document = Result.unwrap(
+      Manifest.decode(
+        { ...input(), variants: ["plain", "other"] },
+        decodeOptions,
+      ),
+    );
+    expect(document.variants).toEqual(["plain", "other"]);
+    expect(document.variants[0]).toBe("plain");
+    expect(
+      Result.isErr(
+        Manifest.decode({ ...input(), variants: ["plain", ""] }, decodeOptions),
+      ),
+    ).toBe(true);
   });
 
   it("nested_limits", () => {
