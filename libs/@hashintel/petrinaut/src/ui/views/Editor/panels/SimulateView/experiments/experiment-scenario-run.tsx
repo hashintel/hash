@@ -305,9 +305,11 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
                     )}
                   </div>
                   <div className={groupStyle}>
-                    <FormSectionHeader title="Initial state" spaceBefore>
-                      {placesVisibilityControl}
-                    </FormSectionHeader>
+                    <FormSectionHeader
+                      title="Initial state"
+                      spaceBefore
+                      titleAction={placesVisibilityControl}
+                    />
                     {places}
                   </div>
                 </StackedSections>

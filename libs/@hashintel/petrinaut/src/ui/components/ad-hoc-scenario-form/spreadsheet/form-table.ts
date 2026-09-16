@@ -369,18 +369,17 @@ export const lightGutterCellStyle = css({
 });
 
 /**
- * Renders a cell's Select as a square spreadsheet cell rather than a
- * control. Applied to the owning `<td>` — the Select drops `className` — and
- * the visible box is an unnamed div under `[data-part='root']` styled by
- * base-input variables, so the neutralization hits every div beneath the
- * root; the dropdown itself is portalled out and keeps its own look.
+ * Fits the Select and its chevron inside the spreadsheet cell. The visible
+ * box is the root's direct div, whose ::after draws the chevron; the
+ * dropdown is portalled out and keeps its own styles.
  */
 export const cellSelectStyle = css({
   "& [data-part='root']": {
     width: "[100%!]",
-    minWidth: "[100%!]",
+    minWidth: "[0!]",
     height: "[28px!]",
     minHeight: "[0!]",
+    "--form-min-width": "0px",
     "--base-input-border-radius": "0px",
     "--base-input-background-color": "transparent",
     _hover: {
@@ -400,21 +399,21 @@ export const cellSelectStyle = css({
     boxShadow: "[none!]",
     backgroundColor: "[transparent!]",
   },
-  // The trigger fills its cell so every select is the same width and the
-  // chevron sits at the same x; plain (non-code) face, quiet indicator.
+  "& [data-part='root'] > div": {
+    width: "[100%!]",
+    _after: {
+      width: "[5px]",
+      height: "[5px]",
+      marginLeft: "[6px]",
+      marginRight: "[8px]",
+      color: "neutral.s60",
+    },
+  },
   "& [data-part='trigger']": {
     width: "[100%!]",
-    justifyContent: "space-between",
     fontSize: "xs",
     height: "[28px!]",
     minHeight: "[0!]",
     paddingY: "[0!]",
-  },
-  "& [data-part='indicator']": {
-    color: "neutral.s60",
-  },
-  "& [data-part='indicator'] svg": {
-    width: "[11px]",
-    height: "[11px]",
   },
 });
