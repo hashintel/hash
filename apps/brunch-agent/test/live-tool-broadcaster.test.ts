@@ -86,8 +86,20 @@ test("catches up an initial subscriber without retaining unbounded listeners", a
   emptyBroadcaster.close();
 });
 
+test("rejects a retained-event limit larger than the subscriber queue", () => {
+  expect(() =>
+    createLiveToolBroadcaster({
+      maxQueuedEvents: 1,
+      maxRetainedEvents: 2,
+    }),
+  ).toThrow("cannot retain more events");
+});
+
 test("drops a slow subscriber instead of backpressuring publication", async () => {
-  const broadcaster = createLiveToolBroadcaster({ maxQueuedEvents: 1 });
+  const broadcaster = createLiveToolBroadcaster({
+    maxQueuedEvents: 1,
+    maxRetainedEvents: 1,
+  });
   const subscription = broadcaster.subscribe("instance-a", "submission-a");
   const iterator = subscription.events[Symbol.asyncIterator]();
   broadcaster.publish(startEvent("instance-a", "submission-a", "call-a"));

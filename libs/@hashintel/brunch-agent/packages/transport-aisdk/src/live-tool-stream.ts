@@ -123,7 +123,16 @@ export const readLiveToolStream = async (input: {
   readonly signal: AbortSignal;
   readonly submissionId: string;
 }): Promise<void> => {
-  const url = new URL(`${input.conversationUrl.replace(/\/+$/u, "")}/live`);
+  let conversationUrlEnd = input.conversationUrl.length;
+  while (
+    conversationUrlEnd > 0 &&
+    input.conversationUrl.charAt(conversationUrlEnd - 1) === "/"
+  ) {
+    conversationUrlEnd -= 1;
+  }
+  const url = new URL(
+    `${input.conversationUrl.slice(0, conversationUrlEnd)}/live`,
+  );
   url.searchParams.set("submissionId", input.submissionId);
   const headers =
     typeof input.options.headers === "function"

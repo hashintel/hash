@@ -1074,6 +1074,8 @@ export const NarrowVoiceDockWithAudioOptions: Story = {
       5,
     );
   },
+};
+
 const toolLifecycleResolver: PetrinautAiToolPresentationResolver = ({
   state,
 }) => ({

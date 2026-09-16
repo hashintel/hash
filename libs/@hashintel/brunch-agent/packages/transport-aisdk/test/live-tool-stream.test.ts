@@ -45,7 +45,7 @@ test("reads fragmented SSE data with ownership headers and no reconnect", async 
   const events: unknown[] = [];
 
   await readLiveToolStream({
-    conversationUrl: "https://brunch.test/agents/chat/instance-1",
+    conversationUrl: "https://brunch.test/agents/chat/instance-1///",
     onEvent: (event) => events.push(event),
     options: {
       fetch: fetchImplementation,

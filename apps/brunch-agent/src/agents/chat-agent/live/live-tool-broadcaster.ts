@@ -120,6 +120,11 @@ export const createLiveToolBroadcaster = (
   options: LiveToolBroadcasterOptions = {},
 ): LiveToolBroadcaster => {
   const configured = { ...defaultOptions, ...options };
+  if (configured.maxRetainedEvents > configured.maxQueuedEvents) {
+    throw new Error(
+      "The live tool broadcaster cannot retain more events than a subscriber can queue.",
+    );
+  }
   const instances = new Map<string, InstanceEntry>();
   let closed = false;
 
