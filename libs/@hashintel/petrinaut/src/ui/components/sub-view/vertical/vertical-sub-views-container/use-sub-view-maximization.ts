@@ -138,9 +138,14 @@ export const useSubViewMaximization = (
     const target = maximization.restoring
       ? relativeBounds(panel, container)
       : relativeBounds(container, container);
+    const options: KeyframeAnimationOptions = {
+      ...animationOptions,
+      // Keep the destination bounds until React restores the normal layout.
+      fill: maximization.restoring ? "forwards" : "none",
+    };
     const animation = section.animate(
       [keyframe(maximization.from), keyframe(target)],
-      animationOptions,
+      options,
     );
     const title = section.querySelector<HTMLElement>("[data-subview-title]");
     const titleAnimation = title?.animate(
@@ -150,7 +155,7 @@ export const useSubViewMaximization = (
             { opacity: 0, transform: "translateX(6px)" },
             { opacity: 1, transform: "translateX(0)" },
           ],
-      { ...animationOptions, duration: maximization.restoring ? 240 : 180 },
+      { ...options, duration: maximization.restoring ? 240 : 180 },
     );
     void animation.finished
       .then(() => {

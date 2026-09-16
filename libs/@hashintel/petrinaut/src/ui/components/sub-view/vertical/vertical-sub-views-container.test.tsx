@@ -343,15 +343,26 @@ const mockAnimations = () => {
   const animations: {
     element: HTMLElement;
     frames: Keyframe[];
+    options: KeyframeAnimationOptions;
     finish: () => void;
     cancel: ReturnType<typeof vi.fn>;
   }[] = [];
   Object.defineProperty(HTMLElement.prototype, "animate", {
     configurable: true,
-    value: function animate(this: HTMLElement, frames: Keyframe[]) {
+    value: function animate(
+      this: HTMLElement,
+      frames: Keyframe[],
+      options: KeyframeAnimationOptions,
+    ) {
       const { promise, resolve } = Promise.withResolvers<void>();
       const cancel = vi.fn();
-      animations.push({ element: this, frames, finish: resolve, cancel });
+      animations.push({
+        element: this,
+        frames,
+        options,
+        finish: resolve,
+        cancel,
+      });
       return { finished: promise, cancel };
     },
   });
@@ -378,6 +389,7 @@ it("animates the section bounds in both directions and can reverse an unfinished
     { top: "200px", left: "0px", width: "450px", height: "250px" },
     { top: "0px", left: "0px", width: "450px", height: "656px" },
   ]);
+  expect(expansion?.options.fill).toBe("none");
   fireEvent.click(
     screen.getByRole("button", { name: "Back to Transition Collision" }),
   );
@@ -391,8 +403,16 @@ it("animates the section bounds in both directions and can reverse an unfinished
     { top: "0px", left: "0px", width: "450px", height: "656px" },
     { top: "200px", left: "0px", width: "450px", height: "250px" },
   ]);
+  expect(restoration?.options.fill).toBe("forwards");
+  const expandedAtCleanup: boolean[] = [];
+  restoration?.cancel.mockImplementation(() => {
+    expandedAtCleanup.push(
+      restoration.element.hasAttribute("data-expanded-subview"),
+    );
+  });
   expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull();
   await act(async () => restoration?.finish());
+  expect(expandedAtCleanup).toEqual([false]);
   expect(screen.getByRole("textbox", { name: "Name" })).toBeTruthy();
   expect(screen.getByRole("textbox", { name: "Code" })).toBe(code);
   await waitFor(() =>
