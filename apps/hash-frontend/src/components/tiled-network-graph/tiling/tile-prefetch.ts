@@ -29,11 +29,7 @@
  */
 
 import * as Num from "../atlas-decode/Num";
-import {
-  atlasTileKey,
-  ATLAS_TILE_MAX_ZOOM,
-  WORLD_SIZE,
-} from "./atlas-tile-coordinate";
+import { atlasTileKey, WORLD_SIZE } from "./atlas-tile-coordinate";
 import {
   clampInt,
   clampRectToWorld,
@@ -43,6 +39,7 @@ import {
   rectWidth,
   requiredTiles,
   tileDistance,
+  tileZoomForViewport,
   type ViewportRegion,
 } from "./tile-geometry";
 
@@ -82,7 +79,6 @@ const SMOOTH_WINDOW = 3;
 
 /** Bounds a single predicted zoom step to at most one level either way. */
 const MAX_DEPTH_STEP = 1;
-const MAX_ZOOM = Num.f64.approximate(ATLAS_TILE_MAX_ZOOM);
 
 /** The slice of {@link TileCache} the prefetch scheduler reads and drives. */
 export interface PrefetchCache {
@@ -216,14 +212,16 @@ export const predictNextViewport = (
   const halfHeight = (rectHeight(current.rect) * scale) / 2;
   const centreX = rectCenterX(current.rect) + (panned ? movement.panX : 0);
   const centreY = rectCenterY(current.rect) + (panned ? movement.panY : 0);
-  const depth = clampInt(Math.round(current.depth + depthStep), 0, MAX_ZOOM);
+  const depth = tileZoomForViewport(
+    Num.f64.unsafe(Num.f64.approximate(current.depth) + depthStep),
+  );
 
   return {
     rect: clampRectToWorld({
-      x1: centreX - halfWidth,
-      x2: centreX + halfWidth,
-      y1: centreY - halfHeight,
-      y2: centreY + halfHeight,
+      x1: Num.f64.unsafe(centreX - halfWidth),
+      x2: Num.f64.unsafe(centreX + halfWidth),
+      y1: Num.f64.unsafe(centreY - halfHeight),
+      y2: Num.f64.unsafe(centreY + halfHeight),
     }),
     depth,
   };
@@ -231,12 +229,12 @@ export const predictNextViewport = (
 
 /** The one-tile border around a viewport at its depth (plus any new ancestors). */
 const ringTiles = (region: ViewportRegion): TileDocument.Coordinate[] => {
-  const tileSpan = WORLD_SIZE / 2 ** region.depth;
+  const tileSpan = WORLD_SIZE / 2 ** Num.f64.approximate(region.depth);
   const grown = clampRectToWorld({
-    x1: region.rect.x1 - tileSpan,
-    x2: region.rect.x2 + tileSpan,
-    y1: region.rect.y1 - tileSpan,
-    y2: region.rect.y2 + tileSpan,
+    x1: Num.f64.unsafe(region.rect.x1 - tileSpan),
+    x2: Num.f64.unsafe(region.rect.x2 + tileSpan),
+    y1: Num.f64.unsafe(region.rect.y1 - tileSpan),
+    y2: Num.f64.unsafe(region.rect.y2 + tileSpan),
   });
   return requiredTiles(grown, region.depth);
 };

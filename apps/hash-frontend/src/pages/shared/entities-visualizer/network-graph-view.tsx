@@ -41,6 +41,7 @@ import {
 } from "@local/hash-isomorphic-utils/data-types";
 
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
+import * as Num from "../../../components/tiled-network-graph/atlas-decode/Num";
 import {
   LocatedEntityPopover,
   type LocatedEntityDetail,
@@ -199,11 +200,11 @@ const GRAPH_WORLD: Bounds = {
  * tile's sample.
  */
 const INITIAL_VIEWPORT: Viewport = {
-  x1: GRAPH_WORLD.minX,
-  x2: GRAPH_WORLD.maxX,
-  y1: GRAPH_WORLD.minY,
-  y2: GRAPH_WORLD.maxY,
-  zoom: TILE_DEPTH_LEAD,
+  x1: Num.f64.unsafe(GRAPH_WORLD.minX),
+  x2: Num.f64.unsafe(GRAPH_WORLD.maxX),
+  y1: Num.f64.unsafe(GRAPH_WORLD.minY),
+  y2: Num.f64.unsafe(GRAPH_WORLD.maxY),
+  zoom: Num.f64.unsafe(TILE_DEPTH_LEAD),
 };
 
 /**
@@ -256,7 +257,13 @@ const deriveViewport = (
     Math.max(camera.normalisedZoom, 0) + TILE_DEPTH_LEAD,
     maxDepth,
   );
-  return { x1, x2, y1, y2, zoom: depth };
+  return {
+    x1: Num.f64.unsafe(x1),
+    x2: Num.f64.unsafe(x2),
+    y1: Num.f64.unsafe(y1),
+    y2: Num.f64.unsafe(y2),
+    zoom: Num.f64.unsafe(depth),
+  };
 };
 
 /**

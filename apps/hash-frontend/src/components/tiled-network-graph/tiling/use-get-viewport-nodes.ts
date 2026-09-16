@@ -116,6 +116,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import * as Num from "../atlas-decode/Num";
 import {
   ATLAS_ROOT_COORDINATE,
   atlasTileIndex,
@@ -150,7 +151,6 @@ import {
 import { HISTORY_LENGTH, schedulePrefetch } from "./tile-prefetch";
 
 import type * as Detail from "../atlas-decode/Detail";
-import type * as Num from "../atlas-decode/Num";
 import type * as TileDocument from "../atlas-decode/TileDocument";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
@@ -163,7 +163,7 @@ export { tileZoomForViewport } from "./tile-geometry";
  * after and drives the depth from its zoom (opening a couple of levels deeper
  * — see the consumer's depth derivation), enriching the overview.
  */
-const INITIAL_TILE_ZOOM = 0;
+const INITIAL_TILE_ZOOM = Num.u64.zero;
 
 /**
  * Safety bound on the tiles fetched at one descent depth. Curve-driven viewports
@@ -207,7 +207,7 @@ const EMPTY_COLORED_TYPE_IDS: readonly string[] = Object.freeze([]);
 /** A camera viewport: a world rectangle plus a fractional quadtree depth. */
 export interface Viewport extends Rect {
   /** Fractional quadtree depth; see the module's "Zoom" note. */
-  readonly zoom: number;
+  readonly zoom: Num.f64;
 }
 
 /** One node as returned to the renderer. */
@@ -532,7 +532,7 @@ export class TileCache {
    */
   setActiveViewport(
     rect: Rect,
-    depth: number,
+    depth: Num.u64,
     requiredKeys?: ReadonlySet<string>,
   ): void {
     this.#viewport = { rect, depth };
@@ -552,7 +552,7 @@ export class TileCache {
   }
 
   /** Appends a viewport to the bounded movement history. */
-  recordHistory(rect: Rect, depth: number): void {
+  recordHistory(rect: Rect, depth: Num.u64): void {
     this.#history.push({ rect, depth });
     if (this.#history.length > HISTORY_LENGTH) {
       this.#history.shift();
@@ -971,7 +971,12 @@ export class TileCache {
 const resolveViewport = (viewport: Viewport | null): ViewportRegion => {
   if (viewport === null) {
     return {
-      rect: { x1: 0, x2: WORLD_SIZE, y1: 0, y2: WORLD_SIZE },
+      rect: {
+        x1: Num.f64.unsafe(0),
+        x2: Num.f64.unsafe(WORLD_SIZE),
+        y1: Num.f64.unsafe(0),
+        y2: Num.f64.unsafe(WORLD_SIZE),
+      },
       depth: INITIAL_TILE_ZOOM,
     };
   }
@@ -1086,7 +1091,10 @@ export const getViewportNodes = async (
   // tiles. A complete tile has delivered its whole subtree, so it is a leaf and
   // its children are never requested.
   let frontier: TileDocument.Coordinate[] = [ATLAS_ROOT_COORDINATE];
-  for (let z = 0; z <= targetDepth && frontier.length > 0; z += 1) {
+  for (const z of Num.u64.range.inclusive(Num.u64.zero, targetDepth)) {
+    if (frontier.length === 0) {
+      break;
+    }
     for (const coordinate of frontier) {
       requiredKeys.add(atlasTileKey(coordinate));
     }

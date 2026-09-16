@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import * as Num from "../atlas-decode/Num";
 import { atlasTileKey } from "./atlas-tile-coordinate";
 import {
   rectCenterX,
@@ -23,8 +24,13 @@ const region = (
   half: number,
   depth: number,
 ): ViewportRegion => ({
-  rect: { x1: cx - half, x2: cx + half, y1: cy - half, y2: cy + half },
-  depth,
+  rect: {
+    x1: Num.f64.unsafe(cx - half),
+    x2: Num.f64.unsafe(cx + half),
+    y1: Num.f64.unsafe(cy - half),
+    y2: Num.f64.unsafe(cy + half),
+  },
+  depth: Num.u64.unsafe(BigInt(depth)),
 });
 
 const keysOf = (region_: ViewportRegion): Set<string> =>
@@ -58,7 +64,7 @@ describe("predictNextViewport", () => {
     expect(prediction).not.toBeNull();
     expect(rectCenterX(prediction!.rect)).toBeCloseTo(16_000, 0);
     expect(rectWidth(prediction!.rect)).toBeCloseTo(2_048, 0);
-    expect(prediction!.depth).toBe(5);
+    expect(prediction!.depth).toBe(5n);
   });
 
   it("shrinks the rectangle and deepens the depth when zooming in", () => {
@@ -71,7 +77,7 @@ describe("predictNextViewport", () => {
 
     expect(prediction).not.toBeNull();
     expect(rectWidth(prediction!.rect)).toBeLessThan(rectWidth(current.rect));
-    expect(prediction!.depth).toBe(7);
+    expect(prediction!.depth).toBe(7n);
   });
 
   it("grows the rectangle and shallows the depth when zooming out", () => {
@@ -86,7 +92,7 @@ describe("predictNextViewport", () => {
     expect(rectWidth(prediction!.rect)).toBeGreaterThan(
       rectWidth(current.rect),
     );
-    expect(prediction!.depth).toBe(3);
+    expect(prediction!.depth).toBe(3n);
   });
 
   it("returns null on a discontinuous jump (framing / jump-to)", () => {

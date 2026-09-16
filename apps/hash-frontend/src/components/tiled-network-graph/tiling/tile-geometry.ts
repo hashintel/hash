@@ -44,16 +44,16 @@ const ZOOM_DISTANCE_WEIGHT = 0.5;
 
 /** A world-space rectangle, `[x1, x2] x [y1, y2]`. */
 export interface Rect {
-  readonly x1: number;
-  readonly x2: number;
-  readonly y1: number;
-  readonly y2: number;
+  readonly x1: Num.f64;
+  readonly x2: Num.f64;
+  readonly y1: Num.f64;
+  readonly y2: Num.f64;
 }
 
 /** A world rectangle paired with the integer quadtree depth it is served at. */
 export interface ViewportRegion {
   readonly rect: Rect;
-  readonly depth: number;
+  readonly depth: Num.u64;
 }
 
 export const clampInt = (
@@ -62,34 +62,34 @@ export const clampInt = (
   maximum: number,
 ): number => Math.min(Math.max(value, minimum), maximum);
 
-export const rectWidth = (rect: Rect): number => rect.x2 - rect.x1;
-export const rectHeight = (rect: Rect): number => rect.y2 - rect.y1;
-export const rectCenterX = (rect: Rect): number => (rect.x1 + rect.x2) / 2;
-export const rectCenterY = (rect: Rect): number => (rect.y1 + rect.y2) / 2;
+export const rectWidth = (rect: Rect): Num.f64 =>
+  Num.f64.unsafe(rect.x2 - rect.x1);
+export const rectHeight = (rect: Rect): Num.f64 =>
+  Num.f64.unsafe(rect.y2 - rect.y1);
+export const rectCenterX = (rect: Rect): Num.f64 =>
+  Num.f64.unsafe((rect.x1 + rect.x2) / 2);
+export const rectCenterY = (rect: Rect): Num.f64 =>
+  Num.f64.unsafe((rect.y1 + rect.y2) / 2);
 
 /** Snaps a fractional zoom to an integer, deliverable tile depth. */
-export const tileZoomForViewport = (zoom: number): number =>
-  clampInt(Math.round(zoom), 0, MAX_ZOOM);
+export const tileZoomForViewport = (zoom: Num.f64): Num.u64 =>
+  Option.unwrapOrElse(Num.u64(clampInt(Math.round(zoom), 0, MAX_ZOOM)), () => {
+    throw new TypeError(`${zoom} cannot be converted to a tile depth`);
+  });
 
 /** Clamps a rectangle to the world bounds, keeping `min <= max`. */
 export const clampRectToWorld = (rect: Rect): Rect => {
-  const [x1, x2] = rect.x1 <= rect.x2 ? [rect.x1, rect.x2] : [rect.x2, rect.x1];
-  const [y1, y2] = rect.y1 <= rect.y2 ? [rect.y1, rect.y2] : [rect.y2, rect.y1];
+  const [x1, x2] = Num.f64.minMax(rect.x1, rect.x2);
+  const [y1, y2] = Num.f64.minMax(rect.y1, rect.y2);
+  const minimum = Num.f64.unsafe(0);
+  const maximum = Num.f64.unsafe(WORLD_SIZE);
 
   return {
-    x1: clampInt(x1, 0, WORLD_SIZE),
-    x2: clampInt(x2, 0, WORLD_SIZE),
-    y1: clampInt(y1, 0, WORLD_SIZE),
-    y2: clampInt(y2, 0, WORLD_SIZE),
+    x1: Num.f64.clamp(x1, minimum, maximum),
+    x2: Num.f64.clamp(x2, minimum, maximum),
+    y1: Num.f64.clamp(y1, minimum, maximum),
+    y2: Num.f64.clamp(y2, minimum, maximum),
   };
-};
-
-/** Converts a bounded integer tile index or depth to its wire representation. */
-const toU64 = (value: number, minimum: number, maximum: number): Num.u64 => {
-  const bounded = clampInt(value, minimum, maximum);
-  return Option.unwrapOrElse(Num.u64(bounded), () => {
-    throw new TypeError(`${bounded} does not fit in a u64`);
-  });
 };
 
 /** The last tile index on each axis at depth `z`. */
@@ -150,8 +150,12 @@ const coverRangeForDepth = (rect: Rect, z: Num.u64): TileRange => {
   validateAtlasZoom(z);
   const span = WORLD_SIZE / Num.f64.approximate(atlasGridSize(z));
   const gridMaximum = Num.f64.approximate(gridMaximumAt(z));
-  const indexForBoundary = (boundary: number): Num.u64 =>
-    toU64(Math.floor(boundary / span), 0, gridMaximum);
+  const indexForBoundary = (boundary: Num.f64): Num.u64 => {
+    const index = clampInt(Math.floor(boundary / span), 0, gridMaximum);
+    return Option.unwrapOrElse(Num.u64(index), () => {
+      throw new TypeError(`${boundary} cannot be converted to a tile index`);
+    });
+  };
 
   return {
     minX: indexForBoundary(rect.x1),
@@ -193,10 +197,10 @@ const tileRangeForDepth = (rect: Rect, z: Num.u64): TileRange => {
  */
 export const requiredTiles = (
   rect: Rect,
-  targetDepth: number,
+  targetDepth: Num.u64,
 ): TileDocument.Coordinate[] => {
   const coordinates: TileDocument.Coordinate[] = [];
-  const targetZoom = toU64(Math.floor(targetDepth), 0, MAX_ZOOM);
+  const targetZoom = Num.u64.min(targetDepth, ATLAS_TILE_MAX_ZOOM);
   for (const z of Num.u64.range.inclusive(zero, targetZoom)) {
     const { minX, maxX, minY, maxY } = tileRangeForDepth(rect, z);
 
@@ -279,7 +283,7 @@ const intervalGap = (
 export const tileDistance = (
   coordinate: TileDocument.Coordinate,
   rect: Rect,
-  targetDepth: number,
+  targetDepth: Num.u64,
 ): number => {
   const bounds = atlasTileBounds(coordinate);
   // Validated tile bounds fit in the 65536-unit world, so conversion is exact.
@@ -295,7 +299,10 @@ export const tileDistance = (
     Num.f64.approximate(bounds.minimumY),
     Num.f64.approximate(bounds.maximumY),
   );
-  const depthGap = Math.abs(Num.f64.approximate(coordinate.z) - targetDepth);
+  const [nearDepth, farDepth] = Num.u64.minMax(coordinate.z, targetDepth);
+  const depthGap = Num.f64.approximate(
+    Num.u64.sub.unchecked(farDepth, nearDepth),
+  );
 
   const planar = Math.hypot(gapX, gapY) / WORLD_SIZE;
   const zoomGap = depthGap / MAX_ZOOM;

@@ -1,8 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { BinaryEntityId } from "../atlas-decode/BinaryEntityId";
 import * as Num from "../atlas-decode/Num";
 import * as Result from "../atlas-decode/Result";
+import {
+  clampRectToWorld,
+  rectCenterX,
+  rectWidth,
+  requiredTiles,
+} from "./tile-geometry";
 import {
   getViewportNodes,
   TileCache,
@@ -145,11 +151,11 @@ const viewportAt = (
   half: number,
   zoom: number,
 ): Viewport => ({
-  x1: centreX - half,
-  x2: centreX + half,
-  y1: centreY - half,
-  y2: centreY + half,
-  zoom,
+  x1: Num.f64.unsafe(centreX - half),
+  x2: Num.f64.unsafe(centreX + half),
+  y1: Num.f64.unsafe(centreY - half),
+  y2: Num.f64.unsafe(centreY + half),
+  zoom: Num.f64.unsafe(zoom),
 });
 
 // Matches `estimateBytes`: baseline per tile plus three nodes.
@@ -159,14 +165,36 @@ const bytesPerSingleEdgeBucket = 128 + 64;
 
 describe("tileZoomForViewport", () => {
   it("snaps fractional zoom to the nearest integer tile depth", () => {
-    expect(tileZoomForViewport(1.4)).toBe(1);
-    expect(tileZoomForViewport(1.6)).toBe(2);
-    expect(tileZoomForViewport(1.5)).toBe(2);
+    expect(tileZoomForViewport(Num.f64.unsafe(1.4))).toBe(1n);
+    expect(tileZoomForViewport(Num.f64.unsafe(1.6))).toBe(2n);
+    expect(tileZoomForViewport(Num.f64.unsafe(1.5))).toBe(2n);
   });
 
   it("clamps to the addressable depth range", () => {
-    expect(tileZoomForViewport(-3)).toBe(0);
-    expect(tileZoomForViewport(99)).toBe(16);
+    expect(tileZoomForViewport(Num.f64.unsafe(-3))).toBe(0n);
+    expect(tileZoomForViewport(Num.f64.unsafe(99))).toBe(16n);
+  });
+
+  it("fractional_rect_integer_depth", () => {
+    const viewport = viewportAt(-0.25, 0.75, 0.5, 1.4);
+    const rect = clampRectToWorld(viewport);
+    const depth = tileZoomForViewport(viewport.zoom);
+    expect(rect).toEqual({ x1: 0, x2: 0.25, y1: 0.25, y2: 1.25 });
+    expect(rectCenterX(rect)).toBe(0.125);
+    expect(rectWidth(rect)).toBe(0.25);
+    expectTypeOf(rect.x1).toEqualTypeOf<Num.f64>();
+    expectTypeOf(depth).toEqualTypeOf<Num.u64>();
+    expect(requiredTiles(rect, depth)).toEqual([
+      { z: 0n, x: 0n, y: 0n },
+      { z: 1n, x: 0n, y: 0n },
+    ]);
+    const cache = new TileCache({
+      fetcher: countingFetcher(),
+      edgesFetcher: noEdges,
+    });
+    cache.recordHistory(rect, depth);
+    expect(cache.history).toEqual([{ rect, depth: 1n }]);
+    expectTypeOf(cache.history[0]!.depth).toEqualTypeOf<Num.u64>();
   });
 });
 
@@ -253,7 +281,7 @@ describe("getViewportNodes", () => {
   it("throws when the viewport is malformed", async () => {
     await expect(
       getViewportNodes(
-        { x1: Number.NaN, x2: 1, y1: 0, y2: 1, zoom: 2 },
+        { ...viewportAt(0.5, 0.5, 0.5, 2), x1: Num.f64.unsafe(Number.NaN) },
         new TileCache({ fetcher, edgesFetcher: noEdges }),
       ),
     ).rejects.toBeInstanceOf(ViewportTilesError);
@@ -859,7 +887,7 @@ describe("TileCache", () => {
     const cache = new TileCache({ fetcher, maxBytes: bytesPerTile * 3 });
     cache.setActiveViewport(
       viewportAt(0, 0, 500, 5),
-      5,
+      u64(5),
       new Set(["5/0/0"]), // atlasTileKey of { z: 5, x: 0, y: 0 }
     );
 
@@ -926,7 +954,7 @@ describe("TileCache", () => {
       maxBytes: bytesPerTile * 2 + bytesPerSingleEdgeBucket,
     });
 
-    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), 5);
+    cache.setActiveViewport(viewportAt(1_024, 1_024, 500, 5), u64(5));
     await cache.load(tileA);
     await cache.load(tileB);
     await cache.loadEdges([tileA, tileB]);
@@ -934,7 +962,7 @@ describe("TileCache", () => {
 
     // Move far away (clearing pins), then load a tile near the new viewport: the
     // furthest resident tile (A or B) is evicted, cascading to the pair bucket.
-    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), 5);
+    cache.setActiveViewport(viewportAt(60_000, 60_000, 500, 5), u64(5));
     await cache.load({ z: u64(5), x: u64(29), y: u64(29) });
 
     expect(cache.edgeBucketCount).toBe(0);
