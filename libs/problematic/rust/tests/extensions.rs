@@ -3,26 +3,21 @@ extern crate alloc;
 use alloc::{borrow::Cow, format};
 use core::{cell::Cell, fmt};
 
-use problematic::ProblemDetails;
+use problematic::{ProblemType, StatusCode};
 use serde::{
     Serialize, Serializer,
     ser::{Error as _, SerializeMap as _},
 };
 use serde_json::{Number, Value, json};
 
-const fn details<E>(extensions: E) -> ProblemDetails<'static, E> {
-    ProblemDetails {
-        type_uri: Cow::Borrowed("about:blank"),
-        title: Cow::Borrowed("Bad Request"),
-        status: 400,
-        detail: None,
-        instance: None,
-        extensions,
-    }
-}
+const BAD_REQUEST: ProblemType = ProblemType {
+    type_uri: Cow::Borrowed("about:blank"),
+    title: Cow::Borrowed("Bad Request"),
+    status: StatusCode::BAD_REQUEST,
+};
 
 fn assert_serialization_error<E: Serialize>(extensions: E, expected: &str) {
-    let details = details(extensions);
+    let details = BAD_REQUEST.extensions(extensions);
     let string_error = serde_json::to_string(&details)
         .expect_err("the invalid extensions should fail to serialize to a string");
     let value_error = serde_json::to_value(&details)
@@ -40,7 +35,7 @@ fn assert_serialization_error<E: Serialize>(extensions: E, expected: &str) {
 }
 
 fn assert_serialization<E: Serialize>(extensions: E, expected: &Value) {
-    let details = details(extensions);
+    let details = BAD_REQUEST.extensions(extensions);
     let encoded =
         serde_json::to_string(&details).expect("the extensions should serialize to a string");
     assert_eq!(
@@ -272,7 +267,7 @@ impl Serialize for CountedKey<'_> {
 fn extensions_map_key_once() {
     for split in [false, true] {
         let calls = Cell::new(0);
-        let details = details(Entry {
+        let details = BAD_REQUEST.extensions(Entry {
             key: CountedKey(&calls),
             split,
         });
