@@ -69,7 +69,7 @@ export type SweepAxisSelection = { from: number; to: number };
 
 /**
  * The navigator's selection: an inclusive position range per swept
- * parameter. The default selection spans every axis whole.
+ * parameter.
  */
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
 
@@ -290,6 +290,19 @@ export function normalizeSweepSelection(
     }),
   );
 }
+
+export const pointSweepSelection = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): SweepSelection => {
+  const normalized = normalizeSweepSelection(axes, selection);
+  return Object.fromEntries(
+    axes.map((axis) => {
+      const position = Math.round(selectionMidpoint(normalized, axis));
+      return [axis.identifier, { from: position, to: position }];
+    }),
+  );
+};
 
 // One prime base per swept axis: two axes sharing a base would draw along a
 // diagonal. A sweep can range every scenario parameter, so the list is long.

@@ -225,14 +225,6 @@ const renderDrawerWithStudy = (
     sweepStudy(experiment, { status, completedTrials: 3, prunedTrials: 1 }),
   );
 
-/** The buttons of every axis's Range / Point control: disabled while a study drives the sweep. */
-const selectionModeButtons = () =>
-  screen
-    .getAllByRole("group", { name: /selection mode$/u })
-    .flatMap((group) =>
-      within(group).getAllByRole<HTMLButtonElement>("button"),
-    );
-
 /** The sweep in each state a drawer can show it. */
 const sweepIn = (status: ExperimentRecord["status"]): ExperimentRecord => ({
   ...sweep,
@@ -452,9 +444,11 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.getByRole("button", { name: /Cancel$/u })).toBeTruthy();
     expect(screen.getByText(/^Testing step 5/u)).toBeTruthy();
-    expect(selectionModeButtons().every((button) => button.disabled)).toBe(
-      true,
-    );
+    expect(
+      screen
+        .getAllByRole("slider")
+        .every((slider) => slider.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
   });
 
   it("keeps the settled outcome on the status line with no card control", () => {
@@ -471,9 +465,11 @@ describe("ViewExperimentDrawer in the frame", () => {
     expect(document.querySelector("[data-sweep-optimizing]")).toBeNull();
     expect(screen.queryByRole("button", { name: /Optimize$/u })).toBeNull();
     expect(screen.queryByRole("button", { name: /Stop$/u })).toBeNull();
-    expect(selectionModeButtons().some((button) => button.disabled)).toBe(
-      false,
-    );
+    expect(
+      screen
+        .getAllByRole("slider")
+        .some((slider) => slider.getAttribute("aria-disabled") === "true"),
+    ).toBe(false);
     expect(screen.getByText("Optimization stopped")).toBeTruthy();
     expect(document.querySelector("[data-study-header]")).toBeNull();
   });

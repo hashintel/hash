@@ -112,8 +112,8 @@ export const ExperimentDetails = ({
               </dl>
               {experiment.sweep ? (
                 <p className={helpStyle}>
-                  The sampling limit applies to the selected parameter values or
-                  ranges. Moving a control starts sampling the new selection.
+                  The sampling limit applies to the selected parameter values.
+                  Moving a slider starts sampling the new selection.
                 </p>
               ) : null}
               {children}
