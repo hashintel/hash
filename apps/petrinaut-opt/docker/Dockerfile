@@ -30,6 +30,15 @@ FROM bindings-tools AS bindings-pruner
 
 WORKDIR /repo
 
+ENV MISE_CARGO_HOME="/usr/local/cargo" \
+    PATH="$PATH:/usr/local/cargo/bin"
+
+# `turbo prune` reads the Cargo workspace through `cargo metadata`.
+COPY rust-toolchain.toml .
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    mise install --locked yq && \
+    mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
+
 COPY . .
 
 RUN mise trust && \
