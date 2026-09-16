@@ -14,30 +14,27 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
-ENV PATH="/mise/shims:$PATH"
+ENV MISE_CARGO_HOME="/usr/local/cargo"
+ENV PATH="/mise/shims:/usr/local/cargo/bin:$PATH"
 
 COPY .config/mise /etc/mise
 
-RUN apt-get update && \
+# turbo reads the Cargo workspace through `cargo metadata`, in the prune as well as in the build.
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked npm:turbo
+    mise install --locked npm:turbo yq && \
+    mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' /tmp/rust-toolchain.toml) && \
+    rm /tmp/rust-toolchain.toml
 
 
 FROM bindings-tools AS bindings-pruner
 
 WORKDIR /repo
-
-ENV MISE_CARGO_HOME="/usr/local/cargo" \
-    PATH="$PATH:/usr/local/cargo/bin"
-
-# `turbo prune` reads the Cargo workspace through `cargo metadata`.
-COPY rust-toolchain.toml .
-RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install --locked yq && \
-    mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
 COPY . .
 
