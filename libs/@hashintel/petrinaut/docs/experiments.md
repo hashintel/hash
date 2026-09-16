@@ -51,7 +51,7 @@ The model used is a snapshot of the current net at the time you press **Run**. E
 
 ### Metrics
 
-Click **Add metric** and choose **Place tokens**, **Transition firing**, or a custom metric. Built-in metric names follow the selected place or transition automatically, such as **Queue tokens** or **Dispatch firing (cumulative)**. Transition names include the **Per frame** or **Cumulative** count mode. Only custom metrics have an editable name. Use the metric type picker to switch between model metrics, custom code, and built-in metrics at any time. Choosing **Custom code** after a model metric makes its code editable.
+Click **Add metric** and choose **Place tokens**, **Transition firing**, or a custom metric. Built-in metric names follow the selected place or transition automatically, such as **Queue tokens** or **Dispatch firing (cumulative)**. Transition names include the **Per frame** or **Cumulative** count mode. Existing model metrics display their saved name as read-only text. Only **Custom code** metrics have an editable name. Use the metric type picker to switch between model metrics, custom code, and built-in metrics at any time. Choosing **Custom code** after a model metric makes its code editable.
 
 ### Constraints
 

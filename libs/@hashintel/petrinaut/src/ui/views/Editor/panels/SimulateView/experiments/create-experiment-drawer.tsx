@@ -391,7 +391,11 @@ const getMetricLabel = (
         : "Transition firing";
     }
     case "expression":
-      return metric.label.trim();
+      return (
+        sdcpn.metrics?.find(
+          (candidate) => candidate.id === metric.sourceMetricId,
+        )?.name ?? metric.label.trim()
+      );
   }
 };
 
@@ -597,6 +601,8 @@ const ExperimentMetricRow = ({
   const collapseButtonRef = useRef<HTMLButtonElement>(null);
   const didAutoFocusLabelRef = useRef(false);
   const metricLabel = getMetricLabel(metric, sdcpn);
+  const isCustomMetric =
+    metric.kind === "expression" && metric.sourceMetricId === null;
   const placeOptions: SelectItem<string>[] = sdcpn.places.map((place) => ({
     value: place.id,
     text: place.name,
@@ -667,18 +673,14 @@ const ExperimentMetricRow = ({
   };
 
   useLayoutEffect(() => {
-    if (
-      metric.kind !== "expression" ||
-      !autoFocusLabel ||
-      didAutoFocusLabelRef.current
-    ) {
+    if (!isCustomMetric || !autoFocusLabel || didAutoFocusLabelRef.current) {
       return;
     }
 
     didAutoFocusLabelRef.current = true;
     labelInputRef.current?.focus();
     labelInputRef.current?.select();
-  }, [autoFocusLabel, metric.kind]);
+  }, [autoFocusLabel, isCustomMetric]);
 
   return (
     <Collapsible.Root
@@ -716,7 +718,7 @@ const ExperimentMetricRow = ({
             </button>
           </Collapsible.Trigger>
           <div className={metricTitleGroupStyle}>
-            {metric.kind === "expression" ? (
+            {isCustomMetric ? (
               <TextInput
                 inputRef={labelInputRef}
                 className={metricTitleInputStyle}
