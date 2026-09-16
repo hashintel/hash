@@ -553,6 +553,120 @@ test("omits metadata from every valid browser result", () => {
   }
 });
 
+test("retains only the latest full net read in each projected slice", () => {
+  const readSignal = (
+    index: number,
+    definition: Record<string, unknown>,
+  ): ContextProjectionEntry => ({
+    id: `net-read-${index}`,
+    message: {
+      role: "signal",
+      type: CLIENT_TOOL_RESULT_SIGNAL,
+      tagName: CLIENT_TOOL_RESULT_SIGNAL,
+      content: JSON.stringify([
+        {
+          toolCallId: `read-${index}`,
+          toolName: "read_petrinaut_net",
+          output: {
+            title: `Net ${index}`,
+            definition,
+            extensions: { stochasticity: true },
+            observation: {
+              toolCallId: `read-${index}`,
+              sha256: `${index}`.repeat(64),
+            },
+          },
+          metadata: { hostOnly: index },
+          ...(index === 1 ? { source: "voice" } : {}),
+        },
+      ]),
+    },
+  });
+  const definitions = [
+    {
+      places: [{ id: "place-1" }],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    },
+    {
+      places: [{ id: "place-1" }, { id: "place-2" }],
+      transitions: [{ id: "transition-1" }],
+      types: [],
+      differentialEquations: [],
+      parameters: [{ id: "parameter-1" }],
+    },
+    {
+      places: [{ id: "place-1" }, { id: "place-2" }, { id: "place-3" }],
+      transitions: [{ id: "transition-1" }, { id: "transition-2" }],
+      types: [{ id: "type-1" }],
+      differentialEquations: [],
+      parameters: [{ id: "parameter-1" }],
+      scenarios: [{ id: "scenario-1" }],
+    },
+  ];
+  const input = definitions.map((definition, index) =>
+    readSignal(index + 1, definition),
+  );
+  const before = structuredClone(input);
+  const outputsFrom = (entriesToProject: ContextProjectionEntry[]) =>
+    projectBrunchContext(entriesToProject).map((entry) => {
+      if (entry.message.role !== "signal") throw new Error("Fixture drift");
+      return (JSON.parse(entry.message.content) as [{ output: unknown }])[0]!
+        .output;
+    });
+
+  const projected = projectBrunchContext(input);
+  const outputs = outputsFrom(input);
+  expect(input).toEqual(before);
+  expect(projected.map(({ id }) => id)).toEqual(input.map(({ id }) => id));
+  const firstProjectedResult = JSON.parse(
+    projected[0]?.message.role === "signal"
+      ? projected[0].message.content
+      : "[]",
+  ) as Record<string, unknown>[];
+  expect(firstProjectedResult[0]).toMatchObject({
+    toolCallId: "read-1",
+    toolName: "read_petrinaut_net",
+    source: "voice",
+  });
+  expect(firstProjectedResult[0]).not.toHaveProperty("metadata");
+  expect(outputs[0]).toEqual({
+    observation: { toolCallId: "read-1", sha256: "1".repeat(64) },
+    counts: {
+      places: 1,
+      transitions: 0,
+      types: 0,
+      differentialEquations: 0,
+      parameters: 0,
+    },
+  });
+  expect(outputs[1]).toEqual({
+    observation: { toolCallId: "read-2", sha256: "2".repeat(64) },
+    counts: {
+      places: 2,
+      transitions: 1,
+      types: 0,
+      differentialEquations: 0,
+      parameters: 1,
+    },
+  });
+  expect(outputs[2]).toEqual({
+    title: "Net 3",
+    definition: definitions[2],
+    extensions: { stochasticity: true },
+    observation: { toolCallId: "read-3", sha256: "3".repeat(64) },
+  });
+  expect(JSON.stringify(outputs).match(/"definition"/gu)).toHaveLength(1);
+
+  expect(outputsFrom([input[0]!])[0]).toHaveProperty("definition");
+  const suffixOutputs = outputsFrom(input.slice(1));
+  expect(suffixOutputs[0]).not.toHaveProperty("definition");
+  expect(suffixOutputs[1]).toHaveProperty("definition");
+  expect(outputsFrom([input[2]!])[0]).toHaveProperty("definition");
+});
+
 test("projects unknown tools while dropping malformed signal members", () => {
   const validUnknownResult = {
     toolCallId: "future",

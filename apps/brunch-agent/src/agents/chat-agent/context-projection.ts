@@ -46,6 +46,11 @@ type ReadAuthority = {
   sha256: string;
 };
 
+type NetReadAuthority = {
+  entryIndex: number;
+  memberIndex: number;
+};
+
 const sha256 = (markdown: string): string =>
   createHash("sha256").update(markdown, "utf8").digest("hex");
 
@@ -315,30 +320,109 @@ const projectNetMutationOutput = (output: unknown): unknown => {
   };
 };
 
-const compactClientToolSignal = (
+const clientToolSignalMembers = (
   entry: ContextProjectionEntry,
-): ContextProjectionEntry => {
-  const message = entry.message;
+): unknown[] | undefined => {
+  const { message } = entry;
   if (
     message.role !== "signal" ||
     message.type !== CLIENT_TOOL_RESULT_SIGNAL ||
     message.tagName !== CLIENT_TOOL_RESULT_SIGNAL
   )
-    return entry;
-  let raw: unknown;
+    return undefined;
   try {
-    raw = JSON.parse(message.content);
+    const raw: unknown = JSON.parse(message.content);
+    return Array.isArray(raw) ? raw : undefined;
   } catch {
-    return entry;
+    return undefined;
   }
-  if (!Array.isArray(raw)) return entry;
-  const projected = raw.flatMap((member) => {
+};
+
+const netReadSummary = (
+  toolCallId: string,
+  output: unknown,
+):
+  | {
+      observation: { toolCallId: string; sha256: string };
+      counts: Record<string, number>;
+    }
+  | undefined => {
+  if (!isRecord(output)) return undefined;
+  const { definition, observation } = output;
+  if (
+    !isRecord(observation) ||
+    observation.toolCallId !== toolCallId ||
+    typeof observation.sha256 !== "string" ||
+    !isRecord(definition)
+  )
+    return undefined;
+  const requiredCollections = [
+    "places",
+    "transitions",
+    "types",
+    "differentialEquations",
+    "parameters",
+  ] as const;
+  if (
+    requiredCollections.some(
+      (collection) => !Array.isArray(definition[collection]),
+    )
+  )
+    return undefined;
+  return {
+    observation: {
+      toolCallId: observation.toolCallId,
+      sha256: observation.sha256,
+    },
+    counts: Object.fromEntries(
+      Object.entries(definition).flatMap(([name, value]) =>
+        Array.isArray(value) ? [[name, value.length]] : [],
+      ),
+    ),
+  };
+};
+
+const netReadAuthorities = (
+  entries: readonly ContextProjectionEntry[],
+): NetReadAuthority[] =>
+  entries.flatMap((entry, entryIndex) =>
+    (clientToolSignalMembers(entry) ?? []).flatMap((member, memberIndex) =>
+      isClientToolResult(member) &&
+      member.toolName === "read_petrinaut_net" &&
+      netReadSummary(member.toolCallId, member.output)
+        ? [{ entryIndex, memberIndex }]
+        : [],
+    ),
+  );
+
+const compactClientToolSignal = (
+  entry: ContextProjectionEntry,
+  entryIndex: number,
+  latestNetRead: NetReadAuthority | undefined,
+): ContextProjectionEntry => {
+  const message = entry.message;
+  const raw = clientToolSignalMembers(entry);
+  if (message.role !== "signal" || !raw) return entry;
+  const projected = raw.flatMap((member, memberIndex) => {
     if (!isClientToolResult(member)) return [];
     const { metadata: _metadata, ...result } = member;
+    const readSummary =
+      result.toolName === "read_petrinaut_net"
+        ? netReadSummary(result.toolCallId, result.output)
+        : undefined;
+    const isLatestNetRead =
+      latestNetRead?.entryIndex === entryIndex &&
+      latestNetRead.memberIndex === memberIndex;
     return [
-      result.toolName === "mutate_petrinaut_net"
-        ? { ...result, output: projectNetMutationOutput(result.output) }
-        : result,
+      {
+        ...result,
+        output:
+          readSummary && !isLatestNetRead
+            ? readSummary
+            : result.toolName === "mutate_petrinaut_net"
+              ? projectNetMutationOutput(result.output)
+              : result.output,
+      },
     ];
   });
   return {
@@ -371,6 +455,7 @@ export const createBrunchContextProjection = (
     const latestSettlement = settlements.toSorted(
       (left, right) => right.resultEntryIndex - left.resultEntryIndex,
     )[0];
+    const latestNetRead = netReadAuthorities(entries).at(-1);
     const projectArguments =
       options.projectSupersededWorkpieceArguments === true;
     // Only bodies this projection leaves in place may be referenced. With
@@ -412,6 +497,8 @@ export const createBrunchContextProjection = (
             settlement,
             retainedEntryIds.get(contentKey(settlement)),
           ),
+          entryIndex,
+          latestNetRead,
         );
       const read = reads.find(
         (candidate) => candidate.entryIndex === entryIndex,
@@ -423,6 +510,8 @@ export const createBrunchContextProjection = (
         read && retainedEntryId
           ? projectReadResult(withProjectedArguments, read, retainedEntryId)
           : withProjectedArguments,
+        entryIndex,
+        latestNetRead,
       );
     });
   };

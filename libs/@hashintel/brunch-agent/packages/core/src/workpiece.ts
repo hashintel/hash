@@ -80,6 +80,45 @@ export interface WorkpieceEvidenceServices {
   readonly readSources: () => Promise<readonly WorkpieceEvidenceSource[]>;
 }
 
+export const workpieceRetractionSchema = v.strictObject({
+  withdrawn: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Concise identification of the material the user explicitly withdrew.",
+    ),
+  ),
+  authorizationText: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Literal excerpt copied exactly from the cited true-user message that explicitly authorizes this withdrawal.",
+    ),
+  ),
+  removedText: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
+    v.minLength(1),
+    v.maxLength(16),
+    v.description(
+      "Exact prior-Ledger excerpts this revision removes. Each must occur exactly once in the prior body, be non-overlapping, and be absent from the replacement; for a large shrink their total length must cover the net character reduction.",
+    ),
+  ),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.minLength(1),
+    v.maxLength(8),
+    v.description(
+      "Authorized true-user message ids that explicitly retract the named material.",
+    ),
+  ),
+});
+
+export type WorkpieceRetraction = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRetractionSchema>
+>;
+
 /** Tool-call identity and content hash; ordinal is presentation only, never citation identity. */
 export const workpieceRevisionPointerSchema = v.object({
   revisionId: v.string(),
@@ -93,6 +132,7 @@ export const workpieceRevisionSchema = v.object({
   markdown: v.string(),
   evidence: v.optional(JsonValueSchema),
   evidenceValidated: v.optional(v.literal(true)),
+  retraction: v.optional(workpieceRetractionSchema),
 });
 
 export type WorkpieceRevision = ReadonlyDeep<

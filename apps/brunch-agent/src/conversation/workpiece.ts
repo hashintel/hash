@@ -38,8 +38,14 @@ const settledRevisionFromPart = (
   if (!input.success || !output.success) return undefined;
 
   const { markdown } = input.output;
-  const { revisionId, sha256, ordinal, evidence, evidenceValidated } =
-    output.output;
+  const {
+    revisionId,
+    sha256,
+    ordinal,
+    evidence,
+    evidenceValidated,
+    retraction,
+  } = output.output;
   if (
     revisionId !== part.toolCallId ||
     createHash("sha256").update(markdown).digest("hex") !== sha256
@@ -54,6 +60,7 @@ const settledRevisionFromPart = (
     ...(evidenceValidated === true && evidence !== undefined
       ? { evidence, evidenceValidated }
       : {}),
+    ...(retraction === undefined ? {} : { retraction }),
   };
 };
 

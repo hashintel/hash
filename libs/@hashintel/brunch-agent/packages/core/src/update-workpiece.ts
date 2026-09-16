@@ -2,9 +2,13 @@ import { createHash } from "node:crypto";
 
 import * as v from "valibot";
 
-import { evidenceRelationSchema } from "./workpiece";
+import { evidenceRelationSchema, workpieceRetractionSchema } from "./workpiece";
 
-import type { WorkpieceEvidenceSource, WorkpieceRevision } from "./workpiece";
+import type {
+  WorkpieceEvidenceSource,
+  WorkpieceRetraction,
+  WorkpieceRevision,
+} from "./workpiece";
 
 /** Model-facing evidence declaration: the passage is cited by its literal text, never by offsets. */
 export const evidenceDeclarationSchema = v.strictObject({
@@ -33,6 +37,24 @@ export const evidenceDeclarationSchema = v.strictObject({
 export type WorkpieceEvidenceDeclaration = v.InferOutput<
   typeof evidenceDeclarationSchema
 >;
+
+const assertAuthorizedTrueUserSources = (
+  messageIds: readonly string[],
+  sources: readonly WorkpieceEvidenceSource[],
+  subject: "Evidence" | "Retraction",
+): void => {
+  for (const id of messageIds) {
+    const matches = sources.filter((source) => source.id === id);
+    if (
+      matches.length !== 1 ||
+      matches[0]?.role !== "user" ||
+      matches[0].purpose !== "user"
+    )
+      throw new Error(
+        `${subject} must resolve to an authorized true-user source in this conversation.`,
+      );
+  }
+};
 
 /** Every literal start offset, advancing one code unit so overlapping occurrences stay visible. */
 const literalOccurrences = (content: string, text: string): number[] => {
@@ -148,23 +170,167 @@ export const settleWorkpieceEvidence = async (
       throw new Error(
         "Elicited evidence requires an authorized true-user source.",
       );
-    for (const id of relation.messageIds) {
-      const matches = sources.filter((source) => source.id === id);
-      if (
-        matches.length !== 1 ||
-        matches[0]?.role !== "user" ||
-        matches[0].purpose !== "user"
-      )
-        throw new Error(
-          "Evidence must resolve to an authorized true-user source in this conversation.",
-        );
-    }
+    assertAuthorizedTrueUserSources(relation.messageIds, sources, "Evidence");
   }
   return relations;
 };
 
 /** Ceiling in UTF-8 bytes, before hashing; whitespace and line endings are preserved. */
 export const workpieceMarkdownByteCeiling = 262_144;
+export const workpieceMaximumUnannouncedShrinkRatio = 0.25;
+
+export const validateWorkpieceRetraction = (
+  retraction: WorkpieceRetraction | undefined,
+  sources: readonly WorkpieceEvidenceSource[],
+): void => {
+  if (!retraction) return;
+  assertAuthorizedTrueUserSources(retraction.messageIds, sources, "Retraction");
+  const citedSources = sources.filter((source) =>
+    retraction.messageIds.includes(source.id),
+  );
+  const authorizationOccurrences = citedSources.reduce(
+    (count, source) =>
+      count +
+      literalOccurrences(source.text, retraction.authorizationText).length,
+    0,
+  );
+  if (authorizationOccurrences !== 1)
+    throw new Error(
+      `Retraction authorization text matched ${authorizationOccurrences} occurrence(s) across its cited true-user sources; it must occur exactly once.`,
+    );
+  if (
+    !retraction.authorizationText
+      .toLowerCase()
+      .includes(retraction.withdrawn.toLowerCase())
+  )
+    throw new Error(
+      "Retraction authorization text must name the withdrawn material. Nothing was written.",
+    );
+};
+
+const markdownHeadings = (markdown: string): string[] => {
+  const headings: string[] = [];
+  let openFence: { marker: "`" | "~"; length: number } | undefined;
+  let setextCandidate: string | undefined;
+  for (const line of markdown.split(/\r?\n/u)) {
+    const fence = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/u);
+    if (openFence) {
+      const fenceRun = fence?.[1];
+      if (
+        fenceRun &&
+        fenceRun.startsWith(openFence.marker) &&
+        fenceRun.length >= openFence.length &&
+        fence[2]?.trim() === ""
+      )
+        openFence = undefined;
+      setextCandidate = undefined;
+      continue;
+    }
+    const fenceRun = fence?.[1];
+    if (fenceRun) {
+      openFence = {
+        marker: fenceRun.startsWith("`") ? "`" : "~",
+        length: fenceRun.length,
+      };
+      setextCandidate = undefined;
+      continue;
+    }
+    const atxHeading = line.match(/^ {0,3}(#{1,6})(?:[ \t]+(.*))?$/u);
+    if (atxHeading?.[1]) {
+      const text = (atxHeading[2] ?? "").replace(/[ \t]+#+[ \t]*$/u, "").trim();
+      headings.push(`${atxHeading[1]}${text ? ` ${text}` : ""}`);
+      setextCandidate = undefined;
+      continue;
+    }
+    const setextUnderline = line.match(/^ {0,3}(=+|-+)[ \t]*$/u)?.[1];
+    if (setextUnderline && setextCandidate) {
+      const marker = setextUnderline.startsWith("=") ? "#" : "##";
+      headings.push(`${marker} ${setextCandidate}`);
+      setextCandidate = undefined;
+      continue;
+    }
+    setextCandidate = /^ {0,3}\S/u.test(line) ? line.trim() : undefined;
+  }
+  return headings;
+};
+
+/** Refuse an unannounced replacement that drops established document structure or content. */
+export const assertWorkpieceIsNotSilentShrink = (
+  previous: WorkpieceRevision,
+  markdown: string,
+  retraction?: WorkpieceRetraction,
+): void => {
+  const candidateHeadings = markdownHeadings(markdown);
+  const missingHeadings = markdownHeadings(previous.markdown).filter(
+    (heading) => {
+      const retainedIndex = candidateHeadings.indexOf(heading);
+      if (retainedIndex === -1) return true;
+      candidateHeadings.splice(retainedIndex, 1);
+      return false;
+    },
+  );
+  const characterDelta = markdown.length - previous.markdown.length;
+  const exceedsShrinkLimit =
+    characterDelta <
+    -previous.markdown.length * workpieceMaximumUnannouncedShrinkRatio;
+  if (missingHeadings.length === 0 && !exceedsShrinkLimit) return;
+  if (retraction) {
+    const invalidRemovedText: number[] = [];
+    const removedSpans: { index: number; start: number; end: number }[] = [];
+    for (const [index, text] of retraction.removedText.entries()) {
+      const occurrences = literalOccurrences(previous.markdown, text);
+      const start = occurrences.length === 1 ? occurrences[0] : undefined;
+      if (start === undefined || markdown.includes(text)) {
+        invalidRemovedText.push(index);
+      } else {
+        removedSpans.push({ index, start, end: start + text.length });
+      }
+    }
+    const overlappingRemovedText: number[] = [];
+    let previousEnd = -1;
+    for (const span of removedSpans.toSorted(
+      (left, right) => left.start - right.start,
+    )) {
+      if (span.start < previousEnd) overlappingRemovedText.push(span.index);
+      previousEnd = Math.max(previousEnd, span.end);
+    }
+    if (invalidRemovedText.length > 0 || overlappingRemovedText.length > 0)
+      throw new Error(
+        `Retraction removedText entries ${[...invalidRemovedText, ...overlappingRemovedText].join(", ")} do not each identify one unique, non-overlapping prior-body excerpt that was actually removed. Character delta: ${characterDelta}. Nothing was written.`,
+      );
+    const accountedCharacters = removedSpans.reduce(
+      (total, span) => total + span.end - span.start,
+      0,
+    );
+    const removedCharacters = -characterDelta;
+    if (exceedsShrinkLimit && accountedCharacters < removedCharacters)
+      throw new Error(
+        `Retraction removedText accounts for ${accountedCharacters} of ${removedCharacters} removed characters. Nothing was written.`,
+      );
+    const namedRemoval = [retraction.withdrawn, ...retraction.removedText]
+      .join("\n")
+      .toLowerCase();
+    const unnamedHeadings = missingHeadings.filter((heading) => {
+      const name = heading.replace(/^#{1,6}\s*/u, "").toLowerCase();
+      return !namedRemoval.includes(name);
+    });
+    if (unnamedHeadings.length === 0) return;
+    throw new Error(
+      `Retraction does not name missing heading(s): ${unnamedHeadings.join(", ")}. Character delta: ${characterDelta}. Nothing was written.`,
+    );
+  }
+
+  const losses = [
+    ...(missingHeadings.length > 0
+      ? [`is missing heading(s): ${missingHeadings.join(", ")}`]
+      : []),
+    ...(exceedsShrinkLimit ? ["removes more than 25% of the prior body"] : []),
+  ];
+  throw new Error(
+    `Workpiece ${losses.join(" and ")}. Character delta: ${characterDelta}. Nothing was written; resubmit the complete settled account.`,
+  );
+};
+
 export const updateWorkpieceInputSchema = v.object({
   baseRevisionId: v.pipe(
     v.nullable(v.string()),
@@ -192,6 +358,12 @@ export const updateWorkpieceInputSchema = v.object({
     v.optional(v.array(evidenceDeclarationSchema)),
     v.description(
       "Optional relations from literal passages of this submitted Markdown to the authorized true-user message ids shown as `[message <id>]` in the conversation, with kind declaring each relation's evidential standing. The server resolves each text to an immutable UTF-16 span; a text that is absent or ambiguous refuses the whole settlement. Evidence displaced by an edit above it, or overlapped by a new declaration, must be re-declared. Valid linkage does not establish relevance.",
+    ),
+  ),
+  retraction: v.pipe(
+    v.optional(workpieceRetractionSchema),
+    v.description(
+      "Required only when the submitted Markdown removes an established heading or more than 25% of the prior body. Name the withdrawn material; list unique, non-overlapping prior-Ledger excerpts that the replacement removes and whose total length covers any large net reduction; quote the exact authorization text; and cite the true-user message containing it. Unrelated prose or source identity alone cannot authorize loss.",
     ),
   ),
 });
@@ -324,11 +496,15 @@ export const prepareWorkpieceRevision = (
 ): Omit<WorkpieceRevision, "ordinal" | "evidence" | "evidenceValidated"> & {
   readonly evidence: v.InferOutput<typeof evidenceRelationSchema>[] | undefined;
 } => {
-  const { markdown, evidence } = v.parse(updateWorkpieceInputSchema, input);
+  const { markdown, evidence, retraction } = v.parse(
+    updateWorkpieceInputSchema,
+    input,
+  );
   return {
     revisionId: toolCallId,
     sha256: sha256(markdown),
     markdown,
+    ...(retraction === undefined ? {} : { retraction }),
     // Declarations resolve against the body they cite before anything else runs.
     evidence:
       evidence === undefined

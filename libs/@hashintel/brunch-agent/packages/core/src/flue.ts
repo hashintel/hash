@@ -16,9 +16,11 @@ import {
 } from "./skills/elicitation/skill";
 import { skillFromMarkdown } from "./skills/skill-markdown";
 import {
+  assertWorkpieceIsNotSilentShrink,
   deriveWorkpieceMutation,
   prepareWorkpieceRevision,
   settleWorkpieceEvidence,
+  validateWorkpieceRetraction,
   lookupWorkpieceLocators,
   workpieceLocatorLookupSchema,
   workpieceMutationSchema,
@@ -27,6 +29,7 @@ import {
 } from "./update-workpiece";
 import {
   evidenceRelationSchema,
+  workpieceRetractionSchema,
   workpieceRevisionPointerSchema,
   workpieceRevisionSchema,
   workpieceRevisionStateKey,
@@ -84,8 +87,38 @@ export const updateWorkpieceOutputSchema = v.object({
   ...workpieceRevisionPointerSchema.entries,
   evidence: v.optional(v.array(evidenceRelationSchema)),
   evidenceValidated: v.optional(v.literal(true)),
+  retraction: v.optional(workpieceRetractionSchema),
   mutation: v.optional(workpieceMutationSchema),
 });
+
+const outputFromWorkpieceRevision = (
+  revision: WorkpieceRevision,
+  mutation: v.InferOutput<typeof workpieceMutationSchema>,
+): v.InferOutput<typeof updateWorkpieceOutputSchema> => {
+  const evidence = v.safeParse(
+    v.array(evidenceRelationSchema),
+    revision.evidence,
+  );
+  return {
+    revisionId: revision.revisionId,
+    sha256: revision.sha256,
+    ordinal: revision.ordinal,
+    ...(revision.evidenceValidated && evidence.success
+      ? { evidence: evidence.output, evidenceValidated: true as const }
+      : {}),
+    ...(revision.retraction === undefined
+      ? {}
+      : {
+          retraction: {
+            withdrawn: revision.retraction.withdrawn,
+            authorizationText: revision.retraction.authorizationText,
+            removedText: [...revision.retraction.removedText],
+            messageIds: [...revision.retraction.messageIds],
+          },
+        }),
+    mutation,
+  };
+};
 
 export const createMutateWorkpieceTool = (
   setRevision: StateSetter<WorkpieceRevision | null>,
@@ -94,7 +127,7 @@ export const createMutateWorkpieceTool = (
   defineTool({
     name: MUTATE_WORKPIECE_TOOL_NAME,
     description:
-      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and the current baseRevisionId, using null only for the first revision; no read precedes a settlement. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. The result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. Never combine it with browser construction in one batch. Valid linkage does not prove relevance or template quality.",
+      "Settle the Ledger in one direct call: create a first partial workpiece at the first consequential distinction, then settle after meaning-bearing input, at every correction, and before a topic change or delivery. Submit the full next Markdown account and the current baseRevisionId, using null only for the first revision; no read precedes a settlement. Carry the complete settled account forward: a replacement that drops a heading or more than 25% of the prior body is refused with nothing written. Retractions name the withdrawn material; list unique, non-overlapping prior-Ledger excerpts that the replacement removes and whose total length covers any large net reduction; quote the exact authorization text; and cite the true-user message containing it. Declare evidence by literal text copied from this submitted Markdown, citing the `[message <id>]` ids shown beside user messages in the conversation; the server resolves each text to an immutable span, and an absent or ambiguous text refuses the whole settlement with nothing written. Correct every named evidence failure and resubmit the complete relation set rather than dropping valid relations. The result records the authoritative revisionId, sha256, resolved evidence locators and the minimal changed UTF-16 window; copy revisionId, sha256 and locators from it when a later basis needs them. The submitted Markdown remains the authoritative body, so do not read it back. This server tool does not end the response. Never combine it with browser construction in one batch. Valid linkage does not prove relevance or template quality.",
     input: updateWorkpieceInputSchema,
     output: updateWorkpieceOutputSchema,
     durable: true,
@@ -103,6 +136,7 @@ export const createMutateWorkpieceTool = (
       let mutation = deriveWorkpieceMutation(null, prepared.markdown);
       // Acquisition can refuse missing retained state even when evidence is absent.
       const sources = (await evidenceServices?.readSources()) ?? [];
+      validateWorkpieceRetraction(data.retraction, sources);
       const evidence = await settleWorkpieceEvidence(
         { markdown: prepared.markdown, evidence: prepared.evidence },
         evidenceServices?.currentRevision ?? null,
@@ -118,13 +152,33 @@ export const createMutateWorkpieceTool = (
         sha256: prepared.sha256,
         markdown: prepared.markdown,
         ordinal: 0,
+        ...(prepared.retraction === undefined
+          ? {}
+          : {
+              retraction: {
+                withdrawn: prepared.retraction.withdrawn,
+                authorizationText: prepared.retraction.authorizationText,
+                removedText: [...prepared.retraction.removedText],
+                messageIds: [...prepared.retraction.messageIds],
+              },
+            }),
         ...verifiedEvidence,
       };
+      let settledRevision: WorkpieceRevision = revision;
       // Buffered state commits with the tool batch, not an external effect. A
       // separate step checkpoint could skip an uncommitted write on replay.
       setRevision((previous) => {
         const isReplay = previous?.revisionId === toolCallId;
-        if (!isReplay && data.baseRevisionId !== (previous?.revisionId ?? null))
+        if (isReplay) {
+          if (prepared.sha256 !== previous.sha256)
+            throw new Error(
+              "Workpiece replay names an already-applied toolCallId with different Markdown. Nothing was written.",
+            );
+          settledRevision = previous;
+          mutation = deriveWorkpieceMutation(previous, previous.markdown);
+          return previous;
+        }
+        if (data.baseRevisionId !== (previous?.revisionId ?? null))
           throw new Error(
             "Workpiece baseRevisionId does not name the current revision. Call read_workpiece, reconcile the intended changes against its current Markdown, then resubmit the full document with the current revisionId as baseRevisionId.",
           );
@@ -137,14 +191,20 @@ export const createMutateWorkpieceTool = (
           throw new Error(
             "Workpiece changed while this revision was prepared. Call read_workpiece, reconcile the intended changes against its current Markdown, then resubmit the full document with the current revisionId as baseRevisionId.",
           );
-        revision.ordinal = isReplay
-          ? previous.ordinal
-          : (previous?.ordinal ?? 0) + 1;
+        if (previous)
+          assertWorkpieceIsNotSilentShrink(
+            previous,
+            prepared.markdown,
+            prepared.retraction,
+          );
+        revision.ordinal = (previous?.ordinal ?? 0) + 1;
         mutation = deriveWorkpieceMutation(previous, prepared.markdown);
         return revision;
       });
-      const { markdown: _markdown, ...pointer } = revision;
-      return { output: { ...pointer, mutation }, terminate: false };
+      return {
+        output: outputFromWorkpieceRevision(settledRevision, mutation),
+        terminate: false,
+      };
     },
   });
 
@@ -241,10 +301,28 @@ export const createWorkpieceReadTool = (services: WorkpieceEvidenceServices) =>
           source.purpose === "user" &&
           requestedIds.includes(source.id),
       );
+      const currentWorkpiece = services.currentRevision
+        ? (() => {
+            const { retraction, ...revision } = services.currentRevision;
+            return {
+              ...revision,
+              ...(retraction === undefined
+                ? {}
+                : {
+                    retraction: {
+                      withdrawn: retraction.withdrawn,
+                      authorizationText: retraction.authorizationText,
+                      removedText: [...retraction.removedText],
+                      messageIds: [...retraction.messageIds],
+                    },
+                  }),
+            };
+          })()
+        : null;
       return {
         output: {
           currentWorkpiece:
-            data.includeContent === false ? null : services.currentRevision,
+            data.includeContent === false ? null : currentWorkpiece,
           currentWorkpiecePointer: services.currentRevision
             ? {
                 revisionId: services.currentRevision.revisionId,
