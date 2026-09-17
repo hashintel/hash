@@ -8,7 +8,7 @@ Show when an experiment is already viewing its best result, with best parameter 
 
 Use consistent, compact shortcut key labels in menus, tooltips, and the command palette.
 
-Give the floating Canvas/Definitions selector a clearer border and blurred background.
+Give the floating Canvas/Definitions selector a clearer border and a lightly tinted, blurred background.
 
 Keep toolbar folding stable while resizing panels, with eased expansion when playback starts and coordinated panel motion.
 Keep the expanded toolbar from jumping sideways when the bottom panel opens or closes.

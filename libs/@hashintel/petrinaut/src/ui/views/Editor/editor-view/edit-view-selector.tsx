@@ -53,7 +53,7 @@ const placementStyle = cva({
   variants: {
     floating: {
       true: {
-        backgroundColor: "white/70",
+        backgroundColor: "white/35",
         backdropFilter: "[blur(8px)]",
       },
     },
