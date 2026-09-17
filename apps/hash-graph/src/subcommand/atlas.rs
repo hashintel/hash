@@ -3,7 +3,7 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
+use hash_graph_api::legacy::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
 use hash_graph_atlas::cli::{self, PasswordString, Storage};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,

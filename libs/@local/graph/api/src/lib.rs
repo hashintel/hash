@@ -16,6 +16,6 @@ extern crate alloc;
 
 pub(crate) mod email_subscription;
 pub(crate) mod identity_provider;
+pub mod legacy;
 pub(crate) mod oauth_provider;
-pub mod rest;
 pub mod rpc;

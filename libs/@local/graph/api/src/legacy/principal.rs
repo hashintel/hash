@@ -27,7 +27,7 @@ use type_system::principal::{
 use utoipa::OpenApi;
 
 use super::status::BoxedResponse;
-use crate::rest::{AuthenticatedActorId, json::Json, status::report_to_response};
+use crate::legacy::{AuthenticatedActorId, json::Json, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(

@@ -23,7 +23,7 @@ use type_system::{knowledge::entity::id::EntityId, ontology::VersionedUrl};
 pub use self::request::{
     QueryEntitiesRequest, QueryEntitySubgraphError, QueryEntitySubgraphRequest,
 };
-use crate::rest::{
+use crate::legacy::{
     ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger,
     json::Json,
     resolve_limit,
