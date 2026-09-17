@@ -264,7 +264,7 @@ export const SimulationPanelControls = () => {
 };
 
 export const SimulationPanelTitle = ({ title }: { title: string }) => {
-  const { state } = usePetrinautNavigation();
+  const { state, navigate } = usePetrinautNavigation();
   const expanded =
     state.mode === "simulate" && state.simulatePresentation === "fullscreen";
   const section =
@@ -319,7 +319,35 @@ export const SimulationPanelTitle = ({ title }: { title: string }) => {
               color: "neutral.s90",
             })}
           >
-            {section}
+            <button
+              type="button"
+              tabIndex={expanded ? 0 : -1}
+              onClick={(event) => {
+                event.currentTarget
+                  .closest<HTMLElement>("[data-simulation-panel]")
+                  ?.focus({ preventScroll: true });
+                navigate(
+                  { simulatePresentation: "panel" },
+                  { cause: "user", action: "simulation-presentation" },
+                );
+              }}
+              className={css({
+                appearance: "none",
+                padding: "[0]",
+                border: "[0]",
+                background: "[transparent]",
+                font: "[inherit]",
+                color: "[inherit]",
+                cursor: "pointer",
+                _hover: { color: "neutral.s120", textDecoration: "underline" },
+                _focusVisible: {
+                  outline: "[1px solid currentColor]",
+                  outlineOffset: "[-1px]",
+                },
+              })}
+            >
+              {section}
+            </button>
             <Icon name="chevronRight" size="xs" />
           </span>
         </span>

@@ -20,3 +20,5 @@ Enable Petricon by default and remove the Experimental labels from Petricon and 
 Add Command+Shift+L on Mac and Control+Shift+L on Windows/Linux for auto-layout and display it in the menu and command palette.
 
 Animate simulation panels only when opening and closing, keep scenario selection changes immediate, and align drawer forms and section titles with compact spacing below their headers.
+
+Let the fullscreen simulation breadcrumb return to the list beside the selected resource.

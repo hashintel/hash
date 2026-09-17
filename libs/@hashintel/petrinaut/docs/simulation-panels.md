@@ -10,7 +10,7 @@ Drag the divider between the list and the panel to adjust their widths. The pane
 
 ## Expand and return
 
-Click **Expand to fullscreen** in the panel header to cover the list while keeping the vertical tabs visible. The header shows the tab and resource names, such as **Scenarios › Mars Orbit**. Click **Show as panel** to return to the side-by-side layout. The same form or results stay open: unsaved edits, expanded charts, and scroll position carry across the resize.
+Click **Expand to fullscreen** in the panel header to cover the list while keeping the vertical tabs visible. The header shows the tab and resource names, such as **Scenarios › Mars Orbit**. Click **Scenarios** or **Experiments** in the breadcrumb, or **Show as panel**, to return to the list beside the panel. The same form or results stay open: unsaved edits, expanded charts, and scroll position carry across the resize.
 
 Each tab remembers its selected resource and panel or fullscreen presentation while the current model is open. Opening another model clears these remembered selections. Returning to a fullscreen resource shows it at full size immediately. Save scenario edits before switching tabs; unsaved form edits are not retained across tab changes.
 

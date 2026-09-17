@@ -513,3 +513,47 @@ it("removes closed panels immediately when animations are disabled", () => {
   rerender(tree(false));
   expect(panel.isConnected).toBe(false);
 });
+
+it.each([
+  { view: "scenarios", resourceType: "scenario", label: "Scenarios" },
+  { view: "experiments", resourceType: "experiment", label: "Experiments" },
+] as const)(
+  "returns to the $label list from its fullscreen breadcrumb",
+  ({ view, resourceType, label }) => {
+    render(
+      <PetrinautNavigationProvider
+        initialState={{
+          mode: "simulate",
+          simulateView: view,
+          simulateResource: { type: resourceType, id: "selected" },
+          simulatePresentation: "fullscreen",
+        }}
+      >
+        <SimulationWorkspace>
+          <button type="button">List action</button>
+          <SimulationPanel title="Selected resource" onClose={() => {}}>
+            <SimulationPanel.Header />
+            <SimulationPanel.Body>
+              <input aria-label="Draft" defaultValue="Unsaved" />
+            </SimulationPanel.Body>
+          </SimulationPanel>
+        </SimulationWorkspace>
+        <NavigationProbe />
+      </PetrinautNavigationProvider>,
+    );
+    const panel = screen.getByRole("region", { name: "Selected resource" });
+    const input = screen.getByRole("textbox", { name: "Draft" });
+    const breadcrumb = screen.getByRole("button", { name: label, exact: true });
+    breadcrumb.focus();
+    fireEvent.click(breadcrumb);
+    expect(screen.getByLabelText("Presentation").textContent).toBe("panel");
+    expect(screen.getByLabelText("Simulation route").textContent).toBe(
+      `simulate/${view}/selected`,
+    );
+    expect(screen.getByRole("textbox", { name: "Draft" })).toBe(input);
+    expect(input).toHaveProperty("value", "Unsaved");
+    expect(screen.getByText("List action").closest("[inert]")).toBeNull();
+    expect(document.activeElement).toBe(panel);
+    expect(breadcrumb.tabIndex).toBe(-1);
+  },
+);
