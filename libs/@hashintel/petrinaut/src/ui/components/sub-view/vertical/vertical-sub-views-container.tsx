@@ -156,8 +156,14 @@ const panelContentStyle = css({
   // header owns its own top spacing. Bottom padding is fine: it scrolls with
   // the content, so short views keep a clean inset while overflowing views
   // scroll through the section's full height.
-  px: "4",
+  "--subview-content-inline-padding": "[16px]",
+  px: "[var(--subview-content-inline-padding)]",
   pb: "3",
+  "[data-subview-fullscreen] &": { paddingBottom: "0" },
+  "[data-subview-animate] &": {
+    transition: "[padding-bottom 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
 });
 
 const SHADOW_HEIGHT = 7;
@@ -688,6 +694,10 @@ export const VerticalSubViewsContainer: React.FC<
                 inert={isHidden}
                 aria-hidden={isHidden || undefined}
                 data-expanded-subview={fillsContainer || undefined}
+                data-subview-fullscreen={
+                  (fillsContainer && !isRestoring) || undefined
+                }
+                data-subview-animate={showAnimations || undefined}
               >
                 <SubViewHeader
                   id={subView.id}

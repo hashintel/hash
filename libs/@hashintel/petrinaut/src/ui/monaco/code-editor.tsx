@@ -32,6 +32,18 @@ const multiLineContainerStyle = cva({
     borderColor: "neutral.bd.subtle",
     borderRadius: "lg",
     overflow: "hidden",
+    marginInline: "0",
+    "[data-subview-fullscreen] &": {
+      borderColor: "[transparent]",
+      borderRadius: "0",
+      marginInline: "[calc(-1 * var(--subview-content-inline-padding, 0px))]",
+      boxShadow: "[none]",
+    },
+    "[data-subview-animate] &": {
+      transition:
+        "[border-color 240ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 240ms cubic-bezier(0.22, 1, 0.36, 1), margin-inline 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
+      "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+    },
     _focusWithin: {
       boxShadow: "[0px 0px 0px 2px {colors.neutral.a25}]",
     },

@@ -32,3 +32,5 @@ Keep code-section expand actions visible while collapsed, with larger icons and 
 Soften subview header dividers and add right spacing to the scenario state label.
 
 Make place State subviews read-only even without a saved scenario; configure initial tokens in Simulation Settings.
+
+Animate code editors to a borderless, square-cornered view flush with the panel edges when expanded.

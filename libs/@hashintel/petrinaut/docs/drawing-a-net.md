@@ -37,6 +37,8 @@ The **State** and **Visualizer** section headers have visible expand arrows. Cli
 
 Code sections always show their **Fill panel** action, including while collapsed. Use it to open the editor directly in the full panel; returning restores the section's previous collapsed or open state.
 
+In the full panel, code editors meet the left, right, and bottom edges with square corners and no visible border. Their frame and spacing transition smoothly when entering or leaving this view.
+
 ## Top bar
 
 Spans the full editor width and has three sections.
