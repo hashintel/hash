@@ -21,7 +21,7 @@ A fresh builder must read these sources before cutting or implementing this clus
 - [`packages/core/src/prompts/SYSTEM.md`](../../packages/core/src/prompts/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md) — current foreground lifecycle and workpiece correction behavior.
 - [`apps/brunch-agent/test/integration/petrinaut-chat.test.ts`](../../../../../apps/brunch-agent/test/integration/petrinaut-chat.test.ts), [`apps/brunch-agent/test/headless-petrinaut-client.test.ts`](../../../../../apps/brunch-agent/test/headless-petrinaut-client.test.ts), and [`packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts) — current real door, bounded mutation subset, and its limits.
 - [`9-traceable-projection.md`](9-traceable-projection.md) — repeat, changed-input, retirement, and impact-boundary semantics this draft inherits. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
-- [Mission 8 successor](../../MISSION.next.md#mission-8-successor) — local application contract after #9495/#9487/#9573 and the still-open infrastructure proof that any deployed durability claim must consume. The historical deployment branch stopped at the application boundary.
+- [Hosted deployment successor](../../MISSION.next.md#hosted-deployment-successor) — local application contract after #9495/#9487/#9573 and the still-open infrastructure proof that any deployed durability claim must consume. The historical deployment branch stopped at the application boundary.
 
 ## Visible product advance
 
@@ -102,7 +102,7 @@ This cluster may start only after the prior missions have supplied and accepted:
 - Mission 7's genuine conversation and constructed region with settled revisions, declared basis, independently verifiable mutation records, revision-local passages, live-document reconciliation, recorded roles and actual explanation/compaction results; fixture delivery is a separate distribution obligation, not a demo guarantee;
 - Mission 9's repeat idempotence, changed-input identity, retirement/epoch semantics, concurrent-change refusal, impact-boundary semantics, and explicit partial or unsupported failure;
 - the current settled workpiece revision and the exact source Flue conversation selected at the prior handoff;
-- a deployment posture named honestly: local unless a Mission 8 successor has landed, with every persisted state this path consumes surviving the replacement behaviour actually claimed.
+- a deployment posture named honestly: local unless the hosted deployment successor has landed, with every persisted state this path consumes surviving the replacement behaviour actually claimed.
 
 Draft links are not evidence. If Mission 7 or Mission 9 ships a different representation, Mission 10 must consume that actual contract or return here for re-cutting.
 
@@ -149,7 +149,7 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 - Upstream source exit: the genuine persona or human conversation, its settled workpiece revisions, and the adjudication accepted by Mission 7; Mission 4 itself supplies no full-run candidate and the Mission 6 prepared fixture is not promoted.
 - Mission 7: the constructed region, settled revisions, declared basis, mutation records, identity epochs, passage policy, reconciliation, recorded roles, and the why operation with its gates.
 - Mission 9: the extended region, canonical mutation surface, repeat and changed-input identity evidence, retirement semantics, impact boundary, and accepted unsupported or partial behaviour.
-- Mission 8: consume the [hosted-product successor contract](../../MISSION.next.md#mission-8-successor)—published ECS-startable image, fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, shared content-free OTel, `/agents/*` product door, private `/health`, singleton ownership policy—but do not imply it is deployed. SRE-1013, the remote proof matrix, and owner acceptance remain required before an outer deployed claim.
+- Hosted deployment (historical Mission 8): consume the [successor contract](../../MISSION.next.md#hosted-deployment-successor)—published ECS-startable image, fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, shared content-free OTel, `/agents/*` product door, private `/health`, singleton ownership policy—but do not imply it is deployed. SRE-1013, the remote proof matrix, and owner acceptance remain required before an outer deployed claim.
 - Mission 11: receives only an accepted final workpiece/net/evidence package with declared basis and observed revision records, plus the six-beat real-path evidence; its consumer contract may not weaken Mission 10's revision-integrity closure.
 
 ## Risks and assumptions
@@ -233,7 +233,7 @@ No path is permission to edit before the cluster is cut. Prefer existing generic
 - Stop if the patch rereads the transcript as its primary model, mutates from an uncommitted workpiece, or silently rebuilds unrelated regions.
 - Stop if unrelated ids or behavior churn without an explicit, authorized impact widening.
 - Stop if canonical Petrinaut schemas must be copied into Brunch or parser/tool success is presented as semantic success.
-- Stop if deployment is claimed from the local Mission 8 image evidence without the remote infrastructure proof.
+- Stop if deployment is claimed from the local deployment image evidence without the remote infrastructure proof.
 - Stop if implementation grows an ontology, deterministic capture-to-workpiece reducer, typed fold, completion algebra, or generalized revision platform to handle the selected stratum.
 - Stop and reassess observer re-entry only under the named strain below; do not add it by momentum.
 

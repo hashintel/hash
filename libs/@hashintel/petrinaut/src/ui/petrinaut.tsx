@@ -54,6 +54,13 @@ export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
+export type PetrinautAiToolPresentationTone =
+  | "danger"
+  | "info"
+  | "neutral"
+  | "pending"
+  | "success";
+
 export type PetrinautAiToolPresentationContext = {
   toolName: string;
   state: PetrinautAiToolPresentationState;
@@ -65,6 +72,8 @@ export type PetrinautAiToolPresentationContext = {
 export type PetrinautAiToolPresentation = {
   title: string;
   detail?: string;
+  tone?: PetrinautAiToolPresentationTone;
+  items?: readonly string[];
 };
 
 export type PetrinautAiToolPresentationResolver = (

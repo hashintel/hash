@@ -2809,6 +2809,7 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText(/Buffer/u)).toBeNull();
     const pendingRow = screen.getByRole("button", { name: /Preparing/u });
     expect(pendingRow.getAttribute("aria-busy")).toBe("true");
+    expect(pendingRow.getAttribute("data-tone")).toBe("success");
     expect(
       pendingRow.querySelector("[data-tool-progress-spinner]"),
     ).not.toBeNull();
@@ -2977,6 +2978,13 @@ describe("AiAssistantContents", () => {
         status="streaming"
         resolveToolPresentation={({ error, output, state, toolName }) => {
           if (toolName === "unknown-tool") return undefined;
+          if (toolName === "five") {
+            return {
+              title: "Correctable five",
+              tone: "neutral",
+              items: ["Nothing changed"],
+            };
+          }
           if (toolName === "six") return { title: "Completed six" };
           const verb =
             state === "pending"
@@ -3019,14 +3027,194 @@ describe("AiAssistantContents", () => {
       ).getByTestId("tool-detail").textContent,
     ).toBe("Host tool failed");
     expect(screen.getByText("Unknown result title")).not.toBeNull();
-    expect(screen.getByText("Not applied")).not.toBeNull();
-    expect(screen.getByText("Nothing changed")).not.toBeNull();
+    expect(screen.getByText("Correctable five")).not.toBeNull();
+    expect(screen.queryByText("Not applied")).toBeNull();
     expect(screen.queryByText("Completed five")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: /Correctable five/u })
+        .getAttribute("data-tone"),
+    ).toBe("neutral");
+    expect(
+      screen
+        .getByRole("button", { name: /Correctable five/u })
+        .querySelector('[data-tool-result-icon="not-applied"]'),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Correctable five/u }));
+    expect(screen.getByText("Nothing changed")).not.toBeNull();
     expect(
       within(screen.getByText("Completed six").closest("button")!).getByTestId(
         "tool-detail",
       ).textContent,
     ).toBe("Viewport frame: framed.");
+  });
+
+  test("renders host pending, applied, refused and thrown tool cues", () => {
+    const resolveToolPresentation = ({
+      output,
+      state,
+      toolName,
+    }: {
+      output: unknown;
+      state: "error" | "pending" | "success";
+      toolName: string;
+    }) => {
+      if (toolName !== "mutate_workpiece") return undefined;
+      if (
+        typeof output === "object" &&
+        output !== null &&
+        "disposition" in output &&
+        output.disposition === "refused" &&
+        "message" in output &&
+        typeof output.message === "string"
+      ) {
+        return {
+          title: "Ledger update needs correction",
+          tone: "neutral" as const,
+          items: [output.message],
+        };
+      }
+      return {
+        title:
+          state === "pending"
+            ? "Updating ledger"
+            : state === "success"
+              ? "Updated ledger"
+              : "Could not update ledger",
+        tone:
+          state === "pending"
+            ? ("pending" as const)
+            : state === "error"
+              ? ("danger" as const)
+              : ("success" as const),
+      };
+    };
+    const renderTools = (messages: PetrinautAiMessage[]) =>
+      render(
+        <AiAssistantContents
+          input=""
+          messages={messages}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          resolveToolPresentation={resolveToolPresentation}
+          status="streaming"
+        />,
+      );
+
+    const pending = renderTools([
+      {
+        id: "assistant-pending",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "pending-call",
+            state: "input-streaming",
+            input: {},
+          },
+        ],
+      },
+    ]);
+    const pendingRow = screen.getByRole("button", { name: /Updating ledger/u });
+    expect(pendingRow.getAttribute("data-tone")).toBe("pending");
+    expect(
+      pendingRow.querySelector("[data-tool-progress-spinner]"),
+    ).not.toBeNull();
+    pending.unmount();
+
+    const applied = renderTools([
+      {
+        id: "assistant-applied",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "applied-call",
+            state: "output-available",
+            input: {},
+            output: {
+              disposition: "applied",
+              applied: true,
+              revisionId: "applied-call",
+              sha256: "b".repeat(64),
+              ordinal: 1,
+            },
+          },
+        ],
+      },
+    ]);
+    const appliedRow = screen.getByRole("button", { name: /Updated ledger/u });
+    expect(appliedRow.getAttribute("data-tone")).toBe("success");
+    expect(
+      appliedRow.querySelector('[data-tool-result-icon="complete"]'),
+    ).not.toBeNull();
+    applied.unmount();
+
+    const refused = renderTools([
+      {
+        id: "assistant-refused",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "refused-call",
+            state: "output-available",
+            input: {},
+            output: {
+              disposition: "refused",
+              applied: false,
+              correctable: true,
+              code: "silent-shrink",
+              message:
+                "Nothing was written; resubmit the complete settled account.",
+              currentRevision: null,
+            },
+          },
+        ],
+      },
+    ]);
+    const refusedRow = screen.getByRole("button", {
+      name: /Ledger update needs correction/u,
+    });
+    expect(refusedRow.getAttribute("data-tone")).toBe("neutral");
+    expect(
+      refusedRow.querySelector('[data-tool-result-icon="not-applied"]'),
+    ).not.toBeNull();
+    expect(within(refusedRow).queryByTestId("tool-detail")).toBeNull();
+    fireEvent.click(refusedRow);
+    expect(
+      screen.getByText(
+        "Nothing was written; resubmit the complete settled account.",
+      ),
+    ).not.toBeNull();
+    refused.unmount();
+
+    renderTools([
+      {
+        id: "assistant-thrown",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "mutate_workpiece",
+            toolCallId: "thrown-call",
+            state: "output-error",
+            input: {},
+            errorText: "Current state missing",
+          },
+        ],
+      },
+    ]);
+    const thrownRow = screen.getByRole("button", {
+      name: /Could not update ledger/u,
+    });
+    expect(thrownRow.getAttribute("data-tone")).toBe("danger");
+    expect(thrownRow.querySelector("svg")).not.toBeNull();
   });
 
   test("hides configured tool rows without removing their message parts", () => {

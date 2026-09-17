@@ -38,7 +38,11 @@ import {
 import { createWorkedModelNetProjectionRouter } from "./http/worked-models.ts";
 import { logger } from "./logger.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
-import { withBufferedToolAdmission } from "./provider-admission.ts";
+import {
+  claimModelStreamIdleRetry,
+  withBufferedToolAdmission,
+  type ModelStreamIdleRetryScope,
+} from "./provider-admission.ts";
 import { diagnostics } from "./runtime-diagnostics.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
@@ -81,8 +85,36 @@ instrument({
   dispose: turnChronologyObserver.dispose,
 });
 // Scope follows the runtime's submission execution, not the HTTP request that
-// merely queues it. It is an async execution flag, never a proposal/state ledger.
-const admissionScope = new AsyncLocalStorage<boolean>();
+// merely queues it. It is ephemeral attempt policy, never a proposal/state ledger.
+const admissionScope = new AsyncLocalStorage<
+  ModelStreamIdleRetryScope | false
+>();
+const modelStreamTimeout = (environmentName: string, productionMs: number) => {
+  if (process.env.NODE_ENV !== "test") return productionMs;
+  const configured = process.env[environmentName];
+  if (configured === undefined) return productionMs;
+  const milliseconds = Number(configured);
+  if (!Number.isSafeInteger(milliseconds) || milliseconds <= 0) {
+    throw new Error(`${environmentName} must be a positive integer.`);
+  }
+  return milliseconds;
+};
+const modelStreamIdleTimeoutMs = modelStreamTimeout(
+  "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
+  10_000,
+);
+const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
+  "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
+  10_000,
+);
+const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
+  "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
+  15_000,
+);
+const modelStreamCancellationTimeoutMs = modelStreamTimeout(
+  "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
+  2_000,
+);
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
   observe() {},
@@ -90,7 +122,9 @@ instrument({
     return withReportedDocumentRevisionScope(context.submissionId, () => {
       if (operation.type === "agent" && context.agentName !== undefined) {
         return admissionScope.run(
-          context.agentName === ChatAgent.agentName,
+          context.agentName === ChatAgent.agentName
+            ? { idleRetryAvailable: true }
+            : false,
           next,
         );
       }
@@ -125,10 +159,19 @@ const browserToolNames = new Set([
 const registerAdmittedProvider = (provider: Provider) => {
   setProvider(
     withBufferedToolAdmission(
-      accounting?.wrap(provider, () => admissionScope.getStore() === true) ??
+      accounting?.wrap(
         provider,
-      () => admissionScope.getStore() === true,
+        () => typeof admissionScope.getStore() === "object",
+      ) ?? provider,
+      () => typeof admissionScope.getStore() === "object",
       browserToolNames,
+      {
+        cancellationTimeoutMs: modelStreamCancellationTimeoutMs,
+        claimRetry: () => claimModelStreamIdleRetry(admissionScope.getStore()),
+        firstEventTimeoutMs: modelStreamFirstEventTimeoutMs,
+        idleTimeoutMs: modelStreamIdleTimeoutMs,
+        reasoningStartTimeoutMs: modelStreamReasoningStartTimeoutMs,
+      },
     ),
   );
 };

@@ -7,6 +7,152 @@ import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
 import type { AssistantMessage, Provider } from "@earendil-works/pi-ai";
 import type { convertResponsesTools } from "@earendil-works/pi-ai/api/openai-responses-shared";
 
+export type NativeOpenaiResponseFactory = (input: {
+  readonly requestIndex: number;
+  readonly signal: AbortSignal | undefined;
+}) => Response | undefined | Promise<Response | undefined>;
+
+type NativeOpenaiToolStallAttempt = {
+  readonly cancelled: Promise<void>;
+  readonly toolCallId: string;
+};
+
+type NativeOpenaiToolStallEvent = {
+  readonly kind: "cancelled" | "started";
+  readonly toolCallId: string;
+};
+
+export const createNativeOpenaiToolStall = (
+  toolName: string,
+): {
+  readonly attempts: () => readonly NativeOpenaiToolStallAttempt[];
+  readonly cancelled: Promise<void>;
+  readonly chronology: () => readonly NativeOpenaiToolStallEvent[];
+  readonly reached: Promise<NativeOpenaiToolStallAttempt>;
+  readonly response: NativeOpenaiResponseFactory;
+} => {
+  const attempts: NativeOpenaiToolStallAttempt[] = [];
+  const chronology: NativeOpenaiToolStallEvent[] = [];
+  const cancelled = Promise.withResolvers<void>();
+  const reached = Promise.withResolvers<NativeOpenaiToolStallAttempt>();
+
+  return {
+    attempts: () => attempts,
+    cancelled: cancelled.promise,
+    chronology: () => chronology,
+    reached: reached.promise,
+    response: ({ signal }) => {
+      const attemptCancelled = Promise.withResolvers<void>();
+      const suffix = randomUUID();
+      const reasoningId = `rs_${suffix}`;
+      const itemId = `fc_${suffix}`;
+      const callId = `call_${suffix}`;
+      const attempt = {
+        cancelled: attemptCancelled.promise,
+        toolCallId: `${callId}|${itemId}`,
+      };
+      attempts.push(attempt);
+      chronology.push({ kind: "started", toolCallId: attempt.toolCallId });
+      reached.resolve(attempt);
+      let removeAbortListener = () => {};
+      let stopped = false;
+      const settleCancellation = () => {
+        if (stopped) return;
+        stopped = true;
+        chronology.push({ kind: "cancelled", toolCallId: attempt.toolCallId });
+        attemptCancelled.resolve();
+        cancelled.resolve();
+      };
+
+      return new Response(
+        new ReadableStream({
+          cancel() {
+            removeAbortListener();
+            settleCancellation();
+          },
+          start(controller) {
+            const send = (frame: { type: string; [key: string]: unknown }) =>
+              controller.enqueue(
+                new TextEncoder().encode(
+                  `event: ${frame.type}\ndata: ${JSON.stringify(frame)}\n\n`,
+                ),
+              );
+            send({
+              type: "response.output_item.added",
+              output_index: 0,
+              item: {
+                type: "reasoning",
+                id: reasoningId,
+                status: "in_progress",
+                summary: [],
+              },
+            });
+            send({
+              type: "response.reasoning_summary_text.delta",
+              output_index: 0,
+              item_id: reasoningId,
+              delta: "Considering the ledger update.",
+            });
+            send({
+              type: "response.output_item.done",
+              output_index: 0,
+              item: {
+                type: "reasoning",
+                id: reasoningId,
+                status: "completed",
+                summary: [
+                  {
+                    type: "summary_text",
+                    text: "Considering the ledger update.",
+                  },
+                ],
+              },
+            });
+            send({
+              type: "response.output_item.added",
+              output_index: 1,
+              item: {
+                type: "function_call",
+                id: itemId,
+                call_id: callId,
+                name: toolName,
+                arguments: "",
+                status: "in_progress",
+              },
+            });
+            send({
+              type: "response.function_call_arguments.delta",
+              output_index: 1,
+              item_id: itemId,
+              delta: "{",
+            });
+
+            const abort = () => {
+              removeAbortListener();
+              settleCancellation();
+              controller.error(
+                signal?.reason ??
+                  new DOMException(
+                    "Synthetic response cancelled.",
+                    "AbortError",
+                  ),
+              );
+            };
+            if (signal?.aborted) {
+              abort();
+            } else if (signal !== undefined) {
+              signal.addEventListener("abort", abort, { once: true });
+              removeAbortListener = () =>
+                signal.removeEventListener("abort", abort);
+            }
+          },
+        }),
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    },
+  };
+};
+
 const syntheticResponse = (
   message: AssistantMessage,
   beforeFinish: () => Promise<void>,
@@ -100,6 +246,7 @@ export const nativeOpenaiProvider = (
   responses: Provider,
   requests: Record<string, unknown>[],
   beforeFinish: () => Promise<void>,
+  responseFactory?: NativeOpenaiResponseFactory,
 ): Provider => {
   const native: Provider = openaiProvider();
   const streamSimple: Provider["streamSimple"] = (model, context, options) => {
@@ -112,7 +259,7 @@ export const nativeOpenaiProvider = (
       onPayload(body) {
         payload = JSON.parse(JSON.stringify(body));
       },
-      async fetch(_request, init) {
+      async fetch(request, init) {
         try {
           assert(typeof init?.body === "string");
           const serialized = JSON.parse(init.body) as Record<string, unknown>;
@@ -137,7 +284,17 @@ export const nativeOpenaiProvider = (
             assert.equal(sent.description, tool.description);
             assert.equal(sent.strict, false, "This path uses non-strict tools");
           }
+          const requestIndex = requests.length;
           requests.push(serialized);
+          if (responseFactory !== undefined) {
+            const response = await responseFactory({
+              requestIndex,
+              signal:
+                (request instanceof Request ? request.signal : init.signal) ??
+                undefined,
+            });
+            if (response !== undefined) return response;
+          }
           return syntheticResponse(
             await responses.streamSimple(model, context, options).result(),
             beforeFinish,

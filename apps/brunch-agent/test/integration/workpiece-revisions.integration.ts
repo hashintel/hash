@@ -64,6 +64,7 @@ const toolsFrom = (snapshot: FlueConversationSnapshot) =>
     ),
   );
 const markdown = "  # Synthetic account\r\n\nTiming remains unknown.  ";
+const secondMarkdown = `${markdown}\n\n## Second synthetic account\n\nSecond revision content.`;
 const probe = async () => {
   let application = await loadBuiltBrunchApplication();
   const clientFor = (suffix: string) => {
@@ -115,7 +116,7 @@ const probe = async () => {
           fauxToolCall(
             "mutate_workpiece",
             {
-              markdown: "# Second synthetic account",
+              markdown: secondMarkdown,
               baseRevisionId: "settled-revision",
             },
             { id: "second-revision" },

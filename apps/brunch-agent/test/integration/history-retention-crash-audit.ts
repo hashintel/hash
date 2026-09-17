@@ -123,6 +123,8 @@ export const assertCrashRecovery = (
   };
   const emptySha256 = createHash("sha256").update("").digest("hex");
   const expectedOutput = {
+    disposition: "applied",
+    applied: true,
     ...expectedPointer,
     mutation: {
       baseRevisionId: null,

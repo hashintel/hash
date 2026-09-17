@@ -105,6 +105,46 @@ test("shows a successful settlement body from its bound input without a model-ch
   expect(html).not.toContain("settled-call");
 });
 
+test("does not display the input of a typed refused settlement or mark it newer", () => {
+  const html = renderToStaticMarkup(
+    <BrunchWorkpiecePane
+      messages={[
+        settlementMessage("settled-call", "# Settled account"),
+        {
+          role: "assistant",
+          purpose: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "mutate_workpiece",
+              toolCallId: "refused-call",
+              state: "output-available",
+              input: { markdown: "# Refused silent-shrink account" },
+              output: {
+                disposition: "refused",
+                applied: false,
+                correctable: true,
+                code: "silent-shrink",
+                message: "Nothing was written",
+                currentRevision: {
+                  revisionId: "settled-call",
+                  sha256: "d".repeat(64),
+                  ordinal: 2,
+                },
+              },
+            },
+          ],
+        },
+      ]}
+      binding={binding}
+      liveHash={undefined}
+    />,
+  );
+  expect(html).toContain("<h1>Settled account</h1>");
+  expect(html).not.toContain("Refused silent-shrink account");
+  expect(html).not.toContain("A newer Ledger revision exists");
+});
+
 test("does not display the input of a failed settlement", () => {
   const html = renderToStaticMarkup(
     <BrunchWorkpiecePane

@@ -55,6 +55,12 @@ test("reconstructs validated evidence from pointer-only settlement output", () =
     },
   ];
   const revisionId = "pointer-only-revision";
+  const retraction = {
+    withdrawn: "Obsolete queue policy",
+    removedText: ["Obsolete queue policy"],
+    authorizationText: "Retract the Obsolete queue policy.",
+    messageIds: ["source-message"],
+  };
   const pointerOnlySnapshot: FlueConversationSnapshot = {
     ...snapshot,
     messages: [
@@ -64,7 +70,13 @@ test("reconstructs validated evidence from pointer-only settlement output", () =
         purpose: "user",
         display: "visible",
         submissionId: "turn-1",
-        parts: [{ type: "text", text: "Reserve one crew.", state: "done" }],
+        parts: [
+          {
+            type: "text",
+            text: "Reserve one crew. Retract the Obsolete queue policy.",
+            state: "done",
+          },
+        ],
       },
       {
         id: "settlement-message",
@@ -78,13 +90,19 @@ test("reconstructs validated evidence from pointer-only settlement output", () =
             toolCallId: revisionId,
             toolName: "mutate_workpiece",
             state: "output-available",
-            input: { markdown, baseRevisionId: null, evidence },
+            input: {
+              markdown,
+              baseRevisionId: null,
+              evidence,
+              retraction,
+            },
             output: {
               revisionId,
               sha256: createHash("sha256").update(markdown).digest("hex"),
               ordinal: 1,
               evidence,
               evidenceValidated: true,
+              retraction,
             },
           },
         ],
@@ -99,5 +117,45 @@ test("reconstructs validated evidence from pointer-only settlement output", () =
     markdown,
     evidence,
     evidenceValidated: true,
+    retraction,
   });
+});
+
+test("does not reconstruct a typed refused mutate_workpiece result as a settled revision", () => {
+  const markdown = "# Settled account\n\nReserve one crew.";
+  const revisionId = "refused-revision";
+  const refusedSnapshot: FlueConversationSnapshot = {
+    ...snapshot,
+    messages: [
+      {
+        id: "settlement-message",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "turn-1",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: revisionId,
+            toolName: "mutate_workpiece",
+            state: "output-available",
+            input: {
+              markdown,
+              baseRevisionId: null,
+            },
+            output: {
+              disposition: "refused",
+              applied: false,
+              correctable: true,
+              code: "silent-shrink",
+              message: "Nothing was written",
+              currentRevision: null,
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(retainedSettledRevision(refusedSnapshot, revisionId)).toBeUndefined();
 });

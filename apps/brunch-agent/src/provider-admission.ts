@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 
 import { EventStream } from "@earendil-works/pi-ai";
+import { RETRYABLE_INTERRUPTION_MARKER } from "@flue/runtime";
 
 import type {
   Api,
@@ -21,6 +22,73 @@ const bufferLimitError = () =>
 const cancelled = () =>
   new DOMException("Brunch response cancelled before admission.", "AbortError");
 
+export type ModelStreamIdlePhase =
+  | "active_reasoning"
+  | "active_text"
+  | "output_transition"
+  | "reasoning_start"
+  | "request_dispatch"
+  | "tool_arguments"
+  | "tool_complete";
+
+export class ModelStreamIdleError extends Error {
+  public readonly code = "model_stream_idle";
+  public readonly idleMs: number;
+  public readonly lastEventType: AssistantMessageEvent["type"] | undefined;
+  public readonly phase: ModelStreamIdlePhase;
+
+  constructor(
+    idleMs: number,
+    retryable: boolean,
+    phase: ModelStreamIdlePhase,
+    lastEventType: AssistantMessageEvent["type"] | undefined,
+  ) {
+    super(
+      `model_stream_idle: phase=${phase}; last=${lastEventType ?? "none"}; no meaningful provider event for ${idleMs / 1_000} seconds.${
+        retryable ? ` ${RETRYABLE_INTERRUPTION_MARKER}` : ""
+      }`,
+    );
+    this.idleMs = idleMs;
+    this.lastEventType = lastEventType;
+    this.name = "ModelStreamIdleError";
+    this.phase = phase;
+  }
+}
+
+class ModelStreamCancellationUnacknowledgedError extends Error {
+  public readonly code = "model_stream_cancellation_unacknowledged";
+
+  constructor() {
+    super(
+      "model_stream_cancellation_unacknowledged: the incomplete provider invocation did not stop.",
+    );
+    this.name = "ModelStreamCancellationUnacknowledgedError";
+  }
+}
+
+export type ModelStreamIdleRetryScope = {
+  idleRetryAvailable: boolean;
+};
+
+export const claimModelStreamIdleRetry = (
+  scope: ModelStreamIdleRetryScope | false | undefined,
+): boolean => {
+  if (scope === undefined || scope === false || !scope.idleRetryAvailable) {
+    return false;
+  }
+  const availableScope = scope;
+  availableScope.idleRetryAvailable = false;
+  return true;
+};
+
+type StreamIdleRecovery = {
+  readonly cancellationTimeoutMs: number;
+  readonly claimRetry: () => boolean;
+  readonly firstEventTimeoutMs: number;
+  readonly idleTimeoutMs: number;
+  readonly reasoningStartTimeoutMs: number;
+};
+
 type BufferedEvent = {
   [Kind in AssistantMessageEvent["type"]]: Omit<
     Extract<AssistantMessageEvent, { type: Kind }>,
@@ -39,6 +107,7 @@ class AdmittedStream extends EventStream<
     start: (signal: AbortSignal) => AssistantMessageEventStream,
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
+    idleRecovery: StreamIdleRecovery | undefined,
   ) {
     super(
       (event) => event.type === "done" || event.type === "error",
@@ -49,7 +118,12 @@ class AdmittedStream extends EventStream<
       },
     );
     this.#parentSignal = parentSignal;
-    this.#admitted = this.#collect(start, parentSignal, browserToolNames);
+    this.#admitted = this.#collect(
+      start,
+      parentSignal,
+      browserToolNames,
+      idleRecovery,
+    );
     // Providers start eagerly; a caller may not yet have attached its iterator.
     // Keep rejection observable through both read surfaces, without an unhandled
     // rejection if cancellation wins before the caller starts reading.
@@ -60,6 +134,7 @@ class AdmittedStream extends EventStream<
     start: (signal: AbortSignal) => AssistantMessageEventStream,
     parentSignal: AbortSignal | undefined,
     browserToolNames: ReadonlySet<string>,
+    idleRecovery: StreamIdleRecovery | undefined,
   ) {
     const controller = new AbortController();
     const signal = parentSignal
@@ -68,6 +143,10 @@ class AdmittedStream extends EventStream<
     const events: BufferedEvent[] = [];
     let bytes = 0;
     let eventCount = 0;
+    let receivedModelEvent = false;
+    let awaitingReasoningProgress = false;
+    let lastEventType: AssistantMessageEvent["type"] | undefined;
+    let phase: ModelStreamIdlePhase = "request_dispatch";
     let rejectAbort: () => void = () => {};
     let iterator: AsyncIterator<AssistantMessageEvent> | undefined;
     const interrupted = new Promise<never>((_resolve, reject) => {
@@ -91,8 +170,69 @@ class AdmittedStream extends EventStream<
       for (;;) {
         // Do not trust an upstream implementation to honor cancellation while
         // waiting for a chunk. Late results cannot reopen this admission.
-        // eslint-disable-next-line no-await-in-loop -- Provider events are an ordered stream.
-        const next = await Promise.race([iterator.next(), interrupted]);
+        const nextPending = iterator.next();
+        let idleTimer: ReturnType<typeof setTimeout> | undefined;
+        const idle = Symbol("provider-stream-idle");
+        const idleTimeoutMs = !receivedModelEvent
+          ? idleRecovery?.firstEventTimeoutMs
+          : awaitingReasoningProgress
+            ? idleRecovery?.reasoningStartTimeoutMs
+            : idleRecovery?.idleTimeoutMs;
+        const idlePending =
+          idleTimeoutMs === undefined
+            ? new Promise<never>(() => {})
+            : new Promise<typeof idle>((resolve) => {
+                idleTimer = setTimeout(() => resolve(idle), idleTimeoutMs);
+              });
+        let next: IteratorResult<AssistantMessageEvent> | typeof idle;
+        try {
+          // eslint-disable-next-line no-await-in-loop -- Provider events are an ordered stream.
+          next = await Promise.race([nextPending, interrupted, idlePending]);
+        } finally {
+          if (idleTimer !== undefined) clearTimeout(idleTimer);
+        }
+        if (next === idle) {
+          if (idleRecovery === undefined || idleTimeoutMs === undefined) {
+            throw new Error(
+              "Provider idle timer resolved without recovery policy.",
+            );
+          }
+          controller.abort(
+            new ModelStreamIdleError(
+              idleTimeoutMs,
+              false,
+              phase,
+              lastEventType,
+            ),
+          );
+          let cancellationTimer: ReturnType<typeof setTimeout> | undefined;
+          // eslint-disable-next-line no-await-in-loop -- A retry must not overlap the provider invocation being cancelled.
+          const acknowledged = await Promise.race([
+            nextPending.then(
+              () => true,
+              () => true,
+            ),
+            new Promise<false>((resolve) => {
+              cancellationTimer = setTimeout(
+                () => resolve(false),
+                idleRecovery.cancellationTimeoutMs,
+              );
+            }),
+          ]);
+          if (cancellationTimer !== undefined) clearTimeout(cancellationTimer);
+          if (!acknowledged) {
+            throw new ModelStreamCancellationUnacknowledgedError();
+          }
+          const toolCallCompleted = events.some(
+            (event) => event.type === "toolcall_end",
+          );
+          throw new ModelStreamIdleError(
+            idleTimeoutMs,
+            !toolCallCompleted && idleRecovery.claimRetry(),
+            phase,
+            lastEventType,
+          );
+        }
         if (next.done) break;
         const event = next.value;
         const compact: BufferedEvent =
@@ -100,6 +240,39 @@ class AdmittedStream extends EventStream<
             ? (({ partial: _partial, ...rest }) => rest)(event)
             : event;
         eventCount += 1;
+        if (event.type === "thinking_start") {
+          receivedModelEvent = true;
+          awaitingReasoningProgress = true;
+          lastEventType = event.type;
+          phase = "reasoning_start";
+        } else if (event.type !== "start") {
+          receivedModelEvent = true;
+          awaitingReasoningProgress = false;
+          lastEventType = event.type;
+          switch (event.type) {
+            case "thinking_delta":
+              phase = "active_reasoning";
+              break;
+            case "thinking_end":
+            case "text_end":
+              phase = "output_transition";
+              break;
+            case "text_start":
+            case "text_delta":
+              phase = "active_text";
+              break;
+            case "toolcall_start":
+            case "toolcall_delta":
+              phase = "tool_arguments";
+              break;
+            case "toolcall_end":
+              phase = "tool_complete";
+              break;
+            case "done":
+            case "error":
+              break;
+          }
+        }
         count(compact);
         // Flue publishes executable inputs only at toolcall_end. Text and
         // thinking can stream without admitting a call or completing a turn.
@@ -209,6 +382,7 @@ export const withBufferedToolAdmission = (
   provider: Provider,
   isActive: () => boolean,
   browserToolNames: ReadonlySet<string>,
+  idleRecovery?: StreamIdleRecovery,
 ): Provider => ({
   ...provider,
   stream(model, context, options) {
@@ -218,6 +392,7 @@ export const withBufferedToolAdmission = (
             provider.stream<Api>(model, context, { ...options, signal }),
           options?.signal,
           browserToolNames,
+          idleRecovery,
         )
       : provider.stream(model, context, options);
   },
@@ -228,6 +403,7 @@ export const withBufferedToolAdmission = (
             provider.streamSimple(model, context, { ...options, signal }),
           options?.signal,
           browserToolNames,
+          idleRecovery,
         )
       : provider.streamSimple(model, context, options);
   },

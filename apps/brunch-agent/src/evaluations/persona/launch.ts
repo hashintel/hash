@@ -16,11 +16,13 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs, promisify } from "node:util";
 
+import { createFlueClient, FlueExecutionError } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
 import { parseSDCPNFile } from "@hashintel/petrinaut-core";
 
+import { agentOwnershipHeaders } from "../../conversation/identity.ts";
 import {
   defaultChatOrigin,
   localPanelListen,
@@ -48,6 +50,8 @@ import {
   refreshProofManifest,
   writeProofArtifacts,
 } from "./proof-artifacts.ts";
+
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
 
 export { openPersonaConversation } from "./launch/browser.ts";
 
@@ -335,6 +339,38 @@ const isLoadingRuntimeUnavailable = (body: unknown) =>
   record(body.error.meta) &&
   body.error.meta.state === "loading";
 
+export const settlePersonaLauncherStop = async (
+  client: Pick<FlueClient, "abort" | "wait">,
+  receipt: AgentSendResult,
+  graceMs: number,
+): Promise<{
+  readonly settlement: "aborted" | "completed" | "failed" | "not-observed";
+  readonly submissionId: string;
+}> => {
+  const signal = AbortSignal.timeout(graceMs);
+  try {
+    await client.abort({ signal });
+    await client.wait(receipt, { signal });
+    return { settlement: "completed", submissionId: receipt.submissionId };
+  } catch (error) {
+    if (error instanceof FlueExecutionError) {
+      return {
+        settlement:
+          error.failure === "aborted"
+            ? "aborted"
+            : error.failure === "failed"
+              ? "failed"
+              : "not-observed",
+        submissionId: receipt.submissionId,
+      };
+    }
+    return {
+      settlement: "not-observed",
+      submissionId: receipt.submissionId,
+    };
+  }
+};
+
 export const responds = async (
   url: string,
   signal: AbortSignal,
@@ -451,6 +487,26 @@ export const launchPersona = async (
   report(`Run: ${run}`);
   const stop = new AbortController();
   const started: ChildProcess[] = [];
+  let servicesStopRequested = false;
+  const stopStartedServices = () => {
+    if (servicesStopRequested) return;
+    servicesStopRequested = true;
+    for (const child of started) {
+      if (!child.pid || child.exitCode !== null || child.signalCode !== null)
+        continue;
+      try {
+        process.kill(-child.pid, "SIGTERM");
+      } catch (error) {
+        if (
+          !(error instanceof Error) ||
+          !("code" in error) ||
+          error.code !== "ESRCH"
+        ) {
+          throw error;
+        }
+      }
+    }
+  };
   let browser:
     | Awaited<ReturnType<typeof chromium.launchPersistentContext>>
     | undefined;
@@ -458,10 +514,11 @@ export const launchPersona = async (
   let bridge: Awaited<ReturnType<typeof openPersonaBrowserBridge>> | undefined;
   let documentId: string | undefined;
   let pane: string | undefined;
-  let interrupted = false;
+  let activeAdmission:
+    | { client: FlueClient; receipt: AgentSendResult }
+    | undefined;
   const interrupt = () => {
-    if (interrupted) return;
-    interrupted = true;
+    if (stop.signal.aborted) return;
     stop.abort();
   };
   process.on("SIGINT", interrupt);
@@ -644,22 +701,35 @@ export const launchPersona = async (
     documentId = documentIdFromInitialData(opened.session.initialData);
     await writeProofArtifacts(join(run, "evidence"), opened.snapshot);
     bridge = await openPersonaBrowserBridge(async (message, signal) => {
-      const result = await submitPersonaBrowserTurn(personaPage, message, {
-        session: opened.session,
-        signal: AbortSignal.any([signal, stop.signal]),
-      });
-      await writeProofArtifacts(join(run, "evidence"), result.snapshot);
-      if (documentId !== undefined)
-        await retainPersonaDocument(
-          personaPage,
-          documentId,
-          join(run, "evidence"),
-        );
-      return {
-        conversationId: result.session.conversationId,
-        text: result.reply.text,
-        submissionIds: result.submissionIds,
-      };
+      try {
+        const result = await submitPersonaBrowserTurn(personaPage, message, {
+          session: opened.session,
+          signal: AbortSignal.any([signal, stop.signal]),
+          onAdmission: async (session, receipt) => {
+            activeAdmission = {
+              client: createFlueClient({
+                url: session.url,
+                headers: agentOwnershipHeaders(session),
+              }),
+              receipt,
+            };
+          },
+        });
+        await writeProofArtifacts(join(run, "evidence"), result.snapshot);
+        if (documentId !== undefined)
+          await retainPersonaDocument(
+            personaPage,
+            documentId,
+            join(run, "evidence"),
+          );
+        return {
+          conversationId: result.session.conversationId,
+          text: result.reply.text,
+          submissionIds: result.submissionIds,
+        };
+      } finally {
+        if (!stop.signal.aborted) activeAdmission = undefined;
+      }
     });
     if (!resume)
       await writeFile(
@@ -731,6 +801,26 @@ export const launchPersona = async (
       );
   } finally {
     try {
+      if (stop.signal.aborted) {
+        const stopDisposition = activeAdmission
+          ? await settlePersonaLauncherStop(
+              activeAdmission.client,
+              activeAdmission.receipt,
+              5_000,
+            )
+          : {
+              settlement: "no-active-submission" as const,
+              submissionId: undefined,
+            };
+        await save(join(run, "launcher-stop.json"), {
+          ...stopDisposition,
+          recordedAt: new Date().toISOString(),
+        });
+        report(`Launcher Stop: ${stopDisposition.settlement}.`);
+        // Settlement is durable now; stop services before slower browser cleanup
+        // so terminal Ctrl-C cannot orphan the launcher's process groups.
+        stopStartedServices();
+      }
       await bridge?.close();
       if (pane)
         await execute("herdr", ["pane", "close", pane]).catch(() => {
@@ -750,10 +840,7 @@ export const launchPersona = async (
           await browser?.close();
         }
       } finally {
-        for (const child of started) {
-          if (child.pid && child.exitCode === null && child.signalCode === null)
-            process.kill(-child.pid, "SIGTERM");
-        }
+        stopStartedServices();
         report(`Retained run: ${run}`);
       }
     } finally {

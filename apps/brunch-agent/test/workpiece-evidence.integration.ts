@@ -101,7 +101,24 @@ const call = (name: string, args: Record<string, unknown>, id: string) =>
   fauxAssistantMessage([fauxToolCall(name, args, { id })], {
     stopReason: "toolUse",
   });
+const projectedTrueUserMessageId = (context: Context): string => {
+  const marker = context.messages
+    .flatMap((message) =>
+      message.role === "user" && typeof message.content !== "string"
+        ? message.content
+        : [],
+    )
+    .findLast(
+      (part) => part.type === "text" && /^\[message [^\]]+\]$/u.test(part.text),
+    );
+  assert(marker?.type === "text");
+  const id = /^\[message ([^\]]+)\]$/u.exec(marker.text)?.at(1);
+  assert(id, "The current true-user message must expose its id to the model.");
+  return id;
+};
 const markdown = "# TEST account\nReserve one crew.\n\nTiming remains unknown.";
+const correctedPassage = "The reserve lasts two hours.";
+const correctedMarkdown = `${markdown}\n\n${correctedPassage}`;
 let locator = { start: -1, end: -1 };
 let sourceId = "";
 const expectedEvidence = () => [
@@ -111,86 +128,80 @@ const expectedEvidence = () => [
 const observations: unknown[] = [];
 try {
   faux.setResponses([
-    call(
-      "read_workpiece",
-      {
-        includeSources: true,
-        markdown,
-        locateTexts: ["Reserve one crew."],
-      },
-      "discover-sources",
-    ),
     (context) => {
-      const result = toolResult(context, "read_workpiece");
-      const lookup = result.locatorLookup as {
-        subject: { kind: string; revisionId?: string };
-        queries: {
-          occurrences: { start: number; end: number }[];
-          omittedCount: number;
-        }[];
-      };
-      assert.equal(lookup.subject.kind, "unsettled-candidate");
-      assert.equal(lookup.subject.revisionId, undefined);
-      assert.equal(
-        result.currentWorkpiece,
-        null,
-        "Candidate lookup cannot settle state.",
-      );
-      assert.equal(lookup.queries[0]?.omittedCount, 0);
-      assert.equal(lookup.queries[0].occurrences.length, 1);
-      const found = lookup.queries[0].occurrences[0];
-      assert(found);
-      locator = found;
-      assert.deepEqual(
-        locator,
-        { start: markdown.indexOf("Reserve"), end: markdown.indexOf("\n\n") },
-        "Independent oracle only; the successful input uses the product-returned span.",
-      );
-      assert(Array.isArray(result.sources));
-      const source = result.sources.find(
-        (entry: unknown) =>
-          typeof entry === "object" &&
-          entry !== null &&
-          "text" in entry &&
-          entry.text === "TEST scripted user control: Reserve one crew.",
-      ) as { id: string } | undefined;
-      assert(
-        source,
-        "Positive source must be discoverable in actual model-facing output, not test history.",
-      );
-      sourceId = source.id;
+      sourceId = projectedTrueUserMessageId(context);
       return call(
         "mutate_workpiece",
         {
           markdown,
-          evidence: expectedEvidence(),
+          baseRevisionId: null,
+          evidence: [
+            {
+              text: "Reserve one crew.",
+              messageIds: [sourceId],
+              kind: "elicited",
+            },
+            {
+              text: "Reserve one crew.",
+              messageIds: [],
+              kind: "formalism-constraint",
+            },
+          ],
         },
         "evidence-revision",
       );
     },
-    call(
-      "read_workpiece",
-      { locateTexts: ["Reserve one crew."] },
-      "read-settled",
-    ),
+    (context) => {
+      const settled = toolResult(context, "mutate_workpiece");
+      const evidence = settled.evidence as {
+        locator: { start: number; end: number };
+        messageIds: string[];
+        kind: string;
+      }[];
+      assert.equal(settled.revisionId, "evidence-revision");
+      assert.equal(settled.markdown, undefined);
+      locator = evidence[0]?.locator ?? locator;
+      assert.deepEqual(evidence, expectedEvidence());
+      assert.deepEqual(locator, {
+        start: markdown.indexOf("Reserve"),
+        end: markdown.indexOf("\n\n"),
+      });
+      return call(
+        "read_workpiece",
+        { includeContent: false, locateTexts: ["Reserve one crew."] },
+        "read-settled",
+      );
+    },
     (context) => {
       const result = toolResult(context, "read_workpiece");
+      assert.equal(result.currentWorkpiece, null);
+      assert.deepEqual(result.currentWorkpiecePointer, {
+        revisionId: "evidence-revision",
+        sha256: createHash("sha256").update(markdown).digest("hex"),
+        ordinal: 1,
+      });
+      assert.deepEqual(result.sources, []);
       assert.deepEqual(
-        (result.currentWorkpiece as { evidence: unknown }).evidence,
-        expectedEvidence(),
+        (result.locatorLookup as { queries: unknown[] }).queries,
+        [
+          {
+            text: "Reserve one crew.",
+            occurrences: [locator],
+            matchedCount: 1,
+            omittedCount: 0,
+          },
+        ],
       );
       const settledLookup = result.locatorLookup as {
         subject: { kind: string; revisionId: string };
-        queries: { occurrences: unknown }[];
         sha256: string;
       };
       assert.equal(settledLookup.subject.kind, "current-revision");
       assert.equal(settledLookup.subject.revisionId, "evidence-revision");
       assert.equal(
         settledLookup.sha256,
-        (result.currentWorkpiece as { sha256: string }).sha256,
+        (result.currentWorkpiecePointer as { sha256: string }).sha256,
       );
-      assert.deepEqual(settledLookup.queries[0]?.occurrences, [locator]);
       observations.push({ positiveModelFacingResult: result });
       return fauxAssistantMessage([
         fauxText(
@@ -209,62 +220,18 @@ try {
     1,
     "The positive model-facing assertions must actually complete.",
   );
+  const newTestimony =
+    "TEST correction: the reserve lasts two hours, not one hour.";
+  let correctionSourceId = "";
   faux.setResponses([
-    call(
-      "read_workpiece",
-      {
-        markdown: "# A different unsettled candidate",
-        locateTexts: ["candidate"],
-      },
-      "candidate-not-authority",
-    ),
     (context) => {
-      const result = toolResult(context, "read_workpiece");
-      const lookup = result.locatorLookup as {
-        subject: { kind: string; revisionId?: string; ordinal?: number };
-        sha256: string;
-      };
-      const current = result.currentWorkpiece as {
-        revisionId: string;
-        sha256: string;
-        markdownReference: {
-          revisionId: string;
-          sha256: string;
-          retainedEntryId: string;
-        };
-      };
-      assert.equal(current.revisionId, "evidence-revision");
-      assert.deepEqual(current.markdownReference, {
-        revisionId: current.revisionId,
-        sha256: current.sha256,
-        retainedEntryId: current.markdownReference.retainedEntryId,
-      });
-      assert(current.markdownReference.retainedEntryId.length > 0);
-      assert.equal(lookup.subject.kind, "unsettled-candidate");
-      assert.equal(lookup.subject.revisionId, undefined);
-      assert.equal(lookup.subject.ordinal, undefined);
-      assert.notEqual(lookup.sha256, current.sha256);
-      observations.push({ candidateDoesNotReplaceCurrent: result });
-      return fauxAssistantMessage([
-        fauxText("TEST candidate locators are not a revision or state write."),
-      ]);
+      correctionSourceId = projectedTrueUserMessageId(context);
+      return call(
+        "read_workpiece",
+        { includeContent: false, sourceIds: [correctionSourceId] },
+        "check-correction-source",
+      );
     },
-  ]);
-  await speak(
-    "TEST locate a different candidate without replacing the current workpiece.",
-  );
-  assert.equal(observations.length, 2);
-  const newTestimony = "TEST new testimony: the reserve lasts two hours.";
-  faux.setResponses([
-    call(
-      "read_workpiece",
-      {
-        includeContent: false,
-        includeSources: true,
-        locateTexts: ["Reserve one crew."],
-      },
-      "focused-current",
-    ),
     (context) => {
       const result = toolResult(context, "read_workpiece");
       assert.equal(result.currentWorkpiece, null);
@@ -273,69 +240,73 @@ try {
         sha256: createHash("sha256").update(markdown).digest("hex"),
         ordinal: 1,
       });
-      const lookup = result.locatorLookup as {
-        subject: unknown;
-        queries: { occurrences: unknown }[];
-      };
-      assert.deepEqual(lookup.subject, {
-        kind: "current-revision",
-        revisionId: "evidence-revision",
-      });
-      assert.deepEqual(lookup.queries[0]?.occurrences, [
-        { start: 15, end: 32 },
-      ]);
-      assert(Array.isArray(result.sources));
-      const source: unknown = result.sources.find(
-        (entry: unknown) =>
-          typeof entry === "object" &&
-          entry !== null &&
-          "text" in entry &&
-          entry.text === newTestimony,
-      );
-      assert(
-        typeof source === "object" &&
-          source !== null &&
-          "id" in source &&
-          typeof source.id === "string",
-      );
-      observations.push({ focusedCurrent: result, newSourceId: source.id });
-      return call(
-        "read_workpiece",
+      assert.deepEqual(result.sources, [
         {
-          includeContent: false,
-          includeSources: false,
-          markdown: "# A different unsettled candidate",
-          locateTexts: ["candidate"],
+          id: correctionSourceId,
+          role: "user",
+          purpose: "user",
+          text: newTestimony,
+          textTruncated: false,
+          untrusted: true,
         },
-        "focused-candidate",
+      ]);
+      assert.equal(result.locatorLookup, undefined);
+      observations.push({ correctionSource: result });
+      return call(
+        "mutate_workpiece",
+        {
+          markdown: correctedMarkdown,
+          baseRevisionId: "evidence-revision",
+          evidence: [
+            {
+              text: correctedPassage,
+              messageIds: [correctionSourceId],
+              kind: "elicited",
+            },
+          ],
+        },
+        "corrected-revision",
       );
     },
     (context) => {
-      const result = toolResult(context, "read_workpiece");
-      assert.equal(result.currentWorkpiece, null);
-      assert.deepEqual(result.sources, []);
-      const lookup = result.locatorLookup as {
-        subject: unknown;
-        queries: { occurrences: unknown }[];
-      };
-      assert.deepEqual(lookup.subject, { kind: "unsettled-candidate" });
-      assert.deepEqual(lookup.queries[0]?.occurrences, [
-        { start: 24, end: 33 },
+      const result = toolResult(context, "mutate_workpiece");
+      const evidence = result.evidence as {
+        locator: { start: number; end: number };
+        messageIds: string[];
+        kind: string;
+      }[];
+      assert.equal(result.revisionId, "corrected-revision");
+      assert.deepEqual(evidence, [
+        {
+          locator: {
+            start: correctedMarkdown.indexOf(correctedPassage),
+            end: correctedMarkdown.length,
+          },
+          messageIds: [correctionSourceId],
+          kind: "elicited",
+        },
+        ...expectedEvidence(),
       ]);
-      assert.equal(
-        (result.currentWorkpiecePointer as { revisionId: string }).revisionId,
-        "evidence-revision",
-      );
-      observations.push({ focusedCandidate: result });
+      observations.push({ correctedSettlement: result });
       return fauxAssistantMessage([
-        fauxText(
-          "TEST focused retrieval leaves the current account unchanged.",
-        ),
+        fauxText("TEST correction checked and settled."),
       ]);
     },
   ]);
   await speak(newTestimony);
   const history = await client.history();
+  const initialSource = history.messages.find(
+    (message) =>
+      message.role === "user" &&
+      message.purpose === "user" &&
+      message.parts.some(
+        (part) =>
+          part.type === "text" &&
+          part.text === "TEST scripted user control: Reserve one crew.",
+      ),
+  );
+  assert(initialSource);
+  assert.equal(sourceId, initialSource.id);
   const focusedSource = history.messages.find(
     (message) =>
       message.role === "user" &&
@@ -345,10 +316,18 @@ try {
       ),
   );
   assert(focusedSource);
-  assert.equal(
-    (observations[2] as { newSourceId: string }).newSourceId,
-    focusedSource.id,
-  );
+  assert.equal(correctionSourceId, focusedSource.id);
+  const expectedCorrectedEvidence = () => [
+    {
+      locator: {
+        start: correctedMarkdown.indexOf(correctedPassage),
+        end: correctedMarkdown.length,
+      },
+      messageIds: [correctionSourceId],
+      kind: "elicited",
+    },
+    ...expectedEvidence(),
+  ];
   const assistantId = history.messages.find(
     (message) => message.role === "assistant",
   )?.id;
@@ -375,7 +354,11 @@ try {
       );
       assert(!JSON.stringify(context).includes("markdownReference"));
       // Same revision ID/hash as the first conversation deliberately stresses scope.
-      return call("mutate_workpiece", { markdown }, "evidence-revision");
+      return call(
+        "mutate_workpiece",
+        { markdown, baseRevisionId: null },
+        "evidence-revision",
+      );
     },
     (context) => {
       const settled = toolResult(context, "mutate_workpiece");
@@ -404,6 +387,15 @@ try {
   ]);
   await otherClient.wait(
     await otherClient.send({
+      initialData: {
+        mode: batchedConstructionMode,
+        construction: {
+          binding: {
+            ...binding,
+            conversationId: otherIdentity.conversationId,
+          },
+        },
+      },
       message: {
         kind: "user",
         body: "Not evidence for the bound conversation.",
@@ -415,17 +407,41 @@ try {
   )?.id;
   assert(otherId);
   for (const [label, evidence] of [
-    ["assistant", [{ locator, messageIds: [assistantId], kind: "elicited" }]],
     [
-      "other-principal-conversation",
-      [{ locator, messageIds: [otherId], kind: "elicited" }],
-    ],
-    ["unknown", [{ locator, messageIds: ["unknown"], kind: "elicited" }]],
-    [
-      "invalid-span",
+      "assistant",
       [
         {
-          locator: { start: 0, end: markdown.length + 1 },
+          text: "Reserve one crew.",
+          messageIds: [assistantId],
+          kind: "elicited",
+        },
+      ],
+    ],
+    [
+      "other-principal-conversation",
+      [
+        {
+          text: "Reserve one crew.",
+          messageIds: [otherId],
+          kind: "elicited",
+        },
+      ],
+    ],
+    [
+      "unknown",
+      [
+        {
+          text: "Reserve one crew.",
+          messageIds: ["unknown"],
+          kind: "elicited",
+        },
+      ],
+    ],
+    [
+      "absent-text",
+      [
+        {
+          text: "This text is absent.",
           messageIds: [sourceId],
           kind: "elicited",
         },
@@ -433,13 +449,21 @@ try {
     ],
   ] as const) {
     faux.setResponses([
-      call("mutate_workpiece", { markdown, evidence }, `refused-${label}`),
+      call(
+        "mutate_workpiece",
+        {
+          markdown: correctedMarkdown,
+          baseRevisionId: "corrected-revision",
+          evidence,
+        },
+        `refused-${label}`,
+      ),
       call("read_workpiece", {}, `state-after-${label}`),
       (context) => {
         const result = toolResult(context, "read_workpiece");
         assert.equal(
           (result.currentWorkpiece as { revisionId: string }).revisionId,
-          "evidence-revision",
+          "corrected-revision",
         );
         observations.push({ refusal: label, state: result.currentWorkpiece });
         return fauxAssistantMessage([
@@ -451,12 +475,33 @@ try {
     const rejected = (await tools()).find(
       (tool) => tool.toolCallId === `refused-${label}`,
     );
-    assert.equal(rejected?.state, "output-error");
+    assert.equal(rejected?.state, "output-available");
+    assert.deepEqual(
+      {
+        disposition: (rejected.output as { disposition?: unknown }).disposition,
+        applied: (rejected.output as { applied?: unknown }).applied,
+        correctable: (rejected.output as { correctable?: unknown }).correctable,
+        code: (rejected.output as { code?: unknown }).code,
+      },
+      {
+        disposition: "refused",
+        applied: false,
+        correctable: true,
+        code: "evidence-invalid",
+      },
+    );
+    assert.match(
+      (rejected.output as { message: string }).message,
+      /authorized true-user|must occur exactly once|Nothing was written/u,
+    );
   }
   faux.setResponses([
     call(
       "mutate_workpiece",
-      { markdown: `${markdown}\nUnrelated context.` },
+      {
+        markdown: `${correctedMarkdown}\nUnrelated context.`,
+        baseRevisionId: "corrected-revision",
+      },
       "carried-revision",
     ),
     call("read_workpiece", {}, "read-carried"),
@@ -464,7 +509,7 @@ try {
       const result = toolResult(context, "read_workpiece");
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
-        expectedEvidence(),
+        expectedCorrectedEvidence(),
       );
       observations.push({ carried: result.currentWorkpiece });
       return fauxAssistantMessage([
@@ -473,6 +518,103 @@ try {
     },
   ]);
   await speak("TEST append unrelated context without inventing evidence.");
+  const settledLedger = `${correctedMarkdown}\nUnrelated context.`;
+  faux.setResponses([
+    call(
+      "mutate_workpiece",
+      {
+        markdown: "# TEST account\nReserve one crew.",
+        baseRevisionId: "carried-revision",
+      },
+      "refused-shrink",
+    ),
+    call("read_workpiece", {}, "state-after-shrink"),
+    (context) => {
+      const result = toolResult(context, "read_workpiece");
+      const current = result.currentWorkpiece as {
+        revisionId: string;
+        sha256: string;
+        ordinal: number;
+        evidence: unknown;
+      };
+      assert.equal(current.revisionId, "carried-revision");
+      assert.equal(
+        current.sha256,
+        createHash("sha256").update(settledLedger).digest("hex"),
+      );
+      assert.equal(current.ordinal, 3);
+      assert.deepEqual(current.evidence, expectedCorrectedEvidence());
+      observations.push({ shrinkDidNotDisplaceSettledLedger: current });
+      return fauxAssistantMessage([
+        fauxText("TEST refused shrink left the settled Ledger authoritative."),
+      ]);
+    },
+  ]);
+  await speak(
+    "TEST attempt to shrink the settled Ledger without a retraction.",
+  );
+  const refusedShrink = (await tools()).find(
+    (tool) => tool.toolCallId === "refused-shrink",
+  );
+  assert.equal(refusedShrink?.state, "output-available");
+  assert.equal(
+    (refusedShrink.output as { disposition?: unknown }).disposition,
+    "refused",
+  );
+  assert.equal((refusedShrink.output as { applied?: unknown }).applied, false);
+  assert.equal(
+    (refusedShrink.output as { code?: unknown }).code,
+    "silent-shrink",
+  );
+  assert.match(
+    (refusedShrink.output as { message: string }).message,
+    /removes more than 25%/u,
+  );
+  assert.match(
+    (refusedShrink.output as { message: string }).message,
+    /Nothing was written/u,
+  );
+  const stateAfterShrink = (await tools()).find(
+    (tool) => tool.toolCallId === "state-after-shrink",
+  );
+  assert.equal(stateAfterShrink?.state, "output-available");
+  assert.equal(
+    (
+      stateAfterShrink.output as {
+        currentWorkpiece: { revisionId: string; markdown: string };
+      }
+    ).currentWorkpiece.markdown,
+    settledLedger,
+  );
+  faux.setResponses([
+    call(
+      "mutate_workpiece",
+      { markdown: " \n\t", baseRevisionId: "carried-revision" },
+      "thrown-empty-markdown",
+    ),
+    call("read_workpiece", {}, "state-after-thrown"),
+    (context) => {
+      const result = toolResult(context, "read_workpiece");
+      assert.equal(
+        (result.currentWorkpiece as { revisionId: string }).revisionId,
+        "carried-revision",
+      );
+      observations.push({
+        thrownDidNotDisplaceSettledLedger: result.currentWorkpiece,
+      });
+      return fauxAssistantMessage([
+        fauxText(
+          "TEST thrown input error left the settled Ledger authoritative.",
+        ),
+      ]);
+    },
+  ]);
+  await speak("TEST throw on empty Markdown rather than returning a refusal.");
+  const thrownEmpty = (await tools()).find(
+    (tool) => tool.toolCallId === "thrown-empty-markdown",
+  );
+  assert.equal(thrownEmpty?.state, "output-error");
+  assert.match(thrownEmpty.errorText, /must not be empty/u);
   const wrongOwner = await application.fetch(
     new Request(`${url}/history`, {
       headers: agentOwnershipHeaders({
@@ -494,9 +636,9 @@ try {
       );
       assert.deepEqual(
         (result.currentWorkpiece as { evidence: unknown }).evidence,
-        expectedEvidence(),
+        expectedCorrectedEvidence(),
       );
-      assert.equal((result.currentWorkpiece as { ordinal: number }).ordinal, 2);
+      assert.equal((result.currentWorkpiece as { ordinal: number }).ordinal, 3);
       observations.push({ reopenedModelFacingResult: result });
       return fauxAssistantMessage([
         fauxText(
@@ -512,16 +654,19 @@ try {
   assert(carriedCall?.state === "output-available");
   assert.deepEqual(
     carriedCall.input,
-    { markdown: `${markdown}\nUnrelated context.` },
+    {
+      markdown: settledLedger,
+      baseRevisionId: "corrected-revision",
+    },
     "Raw input must retain omitted evidence, not reconstructed declarations.",
   );
   assert.deepEqual(
     (carriedCall.output as { evidence: unknown }).evidence,
-    expectedEvidence(),
+    expectedCorrectedEvidence(),
   );
   assert.equal(
     observations.length,
-    10,
+    11,
     "Every model-facing positive, refusal, carry and reopen assertion must complete.",
   );
   writeFileSync(

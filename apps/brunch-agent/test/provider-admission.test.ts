@@ -194,6 +194,252 @@ test.each(["stream", "streamSimple"] as const)(
   },
 );
 
+test("gives newly opened reasoning its longer first-delta grace", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    let upstreamSignal: AbortSignal | undefined;
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          upstreamSignal = options?.signal;
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry: () => false,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const message = fauxAssistantMessage([
+      { type: "thinking", thinking: "", thinkingSignature: "synthetic" },
+    ]);
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "thinking_start",
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(upstreamSignal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(5);
+    await expect(reading).rejects.toMatchObject({
+      code: "model_stream_idle",
+      idleMs: 15,
+      lastEventType: "thinking_start",
+      phase: "reasoning_start",
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("stops without claiming a retry when idle cancellation is not acknowledged", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    let upstreamSignal: AbortSignal | undefined;
+    const claimRetry = vi.fn<() => boolean>(() => true);
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          upstreamSignal = options?.signal;
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const toolCall = fauxToolCall("browser", {}, { id: "unacknowledged" });
+    const message = fauxAssistantMessage([toolCall], {
+      stopReason: "toolUse",
+    });
+    const stream = provider.streamSimple(model, { messages: [] });
+    const reading = collect(stream);
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "toolcall_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "{",
+      partial: message,
+      type: "toolcall_delta",
+    });
+    await vi.advanceTimersByTimeAsync(15);
+    expect(upstreamSignal?.aborted).toBe(true);
+    expect(claimRetry).not.toHaveBeenCalled();
+    await expect(reading).rejects.toMatchObject({
+      code: "model_stream_cancellation_unacknowledged",
+    });
+
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      toolCall,
+      type: "toolcall_end",
+    });
+    upstream.push({ message, reason: "toolUse", type: "done" });
+    await expect(stream.result()).rejects.toMatchObject({
+      code: "model_stream_cancellation_unacknowledged",
+    });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("admits a completed call that wins the idle race", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    const claimRetry = vi.fn<() => boolean>(() => true);
+    const provider = withBufferedToolAdmission(
+      { ...faux.provider, streamSimple: () => upstream },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const toolCall = fauxToolCall("browser", {}, { id: "admitted" });
+    const message = fauxAssistantMessage([toolCall], {
+      stopReason: "toolUse",
+    });
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "toolcall_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "{",
+      partial: message,
+      type: "toolcall_delta",
+    });
+    await vi.advanceTimersByTimeAsync(9);
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      toolCall,
+      type: "toolcall_end",
+    });
+    upstream.push({ message, reason: "toolUse", type: "done" });
+
+    expect((await reading).result).toEqual(message);
+    expect(claimRetry).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("does not retry after a complete tool call wins the idle race", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    const claimRetry = vi.fn<() => boolean>(() => true);
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const toolCall = fauxToolCall("browser", {}, { id: "completed-call" });
+    const message = fauxAssistantMessage([toolCall], {
+      stopReason: "toolUse",
+    });
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "toolcall_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "{}",
+      partial: message,
+      type: "toolcall_delta",
+    });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      toolCall,
+      type: "toolcall_end",
+    });
+    await vi.advanceTimersByTimeAsync(10);
+
+    await expect(reading).rejects.toMatchObject({
+      code: "model_stream_idle",
+    });
+    expect(claimRetry).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test.each(["missing", "arguments", "identity"] as const)(
   "refuses inconsistent streamed and final browser calls (%s)",
   async (difference) => {

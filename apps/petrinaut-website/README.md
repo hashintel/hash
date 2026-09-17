@@ -48,7 +48,7 @@ updates start from the latest persisted value so another tab's documents survive
 
 ## Choosing the assistant
 
-With `VITE_BRUNCH_CHAT_ENDPOINT` configured, Brunch is the AI panel's default assistant and Petrinaut's stock assistant is the alternate. The command palette (⌘K) offers **Use the stock Petrinaut assistant** and, once switched, **Use Brunch (default assistant)**. The choice is this website's own browser-local preference (`petrinaut-website:assistant`), not a Petrinaut setting. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.
+Petrinaut's stock assistant is the AI panel fallback. A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local choices under `petrinaut-website:assistant` remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) offers **Use Brunch** as a hidden alternate and, once switched, **Use the stock Petrinaut assistant**. This preference belongs to the website host, not Petrinaut. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint the stock assistant is the only one and no command is offered.
 
 ## Worked-model documents
 
@@ -124,15 +124,16 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
-| Name                             | Required         | Used by          | Notes                                                                                         |
-| -------------------------------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                            |
-| `OPENAI_VOICE_API_KEY`           | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                    |
-| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice, including in production.                                       |
-| `PETRINAUT_VOICE_PROVIDER`       | no               | voice API        | `realtime` (default) or `live` (detached experiment). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                        |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                    |
-| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                     |
+| Name                               | Required         | Used by          | Notes                                                                                         |
+| ---------------------------------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                            |
+| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                    |
+| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                       |
+| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` (default) or `live` (detached experiment). Invalid values disable Voice discovery. |
+| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                        |
+| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                    |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.       |
+| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                     |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
 

@@ -80,6 +80,45 @@ export interface WorkpieceEvidenceServices {
   readonly readSources: () => Promise<readonly WorkpieceEvidenceSource[]>;
 }
 
+export const workpieceRetractionSchema = v.strictObject({
+  withdrawn: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Concise identification of the material the user explicitly withdrew.",
+    ),
+  ),
+  authorizationText: v.pipe(
+    v.string(),
+    v.minLength(1),
+    v.maxLength(4096),
+    v.description(
+      "Literal excerpt copied exactly from the cited true-user message that explicitly authorizes this withdrawal.",
+    ),
+  ),
+  removedText: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(4096))),
+    v.minLength(1),
+    v.maxLength(16),
+    v.description(
+      "Exact prior-Ledger excerpts this revision removes. Each must occur exactly once in the prior body, be non-overlapping, and be absent from the replacement; for a large shrink their total length must cover the net character reduction.",
+    ),
+  ),
+  messageIds: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(1))),
+    v.minLength(1),
+    v.maxLength(8),
+    v.description(
+      "Authorized true-user message ids that explicitly retract the named material.",
+    ),
+  ),
+});
+
+export type WorkpieceRetraction = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRetractionSchema>
+>;
+
 /** Tool-call identity and content hash; ordinal is presentation only, never citation identity. */
 export const workpieceRevisionPointerSchema = v.object({
   revisionId: v.string(),
@@ -87,12 +126,49 @@ export const workpieceRevisionPointerSchema = v.object({
   ordinal: v.number(),
 });
 
+export type WorkpieceRevisionPointer = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRevisionPointerSchema>
+>;
+
+export const workpieceRefusalCodes = [
+  "replay-conflict",
+  "stale-base",
+  "concurrent-revision",
+  "evidence-invalid",
+  "retraction-invalid",
+  "silent-shrink",
+] as const;
+
+export type WorkpieceRefusalCode = (typeof workpieceRefusalCodes)[number];
+
+export const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
+
+export const updateWorkpieceRefusedOutputSchema = v.object({
+  disposition: v.literal("refused"),
+  applied: v.literal(false),
+  correctable: v.literal(true),
+  code: workpieceRefusalCodeSchema,
+  message: v.string(),
+  currentRevision: v.nullable(workpieceRevisionPointerSchema),
+});
+
+export type WorkpieceRefusedOutput = ReadonlyDeep<
+  v.InferOutput<typeof updateWorkpieceRefusedOutputSchema>
+>;
+
+/** Recognize only the complete canonical refusal output; partial lookalikes fail closed. */
+export const isWorkpieceRefusedOutput = (
+  output: unknown,
+): output is WorkpieceRefusedOutput =>
+  v.safeParse(updateWorkpieceRefusedOutputSchema, output).success;
+
 /** Current settled artifact. Retained legacy carriage is not verified unless evidenceValidated is true. */
 export const workpieceRevisionSchema = v.object({
   ...workpieceRevisionPointerSchema.entries,
   markdown: v.string(),
   evidence: v.optional(JsonValueSchema),
   evidenceValidated: v.optional(v.literal(true)),
+  retraction: v.optional(workpieceRetractionSchema),
 });
 
 export type WorkpieceRevision = ReadonlyDeep<

@@ -39,7 +39,8 @@ import type { WorkpieceEvidenceRelation } from "@hashintel/brunch-agent/workpiec
  * The model-facing read result is the projected context, not the raw tool
  * output: the body is carried inline by at most one retained entry and every
  * other copy is a `markdownReference`. Revisions therefore compare here by
- * pointer and evidence; body identity is asserted through the locator lookup.
+ * pointer and evidence; body identity is asserted through a post-settlement
+ * locator lookup.
  */
 const settledRevisionSchema = v.object({
   ...workpieceRevisionPointerSchema.entries,
@@ -66,12 +67,18 @@ const modelReadOutputSchema = v.object({
   ),
 });
 type ReadOutput = v.InferOutput<typeof modelReadOutputSchema>;
-/** Every read here supplies locateTexts, so the lookup branch is always present. */
+/** Every read here supplies locateTexts against an already-settled revision. */
 type ReadResult = Omit<ReadOutput, "locatorLookup"> & {
   locatorLookup: Extract<
     NonNullable<ReadOutput["locatorLookup"]>,
     { sha256: string }
   >;
+};
+type EvidenceDeclaration = {
+  text: string;
+  occurrence?: number;
+  messageIds: string[];
+  kind: WorkpieceEvidenceRelation["kind"];
 };
 const outputDirectory = resolve(process.env.PASSAGE_POLICY_OUTPUT ?? "");
 assert(
@@ -111,6 +118,21 @@ const done = () =>
   fauxAssistantMessage(
     "TEST structured result checked; no semantic/utility acceptance.",
   );
+const projectedTrueUserMessageId = (context: Context): string => {
+  const marker = context.messages
+    .flatMap((message) =>
+      message.role === "user" && typeof message.content !== "string"
+        ? message.content
+        : [],
+    )
+    .findLast(
+      (part) => part.type === "text" && /^\[message [^\]]+\]$/u.test(part.text),
+    );
+  assert(marker?.type === "text");
+  const id = /^\[message ([^\]]+)\]$/u.exec(marker.text)?.at(1);
+  assert(id, "The current true-user message must expose its id to the model.");
+  return id;
+};
 const modelOutput = (context: Context, id: string): ReadResult => {
   const result = context.messages.findLast(
     (message) => message.role === "toolResult" && message.toolCallId === id,
@@ -138,16 +160,14 @@ const modelOutput = (context: Context, id: string): ReadResult => {
 const checkLookup = (
   read: ReadResult,
   markdown: string,
-  revisionId?: string,
+  revisionId: string,
 ) => {
   assert.equal(read.locatorLookup.sha256, sha256(markdown));
   assert.equal(read.locatorLookup.utf16Length, markdown.length);
-  assert.deepEqual(
-    read.locatorLookup.subject,
-    revisionId === undefined
-      ? { kind: "unsettled-candidate" }
-      : { kind: "current-revision", revisionId },
-  );
+  assert.deepEqual(read.locatorLookup.subject, {
+    kind: "current-revision",
+    revisionId,
+  });
   for (const query of read.locatorLookup.queries) {
     assert.equal(
       query.matchedCount,
@@ -164,6 +184,21 @@ const spanFrom = (read: ReadResult, text: string, occurrence = 0) => {
   assert(span, `Missing product locator: ${text}`);
   return span;
 };
+const relationsFromDeclarations = (
+  markdown: string,
+  declarations: EvidenceDeclaration[],
+): WorkpieceEvidenceRelation[] =>
+  declarations.map(({ text, occurrence = 0, messageIds, kind }) => {
+    let start = -1;
+    for (let index = 0; index <= occurrence; index++)
+      start = markdown.indexOf(text, start + 1);
+    assert(start >= 0, `Missing declared evidence text: ${text}`);
+    return {
+      locator: { start, end: start + text.length },
+      messageIds,
+      kind,
+    };
+  });
 const rows: Record<string, unknown>[] = [];
 const histories: unknown[] = [];
 const counterexamples: unknown[] = [];
@@ -243,50 +278,42 @@ const session = (label: string) => {
 type Session = ReturnType<typeof session>;
 const seed = async (current: Session, markdown = base) => {
   const prefix = `seed-${++serial}`;
-  let candidate: ReadResult | undefined;
   let settled: ReadResult | undefined;
   let relations: WorkpieceEvidenceRelation[] = [];
   let sourceId = "";
+  let evidence: EvidenceDeclaration[] = [];
   setResponses([
-    call(
-      "read_workpiece",
-      {
-        markdown,
-        includeSources: true,
-        locateTexts: [quote, narrow, tail, markdown],
-      },
-      `${prefix}-candidate`,
-    ),
     (context) => {
-      candidate = modelOutput(context, `${prefix}-candidate`);
-      assert.equal(candidate.currentWorkpiece, null);
-      checkLookup(candidate, markdown);
-      const source = candidate.sources.find(
-        (entry) => entry.text === sourceText,
-      );
-      assert(source);
-      sourceId = source.id;
-      relations = [
+      sourceId = projectedTrueUserMessageId(context);
+      const occurrenceIfDuplicated = (text: string) =>
+        markdown.indexOf(text) === markdown.lastIndexOf(text)
+          ? {}
+          : { occurrence: 0 };
+      evidence = [
         {
-          locator: spanFrom(candidate, quote),
+          text: quote,
+          ...occurrenceIfDuplicated(quote),
           messageIds: [sourceId],
           kind: "elicited",
         },
         {
-          locator: spanFrom(candidate, quote),
+          text: quote,
+          ...occurrenceIfDuplicated(quote),
           messageIds: [],
           kind: "formalism-constraint",
         },
         {
-          locator: spanFrom(candidate, narrow),
+          text: narrow,
+          ...occurrenceIfDuplicated(narrow),
           messageIds: [],
           kind: "inference",
         },
-        { locator: spanFrom(candidate, tail), messageIds: [], kind: "default" },
+        { text: tail, messageIds: [], kind: "default" },
       ];
+      relations = relationsFromDeclarations(markdown, evidence);
       return call(
         "mutate_workpiece",
-        { markdown, evidence: relations },
+        { markdown, baseRevisionId: null, evidence },
         `${prefix}-revision`,
       );
     },
@@ -300,15 +327,16 @@ const seed = async (current: Session, markdown = base) => {
       checkLookup(settled, markdown, `${prefix}-revision`);
       assert.deepEqual(settled.currentWorkpiece?.evidence, relations);
       assert.equal(settled.currentWorkpiece.ordinal, 1);
+      assert.deepEqual(settled.sources, []);
       return done();
     },
   ]);
   await current.send(sourceText);
   assert(
-    candidate && settled?.currentWorkpiece && sourceId,
+    settled?.currentWorkpiece && sourceId,
     "Seed factories must complete, not just settle an errored response",
   );
-  rows.push({ label: prefix, identity: current.identity, candidate, settled });
+  rows.push({ label: prefix, identity: current.identity, settled });
   const defaultRelation = relations[3];
   assert(defaultRelation);
   return {
@@ -316,7 +344,6 @@ const seed = async (current: Session, markdown = base) => {
     defaultRelation,
     sourceId,
     revision: settled.currentWorkpiece,
-    candidate,
   };
 };
 const edit = async (
@@ -325,31 +352,28 @@ const edit = async (
   previous: SettledRevision,
   markdown: string,
   expected: WorkpieceEvidenceRelation[] | undefined,
-  declaration?: (candidate: ReadResult) => WorkpieceEvidenceRelation[],
+  declaration?: () => EvidenceDeclaration[],
   queries = [quote, narrow, tail, markdown],
 ) => {
   const prefix = `${label}-${++serial}`;
-  let candidate: ReadResult | undefined;
   let actual: ReadResult | undefined;
-  let evidence: WorkpieceEvidenceRelation[] | undefined;
+  let evidence: EvidenceDeclaration[] | undefined;
+  let expectedEvidence = expected;
   setResponses([
-    call(
-      "read_workpiece",
-      { markdown, locateTexts: queries },
-      `${prefix}-candidate`,
-    ),
     (context) => {
-      candidate = modelOutput(context, `${prefix}-candidate`);
-      checkLookup(candidate, markdown);
-      assert.deepEqual(
-        candidate.currentWorkpiece,
-        previous,
-        "Candidate lookup cannot replace the single current authority",
-      );
-      evidence = declaration?.(candidate);
+      projectedTrueUserMessageId(context);
+      evidence = declaration?.();
+      expectedEvidence =
+        evidence === undefined
+          ? expected
+          : relationsFromDeclarations(markdown, evidence);
       return call(
         "mutate_workpiece",
-        { markdown, ...(evidence === undefined ? {} : { evidence }) },
+        {
+          markdown,
+          baseRevisionId: previous.revisionId,
+          ...(evidence === undefined ? {} : { evidence }),
+        },
         `${prefix}-revision`,
       );
     },
@@ -359,13 +383,10 @@ const edit = async (
       checkLookup(actual, markdown, `${prefix}-revision`);
       assert.equal(actual.currentWorkpiece?.sha256, sha256(markdown));
       assert.equal(actual.currentWorkpiece.ordinal, previous.ordinal + 1);
-      assert.deepEqual(
-        actual.currentWorkpiece.evidence,
-        declaration ? evidence : expected,
-      );
+      assert.deepEqual(actual.currentWorkpiece.evidence, expectedEvidence);
       assert.equal(
         actual.currentWorkpiece.evidenceValidated,
-        (declaration ? evidence : expected) === undefined ? undefined : true,
+        expectedEvidence === undefined ? undefined : true,
       );
       return done();
     },
@@ -374,21 +395,24 @@ const edit = async (
     `TEST synthetic edit: ${label}. No new operational testimony.`,
   );
   assert(
-    candidate && actual?.currentWorkpiece,
+    actual?.currentWorkpiece,
     `All ${label} model-facing assertions must complete`,
   );
   const tool = await current.part(`${prefix}-revision`);
   assert.equal(tool.state, "output-available");
   assert.deepEqual(
     tool.input,
-    { markdown, ...(evidence === undefined ? {} : { evidence }) },
-    "Carry cannot rewrite raw input into a declaration",
+    {
+      markdown,
+      baseRevisionId: previous.revisionId,
+      ...(evidence === undefined ? {} : { evidence }),
+    },
+    "The raw call must retain full Markdown, explicit base and text evidence",
   );
   rows.push({
     label,
     identity: current.identity,
     previous,
-    candidate,
     actual,
     revisionTool: tool,
     explicitNewDeclaration: declaration !== undefined,
@@ -398,8 +422,8 @@ const edit = async (
 try {
   const automatic = [
     ["unchanged-append", `${base}\nUnrelated TEST context.`, [0, 1, 2, 3]],
-    ["rename-same-width", base.replace("account", "renamed"), [0, 1, 2, 3]],
-    ["rename-offset-change", base.replace("account", "longer heading"), []],
+    ["prefix-same-width", base.replace("😀", "AB"), [0, 1, 2, 3]],
+    ["prefix-offset-change", base.replace("😀", "longer prefix"), []],
     ["move", `TEST preface\n${base}`, []],
     ["paraphrase", base.replace(quote, "Hold a single crew."), []],
     [
@@ -421,7 +445,11 @@ try {
       base.replace(`${quote}\n\n${tail}`, `${quote}  ${tail}`),
       [0, 1, 2, 3],
     ],
-    ["deletion", "# TEST deletion\nNo governing passage remains.", []],
+    [
+      "deletion",
+      "# TEST account\nNo governing passage remains. TEST filler.",
+      [],
+    ],
     ["duplicate-wording", `${base}\n${quote}`, [3]],
     ["duplicate-quoted-wording", `${base}\n> ${quote}`, [3]],
     [
@@ -459,9 +487,9 @@ try {
         reintroduced,
         base,
         undefined,
-        (candidate) => [
+        () => [
           {
-            locator: spanFrom(candidate, quote),
+            text: quote,
             messageIds: [initial.sourceId],
             kind: "elicited",
           },
@@ -520,23 +548,22 @@ try {
       initial.revision,
       markdown,
       undefined,
-      (candidate) => {
+      () => {
         if (label === "overbroad-explicit")
           return [
             {
-              locator: spanFrom(candidate, markdown),
+              text: markdown,
               messageIds: [initial.sourceId],
               kind: "elicited",
             },
           ];
         return texts.map((text) => ({
-          locator: spanFrom(
-            candidate,
-            text,
-            label === "duplicate-explicit-selection" ? 1 : 0,
-          ),
+          text,
+          ...(label === "duplicate-explicit-selection"
+            ? { occurrence: 1 }
+            : {}),
           messageIds: [initial.sourceId],
-          kind: "correction",
+          kind: "correction" as const,
         }));
       },
       [...(label === "overbroad-explicit" ? [] : texts), markdown],
@@ -551,19 +578,25 @@ try {
   // Explicit overlap replaces all three old intersecting relations, preserving the disjoint default.
   const prefix = `override-${++serial}`;
   let overlapResult: ReadResult | undefined;
+  const explicitInput: EvidenceDeclaration = {
+    text: narrow,
+    kind: "correction",
+    messageIds: [overlapSeed.sourceId],
+  };
   setResponses([
     call("read_workpiece", { locateTexts: [narrow] }, `${prefix}-lookup`),
     (context) => {
       const read = modelOutput(context, `${prefix}-lookup`);
       checkLookup(read, base, overlapSeed.revision.revisionId);
-      explicit = {
-        locator: spanFrom(read, narrow),
-        kind: "correction",
-        messageIds: [overlapSeed.sourceId],
-      };
+      explicit = relationsFromDeclarations(base, [explicitInput])[0];
+      assert.deepEqual(explicit?.locator, spanFrom(read, narrow));
       return call(
         "mutate_workpiece",
-        { markdown: base, evidence: [explicit] },
+        {
+          markdown: base,
+          baseRevisionId: overlapSeed.revision.revisionId,
+          evidence: [explicitInput],
+        },
         `${prefix}-revision`,
       );
     },
@@ -591,8 +624,6 @@ try {
 
   const negatives = session("negative-controls");
   const negativeSeed = await seed(negatives);
-  const relation = negativeSeed.relations[0];
-  assert(relation);
   setResponses([done()]);
   await negatives.send(
     "TEST assistant turn whose reply is never user testimony.",
@@ -605,27 +636,52 @@ try {
   const foreign = session("foreign-source");
   const foreignSeed = await seed(foreign);
   for (const [label, evidence] of [
-    ["assistant-source", [{ ...relation, messageIds: [assistantId] }]],
+    [
+      "assistant-source",
+      [{ text: quote, messageIds: [assistantId], kind: "elicited" }],
+    ],
     [
       "foreign-conversation-source",
-      [{ ...relation, messageIds: [foreignSeed.sourceId] }],
+      [
+        {
+          text: quote,
+          messageIds: [foreignSeed.sourceId],
+          kind: "elicited",
+        },
+      ],
     ],
-    ["unknown-source", [{ ...relation, messageIds: ["TEST-unknown"] }]],
-    ["empty-elicited-source", [{ ...relation, messageIds: [] }]],
     [
-      "out-of-bounds-stale-span",
-      [{ ...relation, locator: { start: 0, end: base.length + 1 } }],
+      "unknown-source",
+      [{ text: quote, messageIds: ["TEST-unknown"], kind: "elicited" }],
     ],
-  ] as const) {
+    [
+      "empty-elicited-source",
+      [{ text: quote, messageIds: [], kind: "elicited" }],
+    ],
+    [
+      "missing-stale-text",
+      [
+        {
+          text: `${base} stale suffix`,
+          messageIds: [],
+          kind: "default",
+        },
+      ],
+    ],
+  ] satisfies [string, EvidenceDeclaration[]][]) {
     const id = `negative-${++serial}`;
     let read: ReadResult | undefined;
     setResponses([
-      call("mutate_workpiece", { markdown: base, evidence }, id),
       call(
-        "read_workpiece",
-        { includeSources: true, locateTexts: [quote] },
-        `${id}-read`,
+        "mutate_workpiece",
+        {
+          markdown: base,
+          baseRevisionId: negativeSeed.revision.revisionId,
+          evidence,
+        },
+        id,
       ),
+      call("read_workpiece", { locateTexts: [quote] }, `${id}-read`),
       (context) => {
         read = modelOutput(context, `${id}-read`);
         assert.deepEqual(read.currentWorkpiece, negativeSeed.revision);
@@ -640,7 +696,24 @@ try {
     await negatives.send(`TEST refusal control: ${label}`);
     assert(read);
     const rejected = await negatives.part(id);
-    assert.equal(rejected.state, "output-error");
+    assert.equal(rejected.state, "output-available");
+    assert.equal(
+      (rejected.output as { disposition?: unknown }).disposition,
+      "refused",
+    );
+    assert.equal((rejected.output as { applied?: unknown }).applied, false);
+    assert.equal(
+      (rejected.output as { correctable?: unknown }).correctable,
+      true,
+    );
+    assert.equal(
+      (rejected.output as { code?: unknown }).code,
+      "evidence-invalid",
+    );
+    assert.match(
+      (rejected.output as { message: string }).message,
+      /authorized true-user|must occur exactly once|Elicited evidence/u,
+    );
     rows.push({ label, rejected, actual: read });
   }
   // The read operation does not select arbitrary revisions or accept old lookup identities.
@@ -682,34 +755,64 @@ try {
     await foreign.client.history(),
   );
 
-  // Mechanically valid does NOT mean scoped to the candidate lookup or semantically relevant.
-  // Use a real OLD product span on different current text, explicitly declared. This is a
-  // counterexample to any claim that mutate_workpiece authenticates a locator's source hash.
+  // A passage copied from an old revision cannot be used as evidence for different submitted text.
   const scope = session("stale-explicit-control");
   const scopeSeed = await seed(scope);
-  const staleRelation = scopeSeed.relations[0];
-  assert(staleRelation);
   const different = base.replace(quote, "Discuss the rain.");
   assert.equal(different.length, base.length);
-  await edit(
-    scope,
-    "stale-inbounds-explicit-is-not-continuity",
-    scopeSeed.revision,
-    different,
-    undefined,
-    () => [staleRelation, scopeSeed.defaultRelation],
+  const staleId = `stale-text-${++serial}`;
+  let staleRead: ReadResult | undefined;
+  setResponses([
+    call(
+      "mutate_workpiece",
+      {
+        markdown: different,
+        baseRevisionId: scopeSeed.revision.revisionId,
+        evidence: [
+          {
+            text: quote,
+            messageIds: [scopeSeed.sourceId],
+            kind: "elicited",
+          },
+        ],
+      },
+      staleId,
+    ),
+    call("read_workpiece", { locateTexts: [quote] }, `${staleId}-read`),
+    (context) => {
+      staleRead = modelOutput(context, `${staleId}-read`);
+      checkLookup(staleRead, base, scopeSeed.revision.revisionId);
+      assert.deepEqual(staleRead.currentWorkpiece, scopeSeed.revision);
+      return done();
+    },
+  ]);
+  await scope.send(
+    "TEST stale text must not settle against replacement prose.",
   );
+  assert(staleRead);
+  const staleRejected = await scope.part(staleId);
+  assert.equal(staleRejected.state, "output-available");
+  assert.equal(
+    (staleRejected.output as { disposition?: unknown }).disposition,
+    "refused",
+  );
+  assert.equal((staleRejected.output as { applied?: unknown }).applied, false);
+  assert.equal(
+    (staleRejected.output as { code?: unknown }).code,
+    "evidence-invalid",
+  );
+  rows.push({
+    label: "stale-text-is-not-continuity",
+    rejected: staleRejected,
+    actual: staleRead,
+  });
   counterexamples.push({
     claimRefuted:
-      "A valid explicit in-bounds relation authenticates old lookup hash or relevance",
+      "Text cited from an old revision can authenticate different submitted prose",
     oldRevision: scopeSeed.revision,
     currentMarkdown: different,
-    wrongText: different.slice(
-      staleRelation.locator.start,
-      staleRelation.locator.end,
-    ),
     expectedLimit:
-      "No revision/hash field exists on evidence relations; explicit declarations are current-revision-local and relevance is unassessed.",
+      "Every evidence declaration must cite literal text in the submitted Markdown; relevance remains unassessed.",
   });
   histories.push(await scope.client.history());
 

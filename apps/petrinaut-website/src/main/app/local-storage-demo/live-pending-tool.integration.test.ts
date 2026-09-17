@@ -7,19 +7,16 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
-  createAssistantMessageEventStream,
   fauxAssistantMessage,
   fauxProvider,
-  fauxText,
   fauxToolCall,
-  type Provider,
 } from "@earendil-works/pi-ai";
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 import { cleanup, render, screen } from "@testing-library/react";
 import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { createElement } from "react";
-import { afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 
 import {
   agentOwnershipHeaders,
@@ -27,6 +24,14 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { AiAssistantContents } from "../../../../../../libs/@hashintel/petrinaut/src/ui/views/Editor/panels/ai-assistant-panel/ai-assistant-contents";
+import {
+  claimModelStreamIdleRetry,
+  withBufferedToolAdmission,
+} from "../../../../../brunch-agent/src/provider-admission";
+import {
+  createNativeOpenaiToolStall,
+  nativeOpenaiProvider,
+} from "../../../../../brunch-agent/test/native-openai-provider";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -36,6 +41,7 @@ import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noop = () => {};
+const originalFetch = globalThis.fetch;
 
 type BuiltBrunchApplication = {
   readonly fetch: typeof fetch;
@@ -59,37 +65,56 @@ beforeAll(() => {
     public observe() {}
     public unobserve() {}
   };
+  globalThis.fetch = () =>
+    Promise.reject(
+      new Error("External fetch is forbidden in the native OpenAI fixture."),
+    );
 });
 
+afterAll(() => {
+  globalThis.fetch = originalFetch;
+});
 afterEach(cleanup);
 
-test("renders a guarded live tool row before canonical admission", async () => {
-  process.env.BRUNCH_CHAT_MODEL = "claude-sonnet-4-6";
+test("bounds a native OpenAI tool row without replaying completed tool work", async () => {
+  process.env.BRUNCH_CHAT_MODEL = "openai/gpt-5.6-sol";
+  process.env.BRUNCH_CHAT_THINKING = "low";
   process.env.BRUNCH_DEV_DB_PATH = ":memory:";
-  const upstream = createAssistantMessageEventStream();
-  const providerStarted = Promise.withResolvers<void>();
   const faux = fauxProvider({
-    models: [{ id: "claude-sonnet-4-6", reasoning: true }],
-    provider: "anthropic",
+    models: [{ id: "gpt-5.6-sol", reasoning: true }],
+    provider: "openai",
   });
+  const requests: Record<string, unknown>[] = [];
+  const stall = createNativeOpenaiToolStall("mutate_workpiece");
   faux.setResponses([
-    fauxAssistantMessage([fauxText("The ledger remains available.")]),
+    fauxAssistantMessage(
+      [fauxToolCall("ping", {}, { id: "call_completed|fc_completed" })],
+      { stopReason: "toolUse" },
+    ),
   ]);
-  let firstRequest = true;
-  const controlledProvider = {
-    ...faux.provider,
-    streamSimple(model, context, options) {
-      if (!firstRequest) {
-        return faux.provider.streamSimple(model, context, options);
-      }
-      firstRequest = false;
-      providerStarted.resolve();
-      return upstream;
-    },
-  } satisfies Provider;
 
   const application = await loadBuiltBrunchApplication();
-  setProvider(controlledProvider);
+  const retryScope = { idleRetryAvailable: true };
+  setProvider(
+    withBufferedToolAdmission(
+      nativeOpenaiProvider(
+        faux.provider,
+        requests,
+        async () => {},
+        (input) =>
+          input.requestIndex === 0 ? undefined : stall.response(input),
+      ),
+      () => true,
+      new Set(),
+      {
+        cancellationTimeoutMs: 100,
+        claimRetry: () => claimModelStreamIdleRetry(retryScope),
+        firstEventTimeoutMs: 3_000,
+        idleTimeoutMs: 500,
+        reasoningStartTimeoutMs: 3_000,
+      },
+    ),
+  );
   const identity = {
     conversationId: `live-pending-${crypto.randomUUID()}`,
     principalKey: "live-pending-principal",
@@ -121,8 +146,9 @@ test("renders a guarded live tool row before canonical admission", async () => {
   );
 
   try {
+    const abort = new AbortController();
     const stream = await transport.sendMessages({
-      abortSignal: AbortSignal.timeout(10_000),
+      abortSignal: abort.signal,
       chatId: identity.conversationId,
       messageId: undefined,
       messages: [
@@ -135,49 +161,42 @@ test("renders a guarded live tool row before canonical admission", async () => {
       trigger: "submit-message",
     });
     const submissionId = tracker.submissionForInput("user-live-pending");
-    expect(submissionId).toBeDefined();
+    if (submissionId === undefined) {
+      throw new Error("The submitted message has no Flue submission id.");
+    }
+    const firstAttempt = await Promise.race([
+      stall.reached,
+      new Promise<never>((_resolve, reject) => {
+        setTimeout(
+          () => reject(new Error("The native OpenAI response did not start.")),
+          5_000,
+        );
+      }),
+    ]);
     const pendingMessage = Promise.withResolvers<PetrinautAiMessage>();
+    const retryPendingMessage = Promise.withResolvers<PetrinautAiMessage>();
+    const observedMessages: PetrinautAiMessage[] = [];
     const consumed = (async () => {
       for await (const message of readUIMessageStream<PetrinautAiMessage>({
         stream,
       })) {
-        if (
-          message.parts.some(
-            (part) =>
-              isToolUIPart(part) &&
-              getToolName(part) === "ping" &&
-              part.toolCallId === "live-read-workpiece" &&
-              part.state === "input-streaming",
-          )
-        ) {
+        observedMessages.push(structuredClone(message));
+        const pendingPart = message.parts.find(
+          (part) =>
+            isToolUIPart(part) &&
+            getToolName(part) === "mutate_workpiece" &&
+            part.state === "input-streaming",
+        );
+        if (pendingPart === undefined || !isToolUIPart(pendingPart)) continue;
+        if (pendingPart.toolCallId === firstAttempt.toolCallId) {
           pendingMessage.resolve(structuredClone(message));
+        } else {
+          retryPendingMessage.resolve(structuredClone(message));
         }
       }
     })();
 
-    await Promise.race([
-      providerStarted.promise,
-      consumed.then(() => {
-        throw new Error("The response settled before the provider started.");
-      }),
-    ]);
-    const toolCall = fauxToolCall("ping", {}, { id: "live-read-workpiece" });
-    const message = fauxAssistantMessage([toolCall], {
-      stopReason: "toolUse",
-    });
-    upstream.push({ partial: message, type: "start" });
-    upstream.push({
-      contentIndex: 0,
-      partial: message,
-      type: "toolcall_start",
-    });
-    upstream.push({
-      contentIndex: 0,
-      delta: "{",
-      partial: message,
-      type: "toolcall_delta",
-    });
-
+    void consumed.catch(() => {});
     const pending = await Promise.race([
       pendingMessage.promise,
       consumed.then(() => {
@@ -186,7 +205,7 @@ test("renders a guarded live tool row before canonical admission", async () => {
       new Promise<never>((_resolve, reject) => {
         setTimeout(
           () => reject(new Error("Pending row was not rendered.")),
-          5_000,
+          8_000,
         );
       }),
     ]);
@@ -197,7 +216,7 @@ test("renders a guarded live tool row before canonical admission", async () => {
         historyMessage.parts.some(
           (part) =>
             part.type === "dynamic-tool" &&
-            part.toolCallId === "live-read-workpiece",
+            part.toolCallId === firstAttempt.toolCallId,
         ),
       ),
     ).toBe(false);
@@ -214,30 +233,126 @@ test("renders a guarded live tool row before canonical admission", async () => {
         status: "streaming",
       }),
     );
-    const row = screen.getByRole("button", {
-      name: /Checking Brunch connection/u,
-    });
+    const row = screen.getByRole("button", { name: /Updating ledger/u });
     expect(row.getAttribute("aria-busy")).toBe("true");
+    expect(requests).toHaveLength(2);
 
-    upstream.push({
-      contentIndex: 0,
-      partial: message,
-      toolCall,
-      type: "toolcall_end",
+    const retryPending = await Promise.race([
+      retryPendingMessage.promise,
+      consumed.then(() => {
+        throw new Error("The UI stream settled before showing the retry.");
+      }),
+      new Promise<never>((_resolve, reject) => {
+        setTimeout(
+          () => reject(new Error("The retry row was not rendered.")),
+          5_000,
+        );
+      }),
+    ]);
+    await firstAttempt.cancelled;
+    cleanup();
+    render(
+      createElement(AiAssistantContents, {
+        input: "",
+        messages: [retryPending],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        resolveToolPresentation: resolveBrunchToolPresentation,
+        status: "streaming",
+      }),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: /Updating ledger/u })
+        .getAttribute("aria-busy"),
+    ).toBe("true");
+
+    const outcome = await Promise.race([
+      client.read(submissionId).then(
+        () => "completed" as const,
+        () => "failed" as const,
+      ),
+      new Promise<"still-running">((resolve) => {
+        setTimeout(() => resolve("still-running"), 15_000);
+      }),
+    ]);
+    expect(outcome).toBe("failed");
+    expect(requests).toHaveLength(3);
+    const attempts = stall.attempts();
+    expect(attempts).toHaveLength(2);
+    expect(attempts.at(1)?.toolCallId).not.toBe(firstAttempt.toolCallId);
+    expect(requests.at(2)?.model).toBe(requests.at(1)?.model);
+    expect(requests.at(2)?.reasoning).toEqual(requests.at(1)?.reasoning);
+    await Promise.all(attempts.map((attempt) => attempt.cancelled));
+    const retryToolCallId = attempts.at(1)?.toolCallId;
+    const terminalMessage = observedMessages.findLast((message) =>
+      message.parts.some(
+        (part) => isToolUIPart(part) && part.toolCallId === retryToolCallId,
+      ),
+    );
+    const terminalPart = terminalMessage?.parts.find(
+      (part) => isToolUIPart(part) && part.toolCallId === retryToolCallId,
+    );
+    expect(terminalPart).toMatchObject({
+      state: "output-error",
+      errorText: "This tool proposal was not executed.",
     });
-    upstream.push({ message, reason: "toolUse", type: "done" });
-    await consumed;
-  } finally {
-    try {
-      upstream.push({
-        error: fauxAssistantMessage([], { stopReason: "aborted" }),
-        reason: "aborted",
-        type: "error",
-      });
-    } catch {
-      // The successful path already closed the controlled stream.
+    cleanup();
+    if (terminalMessage === undefined) {
+      throw new Error("The retry has no terminal UI message.");
     }
+    render(
+      createElement(AiAssistantContents, {
+        input: "",
+        messages: [terminalMessage],
+        onClose: noop,
+        onInputChange: noop,
+        onStop: noop,
+        onSubmit: noop,
+        resolveToolPresentation: resolveBrunchToolPresentation,
+        status: "error",
+      }),
+    );
+    const erroredRows = screen.getAllByRole("button", {
+      name: /Could not update ledger/u,
+    });
+    expect(erroredRows).toHaveLength(2);
+    expect(
+      erroredRows.every(
+        (toolRow) => toolRow.getAttribute("aria-busy") !== "true",
+      ),
+    ).toBe(true);
+    expect(stall.chronology()).toEqual([
+      { kind: "started", toolCallId: attempts.at(0)?.toolCallId },
+      { kind: "cancelled", toolCallId: attempts.at(0)?.toolCallId },
+      { kind: "started", toolCallId: attempts.at(1)?.toolCallId },
+      { kind: "cancelled", toolCallId: attempts.at(1)?.toolCallId },
+    ]);
+    await consumed.catch(() => {});
+
+    const afterFailure = await client.history();
+    expect(
+      afterFailure.messages.filter((message) => message.purpose === "user"),
+    ).toHaveLength(1);
+    const canonicalTools = afterFailure.messages.flatMap((historyMessage) =>
+      historyMessage.parts.filter((part) => part.type === "dynamic-tool"),
+    );
+    expect(
+      canonicalTools.filter((part) => part.toolName === "ping"),
+    ).toHaveLength(1);
+    expect(
+      canonicalTools.some((part) => part.toolName === "mutate_workpiece"),
+    ).toBe(false);
+  } finally {
     await client.abort().catch(() => undefined);
+    await Promise.race([
+      stall.cancelled,
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 500);
+      }),
+    ]);
     await application.stop();
   }
-}, 20_000);
+}, 25_000);

@@ -26,7 +26,12 @@ import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/re
 
 import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
-import { assistantSelectionStorageKey } from "./assistant-selection";
+import {
+  assistantSelectionStorageKey,
+  defaultAssistantSelection,
+  parseAssistantSelection,
+  resolveDefaultAssistantSelection,
+} from "./assistant-selection";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
@@ -485,6 +490,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("registers no brunch_ask tool in the production Brunch preview", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -545,6 +551,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("waits for a durable offset before baselining present Ledger history", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -586,6 +593,7 @@ describe("local storage demo Brunch voice integration", () => {
   test("keeps durable Flue Stop distinct from local playback cancellation", async () => {
     renderedPetrinaut.aiAssistant = null;
     stubStorage();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     let snapshot: AgentConversationObservationSnapshot = {
       conversation: {
         conversationId: "conversation-stop",
@@ -877,6 +885,7 @@ describe("local document revision persistence", () => {
   test("retains direct document changes across handle reopen", async () => {
     flueClientOptions.current = null;
     seedStoredNet("local-incarnation", "local-revision-1");
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     const firstView = render(
       <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
     );
@@ -1305,6 +1314,7 @@ describe("local storage demo Brunch controls", () => {
   test("mounts the batched construction catalogue on ordinary configured Brunch", async () => {
     const incarnationId = "ordinary-incarnation";
     seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
       history: async () => ({
         conversation: {
@@ -1871,6 +1881,21 @@ describe("worked-model net-projection selection", () => {
 });
 
 describe("assistant selection", () => {
+  test("uses Stock by default, accepts a Brunch launch default, and preserves explicit choices", () => {
+    expect(resolveDefaultAssistantSelection(undefined)).toBe("stock");
+    expect(resolveDefaultAssistantSelection("")).toBe("stock");
+    expect(resolveDefaultAssistantSelection("stock")).toBe("stock");
+    expect(resolveDefaultAssistantSelection("brunch")).toBe("brunch");
+    expect(() => resolveDefaultAssistantSelection("other")).toThrow(
+      /VITE_PETRINAUT_DEFAULT_ASSISTANT/u,
+    );
+    expect(defaultAssistantSelection).toBe("stock");
+    expect(parseAssistantSelection(null)).toBe("stock");
+    expect(parseAssistantSelection("unknown")).toBe("stock");
+    expect(parseAssistantSelection("stock")).toBe("stock");
+    expect(parseAssistantSelection("brunch")).toBe("brunch");
+  });
+
   const flueHistoryClient = (incarnationId: string) => ({
     history: async () => ({
       conversation: {
@@ -1901,9 +1926,8 @@ describe("assistant selection", () => {
     brunchPreviewConfig.isBrunchConfigured = true;
   });
 
-  test("ordinary stock uses its local transport and never mounts Flue history", () => {
+  test("ordinary Stock is the default and never mounts Flue history", () => {
     seedStoredNet("stock-incarnation", "stock-revision");
-    localStorage.setItem(assistantSelectionStorageKey, "stock");
     const observe = vi.fn();
     const history = vi.fn();
     flueClientMock.current = { history, observe };
@@ -1923,17 +1947,16 @@ describe("assistant selection", () => {
     expect(observe).not.toHaveBeenCalled();
   });
 
-  test("Brunch is the default when configured; the stock assistant is the selectable alternate and mounts nothing of Brunch", async () => {
+  test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
     const incarnationId = "selection-incarnation";
     seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient(incarnationId);
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(currentAssistant().executeMutation).toBeDefined(),
     );
-    expect(localStorage.getItem(assistantSelectionStorageKey)).not.toBe(
-      "stock",
-    );
+    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
     const brunchTransport = currentAssistant().transport;
 
     switchAssistant(/Use the stock Petrinaut assistant/);
@@ -1968,6 +1991,7 @@ describe("assistant selection", () => {
 
   test("removes Voice on the first stock-assistant render", async () => {
     seedStoredNet("voice-gating-incarnation");
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
     vi.stubGlobal(
       "fetch",
@@ -2016,7 +2040,7 @@ describe("assistant selection", () => {
       "net-1": [stockMessage],
     });
 
-    switchAssistant(/Use Brunch \(default assistant\)/);
+    switchAssistant(/Use Brunch/);
     await waitFor(() =>
       expect(currentAssistant().executeMutation).toBeDefined(),
     );
