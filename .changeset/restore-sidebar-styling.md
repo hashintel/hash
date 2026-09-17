@@ -11,3 +11,5 @@ Use consistent, readable shortcut key labels in menus, tooltips, and the command
 Give the floating Canvas/Definitions selector a clearer border and blurred background.
 
 Keep toolbar folding stable while resizing panels, with eased expansion when playback starts and coordinated panel motion.
+
+Keep refractive toolbar glass on Chromium, with background blur in Firefox and Safari.

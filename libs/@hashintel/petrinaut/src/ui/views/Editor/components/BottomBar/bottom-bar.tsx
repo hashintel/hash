@@ -2,6 +2,7 @@ import { use, useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
@@ -180,7 +181,15 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           }}
         >
           {/* Edition tools segment */}
-          <div className={glassPanelStyle}>
+          <refractive.div
+            className={glassPanelStyle}
+            refraction={{
+              radius: 8,
+              blur: 3,
+              bezelWidth: 20,
+              glassThickness: 100,
+            }}
+          >
             <div className={toolbarContainerStyle}>
               <CursorModeDropdown
                 editionMode={editionMode}
@@ -220,10 +229,18 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 </CollapsibleGroup>
               )}
             </div>
-          </div>
+          </refractive.div>
 
           {/* Playback segment */}
-          <div className={glassPanelStyle}>
+          <refractive.div
+            className={glassPanelStyle}
+            refraction={{
+              radius: 8,
+              blur: 3,
+              bezelWidth: 20,
+              glassThickness: 100,
+            }}
+          >
             <div className={toolbarContainerStyle}>
               <ToolbarButton
                 tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
@@ -251,7 +268,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 </>
               )}
             </div>
-          </div>
+          </refractive.div>
         </BottomBarCollapseContext>
       </div>
     </div>
