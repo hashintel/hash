@@ -210,6 +210,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                             ? "Hide AI assistant"
                             : "Show AI assistant"
                         }
+                        shortcut="mod+shift+k"
                         onClick={toggleAiAssistant}
                         isSelected={isAiAssistantOpen}
                         ariaLabel={

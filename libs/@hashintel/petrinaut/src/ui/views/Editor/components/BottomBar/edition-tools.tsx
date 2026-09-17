@@ -88,7 +88,8 @@ export const EditionTools: React.FC<{
     <>
       <ToolbarDivider />
       <ToolbarButton
-        tooltip="Add Place (N)"
+        tooltip="Add Place"
+        shortcut="n"
         onClick={() => onEditionModeChange("add-place")}
         isSelected={editionMode === "add-place"}
         ariaLabel="Add place mode"
@@ -113,7 +114,8 @@ export const EditionTools: React.FC<{
         )}
       </ToolbarButton>
       <ToolbarButton
-        tooltip="Add Transition (T)"
+        tooltip="Add Transition"
+        shortcut="t"
         onClick={() => onEditionModeChange("add-transition")}
         isSelected={editionMode === "add-transition"}
         ariaLabel="Add transition mode"

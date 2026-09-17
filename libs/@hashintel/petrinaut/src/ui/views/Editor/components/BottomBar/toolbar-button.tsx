@@ -1,5 +1,6 @@
-import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
+
+import { ShortcutTooltip } from "../../../../keyboard-shortcut";
 
 import type { CSSProperties, ReactNode, Ref } from "react";
 
@@ -46,6 +47,7 @@ const buttonStyle = cva({
 interface ToolbarButtonProps {
   /** Tooltip content shown on hover */
   tooltip: string;
+  shortcut?: string;
   /** Click handler */
   onClick?: () => void;
   /** Button content (icons, text, etc.) */
@@ -79,6 +81,7 @@ interface ToolbarButtonProps {
  */
 export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   tooltip,
+  shortcut,
   onClick,
   children,
   style,
@@ -99,7 +102,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   };
 
   return (
-    <Tooltip content={tooltip}>
+    <ShortcutTooltip label={tooltip} shortcut={shortcut}>
       <button
         ref={ref}
         type="button"
@@ -118,6 +121,6 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       >
         {children}
       </button>
-    </Tooltip>
+    </ShortcutTooltip>
   );
 };

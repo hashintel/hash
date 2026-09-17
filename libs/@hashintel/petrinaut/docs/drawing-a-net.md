@@ -247,6 +247,8 @@ The recent history is displayed in the top-right corner. Click on a history entr
 
 ## Keyboard shortcuts
 
+Menus, toolbar tooltips, and the command palette show shortcuts as small outlined keys beside the action label. Modifier keys match your operating system: ⌘ on macOS and Ctrl on Windows/Linux.
+
 | Shortcut           | Action                                 |
 | ------------------ | -------------------------------------- |
 | N                  | Add Place mode                         |

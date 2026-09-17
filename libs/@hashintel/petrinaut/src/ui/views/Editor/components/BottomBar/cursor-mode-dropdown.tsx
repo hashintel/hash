@@ -4,6 +4,7 @@ import {
   type CursorMode,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { KeyboardShortcut } from "../../../../keyboard-shortcut";
 import { ToolbarMenuTrigger } from "./toolbar-menu-trigger";
 
 type EditorEditionMode = EditorState["editionMode"];
@@ -25,7 +26,7 @@ export const CursorModeDropdown: React.FC<{
       id: "select",
       icon: "cursor",
       text: "Select",
-      suffix: "V",
+      suffix: <KeyboardShortcut shortcut="v" />,
       tone: cursorMode === "select" ? "brand" : "neutral",
       selected: cursorMode === "select",
       onClick: () => handleCursorChange("select"),
@@ -34,7 +35,7 @@ export const CursorModeDropdown: React.FC<{
       id: "pan",
       icon: "hand",
       text: "Pan",
-      suffix: "H",
+      suffix: <KeyboardShortcut shortcut="h" />,
       tone: cursorMode === "pan" ? "brand" : "neutral",
       selected: cursorMode === "pan",
       onClick: () => handleCursorChange("pan"),
