@@ -18,20 +18,42 @@ const selectorStyle = css({
   _focusWithin: { opacity: "[1]" },
 });
 
-const controlStyle = css({
-  "&&": { width: "full", height: "[24px]", boxSizing: "border-box" },
+const controlStyle = cva({
+  base: {
+    "&&": { width: "full", height: "[24px]", boxSizing: "border-box" },
+  },
+  variants: {
+    floating: {
+      true: {
+        "&&": {
+          backgroundColor: "[transparent]",
+          boxShadow: "[none]",
+          outline: "[1px solid {colors.neutral.a60}]",
+          outlineOffset: "[-1px]",
+        },
+        "& [data-part='indicator']": {
+          backgroundColor: "white/60",
+          borderColor: "neutral.a70",
+          boxShadow: "[none]",
+        },
+      },
+    },
+  },
 });
 
 const placementStyle = cva({
   base: {},
   variants: {
     floating: {
-      true: { boxShadow: "[0 2px 6px rgba(0, 0, 0, 0.06)]" },
+      true: {
+        backgroundColor: "white/70",
+        backdropFilter: "[blur(8px)]",
+      },
     },
     animated: {
       true: {
         transition:
-          "[left 150ms ease-in-out, top 150ms ease-in-out, box-shadow 150ms ease-in-out, opacity 150ms ease-in-out]",
+          "[left 150ms ease-in-out, top 150ms ease-in-out, opacity 150ms ease-in-out]",
         "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
       },
     },
@@ -65,7 +87,7 @@ export const EditViewSelector = () => {
       }}
     >
       <SegmentedControl
-        className={controlStyle}
+        className={controlStyle({ floating: isCanvas })}
         aria-label="Edit view"
         size="xs"
         value={editViewMode}
