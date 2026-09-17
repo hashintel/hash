@@ -6,18 +6,14 @@ This page covers running a **single** simulation from Edit mode. For repeatable,
 
 Before running a simulation, set the **initial marking** -- the starting tokens in each place.
 
-Select a place and open the **State** sub-view in its properties:
+Open **Simulation Settings** in the bottom panel to configure the initial state. Select a saved [scenario](scenarios.md), or choose **No scenario** and define an [ad-hoc initial state](ad-hoc-scenarios.md) in the Initial state column.
 
-- **Untyped places** -- set a token count (integer).
-- **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token. UUID dimensions show a shortened identifier (hover for the full value); when editing, enter a UUID string or any free text -- non-UUID text is converted deterministically to a UUID.
+Select a place and open its **State** sub-view to inspect the resulting tokens. This view is always read-only, including when no saved scenario is selected:
 
-The spreadsheet works like a data grid: it is a single Tab stop, and the arrow keys move between cells. Click a cell to select it and click again (or press Enter, or just start typing) to edit it; Enter commits and moves to the next cell. The row-number column on the left selects whole rows: press Delete there to remove the row, or fill in the empty bottom row to add a token.
+- **Untyped places** show the token count.
+- **Typed places** show each token's attribute values in a read-only grid.
 
-<img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
-
-If no initial marking is set, a place starts empty (zero tokens).
-
-When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead. With no scenario selected, an [ad-hoc initial state](ad-hoc-scenarios.md) defined in the panel's Initial state column likewise takes precedence over the manual marking for every place it defines — the State sub-view stays editable, but the run uses the ad-hoc value until you clear the definition.
+During simulation, the State sub-view shows the tokens at the current playback frame. Make initial-state changes in Simulation Settings.
 
 ## Simulation settings
 

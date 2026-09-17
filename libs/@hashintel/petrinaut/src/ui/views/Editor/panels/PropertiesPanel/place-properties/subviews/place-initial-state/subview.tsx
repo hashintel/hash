@@ -1,19 +1,10 @@
 import { use } from "react";
 
-import {
-  Button,
-  Form,
-  Icon,
-  NumberInput,
-  Tooltip,
-} from "@hashintel/ds-components";
+import { Form, Icon, NumberInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { useIsReadOnly } from "../../../../../../../../react/state/use-is-read-only";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { usePetrinautPresentation } from "../../../../../../shared/presentation-context";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
 
@@ -36,171 +27,53 @@ const scenarioInfoStyle = css({
   paddingInlineEnd: "2",
 });
 
-/**
- * Header action component for the Clear State button.
- * Only shown when not in simulation mode and there's data to clear.
- */
-const ClearStateHeaderAction: React.FC = () => {
-  const presentation = usePetrinautPresentation();
-  const { place, placeType } = usePlacePropertiesContext();
-  const { state, initialMarking, setInitialMarking, selectedScenarioId } =
-    use(SimulationContext);
-  const isSimulationNotRun = state === "NotRun";
+const StateHeaderAction: React.FC = () => {
+  const { selectedScenarioId } = use(SimulationContext);
 
-  // Check if there's data to clear
-  const currentMarking = initialMarking[place.id];
-  const hasData =
-    typeof currentMarking === "number"
-      ? currentMarking > 0
-      : (currentMarking?.length ?? 0) > 0;
-
-  // When a scenario is selected, show a label instead of the clear button.
-  if (selectedScenarioId) {
-    return (
-      <div className={scenarioInfoStyle}>
-        <Icon name="layer" size="xs" />
-        Defined by scenario
-      </div>
-    );
-  }
-
-  // Hide when simulation has run or when there's no data to clear.
-  if (!isSimulationNotRun || !hasData) {
-    return null;
-  }
-
-  // This slot carries a status above and a mutation here, so the sub-view
-  // cannot declare itself one or the other: only the button goes when a
-  // presentation hides mutation actions.
-  if (!presentation.showMutationActions) {
-    return null;
-  }
-
-  const handleClear = () => {
-    setInitialMarking(
-      place.id,
-      placeType && placeType.elements.length > 0 ? [] : 0,
-    );
-  };
-
-  return (
-    <Button
-      onClick={handleClear}
-      variant="subtle"
-      tone="error"
-      size="xxs"
-      iconName="trash"
-    >
-      Clear state
-    </Button>
-  );
+  return selectedScenarioId ? (
+    <div className={scenarioInfoStyle}>
+      <Icon name="layer" size="xs" />
+      Defined by scenario
+    </div>
+  ) : null;
 };
 
-/**
- * PlaceInitialStateContent - Renders the initial state editor for a place.
- * Uses PlacePropertiesContext to access the current place data.
- */
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
-  // A read-only document reaches this editor through the embedded Preview as
-  // well as a read-only host, and the initial marking is authored data.
-  const isReadOnly = useIsReadOnly();
-
-  const { initialMarking, setInitialMarking, selectedScenarioId } =
-    use(SimulationContext);
+  const { initialMarking } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(PlaybackContext);
-
-  // Determine if simulation is running (has frames)
   const hasSimulationFrames = totalFrames > 0;
 
-  // When a scenario is selected, show the computed value (read-only).
-  // During simulation, show the actual current frame value.
-  if (selectedScenarioId) {
-    // Colored places: show the spreadsheet (read-only)
-    if (placeType && placeType.elements.length > 0) {
-      return (
-        <InitialStateEditor
-          key={place.id}
-          place={place}
-          placeType={placeType}
-          readOnly
-        />
-      );
-    }
-
-    // Uncolored places: show token count
-    let tokenCount = 0;
-    if (hasSimulationFrames && currentFrameReader) {
-      tokenCount = currentFrameReader.getPlaceTokenCount(place.id);
-    } else {
-      const marking = initialMarking[place.id];
-      tokenCount = typeof marking === "number" ? marking : 0;
-    }
-
+  if (placeType && placeType.elements.length > 0) {
     return (
-      <Form.Field
-        className={stateFieldStyle}
-        label={hasSimulationFrames ? "Current tokens" : "Initial tokens"}
-        size="sm"
-        disabled
-      >
-        <Tooltip content="Defined by the selected scenario">
-          <NumberInput
-            size="sm"
-            min={0}
-            value={tokenCount}
-            onChange={() => {}}
-            disabled
-          />
-        </Tooltip>
-      </Form.Field>
+      <InitialStateEditor
+        key={place.id}
+        place={place}
+        placeType={placeType}
+        readOnly
+      />
     );
   }
 
-  // If no type or type has 0 dimensions, show simple number input
-  if (!placeType || placeType.elements.length === 0) {
-    // Get token count from simulation frame or initial marking
-    let currentTokenCount = 0;
-    if (hasSimulationFrames && currentFrameReader) {
-      currentTokenCount = currentFrameReader.getPlaceTokenCount(place.id);
-    } else {
-      const currentMarking = initialMarking[place.id];
-      currentTokenCount =
-        typeof currentMarking === "number" ? currentMarking : 0;
-    }
-
-    return (
-      <Form.Field
-        className={stateFieldStyle}
-        label="Token count"
-        size="sm"
-        disabled={hasSimulationFrames || isReadOnly}
-      >
-        <Tooltip
-          content={UI_MESSAGES.READ_ONLY_MODE}
-          disableTooltip={!hasSimulationFrames && !isReadOnly}
-        >
-          <NumberInput
-            size="sm"
-            min={0}
-            value={currentTokenCount}
-            onChange={(tokenCount) => {
-              setInitialMarking(place.id, Math.max(0, tokenCount ?? 0));
-            }}
-            disabled={hasSimulationFrames || isReadOnly}
-          />
-        </Tooltip>
-      </Form.Field>
-    );
-  }
+  const marking = initialMarking[place.id];
+  const tokenCount =
+    hasSimulationFrames && currentFrameReader
+      ? currentFrameReader.getPlaceTokenCount(place.id)
+      : typeof marking === "number"
+        ? marking
+        : 0;
 
   return (
-    <InitialStateEditor
-      key={place.id}
-      place={place}
-      placeType={placeType}
-      readOnly={isReadOnly}
-    />
+    <Form.Field
+      className={stateFieldStyle}
+      label={hasSimulationFrames ? "Current tokens" : "Initial tokens"}
+      size="sm"
+      disabled
+    >
+      <Tooltip content="Configure initial tokens in Simulation Settings">
+        <NumberInput size="sm" min={0} value={tokenCount} disabled />
+      </Tooltip>
+    </Form.Field>
   );
 };
 
@@ -213,9 +86,9 @@ export const placeInitialStateSubView: SubView = {
   id: "place-initial-state",
   title: "State",
   tooltip:
-    "Define the initial tokens in this place. During simulation, shows current state.",
+    "View this place’s tokens. Configure initial tokens in Simulation Settings; during simulation, this shows the current state.",
   component: PlaceInitialStateContent,
-  renderHeaderAction: () => <ClearStateHeaderAction />,
+  renderHeaderAction: () => <StateHeaderAction />,
   defaultCollapsed: true,
   resizable: {
     minHeight: 250,

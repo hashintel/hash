@@ -30,3 +30,5 @@ Keep the bottom toolbar above surrounding panels while hovered.
 Keep code-section expand actions visible while collapsed, with larger icons and more spacing beside header toggles.
 
 Soften subview header dividers and add right spacing to the scenario state label.
+
+Make place State subviews read-only even without a saved scenario; configure initial tokens in Simulation Settings.
