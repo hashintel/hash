@@ -9,7 +9,7 @@
 //! still use only the request's captured publication.
 //!
 //! Authority validation binds the generation and [`delta::DeltaId`], not a
-//! [`delta::DeltaRevision`]. A `runtime::registry::Observation` captures the immutable revision
+//! [`delta::DeltaRevision`]. A [`runtime::registry::Observation`] captures the immutable revision
 //! used for data reads. Authority-token expiry, visibility-cache age and
 //! retained-generation admission are distinct checks even when the host derives them from one
 //! maximum duration. Issuing or renewing a token does not force a permission-store refresh. A
@@ -19,7 +19,9 @@
 pub(crate) mod codec;
 pub(crate) mod delta;
 pub(crate) mod density;
+pub(crate) mod hydrate;
 mod intern;
+pub(crate) mod runtime;
 mod schedule;
 pub(crate) mod secret;
 #[cfg(test)]
