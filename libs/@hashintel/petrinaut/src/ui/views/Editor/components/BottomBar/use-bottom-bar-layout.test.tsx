@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { createRef, use, type ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -38,26 +38,33 @@ it("centers in the available main view as sibling panels resize it", () => {
     () =>
       useBottomBarLayout(laneRef, barRef, {
         hasViewportControls: false,
-        isAnimating: true,
       }),
     { wrapper },
   );
-  expect(result.current.offsetX).toBe(0);
+  expect(result.current.offsetX).toBe(
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+  );
   editor = { ...editor, isAiAssistantOpen: true };
   laneWidth = 1580;
   rerender();
-  expect(result.current.offsetX).toBe(0);
+  expect(result.current.offsetX).toBe(
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+  );
   expect(result.current.isCollapsed).toBe(false);
 
   editor = { ...editor, hasSelection: true };
   laneWidth = 1200;
   rerender();
-  expect(result.current.offsetX).toBe(-162);
+  expect(result.current.offsetX).toBe(
+    "max(calc(-588px + 50%), min(0px, calc(138px - 50%)))",
+  );
 
   editor = { ...editor, aiAssistantPlacement: "floating" };
   laneWidth = 2000;
   rerender();
-  expect(result.current.offsetX).toBe(0);
+  expect(result.current.offsetX).toBe(
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+  );
 
   editor = {
     ...editor,
@@ -70,6 +77,48 @@ it("centers in the available main view as sibling panels resize it", () => {
   editor = { ...editor, isAiAssistantOpen: false };
   laneWidth = 2000;
   rerender();
-  expect(result.current.offsetX).toBe(0);
+  expect(result.current.offsetX).toBe(
+    `max(calc(${12 - laneWidth / 2}px + 50%), min(0px, calc(${laneWidth / 2 - (editor.hasSelection ? editor.propertiesPanelWidth : 0) - 12}px - 50%)))`,
+  );
   expect(result.current.isCollapsed).toBe(false);
+});
+
+it("keeps horizontal placement unchanged when a panel moves a hover-expanded bar vertically", () => {
+  laneWidth = 1000;
+  const defaults = renderHook(() => use(EditorContext)).result.current;
+  let editor = {
+    ...defaults,
+    isLeftSidebarOpen: true,
+    leftSidebarWidth: 220,
+    hasSelection: true,
+    propertiesPanelWidth: 600,
+    isBottomPanelOpen: false,
+    isPanelAnimating: false,
+  };
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <EditorContext value={editor}>{children}</EditorContext>
+  );
+  const { result, rerender } = renderHook(
+    () => useBottomBarLayout(laneRef, barRef, { hasViewportControls: true }),
+    { wrapper },
+  );
+  act(() =>
+    result.current.reportGroupWidth("hovered-controls", {
+      natural: 385,
+      rendered: 385,
+    }),
+  );
+  expect(result.current.isCollapsed).toBe(true);
+  const offset = result.current.offsetX;
+  for (const isBottomPanelOpen of [true, false]) {
+    editor = { ...editor, isBottomPanelOpen, isPanelAnimating: true };
+    rerender();
+    expect(result.current.offsetX).toBe(offset);
+    expect(result.current.liftY).toBe(
+      isBottomPanelOpen ? editor.bottomPanelHeight : 0,
+    );
+    editor = { ...editor, isPanelAnimating: false };
+    rerender();
+    expect(result.current.offsetX).toBe(offset);
+  }
 });
