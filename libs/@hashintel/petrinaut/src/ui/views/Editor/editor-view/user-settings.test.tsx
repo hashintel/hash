@@ -458,6 +458,14 @@ describe("combined UX settings", () => {
     const iconPack = await screen.findByRole("checkbox", {
       name: "Petricon",
     });
+    expect((iconPack as HTMLInputElement).checked).toBe(true);
+    expect(
+      screen.getByText("Petricon", { exact: true }).parentElement?.textContent,
+    ).toBe("Petricon");
+    expect(
+      screen.getByText("Automatic arc connections", { exact: true })
+        .parentElement?.textContent,
+    ).toBe("Automatic arc connections");
     await act(async () => fireEvent.click(iconPack));
     await act(async () =>
       fireEvent.click(
@@ -474,7 +482,7 @@ describe("combined UX settings", () => {
           name: "Petricon",
         })) as HTMLInputElement
       ).checked,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       (
         screen.getByRole("checkbox", {

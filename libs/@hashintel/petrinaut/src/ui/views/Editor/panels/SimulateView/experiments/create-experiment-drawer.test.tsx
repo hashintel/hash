@@ -62,10 +62,12 @@ vi.mock("../../../../../monaco/code-editor", () => ({
     onChange,
     value,
     options,
+    singleLine,
   }: {
     onChange: (value: string) => void;
     value: string;
-    options?: { readOnly?: boolean };
+    options?: { readOnly?: boolean; scrollbar?: { vertical?: string } };
+    singleLine?: boolean;
   }) => {
     const changeHandlerRef = useRef(onChange);
     const previousValueRef = useRef(value);
@@ -84,6 +86,8 @@ vi.mock("../../../../../monaco/code-editor", () => ({
     return (
       <textarea
         aria-label="Metric code"
+        data-single-line={singleLine}
+        data-vertical-scrollbar={options?.scrollbar?.vertical}
         value={value}
         readOnly={options?.readOnly}
         onChange={(event) => onChange(event.target.value)}
@@ -1723,4 +1727,22 @@ describe("CreateExperimentDrawer objective", () => {
     await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
     expect(createExperiment).toHaveBeenCalledOnce();
   });
+});
+
+it("uses inline scrollbar defaults for parameter constraints and scrolls multiline state constraints", async () => {
+  await openConstrainedSweep({ languageClient: makeLoweringLanguageClient() });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Add parameter constraint" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Add state constraint" }));
+  const parameterEditor = codeOf(
+    screen.getByRole("group", { name: "Parameter constraint 1" }),
+  );
+  const stateEditor = codeOf(
+    screen.getByRole("group", { name: "State constraint 1" }),
+  );
+  expect(parameterEditor.getAttribute("data-single-line")).toBe("true");
+  expect(parameterEditor.getAttribute("data-vertical-scrollbar")).toBeNull();
+  expect(stateEditor.getAttribute("data-single-line")).toBe("false");
+  expect(stateEditor.getAttribute("data-vertical-scrollbar")).toBe("auto");
 });

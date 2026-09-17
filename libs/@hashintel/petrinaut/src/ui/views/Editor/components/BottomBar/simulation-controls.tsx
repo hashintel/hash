@@ -31,6 +31,7 @@ const timeReadoutStyle = cva({
     flexShrink: "0",
     width: "[58px]",
     lineHeight: "[1.15]",
+    gap: "[1px]",
     fontVariantNumeric: "tabular-nums",
     letterSpacing: "[-0.2px]",
     overflow: "hidden",
@@ -47,6 +48,12 @@ const elapsedTimeStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
   color: "neutral.s110",
+});
+
+const timeUnitStyle = css({
+  fontSize: "[9px]",
+  fontWeight: "normal",
+  color: "neutral.s95",
 });
 
 const totalTimeStyle = css({
@@ -221,7 +228,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     <>
       {/* Stop button - only visible when simulation exists */}
       {hasSimulation && (
-        <CollapsibleGroup>
+        <CollapsibleGroup animateEntry>
           <ToolbarButton
             tooltip="Stop simulation"
             onClick={handleReset}
@@ -258,13 +265,16 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           <>
             <div
               role="timer"
-              aria-label={`Elapsed ${times.elapsed} of ${times.total}`}
+              aria-label={`Elapsed ${times.elapsed} seconds of ${times.total} seconds`}
               className={timeReadoutStyle({
                 compact: presentation.compactControls,
               })}
             >
-              <span className={elapsedTimeStyle}>{times.elapsed}</span>
-              <span className={totalTimeStyle}>/ {times.total}</span>
+              <span className={elapsedTimeStyle}>
+                {times.elapsed}
+                <span className={timeUnitStyle}> s</span>
+              </span>
+              <span className={totalTimeStyle}>of {times.total} s</span>
             </div>
 
             <input

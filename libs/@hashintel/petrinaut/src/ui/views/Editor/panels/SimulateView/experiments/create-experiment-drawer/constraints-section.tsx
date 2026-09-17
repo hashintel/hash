@@ -205,11 +205,15 @@ const ConstraintRow = ({
           overviewRulerLanes: 0,
           overviewRulerBorder: false,
           wordWrap: multiline ? "on" : "off",
-          scrollbar: {
-            vertical: "auto",
-            horizontal: "hidden",
-            alwaysConsumeMouseWheel: false,
-          },
+          ...(multiline
+            ? {
+                scrollbar: {
+                  vertical: "auto",
+                  horizontal: "hidden",
+                  alwaysConsumeMouseWheel: false,
+                },
+              }
+            : {}),
         }}
         onEscape={() => rowRef.current?.focus()}
         onChange={(code) => onCodeChange(code ?? "")}

@@ -11,7 +11,10 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
-import { SimulationPanel } from "../shared/simulation-panel";
+import {
+  SimulationPanel,
+  SimulationPanelPresence,
+} from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
   useAdHocScenarioAuthoring,
@@ -105,8 +108,7 @@ const ViewScenarioContent = ({
   };
 
   return (
-    <SimulationPanel title={scenario.name} onClose={onClose}>
-      <SimulationPanel.Header />
+    <>
       <AdHocScenarioAuthoringBody authoring={authoring}>
         {source.kind === "per_place" ? (
           <p className={migrationNoteStyle}>{perPlaceMigrationNote}</p>
@@ -137,7 +139,7 @@ const ViewScenarioContent = ({
           </>
         }
       />
-    </SimulationPanel>
+    </>
   );
 };
 
@@ -152,14 +154,18 @@ export const ViewScenarioDrawer = ({
   onClose,
   scenario,
 }: ViewScenarioDrawerProps) => {
-  if (!open || !scenario) {
-    return null;
-  }
   return (
-    <ViewScenarioContent
-      key={scenario.id}
-      scenario={scenario}
-      onClose={onClose}
-    />
+    <SimulationPanelPresence>
+      {open && scenario ? (
+        <SimulationPanel title={scenario.name} onClose={onClose}>
+          <SimulationPanel.Header />
+          <ViewScenarioContent
+            key={scenario.id}
+            scenario={scenario}
+            onClose={onClose}
+          />
+        </SimulationPanel>
+      ) : null}
+    </SimulationPanelPresence>
   );
 };

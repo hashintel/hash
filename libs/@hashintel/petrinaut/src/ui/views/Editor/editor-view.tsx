@@ -27,7 +27,6 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
-import { formatShortcutKeys } from "../../../react/commands/format-shortcut";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
@@ -46,6 +45,7 @@ import { ExperimentalIconProvider } from "../../experimental-icons";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -73,7 +73,7 @@ import {
 } from "./panels/SimulateView/simulate-view";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
-import { EditorCommands } from "./use-editor-commands";
+import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
@@ -444,6 +444,7 @@ const EditorViewContent = ({
           {
             id: "layout",
             text: "Layout",
+            suffix: <KeyboardShortcut shortcut={autoLayoutShortcut} inMenu />,
             onClick: () => {
               void runAutoLayoutAndFrame();
             },
@@ -534,7 +535,7 @@ const EditorViewContent = ({
     {
       id: "user-settings",
       text: "User settings",
-      suffix: formatShortcutKeys("mod+,").join(" "),
+      suffix: <KeyboardShortcut shortcut="mod+," inMenu />,
       onClick: () =>
         navigation.navigate(
           { overlay: { type: "user-settings", section: "general" } },

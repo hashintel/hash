@@ -10,8 +10,8 @@ import { type CollapsibleGroupWidth } from "./collapse-context";
 const BOTTOM_BAR_MARGIN = 12;
 
 export interface BottomBarLayout {
-  /** Shift from the centred position that clears the panels, in px. */
-  readonly offsetX: number;
+  /** CSS translation that clears the panels using the bar's rendered width. */
+  readonly offsetX: string;
   /** How far the bottom panel lifts the bar, in px. */
   readonly liftY: number;
   /** True while the bar has room only for its essential controls. */
@@ -27,9 +27,8 @@ export interface BottomBarLayout {
  * Places the bottom bar between the docked panels and decides whether it has
  * room for every control.
  *
- * The bar is measured rather than modelled: its own width is what the offset
- * clamps, and each collapsible group reports both what it takes when shown and
- * what it is currently hiding, so the decision never chases itself.
+ * Each collapsible group reports its natural and occupied widths, keeping the
+ * fit calculation stable throughout animation. CSS positions the visible bar.
  *
  * Whether the hidden controls are on screen is not decided here at all: hover,
  * keyboard focus and an open menu reveal them in CSS, which cannot go stale
@@ -41,11 +40,8 @@ export const useBottomBarLayout = (
   barRef: React.RefObject<HTMLDivElement | null>,
   {
     hasViewportControls,
-    isAnimating,
   }: {
     hasViewportControls: boolean;
-    /** True while a panel opens or closes, and the bar transitions with it. */
-    isAnimating: boolean;
   },
 ): BottomBarLayout => {
   const containerWidth = useElementSize(laneRef, { box: "border" })?.width ?? 0;
@@ -73,7 +69,7 @@ export const useBottomBarLayout = (
         if (
           current &&
           current.natural === width.natural &&
-          current.hidden === width.hidden
+          current.rendered === width.rendered
         ) {
           return previous;
         }
@@ -96,10 +92,8 @@ export const useBottomBarLayout = (
   };
 
   let hiddenWidth = 0;
-  let collapsibleWidth = 0;
   for (const width of groupWidths.values()) {
-    hiddenWidth += width.hidden;
-    collapsibleWidth += width.natural;
+    hiddenWidth += width.natural - width.rendered;
   }
 
   // What the bar would take with every control shown. Its two terms move
@@ -107,17 +101,8 @@ export const useBottomBarLayout = (
   const expandedWidth = barWidth + hiddenWidth;
   const isCollapsed = !fitsWithinBounds(bounds, expandedWidth);
 
-  // While a panel animates, the bar's own transition carries it there, and an
-  // offset taken from a width that is itself animating would restart that
-  // transition every frame. The width the bar is heading for steps once
-  // instead. With no transition running, the measured width is what keeps the
-  // bar glued to its own collapse and to a panel edge being dragged.
-  const settledWidth = isCollapsed
-    ? expandedWidth - collapsibleWidth
-    : expandedWidth;
-
   return {
-    offsetX: getBottomBarOffset(bounds, isAnimating ? settledWidth : barWidth),
+    offsetX: getBottomBarOffset(bounds),
     liftY: insets.bottom,
     isCollapsed,
     reportGroupWidth,

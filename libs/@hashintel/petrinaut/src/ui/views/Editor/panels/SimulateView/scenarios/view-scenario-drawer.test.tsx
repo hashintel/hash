@@ -387,3 +387,32 @@ describe("ViewScenarioDrawer", () => {
     expect(mutations.updateScenario).not.toHaveBeenCalled();
   });
 });
+
+it("keeps the panel shell when selecting another scenario and resets only its form", () => {
+  const tree = (scenario: Scenario) => (
+    <LanguageClientContext value={DEFAULT_LANGUAGE_CLIENT_CONTEXT}>
+      <SDCPNContext value={sdcpnContextValue}>
+        <ViewScenarioDrawer open onClose={() => {}} scenario={scenario} />
+      </SDCPNContext>
+    </LanguageClientContext>
+  );
+  const { rerender } = render(tree(adHocScenario));
+  const panel = screen.getByRole("region", { name: adHocScenario.name });
+  const header = screen.getByRole("heading", { name: adHocScenario.name });
+  const input = screen.getByRole("textbox", { name: "Scenario name" });
+  fireEvent.change(input, { target: { value: "Unsaved change" } });
+  rerender(tree(perPlaceScenario));
+  expect(screen.getByRole("region", { name: perPlaceScenario.name })).toBe(
+    panel,
+  );
+  expect(screen.getByRole("heading", { name: perPlaceScenario.name })).toBe(
+    header,
+  );
+  expect(screen.getByRole("textbox", { name: "Scenario name" })).not.toBe(
+    input,
+  );
+  expect(screen.getByRole("textbox", { name: "Scenario name" })).toHaveProperty(
+    "value",
+    perPlaceScenario.name,
+  );
+});

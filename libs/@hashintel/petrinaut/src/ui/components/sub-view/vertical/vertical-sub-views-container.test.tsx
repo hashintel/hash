@@ -161,6 +161,29 @@ const Harness = ({
 );
 
 describe("maximizing a subview", () => {
+  it("opens a collapsed code section directly without changing its saved collapse state", () => {
+    render(<Harness codeCollapsed showAnimations={false} />);
+    expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Load template" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Firing Time" }));
+    expect(screen.getByRole("textbox", { name: "Code" })).toBeDefined();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Back to Transition Collision" }),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "Firing Time" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(
+      screen.getByRole("button", { name: "Expand Firing Time" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
+    expect(updateSubViewSection).not.toHaveBeenCalled();
+  });
+
   it("follows routed Back and Forward without writing new history entries", () => {
     const state = defaultPetrinautNavigationState;
     const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
@@ -382,7 +405,7 @@ it.each([
   { showAnimations: false, reducedMotion: false },
   { showAnimations: true, reducedMotion: true },
 ])(
-  "returns focus to the collapsed header after closing a deep link (%j)",
+  "returns focus to the expand action after closing a collapsed deep link (%j)",
   async ({ showAnimations, reducedMotion }) => {
     const animations = mockAnimations();
     vi.stubGlobal("matchMedia", () => ({
@@ -434,11 +457,9 @@ it.each([
       name: "Firing Time",
     });
     expect(header.getAttribute("aria-expanded")).toBe("false");
-    expect(
-      screen.queryByRole("button", { name: "Expand Firing Time" }),
-    ).toBeNull();
+    const expand = screen.getByRole("button", { name: "Expand Firing Time" });
     expect(screen.queryByRole("textbox", { name: "Code" })).toBeNull();
-    await waitFor(() => expect(document.activeElement).toBe(header));
+    await waitFor(() => expect(document.activeElement).toBe(expand));
     expect(updateSubViewSection).not.toHaveBeenCalled();
   },
 );

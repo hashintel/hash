@@ -1,4 +1,5 @@
 import { ResultsView } from "../shared/results-view";
+import { SimulationPanelPresence } from "../shared/simulation-panel";
 import { useExperimentResultsModel } from "./experiment-results";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
@@ -31,11 +32,14 @@ export const ViewExperimentDrawer = ({
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
   presentation?: "panel" | "inline";
-}) =>
-  open && experiment ? (
-    <ExperimentDrawer
-      experiment={experiment}
-      onClose={onClose}
-      presentation={presentation}
-    />
-  ) : null;
+}) => (
+  <SimulationPanelPresence>
+    {open && experiment ? (
+      <ExperimentDrawer
+        experiment={experiment}
+        onClose={onClose}
+        presentation={presentation}
+      />
+    ) : null}
+  </SimulationPanelPresence>
+);

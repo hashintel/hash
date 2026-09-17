@@ -32,6 +32,7 @@ export const probabilisticSatellitesSDCPN: {
       {
         id: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
         name: "Space",
+        showAsInitialState: true,
         description:
           "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",

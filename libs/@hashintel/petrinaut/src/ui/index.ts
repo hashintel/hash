@@ -9,6 +9,7 @@
  * @role The visual editor: canvas, panels, dialogs and the Monaco integration
  */
 
+export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
 export {
   Petricon,

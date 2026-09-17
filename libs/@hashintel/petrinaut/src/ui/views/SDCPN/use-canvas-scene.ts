@@ -36,13 +36,23 @@ export const useCanvasScene = (
    * The hover follows the pointer only once it stops. Sweeping across the
    * canvas passes over nodes without lighting any of them up, and what
    * settles is whatever the pointer came to rest on rather than everything it
-   * crossed to get there.
+   * crossed to get there. Dragging settles the grabbed node immediately and
+   * keeps it hovered until the drag ends, even when the pointer leaves it.
    */
   const hoveredId = hoveredItem?.id ?? null;
   const pointerAtRest = usePointerAtRest(canvasRef);
   const [settledHoverId, setSettledHoverId] = useState(hoveredId);
-  if (pointerAtRest && settledHoverId !== hoveredId) {
-    setSettledHoverId(hoveredId);
+  const draggedHoverId =
+    hoveredId !== null && draggingStateByNodeId[hoveredId]?.dragging
+      ? hoveredId
+      : settledHoverId !== null &&
+          draggingStateByNodeId[settledHoverId]?.dragging
+        ? settledHoverId
+        : null;
+  const nextHoverId =
+    draggedHoverId ?? (pointerAtRest ? hoveredId : settledHoverId);
+  if (settledHoverId !== nextHoverId) {
+    setSettledHoverId(nextHoverId);
   }
 
   // Indexed on the net alone, so the compiler holds it across the renders a

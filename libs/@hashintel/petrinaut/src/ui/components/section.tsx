@@ -19,7 +19,8 @@ const sectionListStyle = css({
   "& > *:not(:last-child)": {
     borderBottomWidth: "[1px]",
     borderBottomStyle: "solid",
-    borderBottomColor: "neutral.a40",
+    borderBottomColor:
+      "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
   },
 });
 

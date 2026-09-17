@@ -78,6 +78,8 @@ export interface SubView {
    */
   alwaysShowHeaderAction?: boolean;
   canMaximize?: boolean;
+  /** Use the expanded code-editor layout even when this subview is not maximized. */
+  fullWidthCodeEditor?: boolean;
   /**
    * Configuration for making the subview resizable when expanded.
    * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.

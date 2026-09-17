@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 
+import { KeyboardShortcut } from "../../ui/keyboard-shortcut";
 import { Petrinaut } from "../../ui/petrinaut";
 import {
   CommandRegistryProvider,
@@ -10,7 +11,6 @@ import {
   useCommandRegistry,
   useCommands,
 } from "./command-registry";
-import { formatShortcutKeys } from "./format-shortcut";
 
 import type { Command, SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -101,33 +101,6 @@ const categoryStyle = css({
 });
 
 const labelStyle = css({ flex: "1" });
-
-const keysStyle = css({
-  display: "flex",
-  gap: "[3px]",
-});
-
-// Square keycaps: a single symbol fills a 20x20 cap, longer labels widen it.
-const keyStyle = css({
-  height: "[20px]",
-  minWidth: "[20px]",
-  flexShrink: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "xs",
-  fontFamily: "mono",
-  color: "neutral.s100",
-  backgroundColor: "neutral.s10",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "sm",
-  boxShadow: "[0 1px 0 {colors.neutral.bd.subtle}]",
-  "&[data-wide='true']": {
-    paddingInline: "[5px]",
-  },
-});
 
 const emptyStyle = css({
   padding: "[16px]",
@@ -244,17 +217,7 @@ const HostCommandPalette: React.FC = () => {
                 <span className={categoryStyle}>{command.category}</span>
                 <span className={labelStyle}>{command.label}</span>
                 {command.shortcut ? (
-                  <span className={keysStyle} aria-hidden>
-                    {formatShortcutKeys(command.shortcut).map((key) => (
-                      <kbd
-                        key={key}
-                        data-wide={key.length > 1}
-                        className={keyStyle}
-                      >
-                        {key}
-                      </kbd>
-                    ))}
-                  </span>
+                  <KeyboardShortcut shortcut={command.shortcut} />
                 ) : null}
               </button>
             ))

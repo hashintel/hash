@@ -1,4 +1,5 @@
 import { use } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
   type ExperimentRecord,
@@ -425,6 +426,37 @@ export const BestParameters: Story = {
     },
   },
   render: () => <BestParametersSweep status="complete" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const transmission = canvas.getByRole("slider", {
+      name: "Transmission rate",
+    });
+    const recovery = canvas.getByRole("slider", { name: "Recovery days" });
+
+    await userEvent.click(canvas.getByRole("button", { name: "View best" }));
+    await expect(transmission).toHaveAttribute("aria-valuenow", "32");
+    await expect(recovery).toHaveAttribute("aria-valuenow", "8");
+    await expect(
+      canvas.getByRole("button", { name: "Viewing best" }),
+    ).toBeDisabled();
+
+    transmission.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    recovery.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await expect(transmission).toHaveAttribute("aria-valuenow", "33");
+    await expect(recovery).toHaveAttribute("aria-valuenow", "9");
+    await expect(
+      canvas.getByRole("button", { name: "View best" }),
+    ).toBeEnabled();
+
+    await userEvent.click(canvas.getByRole("button", { name: "View best" }));
+    await expect(transmission).toHaveAttribute("aria-valuenow", "32");
+    await expect(recovery).toHaveAttribute("aria-valuenow", "8");
+    await expect(
+      canvas.getByRole("button", { name: "Viewing best" }),
+    ).toBeDisabled();
+  },
 };
 
 export const BestParametersRunning: Story = {

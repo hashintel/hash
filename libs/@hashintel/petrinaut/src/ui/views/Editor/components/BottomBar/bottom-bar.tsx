@@ -32,6 +32,8 @@ const glassPanelStyle = css({
   backgroundColor: "white.a95",
   borderWidth: "thin",
   borderColor: "neutral.a50",
+  borderRadius: "[8px]",
+  backdropFilter: "[blur(3px)]",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
   // Named rather than `all`, which would animate the width a folding group
   // changes and take twice as long doing it as the group itself.
@@ -58,6 +60,9 @@ const bottomBarLaneStyle = css({
   justifyContent: "center",
   pointerEvents: "none",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
+  "&:has(> [data-bottom-bar]:hover)": {
+    zIndex: "[calc(var(--z-index-sticky) + 3)]",
+  },
 });
 
 const bottomBarStyle = css({
@@ -69,26 +74,13 @@ const bottomBarStyle = css({
   flexShrink: 0,
 });
 
-/**
- * Only a panel opening or closing animates the bar into place. Folding moves
- * it too, but there the offset follows the width the bar is measured at, frame
- * by frame, and a transition would race that with a curve of its own; a resize
- * drag wants none either, so the bar tracks the edge under the pointer.
- *
- * Both axes ride one transform, which the compositor animates like the panel's
- * own slide. A main-thread property could not stay with it: the frames dropped
- * while a panel's content mounts leave a layout-driven animation behind.
- *
- * Reduced motion is deliberately not honoured here. This transition is not
- * decoration, it is what keeps the bar attached to a panel that animates
- * regardless of the setting, and stopping only the bar detaches it.
- */
+/** Keep the bar's vertical movement in step with the panel beneath it. */
 const barAnimatingStyle = cva({
   base: {},
   variants: {
     animating: {
       true: {
-        transition: "[transform 150ms ease-in-out]",
+        transition: "[transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
@@ -151,7 +143,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   const barRef = useRef<HTMLDivElement>(null);
   const layout = useBottomBarLayout(laneRef, barRef, {
     hasViewportControls: !isActualMode,
-    isAnimating: isPanelAnimating,
   });
 
   // Edit tools are absent on a read-only net and outside edit mode, so the
@@ -169,7 +160,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         data-bottom-bar
         className={`${bottomBarStyle} ${barAnimatingStyle({ animating: isPanelAnimating })}`}
         style={{
-          transform: `translate(${layout.offsetX}px, ${-layout.liftY}px)`,
+          transform: `translate(${layout.offsetX}, ${-layout.liftY}px)`,
         }}
       >
         <BottomBarCollapseContext
@@ -210,6 +201,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                             ? "Hide AI assistant"
                             : "Show AI assistant"
                         }
+                        shortcut="mod+shift+k"
                         onClick={toggleAiAssistant}
                         isSelected={isAiAssistantOpen}
                         ariaLabel={
@@ -219,7 +211,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                         }
                         ariaExpanded={isAiAssistantOpen}
                       >
-                        <AiAssistantIcon size={18} />
+                        <AiAssistantIcon
+                          size={22}
+                          className={css({ transform: "[translateY(-1px)]" })}
+                        />
                       </ToolbarButton>
                     </>
                   )}

@@ -11,6 +11,7 @@ import {
   type SweepBatchStatus,
 } from "../../../../../../react/experiments/context";
 import { sweepPointFor } from "../../../../../../react/experiments/parameter-grid";
+import { sweepSelectionKey } from "../../../../../../react/experiments/sweep-session";
 import {
   constraintAlpha,
   formatRate,
@@ -280,6 +281,12 @@ export const experimentResultsModel = (
   const bestSelection = study?.best
     ? sweepPointFor(experiment.parameterAxes, study.best.parameters)
     : null;
+  const viewingBest =
+    following === null &&
+    bestSelection !== null &&
+    sweep !== null &&
+    sweep.selectionKey ===
+      sweepSelectionKey(experiment.parameterAxes, bestSelection);
 
   const detailStats = [
     ...experimentDetailsStats(experiment),
@@ -431,8 +438,9 @@ export const experimentResultsModel = (
                   study={study}
                   driving={following !== null}
                   axes={experiment.parameterAxes}
+                  viewingBest={viewingBest}
                   onViewBest={
-                    locked || bestSelection === null
+                    locked || viewingBest || bestSelection === null
                       ? null
                       : () =>
                           actions.setSweepSelection(

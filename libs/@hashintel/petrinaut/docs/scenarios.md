@@ -17,7 +17,7 @@ You can save as many scenarios as you like; they are stored on the net alongside
 
 ## No built-in default scenario
 
-A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). In that state the simulation uses each place's manually-entered initial marking and the values in the panel's Parameters inputs (pre-filled with the net-level defaults) — unless you define an [ad-hoc initial state](ad-hoc-scenarios.md) in the panel's Initial state column, which overrides the manual marking for every place it defines.
+A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). Configure the run's parameters and [ad-hoc initial state](ad-hoc-scenarios.md) in Simulation Settings. The per-place State sub-view is read-only. Existing manual markings remain a fallback for places without an ad-hoc definition.
 
 You will need scenarios when you want to:
 

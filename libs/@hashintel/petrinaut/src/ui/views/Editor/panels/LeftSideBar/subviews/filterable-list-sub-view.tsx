@@ -4,6 +4,7 @@ import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
+import { ShortcutTooltip } from "../../../../../keyboard-shortcut";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
@@ -45,9 +46,9 @@ const listItemRowStyle = cva({
     minHeight: "8",
     p: "1",
     borderRadius: "lg",
-    fontSize: "[13px]",
-    fontWeight: "normal",
-    color: "neutral.fg.body",
+    fontSize: "sm",
+    fontWeight: "medium",
+    color: "neutral.s115",
     backgroundColor: "[transparent]",
     cursor: "pointer",
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
@@ -103,10 +104,10 @@ const listItemContentStyle = css({
 const listItemNameStyle = css({
   flex: "[1]",
   minWidth: "[0]",
-  fontSize: "[13px]",
-  fontWeight: "normal",
+  fontSize: "sm",
+  fontWeight: "medium",
   lineHeight: "snug",
-  color: "neutral.fg.body",
+  color: "neutral.s115",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -191,14 +192,15 @@ const FilterHeaderAction: React.FC<{
 
   return (
     <>
-      <Button
-        aria-label="Search list"
-        tooltip="Search list"
-        size="xs"
-        variant="ghost"
-        iconName="search"
-        onClick={() => setSearchOpen(true)}
-      />
+      <ShortcutTooltip label="Search list" shortcut="mod+f">
+        <Button
+          aria-label="Search list"
+          size="xs"
+          variant="ghost"
+          iconName="search"
+          onClick={() => setSearchOpen(true)}
+        />
+      </ShortcutTooltip>
       {/* Searching a list is not a mutation, so only the extra action, which
           is the list's Add button, answers to the presentation. */}
       {presentation.showMutationActions && renderExtraAction?.()}

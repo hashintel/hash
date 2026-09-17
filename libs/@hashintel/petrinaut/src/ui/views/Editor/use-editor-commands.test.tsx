@@ -1,17 +1,116 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook } from "@testing-library/react";
+import { type ReactNode, use } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../../react/commands/command-registry";
+import { EditorContext } from "../../../react/state/editor-context";
+import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { EditorCommands } from "./use-editor-commands";
 
 vi.mock("../../../react", () => ({
   usePetrinautCommands: () => ({ applyAutoLayout: vi.fn() }),
 }));
 
+const EditableNet = ({ children }: { children: ReactNode }) => {
+  const sdcpn = use(SDCPNContext);
+  return (
+    <SDCPNContext value={{ ...sdcpn, readonly: false }}>
+      {children}
+    </SDCPNContext>
+  );
+};
+
 afterEach(cleanup);
+
+describe("auto-layout shortcut", () => {
+  it.each(["metaKey", "ctrlKey"])(
+    "shows the binding in the palette and runs the same layout-and-fit action with %s",
+    (modifier) => {
+      const registry = createCommandRegistry();
+      const layout = vi.fn(async () => {});
+      render(
+        <CommandRegistryProvider registry={registry}>
+          <EditorCommands applyAutoLayoutAndFrame={layout} />
+        </CommandRegistryProvider>,
+        { wrapper: EditableNet },
+      );
+      expect(
+        registry
+          .list()
+          .find((command) => command.id === "petrinaut.net.auto-layout"),
+      ).toMatchObject({ shortcut: "mod+shift+l" });
+      expect(
+        fireEvent.keyDown(window, {
+          key: "L",
+          [modifier]: true,
+          shiftKey: true,
+        }),
+      ).toBe(false);
+      expect(layout).toHaveBeenCalledOnce();
+      registry.execute("petrinaut.net.auto-layout");
+      expect(layout).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("ignores typing, other modifiers, repeats, composition, and handled events", () => {
+    const layout = vi.fn(async () => {});
+    const { getByRole } = render(
+      <>
+        <input aria-label="Name" />
+        <EditorCommands applyAutoLayoutAndFrame={layout} />
+      </>,
+      { wrapper: EditableNet },
+    );
+    fireEvent.keyDown(getByRole("textbox"), {
+      key: "L",
+      ctrlKey: true,
+      shiftKey: true,
+    });
+    for (const modifiers of [
+      { ctrlKey: true },
+      { metaKey: true },
+      { ctrlKey: true, shiftKey: true, altKey: true },
+      { ctrlKey: true, shiftKey: true, repeat: true },
+      { ctrlKey: true, shiftKey: true, isComposing: true },
+    ]) {
+      expect(fireEvent.keyDown(window, { key: "l", ...modifiers })).toBe(true);
+    }
+    const handled = new KeyboardEvent("keydown", {
+      key: "l",
+      ctrlKey: true,
+      shiftKey: true,
+      cancelable: true,
+    });
+    handled.preventDefault();
+    window.dispatchEvent(handled);
+    expect(layout).not.toHaveBeenCalled();
+  });
+
+  it("respects read-only nets and simulation mode", () => {
+    const defaults = renderHook(() => ({
+      editor: use(EditorContext),
+      sdcpn: use(SDCPNContext),
+    })).result.current;
+    const layout = vi.fn(async () => {});
+    const { rerender } = render(
+      <SDCPNContext value={{ ...defaults.sdcpn, readonly: true }}>
+        <EditorCommands applyAutoLayoutAndFrame={layout} />
+      </SDCPNContext>,
+      { wrapper: EditableNet },
+    );
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
+    rerender(
+      <EditorContext value={{ ...defaults.editor, globalMode: "simulate" }}>
+        <EditorCommands applyAutoLayoutAndFrame={layout} />
+      </EditorContext>,
+    );
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
+    expect(layout).not.toHaveBeenCalled();
+  });
+});
 
 describe("AI assistant command", () => {
   it("registers only when an assistant is available and uses the latest action", () => {

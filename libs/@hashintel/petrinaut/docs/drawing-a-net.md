@@ -18,18 +18,30 @@ free side, keeping clear of the left sidebar, the properties panel and the
 viewport controls. Where even that leaves too little room it shrinks to the
 cursor, the panel toggle, the diagnostics status and Play; point at it, or tab
 into it, and the rest comes back for as long as you stay on it.
+When resizing makes room again, the hidden controls return automatically.
+While hovered, the toolbar appears above the surrounding panels so its expanded controls stay accessible.
+Opening or closing the bottom panel keeps the toolbar's horizontal position stable, including while its controls are revealed on hover.
+The toolbar blurs the canvas behind it. Chromium browsers also show a refractive glass effect; Firefox and Safari use the blur alone.
 
 <img width="1793" height="1175" alt="full-editor" src="https://github.com/user-attachments/assets/ea41efe8-9056-479b-a936-e0d5e4196b11" />
 
 ## Properties panel
 
-Select an entity to inspect its properties. Places use the same Name and Description fields as transitions and types.
+Select an entity to inspect its properties. Subtle lines separate section headers from their content. Places use the same Name and Description fields as transitions and types.
 
 Place settings include an **Options** section for **Component port**, **Token capacity**, and **Default starting place**. Click a checkbox or its label to toggle the setting. Enabling Token capacity expands a compact **Maximum tokens** row beneath it. Point at the info icons for an explanation of each option.
 
 Click **View type** or **View equation** to open the assigned definition. These navigation actions are available when the net is read-only.
 
 The **State** and **Visualizer** section headers have visible expand arrows. Click a header to expand its content and drag the divider to give it more room. The Visualizer switch remains available while its section is collapsed.
+
+Code sections always show their **Fill panel** action, including while collapsed. Use it to open the editor directly in the full panel; returning restores the section's previous collapsed or open state.
+
+In the full panel, code editors meet the left, right, and bottom edges with square corners and no visible border. Their frame and spacing transition smoothly when entering or leaving this view.
+
+The lighter parent name in the header returns to the property's sections and highlights when hovered.
+
+Differential equations already occupy the full properties panel. Their code editor uses the same edge-to-edge layout and stays visible, read-only, during simulation.
 
 ## Top bar
 
@@ -70,9 +82,13 @@ Switching modes does not stop background experiments. The active-experiments ind
 ## Canvas and Definitions
 
 In **Edit**, use **Canvas / Definitions** to switch views. On Canvas, the selector
-floats below the main header, beside the Entities sidebar when it is open.
-In Definitions, it shares the search and filter toolbar. The compact selector
-becomes fully opaque when hovered or focused. Both views work on
+floats below the main header, beside the Entities sidebar when it is open. Its
+outlined background has a light translucent tint and blurs the canvas behind it.
+The selected tab has a stronger fill to distinguish it from the other view.
+The selector follows manual sidebar resizing immediately and moves smoothly when
+the sidebar opens or closes, if animations are enabled.
+In Definitions, it shares the search and filter toolbar. The controls
+become fully opaque when hovered or focused. Both views work on
 the same net and share the selected entity.
 Switching between them keeps the canvas position and zoom, and the Definitions view’s
 scroll position, expanded cells, search, and filters.
@@ -113,9 +129,9 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
-### Automatic arc connections (experimental)
+### Automatic arc connections
 
-Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections-experimental) to try a different way to connect nodes:
+Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections) to connect nodes directly through their outlines:
 
 1. Hover over a place or transition to reveal its outgoing handle.
 2. Drag the handle onto the target node. A blue outline shows a valid target.
@@ -196,7 +212,11 @@ Selecting a node, or resting the pointer on one, rings it and colours everything
 
 The arcs joining them are cased in the same colours, keeping their own colour inside the casing, so you can read which way tokens flow without tracing arrowheads. Hovering an arc rings the node at each of its ends the same way.
 
-Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen. Nodes further away fade back, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. A selected node stays ringed while you point at something else. If you would rather the pointer left the net alone, turn off **Highlight on hover** in [visual settings](visual-settings.md); selecting a node still highlights it.
+Each highlighted node and arc also carries a white band between its own edge and the colour, lifting it off the canvas. A place keeps its own outline visible throughout the fade, including places without a token type. The [minimap](visual-settings.md) rings and fades its shapes to match, so you can see where the neighbourhood sits in a net larger than the screen.
+
+Nodes and arcs further away fade back smoothly, keeping their shape and position so the net still reads as a whole. The highlight follows the pointer once it comes to rest, not on the way past, and fades in and out rather than switching -- moving across a crowded net does not make it flicker. Dragging a node starts its highlight immediately and keeps it highlighted until you drop it, even while the pointer is moving. These fades respect the **Animations** setting and your system's reduced-motion preference.
+
+A selected node stays ringed while you point at something else. If you would rather the pointer left the net alone, turn off **Highlight on hover** in [visual settings](visual-settings.md); selecting a node still highlights it.
 
 ## Left sidebar
 
@@ -243,6 +263,8 @@ The recent history is displayed in the top-right corner. Click on a history entr
 
 ## Keyboard shortcuts
 
+Menus, toolbar tooltips, and the command palette show shortcuts as compact outlined keys beside the action label. Modifier keys match your operating system: ⌘ on macOS and Ctrl on Windows/Linux.
+
 | Shortcut           | Action                                 |
 | ------------------ | -------------------------------------- |
 | N                  | Add Place mode                         |
@@ -258,6 +280,7 @@ The recent history is displayed in the top-right corner. Click on a history entr
 | Cmd+F              | Search                                 |
 | Cmd+Shift+K        | Toggle the AI assistant                |
 | Cmd+,              | Open user settings                     |
+| Cmd+Shift+L        | Auto-layout and fit the net            |
 | Delete / Backspace | Delete selection                       |
 
 On Windows/Linux, use Ctrl instead of Cmd.
@@ -279,6 +302,6 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 ## Auto-layout
 
-From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. Importing a net without positions also lays it out and fits it after the new canvas appears.
+From the hamburger menu, select **Layout**, or press **Cmd+Shift+L** (Ctrl+Shift+L on Windows/Linux) on the canvas, to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. The shortcut leaves text fields and code editors alone. Importing a net without positions also lays it out and fits it after the new canvas appears.
 
 Layout changes node positions and therefore creates an ordinary document change when positions move. The following fit changes only the saved viewport, not the document, mutation history, or provenance. This is useful after importing a net without positions or when a net has become cluttered, but it will not always be an improvement. The item is hidden on a read-only net, which cannot accept the move.

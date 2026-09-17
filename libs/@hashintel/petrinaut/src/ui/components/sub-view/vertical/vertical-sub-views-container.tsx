@@ -77,7 +77,7 @@ const sectionMotionStyle = css({
 const breadcrumbStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1.5",
   flex: "1",
   minWidth: "0",
   pl: "1",
@@ -101,18 +101,32 @@ const parentTitleStyle = css({
   whiteSpace: "nowrap",
   textAlign: "left",
   font: "[inherit]",
-  color: "[inherit]",
+  fontSize: "[13px]",
+  fontWeight: "normal",
+  color: "neutral.s85",
   cursor: "pointer",
-  transition: "[color 140ms ease]",
+  textDecoration: "underline",
+  textDecorationColor: "[transparent]",
+  textUnderlineOffset: "[3px]",
+  "[data-subview-animate] &": {
+    transition: "[color 160ms ease-out, text-decoration-color 160ms ease-out]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
   _hover: {
-    textDecoration: "underline",
-    textUnderlineOffset: "[3px]",
+    color: "neutral.s120",
+    textDecorationColor: "[currentColor]",
   },
   _focusVisible: {
     outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[3px]",
     borderRadius: "[2px]",
   },
+});
+
+const parentTitleTextStyle = css({
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 });
 
 const breadcrumbSeparatorStyle = css({
@@ -156,8 +170,14 @@ const panelContentStyle = css({
   // header owns its own top spacing. Bottom padding is fine: it scrolls with
   // the content, so short views keep a clean inset while overflowing views
   // scroll through the section's full height.
-  px: "4",
+  "--subview-content-inline-padding": "[16px]",
+  px: "[var(--subview-content-inline-padding)]",
   pb: "3",
+  "[data-subview-full-width-code] &": { paddingBottom: "0" },
+  "[data-subview-animate] &": {
+    transition: "[padding-bottom 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
 });
 
 const SHADOW_HEIGHT = 7;
@@ -192,7 +212,8 @@ const scrollShadowStyle = cva({
 
 const resizeHandleStyle = css({
   borderTopWidth: "thin",
-  borderTopColor: "neutral.a40",
+  borderTopColor:
+    "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
   cursor: "ns-resize",
   backgroundColor: "[transparent]",
   transition: "[background-color 0.15s ease]",
@@ -219,7 +240,7 @@ const headerRowStyle = cva({
     alignItems: "center",
 
     borderBottomWidth: "thin",
-    borderBottomColor: "neutral.a40",
+    borderBottomColor: "neutral.a20",
   },
   variants: {
     isCollapsed: {
@@ -240,7 +261,14 @@ const mainHeaderRowStyle = css({
   alignItems: "center",
 
   borderBottomWidth: "thin",
-  borderBottomColor: "neutral.a40",
+  borderBottomColor: "neutral.a20",
+});
+
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: 0,
 });
 
 const headerActionVisibleStyle = css({
@@ -275,6 +303,9 @@ const sectionToggleStyle = css({
 
   "& [data-toggle-icon]": {
     width: "3.5",
+    opacity: "[var(--petrinaut-panel-toggle-opacity, 0)]",
+  },
+  "&:hover [data-toggle-icon], &:focus-visible [data-toggle-icon]": {
     opacity: "[1]",
   },
 });
@@ -458,9 +489,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
               <ParentIcon size={HEADER_ICON_SIZE} />
             </span>
           )}
-          <span className={mainTitleStyle({ fadeOverflow: true })}>
-            {parentTitle}
-          </span>
+          <span className={parentTitleTextStyle}>{parentTitle}</span>
         </button>
         {parentTitle !== title && (
           <>
@@ -530,30 +559,34 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         </span>
       </div>
     )}
-    {(isExpanded || alwaysShowHeaderAction) &&
-      (renderHeaderAction || onExpand) && (
-        <div
-          {...(!alwaysShowHeaderAction && { "data-header-action": true })}
-          className={
-            alwaysShowHeaderAction
-              ? headerActionVisibleStyle
-              : headerActionStyle
-          }
-        >
-          {isExpanded && onExpand && (
-            <Button
-              size="xs"
-              variant="ghost"
-              iconName="expand"
-              data-expand-subview
-              aria-label={`Expand ${title}`}
-              tooltip="Fill panel"
-              onClick={onExpand}
-            />
-          )}
-          {renderHeaderAction?.()}
-        </div>
-      )}
+    {(onExpand ||
+      ((isExpanded || alwaysShowHeaderAction) && renderHeaderAction)) && (
+      <div className={headerActionsStyle}>
+        {onExpand && (
+          <Button
+            size="sm"
+            variant="ghost"
+            iconName="expand"
+            data-expand-subview
+            aria-label={`Expand ${title}`}
+            tooltip="Fill panel"
+            onClick={onExpand}
+          />
+        )}
+        {(isExpanded || alwaysShowHeaderAction) && renderHeaderAction && (
+          <div
+            {...(!alwaysShowHeaderAction && { "data-header-action": true })}
+            className={
+              alwaysShowHeaderAction
+                ? headerActionVisibleStyle
+                : headerActionStyle
+            }
+          >
+            {renderHeaderAction()}
+          </div>
+        )}
+      </div>
+    )}
   </div>
 );
 
@@ -673,6 +706,12 @@ export const VerticalSubViewsContainer: React.FC<
                 inert={isHidden}
                 aria-hidden={isHidden || undefined}
                 data-expanded-subview={fillsContainer || undefined}
+                data-subview-full-width-code={
+                  subView.fullWidthCodeEditor ||
+                  (fillsContainer && !isRestoring) ||
+                  undefined
+                }
+                data-subview-animate={showAnimations || undefined}
               >
                 <SubViewHeader
                   id={subView.id}

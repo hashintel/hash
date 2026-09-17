@@ -26,6 +26,8 @@ Toggle panel transition and UI interaction animations. Disable for a snappier fe
 
 Settings titles fade into focus with a small vertical movement as you change sections. Titles and the Experimental badge rise slightly from below while subtitles stay still. The animation is disabled when Animations is off or your system requests reduced motion.
 
+Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow this setting and your system's reduced-motion preference.
+
 ### Keep panels mounted
 
 When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
@@ -42,8 +44,8 @@ Show or hide the **overview minimap** in the top-right corner of the canvas. The
 
 ### Petricon
 
-In the **Viewport** section, turn on **Petricon** to use Petricon, Petrinaut's
-custom icons for entities, playback, zoom, and navigation. The pack includes the
+In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
+custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
 sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
 buttons, settings gears, editing actions, diagnostics, simulation and data views,
 and assistant and voice controls, including icons inside shared menus and forms.
@@ -133,13 +135,15 @@ Toggle freely -- this setting only affects rendering, not the underlying net.
 
 When enabled (the default), resting the pointer on a node highlights its [neighbourhood](drawing-a-net.md#neighbourhood-highlight): what feeds it, what it feeds, and the arcs between.
 
+Dragging a node starts the highlight immediately, without waiting for the pointer to stop, and keeps it active until you drop the node.
+
 Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
 
-### Automatic arc connections (experimental)
+### Automatic arc connections
 
 Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
 
-This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
+This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the setting off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
 
 ### Arcs rendering
 
