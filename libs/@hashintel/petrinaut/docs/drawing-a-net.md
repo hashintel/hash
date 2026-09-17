@@ -19,6 +19,7 @@ viewport controls. Where even that leaves too little room it shrinks to the
 cursor, the panel toggle, the diagnostics status and Play; point at it, or tab
 into it, and the rest comes back for as long as you stay on it.
 When resizing makes room again, the hidden controls return automatically.
+While hovered, the toolbar appears above the surrounding panels so its expanded controls stay accessible.
 Opening or closing the bottom panel keeps the toolbar's horizontal position stable, including while its controls are revealed on hover.
 The toolbar blurs the canvas behind it. Chromium browsers also show a refractive glass effect; Firefox and Safari use the blur alone.
 

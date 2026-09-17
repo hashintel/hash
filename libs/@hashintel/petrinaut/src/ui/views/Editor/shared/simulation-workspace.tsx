@@ -78,6 +78,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
           minWidth: "[0]",
           minHeight: "[0]",
           overflow: "hidden",
+          "&:has([data-bottom-bar]:hover)": { overflow: "visible" },
         })}
       >
         <div
@@ -98,6 +99,9 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
             minWidth: "[0]",
             minHeight: "[0]",
             overflow: "hidden",
+            "&:has(> div > [data-bottom-bar]:hover)": {
+              overflow: "visible",
+            },
             ":has(> [data-simulation-panel-slot] > [data-simulation-panel]:not([hidden]):not([data-closing=true])) > &":
               {
                 marginRight: "[var(--simulation-panel-width)]",

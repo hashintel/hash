@@ -24,3 +24,5 @@ Animate simulation panels only when opening and closing, keep scenario selection
 Let the fullscreen simulation breadcrumb return to the list beside the selected resource, with a smooth hover highlight.
 
 Keep parameter constraint editors inline without visible scrollbars.
+
+Keep the bottom toolbar above surrounding panels while hovered.

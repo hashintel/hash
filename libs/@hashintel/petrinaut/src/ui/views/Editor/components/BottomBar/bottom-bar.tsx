@@ -60,6 +60,9 @@ const bottomBarLaneStyle = css({
   justifyContent: "center",
   pointerEvents: "none",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
+  "&:has(> [data-bottom-bar]:hover)": {
+    zIndex: "[calc(var(--z-index-sticky) + 3)]",
+  },
 });
 
 const bottomBarStyle = css({
