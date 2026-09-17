@@ -46,7 +46,7 @@ use opentelemetry::{
     metrics::{Counter, Meter},
 };
 use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::ReportExt as _};
-use serde::Serialize;
+use serde_core::Serialize;
 use type_system::principal::actor::ActorId;
 
 use self::{

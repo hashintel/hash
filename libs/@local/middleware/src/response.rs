@@ -8,7 +8,7 @@ use axum::{
 };
 use http::{HeaderValue, StatusCode, header::CONTENT_TYPE};
 use problematic::{ProblemDetails, ProblemType};
-use serde::Serialize;
+use serde_core::Serialize;
 
 pub(crate) fn status_problem(status: StatusCode) -> ProblemDetails<'static> {
     ProblemDetails::from(ProblemType {
