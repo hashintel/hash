@@ -36,3 +36,5 @@ Make place State subviews read-only even without a saved scenario; configure ini
 Animate code editors to a borderless, square-cornered view flush with the panel edges when expanded.
 
 Lighten fullscreen subview parent breadcrumbs, balance chevron spacing, and add a smooth hover highlight.
+
+Align saved code-scenario section headers with the top of the panel while scrolling.

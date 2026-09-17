@@ -20,6 +20,8 @@ Panels open and close with a short slide and fade, while the main view adjusts a
 
 Both size controls and **Close panel** sit together on the header's right edge. Headers without a subtitle match the list header's height. Escape closes the panel while focus is inside it, unless an editor or menu handles Escape first. Closing an experiment's results leaves the experiment running. Save a scenario's edits before closing it or selecting another scenario to keep them.
 
+When scrolling a scenario form, section headers pin directly below the panel header. The initial spacing above the form scrolls away with its content.
+
 ## Alongside the AI assistant
 
 A docked AI assistant takes space beside the main view and the simulation panel. Opening, closing, or resizing the assistant adjusts the space available to both. Fullscreen fills the main view beside the assistant. A floating assistant sits above the workspace.
