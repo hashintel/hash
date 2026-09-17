@@ -57,7 +57,7 @@ describe("experimental icon preference", () => {
   it("switches immediately, persists across mounts, and restores the defaults", () => {
     localStorage.setItem(
       "petrinaut:user-settings",
-      JSON.stringify({ showMinimap: false }),
+      JSON.stringify({ showMinimap: false, enableExperimentalIconPack: false }),
     );
     const { unmount } = render(
       <UserSettingsProvider>

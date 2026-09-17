@@ -116,9 +116,9 @@ Petri nets are bipartite: you cannot connect a place to another place or a trans
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
-### Automatic arc connections (experimental)
+### Automatic arc connections
 
-Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections-experimental) to try a different way to connect nodes:
+Enable **Automatic arc connections** in [Viewport Settings](visual-settings.md#automatic-arc-connections) to connect nodes directly through their outlines:
 
 1. Hover over a place or transition to reveal its outgoing handle.
 2. Drag the handle onto the target node. A blue outline shows a valid target.

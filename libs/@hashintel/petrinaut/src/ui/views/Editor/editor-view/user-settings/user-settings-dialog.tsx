@@ -497,14 +497,12 @@ export const UserSettingsDialog = ({
                         />
                         <SettingToggle
                           label="Petricon"
-                          experimental
                           description="Use Petrinaut's custom icon pack across the editor."
                           value={settings.enableExperimentalIconPack}
                           onChange={settings.setEnableExperimentalIconPack}
                         />
                         <SettingToggle
                           label="Automatic arc connections"
-                          experimental
                           description="Connect node outlines and choose attachment directions automatically."
                           value={settings.enableAutomaticArcConnections}
                           onChange={settings.setEnableAutomaticArcConnections}

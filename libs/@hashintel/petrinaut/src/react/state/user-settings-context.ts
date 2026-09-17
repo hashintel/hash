@@ -117,7 +117,7 @@ export const defaultUserSettings: UserSettings = {
   showAnimations: true,
   keepPanelsMounted: true,
   compactNodes: false,
-  enableExperimentalIconPack: false,
+  enableExperimentalIconPack: true,
   enableAutomaticArcConnections: false,
   arcRendering: "custom",
   cursorMode: "pan",

@@ -44,8 +44,8 @@ Show or hide the **overview minimap** in the top-right corner of the canvas. The
 
 ### Petricon
 
-In the **Viewport** section, turn on **Petricon** to use Petricon, Petrinaut's
-custom icons for entities, playback, zoom, and navigation. The pack includes the
+In the **Viewport** section, **Petricon** is on by default and provides Petrinaut's
+custom icons for entities, playback, zoom, and navigation. Saved preferences are preserved. The pack includes the
 sidebar toggle, main menu, pan hand and compact selection arrow, add-place and add-transition
 buttons, settings gears, editing actions, diagnostics, simulation and data views,
 and assistant and voice controls, including icons inside shared menus and forms.
@@ -139,11 +139,11 @@ Dragging a node starts the highlight immediately, without waiting for the pointe
 
 Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
 
-### Automatic arc connections (experimental)
+### Automatic arc connections
 
 Off by default. Hides the fixed handles on places and transitions. Hover over a node to reveal one outgoing handle, then drag it onto a place or transition to create an arc. Arcs attach to the node outlines and adjust their direction as you move nodes. Opposite directions use separate curves.
 
-This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the experiment off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
+This setting uses automatic curves and temporarily hides the **Arc rendering** selector. Turning it off restores your previous style. Existing subnet connections stay visible; turn the setting off to create connections through subnet ports. See [Connecting with arcs](drawing-a-net.md#connecting-with-arcs).
 
 ### Arcs rendering
 
