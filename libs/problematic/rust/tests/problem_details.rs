@@ -64,6 +64,47 @@ fn details_default_type() {
 }
 
 #[test]
+fn details_status_boundaries() {
+    let mut details = ProblemDetails::from(ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Bad Request"),
+        status: StatusCode::BAD_REQUEST,
+    });
+
+    for status in [100, 599] {
+        details.status = status;
+
+        assert_eq!(
+            serde_json::to_value(&details).expect("the boundary status should serialize")["status"],
+            status,
+            "the serialized status should be preserved"
+        );
+    }
+}
+
+#[test]
+fn details_invalid_status() {
+    let mut details = ProblemDetails::from(ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Bad Request"),
+        status: StatusCode::BAD_REQUEST,
+    });
+
+    for status in [0, 99, 600, 999, 1000, u16::MAX] {
+        details.status = status;
+
+        let error = serde_json::to_value(&details)
+            .expect_err("the out-of-range status should fail to serialize");
+
+        assert_eq!(
+            error.to_string(),
+            format!("problem status code {status} is outside 100..=599"),
+            "the error should identify the invalid status and allowed range"
+        );
+    }
+}
+
+#[test]
 fn details_invalid_type() {
     for (type_uri, expected) in [
         (json!(null), "invalid type: null, expected a string"),
