@@ -20,6 +20,7 @@ import {
 } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
+import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
 import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
@@ -302,7 +303,38 @@ const createStoryVoiceSessionStore = (
         speakerVolume: Math.min(1, Math.max(0, speakerVolume)),
       }),
   };
+  const updateAudioSettings = (
+    update: (settings: VoiceAudioSettingsState) => VoiceAudioSettingsState,
+  ) => {
+    const audioSettings = store.getSnapshot().state?.audioSettings;
+    if (audioSettings) {
+      updateVoiceSessionState(store, {
+        audioSettings: update(audioSettings),
+      });
+    }
+  };
+  const audioSettingsActions = state.audioSettings
+    ? {
+        refreshDevices: () => {},
+        requestSpeaker: () => {},
+        setMicrophoneDevice: (microphoneId: string) =>
+          updateAudioSettings((settings) => ({
+            ...settings,
+            devices: { ...settings.devices, microphoneId },
+          })),
+        setSpeakerDevice: (speakerId: string) =>
+          updateAudioSettings((settings) => ({
+            ...settings,
+            devices: { ...settings.devices, speakerId },
+          })),
+        setSpeed: (speed: number) =>
+          updateAudioSettings((settings) => ({ ...settings, speed })),
+        setVoice: (voice: string) =>
+          updateAudioSettings((settings) => ({ ...settings, voice })),
+      }
+    : undefined;
   const liveActions: VoiceSessionActions = {
+    audioSettings: audioSettingsActions,
     end: () => {},
     pause: () => {},
     setMicrophoneMuted: (microphoneMuted) =>
@@ -558,7 +590,7 @@ export const LiveSessionAudioOptions: Story = {
     await expect(within(speakerMute).queryByText("Mute speaker")).toBeNull();
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
-    ).toHaveAttribute("aria-valuenow", "0.65");
+    ).toHaveAttribute("aria-valuenow", "65");
     await expect(canvas.getByText("65%")).toBeInTheDocument();
     await expect(canvas.queryByText("Audio options")).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Close" })).toBeNull();
@@ -612,7 +644,7 @@ export const RealtimeSessionAudioOptions: Story = {
     ).toBeInTheDocument();
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
-    ).toHaveAttribute("aria-valuenow", "0.4");
+    ).toHaveAttribute("aria-valuenow", "40");
     await expect(canvas.getByText("40%")).toBeInTheDocument();
     await expect(
       canvas.getByRole("button", { name: "Repeat question" }),
@@ -623,6 +655,113 @@ export const RealtimeSessionAudioOptions: Story = {
     await expect(
       canvas.getByRole("button", { name: "Interruption by speaking" }),
     ).toHaveAttribute("aria-pressed", "true");
+  },
+};
+
+const realisticAudioSettings = (
+  overrides: Partial<VoiceAudioSettingsState> = {},
+): VoiceAudioSettingsState => ({
+  activeVoice: "alloy",
+  voice: "verse",
+  voices: [
+    { value: "alloy", text: "Alloy" },
+    { value: "verse", text: "Verse" },
+    { value: "coral", text: "Coral" },
+  ],
+  speed: 1.25,
+  devices: {
+    microphones: [
+      { value: "studio-mic", text: "Studio USB microphone" },
+      { value: "laptop-mic", text: "Built-in microphone" },
+    ],
+    speakers: [
+      { value: "headphones", text: "USB headphones" },
+      { value: "display", text: "Studio display" },
+    ],
+    microphoneId: "studio-mic",
+    speakerId: "headphones",
+    canSelectSpeaker: true,
+    canRequestSpeaker: true,
+    busy: false,
+    message: null,
+  },
+  ...overrides,
+});
+
+export const ExtendedAudioSettings: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings(),
+        phase: "speaking",
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    await userEvent.click(
+      await canvas.findByRole("button", { name: /^Voice & speed/ }),
+    );
+    await expect(
+      canvas.getByText("Applies next session. Saved in this browser."),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaking speed" }),
+    ).toBeInTheDocument();
+  },
+};
+
+export const AudioSettingsUnavailableDevices: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({
+          speed: undefined,
+          devices: {
+            microphones: [],
+            speakers: [],
+            microphoneId: "",
+            speakerId: "",
+            canSelectSpeaker: false,
+            canRequestSpeaker: false,
+            busy: false,
+            message: "Microphone permission is needed to list audio devices.",
+          },
+        }),
+        phase: "connected",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    await userEvent.click(
+      await canvas.findByRole("button", { name: /^Audio devices/ }),
+    );
+    await expect(
+      canvas.getByText(
+        "Microphone permission is needed to list audio devices.",
+      ),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaker" }),
+    ).toBeDisabled();
   },
 };
 

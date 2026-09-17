@@ -1,3 +1,4 @@
+import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import {
   createVoiceRequestId,
   VoiceError,
@@ -12,6 +13,7 @@ import {
 } from "../../../voice-diagnostics";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface OpenAIRealtimeTranscriptKey {
   readonly connectionEpoch: number;
@@ -84,6 +86,7 @@ export type OpenAIRealtimeSessionEvent =
     };
 
 interface RemoteAudio {
+  setSinkId?: (deviceId: string) => Promise<void>;
   autoplay: boolean;
   muted: boolean;
   srcObject: HTMLMediaElement["srcObject"];
@@ -93,6 +96,7 @@ interface RemoteAudio {
 }
 
 interface OpenAIRealtimeSessionDependencies {
+  readonly audioSettings?: VoiceAudioSettings;
   readonly cancelAnimationFrame: (handle: number) => void;
   readonly connectionTimeoutMs: number;
   readonly createAudioContext: () => AudioContext;
@@ -259,6 +263,8 @@ export class OpenAIRealtimeSession {
   #remoteAudio: RemoteAudio | null = null;
   #speakerMuted = false;
   #speakerVolume = 1;
+  #voice = "marin";
+  #speed = 1;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
@@ -278,6 +284,8 @@ export class OpenAIRealtimeSession {
 
   public async connect(): Promise<number> {
     this.#releaseResources();
+    this.#voice = this.#dependencies.audioSettings?.startSession() ?? "marin";
+    this.#speed = 1;
     const requestId =
       this.#dependencies.createRequestId?.() ?? createVoiceRequestId();
     const startedAt = this.#now();
@@ -395,6 +403,27 @@ export class OpenAIRealtimeSession {
 
       this.#connected = true;
       this.#connectedAt = this.#now();
+      this.#dependencies.audioSettings?.attach({
+        stream: mediaStream,
+        audio: this.#remoteAudio,
+        senders: peerConnection
+          .getSenders()
+          .filter((sender) => sender.track?.kind === "audio"),
+        replaceMicrophone: (stream) => {
+          this.#mediaStream = stream;
+          this.#microphoneTrack = stream.getAudioTracks()[0] ?? null;
+          this.#syncMicrophoneTrack();
+          this.#releaseMeterResources();
+          this.#initializeOptionalMeter();
+          if (this.#audioContext) {
+            try {
+              this.#initializeMeter(this.#audioContext, stream);
+            } catch {
+              this.#releaseMeterResources();
+            }
+          }
+        },
+      });
       this.#reportDiagnostic("connection", requestId, startedAt);
       return connectionEpoch;
     } catch (error) {
@@ -695,6 +724,14 @@ export class OpenAIRealtimeSession {
     }
     this.#syncMicrophoneTrack();
     try {
+      const speed = this.#dependencies.audioSettings?.getSnapshot().speed ?? 1;
+      if (speed !== this.#speed) {
+        this.#send({
+          type: "session.update",
+          session: { type: "realtime", audio: { output: { speed } } },
+        });
+        this.#speed = speed;
+      }
       this.#send({
         event_id: eventId,
         response: request.response,
@@ -1386,6 +1423,7 @@ export class OpenAIRealtimeSession {
         body: offerSdp,
         headers: {
           "content-type": "application/sdp",
+          [voicePreferenceHeader]: this.#voice,
           [VOICE_REQUEST_ID_HEADER]: requestId,
         },
         method: "POST",
@@ -1564,6 +1602,7 @@ export class OpenAIRealtimeSession {
   }
 
   #releaseResources(): void {
+    this.#dependencies.audioSettings?.detach();
     for (const timing of this.#transcriptionTimings.values()) {
       this.#reportDiagnostic(
         "transcription",

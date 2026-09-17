@@ -159,6 +159,60 @@ describe("OpenAI Realtime call handler", () => {
     );
   });
 
+  test.each(["quartz", "not-a-voice"])(
+    "rejects the non-Realtime voice %s before contacting OpenAI",
+    async (voice) => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      const handler = createOpenAIRealtimeCallHandler({
+        environment: enabledEnvironment,
+        fetch,
+      });
+
+      const response = await handler(
+        createRequest(undefined, {
+          headers: {
+            "content-type": "application/sdp",
+            origin: "https://petrinaut.test",
+            "x-petrinaut-voice": voice,
+          },
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  test("forwards a selected Realtime voice", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response("v=0\r\no=OpenAI answer", {
+          headers: { "content-type": "application/sdp" },
+        }),
+    );
+    const handler = createOpenAIRealtimeCallHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+
+    const response = await handler(
+      createRequest(undefined, {
+        headers: {
+          "content-type": "application/sdp",
+          origin: "https://petrinaut.test",
+          "x-petrinaut-voice": "cedar",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const form = fetch.mock.calls[0]?.[1]?.body as FormData;
+    const session = JSON.parse(form.get("session") as string) as {
+      audio: { output: { voice: string } };
+    };
+    expect(session.audio.output.voice).toBe("cedar");
+  });
+
   test("replaces an untrusted request reference before diagnostics", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () =>

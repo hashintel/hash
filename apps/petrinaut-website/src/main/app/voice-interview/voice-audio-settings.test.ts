@@ -1,0 +1,301 @@
+import { expect, test, vi } from "vitest";
+
+import { VoiceAudioSettings } from "./voice-audio-settings";
+
+const capture = () => {
+  const track = Object.assign(new EventTarget(), {
+    enabled: true,
+    readyState: "live",
+    stop: vi.fn(() => {
+      track.readyState = "ended";
+    }),
+  });
+  const stream = {
+    getAudioTracks: () => [track],
+    getTracks: () => [track],
+  } as unknown as MediaStream;
+  return { stream, track };
+};
+const device = (kind: MediaDeviceKind, deviceId: string): MediaDeviceInfo => ({
+  kind,
+  deviceId,
+  groupId: "",
+  label: deviceId,
+  toJSON: () => ({}),
+});
+const setup = () => {
+  const initial = capture();
+  const replacement = capture();
+  const devices = Object.assign(new EventTarget(), {
+    getUserMedia: vi.fn(async () => replacement.stream),
+    enumerateDevices: vi.fn(async () => [
+      device("audioinput", "usb-mic"),
+      device("audiooutput", "headphones"),
+    ]),
+    selectAudioOutput: vi.fn(async () => device("audiooutput", "headphones")),
+  });
+  const audio = {
+    setSinkId: vi.fn(async (_deviceId: string) => {}),
+    muted: true,
+    volume: 0.35,
+  };
+  const senders = [
+    { replaceTrack: vi.fn(async (_track: MediaStreamTrack | null) => {}) },
+    { replaceTrack: vi.fn(async (_track: MediaStreamTrack | null) => {}) },
+  ] as const;
+  const replaceMicrophone = vi.fn((stream: MediaStream) => {
+    for (const track of stream.getAudioTracks()) track.enabled = false;
+  });
+  const settings = new VoiceAudioSettings("live", devices);
+  const connection = {
+    stream: initial.stream,
+    audio,
+    senders,
+    replaceMicrophone,
+  };
+  const detach = settings.attach(connection);
+  return {
+    initial,
+    replacement,
+    devices,
+    audio,
+    senders,
+    replaceMicrophone,
+    settings,
+    connection,
+    detach,
+  };
+};
+
+test("persists only valid provider voices and applies them at the next session", () => {
+  const values = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+  };
+  const settings = new VoiceAudioSettings("realtime", undefined, storage);
+  expect(settings.startSession()).toBe("marin");
+  settings.actions.setVoice("cedar");
+  settings.actions.setVoice("quartz");
+  expect(settings.getSnapshot()).toMatchObject({
+    voice: "cedar",
+    activeVoice: "marin",
+  });
+  expect(
+    new VoiceAudioSettings("realtime", undefined, storage).startSession(),
+  ).toBe("cedar");
+  expect(
+    new VoiceAudioSettings("live", undefined, storage).startSession(),
+  ).toBe("marin");
+  expect(settings.startSession()).toBe("cedar");
+  settings.actions.setSpeed?.(1.25);
+  settings.actions.setSpeed?.(2);
+  expect(settings.getSnapshot().speed).toBe(1.25);
+  settings.startSession();
+  expect(settings.getSnapshot().speed).toBe(1);
+  expect(
+    new VoiceAudioSettings("live", undefined, storage).actions.setSpeed,
+  ).toBeUndefined();
+});
+
+test("storage failure retains the selection in memory with an explanation", () => {
+  const settings = new VoiceAudioSettings("live", undefined, {
+    getItem: () => "not-a-voice",
+    setItem: () => {
+      throw new Error("blocked");
+    },
+  });
+  expect(settings.getSnapshot().voice).toBe("marin");
+  settings.actions.setVoice("quartz");
+  expect(settings.getSnapshot().voice).toBe("quartz");
+  expect(settings.getSnapshot().voiceSaveError).toContain("could not be saved");
+});
+
+test("replaces both Live senders, reapplies mute, and leaves output untouched", async () => {
+  const harness = setup();
+  await harness.settings.setMicrophone("usb-mic");
+  expect(harness.devices.getUserMedia).toHaveBeenCalledWith({
+    audio: {
+      autoGainControl: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+      deviceId: { exact: "usb-mic" },
+    },
+  });
+  harness.senders.forEach((sender) =>
+    expect(sender.replaceTrack).toHaveBeenCalledWith(harness.replacement.track),
+  );
+  expect(harness.replaceMicrophone).toHaveBeenCalledWith(
+    harness.replacement.stream,
+  );
+  expect(harness.replacement.track.enabled).toBe(false);
+  expect(harness.initial.track.stop).toHaveBeenCalledOnce();
+  expect(harness.audio).toMatchObject({ muted: true, volume: 0.35 });
+  harness.detach();
+});
+
+test("rolls both senders back after a partial failure and stops the replacement", async () => {
+  const harness = setup();
+  harness.senders[1].replaceTrack.mockRejectedValueOnce(new Error("closed"));
+  await harness.settings.setMicrophone("usb-mic");
+  harness.senders.forEach((sender) =>
+    expect(sender.replaceTrack).toHaveBeenLastCalledWith(harness.initial.track),
+  );
+  expect(harness.replaceMicrophone).not.toHaveBeenCalled();
+  expect(harness.initial.track.stop).not.toHaveBeenCalled();
+  expect(harness.replacement.track.stop).toHaveBeenCalledOnce();
+  expect(harness.settings.getSnapshot().devices.microphoneId).toBe("");
+  expect(harness.settings.getSnapshot().devices.message).toContain(
+    "Could not switch microphone",
+  );
+  harness.detach();
+});
+
+test("stops late capture after detach without changing the next connection", async () => {
+  const harness = setup();
+  const pending = Promise.withResolvers<MediaStream>();
+  harness.devices.getUserMedia.mockReturnValueOnce(pending.promise);
+  const switching = harness.settings.setMicrophone("usb-mic");
+  harness.detach();
+  const next = capture();
+  const detachNext = harness.settings.attach({
+    ...harness.connection,
+    stream: next.stream,
+  });
+  harness.detach(); // An old session's cleanup must not detach its successor.
+  pending.resolve(harness.replacement.stream);
+  await switching;
+  expect(harness.replacement.track.stop).toHaveBeenCalledOnce();
+  expect(harness.replaceMicrophone).not.toHaveBeenCalled();
+  await harness.settings.setSpeaker("headphones");
+  expect(harness.audio.setSinkId).toHaveBeenCalledWith("headphones");
+  detachNext();
+});
+
+test("recovers both unplugged devices to default and does not switch back on reconnect", async () => {
+  const harness = setup();
+  await harness.settings.setMicrophone("usb-mic");
+  await harness.settings.setSpeaker("headphones");
+  const fallback = capture();
+  harness.devices.getUserMedia.mockResolvedValue(fallback.stream);
+  harness.devices.enumerateDevices.mockResolvedValue([
+    device("audioinput", "built-in"),
+  ]);
+  harness.devices.dispatchEvent(new Event("devicechange"));
+  await vi.waitFor(() =>
+    expect(harness.settings.getSnapshot().devices).toMatchObject({
+      microphoneId: "",
+      speakerId: "",
+      busy: false,
+    }),
+  );
+  expect(harness.audio.setSinkId).toHaveBeenLastCalledWith("");
+  expect(fallback.track.enabled).toBe(false);
+  expect(harness.audio).toMatchObject({ muted: true, volume: 0.35 });
+  harness.devices.enumerateDevices.mockResolvedValue([
+    device("audioinput", "usb-mic"),
+    device("audiooutput", "headphones"),
+  ]);
+  await harness.settings.refresh(true);
+  expect(harness.devices.getUserMedia).toHaveBeenCalledTimes(2);
+  expect(harness.settings.getSnapshot().devices.speakerId).toBe("");
+  harness.detach();
+});
+
+test("queues device recovery while an output switch is pending", async () => {
+  const harness = setup();
+  const pending = Promise.withResolvers<void>();
+  harness.audio.setSinkId.mockReturnValueOnce(pending.promise);
+  const switching = harness.settings.setSpeaker("headphones");
+  harness.initial.track.readyState = "ended";
+  harness.devices.dispatchEvent(new Event("devicechange"));
+  pending.resolve();
+  await switching;
+  await vi.waitFor(() =>
+    expect(harness.replaceMicrophone).toHaveBeenCalledOnce(),
+  );
+  expect(harness.devices.getUserMedia).toHaveBeenCalledWith({
+    audio: {
+      autoGainControl: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+  harness.detach();
+});
+
+test("reports permission failure without replacing capture or output", async () => {
+  const harness = setup();
+  harness.devices.getUserMedia.mockRejectedValueOnce(
+    new DOMException("denied", "NotAllowedError"),
+  );
+  await harness.settings.setMicrophone("usb-mic");
+  expect(harness.settings.getSnapshot().devices.message).toContain(
+    "Microphone access denied",
+  );
+  expect(harness.replaceMicrophone).not.toHaveBeenCalled();
+  harness.audio.setSinkId.mockRejectedValueOnce(
+    new DOMException("denied", "NotAllowedError"),
+  );
+  await harness.settings.setSpeaker("headphones");
+  expect(harness.settings.getSnapshot().devices.message).toContain(
+    "Speaker access denied",
+  );
+  expect(harness.settings.getSnapshot().devices.speakerId).toBe("");
+  harness.detach();
+});
+
+test("shows missing devices and allows refreshing a dead default microphone", async () => {
+  const harness = setup();
+  await harness.settings.refresh();
+  harness.devices.enumerateDevices.mockResolvedValue([]);
+  harness.devices.getUserMedia.mockRejectedValueOnce(
+    new DOMException("missing", "NotFoundError"),
+  );
+  harness.initial.track.readyState = "ended";
+  await harness.settings.refresh(true);
+  expect(harness.settings.getSnapshot().devices.message).toContain(
+    "No microphone detected",
+  );
+  harness.devices.enumerateDevices.mockResolvedValue([
+    device("audioinput", "built-in"),
+  ]);
+  await harness.settings.refresh(true);
+  expect(harness.replaceMicrophone).toHaveBeenCalledOnce();
+  harness.detach();
+});
+
+test("requests speaker permission synchronously from the action", async () => {
+  const harness = setup();
+  harness.settings.actions.requestSpeaker();
+  expect(harness.devices.selectAudioOutput).toHaveBeenCalledOnce();
+  await vi.waitFor(() =>
+    expect(harness.audio.setSinkId).toHaveBeenCalledWith("headphones"),
+  );
+  harness.detach();
+});
+
+test("speaker permission completion does not unlock a pending microphone recovery", async () => {
+  const harness = setup();
+  await harness.settings.refresh();
+  const permission = Promise.withResolvers<MediaDeviceInfo>();
+  const captureResult = Promise.withResolvers<MediaStream>();
+  harness.devices.selectAudioOutput.mockReturnValueOnce(permission.promise);
+  harness.devices.getUserMedia.mockReturnValueOnce(captureResult.promise);
+  const request = harness.settings.requestSpeaker();
+  harness.initial.track.readyState = "ended";
+  harness.devices.dispatchEvent(new Event("devicechange"));
+  permission.resolve(device("audiooutput", "headphones"));
+  await request;
+  await vi.waitFor(() =>
+    expect(harness.devices.getUserMedia).toHaveBeenCalledOnce(),
+  );
+  expect(harness.settings.getSnapshot().devices.busy).toBe(true);
+  captureResult.resolve(harness.replacement.stream);
+  await vi.waitFor(() =>
+    expect(harness.settings.getSnapshot().devices.busy).toBe(false),
+  );
+  harness.detach();
+});

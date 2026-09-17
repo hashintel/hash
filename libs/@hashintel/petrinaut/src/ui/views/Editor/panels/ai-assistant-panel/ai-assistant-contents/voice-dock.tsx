@@ -3,6 +3,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
   useVoiceSessionActions,
+  useVoiceSessionAudioSettings,
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
   useVoiceSessionCanRetryPlayback,
@@ -26,6 +27,7 @@ import { MicrophoneIcon } from "./voice-dock/microphone-icon";
 import { EndIcon, StopIcon } from "./voice-dock/session-action-icons";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
+import type { VoiceAudioSettingsState } from "../../../../../../react/voice-session/types";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
 import type { ReactNode } from "react";
 
@@ -121,6 +123,7 @@ const visuallyHiddenStyle = css({
 });
 
 type VoiceDockSharedProps = {
+  audioSettings?: VoiceAudioSettingsState;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   canRetryPlayback?: boolean;
@@ -161,6 +164,7 @@ export type VoiceDockProps = VoiceDockSharedProps &
  */
 export const VoiceDock = ({
   actions,
+  audioSettings,
   assistantBusy,
   canReadFullResponse,
   canRepeatQuestion,
@@ -222,9 +226,11 @@ export const VoiceDock = ({
             actions.repeatQuestion ||
             actions.setInterruptionBySpeaking ||
             actions.setSpeakerMuted ||
-            actions.setSpeakerVolume) && (
+            actions.setSpeakerVolume ||
+            actions.audioSettings) && (
             <AudioPopover
               actions={actions}
+              settings={audioSettings}
               canReadFullResponse={canReadFullResponse}
               canRepeatQuestion={canRepeatQuestion}
               interruptionBySpeaking={interruptionBySpeaking}
@@ -366,6 +372,7 @@ export const LiveVoiceDock = ({
   onStop: () => void;
 }) => {
   const actions = useVoiceSessionActions();
+  const audioSettings = useVoiceSessionAudioSettings();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
   const canRetryPlayback = useVoiceSessionCanRetryPlayback();
@@ -384,6 +391,7 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      audioSettings={audioSettings}
       assistantBusy={assistantBusy}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}

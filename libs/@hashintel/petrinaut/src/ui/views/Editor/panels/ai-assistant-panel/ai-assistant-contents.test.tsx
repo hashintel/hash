@@ -197,7 +197,7 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
     screen
       .getByRole("slider", { name: "Speaker volume" })
       .getAttribute("aria-valuenow"),
-  ).toBe("1");
+  ).toBe("100");
   expect(screen.queryByRole("button", { name: "Repeat question" })).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Read full response" }),
@@ -469,6 +469,95 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
     );
   },
 );
+
+test("shows one extended audio settings section at a time and labels voice actions", async () => {
+  const refreshDevices = vi.fn();
+  render(
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices,
+          requestSpeaker: vi.fn(),
+          setMicrophoneDevice: vi.fn(),
+          setSpeakerDevice: vi.fn(),
+          setVoice: vi.fn(),
+        },
+        end: vi.fn(),
+        pause: noop,
+        setSpeakerVolume: vi.fn(),
+      }}
+      audioSettings={{
+        activeVoice: "alloy",
+        voice: "verse",
+        voices: [
+          { value: "alloy", text: "Alloy" },
+          { value: "verse", text: "Verse" },
+        ],
+        devices: {
+          microphones: [],
+          speakers: [],
+          microphoneId: "",
+          speakerId: "",
+          canSelectSpeaker: false,
+          canRequestSpeaker: false,
+          busy: false,
+          message: "Allow microphone access to list devices.",
+        },
+      }}
+      assistantBusy={false}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span />}
+      microphoneMuted={false}
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase="connected"
+      speakerMuted={false}
+      speakerVolume={0.65}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(
+    (
+      await screen.findByRole("slider", { name: "Speaker volume" })
+    ).getAttribute("aria-valuenow"),
+  ).toBe("65");
+  fireEvent.click(screen.getByRole("button", { name: /^Voice & speed/ }));
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(
+    screen.getByText("Applies next session. Saved in this browser."),
+  ).not.toBeNull();
+  expect(
+    screen.getByText(
+      "Speaking speed is not available with this voice provider.",
+    ),
+  ).not.toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: /^Audio devices/ }));
+  expect(screen.queryByRole("combobox", { name: "Voice" })).toBeNull();
+  expect(refreshDevices).toHaveBeenCalledOnce();
+  expect(screen.getByRole("combobox", { name: "Microphone" }).textContent).toBe(
+    "System default",
+  );
+  expect(screen.getByRole("combobox", { name: "Speaker" }).textContent).toBe(
+    "System default",
+  );
+  expect(
+    screen.getByRole<HTMLButtonElement>("combobox", { name: "Speaker" })
+      .disabled,
+  ).toBe(true);
+  expect(
+    screen.getByText("System default — change output in your system settings."),
+  ).not.toBeNull();
+  expect(
+    screen
+      .getByText("Allow microphone access to list devices.")
+      .getAttribute("role"),
+  ).toBe("status");
+});
 
 describe("AiAssistantContents", () => {
   test("switches to host content without unmounting chat or losing its draft and Stop control", () => {
@@ -1469,7 +1558,7 @@ describe("AiAssistantContents", () => {
     });
     expect(speakerMute.getAttribute("aria-pressed")).toBe("false");
     const volume = screen.getByRole("slider", { name: "Speaker volume" });
-    expect(volume.getAttribute("aria-valuenow")).toBe("1");
+    expect(volume.getAttribute("aria-valuenow")).toBe("100");
 
     volume.focus();
     fireEvent.keyDown(volume, { key: "ArrowLeft" });

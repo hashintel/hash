@@ -9,6 +9,35 @@ export type PetrinautAiVoiceSessionPhase =
   | "speaking"
   | "thinking";
 
+/** Host-provided audio preferences and browser device availability. */
+export type VoiceAudioSettingsState = {
+  voice: string;
+  activeVoice: string;
+  voices: readonly { value: string; text: string }[];
+  voiceSaveError?: string | null;
+  /** Omitted when the provider does not support numeric speed. */
+  speed?: number;
+  devices: {
+    microphones: readonly { value: string; text: string }[];
+    speakers: readonly { value: string; text: string }[];
+    microphoneId: string;
+    speakerId: string;
+    canSelectSpeaker: boolean;
+    canRequestSpeaker: boolean;
+    busy: boolean;
+    message: string | null;
+  };
+};
+
+export type VoiceAudioSettingsActions = {
+  setVoice: (voice: string) => void;
+  setSpeed?: (speed: number) => void;
+  refreshDevices: () => void;
+  setMicrophoneDevice: (deviceId: string) => void;
+  setSpeakerDevice: (deviceId: string) => void;
+  requestSpeaker: () => void;
+};
+
 /**
  * Live state of a host-owned Voice session.
  *
@@ -17,6 +46,7 @@ export type PetrinautAiVoiceSessionPhase =
  * effect: it changes at microphone-sampling rate.
  */
 export type PetrinautAiVoiceSessionState = {
+  audioSettings?: VoiceAudioSettingsState;
   /** Whether the current canonical assistant response is safe to replay. */
   canReadFullResponse?: boolean;
   /** Whether the final segment of the canonical response is safe to repeat. */

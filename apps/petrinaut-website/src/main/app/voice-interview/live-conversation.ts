@@ -1,4 +1,7 @@
+import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
+
+import type { VoiceAudioSettings } from "./voice-audio-settings";
 
 export interface LiveConversationState {
   readonly phase:
@@ -39,6 +42,7 @@ export const createLiveConversation = (
   onFinalizedInput: (input: FinalizedInput) => void,
   onDelegation: (delegationId: string) => void,
   onAppendResult: (result: LiveAppendResult) => void,
+  audioSettings?: VoiceAudioSettings,
 ) => {
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
@@ -68,6 +72,8 @@ export const createLiveConversation = (
   let microphoneMuted = false;
   let speakerMuted = false;
   let speakerVolume = 1;
+  let voice = "marin";
+  let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
   let playbackAttempt = 0;
@@ -103,6 +109,8 @@ export const createLiveConversation = (
   };
 
   const stopMedia = () => {
+    detachAudioSettings?.();
+    detachAudioSettings = undefined;
     pendingAppends.clear();
     openDelegations.clear();
     clearTimeout(activityTimer);
@@ -322,6 +330,18 @@ export const createLiveConversation = (
     // A peer may have disconnected before the last session-ready event.
     peers.forEach((_, connectionKind) => handleConnectionState(connectionKind));
     if (stopping) return;
+    if (audio && microphone)
+      detachAudioSettings = audioSettings?.attach({
+        stream: microphone,
+        audio,
+        senders: [...peers.values()].flatMap((peer) =>
+          peer.getSenders().filter((sender) => sender.track?.kind === "audio"),
+        ),
+        replaceMicrophone: (stream) => {
+          microphone = stream;
+          applyMicrophoneMuted();
+        },
+      });
     if (recoveryTimers.size === 0) onState(activeState("connected"));
     activityTimer = setTimeout(() => void sampleActivity(), 100);
     flushFinalizedInputs();
@@ -656,7 +676,10 @@ export const createLiveConversation = (
     connectionStages.set(kind, "waiting for session HTTP response");
     const response = await fetch(`/api/voice/${kind}-session`, {
       method: "POST",
-      headers: { "content-type": "application/sdp" },
+      headers: {
+        "content-type": "application/sdp",
+        ...(kind === "live" ? { [voicePreferenceHeader]: voice } : {}),
+      },
       body: sdp,
       signal: abort.signal,
     });
@@ -701,6 +724,7 @@ export const createLiveConversation = (
   const start = async (): Promise<void> => {
     if (started || stopping) return;
     started = true;
+    voice = audioSettings?.startSession() ?? "marin";
     logLiveDiagnostic("session.starting", { sessionId });
     onState(activeState("connecting"));
     connectionTimer = setTimeout(
@@ -728,15 +752,16 @@ export const createLiveConversation = (
       }
       microphone = stream;
       applyMicrophoneMuted();
-      stream.getTracks().forEach((track) =>
-        track.addEventListener(
-          "ended",
-          () => fail("Microphone disconnected."),
-          {
-            signal: abort.signal,
-          },
-        ),
-      );
+      if (!audioSettings)
+        stream.getTracks().forEach((track) =>
+          track.addEventListener(
+            "ended",
+            () => fail("Microphone disconnected."),
+            {
+              signal: abort.signal,
+            },
+          ),
+        );
       await Promise.all([
         createConnection("live", stream),
         createConnection("transcription", stream),

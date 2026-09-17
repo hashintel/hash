@@ -4,12 +4,15 @@ import { Button, Popover, Slider } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
+import { AudioSettings } from "./audio-popover/settings";
 import { SpeakerIcon } from "./speaker-icon";
 
 import type { VoiceSessionActions } from "../../../../../../../react/voice-session/store";
+import type { VoiceAudioSettingsState } from "../../../../../../../react/voice-session/types";
 
 const popoverStyle = css({
   width: "[236px]",
+  maxWidth: "[calc(100vw - 32px)]",
   backgroundColor: "neutral.s00",
 });
 
@@ -17,6 +20,8 @@ const popoverBodyStyle = css({
   margin: "[0 !important]",
   padding: "[8px !important]",
   boxShadow: "[none !important]",
+  maxHeight: "[min(520px, var(--available-height, 70vh))]",
+  overflowY: "auto",
 });
 
 const controlsStyle = css({
@@ -83,6 +88,7 @@ const advancedControlsStyle = cva({
 
 export const AudioPopover = ({
   actions,
+  settings,
   canReadFullResponse,
   canRepeatQuestion,
   interruptionBySpeaking,
@@ -91,6 +97,7 @@ export const AudioPopover = ({
   speakerVolume,
 }: {
   actions: VoiceSessionActions;
+  settings?: VoiceAudioSettingsState;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
   interruptionBySpeaking: boolean;
@@ -142,6 +149,22 @@ export const AudioPopover = ({
                 role="group"
               >
                 {hasSpeakerControls && (
+                  <span
+                    className={css({
+                      fontSize: "xs",
+                      color: "neutral.s90",
+                      padding: "[0 8px 4px]",
+                    })}
+                  >
+                    Speaker volume
+                    {speakerMuted
+                      ? " · Muted"
+                      : clampedSpeakerVolume === 0
+                        ? " · Silent"
+                        : ""}
+                  </span>
+                )}
+                {hasSpeakerControls && (
                   <div className={speakerControlsStyle}>
                     {actions.setSpeakerMuted && (
                       <Button
@@ -161,13 +184,13 @@ export const AudioPopover = ({
                         className={volumeStyle}
                         disabled={speakerControlsDisabled}
                         label={voiceSessionActionLabels.speakerVolume}
-                        max={1}
+                        max={100}
                         min={0}
                         onChange={(volume) =>
-                          actions.setSpeakerVolume?.(volume)
+                          actions.setSpeakerVolume?.(volume / 100)
                         }
-                        step={0.05}
-                        value={clampedSpeakerVolume}
+                        step={5}
+                        value={Math.round(clampedSpeakerVolume * 100)}
                         variant="plain"
                       />
                     )}
@@ -177,6 +200,13 @@ export const AudioPopover = ({
                       </span>
                     )}
                   </div>
+                )}
+                {settings && actions.audioSettings && (
+                  <AudioSettings
+                    actions={actions.audioSettings}
+                    settings={settings}
+                    disabled={speakerControlsDisabled}
+                  />
                 )}
                 {hasAdvancedControls && (
                   <div

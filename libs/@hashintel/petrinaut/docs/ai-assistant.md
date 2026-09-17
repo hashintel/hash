@@ -144,10 +144,31 @@ muted during playback, the dock therefore continues to say **Speaking** and
 Audio options shows the pressed speaker state. Speaker mute and volume reset
 for each new Voice session. Speaker controls are unavailable while Voice is
 connecting or interrupted by an error; they remain available while Realtime is
-paused. They are the only Audio options preferences that reset per Voice
-session: Realtime remembers **Interruption by speaking** in this browser. The
-dock does not promise device switching, voice or speed selection, helmet
-animation, or persistence of the speaker settings.
+paused. Changing volume does not unmute the speaker, and unmuting restores its
+retained volume. Realtime remembers **Interruption by speaking** in this browser.
+
+When the host provides extended audio settings, Audio options also contains
+collapsed **Voice & speed** and **Audio devices** sections. Only one section
+opens at a time; speaker controls stay visible above them.
+
+- **Voice** saves a preference in this browser for the selected provider and
+  applies it to the next Voice session, without restarting the current session.
+  If browser storage is blocked, the selection lasts only until the page closes.
+- **Speaking speed** changes the next response, not speech already playing.
+  Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not
+  offer numeric speed control.
+- **Microphone** and **Speaker** choose devices for the current session. They
+  start at **System default**. If a selected device disconnects, Voice attempts
+  to switch that input or output to the system default without changing mute or
+  volume. Reconnecting the old device does not automatically select it again.
+- Device selection depends on browser support and permission. If speaker
+  selection is unsupported, use your system's output settings. **Choose another
+  speaker…** requests permission where supported. After granting microphone
+  access or connecting a missing device, use **Refresh devices** to retry.
+  If recovery fails, check the message in Audio options or continue in text.
+
+Volume affects app output, not microphone gain. These settings do not add a
+separate transcription view.
 
 Realtime-based Brunch Voice additionally provides **Repeat question**, **Read
 full response**, and **Interruption by speaking** in Audio options. Live Voice

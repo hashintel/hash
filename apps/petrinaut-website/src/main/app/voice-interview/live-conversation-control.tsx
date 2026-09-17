@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import { selectCanonicalSpeech } from "./canonical-speech";
@@ -12,6 +13,7 @@ import {
   createLiveConversation,
   type LiveConversationState,
 } from "./live-conversation";
+import { VoiceAudioSettings } from "./voice-audio-settings";
 import {
   VoiceInterviewDisclosure,
   VoiceInterviewRetry,
@@ -63,6 +65,14 @@ export const LiveConversationControl = ({
   subscribeToResponseMessageCompleted,
   subscribeToStopRequested,
 }: LiveControlsContext) => {
+  const [audioSettingsStore] = useState(
+    () => new VoiceAudioSettings("live", navigator.mediaDevices),
+  );
+  const audioSettings = useSyncExternalStore(
+    audioSettingsStore.subscribe,
+    audioSettingsStore.getSnapshot,
+    audioSettingsStore.getSnapshot,
+  );
   const [consented, setConsented] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [microphoneMuted, setMicrophoneMutedState] = useState(false);
@@ -199,6 +209,7 @@ export const LiveConversationControl = ({
           `The ${label} ${outcome}. Check the conversation; no automatic retry or replay was made. Acceptance does not confirm playback.`,
         );
       },
+      audioSettingsStore,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -214,7 +225,7 @@ export const LiveConversationControl = ({
     setVoiceActive(true);
     void next.start();
     return true;
-  }, [connectionTimeoutMs, phase, setVoiceActive]);
+  }, [audioSettingsStore, connectionTimeoutMs, phase, setVoiceActive]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;
@@ -267,6 +278,7 @@ export const LiveConversationControl = ({
   useEffect(
     () =>
       registerVoiceModeSessionControls({
+        audioSettings: audioSettingsStore.actions,
         end,
         // Closing the panel ends Live. Reopening starts a new session after
         // the first disclosure has been acknowledged.
@@ -281,6 +293,7 @@ export const LiveConversationControl = ({
         setSpeakerVolume,
       }),
     [
+      audioSettingsStore,
       end,
       registerVoiceModeSessionControls,
       setMicrophoneMuted,
@@ -295,6 +308,7 @@ export const LiveConversationControl = ({
         isAiAssistantOpen &&
         (phase === "connecting" || phase === "connected" || phase === "error")
         ? {
+            audioSettings,
             phase:
               phase === "error"
                 ? "error"
@@ -323,6 +337,7 @@ export const LiveConversationControl = ({
         : null,
     );
   }, [
+    audioSettings,
     inputMode,
     isAiAssistantOpen,
     phase,
