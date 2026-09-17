@@ -215,9 +215,12 @@ where
 
         if self.synchronized == Some(id) {
             let root = self.root.clone();
+
+            // both the current-pointer read and directory lookup perform blocking filesystem
+            // I/O.
             let unchanged = tokio::task::spawn_blocking(move || {
-                // both the current-pointer read and directory lookup perform blocking filesystem
-                // I/O.
+                // pointer updates are atomic. Propagate corruption and I/O errors rather than
+                // attempting recovery from filesystem damage or external tampering.
                 if root.current()? != Some(id) {
                     return Ok::<_, DownloadError>(false);
                 }
