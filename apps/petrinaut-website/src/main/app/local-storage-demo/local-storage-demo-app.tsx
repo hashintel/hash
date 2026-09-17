@@ -325,7 +325,7 @@ const DemoCommands = ({
       id: "demo.assistant.switch",
       label: brunchSelected
         ? "Use the stock Petrinaut assistant"
-        : "Use Brunch (default assistant)",
+        : "Use Brunch",
       category: "Demo",
       keywords: ["assistant", "brunch", "stock", "ai"],
       run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
@@ -357,9 +357,9 @@ export const LocalStorageDemoApp = ({
   const routeIdentity = localStorageDemoRouteIdentity(search);
   const remoteRouteSelected =
     routeIdentity === "worked-model-bundle" && search.bundle !== undefined;
-  // Brunch is the default assistant; the stock assistant is the host-selected
-  // alternate. Every Brunch-specific branch below keys off this, never off the
-  // bare configuration, so selecting stock leaves no Brunch dependency behind.
+  // Stock is the default assistant; Brunch is the host-selected hidden alternate.
+  // Every Brunch-specific branch below keys off this, never off bare configuration,
+  // so selecting stock leaves no Brunch dependency behind.
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,

@@ -28,7 +28,7 @@ Brunch core owns universal, context-, domain-, editor- and formalism-independent
 
 The first composed product is `process-sdcpn`: operational processes represented as stochastic dynamic coloured Petri nets in Petrinaut. “Operational process” includes organizational, software and cyber-physical operations. It does not include everything that can be expressed as a Petri net.
 
-Brunch is intended to become Petrinaut's default operational-process assistant. Petrinaut's stock assistant remains an alternate selected by a host feature flag. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
+Petrinaut's stock assistant is the ordinary-document default. Brunch remains a configured, host-selected operational-process alternate available through the command palette; making it the default again requires a later owner decision. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
 For live route and assistant-selection behavior, see [mission ownership constraints](MISSION.md#authority-and-ownership). Future deployment policy and remote switching are the [host-choice fork](#host-choice-and-continuity).
 
@@ -216,7 +216,7 @@ This register records product consequences, not every engineering idea. A scope 
 
 ### Host choice and continuity
 
-Ordinary website documents select an assistant through the implemented host-local preference. Mid-conversation switching is not a history-splicing operation and requires an explicit continuity contract before broader admission.
+Ordinary website documents select an assistant through the implemented host-local preference. Stock is the unset launch fallback; Brunch-focused deployments and tests may request a Brunch fallback through `VITE_PETRINAUT_DEFAULT_ASSISTANT`, while either explicit stored choice remains respected without migration. Mid-conversation switching is not a history-splicing operation and requires an explicit continuity contract before broader admission.
 
 Switching inside a remote worked-model document is deferred. Re-enter only after accepting a stock-history continuity contract that determines whether stock history on remote documents is local-only, remote, or absent.
 

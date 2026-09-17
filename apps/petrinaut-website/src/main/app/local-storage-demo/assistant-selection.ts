@@ -4,9 +4,9 @@ import { usePersistedState } from "./use-persisted-state";
 /**
  * Which assistant the demo's AI panel talks to.
  *
- * Brunch is Petrinaut's default assistant; the stock assistant is the
- * alternate. The choice is the host's: it is a browser-local preference of
- * this website, not a Petrinaut setting and not a server rollout. It only has
+ * The stock assistant is Petrinaut's default; Brunch is the hidden alternate.
+ * The choice is the host's: it is a browser-local preference of this website,
+ * not a Petrinaut setting and not a server rollout. It only has
  * effect when a Brunch endpoint is configured — without one there is nothing
  * to select and the stock assistant is used regardless.
  */
@@ -14,12 +14,28 @@ export type AssistantSelection = "brunch" | "stock";
 
 export const assistantSelectionStorageKey = "petrinaut-website:assistant";
 
-export const defaultAssistantSelection: AssistantSelection = "brunch";
+export const resolveDefaultAssistantSelection = (
+  configured: string | undefined,
+): AssistantSelection => {
+  const selection = configured?.trim();
+  if (selection === undefined || selection === "") return "stock";
+  if (selection === "brunch" || selection === "stock") return selection;
+  throw new Error(
+    `VITE_PETRINAUT_DEFAULT_ASSISTANT must be "stock" or "brunch", received ${JSON.stringify(configured)}.`,
+  );
+};
 
-/** Anything but an explicit `"stock"` reads as the default. */
+export const defaultAssistantSelection = resolveDefaultAssistantSelection(
+  import.meta.env.VITE_PETRINAUT_DEFAULT_ASSISTANT,
+);
+
+/** Preserve an explicit choice; anything else reads as the configured default. */
 export const parseAssistantSelection = (
   stored: string | null | undefined,
-): AssistantSelection => (stored === "stock" ? "stock" : "brunch");
+): AssistantSelection =>
+  stored === "brunch" || stored === "stock"
+    ? stored
+    : defaultAssistantSelection;
 
 /**
  * The stock assistant's own endpoint. It never moves with the Brunch endpoint:

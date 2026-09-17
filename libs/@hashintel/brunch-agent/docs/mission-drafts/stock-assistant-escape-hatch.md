@@ -10,7 +10,7 @@ Like the [substrate-coupling assessment](../reference/architecture/substrate-cou
 
 ## Cold-start reads
 
-- [`assistant-selection.ts`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistant-selection.ts): the existing host-local preference. Stores `"brunch" | "stock"` (default `"brunch"`) under localStorage key `petrinaut-website:assistant`; exports `useAssistantSelection({ enabled })` and `isBrunchSelected(isBrunchConfigured, selection)`.
+- [`assistant-selection.ts`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/assistant-selection.ts): the existing host-local preference. Stores `"brunch" | "stock"` under localStorage key `petrinaut-website:assistant`; the unset `VITE_PETRINAUT_DEFAULT_ASSISTANT` fallback is `"stock"`, while Brunch-focused launches may request `"brunch"`. Explicit stored choices win. The module exports `useAssistantSelection({ enabled })` and `isBrunchSelected(isBrunchConfigured, selection)`.
 - [`local-storage-demo-app.tsx`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx): the palette command `demo.assistant.switch` in `DemoCommands`, hidden when Brunch is unconfigured or the remote worked-model route is selected; `useAssistantSelection({ enabled: !remoteRouteSelected })`; `brunchSelected` deriving every Brunch-versus-stock branch (transport, messages, Flue client, tools, Ledger tab, Voice, `canClearMessages`); the `createHandle(document)` / `setActiveHandle` effects that own the open net.
 - [`local-storage-demo-app.test.tsx`](../../../../../apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.test.tsx): existing selection tests (`-t "assistant selection|stored stock|restores the stored assistant"`, 7 passing on 2026-09-16).
 - [`api/chat.ts`](../../../../../apps/petrinaut-website/api/chat.ts): the stock backend, still deployed through the vite `apiModules` plugin and `vercel.json`; needs `OPENAI_API_KEY` on the website deployment.
@@ -22,7 +22,7 @@ Like the [substrate-coupling assessment](../reference/architecture/substrate-cou
 
 ## Assessment
 
-The switch already exists functionally; only its surface is missing. Nothing in the document-repository work entangled it.
+The switch already exists functionally; Stock is now the ordinary-document default and Brunch is the command-palette alternate. Only the requested Labs surface is missing. Nothing in the document-repository work entangled it.
 
 - `DocumentRepository` and `use-document-controller.ts` choose the local or remote repository purely by route and say nothing about assistants. Assistant selection is host-local state that the app derives before the document loads.
 - `brunchSelected === false` already yields a complete stock experience: `DefaultChatTransport` to `/api/chat`, per-net `useLocalStorageAiMessages`, `flueClientPromise === null`, no Brunch tools, no Ledger `additionalTab`, no Voice. Code path verified; the production `OPENAI_API_KEY` presence was not verified.
@@ -33,7 +33,7 @@ The switch already exists functionally; only its surface is missing. Nothing in 
 ## Accepted recommendations (Lu, 2026-09-16)
 
 1. **Host-supplied toggle slot rendered in Petrinaut's Labs tab.** Petrinaut gains an optional prop, roughly `labsSettings?: { title: string; toggles: readonly { id; label; description; value; onChange; disabled?; experimental? }[] }`, rendered as one `SettingsGroup`. State stays host-owned; Petrinaut never learns the words "stock" or "Brunch".
-2. **Keep the palette command.** The Labs toggle binds to the same `useAssistantSelection` state, `disabled` with an explanatory description on the remote route.
+2. **Keep the palette command and Stock default.** The Labs toggle binds to the same `useAssistantSelection` state, `disabled` with an explanatory description on the remote route. An explicit stored Brunch choice remains respected; no migration rewrites existing users.
 3. **No storage migration.** Moving the preference into `UserSettings` was rejected: the host mounts `UserSettingsProvider` and `CommandRegistryProvider` around `<Petrinaut>` only after the document loads while `brunchSelected` is derived earlier, and it would force a `petrinaut:user-settings` key migration.
 4. **Nothing Brunch-related shows while Stock is selected.** The same host flag suppresses the "Build with Brunch" picker and any other Brunch affordance Petrinaut renders, replacing the unreachable `brunchDemoMode` gate. Prefer a prop name that is not Brunch-specific.
 

@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 
 import type {
@@ -100,6 +101,7 @@ afterEach(() => {
 
 test("renders the microphone action when Brunch and server Voice are available", async () => {
   stubStorage();
+  localStorage.setItem(assistantSelectionStorageKey, "brunch");
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   vi.stubGlobal(
     "ResizeObserver",

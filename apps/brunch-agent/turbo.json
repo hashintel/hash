@@ -31,7 +31,8 @@
         "BRUNCH_CHAT_ORIGIN",
         "BRUNCH_CHAT_PORT",
         "BRUNCH_PANEL_PORT",
-        "PETRINAUT_WEBSITE_ROOT"
+        "PETRINAUT_WEBSITE_ROOT",
+        "VITE_PETRINAUT_DEFAULT_ASSISTANT"
       ]
     },
     "start": {
