@@ -21,7 +21,6 @@ const shortcutStyle = cva({
         height: "[1lh]",
         "[data-selected] & kbd": {
           backgroundColor: "[transparent]",
-          borderColor: "blue.a50",
         },
         marginInlineEnd:
           "[calc(var(--selectable-list-item-padding-y) + (1lh - 18px) / 2 - var(--selectable-list-item-padding-x))]",
@@ -49,9 +48,9 @@ const keyStyle = cva({
   variants: {
     tone: {
       default: {
-        color: "neutral.s110",
+        color: "black/60",
         backgroundColor: "neutral.s10",
-        borderColor: "neutral.s50",
+        borderColor: "black/15",
       },
       inverse: {
         color: "neutral.s10",
