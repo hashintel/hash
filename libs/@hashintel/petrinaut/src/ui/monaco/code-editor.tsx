@@ -33,7 +33,7 @@ const multiLineContainerStyle = cva({
     borderRadius: "lg",
     overflow: "hidden",
     marginInline: "0",
-    "[data-subview-fullscreen] &": {
+    "[data-subview-full-width-code] &": {
       borderColor: "[transparent]",
       borderRadius: "0",
       marginInline: "[calc(-1 * var(--subview-content-inline-padding, 0px))]",

@@ -38,3 +38,5 @@ Animate code editors to a borderless, square-cornered view flush with the panel 
 Lighten fullscreen subview parent breadcrumbs, balance chevron spacing, and add a smooth hover highlight.
 
 Align saved code-scenario section headers with the top of the panel while scrolling.
+
+Keep differential-equation code editors full-height during simulation and use the full-width editor layout without a redundant expand action.

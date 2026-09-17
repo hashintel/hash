@@ -2,7 +2,6 @@ import { Form } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useDiffEqPropertiesContext } from "../context";
@@ -14,6 +13,8 @@ const codeFieldStyle = css({
 });
 
 const codeEditorBoxStyle = css({
+  display: "flex",
+  flexDirection: "column",
   flex: "1",
   minHeight: "0",
 });
@@ -41,7 +42,6 @@ export const DifferentialEquationCodeField: React.FC = () => {
             });
           }}
           options={{ readOnly: isReadOnly }}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
       </div>
     </Form.Field>

@@ -28,7 +28,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 
 // the section fills the panel; the last row (Code) takes the remaining height
 const fieldsSectionStyle = css({
-  paddingY: "3",
+  paddingTop: "3",
   flex: "[1]",
   minHeight: "[0]",
   gridTemplateRows: "[auto auto minmax(0, 1fr)]",
@@ -310,7 +310,7 @@ const DiffEqCodeAction: React.FC = () => {
 
 export const diffEqMainContentSubView: SubView = {
   id: "diff-eq-main-content",
-  canMaximize: true,
+  fullWidthCodeEditor: true,
   title: "Differential Equation",
   icon: DifferentialEquationIcon,
   main: true,

@@ -173,7 +173,7 @@ const panelContentStyle = css({
   "--subview-content-inline-padding": "[16px]",
   px: "[var(--subview-content-inline-padding)]",
   pb: "3",
-  "[data-subview-fullscreen] &": { paddingBottom: "0" },
+  "[data-subview-full-width-code] &": { paddingBottom: "0" },
   "[data-subview-animate] &": {
     transition: "[padding-bottom 240ms cubic-bezier(0.22, 1, 0.36, 1)]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
@@ -706,8 +706,10 @@ export const VerticalSubViewsContainer: React.FC<
                 inert={isHidden}
                 aria-hidden={isHidden || undefined}
                 data-expanded-subview={fillsContainer || undefined}
-                data-subview-fullscreen={
-                  (fillsContainer && !isRestoring) || undefined
+                data-subview-full-width-code={
+                  subView.fullWidthCodeEditor ||
+                  (fillsContainer && !isRestoring) ||
+                  undefined
                 }
                 data-subview-animate={showAnimations || undefined}
               >

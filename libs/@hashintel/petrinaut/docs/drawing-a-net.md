@@ -41,6 +41,8 @@ In the full panel, code editors meet the left, right, and bottom edges with squa
 
 The lighter parent name in the header returns to the property's sections and highlights when hovered.
 
+Differential equations already occupy the full properties panel. Their code editor uses the same edge-to-edge layout and stays visible, read-only, during simulation.
+
 ## Top bar
 
 Spans the full editor width and has three sections.
