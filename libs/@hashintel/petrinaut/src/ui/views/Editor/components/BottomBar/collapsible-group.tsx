@@ -27,10 +27,12 @@ import { BottomBarCollapseContext } from "./collapse-context";
  */
 const groupStyle = cva({
   base: {
+    "--group-duration": "180ms",
+    "--group-easing": "cubic-bezier(0.16, 1, 0.3, 1)",
     width: "[var(--group-width, max-content)]",
     flexShrink: 0,
     transition:
-      "[width 140ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 100ms ease-out]",
+      "[width var(--group-duration) var(--group-easing), opacity 100ms ease-out]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
@@ -43,12 +45,16 @@ const groupStyle = cva({
     },
     collapsed: {
       true: {
+        "--group-duration": "120ms",
+        "--group-easing": "cubic-bezier(0.4, 0, 1, 1)",
         width: "[0px]",
         opacity: "[0]",
         pointerEvents: "none",
         // Keep the selector on one line: Panda includes it in the class name.
         '[data-bottom-bar]:hover &, [data-bottom-bar]:focus-within &, [data-bottom-bar]:has([data-state="open"]) &':
           {
+            "--group-duration": "180ms",
+            "--group-easing": "cubic-bezier(0.16, 1, 0.3, 1)",
             width: "[var(--group-width, max-content)]",
             opacity: "[1]",
             pointerEvents: "auto",

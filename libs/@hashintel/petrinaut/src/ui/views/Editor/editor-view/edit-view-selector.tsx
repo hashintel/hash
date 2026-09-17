@@ -59,7 +59,8 @@ const placementStyle = cva({
     },
     animated: {
       true: {
-        transition: "[left 150ms ease-in-out, top 150ms ease-in-out]",
+        transition:
+          "[left 150ms cubic-bezier(0.16, 1, 0.3, 1), top 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
         "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
       },
     },

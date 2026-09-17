@@ -110,7 +110,7 @@ The bottom toolbar provides playback controls:
 
 The time readout shows the elapsed simulation time and the run's total
 simulated time, at the precision the run's time step carries.
-The toolbar expands smoothly to reveal the time readout and scrubber when a run starts.
+The toolbar expands with a quick start and gentle settle to reveal the time readout and scrubber when a run starts.
 
 Playback widens the toolbar, so in a narrow window it keeps Play and folds the
 scrubber, the time readout and the playback settings away until you point at

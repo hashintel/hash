@@ -37,8 +37,10 @@ const panelStyle = cva({
     },
     animating: {
       true: {
-        transition:
-          "[width 150ms ease-in-out, opacity 150ms ease-in-out, height 150ms ease-in-out, top 150ms ease-in-out, left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out, transform 150ms ease-in-out]",
+        transitionProperty:
+          "[width, opacity, height, top, left, right, bottom, transform]",
+        transitionDuration: "[150ms]",
+        transitionTimingFunction: "[cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },

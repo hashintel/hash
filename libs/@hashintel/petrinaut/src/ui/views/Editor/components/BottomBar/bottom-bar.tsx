@@ -89,7 +89,7 @@ const barAnimatingStyle = cva({
   variants: {
     animating: {
       true: {
-        transition: "[transform 150ms ease-in-out]",
+        transition: "[transform 150ms cubic-bezier(0.16, 1, 0.3, 1)]",
       },
     },
   },
