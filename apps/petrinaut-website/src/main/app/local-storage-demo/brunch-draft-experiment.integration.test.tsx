@@ -7,7 +7,6 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { use } from "react";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
 import { draftPetrinautExperimentToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -21,7 +20,6 @@ import { createInProcessMonteCarloWorker } from "@hashintel/petrinaut-core/worke
 import {
   type OptimizationBest,
   PetrinautOptimizationContext,
-  UserSettingsContext,
   UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
@@ -47,7 +45,6 @@ import type {
   PetrinautConnectedOptimization,
   PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core/optimization";
-import type { PropsWithChildren } from "react";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -270,17 +267,6 @@ const createControlledOptimization = (
   },
 });
 
-const EnableInBrowserOptimization = ({ children }: PropsWithChildren) => {
-  const settings = use(UserSettingsContext);
-  return (
-    <UserSettingsContext
-      value={{ ...settings, enableInBrowserOptimization: true }}
-    >
-      {children}
-    </UserSettingsContext>
-  );
-};
-
 beforeEach(() => {
   const entries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -293,10 +279,6 @@ beforeEach(() => {
     removeItem: (key: string) => entries.delete(key),
     setItem: (key: string, value: string) => entries.set(key, value),
   } satisfies Storage);
-  localStorage.setItem(
-    "petrinaut:user-settings",
-    JSON.stringify({ enableInBrowserOptimization: true }),
-  );
   resetBrunchDraftExperimentSession();
 });
 
@@ -387,35 +369,33 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
 
   render(
     <UserSettingsProvider>
-      <EnableInBrowserOptimization>
-        <PetrinautOptimizationContext value={availableOptimization}>
-          <Petrinaut
-            handle={handle}
-            lspWorkerFactory={cleanDiagnosticsWorker}
-            monteCarloWorkerFactory={createInProcessMonteCarloWorker}
-            aiAssistant={{
-              automaticTools: createBrunchPetrinautTools({
+      <PetrinautOptimizationContext value={availableOptimization}>
+        <Petrinaut
+          handle={handle}
+          lspWorkerFactory={cleanDiagnosticsWorker}
+          monteCarloWorkerFactory={createInProcessMonteCarloWorker}
+          aiAssistant={{
+            automaticTools: createBrunchPetrinautTools({
+              readTitle: () => "Support desk",
+            }),
+            interactiveTools: [
+              createBrunchDraftExperimentInteractiveTool({
                 readTitle: () => "Support desk",
               }),
-              interactiveTools: [
-                createBrunchDraftExperimentInteractiveTool({
-                  readTitle: () => "Support desk",
-                }),
-              ],
-              conversationId: "test",
-              requestStop: async () => "already-settled",
-              transport: createBrunchPanelTransport(
-                Promise.resolve(client),
-                tracker,
-                {
-                  clientToolNames: batchedConstructionClientToolNames,
-                  dynamicClientToolNames: brunchPetrinautDynamicToolNames,
-                },
-              ),
-            }}
-          />
-        </PetrinautOptimizationContext>
-      </EnableInBrowserOptimization>
+            ],
+            conversationId: "test",
+            requestStop: async () => "already-settled",
+            transport: createBrunchPanelTransport(
+              Promise.resolve(client),
+              tracker,
+              {
+                clientToolNames: batchedConstructionClientToolNames,
+                dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+              },
+            ),
+          }}
+        />
+      </PetrinautOptimizationContext>
     </UserSettingsProvider>,
   );
 
