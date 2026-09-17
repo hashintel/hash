@@ -26,6 +26,7 @@
       "env": [
         "SENTRY_DSN",
         "VITE_BRUNCH_CHAT_ENDPOINT",
+        "VITE_PETRINAUT_DEFAULT_ASSISTANT",
         "VITE_VERCEL_ENV"
       ]
     },
@@ -120,7 +121,6 @@
         "@apps/brunch-agent",
         "@blockprotocol/graph",
         "@blockprotocol/type-system",
-        "@hashintel/brunch-agent-binding-flue",
         "@local/advanced-types",
         "@local/harpc-client",
         "@local/hash-backend-utils",
@@ -174,6 +174,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     },

@@ -65,6 +65,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     },
@@ -133,6 +134,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     },
@@ -204,6 +206,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     },
@@ -272,6 +275,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     },
@@ -348,6 +352,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "problematic",
         "type-system"
       ]
     }
