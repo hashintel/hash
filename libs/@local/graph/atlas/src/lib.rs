@@ -116,6 +116,7 @@
     const_option_ops,
     const_result_trait_fn,
     const_try,
+    const_iter,
     core_io,
     exact_size_is_empty,
     file_buffered,
