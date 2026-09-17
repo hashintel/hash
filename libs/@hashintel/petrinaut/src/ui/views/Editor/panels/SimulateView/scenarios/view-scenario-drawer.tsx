@@ -108,8 +108,7 @@ const ViewScenarioContent = ({
   };
 
   return (
-    <SimulationPanel title={scenario.name} onClose={onClose}>
-      <SimulationPanel.Header />
+    <>
       <AdHocScenarioAuthoringBody authoring={authoring}>
         {source.kind === "per_place" ? (
           <p className={migrationNoteStyle}>{perPlaceMigrationNote}</p>
@@ -140,7 +139,7 @@ const ViewScenarioContent = ({
           </>
         }
       />
-    </SimulationPanel>
+    </>
   );
 };
 
@@ -158,11 +157,14 @@ export const ViewScenarioDrawer = ({
   return (
     <SimulationPanelPresence>
       {open && scenario ? (
-        <ViewScenarioContent
-          key={scenario.id}
-          scenario={scenario}
-          onClose={onClose}
-        />
+        <SimulationPanel title={scenario.name} onClose={onClose}>
+          <SimulationPanel.Header />
+          <ViewScenarioContent
+            key={scenario.id}
+            scenario={scenario}
+            onClose={onClose}
+          />
+        </SimulationPanel>
       ) : null}
     </SimulationPanelPresence>
   );

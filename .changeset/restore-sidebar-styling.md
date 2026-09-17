@@ -19,4 +19,4 @@ Enable Petricon by default and remove the Experimental labels from Petricon and 
 
 Add Command+Shift+L on Mac and Control+Shift+L on Windows/Linux for auto-layout and display it in the menu and command palette.
 
-Animate simulation panels when opening and closing, and give drawer forms consistent spacing below their headers.
+Animate simulation panels only when opening and closing, keep scenario selection changes immediate, and give drawer forms consistent spacing below their headers.
