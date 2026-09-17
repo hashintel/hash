@@ -274,6 +274,12 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             })
           }
           onNodeMouseLeave={interactions.clearHover}
+          onNodeDragStart={(_event, node) =>
+            interactions.hoverNode({
+              id: node.id,
+              kind: node.type as CanvasNodeKind,
+            })
+          }
           onEdgeMouseEnter={(_event, edge) => interactions.hoverArc(edge.id)}
           onEdgeMouseLeave={interactions.clearHover}
           onSelectionStart={interactions.beginSelectionGesture}

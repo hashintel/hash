@@ -135,6 +135,8 @@ Toggle freely -- this setting only affects rendering, not the underlying net.
 
 When enabled (the default), resting the pointer on a node highlights its [neighbourhood](drawing-a-net.md#neighbourhood-highlight): what feeds it, what it feeds, and the arcs between.
 
+Dragging a node starts the highlight immediately, without waiting for the pointer to stop, and keeps it active until you drop the node.
+
 Disable it and the pointer changes nothing. Selecting a node still highlights its neighbourhood, so the colours remain available on demand.
 
 ### Automatic arc connections (experimental)
