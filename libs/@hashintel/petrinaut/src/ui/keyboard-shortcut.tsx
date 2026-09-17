@@ -5,13 +5,25 @@ import { formatShortcutKeys } from "../react/commands/format-shortcut";
 
 import type { ReactNode } from "react";
 
-const shortcutStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "[3px]",
-  flexShrink: "0",
-  verticalAlign: "middle",
-  whiteSpace: "nowrap",
+const shortcutStyle = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "[3px]",
+    flexShrink: "0",
+    verticalAlign: "middle",
+    whiteSpace: "nowrap",
+  },
+  variants: {
+    inMenu: {
+      true: {
+        display: "flex",
+        height: "[1lh]",
+        marginInlineEnd:
+          "[calc(var(--selectable-list-item-padding-y) + (1lh - 20px) / 2 - var(--selectable-list-item-padding-x))]",
+      },
+    },
+  },
 });
 
 const keyStyle = cva({
@@ -22,9 +34,9 @@ const keyStyle = cva({
     minWidth: "[20px]",
     height: "[20px]",
     paddingInline: "1",
-    fontFamily: "mono",
-    fontSize: "xs",
-    fontWeight: "normal",
+    fontFamily: "body",
+    fontSize: "[11px]",
+    fontWeight: "[450]",
     lineHeight: "[1]",
     borderWidth: "[1px]",
     borderStyle: "solid",
@@ -50,11 +62,13 @@ const keyStyle = cva({
 export const KeyboardShortcut = ({
   shortcut,
   tone = "default",
+  inMenu = false,
 }: {
   shortcut: string;
   tone?: "default" | "inverse";
+  inMenu?: boolean;
 }) => (
-  <span className={shortcutStyle} aria-hidden>
+  <span className={shortcutStyle({ inMenu })} aria-hidden>
     {formatShortcutKeys(shortcut).map((key) => (
       <kbd key={key} className={keyStyle({ tone })}>
         {key}

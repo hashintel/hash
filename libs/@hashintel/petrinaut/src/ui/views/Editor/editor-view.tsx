@@ -534,7 +534,7 @@ const EditorViewContent = ({
     {
       id: "user-settings",
       text: "User settings",
-      suffix: <KeyboardShortcut shortcut="mod+," />,
+      suffix: <KeyboardShortcut shortcut="mod+," inMenu />,
       onClick: () =>
         navigation.navigate(
           { overlay: { type: "user-settings", section: "general" } },
