@@ -39,6 +39,8 @@ Code sections always show their **Fill panel** action, including while collapsed
 
 In the full panel, code editors meet the left, right, and bottom edges with square corners and no visible border. Their frame and spacing transition smoothly when entering or leaving this view.
 
+The lighter parent name in the header returns to the property's sections and highlights when hovered.
+
 ## Top bar
 
 Spans the full editor width and has three sections.

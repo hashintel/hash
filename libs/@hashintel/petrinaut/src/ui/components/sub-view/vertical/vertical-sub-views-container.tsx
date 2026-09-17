@@ -77,7 +77,7 @@ const sectionMotionStyle = css({
 const breadcrumbStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1.5",
   flex: "1",
   minWidth: "0",
   pl: "1",
@@ -101,18 +101,32 @@ const parentTitleStyle = css({
   whiteSpace: "nowrap",
   textAlign: "left",
   font: "[inherit]",
-  color: "[inherit]",
+  fontSize: "[13px]",
+  fontWeight: "normal",
+  color: "neutral.s85",
   cursor: "pointer",
-  transition: "[color 140ms ease]",
+  textDecoration: "underline",
+  textDecorationColor: "[transparent]",
+  textUnderlineOffset: "[3px]",
+  "[data-subview-animate] &": {
+    transition: "[color 160ms ease-out, text-decoration-color 160ms ease-out]",
+    "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+  },
   _hover: {
-    textDecoration: "underline",
-    textUnderlineOffset: "[3px]",
+    color: "neutral.s120",
+    textDecorationColor: "[currentColor]",
   },
   _focusVisible: {
     outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[3px]",
     borderRadius: "[2px]",
   },
+});
+
+const parentTitleTextStyle = css({
+  minWidth: "0",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 });
 
 const breadcrumbSeparatorStyle = css({
@@ -475,9 +489,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
               <ParentIcon size={HEADER_ICON_SIZE} />
             </span>
           )}
-          <span className={mainTitleStyle({ fadeOverflow: true })}>
-            {parentTitle}
-          </span>
+          <span className={parentTitleTextStyle}>{parentTitle}</span>
         </button>
         {parentTitle !== title && (
           <>
