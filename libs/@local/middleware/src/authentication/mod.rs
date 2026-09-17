@@ -14,10 +14,13 @@
 //! instead.
 //!
 //! Rejections return Problem Details with the `application/problem+json` content type.
-//! The type is `about:blank`, the title is the HTTP status phrase, and `detail` carries the
-//! client-safe explanation when available. HASH treats replacing `about:blank` with a specific
-//! problem type URI as a non-breaking API change. Clients should handle unrecognized problem
-//! types using the HTTP status code.
+//! The first problem in report frame order supplies the public response, including its extensions.
+//! Problems come from error contexts through `Error::provide` or explicit attachments.
+//! A report without a problem produces a generic internal server error. Built-in problems use
+//! `about:blank`, the HTTP status phrase as the title, and a client-safe explanation as `detail`
+//! when available.
+//! HASH treats replacing `about:blank` with a specific problem type URI as a non-breaking API
+//! change. Clients should handle unrecognized problem types using the HTTP status code.
 
 pub mod provider;
 pub mod request;
@@ -42,8 +45,8 @@ use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
 };
-use opentelemetry_semantic_conventions::attribute::HTTP_RESPONSE_STATUS_CODE;
-use problematic::{NoExtensions, Problem, ProblemDetails};
+use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::ReportExt as _};
+use serde::Serialize;
 use type_system::principal::actor::ActorId;
 
 use self::{
@@ -73,6 +76,9 @@ impl Degradation {
 
 /// Instruments recording credential failures.
 ///
+/// Rejections are grouped by their authentication `reason` and `fault_domain`, independently
+/// of the public problem used to produce the response.
+///
 /// A route wired without the middleware answers with an internal error that is not counted here.
 pub struct AuthenticationMetrics {
     rejections: Counter<u64>,
@@ -101,10 +107,7 @@ impl AuthenticationMetrics {
         self.rejections.add(
             1,
             &[
-                KeyValue::new(
-                    HTTP_RESPONSE_STATUS_CODE,
-                    i64::from(error.status_code().as_u16()),
-                ),
+                KeyValue::new("reason", error.kind().metric_reason()),
                 KeyValue::new("fault_domain", error.fault_domain().as_str()),
             ],
         );
@@ -144,13 +147,38 @@ pub enum AuthenticationRejection {
     Misconfigured,
 }
 
+#[derive(serde::Serialize)]
+#[serde(untagged)]
+enum RejectionExtensions<E> {
+    Attached(E),
+    Empty(NoExtensions),
+}
+
 impl Problem for AuthenticationRejection {
-    type Extensions<'a> = NoExtensions;
+    type Extensions<'a> = impl Serialize + 'a;
 
     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        match self {
-            Self::Authentication { report, .. } => report.current_context().details(),
-            Self::Misconfigured => status_problem(http::StatusCode::INTERNAL_SERVER_ERROR),
+        if let Self::Authentication { report, .. } = self
+            && let Some(ProblemDetails {
+                type_uri,
+                title,
+                status,
+                detail,
+                instance,
+                extensions,
+            }) = report.problem_details().next()
+        {
+            ProblemDetails {
+                type_uri,
+                title,
+                status,
+                detail,
+                instance,
+                extensions: RejectionExtensions::Attached(extensions),
+            }
+        } else {
+            status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
+                .extensions(RejectionExtensions::Empty(NoExtensions {}))
         }
     }
 }
@@ -608,6 +636,8 @@ mod tests {
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
     use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
+    use problematic::{Problem as _, error_stack::ReportExt as _};
+    use serde::Serialize;
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -622,6 +652,7 @@ mod tests {
             provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
             request::{AuthenticationError, AuthenticationErrorKind},
         },
+        response::status_problem,
         test_metrics::{RecordedMetrics, noop_meter},
     };
 
@@ -998,7 +1029,7 @@ mod tests {
     /// The rejection the extractor produces counts too — on an anonymous-serving chain, an
     /// uncredentialed request on an actor-requiring handler is rejected nowhere else.
     #[tokio::test]
-    async fn extractor_rejections_count_with_status_and_fault_domain() {
+    async fn rejection_metrics_extractor() {
         let recorded = RecordedMetrics::new();
         let router = router_recording(
             StaticAuthenticationProvider::NotRecognized,
@@ -1015,17 +1046,17 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "401"),
+                    ("reason", "missing_credentials"),
                     ("fault_domain", "caller"),
                 ],
             ),
             1,
-            "the extractor's rejection should count with its status code and fault domain"
+            "the extractor's rejection should count with its reason and fault domain"
         );
     }
 
     #[tokio::test]
-    async fn middleware_rejections_count_with_status_and_fault_domain() {
+    async fn rejection_metrics_middleware() {
         let recorded = RecordedMetrics::new();
         let router = router_recording(
             StaticAuthenticationProvider::Unreachable,
@@ -1042,47 +1073,47 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "503"),
+                    ("reason", "provider_unreachable"),
                     ("fault_domain", "service"),
                 ],
             ),
             1,
-            "the middleware's rejection should count with its status code and fault domain"
+            "the middleware's rejection should count with its reason and fault domain"
         );
     }
 
-    /// Every error variant lands at its own status-code and fault-domain pair.
-    ///
-    /// Runs over [`every_error`], so a new variant stops compiling until it is added here, and
-    /// pins the label strings dashboards query.
-    ///
-    /// [`every_error`]: crate::authentication::request::every_error
+    /// Identifiers vary within one reason without creating extra metric series.
     #[test]
-    fn every_rejection_counts_at_its_status_and_fault_domain() {
-        use type_system::principal::actor::ActorEntityUuid;
+    fn rejection_metrics_identifiers() {
+        let recorded = RecordedMetrics::new();
+        let metrics = AuthenticationMetrics::new(&recorded.meter());
 
-        use crate::{authentication::request::every_error, test_metrics::RecordedMetrics};
+        for identity_id in ["first-identity", "second-identity"] {
+            let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+            for error in [
+                AuthenticationError::not_provisioned(identity_id),
+                AuthenticationError::actor_not_found(actor_id),
+                AuthenticationError::not_a_user(actor_id),
+            ] {
+                metrics.record_rejection(&error);
+            }
+        }
 
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
-            let recorded = RecordedMetrics::new();
-            let metrics = AuthenticationMetrics::new(&recorded.meter());
-
-            metrics.record_rejection(&error);
-
+        for reason in ["not_provisioned", "actor_not_found", "not_a_user"] {
             assert_eq!(
                 recorded.counter(
                     "hash.authentication.rejections",
-                    &[
-                        ("http.response.status_code", error.status_code().as_str(),),
-                        ("fault_domain", error.fault_domain().as_str()),
-                    ],
+                    &[("reason", reason), ("fault_domain", "operator")],
                 ),
-                1,
-                "`{error}` should count at status {} in the {} domain",
-                error.status_code(),
-                error.fault_domain().as_str()
+                2,
+                "different identifiers should share the `{reason}` series",
             );
         }
+        assert_eq!(
+            recorded.counter_attribute_keys("hash.authentication.rejections"),
+            ["reason".to_owned(), "fault_domain".to_owned()].into(),
+            "rejections should expose only the reason and fault domain",
+        );
     }
 
     /// A served request records nothing — the rejection counter is not a request counter.
@@ -1191,7 +1222,7 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "401"),
+                    ("reason", "missing_credentials"),
                     ("fault_domain", "caller"),
                 ],
             ),
@@ -1221,7 +1252,7 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "401"),
+                    ("reason", "missing_credentials"),
                     ("fault_domain", "caller"),
                 ],
             ),
@@ -1256,7 +1287,7 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "401"),
+                    ("reason", "missing_credentials"),
                     ("fault_domain", "caller"),
                 ],
             ),
@@ -1277,6 +1308,137 @@ mod tests {
         {
             core::future::ready(ControlFlow::Break(Err(Arc::clone(&self.0))))
         }
+    }
+
+    #[tokio::test]
+    async fn rejection_provided_problem() {
+        let report =
+            Report::new(AuthenticationError::missing_credentials()).attach("private diagnostic");
+        let response = routes()
+            .layer(AuthenticationLayer::<_, ActorId> {
+                provider: Arc::new(SharedRejectionProvider(Arc::new(report))),
+                service_secret: Arc::from(SERVICE_SECRET),
+                metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
+                bootstrap_route: is_bootstrap_route,
+                caller: PhantomData,
+            })
+            .oneshot(request("/protected"))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Unauthorized",
+                "status": 401,
+                "detail": "no credentials provided",
+            }),
+            "the context should provide the public problem without exposing diagnostic attachments",
+        );
+    }
+
+    #[tokio::test]
+    async fn rejection_attached_problem() {
+        #[derive(Serialize)]
+        struct Challenge {
+            required_method: &'static str,
+        }
+
+        let recorded = RecordedMetrics::new();
+        let report = Report::new(core::fmt::Error)
+            .attach("private diagnostic")
+            .change_context(AuthenticationError::missing_credentials())
+            .attach_problem(
+                status_problem(StatusCode::FORBIDDEN)
+                    .detail("This route requires a passkey.")
+                    .instance("/problem-occurrences/42")
+                    .extensions(Challenge {
+                        required_method: "passkey",
+                    }),
+            );
+        let rejection = AuthenticationRejection::Authentication {
+            report: Arc::new(report),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            recorded: Arc::new(AtomicBool::new(false)),
+        };
+        let expected = json!({
+            "type": "about:blank",
+            "title": "Forbidden",
+            "status": 403,
+            "detail": "This route requires a passkey.",
+            "instance": "/problem-occurrences/42",
+            "required_method": "passkey",
+        });
+        assert_eq!(
+            serde_json::to_value(rejection.details()).expect("the problem should serialize"),
+            expected,
+        );
+
+        let response = rejection.into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("reason", "missing_credentials"),
+                    ("fault_domain", "caller")
+                ],
+            ),
+            1,
+            "the custom problem should preserve the authentication reason in the metric",
+        );
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            expected,
+        );
+    }
+
+    #[tokio::test]
+    async fn rejection_invalid_attached_extensions() {
+        let recorded = RecordedMetrics::new();
+        let report = Report::new(AuthenticationError::missing_credentials())
+            .attach_problem(status_problem(StatusCode::FORBIDDEN).extensions("private diagnostic"));
+        let response = AuthenticationRejection::Authentication {
+            report: Arc::new(report),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            recorded: Arc::new(AtomicBool::new(false)),
+        }
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("reason", "missing_credentials"),
+                    ("fault_domain", "caller")
+                ],
+            ),
+            1,
+            "a serialization failure should preserve the authentication reason in the metric",
+        );
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Internal Server Error",
+                "status": 500,
+            }),
+        );
     }
 
     #[tokio::test]
@@ -1348,7 +1510,7 @@ mod tests {
             recorded.counter(
                 "hash.authentication.rejections",
                 &[
-                    ("http.response.status_code", "503"),
+                    ("reason", "provider_unreachable"),
                     ("fault_domain", "service"),
                 ],
             ),

@@ -689,24 +689,22 @@ where
         }
 
         let resolved = self.limiters.client_key(&req);
+        if let Some(key) = resolved {
+            if let Err(denial) = self.limiters.charge(Budget::Gate(key))
+                && let Some(error) = denial.apply()
+            {
+                return Either::Left(future::ready(Ok(Err(error))));
+            }
+        } else {
+            self.limiters.note_unknown_address();
+        }
+
         req.extensions_mut().insert(resolved.map_or(
             ResolvedClientAddress::Unknown,
             ResolvedClientAddress::Bucketed,
         ));
 
-        let Some(key) = resolved else {
-            self.limiters.note_unknown_address();
-            return Either::Right(self.inner.call(req).map_ok(Ok));
-        };
-
-        match self
-            .limiters
-            .charge(Budget::Gate(key))
-            .map_err(Denial::apply)
-        {
-            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
-            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error)))),
-        }
+        Either::Right(self.inner.call(req).map_ok(Ok))
     }
 }
 

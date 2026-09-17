@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 use core::{
+    error::Request,
     fmt,
     ops::ControlFlow,
     str::FromStr as _,
@@ -10,7 +11,7 @@ use core::{
 
 use error_stack::Report;
 use http::{HeaderMap, StatusCode};
-use problematic::{NoExtensions, Problem, ProblemDetails};
+use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::provide_problem};
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
@@ -114,7 +115,29 @@ pub enum AuthenticationErrorKind {
 }
 
 impl AuthenticationErrorKind {
-    /// Returns the status code reported to the client for this error.
+    /// Returns the metric label shared by all errors of this kind.
+    pub(super) const fn metric_reason(&self) -> &'static str {
+        match self {
+            Self::MissingCredentials => "missing_credentials",
+            Self::MalformedCredential => "malformed_credential",
+            Self::InvalidActorIdHeader => "invalid_actor_id_header",
+            Self::MissingServiceSecret => "missing_service_secret",
+            Self::InvalidServiceSecret => "invalid_service_secret",
+            Self::MissingDelegatedActor => "missing_delegated_actor",
+            Self::ProviderUnreachable => "provider_unreachable",
+            Self::ProviderRejection => "provider_rejection",
+            Self::InvalidProviderResponse => "invalid_provider_response",
+            Self::InvalidSession => "invalid_session",
+            Self::InvalidAccessToken => "invalid_access_token",
+            Self::IdentityWithoutActor => "identity_without_actor",
+            Self::NotProvisioned { .. } => "not_provisioned",
+            Self::ActorNotFound { .. } => "actor_not_found",
+            Self::NotAUser { .. } => "not_a_user",
+            Self::StoreError => "store_error",
+        }
+    }
+
+    /// Returns the status code of the built-in problem for this error.
     #[must_use]
     pub const fn status_code(&self) -> StatusCode {
         match self {
@@ -204,7 +227,7 @@ impl AuthenticationErrorKind {
 
 /// An authentication failure, classified by its [`AuthenticationErrorKind`].
 ///
-/// The kind decides the status code, the fault domain, and the client message.
+/// The kind determines the fault domain and the built-in problem's status code and client message.
 #[derive(Debug)]
 pub struct AuthenticationError {
     /// What failed.
@@ -384,7 +407,11 @@ impl fmt::Display for AuthenticationError {
     }
 }
 
-impl core::error::Error for AuthenticationError {}
+impl core::error::Error for AuthenticationError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        provide_problem(self, request);
+    }
+}
 
 impl Problem for AuthenticationError {
     type Extensions<'a> = NoExtensions;

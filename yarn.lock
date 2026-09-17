@@ -15244,6 +15244,7 @@ __metadata:
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-middleware": "workspace:*"
+    "@rust/problematic": "workspace:*"
   languageName: unknown
   linkType: soft
 

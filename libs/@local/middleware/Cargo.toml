@@ -9,7 +9,7 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
-problematic = { workspace = true, public = true, features = ["serde"] }
+problematic = { workspace = true, public = true, features = ["error-stack"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -17,6 +17,7 @@ axum          = { workspace = true, public = true }
 axum-core     = { workspace = true, public = true }
 http          = { workspace = true, public = true }
 opentelemetry = { workspace = true, public = true, features = ["metrics"] }
+serde         = { workspace = true, public = true, features = ["derive"] }
 tower-layer   = { workspace = true, public = true }
 tower-service = { workspace = true, public = true }
 
@@ -28,7 +29,6 @@ derive_more                        = { workspace = true, features = ["display", 
 futures                            = { workspace = true }
 governor                           = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
-serde                              = { workspace = true, features = ["derive"] }
 serde_json                         = { workspace = true }
 simple-mermaid                     = { workspace = true }
 subtle                             = { workspace = true }

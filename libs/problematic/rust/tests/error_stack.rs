@@ -1,8 +1,12 @@
+#![feature(error_generic_member_access)]
+
 extern crate alloc;
 
-use alloc::{borrow::Cow, string::String, sync::Arc};
+use alloc::{borrow::Cow, string::String, sync::Arc, vec::Vec};
 use core::{
-    assert_matches, fmt,
+    assert_matches,
+    error::{Error, Request},
+    fmt,
     panic::Location,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -10,8 +14,8 @@ use std::io;
 
 use error_stack::{Report, ResultExt as _};
 use problematic::{
-    Problem, ProblemDetails, ProblemType, StatusCode,
-    error_stack::{ReportExt as _, ResultExt as _},
+    NoExtensions, Problem, ProblemDetails, ProblemType, StatusCode,
+    error_stack::{ReportExt as _, ResultExt as _, provide_problem},
 };
 use serde::{Serialize, Serializer, ser::Error as _};
 use serde_json::json;
@@ -28,9 +32,22 @@ const UNAVAILABLE: ProblemType = ProblemType {
     status: StatusCode::SERVICE_UNAVAILABLE,
 };
 
+#[derive(Debug)]
 struct InvalidParameter {
     parameter: String,
     explanation: String,
+}
+
+impl fmt::Display for InvalidParameter {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.explanation)
+    }
+}
+
+impl Error for InvalidParameter {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        provide_problem(self, request);
+    }
 }
 
 #[derive(Serialize)]
@@ -52,67 +69,81 @@ impl Problem for InvalidParameter {
 
 #[test]
 fn details_changed_context() {
-    let problem = InvalidParameter {
-        parameter: String::from("limit"),
-        explanation: String::from("The limit must be positive."),
-    };
-    let explanation = problem.explanation.as_ptr();
-    let report = Report::new(fmt::Error)
-        .attach_problem(problem)
+    for attached in [false, true] {
+        let problem = InvalidParameter {
+            parameter: String::from("limit"),
+            explanation: String::from("The limit must be positive."),
+        };
+        let explanation = problem.explanation.as_ptr();
+        let report = if attached {
+            Report::new(fmt::Error).attach_problem(problem)
+        } else {
+            Report::new(problem).change_context(fmt::Error)
+        }
         .change_context(io::Error::other("request failed"))
         .attach_opaque("diagnostic attachment")
         .change_context(fmt::Error);
 
-    let details = report
-        .problem_details()
-        .expect("the problem should survive context changes");
+        let mut problems = report.problem_details();
+        let details = problems
+            .next()
+            .expect("the problem should survive context changes");
 
-    assert_matches!(
-        details.detail,
-        Some(Cow::Borrowed(_)),
-        "the detail should borrow from the attached problem"
-    );
-    assert_eq!(
-        details.detail.as_deref().map(str::as_ptr),
-        Some(explanation),
-        "the detail should retain the attached problem's allocation"
-    );
-    assert_eq!(
-        serde_json::to_value(details).expect("the attached details should serialize"),
-        json!({
-            "type": "https://example.com/problems/invalid-parameter",
-            "title": "Invalid parameter",
-            "status": 400,
-            "detail": "The limit must be positive.",
-            "parameter": "limit"
-        }),
-        "the details and borrowed extensions should survive context changes"
-    );
+        assert_matches!(
+            details.detail,
+            Some(Cow::Borrowed(_)),
+            "the detail should borrow from the problem"
+        );
+        assert_eq!(
+            details.detail.as_deref().map(str::as_ptr),
+            Some(explanation),
+            "the detail should retain the problem's allocation"
+        );
+        assert_eq!(
+            serde_json::to_value(details).expect("the problem details should serialize"),
+            json!({
+                "type": "https://example.com/problems/invalid-parameter",
+                "title": "Invalid parameter",
+                "status": 400,
+                "detail": "The limit must be positive.",
+                "parameter": "limit"
+            }),
+            "the details and borrowed extensions should survive context changes"
+        );
+        assert!(
+            problems.next().is_none(),
+            "the problem should appear once through contexts that provide no problem"
+        );
+    }
 }
 
 #[test]
-fn details_latest_attachment() {
-    let report = Report::new(fmt::Error)
-        .attach_problem(InvalidParameter {
-            parameter: String::from("limit"),
-            explanation: String::from("The limit must be positive."),
-        })
-        .change_context(io::Error::other("request failed"))
-        .attach_problem(UNAVAILABLE)
-        .change_context(fmt::Error);
-
-    let details = report
-        .problem_details()
-        .expect("the most recent problem should be attached");
+fn details_frame_order() {
+    let report = Report::new(InvalidParameter {
+        parameter: String::from("limit"),
+        explanation: String::from("The limit must be positive."),
+    })
+    .attach_problem(UNAVAILABLE)
+    .change_context(InvalidParameter {
+        parameter: String::from("offset"),
+        explanation: String::from("The offset must be nonnegative."),
+    })
+    .attach_opaque("diagnostic attachment")
+    .change_context(fmt::Error)
+    .attach_problem(UNAVAILABLE.detail("Please retry later."));
 
     assert_eq!(
-        serde_json::to_value(details).expect("the attached details should serialize"),
-        json!({
-            "type": "https://example.com/problems/unavailable",
-            "title": "Unavailable",
-            "status": 503
-        }),
-        "the most recent problem should replace the complete public representation"
+        report
+            .problem_details()
+            .map(|details| (details.status, details.detail.map(Cow::into_owned)))
+            .collect::<Vec<_>>(),
+        [
+            (503, Some(String::from("Please retry later."))),
+            (400, Some(String::from("The offset must be nonnegative."))),
+            (503, None),
+            (400, Some(String::from("The limit must be positive."))),
+        ],
+        "attached and provided problems should follow native frame order"
     );
 }
 
@@ -123,7 +154,7 @@ fn details_no_attachment() {
         .change_context(io::Error::other("request failed"));
 
     assert!(
-        report.problem_details().is_none(),
+        report.problem_details().next().is_none(),
         "a report without an attached problem should return no details"
     );
 }
@@ -142,21 +173,84 @@ fn details_combined_reports() {
     assert_eq!(
         report
             .problem_details()
-            .expect("the first branch should contain a problem")
-            .status,
-        400,
-        "the first problem in frame traversal order should take precedence"
+            .map(|details| details.status)
+            .collect::<Vec<_>>(),
+        [400, 503],
+        "the iterator should return every branch in frame traversal order"
     );
 
     let report = report.attach_problem(UNAVAILABLE.detail("Please retry later."));
     assert_eq!(
         report
             .problem_details()
-            .expect("the combined report should contain the new problem")
-            .detail
-            .as_deref(),
-        Some("Please retry later."),
-        "a problem attached to the combined report should take precedence over both branches"
+            .map(|details| details.status)
+            .collect::<Vec<_>>(),
+        [503, 400, 503],
+        "the combined report's attachment should precede both branches"
+    );
+}
+
+#[derive(Debug)]
+struct CountingProblem {
+    calls: Arc<AtomicUsize>,
+}
+
+impl fmt::Display for CountingProblem {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("unavailable")
+    }
+}
+
+impl Error for CountingProblem {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        provide_problem(self, request);
+    }
+}
+
+impl Problem for CountingProblem {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        self.calls.fetch_add(1, Ordering::Relaxed);
+        ProblemDetails::from(UNAVAILABLE)
+    }
+}
+
+#[test]
+fn details_lazy_iteration() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let report = Report::new(CountingProblem {
+        calls: Arc::clone(&calls),
+    })
+    .attach_problem(CountingProblem {
+        calls: Arc::clone(&calls),
+    })
+    .change_context(fmt::Error);
+    let mut problems = report.problem_details();
+
+    assert_eq!(
+        calls.load(Ordering::Relaxed),
+        0,
+        "report construction and creating the iterator should not request problem details"
+    );
+    for expected_calls in 1..=2 {
+        problems
+            .next()
+            .expect("each problem should supply its details on demand");
+        assert_eq!(
+            calls.load(Ordering::Relaxed),
+            expected_calls,
+            "advancing the iterator should request only the next problem's details"
+        );
+    }
+    assert!(
+        problems.next().is_none(),
+        "the iterator should end after both problems"
+    );
+    assert_eq!(
+        calls.load(Ordering::Relaxed),
+        2,
+        "exhausting the iterator should not request details again"
     );
 }
 
@@ -173,6 +267,7 @@ fn serialize_invalid_extensions() {
             Report::new(fmt::Error).attach_problem(INVALID_PARAMETER.extensions(extensions));
         let details = report
             .problem_details()
+            .next()
             .expect("the problem should be attached before serialization");
         let error =
             serde_json::to_value(details).expect_err("invalid extensions should fail to serialize");
@@ -205,6 +300,7 @@ fn serialize_extension_failure() {
         }));
     let details = report
         .problem_details()
+        .next()
         .expect("the problem should be attached before serialization");
 
     assert_eq!(
@@ -248,6 +344,7 @@ fn result_attach_error() {
     assert_eq!(
         report
             .problem_details()
+            .next()
             .expect("the problem should be attached")
             .detail
             .as_deref(),
@@ -281,6 +378,7 @@ fn result_attach_existing_report() {
     assert_eq!(
         report
             .problem_details()
+            .next()
             .expect("the problem should be attached")
             .status,
         400,
@@ -323,6 +421,7 @@ fn result_attach_with_error() {
     assert_eq!(
         report
             .problem_details()
+            .next()
             .expect("the problem should survive the context change")
             .detail
             .as_deref(),
