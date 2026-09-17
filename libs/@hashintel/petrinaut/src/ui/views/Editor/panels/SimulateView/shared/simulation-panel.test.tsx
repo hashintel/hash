@@ -543,7 +543,7 @@ it.each([
     );
     const panel = screen.getByRole("region", { name: "Selected resource" });
     const input = screen.getByRole("textbox", { name: "Draft" });
-    const breadcrumb = screen.getByRole("button", { name: label, exact: true });
+    const breadcrumb = screen.getByRole("button", { name: label });
     breadcrumb.focus();
     fireEvent.click(breadcrumb);
     expect(screen.getByLabelText("Presentation").textContent).toBe("panel");

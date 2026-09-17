@@ -23,6 +23,8 @@ const place: Place = {
   id: "place-1",
   name: "Queue",
   colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
   x: 0,
   y: 0,
 };

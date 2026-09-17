@@ -71,7 +71,13 @@ const PlaceInitialStateContent: React.FC = () => {
       disabled
     >
       <Tooltip content="Configure initial tokens in Simulation Settings">
-        <NumberInput size="sm" min={0} value={tokenCount} disabled />
+        <NumberInput
+          size="sm"
+          min={0}
+          value={tokenCount}
+          onChange={() => {}}
+          disabled
+        />
       </Tooltip>
     </Form.Field>
   );
