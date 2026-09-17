@@ -77,19 +77,19 @@ export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { isCollapsed, reportGroupWidth } = use(BottomBarCollapseContext);
   const groupId = useId();
-  const clipRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const clip = clipRef.current;
+    const group = groupRef.current;
     const content = contentRef.current;
-    if (!clip || !content) {
+    if (!group || !content) {
       return;
     }
 
     const measure = () => {
       const natural = content.getBoundingClientRect().width;
-      const rendered = clip.getBoundingClientRect().width;
+      const rendered = group.getBoundingClientRect().width;
       reportGroupWidth(groupId, {
         natural,
         hidden: Math.max(natural - rendered, 0),
@@ -97,12 +97,11 @@ export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
     };
     measure();
 
-    // Both boxes are watched: the content changes when a control appears, and
-    // the clip changes on every frame of the fold. Reporting the pair from one
-    // observer keeps the two in step, so the width the bar derives from them
-    // is right mid-animation too.
+    // Fractional grid tracks can be narrower than their grid container during
+    // a fold. Measure the container's footprint so adding its hidden width
+    // back to the bar keeps the expanded width constant throughout the motion.
     const observer = new ResizeObserver(measure);
-    observer.observe(clip);
+    observer.observe(group);
     observer.observe(content);
 
     return () => {
@@ -112,8 +111,8 @@ export const CollapsibleGroup: React.FC<{ children: React.ReactNode }> = ({
   }, [groupId, reportGroupWidth]);
 
   return (
-    <div className={groupStyle({ collapsed: isCollapsed })}>
-      <div ref={clipRef} className={clipStyle}>
+    <div ref={groupRef} className={groupStyle({ collapsed: isCollapsed })}>
+      <div className={clipStyle}>
         <div ref={contentRef} className={contentStyle}>
           {children}
         </div>

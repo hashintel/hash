@@ -4,7 +4,7 @@ import { createContext } from "react";
 export interface CollapsibleGroupWidth {
   /** What this group takes when its controls are shown. */
   readonly natural: number;
-  /** How much of that is clipped away right now — 0 while it is shown. */
+  /** Width removed from the group's footprint by folding — 0 while fully shown. */
   readonly hidden: number;
 }
 
