@@ -16,7 +16,7 @@ Each tab remembers its selected resource and panel or fullscreen presentation wh
 
 Fullscreen belongs to Simulate. Expanding a creation form from Edit opens its Simulate tab. Switching to Edit or Actual leaves the creation form in a side panel so the main view remains usable and your draft stays open.
 
-Panels open and close with a short slide and fade, while the main view adjusts alongside them. Selecting another scenario updates the form in place without replaying the panel animation. Expanding and collapsing animate the panel width and the tab name in the header. These transitions follow **Animations** in Settings and your system's reduced-motion preference; manual resizing stays immediate. Forms have space below the header before the first field.
+Panels open and close with a short slide and fade, while the main view adjusts alongside them. Selecting another scenario updates the form in place without replaying the panel animation. Expanding and collapsing animate the panel width and the tab name in the header. These transitions follow **Animations** in Settings and your system's reduced-motion preference; manual resizing stays immediate. Forms use a consistent, compact gap below the header before the first field or section title.
 
 Both size controls and **Close panel** sit together on the header's right edge. Headers without a subtitle match the list header's height. Escape closes the panel while focus is inside it, unless an editor or menu handles Escape first. Closing an experiment's results leaves the experiment running. Save a scenario's edits before closing it or selecting another scenario to keep them.
 

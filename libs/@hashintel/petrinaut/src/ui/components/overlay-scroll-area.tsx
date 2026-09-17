@@ -44,7 +44,12 @@ export const overlayScrollDrawerBodyStyle = css({
 });
 export const overlayScrollDrawerViewportStyle = css({
   paddingX: "[var(--panel-horizontal-padding)]",
-  paddingY: "5",
+  paddingTop: "4",
+  paddingBottom: "5",
+  "& > [data-part=content] > :first-child > [data-section]:first-child > [data-section-header]":
+    {
+      paddingTop: "[0]",
+    },
 });
 
 export const OverlayScrollArea: React.FC<{
