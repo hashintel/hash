@@ -168,6 +168,11 @@
 extern crate alloc;
 
 mod allocator;
+#[expect(
+    dead_code,
+    reason = "the read API that consumes the serving layer lands above this PR in the stack"
+)]
+pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod bitset;
