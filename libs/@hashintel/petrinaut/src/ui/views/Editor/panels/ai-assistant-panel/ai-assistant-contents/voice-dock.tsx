@@ -220,7 +220,6 @@ export const VoiceDock = ({
           type="button"
           variant="ghost"
         />
-        {errorIndicator}
         {actions !== null &&
           (actions.readFullResponse ||
             actions.repeatQuestion ||
@@ -239,6 +238,7 @@ export const VoiceDock = ({
               speakerVolume={speakerVolume}
             />
           )}
+        {errorIndicator}
       </span>
 
       <div className={centerStyle({ withError: !!errorIndicator })}>

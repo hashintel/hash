@@ -16,12 +16,22 @@ const popoverStyle = css({
   backgroundColor: "neutral.s00",
 });
 
-const popoverBodyStyle = css({
-  margin: "[0 !important]",
-  padding: "[8px !important]",
-  boxShadow: "[none !important]",
-  maxHeight: "[min(520px, var(--available-height, 70vh))]",
-  overflowY: "auto",
+const popoverBodyStyle = cva({
+  base: {
+    margin: "[0 !important]",
+    padding: "[8px !important]",
+    boxShadow: "[none !important]",
+    maxHeight: "[min(520px, var(--available-height, 70vh))]",
+    overflowY: "auto",
+  },
+  variants: {
+    extended: {
+      true: {
+        height: "[min(448px, 70vh)]",
+        scrollbarGutter: "stable",
+      },
+    },
+  },
 });
 
 const controlsStyle = css({
@@ -46,6 +56,10 @@ const speakerControlsStyle = css({
 const volumeStyle = css({
   flex: "1",
   minWidth: "[0]",
+  '&:not([data-disabled]) [data-part="control"], &:not([data-disabled]) [data-part="thumb"]':
+    {
+      cursor: "pointer",
+    },
   '& [data-part="label"]': {
     position: "absolute",
     width: "[1px]",
@@ -136,13 +150,19 @@ export const AudioPopover = ({
       />
       {open && (
         <Popover
+          className={css({ animationName: "[none !important]" })}
           gapY={4}
           onClose={() => setOpen(false)}
           position="top-start"
           triggerRef={triggerRef}
         >
           <Popover.Container className={popoverStyle}>
-            <Popover.Body className={popoverBodyStyle}>
+            <Popover.Body
+              className={popoverBodyStyle({
+                extended: Boolean(settings && actions.audioSettings),
+              })}
+              withPadding={false}
+            >
               <div
                 aria-label={voiceSessionActionLabels.audioControls}
                 className={controlsStyle}

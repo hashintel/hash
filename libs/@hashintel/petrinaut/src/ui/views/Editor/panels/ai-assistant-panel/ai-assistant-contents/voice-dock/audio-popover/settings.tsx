@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 
-import { Button, Select } from "@hashintel/ds-components";
+import { Button, Select, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type {
@@ -32,6 +32,18 @@ const helpStyle = css({
   color: "neutral.s90",
   lineHeight: "relaxed",
 });
+const speedStyle = css({
+  '&:not([data-disabled]) [data-part="control"], &:not([data-disabled]) [data-part="thumb"]':
+    {
+      cursor: "pointer",
+    },
+  '& [data-part="value-text"]': {
+    position: "absolute",
+    right: "0",
+    top: "0",
+    fontVariantNumeric: "tabular-nums",
+  },
+});
 const defaultDevice = { value: "default", text: "System default" };
 
 export const AudioSettings = ({
@@ -61,7 +73,9 @@ export const AudioSettings = ({
           size="sm"
           variant="ghost"
         >
-          Voice &amp; speed
+          {settings.speed !== undefined && actions.setSpeed
+            ? "Voice & speed"
+            : "Voice"}
         </Button>
         {section === "voice" && (
           <div id={`${id}-voice`} className={fieldsStyle}>
@@ -79,38 +93,24 @@ export const AudioSettings = ({
               width="fullWidth"
             />
             <span id={`${id}-voice-help`} className={helpStyle}>
-              {settings.voice !== settings.activeVoice
-                ? "Applies next session. "
-                : "Changes apply next session. "}
-              {settings.voiceSaveError ?? "Saved in this browser."}
+              {settings.voiceSaveError ?? "Saved for next session."}
             </span>
-            {settings.speed !== undefined && actions.setSpeed ? (
+            {settings.speed !== undefined && actions.setSpeed && (
               <>
-                <span id={`${id}-speed-label`} className={labelStyle}>
-                  Speaking speed
-                </span>
-                <Select
-                  aria-labelledby={`${id}-speed-label`}
-                  aria-describedby={`${id}-speed-help`}
+                <Slider
+                  className={speedStyle}
+                  label="Speaking speed"
                   disabled={disabled}
-                  items={[0.25, 0.5, 0.75, 1, 1.25, 1.5].map((speed) => ({
-                    value: String(speed),
-                    text: `${speed}×`,
-                  }))}
-                  value={String(settings.speed)}
-                  onChange={(speed) => actions.setSpeed?.(Number(speed))}
-                  required
-                  size="sm"
-                  width="fullWidth"
+                  min={0.25}
+                  max={1.5}
+                  step={0.25}
+                  value={settings.speed}
+                  onChange={actions.setSpeed}
+                  showValueText
+                  variant="plain"
                 />
-                <span id={`${id}-speed-help`} className={helpStyle}>
-                  Applies to the next response.
-                </span>
+                <span className={helpStyle}>Applies to the next response.</span>
               </>
-            ) : (
-              <span className={helpStyle}>
-                Speaking speed is not available with this voice provider.
-              </span>
             )}
           </div>
         )}

@@ -148,13 +148,15 @@ paused. Changing volume does not unmute the speaker, and unmuting restores its
 retained volume. Realtime remembers **Interruption by speaking** in this browser.
 
 When the host provides extended audio settings, Audio options also contains
-collapsed **Voice & speed** and **Audio devices** sections. Only one section
-opens at a time; speaker controls stay visible above them.
+collapsed **Voice** (or **Voice & speed**, when supported) and **Audio devices**
+sections. Only one section opens at a time. The panel keeps a stable size as
+sections open and scrolls when needed. Voice warnings appear after Audio options
+in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
   If browser storage is blocked, the selection lasts only until the page closes.
-- **Speaking speed** changes the next response, not speech already playing.
+- The **Speaking speed** slider changes the next response, not speech already playing.
   Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not
   offer numeric speed control.
 - **Microphone** and **Speaker** choose devices for the current session. They

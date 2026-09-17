@@ -525,16 +525,15 @@ test("shows one extended audio settings section at a time and labels voice actio
       await screen.findByRole("slider", { name: "Speaker volume" })
     ).getAttribute("aria-valuenow"),
   ).toBe("65");
-  fireEvent.click(screen.getByRole("button", { name: /^Voice & speed/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Voice/ }));
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(screen.getByText("Saved for next session.")).not.toBeNull();
   expect(
-    screen.getByText("Applies next session. Saved in this browser."),
-  ).not.toBeNull();
-  expect(
-    screen.getByText(
+    screen.queryByText(
       "Speaking speed is not available with this voice provider.",
     ),
-  ).not.toBeNull();
+  ).toBeNull();
+  expect(screen.queryByRole("slider", { name: "Speaking speed" })).toBeNull();
 
   fireEvent.click(screen.getByRole("button", { name: /^Audio devices/ }));
   expect(screen.queryByRole("combobox", { name: "Voice" })).toBeNull();
@@ -1617,7 +1616,7 @@ describe("AiAssistantContents", () => {
       };
       store.setState(state);
       const end = vi.fn();
-      store.setActions({ end, pause: noop });
+      store.setActions({ end, pause: noop, setSpeakerVolume: vi.fn() });
       render(
         <NotificationsProvider>
           <VoiceSessionContext.Provider value={store}>
@@ -1636,6 +1635,19 @@ describe("AiAssistantContents", () => {
         </NotificationsProvider>,
       );
       const dock = screen.getByTestId("ai-voice-dock");
+      expect(
+        within(dock)
+          .getAllByRole("button")
+          .slice(0, 3)
+          .map((button) => button.getAttribute("aria-label")),
+      ).toEqual(["Show conversation", "Audio options", "Show 1 Voice issue"]);
+      act(() => store.setActions({ end, pause: noop }));
+      expect(
+        within(dock)
+          .getAllByRole("button")
+          .slice(0, 2)
+          .map((button) => button.getAttribute("aria-label")),
+      ).toEqual(["Show conversation", "Show 1 Voice issue"]);
       expect(within(dock).getByText("Connected")).toBeTruthy();
       expect(screen.queryByText(warningMessage)).toBeNull();
       expect(within(dock).getByRole("status").textContent).toBe(

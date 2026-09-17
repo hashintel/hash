@@ -699,26 +699,58 @@ export const ExtendedAudioSettings: Story = {
         audioSettings: realisticAudioSettings(),
         phase: "speaking",
         speakerVolume: 0.65,
+        warningMessage: "Microphone disconnected. Switched to system default.",
       })}
     />
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    const dock = canvas.getByTestId("ai-voice-dock");
+    const dockButtons = within(dock).getAllByRole("button");
+    const position = (element: HTMLElement) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    };
+    const positions = () => dockButtons.map(position);
+    const beforeOpen = positions();
     await userEvent.click(
       canvas.getByRole("button", { name: "Audio options" }),
     );
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /^Voice & speed/ }),
+    const voiceSection = await canvas.findByRole("button", {
+      name: /^Voice & speed/,
+    });
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
+    const volume = canvas.getByRole("slider", { name: "Speaker volume" });
+    const volumeBefore = position(volume);
+    await userEvent.click(voiceSection);
     await expect(
-      canvas.getByText("Applies next session. Saved in this browser."),
+      canvas.getByText("Saved for next session."),
     ).toBeInTheDocument();
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toBeInTheDocument();
+    const speed = canvas.getByRole("slider", { name: "Speaking speed" });
+    await expect(speed).toBeInTheDocument();
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    await expect(position(volume)).toEqual(volumeBefore);
+    await expect(positions()).toEqual(beforeOpen);
     await expect(
-      canvas.getByRole("combobox", { name: "Speaking speed" }),
-    ).toBeInTheDocument();
+      dockButtons
+        .slice(0, 3)
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Hide conversation", "Audio options", "Show 1 Voice issue"]);
+    speed.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect(speed).toHaveAttribute("aria-valuenow", "1");
+    await expect(getComputedStyle(speed).cursor).toBe("pointer");
+    await expect(
+      getComputedStyle(canvas.getByRole("slider", { name: "Speaker volume" }))
+        .cursor,
+    ).toBe("pointer");
   },
 };
 
