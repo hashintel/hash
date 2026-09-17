@@ -470,7 +470,7 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
   },
 );
 
-test("shows one extended audio settings section at a time and labels voice actions", async () => {
+test("shows voice and device settings together and refreshes devices when opened", async () => {
   const refreshDevices = vi.fn();
   render(
     <VoiceDock
@@ -525,8 +525,9 @@ test("shows one extended audio settings section at a time and labels voice actio
       await screen.findByRole("slider", { name: "Speaker volume" })
     ).getAttribute("aria-valuenow"),
   ).toBe("65");
-  fireEvent.click(screen.getByRole("button", { name: /^Voice/ }));
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Audio devices" })).toBeNull();
   expect(screen.getByText("Saved for next session.")).not.toBeNull();
   expect(
     screen.queryByText(
@@ -535,8 +536,6 @@ test("shows one extended audio settings section at a time and labels voice actio
   ).toBeNull();
   expect(screen.queryByRole("slider", { name: "Speaking speed" })).toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: /^Audio devices/ }));
-  expect(screen.queryByRole("combobox", { name: "Voice" })).toBeNull();
   expect(refreshDevices).toHaveBeenCalledOnce();
   expect(screen.getByRole("combobox", { name: "Microphone" }).textContent).toBe(
     "System default",
@@ -556,6 +555,12 @@ test("shows one extended audio settings section at a time and labels voice actio
       .getByText("Allow microphone access to list devices.")
       .getAttribute("role"),
   ).toBe("status");
+  fireEvent.click(screen.getByRole("button", { name: "Refresh devices" }));
+  expect(refreshDevices).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(refreshDevices).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(refreshDevices).toHaveBeenCalledTimes(3);
 });
 
 describe("AiAssistantContents", () => {

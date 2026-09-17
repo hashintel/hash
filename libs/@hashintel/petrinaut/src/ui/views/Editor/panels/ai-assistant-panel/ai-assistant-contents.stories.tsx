@@ -716,15 +716,15 @@ export const ExtendedAudioSettings: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Audio options" }),
     );
-    const voiceSection = await canvas.findByRole("button", {
-      name: /^Voice & speed/,
-    });
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-    );
-    const volume = canvas.getByRole("slider", { name: "Speaker volume" });
-    const volumeBefore = position(volume);
-    await userEvent.click(voiceSection);
+    await expect(
+      await canvas.findByRole("combobox", { name: "Microphone" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaker" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: /^Voice|^Audio devices/ }),
+    ).not.toBeInTheDocument();
     await expect(
       canvas.getByText("Saved for next session."),
     ).toBeInTheDocument();
@@ -736,7 +736,6 @@ export const ExtendedAudioSettings: Story = {
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
-    await expect(position(volume)).toEqual(volumeBefore);
     await expect(positions()).toEqual(beforeOpen);
     await expect(
       dockButtons
@@ -783,11 +782,8 @@ export const AudioSettingsUnavailableDevices: Story = {
     await userEvent.click(
       canvas.getByRole("button", { name: "Audio options" }),
     );
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /^Audio devices/ }),
-    );
     await expect(
-      canvas.getByText(
+      await canvas.findByText(
         "Microphone permission is needed to list audio devices.",
       ),
     ).toBeInTheDocument();

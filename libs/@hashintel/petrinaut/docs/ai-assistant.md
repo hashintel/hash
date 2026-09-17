@@ -148,10 +148,10 @@ paused. Changing volume does not unmute the speaker, and unmuting restores its
 retained volume. Realtime remembers **Interruption by speaking** in this browser.
 
 When the host provides extended audio settings, Audio options also contains
-collapsed **Voice** (or **Voice & speed**, when supported) and **Audio devices**
-sections. Only one section opens at a time. The panel keeps a stable size as
-sections open and scrolls when needed. Voice warnings appear after Audio options
-in the dock.
+**Voice**, speaking speed when supported, and **Audio devices**, all shown
+without expanding sections. The panel fits its content and scrolls when it
+exceeds the available screen height. Opening Audio options refreshes the device
+list. Voice warnings appear after Audio options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.

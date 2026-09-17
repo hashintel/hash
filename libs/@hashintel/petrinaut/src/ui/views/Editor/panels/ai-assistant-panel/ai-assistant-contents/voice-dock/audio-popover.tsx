@@ -16,22 +16,13 @@ const popoverStyle = css({
   backgroundColor: "neutral.s00",
 });
 
-const popoverBodyStyle = cva({
-  base: {
-    margin: "[0 !important]",
-    padding: "[8px !important]",
-    boxShadow: "[none !important]",
-    maxHeight: "[min(520px, var(--available-height, 70vh))]",
-    overflowY: "auto",
-  },
-  variants: {
-    extended: {
-      true: {
-        height: "[min(448px, 70vh)]",
-        scrollbarGutter: "stable",
-      },
-    },
-  },
+const popoverBodyStyle = css({
+  margin: "[0 !important]",
+  padding: "[8px !important]",
+  boxShadow: "[none !important]",
+  maxHeight: "[min(calc(100vh - 32px), var(--available-height, 70vh))]",
+  overflowY: "auto",
+  scrollbarGutter: "stable",
 });
 
 const controlsStyle = css({
@@ -142,7 +133,10 @@ export const AudioPopover = ({
         aria-haspopup="dialog"
         aria-label={voiceSessionActionLabels.audioOptions}
         iconName="sliders"
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        onClick={() => {
+          if (!open && settings) actions.audioSettings?.refreshDevices();
+          setOpen((wasOpen) => !wasOpen);
+        }}
         size="sm"
         tooltip={voiceSessionActionLabels.audioOptions}
         type="button"
@@ -157,12 +151,7 @@ export const AudioPopover = ({
           triggerRef={triggerRef}
         >
           <Popover.Container className={popoverStyle}>
-            <Popover.Body
-              className={popoverBodyStyle({
-                extended: Boolean(settings && actions.audioSettings),
-              })}
-              withPadding={false}
-            >
+            <Popover.Body className={popoverBodyStyle} withPadding={false}>
               <div
                 aria-label={voiceSessionActionLabels.audioControls}
                 className={controlsStyle}
