@@ -430,7 +430,7 @@ async fn resolve_refresh_diagnostic() {
             .await
             .expect("should report the store refresh failure")
             .expect("should retain the diagnostic sender");
-        core::assert_matches!(received.try_recv(), Err(mpsc::error::TryRecvError::Empty));
+        assert_matches!(received.try_recv(), Err(mpsc::error::TryRecvError::Empty));
         assert_eq!(tracing::Span::current().id(), None);
 
         shutdown.cancel();

@@ -98,6 +98,7 @@
 
     // Library Features
     allocator_api,
+    alloc_io,
     arc_is_unique,
     clone_from_ref,
     clone_to_uninit,
@@ -112,6 +113,7 @@
     const_option_ops,
     const_result_trait_fn,
     const_try,
+    core_io,
     exact_size_is_empty,
     file_buffered,
     generic_atomic,
@@ -128,6 +130,7 @@
     ptr_metadata,
     slice_shift,
     step_trait,
+    str_copy_from_str,
     sync_nonpoison,
     time_saturating_systemtime,
     unboxed_closures,

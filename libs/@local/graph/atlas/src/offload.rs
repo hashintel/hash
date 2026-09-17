@@ -157,7 +157,7 @@ fn panic_message(panic: Box<dyn Any + Send>) -> Option<Cow<'static, str>> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use core::{any::Any, slice, time::Duration};
+    use core::{any::Any, assert_matches, slice, time::Duration};
     use std::sync::mpsc;
 
     use tokio::sync::oneshot;
@@ -261,7 +261,7 @@ pub(crate) mod tests {
                     })
                 })
             });
-            core::assert_matches!(
+            assert_matches!(
                 futures::executor::block_on(handle),
                 Err(OffloadError::Panicked(Some(_)))
             );
@@ -321,7 +321,7 @@ pub(crate) mod tests {
             .await
             .expect_err("the panic answers as an error");
 
-        core::assert_matches!(
+        assert_matches!(
             error,
             OffloadError::Panicked(None),
             "a numeric payload has no text to extract"

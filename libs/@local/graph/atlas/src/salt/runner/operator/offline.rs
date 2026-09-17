@@ -2,7 +2,7 @@ use core::panic::UnwindSafe;
 
 use camino::Utf8Path;
 
-use super::{Options, RunError, Summary, resolve, summary};
+use super::{Options, RunError, Summary, resolve};
 use crate::{
     dataset::offline::OfflineDataset, device::PinnedDevice, file::generation::GenerationRoot,
     progress::Progress, salt::runner::run,
@@ -24,7 +24,7 @@ use crate::{
 /// generation run fails, in that order.
 pub(crate) async fn offline<P>(
     dump: &Utf8Path,
-    root: GenerationRoot,
+    root: &GenerationRoot,
     device: PinnedDevice,
     options: Options<P>,
 ) -> Result<Summary, RunError>
@@ -41,11 +41,11 @@ where
         &embedder,
         &resolved.classifier,
         resolved.verdicts.as_ref(),
-        &root,
+        root,
         resolved.runner,
         &options.progress,
     )
     .await?;
 
-    Ok(summary(&outcome))
+    Ok(outcome.into())
 }

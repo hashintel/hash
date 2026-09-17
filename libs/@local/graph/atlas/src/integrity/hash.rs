@@ -45,6 +45,9 @@ pub(crate) struct Sha256Digest(HexBytes<DIGEST_BYTES>);
 crate::dataset::offline::portable::self_archived!(Sha256Digest);
 
 impl Sha256Digest {
+    /// The digest width in bytes.
+    pub(crate) const BYTES: usize = DIGEST_BYTES;
+
     /// Adopts `bytes` as a digest without computing anything.
     ///
     /// The caller asserts that `bytes` came out of a SHA-256 computation over the content this

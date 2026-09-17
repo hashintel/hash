@@ -1,9 +1,8 @@
 //! The SALT generation repository.
 //!
-//! One published SALT generation is a repository. It consists of a fixed set of files plus the
-//! metadata describing what produced them. [`SaltFiles`] names each artifact role, so a generation
-//! either has all of them or is not a generation. Every entry binds a file name to its hash, so a
-//! reader can verify a repository end to end from this value alone.
+//! One published SALT generation consists of artifact files and the metadata describing what
+//! produced them. [`SaltFiles`] names its required and optional artifact roles. Each entry binds a
+//! filename to its hash for end-to-end verification.
 
 use self::metadata::SaltMetadata;
 use super::repository::{Binding, RepositoryFile, RepositoryVersion};
@@ -141,7 +140,7 @@ impl SaltFiles {
     ///
     /// Destructuring keeps the list total: a new role fails compilation here until this method
     /// lists it.
-    pub(crate) fn files(&self) -> impl Iterator<Item = RepositoryFile> {
+    pub(crate) fn files(&self) -> impl Iterator<Item = RepositoryFile> + use<> {
         let Self {
             representations,
             card_embeddings,
