@@ -19,6 +19,7 @@ const shortcutStyle = cva({
       true: {
         display: "flex",
         height: "[1lh]",
+        "[data-selected] & kbd": { backgroundColor: "[transparent]" },
         marginInlineEnd:
           "[calc(var(--selectable-list-item-padding-y) + (1lh - 18px) / 2 - var(--selectable-list-item-padding-x))]",
       },
