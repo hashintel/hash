@@ -208,7 +208,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                         }
                         ariaExpanded={isAiAssistantOpen}
                       >
-                        <AiAssistantIcon size={20} />
+                        <AiAssistantIcon
+                          size={22}
+                          className={css({ transform: "[translateY(-1px)]" })}
+                        />
                       </ToolbarButton>
                     </>
                   )}
