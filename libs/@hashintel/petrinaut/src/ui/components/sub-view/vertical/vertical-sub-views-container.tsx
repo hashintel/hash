@@ -246,6 +246,13 @@ const mainHeaderRowStyle = css({
     "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
 });
 
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flexShrink: 0,
+});
+
 const headerActionVisibleStyle = css({
   /** Constrain height so buttons don't grow the header */
   maxHeight: "[44px]",
@@ -536,30 +543,34 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         </span>
       </div>
     )}
-    {(isExpanded || alwaysShowHeaderAction) &&
-      (renderHeaderAction || onExpand) && (
-        <div
-          {...(!alwaysShowHeaderAction && { "data-header-action": true })}
-          className={
-            alwaysShowHeaderAction
-              ? headerActionVisibleStyle
-              : headerActionStyle
-          }
-        >
-          {isExpanded && onExpand && (
-            <Button
-              size="xs"
-              variant="ghost"
-              iconName="expand"
-              data-expand-subview
-              aria-label={`Expand ${title}`}
-              tooltip="Fill panel"
-              onClick={onExpand}
-            />
-          )}
-          {renderHeaderAction?.()}
-        </div>
-      )}
+    {(onExpand ||
+      ((isExpanded || alwaysShowHeaderAction) && renderHeaderAction)) && (
+      <div className={headerActionsStyle}>
+        {onExpand && (
+          <Button
+            size="sm"
+            variant="ghost"
+            iconName="expand"
+            data-expand-subview
+            aria-label={`Expand ${title}`}
+            tooltip="Fill panel"
+            onClick={onExpand}
+          />
+        )}
+        {(isExpanded || alwaysShowHeaderAction) && renderHeaderAction && (
+          <div
+            {...(!alwaysShowHeaderAction && { "data-header-action": true })}
+            className={
+              alwaysShowHeaderAction
+                ? headerActionVisibleStyle
+                : headerActionStyle
+            }
+          >
+            {renderHeaderAction()}
+          </div>
+        )}
+      </div>
+    )}
   </div>
 );
 

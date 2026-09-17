@@ -35,6 +35,8 @@ Click **View type** or **View equation** to open the assigned definition. These 
 
 The **State** and **Visualizer** section headers have visible expand arrows. Click a header to expand its content and drag the divider to give it more room. The Visualizer switch remains available while its section is collapsed.
 
+Code sections always show their **Fill panel** action, including while collapsed. Use it to open the editor directly in the full panel; returning restores the section's previous collapsed or open state.
+
 ## Top bar
 
 Spans the full editor width and has three sections.

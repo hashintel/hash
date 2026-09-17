@@ -26,3 +26,5 @@ Let the fullscreen simulation breadcrumb return to the list beside the selected 
 Keep parameter constraint editors inline without visible scrollbars.
 
 Keep the bottom toolbar above surrounding panels while hovered.
+
+Keep code-section expand actions visible while collapsed, with larger icons and more spacing beside header toggles.
