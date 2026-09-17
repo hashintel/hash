@@ -5,7 +5,7 @@ use core::marker::Destruct;
 use ::serde::{Deserialize, Serialize};
 
 #[cfg(feature = "serde")]
-use crate::serde::{deserialize_optional_cow, serialize_extensions};
+use crate::serde::{deserialize_optional_cow, serialize_extensions, serialize_status};
 
 /// An empty object for problem types without extensions.
 #[derive(Debug, Clone, Copy)]
@@ -57,6 +57,10 @@ pub struct ProblemDetails<'a, E = NoExtensions> {
     pub title: Cow<'a, str>,
 
     /// The HTTP status code sent with this occurrence.
+    #[cfg_attr(
+        any(feature = "serde", feature = "schemars"),
+        serde(serialize_with = "serialize_status")
+    )]
     #[cfg_attr(
         feature = "schemars",
         schemars(range(min = 100, max = 599), example = 403)

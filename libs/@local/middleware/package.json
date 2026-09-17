@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:*",
-    "@rust/error-stack": "workspace:*"
+    "@rust/error-stack": "workspace:*",
+    "@rust/problematic": "workspace:*"
   }
 }

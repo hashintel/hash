@@ -16,5 +16,8 @@
     "@rust/hash-graph-authorization": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
     "@rust/hash-middleware": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/problematic": "workspace:*"
   }
 }

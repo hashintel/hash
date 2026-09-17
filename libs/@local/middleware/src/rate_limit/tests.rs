@@ -9,7 +9,11 @@ use core::{
 
 use axum::{Router, body::Body, extract::ConnectInfo, response::Response, routing::get};
 use error_stack::Report;
-use http::{Request, StatusCode};
+use http::{
+    Request, StatusCode,
+    header::{CONTENT_TYPE, RETRY_AFTER},
+};
+use serde_json::{Value, json};
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
@@ -193,6 +197,14 @@ async fn send(router: &Router, request: Request<Body>) -> Response {
         .oneshot(request)
         .await
         .expect("the router should respond")
+}
+
+async fn response_json(response: Response) -> Value {
+    assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+    let body = axum::body::to_bytes(response.into_body(), 1024)
+        .await
+        .expect("the response body should be readable");
+    serde_json::from_slice(&body).expect("the response body should be JSON")
 }
 
 #[tokio::test]
@@ -406,9 +418,20 @@ async fn anonymous_requests_draw_from_their_address_budget() {
         send(&router, request(client)).await.status(),
         StatusCode::OK
     );
+    let denied = send(&router, request(client)).await;
+    assert_eq!(denied.status(), StatusCode::TOO_MANY_REQUESTS);
+    let retry_after = header(&denied, "retry-after")
+        .expect("the denial should include Retry-After")
+        .parse::<u64>()
+        .expect("the retry delay should be whole seconds");
+    assert!((1..=3600).contains(&retry_after));
     assert_eq!(
-        send(&router, request(client)).await.status(),
-        StatusCode::TOO_MANY_REQUESTS
+        response_json(denied).await,
+        json!({
+            "type": "about:blank",
+            "title": "Too Many Requests",
+            "status": 429,
+        })
     );
     assert_eq!(
         send(&router, request(address("192.0.2.2"))).await.status(),
@@ -427,6 +450,15 @@ async fn route_without_authentication_fails_loudly() {
         response.status(),
         StatusCode::INTERNAL_SERVER_ERROR,
         "a wiring mistake should fail loudly rather than skip the budget"
+    );
+    assert!(!response.headers().contains_key(RETRY_AFTER));
+    assert_eq!(
+        response_json(response).await,
+        json!({
+            "type": "about:blank",
+            "title": "Internal Server Error",
+            "status": 500,
+        })
     );
     assert_eq!(
         recorded.counter(

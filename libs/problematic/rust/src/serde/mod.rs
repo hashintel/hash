@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer};
 
 mod serialization;
 
-pub(crate) use self::serialization::serialize_extensions;
+pub(crate) use self::serialization::{serialize_extensions, serialize_status};
 
 // Serde enables borrowing for a direct Cow field, but not for Cow nested inside Option.
 #[derive(Deserialize)]

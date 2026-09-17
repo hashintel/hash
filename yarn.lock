@@ -15246,6 +15246,7 @@ __metadata:
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-middleware": "workspace:*"
+    "@rust/problematic": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -15432,6 +15433,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:*"
     "@rust/error-stack": "workspace:*"
+    "@rust/problematic": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -15563,7 +15565,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/problematic@workspace:libs/problematic/rust":
+"@rust/problematic@workspace:*, @rust/problematic@workspace:libs/problematic/rust":
   version: 0.0.0-use.local
   resolution: "@rust/problematic@workspace:libs/problematic/rust"
   dependencies:

@@ -56,7 +56,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "lint:eslint": {
@@ -111,7 +112,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "lint:tsc": {
@@ -163,7 +165,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "test:unit": {
@@ -218,7 +221,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     }
   }
