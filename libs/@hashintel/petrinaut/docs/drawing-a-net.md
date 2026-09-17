@@ -27,7 +27,7 @@ The toolbar blurs the canvas behind it. Chromium browsers also show a refractive
 
 ## Properties panel
 
-Select an entity to inspect its properties. Places use the same Name and Description fields as transitions and types.
+Select an entity to inspect its properties. Subtle lines separate section headers from their content. Places use the same Name and Description fields as transitions and types.
 
 Place settings include an **Options** section for **Component port**, **Token capacity**, and **Default starting place**. Click a checkbox or its label to toggle the setting. Enabling Token capacity expands a compact **Maximum tokens** row beneath it. Point at the info icons for an explanation of each option.
 

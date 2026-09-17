@@ -33,6 +33,7 @@ const scenarioInfoStyle = css({
   color: "neutral.s100",
   fontStyle: "italic",
   paddingY: "2",
+  paddingInlineEnd: "2",
 });
 
 /**

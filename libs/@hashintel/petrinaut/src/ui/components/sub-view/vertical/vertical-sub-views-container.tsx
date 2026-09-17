@@ -220,8 +220,7 @@ const headerRowStyle = cva({
     alignItems: "center",
 
     borderBottomWidth: "thin",
-    borderBottomColor:
-      "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
+    borderBottomColor: "neutral.a20",
   },
   variants: {
     isCollapsed: {
@@ -242,8 +241,7 @@ const mainHeaderRowStyle = css({
   alignItems: "center",
 
   borderBottomWidth: "thin",
-  borderBottomColor:
-    "[var(--petrinaut-panel-divider-color, {colors.neutral.a20})]",
+  borderBottomColor: "neutral.a20",
 });
 
 const headerActionsStyle = css({
