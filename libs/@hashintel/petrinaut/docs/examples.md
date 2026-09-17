@@ -164,6 +164,8 @@ All other places start empty. "Start Production" will immediately consume a raw 
 
 An orbital mechanics simulation: satellites are continuously launched into orbit around a central body and can collide with each other or crash into the planet, becoming debris.
 
+**Space** is the default starting place, so it is pre-selected when configuring a new scenario's initial tokens.
+
 **Demonstrates:**
 
 - **Continuous dynamics** -- a gravitational ODE computes acceleration and updates each satellite's position (`x`, `y`) and motion (`direction`, `velocity`) every step.
