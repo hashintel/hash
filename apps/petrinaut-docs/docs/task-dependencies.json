@@ -6,17 +6,9 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@local/petrinaut-arch-docs#doc:architecture",
         "sync:bundle"
       ],
-      "env": [
-        "PETRINAUT_ARCH_DOCS_DIFF_BASE",
-        "VERCEL_GIT_COMMIT_REF",
-        "VERCEL_GIT_COMMIT_SHA",
-        "VERCEL_GIT_PULL_REQUEST_ID",
-        "VERCEL_GIT_REPO_OWNER",
-        "VERCEL_GIT_REPO_SLUG"
-      ]
+      "cache": false
     },
     "dev": {
       "dependsOn": [
