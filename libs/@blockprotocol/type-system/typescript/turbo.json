@@ -6,6 +6,14 @@
     },
     "codegen": {
       "dependsOn": ["type-system#build:types", "type-system#build:wasm"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["types/index.snap.d.ts", "pkg/type-system.d.ts"],
+          "from": ["type-system#build:types", "type-system#build:wasm"]
+        }
+      ],
       "outputs": ["src/generated/**"]
     },
     "build": {

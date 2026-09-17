@@ -6,7 +6,15 @@
       "outputs": ["./dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["harpc-wire-protocol#build:cli"]
+      "dependsOn": ["harpc-wire-protocol#build:cli"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["./dist/release/codec"],
+          "from": ["harpc-wire-protocol#build:cli"]
+        }
+      ]
     }
   }
 }
