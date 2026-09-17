@@ -128,7 +128,11 @@ mod tests {
     use hash_middleware::{
         authentication::provider::StaticAuthenticationProvider, rate_limit::IpGateLayer,
     };
-    use http::{Request, StatusCode};
+    use http::{
+        Request, StatusCode,
+        header::{CONTENT_TYPE, RETRY_AFTER},
+    };
+    use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::ActorId;
 
@@ -290,9 +294,8 @@ mod tests {
         assert_eq!(converted.rate_limit_actor_burst, non_zero(16));
     }
 
-    /// A denied request carries the client message alone.
     #[tokio::test]
-    async fn denied_bodies_carry_the_client_message() {
+    async fn gate_denial_response() {
         let limiters =
             RateLimiters::start(&(&config(1)).into(), &opentelemetry::global::meter("test"));
         let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
@@ -312,18 +315,19 @@ mod tests {
         );
         let denied = send(&router, request_to("/entities", client)).await;
         assert_eq!(denied.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(denied.headers()[CONTENT_TYPE], "application/problem+json");
+        assert_eq!(denied.headers()[RETRY_AFTER], "1");
 
-        let expected = serde_json::to_vec(&serde_json::json!({
-            "message": "rate limit exceeded",
-        }))
-        .expect("the error document should serialize");
         let body = axum::body::to_bytes(denied.into_body(), 1024)
             .await
             .expect("the response body should be readable");
         assert_eq!(
-            body.as_ref(),
-            expected.as_slice(),
-            "the denied body should carry the client message alone"
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Too Many Requests",
+                "status": 429,
+            })
         );
     }
 }

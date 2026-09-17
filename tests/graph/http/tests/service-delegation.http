@@ -14,10 +14,18 @@ X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the service credential", function() {
+  client.test("problem response", function() {
     client.assert(
-      response.body.message === "service credential is invalid",
-      "Response message is not the client-safe text"
+      response.headers.valueOf("content-type") === "application/problem+json",
+      "Response content type is not application/problem+json"
+    );
+    client.assert(response.body.type === "about:blank", "Unexpected problem type");
+    client.assert(response.body.status === response.status, "Problem status differs from HTTP status");
+  });
+  client.test("detail names the service credential", function() {
+    client.assert(
+      response.body.detail === "service credential is invalid",
+      "Response detail is not the client-safe text"
     );
   });
 %}
@@ -52,10 +60,10 @@ Content-Type: application/json
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the delegated actor", function() {
+  client.test("detail names the delegated actor", function() {
     client.assert(
-      response.body.message === "the service credential carries no delegated actor",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "the service credential carries no delegated actor",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -70,10 +78,10 @@ X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the missing credential", function() {
+  client.test("detail names the missing credential", function() {
     client.assert(
-      response.body.message === "no credentials provided",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "no credentials provided",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -92,10 +100,10 @@ X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the missing credential", function() {
+  client.test("detail names the missing credential", function() {
     client.assert(
-      response.body.message === "no credentials provided",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "no credentials provided",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -114,10 +122,10 @@ X-Authenticated-User-Actor-Id: 11111111-1111-1111-1111-111111111111
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the invalid credential", function() {
+  client.test("detail names the invalid credential", function() {
     client.assert(
-      response.body.message === "service credential is invalid",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "service credential is invalid",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -140,10 +148,10 @@ Authorization: <omit>
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the missing credential", function() {
+  client.test("detail names the missing credential", function() {
     client.assert(
-      response.body.message === "the request requires the service credential",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "the request requires the service credential",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -156,10 +164,10 @@ Authorization: HASH-Service hash-svc-wrong
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message names the invalid credential", function() {
+  client.test("detail names the invalid credential", function() {
     client.assert(
-      response.body.message === "service credential is invalid",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "service credential is invalid",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}

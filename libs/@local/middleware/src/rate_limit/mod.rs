@@ -13,11 +13,12 @@
 //!
 //! [`AuthenticationLayer`]: crate::authentication::AuthenticationLayer
 //!
-//! A request over its budget receives `429 Too Many Requests` with `Retry-After` in
-//! [`RateLimitMode::Enforce`], the default, and is served unchanged in
-//! [`RateLimitMode::Observe`]. `Retry-After` is the whole client-facing contract: a served
-//! response says nothing about the budget it crossed, and what enforcement would have done is
-//! read from the `would_deny` outcome of the decisions metric instead.
+//! A request over its budget receives `429 Too Many Requests` with an `application/problem+json`
+//! body and `Retry-After` in [`RateLimitMode::Enforce`], the default. The problem type is
+//! `about:blank`, and `Retry-After` gives the delay in seconds before retrying. HASH treats
+//! replacing `about:blank` with a specific problem type URI as a non-breaking API change.
+//! In [`RateLimitMode::Observe`], requests are served unchanged; the `would_deny` outcome of the
+//! decisions metric records requests that enforcement would have denied.
 //!
 //! Every budget decision, unchecked pass, address fallback, and maintenance run is counted on
 //! the meter the state is built with, and the keys each limiter store holds are gauged. Denials
@@ -37,10 +38,7 @@ use alloc::sync::Arc;
 use core::{fmt, future, num::NonZero, task, time::Duration};
 use std::sync::LazyLock;
 
-use axum::{
-    body::Body,
-    response::{IntoResponse, Response},
-};
+use axum::response::{IntoResponse, Response};
 use futures::{TryFutureExt as _, future::Either};
 use governor::{
     Quota, RateLimiter,
@@ -48,21 +46,19 @@ use governor::{
     middleware::NoOpMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
-use http::{
-    HeaderValue,
-    header::{CONTENT_TYPE, RETRY_AFTER},
-};
+use http::{HeaderValue, StatusCode, header::RETRY_AFTER};
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Histogram, Meter},
 };
+use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
 pub use self::config::{ClientIpSource, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
-    response::{error_body, error_response},
+    response::{problem_response, problem_response_body, status_problem},
 };
 
 /// How often replenished keys are evicted.
@@ -293,16 +289,26 @@ pub struct TooManyRequests {
     pub retry_after: NonZero<u64>,
 }
 
+impl Problem for TooManyRequests {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        status_problem(StatusCode::TOO_MANY_REQUESTS)
+    }
+}
+
 impl IntoResponse for TooManyRequests {
     fn into_response(self) -> Response {
-        static BODY: LazyLock<&'static [u8]> =
-            LazyLock::new(|| error_body("rate limit exceeded").leak());
+        static BODY: LazyLock<&'static [u8]> = LazyLock::new(|| {
+            serde_json::to_vec(&status_problem(StatusCode::TOO_MANY_REQUESTS))
+                .expect("the status problem's static fields should serialize")
+                .leak()
+        });
 
-        let mut response = Response::new(Body::from(*BODY));
-        *response.status_mut() = http::StatusCode::TOO_MANY_REQUESTS;
-        let headers = response.headers_mut();
-        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        headers.insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
+        let mut response = problem_response_body(StatusCode::TOO_MANY_REQUESTS, *BODY);
+        response
+            .headers_mut()
+            .insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
         response
     }
 }
@@ -325,14 +331,22 @@ impl From<TooManyRequests> for RateLimitRejection {
     }
 }
 
+impl Problem for RateLimitRejection {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        match self {
+            Self::TooManyRequests(too_many_requests) => too_many_requests.details(),
+            Self::InternalError => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+}
+
 impl IntoResponse for RateLimitRejection {
     fn into_response(self) -> Response {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.into_response(),
-            Self::InternalError => error_response(
-                http::StatusCode::INTERNAL_SERVER_ERROR,
-                "internal server error",
-            ),
+            Self::InternalError => problem_response(&self.details()),
         }
     }
 }

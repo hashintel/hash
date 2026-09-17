@@ -9,6 +9,7 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
+problematic = { workspace = true, public = true, features = ["serde"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies

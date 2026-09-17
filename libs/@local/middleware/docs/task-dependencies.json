@@ -2,7 +2,8 @@
   "package": "@rust/hash-middleware",
   "dependencies": [
     "@blockprotocol/type-system-rs",
-    "@rust/error-stack"
+    "@rust/error-stack",
+    "@rust/problematic"
   ],
   "tasks": {
     "doc:dependency-diagram": {

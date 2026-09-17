@@ -59,7 +59,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "build:docker": {
@@ -108,7 +109,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "dev": {
@@ -164,7 +166,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "fix:eslint": {
@@ -219,7 +222,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "lint:eslint": {
@@ -277,7 +281,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "lint:tsc": {
@@ -331,7 +336,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "petrinaut:dev": {
@@ -387,7 +393,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "start": {
@@ -439,7 +446,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "start:healthcheck": {
@@ -495,7 +503,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "start:test:healthcheck": {
@@ -550,7 +559,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "test:integration": {
@@ -608,7 +618,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "test:unit": {
@@ -666,7 +677,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     }
   }

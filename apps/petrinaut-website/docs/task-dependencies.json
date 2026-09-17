@@ -173,7 +173,8 @@
         "@rust/hashql-hir",
         "@rust/hashql-macros",
         "@rust/hashql-mir",
-        "@rust/hashql-syntax-jexpr"
+        "@rust/hashql-syntax-jexpr",
+        "@rust/problematic"
       ]
     },
     "test:unit": {

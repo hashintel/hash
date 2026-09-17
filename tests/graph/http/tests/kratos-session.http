@@ -139,10 +139,10 @@ X-Session-Token: {{session_token}}
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message", function() {
+  client.test("detail", function() {
     client.assert(
-      response.body.message === "no credentials provided",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "no credentials provided",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -172,8 +172,8 @@ X-Session-Token: invalid-session-token
   });
   client.test("invalid session degrades to anonymous", function() {
     client.assert(
-      response.body.message === "no credentials provided",
-      `Unexpected message: ${response.body.message}`
+      response.body.detail === "no credentials provided",
+      `Unexpected detail: ${response.body.detail}`
     );
   });
 %}
@@ -252,10 +252,10 @@ X-Session-Token: {{unprovisioned_session_token}}
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message carries no identifier", function() {
+  client.test("detail carries no identifier", function() {
     client.assert(
-      response.body.message === "identity has no Graph actor provisioned",
-      "Response message is not the client-safe text"
+      response.body.detail === "identity has no Graph actor provisioned",
+      "Response detail is not the client-safe text"
     );
   });
 %}
@@ -325,10 +325,10 @@ X-Session-Token: {{unknown_actor_session_token}}
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("message carries no identifier", function() {
+  client.test("detail carries no identifier", function() {
     client.assert(
-      response.body.message === "actor does not exist",
-      "Response message is not the client-safe text"
+      response.body.detail === "actor does not exist",
+      "Response detail is not the client-safe text"
     );
   });
 %}

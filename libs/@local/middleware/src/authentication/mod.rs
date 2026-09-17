@@ -12,6 +12,12 @@
 //! failure: a verified service credential that names no delegated actor. Every other rejection
 //! still fails the request. Routes that take no actor at all use [`ServiceSecretLayer`]
 //! instead.
+//!
+//! Rejections return Problem Details with the `application/problem+json` content type.
+//! The type is `about:blank`, the title is the HTTP status phrase, and `detail` carries the
+//! client-safe explanation when available. HASH treats replacing `about:blank` with a specific
+//! problem type URI as a non-breaking API change. Clients should handle unrecognized problem
+//! types using the HTTP status code.
 
 pub mod provider;
 pub mod request;
@@ -37,6 +43,7 @@ use opentelemetry::{
     metrics::{Counter, Meter},
 };
 use opentelemetry_semantic_conventions::attribute::HTTP_RESPONSE_STATUS_CODE;
+use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorId;
 
 use self::{
@@ -44,7 +51,7 @@ use self::{
     request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
     service_secret::{presents_service_secret, service_credential},
 };
-use crate::response::error_response;
+use crate::response::{problem_response, status_problem};
 
 /// How a request proceeded although its credential resolution failed.
 #[derive(Copy, Clone)]
@@ -137,18 +144,20 @@ pub enum AuthenticationRejection {
     Misconfigured,
 }
 
+impl Problem for AuthenticationRejection {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        match self {
+            Self::Authentication { report, .. } => report.current_context().details(),
+            Self::Misconfigured => status_problem(http::StatusCode::INTERNAL_SERVER_ERROR),
+        }
+    }
+}
+
 impl IntoResponse for AuthenticationRejection {
     fn into_response(self) -> Response {
-        match &self {
-            Self::Authentication { report, .. } => {
-                let error = report.current_context();
-                error_response(error.status_code(), error.kind().client_message())
-            }
-            Self::Misconfigured => error_response(
-                http::StatusCode::INTERNAL_SERVER_ERROR,
-                "internal server error",
-            ),
-        }
+        problem_response(&self.details())
     }
 }
 
@@ -596,9 +605,10 @@ mod tests {
     use alloc::sync::Arc;
     use core::{future::Future, marker::PhantomData, ops::ControlFlow, sync::atomic::AtomicBool};
 
-    use axum::{Router, body::Body, routing::get};
+    use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
-    use http::{HeaderMap, Request, StatusCode};
+    use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
+    use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
@@ -751,6 +761,19 @@ mod tests {
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Unauthorized",
+                "status": 401,
+                "detail": "no credentials provided",
+            })
+        );
     }
 
     #[tokio::test]
@@ -1257,6 +1280,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rejection_private_diagnostics() {
+        let actor_id = ActorEntityUuid::new(Uuid::new_v4());
+        let cases = [
+            (
+                AuthenticationError::not_provisioned("private-identity"),
+                "identity has no Graph actor provisioned",
+            ),
+            (
+                AuthenticationError::actor_not_found(actor_id),
+                "actor does not exist",
+            ),
+            (
+                AuthenticationError::not_a_user(actor_id),
+                "actor is not a user actor",
+            ),
+        ];
+
+        for (error, detail) in cases {
+            let rejection = AuthenticationRejection::Authentication {
+                report: Arc::new(Report::new(error).attach("private diagnostic")),
+                metrics: Arc::new(AuthenticationMetrics::new(&noop_meter())),
+                recorded: Arc::new(AtomicBool::new(false)),
+            };
+
+            let response = rejection.into_response();
+            let body = axum::body::to_bytes(response.into_body(), 1024)
+                .await
+                .expect("the response body should be readable");
+
+            assert_eq!(
+                serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+                json!({
+                    "type": "about:blank",
+                    "title": "Unauthorized",
+                    "status": 401,
+                    "detail": detail,
+                }),
+                "the response should omit internal identifiers and report attachments"
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn shared_report_counts_every_request() {
         let recorded = RecordedMetrics::new();
         let router = routes().layer(AuthenticationLayer::<_, ActorId> {
@@ -1304,5 +1370,17 @@ mod tests {
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Internal Server Error",
+                "status": 500,
+            })
+        );
     }
 }

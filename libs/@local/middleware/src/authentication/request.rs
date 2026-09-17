@@ -10,12 +10,16 @@ use core::{
 
 use error_stack::Report;
 use http::{HeaderMap, StatusCode};
+use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::authentication::{
-    AuthenticationMetrics, Degradation,
-    provider::{AuthenticationProvider, Caller},
+use crate::{
+    authentication::{
+        AuthenticationMetrics, Degradation,
+        provider::{AuthenticationProvider, Caller},
+    },
+    response::status_problem,
 };
 
 /// Name of the header carrying an unverified actor ID.
@@ -381,6 +385,14 @@ impl fmt::Display for AuthenticationError {
 }
 
 impl core::error::Error for AuthenticationError {}
+
+impl Problem for AuthenticationError {
+    type Extensions<'a> = NoExtensions;
+
+    fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
+        status_problem(self.status_code()).detail(self.kind.client_message())
+    }
+}
 
 /// Resolves the acting principal from the request headers.
 ///

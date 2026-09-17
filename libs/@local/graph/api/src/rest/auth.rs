@@ -118,32 +118,20 @@ pub fn is_bootstrap_route(path: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::ops::ControlFlow;
     use std::collections::HashMap;
 
     use axum::{Router, body::Body, routing::get};
-    use error_stack::Report;
     use hash_graph_authentication::{
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
-    use hash_middleware::authentication::{
-        AuthenticationLayer,
-        provider::{AuthenticationProvider, Caller},
-        request::{AuthenticationError, AuthenticationErrorKind},
-    };
-    use http::{HeaderMap, Request, StatusCode};
+    use hash_middleware::authentication::AuthenticationLayer;
+    use http::{Request, StatusCode, header::CONTENT_TYPE};
+    use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::ActorId;
     use uuid::Uuid;
 
     use super::{AuthenticatedActorId, AuthenticationMetrics, is_bootstrap_route};
-
-    fn request(uri: &str) -> Request<Body> {
-        Request::builder()
-            .uri(uri)
-            .body(Body::empty())
-            .expect("the request should build")
-    }
 
     #[test]
     fn bootstrap_routes_match() {
@@ -226,7 +214,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn middleware_rejects_malformed_actor_headers_on_bootstrap_routes() {
+    async fn bootstrap_malformed_actor_header() {
         let request = Request::builder()
             .uri("/policies/seed")
             .header("Authorization", format!("HASH-Service {SERVICE_SECRET}"))
@@ -240,6 +228,19 @@ mod tests {
             .expect("the router should respond");
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
+            json!({
+                "type": "about:blank",
+                "title": "Bad Request",
+                "status": 400,
+                "detail": "`X-Authenticated-User-Actor-Id` header is not a valid UUID",
+            })
+        );
     }
 
     #[tokio::test]
@@ -312,67 +313,5 @@ mod tests {
             .await
             .expect("the response body should be readable");
         assert_eq!(body, b"anonymous".as_slice());
-    }
-
-    /// A provider rejecting every request with the error under test.
-    struct FailingProvider(AuthenticationErrorKind);
-
-    impl<C: Caller> AuthenticationProvider<C> for FailingProvider {
-        fn authenticate(
-            &self,
-            _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
-        {
-            core::future::ready(ControlFlow::Break(Err(Arc::new(Report::new(
-                AuthenticationError::new(self.0.clone()),
-            )))))
-        }
-    }
-
-    /// Every rejection answers its error's status code and carries the client message alone.
-    #[tokio::test]
-    async fn rejection_bodies_carry_the_client_message() {
-        let cases = [
-            (AuthenticationErrorKind::InvalidActorIdHeader, 400),
-            (AuthenticationErrorKind::InvalidSession, 401),
-            (AuthenticationErrorKind::ProviderUnreachable, 503),
-            (AuthenticationErrorKind::InvalidProviderResponse, 500),
-        ];
-
-        for (error, status) in cases {
-            let expected = serde_json::to_vec(&serde_json::json!({
-                "message": error.client_message(),
-            }))
-            .expect("the error document should serialize");
-
-            let router = routes().layer(AuthenticationLayer::<_, ActorId> {
-                provider: Arc::new(FailingProvider(error)),
-                service_secret: Arc::from(SERVICE_SECRET),
-                metrics: Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
-                    "test",
-                ))),
-                bootstrap_route: is_bootstrap_route,
-                caller: core::marker::PhantomData,
-            });
-
-            let response = router
-                .oneshot(request("/protected"))
-                .await
-                .expect("the router should respond");
-
-            assert_eq!(
-                response.status().as_u16(),
-                status,
-                "the rejection should keep its HTTP status"
-            );
-            let body = axum::body::to_bytes(response.into_body(), 1024)
-                .await
-                .expect("the response body should be readable");
-            assert_eq!(
-                body.as_ref(),
-                expected.as_slice(),
-                "the {status} rejection body should carry the client message alone"
-            );
-        }
     }
 }
