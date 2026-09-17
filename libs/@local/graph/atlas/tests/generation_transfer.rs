@@ -27,6 +27,21 @@ async fn promotion_stale_writer() {
 }
 
 #[tokio::test]
+async fn promotion_retention_enabled() {
+    Box::pin(test_utils::promotion_retention(true)).await;
+}
+
+#[tokio::test]
+async fn promotion_retention_disabled() {
+    Box::pin(test_utils::promotion_retention(false)).await;
+}
+
+#[tokio::test]
+async fn remove_prefix_batches() {
+    Box::pin(test_utils::remove_prefix_batches()).await;
+}
+
+#[tokio::test]
 async fn download_replacement() {
     Box::pin(test_utils::download_replacement()).await;
 }
