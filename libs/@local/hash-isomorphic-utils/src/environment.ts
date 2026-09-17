@@ -1,10 +1,12 @@
+const browserOrigin = (globalThis as { location?: { origin: string } }).location
+  ?.origin;
+
 export const frontendUrl =
-  typeof window !== "undefined"
-    ? window.location.origin
-    : (process.env.FRONTEND_URL ??
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000"));
+  browserOrigin ??
+  process.env.FRONTEND_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
 
 export const frontendDomain = new URL(frontendUrl).hostname;
 
