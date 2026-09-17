@@ -339,7 +339,19 @@ export const SimulationPanelTitle = ({ title }: { title: string }) => {
                 font: "[inherit]",
                 color: "[inherit]",
                 cursor: "pointer",
-                _hover: { color: "neutral.s120", textDecoration: "underline" },
+                textDecoration: "underline",
+                textDecorationColor: "[transparent]",
+                "[data-simulation-panel][data-animate=true] &": {
+                  transition:
+                    "[color 140ms ease-out, text-decoration-color 140ms ease-out]",
+                  "@media (prefers-reduced-motion: reduce)": {
+                    transition: "[none]",
+                  },
+                },
+                _hover: {
+                  color: "neutral.s120",
+                  textDecorationColor: "[currentColor]",
+                },
                 _focusVisible: {
                   outline: "[1px solid currentColor]",
                   outlineOffset: "[-1px]",
