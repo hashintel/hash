@@ -6,7 +6,7 @@ Restore sidebar typography and property dividers, and keep uncoloured place outl
 
 Show when an experiment is already viewing its best result, with best parameter values matching the sliders.
 
-Use consistent, readable shortcut key labels in menus, tooltips, and the command palette.
+Use consistent, compact shortcut key labels in menus, tooltips, and the command palette.
 
 Give the floating Canvas/Definitions selector a clearer border and blurred background.
 
