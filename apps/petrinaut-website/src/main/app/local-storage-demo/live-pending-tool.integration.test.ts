@@ -286,6 +286,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
     expect(requests.at(2)?.model).toBe(requests.at(1)?.model);
     expect(requests.at(2)?.reasoning).toEqual(requests.at(1)?.reasoning);
     await Promise.all(attempts.map((attempt) => attempt.cancelled));
+    await consumed.catch(() => {});
     const retryToolCallId = attempts.at(1)?.toolCallId;
     const terminalMessage = observedMessages.findLast((message) =>
       message.parts.some(
@@ -330,7 +331,6 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
       { kind: "started", toolCallId: attempts.at(1)?.toolCallId },
       { kind: "cancelled", toolCallId: attempts.at(1)?.toolCallId },
     ]);
-    await consumed.catch(() => {});
 
     const afterFailure = await client.history();
     expect(
