@@ -13,16 +13,23 @@ const selectorStyle = css({
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
   borderRadius: "[6px]",
   backgroundColor: "white.a95",
-  opacity: "[0.8]",
-  _hover: { opacity: "[1]" },
-  _focusWithin: { opacity: "[1]" },
 });
 
 const controlStyle = cva({
   base: {
     "&&": { width: "full", height: "[24px]", boxSizing: "border-box" },
+    // Fade the controls so the blur layer stays fully opaque.
+    opacity: "[0.8]",
+    _hover: { opacity: "[1]" },
+    _focusWithin: { opacity: "[1]" },
   },
   variants: {
+    animated: {
+      true: {
+        transition: "[opacity 150ms ease-in-out]",
+        "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
+      },
+    },
     floating: {
       true: {
         "&&": {
@@ -52,8 +59,7 @@ const placementStyle = cva({
     },
     animated: {
       true: {
-        transition:
-          "[left 150ms ease-in-out, top 150ms ease-in-out, opacity 150ms ease-in-out]",
+        transition: "[left 150ms ease-in-out, top 150ms ease-in-out]",
         "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
       },
     },
@@ -87,7 +93,10 @@ export const EditViewSelector = () => {
       }}
     >
       <SegmentedControl
-        className={controlStyle({ floating: isCanvas })}
+        className={controlStyle({
+          floating: isCanvas,
+          animated: showAnimations,
+        })}
         aria-label="Edit view"
         size="xs"
         value={editViewMode}

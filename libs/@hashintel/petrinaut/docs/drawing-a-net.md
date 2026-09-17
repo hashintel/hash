@@ -72,8 +72,8 @@ Switching modes does not stop background experiments. The active-experiments ind
 In **Edit**, use **Canvas / Definitions** to switch views. On Canvas, the selector
 floats below the main header, beside the Entities sidebar when it is open. Its
 outlined, translucent background blurs the canvas behind it.
-In Definitions, it shares the search and filter toolbar. The compact selector
-becomes fully opaque when hovered or focused. Both views work on
+In Definitions, it shares the search and filter toolbar. The controls
+become fully opaque when hovered or focused. Both views work on
 the same net and share the selected entity.
 Switching between them keeps the canvas position and zoom, and the Definitions view’s
 scroll position, expanded cells, search, and filters.
