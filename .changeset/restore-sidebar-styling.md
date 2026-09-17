@@ -22,3 +22,5 @@ Add Command+Shift+L on Mac and Control+Shift+L on Windows/Linux for auto-layout 
 Animate simulation panels only when opening and closing, keep scenario selection changes immediate, and align drawer forms and section titles with compact spacing below their headers.
 
 Let the fullscreen simulation breadcrumb return to the list beside the selected resource, with a smooth hover highlight.
+
+Keep parameter constraint editors inline without visible scrollbars.

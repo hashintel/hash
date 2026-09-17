@@ -99,7 +99,7 @@ Use arrow keys to move between the form's sections, fields, scenario tables, met
 
 The creation panel opens with **Name** focused. Use **Tab** and **Shift+Tab** to move through fields and actions. Use the arrow keys in dropdowns and radio groups, and **Enter** or **Space** to activate buttons and section toggles.
 
-In metric and constraint code fields, **Tab** moves to the next control. **Enter** adds a line in state conditions and custom metrics. **Escape** dismisses code suggestions first, then returns focus to the metric or constraint row. From an ordinary field or section header, **Escape** closes the panel. The scenario worksheet uses its own [keyboard navigation](ad-hoc-scenarios.md). Removing a row moves focus to the next row, the previous row, or the add button when no rows remain.
+Parameter constraints use a single-line editor without scrollbars; multiline state conditions scroll vertically when needed. In metric and constraint code fields, **Tab** moves to the next control. **Enter** adds a line in state conditions and custom metrics. **Escape** dismisses code suggestions first, then returns focus to the metric or constraint row. From an ordinary field or section header, **Escape** closes the panel. The scenario worksheet uses its own [keyboard navigation](ad-hoc-scenarios.md). Removing a row moves focus to the next row, the previous row, or the add button when no rows remain.
 
 ## Parameter sweeps
 
