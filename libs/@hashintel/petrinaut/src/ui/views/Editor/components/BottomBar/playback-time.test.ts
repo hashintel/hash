@@ -33,33 +33,33 @@ describe("formatPlaybackTimes", () => {
     {
       dt: 1,
       times: { elapsed: 2, total: 5 },
-      printed: { elapsed: "2", total: "5s" },
+      printed: { elapsed: "2", total: "5" },
     },
     {
       dt: 0.5,
       times: { elapsed: 1.5, total: 4.5 },
-      printed: { elapsed: "1.5", total: "4.5s" },
+      printed: { elapsed: "1.5", total: "4.5" },
     },
     // Not a power of ten: bucketing by magnitude printed "1.8" for 1.75.
     {
       dt: 0.25,
       times: { elapsed: 1.75, total: 4.75 },
-      printed: { elapsed: "1.75", total: "4.75s" },
+      printed: { elapsed: "1.75", total: "4.75" },
     },
     {
       dt: 0.01,
       times: { elapsed: 1.75, total: 4.75 },
-      printed: { elapsed: "1.75", total: "4.75s" },
+      printed: { elapsed: "1.75", total: "4.75" },
     },
     {
       dt: 0.025,
       times: { elapsed: 1.75, total: 4.75 },
-      printed: { elapsed: "1.750", total: "4.750s" },
+      printed: { elapsed: "1.750", total: "4.750" },
     },
     {
       dt: 0.001,
       times: { elapsed: 1.75, total: 4.75 },
-      printed: { elapsed: "1.750", total: "4.750s" },
+      printed: { elapsed: "1.750", total: "4.750" },
     },
   ])(
     "prints a run of step $dt at its own precision",
@@ -72,13 +72,13 @@ describe("formatPlaybackTimes", () => {
     // A step of 0.0025 carries four decimals; the readout stops at three.
     expect(
       formatPlaybackTimes({ elapsed: 0.005, total: 0.01 }, 0.0025),
-    ).toEqual({ elapsed: "0.005", total: "0.010s" });
+    ).toEqual({ elapsed: "0.005", total: "0.010" });
   });
 
   it("falls back to milliseconds for a step it cannot read", () => {
     expect(formatPlaybackTimes({ elapsed: 0, total: 0 }, 0)).toEqual({
       elapsed: "0.000",
-      total: "0.000s",
+      total: "0.000",
     });
   });
 });

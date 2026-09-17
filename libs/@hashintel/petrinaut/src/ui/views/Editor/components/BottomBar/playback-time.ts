@@ -52,7 +52,7 @@ const decimalsForStep = (dt: number): number => {
   return MAX_DECIMALS;
 };
 
-/** `elapsed / total` for one run, in seconds, at the run's own precision. */
+/** Elapsed and total seconds at the run's own precision, without units. */
 export const formatPlaybackTimes = (
   { elapsed, total }: PlaybackTimes,
   dt: number,
@@ -60,6 +60,6 @@ export const formatPlaybackTimes = (
   const decimals = decimalsForStep(dt);
   return {
     elapsed: elapsed.toFixed(decimals),
-    total: `${total.toFixed(decimals)}s`,
+    total: total.toFixed(decimals),
   };
 };

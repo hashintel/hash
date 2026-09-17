@@ -109,7 +109,8 @@ The bottom toolbar provides playback controls:
 | **Stop / Reset** | Stop playback and reset to the run start. |
 
 The time readout shows the elapsed simulation time and the run's total
-simulated time, at the precision the run's time step carries.
+simulated time, at the precision the run's time step carries. Both values include
+**s** for seconds: the current time is prominent, with **of** and the total below it.
 The toolbar expands with a quick start and gentle settle to reveal the time readout and scrubber when a run starts.
 
 Playback widens the toolbar, so in a narrow window it keeps Play and folds the
