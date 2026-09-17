@@ -64,9 +64,10 @@ export const KeyboardShortcut = ({
 );
 
 const tooltipLabelStyle = css({
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
   gap: "2",
+  marginInlineEnd: "-1",
 });
 
 export const ShortcutTooltip = ({
