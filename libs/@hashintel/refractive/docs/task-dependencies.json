@@ -25,6 +25,12 @@
     },
     "lint:tsc": {
       "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
     }
   }
 }
