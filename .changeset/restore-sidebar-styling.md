@@ -13,7 +13,7 @@ Give the floating Canvas/Definitions selector a clearer border and a lightly tin
 Keep toolbar folding stable while resizing panels, with eased expansion when playback starts and coordinated panel motion.
 Keep the expanded toolbar from jumping sideways when the bottom panel opens or closes.
 
-Keep refractive toolbar glass on Chromium, with background blur in Firefox and Safari.
+Keep refractive toolbar glass on Chromium, with background blur in Firefox and Safari. Make the AI assistant icon slightly larger in the bottom toolbar.
 
 Enable Petricon by default and remove the Experimental labels from Petricon and Automatic arc connections.
 
