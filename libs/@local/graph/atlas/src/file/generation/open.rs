@@ -51,8 +51,8 @@ impl Generation {
     }
 
     /// Returns the verified metadata and its original JSON encoding.
+    #[cfg(any(test, feature = "test-utils"))]
     #[must_use]
-    #[cfg(test)]
     pub(crate) const fn document(&self) -> &GenerationDocument {
         &self.document
     }

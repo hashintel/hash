@@ -67,6 +67,9 @@ pub struct AtlasServeArgs {
     pub serve: cli::ServeArgs,
 
     #[clap(flatten)]
+    pub s3: cli::S3Args,
+
+    #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
 
     #[clap(flatten)]
@@ -135,6 +138,7 @@ struct AtlasTelemetry {
 }
 
 /// Runs HTTP and retains generation maintenance through listener and request failures.
+#[expect(clippy::significant_drop_tightening, reason = "false-positive")]
 async fn run_atlas(
     args: AtlasServeArgs,
     telemetry: &AtlasTelemetry,
@@ -151,6 +155,11 @@ async fn run_atlas(
     let exclusions = filter_protection.embedding_exclusions().clone();
 
     let service_secret = cli::SecretString::from(args.service_secret);
+
+    let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
+    if let Some(s3) = args.s3.client().await.change_context(GraphError)? {
+        storage.set_s3(s3);
+    }
 
     let pool = Arc::new(
         PostgresStorePool::new(
@@ -183,7 +192,7 @@ async fn run_atlas(
         &telemetry.meter,
     ));
 
-    let serving = cli::ServeCommand::new(args.root, args.serve)
+    let serve = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
             provider,
             service_secret,
@@ -195,15 +204,26 @@ async fn run_atlas(
                 hard: Duration::from_mins(10),
             },
             workflow,
+            storage,
         })
         .change_context(GraphError)?;
 
     let shutdown = lifecycle.shutdown.clone();
-    let (router, maintenance) = serving.into_parts(shutdown.clone().cancelled_owned());
+    let serve_shutdown = shutdown.clone();
+
+    let (router, maintenance, download) =
+        serve.into_parts(move || serve_shutdown.clone().cancelled_owned());
+
     lifecycle.spawn("Atlas generations", async move {
         maintenance.await;
         Ok(())
     });
+    if let Some(download) = download {
+        lifecycle.spawn("Atlas download", async move {
+            download.await;
+            Ok(())
+        });
+    }
 
     let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
         .await
