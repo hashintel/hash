@@ -717,13 +717,13 @@ export const ExtendedAudioSettings: Story = {
       canvas.getByRole("button", { name: "Audio options" }),
     );
     await expect(
-      await canvas.findByRole("combobox", { name: "Microphone" }),
+      await canvas.findByRole("combobox", { name: "Voice" }),
     ).toBeInTheDocument();
     await expect(
-      canvas.getByRole("combobox", { name: "Speaker" }),
-    ).toBeInTheDocument();
+      canvas.queryByRole("combobox", { name: "Microphone" }),
+    ).not.toBeInTheDocument();
     await expect(
-      canvas.queryByRole("button", { name: /^Voice|^Audio devices/ }),
+      canvas.queryByRole("button", { name: /^Voice/ }),
     ).not.toBeInTheDocument();
     await expect(
       canvas.getByText("Saved for next session."),
@@ -750,6 +750,29 @@ export const ExtendedAudioSettings: Story = {
       getComputedStyle(canvas.getByRole("slider", { name: "Speaker volume" }))
         .cursor,
     ).toBe("pointer");
+    const devicesToggle = canvas.getByRole("button", {
+      name: /^Audio devices/,
+    });
+    devicesToggle.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect(devicesToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      canvas.getByRole("combobox", { name: "Microphone" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaker" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Enter}");
+    await expect(devicesToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      canvas.queryByRole("combobox", { name: "Microphone" }),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
   },
 };
 
@@ -781,6 +804,9 @@ export const AudioSettingsUnavailableDevices: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(
       canvas.getByRole("button", { name: "Audio options" }),
+    );
+    await userEvent.click(
+      await canvas.findByRole("button", { name: /^Audio devices/ }),
     );
     await expect(
       await canvas.findByText(

@@ -470,7 +470,7 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
   },
 );
 
-test("shows voice and device settings together and refreshes devices when opened", async () => {
+test("keeps voice visible while toggling devices and refreshes devices when opened", async () => {
   const refreshDevices = vi.fn();
   render(
     <VoiceDock
@@ -527,7 +527,10 @@ test("shows voice and device settings together and refreshes devices when opened
   ).toBe("65");
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Audio devices" })).toBeNull();
+  const devicesToggle = screen.getByRole("button", { name: /^Audio devices/ });
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
   expect(screen.getByText("Saved for next session.")).not.toBeNull();
   expect(
     screen.queryByText(
@@ -537,6 +540,9 @@ test("shows voice and device settings together and refreshes devices when opened
   expect(screen.queryByRole("slider", { name: "Speaking speed" })).toBeNull();
 
   expect(refreshDevices).toHaveBeenCalledOnce();
+  fireEvent.click(devicesToggle);
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(screen.getByRole("combobox", { name: "Microphone" }).textContent).toBe(
     "System default",
   );
@@ -555,12 +561,19 @@ test("shows voice and device settings together and refreshes devices when opened
       .getByText("Allow microphone access to list devices.")
       .getAttribute("role"),
   ).toBe("status");
-  fireEvent.click(screen.getByRole("button", { name: "Refresh devices" }));
-  expect(refreshDevices).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("button", { name: "Refresh devices" })).toBeNull();
+  expect(
+    screen.queryByText("Disconnected devices switch to system default."),
+  ).toBeNull();
+  fireEvent.click(devicesToggle);
+  expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
+  expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  expect(refreshDevices).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledTimes(2);
-  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
-  expect(refreshDevices).toHaveBeenCalledTimes(3);
 });
 
 describe("AiAssistantContents", () => {

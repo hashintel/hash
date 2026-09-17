@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { Button, Select, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -16,11 +16,9 @@ const sectionStyle = css({
   paddingTop: "2",
 });
 const headingStyle = css({
-  margin: "0",
-  padding: "[0 8px]",
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s100",
+  width: "full",
+  textAlign: "left",
+  justifyContent: "space-between",
 });
 const fieldsStyle = css({
   display: "flex",
@@ -57,6 +55,7 @@ export const AudioSettings = ({
   disabled: boolean;
   settings: VoiceAudioSettingsState;
 }) => {
+  const [devicesExpanded, setDevicesExpanded] = useState(false);
   const id = useId();
   const devices = settings.devices;
   const deviceDisabled = disabled || devices.busy;
@@ -101,69 +100,75 @@ export const AudioSettings = ({
         </div>
       </div>
       <div className={sectionStyle}>
-        <h3 className={headingStyle}>Audio devices</h3>
-        <div className={fieldsStyle} aria-busy={devices.busy}>
-          <span id={`${id}-input-label`} className={labelStyle}>
-            Microphone
-          </span>
-          <Select
-            aria-labelledby={`${id}-input-label`}
-            disabled={deviceDisabled}
-            items={[defaultDevice, ...devices.microphones]}
-            value={
-              devices.microphoneId === "" ? "default" : devices.microphoneId
-            }
-            onChange={(deviceId) =>
-              actions.setMicrophoneDevice(
-                deviceId === "default" ? "" : deviceId,
-              )
-            }
-            required
-            size="sm"
-            width="fullWidth"
-          />
-          <span id={`${id}-output-label`} className={labelStyle}>
-            Speaker
-          </span>
-          <Select
-            aria-labelledby={`${id}-output-label`}
-            disabled={deviceDisabled || !devices.canSelectSpeaker}
-            items={[defaultDevice, ...devices.speakers]}
-            value={devices.speakerId === "" ? "default" : devices.speakerId}
-            onChange={(deviceId) =>
-              actions.setSpeakerDevice(deviceId === "default" ? "" : deviceId)
-            }
-            required
-            size="sm"
-            width="fullWidth"
-          />
-          {!devices.canSelectSpeaker && (
-            <span className={helpStyle}>
-              System default — change output in your system settings.
-            </span>
-          )}
-          {devices.canRequestSpeaker && (
-            <Button
-              disabled={deviceDisabled}
-              onClick={actions.requestSpeaker}
-              size="sm"
-              variant="ghost"
-            >
-              Choose another speaker…
-            </Button>
-          )}
-          <Button
-            disabled={deviceDisabled}
-            onClick={actions.refreshDevices}
-            size="sm"
-            variant="ghost"
+        <Button
+          className={headingStyle}
+          aria-expanded={devicesExpanded}
+          aria-controls={`${id}-devices`}
+          iconName={devicesExpanded ? "chevronDown" : "chevronRight"}
+          iconPosition="right"
+          onClick={() => setDevicesExpanded((expanded) => !expanded)}
+          size="sm"
+          variant="ghost"
+        >
+          Audio devices
+        </Button>
+        {devicesExpanded && (
+          <div
+            id={`${id}-devices`}
+            className={fieldsStyle}
+            aria-busy={devices.busy}
           >
-            Refresh devices
-          </Button>
-          <span className={helpStyle}>
-            Disconnected devices switch to system default.
-          </span>
-        </div>
+            <span id={`${id}-input-label`} className={labelStyle}>
+              Microphone
+            </span>
+            <Select
+              aria-labelledby={`${id}-input-label`}
+              disabled={deviceDisabled}
+              items={[defaultDevice, ...devices.microphones]}
+              value={
+                devices.microphoneId === "" ? "default" : devices.microphoneId
+              }
+              onChange={(deviceId) =>
+                actions.setMicrophoneDevice(
+                  deviceId === "default" ? "" : deviceId,
+                )
+              }
+              required
+              size="sm"
+              width="fullWidth"
+            />
+            <span id={`${id}-output-label`} className={labelStyle}>
+              Speaker
+            </span>
+            <Select
+              aria-labelledby={`${id}-output-label`}
+              disabled={deviceDisabled || !devices.canSelectSpeaker}
+              items={[defaultDevice, ...devices.speakers]}
+              value={devices.speakerId === "" ? "default" : devices.speakerId}
+              onChange={(deviceId) =>
+                actions.setSpeakerDevice(deviceId === "default" ? "" : deviceId)
+              }
+              required
+              size="sm"
+              width="fullWidth"
+            />
+            {!devices.canSelectSpeaker && (
+              <span className={helpStyle}>
+                System default — change output in your system settings.
+              </span>
+            )}
+            {devices.canRequestSpeaker && (
+              <Button
+                disabled={deviceDisabled}
+                onClick={actions.requestSpeaker}
+                size="sm"
+                variant="ghost"
+              >
+                Choose another speaker…
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {devices.message && (
         <p className={helpStyle} role="status">

@@ -148,8 +148,8 @@ paused. Changing volume does not unmute the speaker, and unmuting restores its
 retained volume. Realtime remembers **Interruption by speaking** in this browser.
 
 When the host provides extended audio settings, Audio options also contains
-**Voice**, speaking speed when supported, and **Audio devices**, all shown
-without expanding sections. The panel fits its content and scrolls when it
+**Voice** and speaking speed when supported, always visible. **Audio devices**
+starts collapsed; expand it to choose a microphone or speaker. The panel fits its content and scrolls when it
 exceeds the available screen height. Opening Audio options refreshes the device
 list. Voice warnings appear after Audio options in the dock.
 
@@ -166,7 +166,7 @@ list. Voice warnings appear after Audio options in the dock.
 - Device selection depends on browser support and permission. If speaker
   selection is unsupported, use your system's output settings. **Choose another
   speaker…** requests permission where supported. After granting microphone
-  access or connecting a missing device, use **Refresh devices** to retry.
+  access or connecting a missing device, reopen Audio options to refresh the list.
   If recovery fails, check the message in Audio options or continue in text.
 
 Volume affects app output, not microphone gain. These settings do not add a
