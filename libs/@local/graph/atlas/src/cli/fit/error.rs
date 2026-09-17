@@ -2,7 +2,8 @@ use core::{error::Error, fmt};
 use std::io;
 
 use crate::{
-    cli::embedder::EmbedderError, file::generation::upload::UploadError,
+    cli::embedder::EmbedderError,
+    file::generation::{DownloadError, UploadError},
     salt::runner::operator::RunError,
 };
 
@@ -17,14 +18,16 @@ enum FitErrorKind {
     Io(io::Error),
     /// Uploading the results failed.
     Upload(UploadError),
+    /// Acquiring the prior generation failed.
+    Download(DownloadError),
     /// Serializing the admission report failed.
     Serialize(serde_json::Error),
 }
 
 /// A failure to prepare, fit or publish a generation.
 ///
-/// Embedder and run failures retain their underlying display and source. Report and upload failures
-/// use a step-specific message.
+/// Embedder and run failures retain their underlying display and source. Acquisition, report and
+/// upload failures use a step-specific message.
 #[derive(Debug)]
 pub struct FitError(Box<FitErrorKind>);
 
@@ -35,6 +38,7 @@ impl fmt::Display for FitError {
             FitErrorKind::Run(error) => fmt::Display::fmt(error, fmt),
             FitErrorKind::Io(_) => fmt.write_str("the admission report could not be written"),
             FitErrorKind::Upload(_) => fmt.write_str("uploading the results failed"),
+            FitErrorKind::Download(_) => fmt.write_str("downloading the prior generation failed"),
             FitErrorKind::Serialize(_) => fmt.write_str("serializing the admission report failed"),
         }
     }
@@ -47,6 +51,7 @@ impl Error for FitError {
             FitErrorKind::Run(error) => error.source(),
             FitErrorKind::Io(error) => Some(error),
             FitErrorKind::Upload(error) => Some(error),
+            FitErrorKind::Download(error) => Some(error),
             FitErrorKind::Serialize(error) => Some(error),
         }
     }
@@ -55,6 +60,12 @@ impl Error for FitError {
 impl From<UploadError> for FitError {
     fn from(value: UploadError) -> Self {
         Self(Box::new(FitErrorKind::Upload(value)))
+    }
+}
+
+impl From<DownloadError> for FitError {
+    fn from(value: DownloadError) -> Self {
+        Self(Box::new(FitErrorKind::Download(value)))
     }
 }
 

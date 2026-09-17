@@ -4,6 +4,7 @@
 //! Runtime maintenance can consume that pointer through the same path as a local fit. Acquisition
 //! preserves the received metadata bytes because their digest is the generation identity.
 
+use alloc::borrow::Cow;
 use core::{pin::pin, time::Duration};
 use std::fs;
 
@@ -12,7 +13,6 @@ use tokio::{
     time::MissedTickBehavior,
 };
 
-use self::backend::GenerationDownloadBackend;
 use super::{
     ActivateError, GenerationDocument, GenerationId, GenerationRoot, SealError, StagedGeneration,
     remote::RemoteRoot,
@@ -27,7 +27,7 @@ mod error;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::error::DownloadError;
+pub(crate) use self::{backend::GenerationDownloadBackend, error::DownloadError};
 
 /// Polling cadence for acquiring source generations.
 pub(crate) struct DownloadOptions {
@@ -40,27 +40,53 @@ pub(crate) struct DownloadOptions {
 /// Completed downloads preserve the original metadata encoding. Local reuse verifies the complete
 /// publication before activation. After successful synchronization, an unchanged remote identity
 /// needs only a local pointer and directory check. Published contents must remain immutable.
-pub(crate) struct Download<B> {
+pub(crate) struct Download<'path, B> {
     backend: B,
-    root: GenerationRoot,
-    source: FilePath,
+    root: Cow<'path, GenerationRoot>,
+    source: Cow<'path, FilePath>,
     synchronized: Option<GenerationId>,
 }
 
-impl<B> Download<B>
-where
-    B: GenerationDownloadBackend,
-{
+impl<'path, B> Download<'path, B> {
     /// Configures acquisition from the parent of the remote `generations/` namespace.
-    pub(crate) const fn new(backend: B, root: GenerationRoot, source: FilePath) -> Self {
+    pub(crate) const fn new(
+        backend: B,
+        root: &'path GenerationRoot,
+        source: &'path FilePath,
+    ) -> Self {
         Self {
             backend,
-            root,
-            source,
+            root: Cow::Borrowed(root),
+            source: Cow::Borrowed(source),
             synchronized: None,
         }
     }
 
+    /// Retains the source and root paths independently of their original owners.
+    ///
+    /// Clones borrowed paths and preserves the backend and synchronization state.
+    pub(crate) fn into_owned(self) -> Download<'static, B> {
+        Download {
+            source: Cow::Owned(self.source.into_owned()),
+            root: Cow::Owned(self.root.into_owned()),
+            backend: self.backend,
+            synchronized: self.synchronized,
+        }
+    }
+
+    /// Transfers the downloader and polling options into an unstarted task.
+    pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<'path, B> {
+        DownloadTask {
+            download: self,
+            options,
+        }
+    }
+}
+
+impl<B> Download<'_, B>
+where
+    B: GenerationDownloadBackend,
+{
     /// Reads the remote selection, returning [`None`] when its pointer is absent.
     ///
     /// # Errors
@@ -163,7 +189,7 @@ where
 
         let document = self.download_document(id, &active).await?;
 
-        let root = self.root.clone();
+        let root = self.root.clone().into_owned();
         let staging = tokio::task::spawn_blocking(move || root.stage()).await??;
 
         for file in document.repository().files.files() {
@@ -181,7 +207,7 @@ where
             }
         }
 
-        let root = self.root.clone();
+        let root = self.root.clone().into_owned();
         tokio::task::spawn_blocking(move || {
             match staging.import(&document) {
                 Ok(_) | Err(SealError::AlreadyPublished(_)) => {}
@@ -214,7 +240,7 @@ where
         };
 
         if self.synchronized == Some(id) {
-            let root = self.root.clone();
+            let root = self.root.clone().into_owned();
 
             // both the current-pointer read and directory lookup perform blocking filesystem
             // I/O.
@@ -238,7 +264,7 @@ where
             }
         }
 
-        let root = self.root.clone();
+        let root = self.root.clone().into_owned();
         match tokio::task::spawn_blocking(move || root.activate_verified(id)).await? {
             Ok(()) => {}
             Err(ActivateError::Unpublished(_)) => self.acquire(id).await?,
@@ -285,23 +311,15 @@ where
             }
         }
     }
-
-    /// Transfers the downloader and polling options into an unstarted task.
-    pub(crate) const fn into_task(self, options: DownloadOptions) -> DownloadTask<B> {
-        DownloadTask {
-            download: self,
-            options,
-        }
-    }
 }
 
 /// Periodic generation synchronization that finishes active work before shutdown.
-pub(crate) struct DownloadTask<B> {
-    download: Download<B>,
+pub(crate) struct DownloadTask<'path, B> {
+    download: Download<'path, B>,
     options: DownloadOptions,
 }
 
-impl<B> DownloadTask<B> {
+impl<B> DownloadTask<'_, B> {
     /// Polls the source until shutdown and finishes any active synchronization.
     ///
     /// # Panics
@@ -313,5 +331,15 @@ impl<B> DownloadTask<B> {
     {
         // boxing the download loop avoids the host's layout-query depth overflow.
         Box::pin(self.download.run(self.options, shutdown)).await;
+    }
+
+    /// Retains the polling task independently of its borrowed paths.
+    ///
+    /// The backend keeps its existing ownership and lifetime.
+    pub(crate) fn into_owned(self) -> DownloadTask<'static, B> {
+        DownloadTask {
+            download: self.download.into_owned(),
+            options: self.options,
+        }
     }
 }

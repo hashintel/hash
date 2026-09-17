@@ -5,19 +5,18 @@ use core::pin::pin;
 use bytes::Bytes;
 use tokio::io::AsyncReadExt as _;
 
-use self::backend::GenerationUploadBackend;
 use super::{Generation, GenerationId, GenerationRoot, remote::RemoteRoot};
 use crate::{
     file::storage::{Revision, WriteCondition, error::StorageError, path::FilePath},
     integrity::{Sha256, Sha256Digest, Writer},
 };
 
-pub(crate) mod backend;
+mod backend;
 mod error;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use self::error::UploadError;
+pub(crate) use self::{backend::GenerationUploadBackend, error::UploadError};
 
 /// Retention settings applied after a confirmed promotion.
 #[derive(Debug)]
