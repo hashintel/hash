@@ -2,6 +2,7 @@
   "package": "hash-middleware",
   "dependencies": [
     "error-stack",
+    "problematic",
     "type-system"
   ],
   "tasks": {

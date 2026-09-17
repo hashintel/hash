@@ -5,6 +5,7 @@
     "hash-graph-authorization",
     "hash-graph-store",
     "hash-middleware",
+    "problematic",
     "type-system"
   ],
   "tasks": {
