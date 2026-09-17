@@ -2,7 +2,6 @@ import { use, useEffect, useRef } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { refractive } from "@hashintel/refractive";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
@@ -32,6 +31,8 @@ const glassPanelStyle = css({
   backgroundColor: "white.a95",
   borderWidth: "thin",
   borderColor: "neutral.a50",
+  borderRadius: "[8px]",
+  backdropFilter: "[blur(3px)]",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
   // Named rather than `all`, which would animate the width a folding group
   // changes and take twice as long doing it as the group itself.
@@ -179,15 +180,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           }}
         >
           {/* Edition tools segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
+          <div className={glassPanelStyle}>
             <div className={toolbarContainerStyle}>
               <CursorModeDropdown
                 editionMode={editionMode}
@@ -227,18 +220,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 </CollapsibleGroup>
               )}
             </div>
-          </refractive.div>
+          </div>
 
           {/* Playback segment */}
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 8,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
+          <div className={glassPanelStyle}>
             <div className={toolbarContainerStyle}>
               <ToolbarButton
                 tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
@@ -266,7 +251,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 </>
               )}
             </div>
-          </refractive.div>
+          </div>
         </BottomBarCollapseContext>
       </div>
     </div>

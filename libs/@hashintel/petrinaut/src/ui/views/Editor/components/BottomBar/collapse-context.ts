@@ -4,8 +4,8 @@ import { createContext } from "react";
 export interface CollapsibleGroupWidth {
   /** What this group takes when its controls are shown. */
   readonly natural: number;
-  /** Width removed from the group's footprint by folding — 0 while fully shown. */
-  readonly hidden: number;
+  /** Occupied width, including intermediate frames when controls appear or disappear. */
+  readonly rendered: number;
 }
 
 export interface BottomBarCollapseValue {

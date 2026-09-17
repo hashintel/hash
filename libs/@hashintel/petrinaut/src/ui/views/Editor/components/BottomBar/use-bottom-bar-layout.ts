@@ -28,8 +28,8 @@ export interface BottomBarLayout {
  * room for every control.
  *
  * The bar is measured rather than modelled: its own width is what the offset
- * clamps, and each collapsible group reports both what it takes when shown and
- * what it is currently hiding, so the decision never chases itself.
+ * clamps, and each collapsible group reports its natural and occupied widths,
+ * so the fit calculation stays stable throughout the animation.
  *
  * Whether the hidden controls are on screen is not decided here at all: hover,
  * keyboard focus and an open menu reveal them in CSS, which cannot go stale
@@ -73,7 +73,7 @@ export const useBottomBarLayout = (
         if (
           current &&
           current.natural === width.natural &&
-          current.hidden === width.hidden
+          current.rendered === width.rendered
         ) {
           return previous;
         }
@@ -98,7 +98,7 @@ export const useBottomBarLayout = (
   let hiddenWidth = 0;
   let collapsibleWidth = 0;
   for (const width of groupWidths.values()) {
-    hiddenWidth += width.hidden;
+    hiddenWidth += width.natural - width.rendered;
     collapsibleWidth += width.natural;
   }
 

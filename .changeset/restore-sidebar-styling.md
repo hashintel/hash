@@ -10,4 +10,4 @@ Use consistent, readable shortcut key labels in menus, tooltips, and the command
 
 Give the floating Canvas/Definitions selector a clearer border and blurred background.
 
-Keep toolbar folding stable while resizing panels.
+Keep toolbar folding stable while resizing panels, with smoother expansion when playback starts.

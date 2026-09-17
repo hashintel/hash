@@ -221,7 +221,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     <>
       {/* Stop button - only visible when simulation exists */}
       {hasSimulation && (
-        <CollapsibleGroup>
+        <CollapsibleGroup animateEntry>
           <ToolbarButton
             tooltip="Stop simulation"
             onClick={handleReset}
