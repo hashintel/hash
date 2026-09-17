@@ -6,7 +6,7 @@ Restore sidebar typography and property dividers, and keep uncoloured place outl
 
 Show when an experiment is already viewing its best result, with best parameter values matching the sliders.
 
-Use consistent, compact shortcut key labels in menus, tooltips, and the command palette, with selected menu keycaps matching their row background. Clarify elapsed and total playback times with seconds on both values.
+Use consistent, compact shortcut key labels in menus, tooltips, and the command palette, with selected menu keycaps and borders matching their row tint. Clarify elapsed and total playback times with seconds on both values.
 
 Give the floating Canvas/Definitions selector a clearer border and a lightly tinted, blurred background, and keep it aligned during manual sidebar resizing.
 
