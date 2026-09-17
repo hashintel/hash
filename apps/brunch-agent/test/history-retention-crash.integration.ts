@@ -171,6 +171,8 @@ const assertRevision = (
   assert.deepEqual(
     tool.output,
     {
+      disposition: "applied",
+      applied: true,
       ...pointer,
       mutation: {
         baseRevisionId: previous?.revisionId ?? null,

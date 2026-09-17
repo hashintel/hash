@@ -34,6 +34,8 @@ test("the built agent settles a revision over the mounted route", () => {
       toolName: "mutate_workpiece",
       state: "output-available",
       output: {
+        disposition: "applied",
+        applied: true,
         revisionId: "settled-revision",
         sha256: markdownSha256,
         ordinal: 1,

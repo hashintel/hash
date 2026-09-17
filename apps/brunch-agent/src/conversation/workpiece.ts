@@ -36,6 +36,7 @@ const settledRevisionFromPart = (
   );
   const output = v.safeParse(updateWorkpieceOutputSchema, part.output);
   if (!input.success || !output.success) return undefined;
+  if (output.output.disposition === "refused") return undefined;
 
   const { markdown } = input.output;
   const {

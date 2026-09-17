@@ -35,7 +35,20 @@ let current: WorkpieceRevision | null;
 const setRevision: StateSetter<WorkpieceRevision | null> = (next) => {
   current = typeof next === "function" ? next(current) : next;
 };
-const tool = createMutateWorkpieceTool(setRevision);
+const tool = createMutateWorkpieceTool(setRevision, {
+  get currentRevision() {
+    return current;
+  },
+  readSources: async () => [],
+});
+const runContext = {
+  log: { info: () => {}, warn: () => {}, error: () => {} },
+  step: {
+    do: () => {
+      throw new Error("State writes must not use a separate step checkpoint");
+    },
+  },
+} as const;
 const run = (
   markdown: string,
   toolCallId = "actual-tool-call",
@@ -49,13 +62,59 @@ const run = (
       baseRevisionId,
     } as Parameters<typeof tool.run>[0]["data"],
     toolCallId,
-    log: { info: () => {}, warn: () => {}, error: () => {} },
-    step: {
-      do: () => {
-        throw new Error("State writes must not use a separate step checkpoint");
-      },
-    },
+    ...runContext,
   });
+const revisionPointer = (revision: WorkpieceRevision | null) =>
+  revision === null
+    ? null
+    : {
+        revisionId: revision.revisionId,
+        sha256: revision.sha256,
+        ordinal: revision.ordinal,
+      };
+const expectAppliedOutput = (output: unknown) => {
+  expect(output).toMatchObject({
+    disposition: "applied",
+    applied: true,
+  });
+};
+const expectRefusedResult = async (
+  attempt:
+    | Promise<{ output: unknown; terminate?: boolean }>
+    | { output: unknown; terminate?: boolean },
+  expected: {
+    code:
+      | "concurrent-revision"
+      | "evidence-invalid"
+      | "replay-conflict"
+      | "retraction-invalid"
+      | "silent-shrink"
+      | "stale-base";
+    message: RegExp;
+    currentRevision: ReturnType<typeof revisionPointer>;
+  },
+) => {
+  const result = await attempt;
+  expect(result.terminate).toBe(false);
+  if (
+    typeof result.output !== "object" ||
+    result.output === null ||
+    !("message" in result.output) ||
+    typeof result.output.message !== "string"
+  ) {
+    throw new Error("expected a refused mutate_workpiece message");
+  }
+  const { message, ...refusedFields } = result.output;
+  expect(refusedFields).toEqual({
+    disposition: "refused",
+    applied: false,
+    correctable: true,
+    code: expected.code,
+    currentRevision: expected.currentRevision,
+  });
+  expect(message).toMatch(expected.message);
+  return result;
+};
 
 beforeEach(() => {
   current = null;
@@ -67,6 +126,8 @@ test("returns revisionId equal to toolCallId and sha256 of the Markdown", async 
   const result = await run(markdown);
   expect(result).toEqual({
     output: {
+      disposition: "applied",
+      applied: true,
       revisionId: "actual-tool-call",
       sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
       ordinal: 1,
@@ -74,11 +135,15 @@ test("returns revisionId equal to toolCallId and sha256 of the Markdown", async 
     },
     terminate: false,
   });
-  const { mutation: _mutation, ...pointer } = result.output;
-  expect(current).toEqual({ ...pointer, markdown });
+  expect(current).toEqual({
+    revisionId: "actual-tool-call",
+    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    ordinal: 1,
+    markdown,
+  });
 });
 
-test("accepts retained pointer-only update output", () => {
+test("accepts retained pointer-only update output as applied", () => {
   expect(
     v.parse(updateWorkpieceOutputSchema, {
       revisionId: "retained-call",
@@ -86,9 +151,31 @@ test("accepts retained pointer-only update output", () => {
       ordinal: 1,
     }),
   ).toEqual({
+    disposition: "applied",
+    applied: true,
     revisionId: "retained-call",
     sha256: "a".repeat(64),
     ordinal: 1,
+  });
+});
+
+test("accepts a typed refused update output", () => {
+  expect(
+    v.parse(updateWorkpieceOutputSchema, {
+      disposition: "refused",
+      applied: false,
+      correctable: true,
+      code: "silent-shrink",
+      message: "Nothing was written",
+      currentRevision: null,
+    }),
+  ).toEqual({
+    disposition: "refused",
+    applied: false,
+    correctable: true,
+    code: "silent-shrink",
+    message: "Nothing was written",
+    currentRevision: null,
   });
 });
 
@@ -101,23 +188,25 @@ test("persists Markdown with the pointer", async () => {
     [{ text: "Second", messageIds: [], kind: "default" }],
     "first",
   );
-  const { mutation: _mutation, ...pointer } = result.output;
+  expectAppliedOutput(result.output);
   const evidence = [
     { locator: { start: 11, end: 17 }, messageIds: [], kind: "default" },
   ];
-  expect(pointer).toMatchObject({ evidence, evidenceValidated: true });
+  expect(result.output).toMatchObject({ evidence, evidenceValidated: true });
   expect(current).toEqual({
-    ...pointer,
+    revisionId: "second",
+    sha256: createHash("sha256").update(markdown, "utf8").digest("hex"),
+    ordinal: 2,
     markdown,
     evidence,
     evidenceValidated: true,
   });
-  expect(result.output.ordinal).toBe(2);
+  expect(result.output).toMatchObject({ ordinal: 2 });
   expect(tool.durable).toBe(true);
   const beforeReplay = current;
-  expect(
-    (await run(markdown, "second", undefined, "second")).output.ordinal,
-  ).toBe(2);
+  expect(await run(markdown, "second", undefined, "second")).toMatchObject({
+    output: { disposition: "applied", applied: true, ordinal: 2 },
+  });
   expect(current).toBe(beforeReplay);
   expect(current?.evidence).toEqual(evidence);
 });
@@ -130,16 +219,25 @@ test("records the exact changed window and refuses a stale cited base", async ()
     undefined,
     "first",
   );
-  expect(second.output.mutation).toMatchObject({
-    baseRevisionId: "first",
-    beforeSha256: first.output.sha256,
-    afterSha256: second.output.sha256,
-    removed: { utf16Length: 0 },
-    inserted: { utf16Length: "changed ".length },
+  expectAppliedOutput(first.output);
+  expectAppliedOutput(second.output);
+  expect(second.output).toMatchObject({
+    mutation: {
+      baseRevisionId: "first",
+      beforeSha256: (first.output as { sha256: string }).sha256,
+      afterSha256: (second.output as { sha256: string }).sha256,
+      removed: { utf16Length: 0 },
+      inserted: { utf16Length: "changed ".length },
+    },
   });
-  await expect(
+  await expectRefusedResult(
     run("# Account\n\nStale change.", "third", undefined, "first"),
-  ).rejects.toThrow(/baseRevisionId/u);
+    {
+      code: "stale-base",
+      message: /baseRevisionId/u,
+      currentRevision: revisionPointer(current),
+    },
+  );
   expect(current).toMatchObject({
     revisionId: "second",
     ordinal: 2,
@@ -155,26 +253,35 @@ test("refuses a revision that silently drops an existing heading", async () => {
   );
   const before = current;
 
-  await expect(
+  await expectRefusedResult(
     run(
       "# Account\n\n## Purpose\n\nExplain the system.",
       "collapsed",
       undefined,
       "base",
     ),
-  ).rejects.toThrow(
-    /missing heading.*## Evidence.*character delta.*Nothing was written/iu,
+    {
+      code: "silent-shrink",
+      message:
+        /missing heading.*## Evidence.*character delta.*Nothing was written/iu,
+      currentRevision: revisionPointer(before),
+    },
   );
   expect(current).toBe(before);
 
-  await expect(
+  await expectRefusedResult(
     run(
       "# Account\n\n## Purpose\n\nExplain the system.\n\n## Findings\n\nOne source.",
       "renamed",
       undefined,
       "base",
     ),
-  ).rejects.toThrow(/missing heading.*## Evidence.*character delta: 0/iu);
+    {
+      code: "silent-shrink",
+      message: /missing heading.*## Evidence.*character delta: 0/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -183,14 +290,19 @@ test("refuses a same-length Setext heading rename", async () => {
   await run(beforeMarkdown, "setext-base");
   const before = current;
 
-  await expect(
+  await expectRefusedResult(
     run(
       beforeMarkdown.replace("Section", "Finding"),
       "setext-rename",
       undefined,
       "setext-base",
     ),
-  ).rejects.toThrow(/missing heading.*## Section.*character delta: 0/iu);
+    {
+      code: "silent-shrink",
+      message: /missing heading.*## Section.*character delta: 0/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -214,7 +326,12 @@ test("does not treat hash-prefixed lines inside fenced code as headings", async 
       "base",
     ),
   ).resolves.toMatchObject({
-    output: { revisionId: "code-edit", ordinal: 2 },
+    output: {
+      disposition: "applied",
+      applied: true,
+      revisionId: "code-edit",
+      ordinal: 2,
+    },
   });
 });
 
@@ -223,10 +340,13 @@ test("refuses a revision that silently drops more than 25% of its content", asyn
   await run(`${heading}${"a".repeat(120)}`, "base");
   const before = current;
 
-  await expect(
+  await expectRefusedResult(
     run(`${heading}${"a".repeat(60)}`, "collapsed", undefined, "base"),
-  ).rejects.toThrow(
-    /more than 25%.*character delta: -60.*Nothing was written/iu,
+    {
+      code: "silent-shrink",
+      message: /more than 25%.*character delta: -60.*Nothing was written/iu,
+      currentRevision: revisionPointer(before),
+    },
   );
   expect(current).toBe(before);
 });
@@ -237,7 +357,12 @@ test("allows an unannounced edit at the 25% shrink boundary", async () => {
   await expect(
     run(`# A\n${"a".repeat(71)}`, "bounded-edit", undefined, "base"),
   ).resolves.toMatchObject({
-    output: { revisionId: "bounded-edit", ordinal: 2 },
+    output: {
+      disposition: "applied",
+      applied: true,
+      revisionId: "bounded-edit",
+      ordinal: 2,
+    },
   });
 });
 
@@ -258,7 +383,7 @@ test("does not accept a free-text retraction without an authorized true-user sou
     ],
   });
 
-  await expect(
+  await expectRefusedResult(
     guarded.run({
       data: {
         baseRevisionId: "base",
@@ -271,14 +396,14 @@ test("does not accept a free-text retraction without an authorized true-user sou
         },
       },
       toolCallId: "unauthorized-retraction",
-      log: { info: () => {}, warn: () => {}, error: () => {} },
-      step: {
-        do: () => {
-          throw new Error("No separate state checkpoint");
-        },
-      },
+      ...runContext,
     }),
-  ).rejects.toThrow(/Retraction.*authorized true-user source/iu);
+    {
+      code: "retraction-invalid",
+      message: /Retraction.*authorized true-user source/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -320,6 +445,8 @@ test("settles and records a retraction authorized by a true-user source", async 
   });
 
   expect(result.output).toMatchObject({
+    disposition: "applied",
+    applied: true,
     revisionId: "authorized-retraction",
     ordinal: 2,
     retraction,
@@ -348,7 +475,7 @@ test("does not accept a retraction linked to unrelated true-user text", async ()
     ],
   });
 
-  await expect(
+  await expectRefusedResult(
     guarded.run({
       data: {
         baseRevisionId: "base",
@@ -361,14 +488,14 @@ test("does not accept a retraction linked to unrelated true-user text", async ()
         },
       },
       toolCallId: "unrelated-retraction",
-      log: { info: () => {}, warn: () => {}, error: () => {} },
-      step: {
-        do: () => {
-          throw new Error("No separate state checkpoint");
-        },
-      },
+      ...runContext,
     }),
-  ).rejects.toThrow(/authorization text.*withdrawn material/iu);
+    {
+      code: "retraction-invalid",
+      message: /authorization text.*withdrawn material/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -389,7 +516,7 @@ test("does not let a size-loss retraction remove material other than its named e
     ],
   });
 
-  await expect(
+  await expectRefusedResult(
     guarded.run({
       data: {
         baseRevisionId: "base",
@@ -402,14 +529,14 @@ test("does not let a size-loss retraction remove material other than its named e
         },
       },
       toolCallId: "misapplied-retraction",
-      log: { info: () => {}, warn: () => {}, error: () => {} },
-      step: {
-        do: () => {
-          throw new Error("No separate state checkpoint");
-        },
-      },
+      ...runContext,
     }),
-  ).rejects.toThrow(/removedText.*actually removed/iu);
+    {
+      code: "retraction-invalid",
+      message: /removedText.*actually removed/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -431,7 +558,7 @@ test("does not let a small declared retraction cover a larger unrelated loss", a
     ],
   });
 
-  await expect(
+  await expectRefusedResult(
     guarded.run({
       data: {
         baseRevisionId: "base",
@@ -444,14 +571,14 @@ test("does not let a small declared retraction cover a larger unrelated loss", a
         },
       },
       toolCallId: "underdeclared-retraction",
-      log: { info: () => {}, warn: () => {}, error: () => {} },
-      step: {
-        do: () => {
-          throw new Error("No separate state checkpoint");
-        },
-      },
+      ...runContext,
     }),
-  ).rejects.toThrow(/accounts for .* removed characters/iu);
+    {
+      code: "retraction-invalid",
+      message: /accounts for .* removed characters/iu,
+      currentRevision: revisionPointer(before),
+    },
+  );
   expect(current).toBe(before);
 });
 
@@ -473,13 +600,20 @@ test("replays an already-applied mutation without replacing its settled state", 
   await expect(
     run("# First", "replayed", undefined, null),
   ).resolves.toMatchObject({
-    output: { revisionId: "replayed", ordinal: 1 },
+    output: {
+      disposition: "applied",
+      applied: true,
+      revisionId: "replayed",
+      ordinal: 1,
+    },
   });
   expect(current).toBe(beforeReplay);
 
-  await expect(run("# Altered", "replayed", undefined, null)).rejects.toThrow(
-    /replay.*different Markdown/iu,
-  );
+  await expectRefusedResult(run("# Altered", "replayed", undefined, null), {
+    code: "replay-conflict",
+    message: /replay.*different Markdown/iu,
+    currentRevision: revisionPointer(beforeReplay),
+  });
   expect(current).toBe(beforeReplay);
 });
 
@@ -564,6 +698,11 @@ test("captures the persistent-state setter at render and writes from run", async
     "each true-user message is prefixed with a `[message <id>]` line",
   );
   expect(revisionTool?.description).toContain(
+    "Inspect `disposition`; after `refused`, correct the named problem and resubmit a separate call rather than treating it as a tool error.",
+  );
+  expect(prompt).toContain("inspect `disposition`");
+  expect(elicitationSkill.instructions).toContain("Inspect `disposition`");
+  expect(revisionTool?.description).toContain(
     "Declare evidence by literal text copied from this submitted Markdown",
   );
   expect(revisionTool?.description).toContain("no read precedes a settlement");
@@ -636,20 +775,21 @@ test("rejects unstructured or unauthorized evidence before writing state", async
   await expect(
     run("# Current", "bad-evidence", { value: Infinity }),
   ).rejects.toThrow(/array/iu);
-  await expect(
+  expect(current).toBeNull();
+  await expectRefusedResult(
     run("# Current", "bad-source", [
       { text: "# Current", kind: "elicited", messageIds: ["not-authorized"] },
     ]),
-  ).rejects.toThrow("authorized true-user");
+    {
+      code: "evidence-invalid",
+      message: /authorized true-user/u,
+      currentRevision: null,
+    },
+  );
   expect(current).toBeNull();
 });
 
-test.each([
-  "carried-source",
-  "later-explicit-span",
-  "cancellation",
-  "state-drift",
-] as const)(
+test.each(["carried-source", "later-explicit-span", "state-drift"] as const)(
   "refuses %s atomically while carrying overlapping relations",
   async (failure) => {
     const markdown = "# Account\nReserve one crew.";
@@ -675,11 +815,9 @@ test.each([
     };
     current = previous;
     let expectedState = previous;
-    const controller = new AbortController();
     const guarded = createMutateWorkpieceTool(setRevision, {
       currentRevision: previous,
       readSources: async () => {
-        if (failure === "cancellation") controller.abort();
         if (failure === "state-drift") {
           expectedState = { ...previous, revisionId: "concurrent", ordinal: 2 };
           current = expectedState;
@@ -700,44 +838,104 @@ test.each([
         ];
       },
     });
-    await expect(
-      guarded.run({
-        data: {
-          baseRevisionId: "previous",
-          markdown: `${markdown}\nUnrelated context.`,
-          ...(failure === "later-explicit-span"
-            ? {
-                evidence: [
-                  {
-                    text: "Reserve one crew.",
-                    messageIds: ["user-1"],
-                    kind: "elicited",
-                  },
-                  {
-                    text: "Not in this Markdown.",
-                    messageIds: ["user-2"],
-                    kind: "formalism-constraint",
-                  },
-                ],
-              }
-            : {}),
-        },
-        toolCallId: "refused-carry",
-        signal: controller.signal,
-        log: { info: () => {}, warn: () => {}, error: () => {} },
-        step: {
-          do: () => {
-            throw new Error("No separate state checkpoint");
-          },
-        },
-      }),
-    ).rejects.toThrow(
-      /authorized true-user|must occur exactly once|abort|baseRevisionId|changed while this revision was prepared/iu,
-    );
+    const attempt = guarded.run({
+      data: {
+        baseRevisionId: "previous",
+        markdown: `${markdown}\nUnrelated context.`,
+        ...(failure === "later-explicit-span"
+          ? {
+              evidence: [
+                {
+                  text: "Reserve one crew.",
+                  messageIds: ["user-1"],
+                  kind: "elicited",
+                },
+                {
+                  text: "Not in this Markdown.",
+                  messageIds: ["user-2"],
+                  kind: "formalism-constraint",
+                },
+              ],
+            }
+          : {}),
+      },
+      toolCallId: "refused-carry",
+      ...runContext,
+    });
+    await expectRefusedResult(attempt, {
+      code: failure === "state-drift" ? "stale-base" : "evidence-invalid",
+      message:
+        failure === "carried-source"
+          ? /authorized true-user/iu
+          : failure === "later-explicit-span"
+            ? /must occur exactly once/iu
+            : /baseRevisionId|changed while this revision was prepared/iu,
+      currentRevision: revisionPointer(expectedState),
+    });
     expect(current).toBe(expectedState);
     expect(current.evidence).toEqual(evidence);
   },
 );
+
+test("rejects cancellation atomically while carrying overlapping relations", async () => {
+  const markdown = "# Account\nReserve one crew.";
+  const locator = { start: 10, end: markdown.length };
+  const evidence = [
+    {
+      locator,
+      messageIds: ["user-1"],
+      kind: "elicited" as const,
+    },
+    {
+      locator,
+      messageIds: ["user-2"],
+      kind: "formalism-constraint" as const,
+    },
+  ];
+  const previous: WorkpieceRevision = {
+    revisionId: "previous",
+    sha256: createHash("sha256").update(markdown).digest("hex"),
+    ordinal: 1,
+    markdown,
+    evidence,
+    evidenceValidated: true,
+  };
+  current = previous;
+  const controller = new AbortController();
+  const guarded = createMutateWorkpieceTool(setRevision, {
+    currentRevision: previous,
+    readSources: async () => {
+      controller.abort();
+      return [
+        {
+          id: "user-1",
+          role: "user",
+          purpose: "user",
+          text: "Reserve one crew.",
+        },
+        {
+          id: "user-2",
+          role: "user",
+          purpose: "user",
+          text: "Second source",
+        },
+      ];
+    },
+  });
+  await expect(
+    guarded.run({
+      data: {
+        baseRevisionId: "previous",
+        markdown: `${markdown}\nUnrelated context.`,
+      },
+      toolCallId: "cancelled-carry",
+      signal: controller.signal,
+      ...runContext,
+    }),
+  ).rejects.toThrow(/abort/iu);
+  expect(current).toBe(previous);
+  expect(current.evidence).toEqual(evidence);
+});
 
 test("refuses an evidence-absent revision when another update wins first", async () => {
   const previous: WorkpieceRevision = {
@@ -754,19 +952,55 @@ test("refuses an evidence-absent revision when another update wins first", async
       return [];
     },
   });
-  await expect(
+  await expectRefusedResult(
     guarded.run({
       data: { markdown: "# Candidate", baseRevisionId: "previous" },
       toolCallId: "candidate",
-      log: { info: () => {}, warn: () => {}, error: () => {} },
-      step: {
-        do: () => {
-          throw new Error("No separate state checkpoint");
-        },
-      },
+      ...runContext,
     }),
-  ).rejects.toThrow(/baseRevisionId/iu);
+    {
+      code: "stale-base",
+      message: /baseRevisionId/iu,
+      currentRevision: {
+        revisionId: "concurrent",
+        sha256: previous.sha256,
+        ordinal: 2,
+      },
+    },
+  );
   expect(current.revisionId).toBe("concurrent");
+});
+
+test("refuses a concurrent snapshot while the cited base still names current state", async () => {
+  const previous: WorkpieceRevision = {
+    revisionId: "actual-current",
+    sha256: createHash("sha256").update("# Current").digest("hex"),
+    ordinal: 2,
+    markdown: "# Current",
+  };
+  current = previous;
+  const guarded = createMutateWorkpieceTool(setRevision, {
+    currentRevision: {
+      ...previous,
+      revisionId: "stale-snapshot",
+      ordinal: 1,
+    },
+    readSources: async () => [],
+  });
+
+  await expectRefusedResult(
+    guarded.run({
+      data: { markdown: "# Next", baseRevisionId: "actual-current" },
+      toolCallId: "concurrent-candidate",
+      ...runContext,
+    }),
+    {
+      code: "concurrent-revision",
+      message: /changed while this revision was prepared/iu,
+      currentRevision: revisionPointer(previous),
+    },
+  );
+  expect(current).toBe(previous);
 });
 
 test("an acquisition refusal or cancellation cannot settle even an evidence-absent revision", async () => {
@@ -1023,7 +1257,10 @@ test("resolves unique text, selected repeated text and astral-plane text to UTF-
     },
     { text: "Reserve one crew.\nReserve", messageIds: [], kind: "inference" },
   ]);
-  const evidence = result.output.evidence!;
+  expectAppliedOutput(result.output);
+  const evidence = (
+    result.output as { evidence: { locator: { start: number; end: number } }[] }
+  ).evidence;
   expect(
     evidence.map(({ locator }) => markdown.slice(locator.start, locator.end)),
   ).toEqual(["👷 Crew", "Reserve one crew.", "Reserve one crew.\nReserve"]);
@@ -1053,10 +1290,15 @@ test("refuses the whole settlement naming every absent, ambiguous or out-of-rang
     ],
     "base",
   );
-  await expect(attempt).rejects.toThrow(
-    /evidence\[1\] matched 2 occurrence\(s\); set occurrence to select one; evidence\[2\] matched 0 occurrence\(s\); evidence\[3\] matched 2 occurrence\(s\); occurrence 2 is out of range\. Nothing was written/u,
+  const refused = await expectRefusedResult(attempt, {
+    code: "evidence-invalid",
+    message:
+      /evidence\[1\] matched 2 occurrence\(s\); set occurrence to select one; evidence\[2\] matched 0 occurrence\(s\); evidence\[3\] matched 2 occurrence\(s\); occurrence 2 is out of range\. Nothing was written/u,
+    currentRevision: revisionPointer(before),
+  });
+  expect((refused.output as { message: string }).message).not.toMatch(
+    /evidence\[0\]|evidence\[4\]/u,
   );
-  await expect(attempt).rejects.not.toThrow(/evidence\[0\]|evidence\[4\]/u);
   expect(current).toBe(before);
   expect(
     v.safeParse(updateWorkpieceInputSchema, {
@@ -1139,14 +1381,18 @@ test("an insertion above a cited passage drops the carried relation until it is 
     [{ text: passage, messageIds: [], kind: "inference" }],
     "second",
   );
-  expect(result.output.evidence).toEqual([relation(third.indexOf(passage))]);
+  expectAppliedOutput(result.output);
+  const carriedEvidence = [relation(third.indexOf(passage))];
+  expect(result.output).toMatchObject({
+    evidence: carriedEvidence,
+  });
   expect(current).toMatchObject({
     revisionId: "third",
-    evidence: result.output.evidence,
+    evidence: carriedEvidence,
     evidenceValidated: true,
   });
 
   // Unchanged unique text at the same span carries without a declaration.
   await settle(`${third}\nTail.`, "fourth", undefined, "third");
-  expect(current?.evidence).toEqual(result.output.evidence);
+  expect(current?.evidence).toEqual(carriedEvidence);
 });

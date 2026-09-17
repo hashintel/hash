@@ -475,7 +475,25 @@ try {
     const rejected = (await tools()).find(
       (tool) => tool.toolCallId === `refused-${label}`,
     );
-    assert.equal(rejected?.state, "output-error");
+    assert.equal(rejected?.state, "output-available");
+    assert.deepEqual(
+      {
+        disposition: (rejected.output as { disposition?: unknown }).disposition,
+        applied: (rejected.output as { applied?: unknown }).applied,
+        correctable: (rejected.output as { correctable?: unknown }).correctable,
+        code: (rejected.output as { code?: unknown }).code,
+      },
+      {
+        disposition: "refused",
+        applied: false,
+        correctable: true,
+        code: "evidence-invalid",
+      },
+    );
+    assert.match(
+      (rejected.output as { message: string }).message,
+      /authorized true-user|must occur exactly once|Nothing was written/u,
+    );
   }
   faux.setResponses([
     call(
@@ -538,9 +556,24 @@ try {
   const refusedShrink = (await tools()).find(
     (tool) => tool.toolCallId === "refused-shrink",
   );
-  assert.equal(refusedShrink?.state, "output-error");
-  assert.match(refusedShrink.errorText, /removes more than 25%/u);
-  assert.match(refusedShrink.errorText, /Nothing was written/u);
+  assert.equal(refusedShrink?.state, "output-available");
+  assert.equal(
+    (refusedShrink.output as { disposition?: unknown }).disposition,
+    "refused",
+  );
+  assert.equal((refusedShrink.output as { applied?: unknown }).applied, false);
+  assert.equal(
+    (refusedShrink.output as { code?: unknown }).code,
+    "silent-shrink",
+  );
+  assert.match(
+    (refusedShrink.output as { message: string }).message,
+    /removes more than 25%/u,
+  );
+  assert.match(
+    (refusedShrink.output as { message: string }).message,
+    /Nothing was written/u,
+  );
   const stateAfterShrink = (await tools()).find(
     (tool) => tool.toolCallId === "state-after-shrink",
   );
@@ -553,6 +586,35 @@ try {
     ).currentWorkpiece.markdown,
     settledLedger,
   );
+  faux.setResponses([
+    call(
+      "mutate_workpiece",
+      { markdown: " \n\t", baseRevisionId: "carried-revision" },
+      "thrown-empty-markdown",
+    ),
+    call("read_workpiece", {}, "state-after-thrown"),
+    (context) => {
+      const result = toolResult(context, "read_workpiece");
+      assert.equal(
+        (result.currentWorkpiece as { revisionId: string }).revisionId,
+        "carried-revision",
+      );
+      observations.push({
+        thrownDidNotDisplaceSettledLedger: result.currentWorkpiece,
+      });
+      return fauxAssistantMessage([
+        fauxText(
+          "TEST thrown input error left the settled Ledger authoritative.",
+        ),
+      ]);
+    },
+  ]);
+  await speak("TEST throw on empty Markdown rather than returning a refusal.");
+  const thrownEmpty = (await tools()).find(
+    (tool) => tool.toolCallId === "thrown-empty-markdown",
+  );
+  assert.equal(thrownEmpty?.state, "output-error");
+  assert.match(thrownEmpty.errorText, /must not be empty/u);
   const wrongOwner = await application.fetch(
     new Request(`${url}/history`, {
       headers: agentOwnershipHeaders({
@@ -604,7 +666,7 @@ try {
   );
   assert.equal(
     observations.length,
-    10,
+    11,
     "Every model-facing positive, refusal, carry and reopen assertion must complete.",
   );
   writeFileSync(

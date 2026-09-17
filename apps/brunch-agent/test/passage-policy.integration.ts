@@ -696,7 +696,24 @@ try {
     await negatives.send(`TEST refusal control: ${label}`);
     assert(read);
     const rejected = await negatives.part(id);
-    assert.equal(rejected.state, "output-error");
+    assert.equal(rejected.state, "output-available");
+    assert.equal(
+      (rejected.output as { disposition?: unknown }).disposition,
+      "refused",
+    );
+    assert.equal((rejected.output as { applied?: unknown }).applied, false);
+    assert.equal(
+      (rejected.output as { correctable?: unknown }).correctable,
+      true,
+    );
+    assert.equal(
+      (rejected.output as { code?: unknown }).code,
+      "evidence-invalid",
+    );
+    assert.match(
+      (rejected.output as { message: string }).message,
+      /authorized true-user|must occur exactly once|Elicited evidence/u,
+    );
     rows.push({ label, rejected, actual: read });
   }
   // The read operation does not select arbitrary revisions or accept old lookup identities.
@@ -774,7 +791,16 @@ try {
   );
   assert(staleRead);
   const staleRejected = await scope.part(staleId);
-  assert.equal(staleRejected.state, "output-error");
+  assert.equal(staleRejected.state, "output-available");
+  assert.equal(
+    (staleRejected.output as { disposition?: unknown }).disposition,
+    "refused",
+  );
+  assert.equal((staleRejected.output as { applied?: unknown }).applied, false);
+  assert.equal(
+    (staleRejected.output as { code?: unknown }).code,
+    "evidence-invalid",
+  );
   rows.push({
     label: "stale-text-is-not-continuity",
     rejected: staleRejected,

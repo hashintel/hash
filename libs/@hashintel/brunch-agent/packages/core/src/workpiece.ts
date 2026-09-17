@@ -126,6 +126,42 @@ export const workpieceRevisionPointerSchema = v.object({
   ordinal: v.number(),
 });
 
+export type WorkpieceRevisionPointer = ReadonlyDeep<
+  v.InferOutput<typeof workpieceRevisionPointerSchema>
+>;
+
+export const workpieceRefusalCodes = [
+  "replay-conflict",
+  "stale-base",
+  "concurrent-revision",
+  "evidence-invalid",
+  "retraction-invalid",
+  "silent-shrink",
+] as const;
+
+export type WorkpieceRefusalCode = (typeof workpieceRefusalCodes)[number];
+
+export const workpieceRefusalCodeSchema = v.picklist(workpieceRefusalCodes);
+
+export const updateWorkpieceRefusedOutputSchema = v.object({
+  disposition: v.literal("refused"),
+  applied: v.literal(false),
+  correctable: v.literal(true),
+  code: workpieceRefusalCodeSchema,
+  message: v.string(),
+  currentRevision: v.nullable(workpieceRevisionPointerSchema),
+});
+
+export type WorkpieceRefusedOutput = ReadonlyDeep<
+  v.InferOutput<typeof updateWorkpieceRefusedOutputSchema>
+>;
+
+/** Recognize only the complete canonical refusal output; partial lookalikes fail closed. */
+export const isWorkpieceRefusedOutput = (
+  output: unknown,
+): output is WorkpieceRefusedOutput =>
+  v.safeParse(updateWorkpieceRefusedOutputSchema, output).success;
+
 /** Current settled artifact. Retained legacy carriage is not verified unless evidenceValidated is true. */
 export const workpieceRevisionSchema = v.object({
   ...workpieceRevisionPointerSchema.entries,

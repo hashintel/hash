@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import * as v from "valibot";
 
 import { evidenceRelationSchema, workpieceRetractionSchema } from "./workpiece";
+import {
+  WorkpieceValidationRefusal,
+  workpieceRevisionPointer,
+} from "./workpiece-refusal";
 
 import type {
   WorkpieceEvidenceSource,
@@ -50,7 +54,8 @@ const assertAuthorizedTrueUserSources = (
       matches[0]?.role !== "user" ||
       matches[0].purpose !== "user"
     )
-      throw new Error(
+      throw new WorkpieceValidationRefusal(
+        subject === "Retraction" ? "retraction-invalid" : "evidence-invalid",
         `${subject} must resolve to an authorized true-user source in this conversation.`,
       );
   }
@@ -106,7 +111,8 @@ export const resolveEvidenceDeclarations = (
     ];
   });
   if (failures.length > 0)
-    throw new Error(
+    throw new WorkpieceValidationRefusal(
+      "evidence-invalid",
       `Evidence text must occur exactly once in the submitted Markdown (or name an occurrence): ${failures.join("; ")}. Nothing was written; resubmit the settlement with corrected evidence.`,
     );
   return relations;
@@ -167,7 +173,8 @@ export const settleWorkpieceEvidence = async (
     )
       throw new Error("Evidence locator is outside the immutable revision.");
     if (relation.kind === "elicited" && relation.messageIds.length === 0)
-      throw new Error(
+      throw new WorkpieceValidationRefusal(
+        "evidence-invalid",
         "Elicited evidence requires an authorized true-user source.",
       );
     assertAuthorizedTrueUserSources(relation.messageIds, sources, "Evidence");
@@ -195,7 +202,8 @@ export const validateWorkpieceRetraction = (
     0,
   );
   if (authorizationOccurrences !== 1)
-    throw new Error(
+    throw new WorkpieceValidationRefusal(
+      "retraction-invalid",
       `Retraction authorization text matched ${authorizationOccurrences} occurrence(s) across its cited true-user sources; it must occur exactly once.`,
     );
   if (
@@ -203,7 +211,8 @@ export const validateWorkpieceRetraction = (
       .toLowerCase()
       .includes(retraction.withdrawn.toLowerCase())
   )
-    throw new Error(
+    throw new WorkpieceValidationRefusal(
+      "retraction-invalid",
       "Retraction authorization text must name the withdrawn material. Nothing was written.",
     );
 };
@@ -295,8 +304,10 @@ export const assertWorkpieceIsNotSilentShrink = (
       previousEnd = Math.max(previousEnd, span.end);
     }
     if (invalidRemovedText.length > 0 || overlappingRemovedText.length > 0)
-      throw new Error(
+      throw new WorkpieceValidationRefusal(
+        "retraction-invalid",
         `Retraction removedText entries ${[...invalidRemovedText, ...overlappingRemovedText].join(", ")} do not each identify one unique, non-overlapping prior-body excerpt that was actually removed. Character delta: ${characterDelta}. Nothing was written.`,
+        workpieceRevisionPointer(previous),
       );
     const accountedCharacters = removedSpans.reduce(
       (total, span) => total + span.end - span.start,
@@ -304,8 +315,10 @@ export const assertWorkpieceIsNotSilentShrink = (
     );
     const removedCharacters = -characterDelta;
     if (exceedsShrinkLimit && accountedCharacters < removedCharacters)
-      throw new Error(
+      throw new WorkpieceValidationRefusal(
+        "retraction-invalid",
         `Retraction removedText accounts for ${accountedCharacters} of ${removedCharacters} removed characters. Nothing was written.`,
+        workpieceRevisionPointer(previous),
       );
     const namedRemoval = [retraction.withdrawn, ...retraction.removedText]
       .join("\n")
@@ -315,8 +328,10 @@ export const assertWorkpieceIsNotSilentShrink = (
       return !namedRemoval.includes(name);
     });
     if (unnamedHeadings.length === 0) return;
-    throw new Error(
+    throw new WorkpieceValidationRefusal(
+      "retraction-invalid",
       `Retraction does not name missing heading(s): ${unnamedHeadings.join(", ")}. Character delta: ${characterDelta}. Nothing was written.`,
+      workpieceRevisionPointer(previous),
     );
   }
 
@@ -326,8 +341,10 @@ export const assertWorkpieceIsNotSilentShrink = (
       : []),
     ...(exceedsShrinkLimit ? ["removes more than 25% of the prior body"] : []),
   ];
-  throw new Error(
+  throw new WorkpieceValidationRefusal(
+    "silent-shrink",
     `Workpiece ${losses.join(" and ")}. Character delta: ${characterDelta}. Nothing was written; resubmit the complete settled account.`,
+    workpieceRevisionPointer(previous),
   );
 };
 

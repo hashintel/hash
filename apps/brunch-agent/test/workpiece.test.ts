@@ -120,3 +120,42 @@ test("reconstructs validated evidence from pointer-only settlement output", () =
     retraction,
   });
 });
+
+test("does not reconstruct a typed refused mutate_workpiece result as a settled revision", () => {
+  const markdown = "# Settled account\n\nReserve one crew.";
+  const revisionId = "refused-revision";
+  const refusedSnapshot: FlueConversationSnapshot = {
+    ...snapshot,
+    messages: [
+      {
+        id: "settlement-message",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "turn-1",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: revisionId,
+            toolName: "mutate_workpiece",
+            state: "output-available",
+            input: {
+              markdown,
+              baseRevisionId: null,
+            },
+            output: {
+              disposition: "refused",
+              applied: false,
+              correctable: true,
+              code: "silent-shrink",
+              message: "Nothing was written",
+              currentRevision: null,
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(retainedSettledRevision(refusedSnapshot, revisionId)).toBeUndefined();
+});

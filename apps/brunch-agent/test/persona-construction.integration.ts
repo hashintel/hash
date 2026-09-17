@@ -426,8 +426,17 @@ try {
         part.toolCallId === toolId("stale-empty-base"),
     );
   assert(stale?.type === "dynamic-tool");
-  assert.equal(stale.state, "output-error");
-  assert.match(stale.errorText, /baseRevisionId/);
+  assert.equal(stale.state, "output-available");
+  assert.equal(
+    (stale.output as { disposition?: unknown }).disposition,
+    "refused",
+  );
+  assert.equal((stale.output as { applied?: unknown }).applied, false);
+  assert.equal((stale.output as { code?: unknown }).code, "stale-base");
+  assert.match(
+    (stale.output as { message?: string }).message ?? "",
+    /baseRevisionId/u,
+  );
   await page.getByRole("tab", { name: /^Ledger/u }).click();
   await expectLedgerDocument(
     page,
