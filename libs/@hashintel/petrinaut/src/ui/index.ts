@@ -198,6 +198,7 @@ export type {
   PetrinautAiToolPresentationContext,
   PetrinautAiToolPresentationResolver,
   PetrinautAiToolPresentationState,
+  PetrinautAiToolPresentationTone,
   PetrinautProps,
 } from "./petrinaut";
 export type {

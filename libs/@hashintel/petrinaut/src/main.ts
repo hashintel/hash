@@ -114,5 +114,6 @@ export type {
   PetrinautAiToolPresentationContext,
   PetrinautAiToolPresentationResolver,
   PetrinautAiToolPresentationState,
+  PetrinautAiToolPresentationTone,
   PetrinautProps,
 } from "./ui/petrinaut";

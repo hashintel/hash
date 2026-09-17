@@ -36,7 +36,8 @@ export type BrunchWorkpieceHistory = {
 /**
  * Folds successful tool results only. A settlement body is read from the
  * input solely when its output binds that same call (`revisionId ===
- * toolCallId`); failed, pending or unbound inputs never become state.
+ * toolCallId`); failed, refused, pending or unbound inputs never become
+ * state and do not mark the displayed Ledger newer.
  */
 export const foldBrunchWorkpieceHistory = (
   messages: readonly BrunchWorkpieceHistoryMessage[],
@@ -67,6 +68,13 @@ export const foldBrunchWorkpieceHistory = (
         continue;
       }
       if (workpieceMutationToolNames.has(part.toolName)) {
+        if (
+          isRecord(part.output) &&
+          (part.output.disposition === "refused" ||
+            part.output.applied === false)
+        ) {
+          continue;
+        }
         stateChangedSinceReport = true;
         if (why) {
           whyPredatesSettlement = true;

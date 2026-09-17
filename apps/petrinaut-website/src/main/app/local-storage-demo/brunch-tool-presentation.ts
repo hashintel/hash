@@ -1,3 +1,5 @@
+import { isWorkpieceRefusedOutput } from "@hashintel/brunch-agent/workpiece";
+
 import type {
   PetrinautAiToolPresentation,
   PetrinautAiToolPresentationContext,
@@ -100,6 +102,12 @@ const stringProperty = (
   return typeof candidate === "string" ? candidate : undefined;
 };
 
+const withPendingTone = (
+  presentation: PetrinautAiToolPresentation,
+  state: PetrinautAiToolPresentationContext["state"],
+): PetrinautAiToolPresentation =>
+  state === "pending" ? { ...presentation, tone: "pending" } : presentation;
+
 const withSuffix = (title: string, suffix: string | undefined): string =>
   suffix ? `${title}: ${suffix}` : title;
 
@@ -175,12 +183,29 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
 
     if (toolName === "activate_skill") {
       const skillName = stringProperty(context.input, "name");
-      return { title: withSuffix(titles[context.state], skillName) };
+      return withPendingTone(
+        { title: withSuffix(titles[context.state], skillName) },
+        context.state,
+      );
     }
 
     if (toolName === "read_skill_resource") {
       const resource = resourceName(stringProperty(context.input, "path"));
-      return { title: withSuffix(titles[context.state], resource) };
+      return withPendingTone(
+        { title: withSuffix(titles[context.state], resource) },
+        context.state,
+      );
+    }
+
+    if (
+      toolName === "mutate_workpiece" &&
+      isWorkpieceRefusedOutput(context.output)
+    ) {
+      return {
+        title: "Ledger update needs correction",
+        tone: "neutral",
+        items: [context.output.message],
+      };
     }
 
     if (toolName === "read_workpiece") {
@@ -198,7 +223,10 @@ export const resolveBrunchToolPresentation: PetrinautAiToolPresentationResolver 
         stringProperty(context.input, "task");
     }
 
-    return { title: titles[context.state], detail };
+    return withPendingTone(
+      { title: titles[context.state], detail },
+      context.state,
+    );
   };
 
 /** Compile-time witness that every visible ordinary name has lifecycle copy. */

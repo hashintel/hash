@@ -112,7 +112,72 @@ describe("Brunch tool presentation", () => {
         output: undefined,
         error: undefined,
       }),
-    ).toEqual({ title: "Reviewing modelling guidance: %E0%A4%A" });
+    ).toEqual({
+      title: "Reviewing modelling guidance: %E0%A4%A",
+      tone: "pending",
+    });
+  });
+
+  test("marks ordinary pending rows gold and typed refusals compact neutral", () => {
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "mutate_workpiece",
+        state: "pending",
+        input: { markdown: "# Ledger", baseRevisionId: null },
+        output: undefined,
+        error: undefined,
+      }),
+    ).toEqual({ title: "Updating ledger", tone: "pending" });
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "mutate_workpiece",
+        state: "success",
+        input: { markdown: "# Ledger", baseRevisionId: "rev-1" },
+        output: {
+          disposition: "refused",
+          applied: false,
+          correctable: true,
+          code: "silent-shrink",
+          message:
+            "Workpiece removes more than 25% of the prior body. Nothing was written.",
+          currentRevision: {
+            revisionId: "rev-1",
+            sha256: "a".repeat(64),
+            ordinal: 1,
+          },
+        },
+        error: undefined,
+      }),
+    ).toEqual({
+      title: "Ledger update needs correction",
+      tone: "neutral",
+      items: [
+        "Workpiece removes more than 25% of the prior body. Nothing was written.",
+      ],
+    });
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "mutate_workpiece",
+        state: "success",
+        input: {},
+        output: {
+          disposition: "refused",
+          applied: false,
+          correctable: true,
+          message: "Missing canonical code and current revision.",
+        },
+        error: undefined,
+      }),
+    ).toEqual({ title: "Updated ledger" });
+    expect(
+      resolveBrunchToolPresentation({
+        toolName: "mutate_workpiece",
+        state: "error",
+        input: {},
+        output: undefined,
+        error: "Current state missing",
+      }),
+    ).toEqual({ title: "Could not update ledger" });
   });
 
   test("does not present unknown tools", () => {

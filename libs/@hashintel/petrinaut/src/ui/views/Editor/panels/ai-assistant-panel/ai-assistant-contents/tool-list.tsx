@@ -26,7 +26,7 @@ import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interac
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautAiMessage } from "../types";
 
-export type ToolTone = "danger" | "info" | "neutral" | "success";
+export type ToolTone = "danger" | "info" | "neutral" | "pending" | "success";
 
 // User-guide pages are published in the repo, so a doc tool row links to the
 // matching markdown page on GitHub (matching the editor "Docs" menu entry).
@@ -144,6 +144,10 @@ const toolItemStyle = cva({
         backgroundColor: "neutral.s10",
         borderColor: "neutral.a30",
       },
+      pending: {
+        backgroundColor: "yellow.s20",
+        borderColor: "yellow.a40",
+      },
       success: {
         backgroundColor: "green.s20",
         borderColor: "green.a40",
@@ -180,6 +184,9 @@ const toolStatusStyle = cva({
       },
       neutral: {
         backgroundColor: "neutral.s90",
+      },
+      pending: {
+        backgroundColor: "yellow.s90",
       },
       success: {
         backgroundColor: "green.s90",
@@ -435,20 +442,18 @@ export const toToolRenderItem = (
     state === "output-error" && typeof part.errorText === "string"
       ? part.errorText
       : undefined;
-  const presentation = notApplied
-    ? undefined
-    : resolveToolPresentation?.({
-        toolName,
-        state:
-          state === "output-error"
-            ? "error"
-            : state === "output-available"
-              ? "success"
-              : "pending",
-        input: part.input,
-        output: part.output,
-        error: errorText,
-      });
+  const presentation = resolveToolPresentation?.({
+    toolName,
+    state:
+      state === "output-error"
+        ? "error"
+        : state === "output-available"
+          ? "success"
+          : "pending",
+    input: part.input,
+    output: part.output,
+    error: errorText,
+  });
   const summary = presentation
     ? {
         ...defaultSummary,
@@ -456,7 +461,14 @@ export const toToolRenderItem = (
         detail:
           state === "output-error"
             ? (errorText ?? presentation.detail ?? defaultSummary.detail)
-            : (presentation.detail ?? defaultSummary.detail),
+            : (presentation.detail ??
+              (presentation.items === undefined
+                ? defaultSummary.detail
+                : undefined)),
+        items:
+          presentation.items === undefined
+            ? defaultSummary.items
+            : [...presentation.items],
       }
     : defaultSummary;
 
@@ -479,7 +491,9 @@ export const toToolRenderItem = (
     state,
     summary,
     hasConfiguredTitle: presentation !== undefined,
-    tone: getToolTone({ state, summary, toolName, notApplied }),
+    tone:
+      presentation?.tone ??
+      getToolTone({ state, summary, toolName, notApplied }),
     toolName,
     notApplied,
     stateLabel:
