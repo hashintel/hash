@@ -7,9 +7,16 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 
-import { draftPetrinautExperimentToolName } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  type DraftPetrinautExperimentInput,
+  type DraftPetrinautExperimentOutput,
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentOutputSchema,
+  draftPetrinautExperimentToolName,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import {
   compileHirArtifacts,
@@ -22,14 +29,18 @@ import {
   PetrinautOptimizationContext,
   UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import {
+  definePetrinautAiInteractiveTool,
+  Petrinaut,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "@hashintel/petrinaut/ui";
 
 import {
   batchedConstructionClientToolNames,
   brunchPetrinautDynamicToolNames,
 } from "./brunch-client-tools";
 import {
-  createBrunchDraftExperimentInteractiveTool,
+  BrunchDraftExperimentWidget,
   resetBrunchDraftExperimentSession,
 } from "./brunch-draft-experiment-interactive-tool";
 import {
@@ -39,7 +50,6 @@ import {
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
-import type { DraftPetrinautExperimentInput } from "@hashintel/brunch-agent-plugin-sdcpn";
 import type { LspWorkerFactory, SDCPN } from "@hashintel/petrinaut-core";
 import type {
   PetrinautConnectedOptimization,
@@ -199,6 +209,44 @@ const draftInput: DraftPetrinautExperimentInput = {
   ],
 };
 
+type ObservedDraftWidgetProps = PetrinautAiInteractiveToolWidgetProps<
+  DraftPetrinautExperimentInput,
+  DraftPetrinautExperimentOutput
+> & {
+  onSubmitted: () => void;
+};
+
+const ObservedDraftWidget = ({
+  onSubmitted,
+  ...widgetProps
+}: ObservedDraftWidgetProps) => {
+  useEffect(() => {
+    if (widgetProps.state === "submitted") {
+      onSubmitted();
+    }
+  }, [onSubmitted, widgetProps.state]);
+
+  return (
+    <BrunchDraftExperimentWidget
+      {...widgetProps}
+      readTitle={() => "Support desk"}
+    />
+  );
+};
+
+const createObservedDraftTool = (onSubmitted: () => void) =>
+  definePetrinautAiInteractiveTool<
+    DraftPetrinautExperimentInput,
+    DraftPetrinautExperimentOutput
+  >({
+    toolName: draftPetrinautExperimentToolName,
+    inputSchema: draftPetrinautExperimentInputSchema,
+    outputSchema: draftPetrinautExperimentOutputSchema,
+    component: (props) => (
+      <ObservedDraftWidget {...props} onSubmitted={onSubmitted} />
+    ),
+  });
+
 const createControlledOptimization = (
   continueAfterFirstTrial: Promise<void>,
 ): PetrinautConnectedOptimization => ({
@@ -310,6 +358,8 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   const availableOptimization = createControlledOptimization(
     continueTrials.promise,
   );
+  const settleInitialStream = Promise.withResolvers<void>();
+  const toolOutputSubmitted = Promise.withResolvers<void>();
   const tracker = new BrunchPanelConversationTracker();
   const send = vi.fn<FlueClient["send"]>(
     async (): Promise<AgentSendResult> => ({
@@ -342,6 +392,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
         input: draftInput,
         position: position(),
       });
+      await settleInitialStream.promise;
     } else {
       await options?.onEvent?.({
         type: "message-delta",
@@ -387,9 +438,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
               readTitle: () => "Support desk",
             }),
             interactiveTools: [
-              createBrunchDraftExperimentInteractiveTool({
-                readTitle: () => "Support desk",
-              }),
+              createObservedDraftTool(toolOutputSubmitted.resolve),
             ],
             conversationId: "test",
             requestStop: async () => "already-settled",
@@ -417,7 +466,15 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   fireEvent.change(composer, {
     target: { value: "We need to decide how many agents to schedule." },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+  });
+
+  // Hold the first response open until its host-owned widget has submitted.
+  // This is the ordering that used to let AI SDK's stream-end continuation
+  // race Petrinaut's ready-state continuation.
+  await toolOutputSubmitted.promise;
+  await act(async () => settleInitialStream.resolve());
 
   // The card is rendered inside Petrinaut's tree, prepared against the live
   // model, and reads as drafted with Run available.
