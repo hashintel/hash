@@ -242,7 +242,6 @@ try {
     // settlement must carry ordinal 2 and the recovered revision as previous.
     const recovered = await client.history();
     save("history", recovered);
-    const nextMarkdown = `${markdown}\nRecovery observed; append this diagnostic without discarding the prior account.\n`;
     faux.setResponses([
       response("a4-next-revision", nextMarkdown, "a4-crash-revision"),
       fauxAssistantMessage("Next revision acknowledged."),
