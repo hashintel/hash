@@ -1,21 +1,27 @@
 // @vitest-environment jsdom
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   within,
 } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../../../../../../react/navigation";
+import {
+  defaultUserSettingsContextValue,
+  UserSettingsContext,
+} from "../../../../../../react/state/user-settings-context";
 import { Table } from "../../../../../components/table";
 import { SimulationWorkspace } from "../../../shared/simulation-workspace";
-import { SimulationPanel } from "./simulation-panel";
+import { SimulationPanel, SimulationPanelPresence } from "./simulation-panel";
 
 class ObserverStub {
   observe() {}
@@ -419,3 +425,91 @@ it.each([
     expect(screen.getByRole("textbox", { name: "Draft name" })).toBe(draft);
   },
 );
+
+it("retains an inert panel for its exit and cancels removal when reopened", () => {
+  vi.useFakeTimers();
+  const PresenceExample = () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Open panel
+        </button>
+        <SimulationPanelPresence>
+          {open ? (
+            <SimulationPanel
+              title="Animated panel"
+              onClose={() => setOpen(false)}
+              layer="creation"
+            >
+              <SimulationPanel.Header />
+              <SimulationPanel.Body>
+                <input aria-label="Draft" />
+              </SimulationPanel.Body>
+            </SimulationPanel>
+          ) : null}
+        </SimulationPanelPresence>
+      </>
+    );
+  };
+  try {
+    render(
+      <PetrinautNavigationProvider>
+        <PresenceExample />
+      </PetrinautNavigationProvider>,
+    );
+    const opener = screen.getByRole("button", { name: "Open panel" });
+    opener.focus();
+    fireEvent.click(opener);
+    const panel = screen.getByRole("region", { name: "Animated panel" });
+    const input = screen.getByRole("textbox", { name: "Draft" });
+    fireEvent.change(input, { target: { value: "Keep me" } });
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    expect(screen.queryByRole("region", { name: "Animated panel" })).toBeNull();
+    expect(panel.isConnected).toBe(true);
+    expect(panel.hasAttribute("inert")).toBe(true);
+    expect(document.activeElement).toBe(opener);
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+    fireEvent.click(opener);
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+    expect(screen.getByRole("region", { name: "Animated panel" })).toBe(panel);
+    expect(screen.getByRole("textbox", { name: "Draft" })).toHaveProperty(
+      "value",
+      "Keep me",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    act(() => {
+      vi.advanceTimersByTime(120);
+    });
+    expect(panel.isConnected).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("removes closed panels immediately when animations are disabled", () => {
+  const content = (
+    <SimulationPanel title="Instant panel" onClose={() => {}}>
+      <SimulationPanel.Header />
+    </SimulationPanel>
+  );
+  const tree = (open: boolean) => (
+    <UserSettingsContext
+      value={{ ...defaultUserSettingsContextValue, showAnimations: false }}
+    >
+      <PetrinautNavigationProvider>
+        <SimulationPanelPresence>
+          {open ? content : null}
+        </SimulationPanelPresence>
+      </PetrinautNavigationProvider>
+    </UserSettingsContext>
+  );
+  const { rerender } = render(tree(true));
+  const panel = screen.getByRole("region", { name: "Instant panel" });
+  rerender(tree(false));
+  expect(panel.isConnected).toBe(false);
+});

@@ -3,6 +3,7 @@ import {
   use,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -12,8 +13,44 @@ import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../../../react/navigation";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { useSimulationWorkspaceContainer } from "../../../shared/simulation-workspace";
 import { simulationHeaderStyle } from "./simulation-header";
+import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
+
+const PanelExitingContext = createContext(false);
+const panelExitDuration = 120;
+
+export const SimulationPanelPresence = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
+  const { showAnimations } = use(UserSettingsContext);
+  const reducedMotion = usePrefersReducedMotion();
+  const animate = showAnimations && !reducedMotion;
+  const [retained, setRetained] = useState(children);
+  const present =
+    children !== null && children !== undefined && children !== false;
+  if (present && retained !== children) {
+    setRetained(children);
+  }
+  useEffect(() => {
+    if (present || retained === null) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setRetained(null),
+      animate ? panelExitDuration : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [present, retained, animate]);
+  return (
+    <PanelExitingContext value={!present}>
+      {present ? children : animate ? retained : null}
+    </PanelExitingContext>
+  );
+};
 
 interface SimulationPanelProps {
   title: string;
@@ -40,6 +77,8 @@ const PanelContent = ({
   children,
 }: SimulationPanelProps) => {
   const { state } = usePetrinautNavigation();
+  const closing = use(PanelExitingContext);
+  const { showAnimations } = use(UserSettingsContext);
   const panelRef = useRef<HTMLElement>(null);
   const hidden =
     layer === "resource" &&
@@ -49,7 +88,7 @@ const PanelContent = ({
     state.mode === "simulate" && state.simulatePresentation === "fullscreen";
 
   useEffect(() => {
-    if (hidden) {
+    if (hidden || closing) {
       return;
     }
     const panel = panelRef.current;
@@ -67,7 +106,7 @@ const PanelContent = ({
         opener.focus({ preventScroll: true });
       }
     };
-  }, [hidden, initialFocusRef, layer]);
+  }, [hidden, closing, initialFocusRef, layer]);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -89,6 +128,10 @@ const PanelContent = ({
         aria-label={title}
         data-simulation-panel
         data-panel-layer={layer}
+        data-closing={closing}
+        data-animate={showAnimations}
+        inert={closing}
+        aria-hidden={closing || undefined}
         hidden={hidden}
         tabIndex={-1}
         onKeyDown={(event) => {
@@ -121,6 +164,24 @@ const PanelContent = ({
           outline: "none",
           userSelect: "text",
           "&[hidden]": { display: "none" },
+          "&[data-animate=true]": {
+            transition:
+              "[transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease-out]",
+            "@starting-style": {
+              opacity: "[0]",
+              transform: "[translateX(16px)]",
+            },
+            "&[data-closing=true]": {
+              opacity: "[0]",
+              transform: "[translateX(16px)]",
+              transitionDuration: "[120ms]",
+              pointerEvents: "none",
+            },
+            "@media (prefers-reduced-motion: reduce)": {
+              transition: "[none]",
+              transform: "[none]",
+            },
+          },
         })}
       >
         {children}

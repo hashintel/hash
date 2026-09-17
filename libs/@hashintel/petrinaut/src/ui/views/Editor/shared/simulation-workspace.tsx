@@ -63,6 +63,7 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
         ref={workspaceRef}
         data-simulation-workspace
         data-fullscreen={fullscreen}
+        data-motion={showAnimations}
         data-animate={showAnimations && presentation.animate}
         style={
           {
@@ -82,13 +83,22 @@ export const SimulationWorkspace = ({ children }: { children: ReactNode }) => {
         <div
           inert={fullscreen}
           className={css({
+            "[data-motion=true] > &": {
+              transition: "[margin-right 180ms cubic-bezier(0.16, 1, 0.3, 1)]",
+              "@media (prefers-reduced-motion: reduce)": {
+                transition: "[none]",
+              },
+            },
+            "[data-simulation-workspace]:has([data-resizing=true]) > &": {
+              transition: "[none]",
+            },
             position: "relative",
             display: "flex",
             flex: "[1]",
             minWidth: "[0]",
             minHeight: "[0]",
             overflow: "hidden",
-            ":has(> [data-simulation-panel-slot] > [data-simulation-panel]:not([hidden])) > &":
+            ":has(> [data-simulation-panel-slot] > [data-simulation-panel]:not([hidden]):not([data-closing=true])) > &":
               {
                 marginRight: "[var(--simulation-panel-width)]",
               },

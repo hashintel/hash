@@ -18,3 +18,5 @@ Keep refractive toolbar glass on Chromium, with background blur in Firefox and S
 Enable Petricon by default and remove the Experimental labels from Petricon and Automatic arc connections.
 
 Add Command+Shift+L on Mac and Control+Shift+L on Windows/Linux for auto-layout and display it in the menu and command palette.
+
+Animate simulation panels when opening and closing, and give drawer forms consistent spacing below their headers.

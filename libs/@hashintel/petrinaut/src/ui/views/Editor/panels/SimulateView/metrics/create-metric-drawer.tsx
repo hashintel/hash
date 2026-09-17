@@ -2,7 +2,6 @@ import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { metricSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
@@ -137,7 +136,7 @@ const CreateMetricContent = ({ onClose }: { onClose: () => void }) => {
         title="Create a metric"
         description="A function over the simulation state that returns a number to plot on the timeline."
       />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <Drawer.Body>
         <MetricFormBody form={form} metricSessionId={metricSessionId} />
       </Drawer.Body>
       <CreateMetricFooter

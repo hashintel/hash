@@ -11,7 +11,10 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
-import { SimulationPanel } from "../shared/simulation-panel";
+import {
+  SimulationPanel,
+  SimulationPanelPresence,
+} from "../shared/simulation-panel";
 import {
   AdHocScenarioAuthoringBody,
   useAdHocScenarioAuthoring,
@@ -152,14 +155,15 @@ export const ViewScenarioDrawer = ({
   onClose,
   scenario,
 }: ViewScenarioDrawerProps) => {
-  if (!open || !scenario) {
-    return null;
-  }
   return (
-    <ViewScenarioContent
-      key={scenario.id}
-      scenario={scenario}
-      onClose={onClose}
-    />
+    <SimulationPanelPresence>
+      {open && scenario ? (
+        <ViewScenarioContent
+          key={scenario.id}
+          scenario={scenario}
+          onClose={onClose}
+        />
+      ) : null}
+    </SimulationPanelPresence>
   );
 };
