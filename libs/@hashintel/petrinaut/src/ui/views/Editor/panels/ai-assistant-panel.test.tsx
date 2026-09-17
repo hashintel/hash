@@ -2650,7 +2650,7 @@ describe("AiAssistantPanel composer submissions", () => {
     await waitFor(() => expect(setSpeakerVolume).toHaveBeenCalledWith(0.3));
 
     const readFullResponseItem = screen.getByRole("button", {
-      name: "Read full response",
+      name: "Read full reply",
     });
     expect((readFullResponseItem as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(readFullResponseItem);
@@ -2671,7 +2671,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(
       (
         screen.getByRole("button", {
-          name: "Read full response",
+          name: "Read full reply",
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);

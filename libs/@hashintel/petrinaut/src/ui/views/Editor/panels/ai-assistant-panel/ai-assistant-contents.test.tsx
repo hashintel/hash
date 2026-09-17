@@ -199,11 +199,9 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
       .getAttribute("aria-valuenow"),
   ).toBe("100");
   expect(screen.queryByRole("button", { name: "Repeat question" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Read full reply" })).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Read full response" }),
-  ).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Interruption by speaking" }),
+    screen.queryByRole("button", { name: "Allow interruptions" }),
   ).toBeNull();
   expect(
     microphone.closest('[data-scope="popover"][data-part="content"]'),
@@ -407,7 +405,7 @@ test.each(["connecting", "error"] as const)(
     expect(setSpeakerVolume).not.toHaveBeenCalled();
 
     const interruption = screen.getByRole<HTMLButtonElement>("button", {
-      name: "Interruption by speaking",
+      name: "Allow interruptions",
     });
     expect(interruption.disabled).toBe(false);
     fireEvent.click(interruption);
@@ -419,7 +417,7 @@ test.each(["connecting", "error"] as const)(
     ).toBe(true);
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
-        name: "Read full response",
+        name: "Read full reply",
       }).disabled,
     ).toBe(true);
   },
@@ -527,17 +525,17 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   ).toBe("65");
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
-  const devicesToggle = screen.getByRole("button", { name: /^Audio devices/ });
+  const devicesToggle = screen.getByRole("button", { name: "Devices" });
   expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.getByText("Saved for next session.")).not.toBeNull();
+  expect(screen.getByText("Next session")).not.toBeNull();
   expect(
     screen.queryByText(
       "Speaking speed is not available with this voice provider.",
     ),
   ).toBeNull();
-  expect(screen.queryByRole("slider", { name: "Speaking speed" })).toBeNull();
+  expect(screen.queryByRole("slider", { name: "Speed" })).toBeNull();
 
   expect(refreshDevices).toHaveBeenCalledOnce();
   fireEvent.click(devicesToggle);
@@ -1283,7 +1281,7 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
     const preference = await screen.findByRole("button", {
-      name: "Interruption by speaking",
+      name: "Allow interruptions",
     });
     expect(preference.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(preference);
@@ -1380,12 +1378,12 @@ describe("AiAssistantContents", () => {
     expect(actions.repeatQuestion).toHaveBeenCalledOnce();
 
     const readFullResponse = screen.getByRole("button", {
-      name: "Read full response",
+      name: "Read full reply",
     });
     fireEvent.click(readFullResponse);
     expect(actions.readFullResponse).toHaveBeenCalledOnce();
     expect(
-      screen.getByRole("button", { name: "Interruption by speaking" }),
+      screen.getByRole("button", { name: "Allow interruptions" }),
     ).not.toBeNull();
 
     const speakerMute = screen.getByRole("button", { name: "Mute speaker" });

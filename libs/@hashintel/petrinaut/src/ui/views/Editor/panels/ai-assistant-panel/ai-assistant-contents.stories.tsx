@@ -598,10 +598,10 @@ export const LiveSessionAudioOptions: Story = {
       canvas.queryByRole("button", { name: "Repeat question" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Read full response" }),
+      canvas.queryByRole("button", { name: "Read full reply" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Interruption by speaking" }),
+      canvas.queryByRole("button", { name: "Allow interruptions" }),
     ).toBeNull();
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
@@ -650,10 +650,10 @@ export const RealtimeSessionAudioOptions: Story = {
       canvas.getByRole("button", { name: "Repeat question" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Read full response" }),
+      canvas.getByRole("button", { name: "Read full reply" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Interruption by speaking" }),
+      canvas.getByRole("button", { name: "Allow interruptions" }),
     ).toHaveAttribute("aria-pressed", "true");
   },
 };
@@ -725,13 +725,14 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.queryByRole("button", { name: /^Voice/ }),
     ).not.toBeInTheDocument();
-    await expect(
-      canvas.getByText("Saved for next session."),
-    ).toBeInTheDocument();
+    await expect(canvas.getByText("Next session")).toBeInTheDocument();
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
-    ).toBeInTheDocument();
-    const speed = canvas.getByRole("slider", { name: "Speaking speed" });
+    ).toHaveAccessibleDescription("Next session");
+    await expect(
+      canvas.getByRole("group", { name: "Speaking speed" }),
+    ).toHaveAccessibleDescription("Next reply");
+    const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
@@ -751,7 +752,7 @@ export const ExtendedAudioSettings: Story = {
         .cursor,
     ).toBe("pointer");
     const devicesToggle = canvas.getByRole("button", {
-      name: /^Audio devices/,
+      name: "Devices",
     });
     devicesToggle.focus();
     await userEvent.keyboard("{Enter}");
@@ -773,6 +774,17 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toBeInTheDocument();
+    const interruptions = canvas.getByRole("button", {
+      name: "Allow interruptions",
+    });
+    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
+    await expect(interruptions.querySelector("svg")).not.toBeVisible();
+    await userEvent.click(interruptions);
+    await expect(interruptions).toHaveAttribute("aria-pressed", "true");
+    await expect(interruptions.querySelector("svg")).toBeVisible();
+    await userEvent.click(interruptions);
+    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
+    await expect(interruptions.querySelector("svg")).not.toBeVisible();
   },
 };
 
@@ -806,7 +818,7 @@ export const AudioSettingsUnavailableDevices: Story = {
       canvas.getByRole("button", { name: "Audio options" }),
     );
     await userEvent.click(
-      await canvas.findByRole("button", { name: /^Audio devices/ }),
+      await canvas.findByRole("button", { name: "Devices" }),
     );
     await expect(
       await canvas.findByText(

@@ -1,7 +1,9 @@
 import { useId, useState } from "react";
 
-import { Button, Select, Slider } from "@hashintel/ds-components";
+import { Button, Icon, Select, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
+import { SpeakerIcon } from "../speaker-icon";
 
 import type {
   VoiceAudioSettingsActions,
@@ -18,7 +20,8 @@ const sectionStyle = css({
 const headingStyle = css({
   width: "full",
   textAlign: "left",
-  justifyContent: "space-between",
+  justifyContent: "flex-start",
+  "& > span": { flex: "1" },
 });
 const fieldsStyle = css({
   display: "flex",
@@ -27,6 +30,12 @@ const fieldsStyle = css({
   padding: "2",
 });
 const labelStyle = css({ fontSize: "sm", color: "neutral.s100" });
+const labelRowStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "2",
+});
 const helpStyle = css({
   fontSize: "xs",
   color: "neutral.s90",
@@ -40,9 +49,12 @@ const speedStyle = css({
   '& [data-part="value-text"]': {
     position: "absolute",
     right: "0",
-    top: "0",
+    bottom: "0",
+    lineHeight: "[16px]",
     fontVariantNumeric: "tabular-nums",
+    "&::after": { content: '"×"' },
   },
+  '& [data-part="control"]': { width: "[calc(100% - 36px)]" },
 });
 const defaultDevice = { value: "default", text: "System default" };
 
@@ -64,12 +76,21 @@ export const AudioSettings = ({
     <>
       <div className={sectionStyle}>
         <div className={fieldsStyle}>
-          <span id={`${id}-voice-label`} className={labelStyle}>
-            Voice
-          </span>
+          <div className={labelRowStyle}>
+            <span id={`${id}-voice-label`} className={labelStyle}>
+              Voice
+            </span>
+            <span id={`${id}-voice-timing`} className={helpStyle}>
+              Next session
+            </span>
+          </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
-            aria-describedby={`${id}-voice-help`}
+            aria-describedby={
+              settings.voiceSaveError
+                ? `${id}-voice-timing ${id}-voice-help`
+                : `${id}-voice-timing`
+            }
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}
@@ -77,14 +98,34 @@ export const AudioSettings = ({
             size="sm"
             width="fullWidth"
           />
-          <span id={`${id}-voice-help`} className={helpStyle}>
-            {settings.voiceSaveError ?? "Saved for next session."}
-          </span>
+          {settings.voiceSaveError && (
+            <span id={`${id}-voice-help`} className={helpStyle} role="status">
+              {settings.voiceSaveError}
+            </span>
+          )}
           {settings.speed !== undefined && actions.setSpeed && (
-            <>
+            <div
+              className={css({ position: "relative" })}
+              role="group"
+              aria-label="Speaking speed"
+              aria-describedby={`${id}-speed-timing`}
+            >
+              <span
+                id={`${id}-speed-timing`}
+                className={css({
+                  position: "absolute",
+                  right: "0",
+                  top: "0",
+                  fontSize: "xs",
+                  color: "neutral.s90",
+                  lineHeight: "relaxed",
+                })}
+              >
+                Next reply
+              </span>
               <Slider
                 className={speedStyle}
-                label="Speaking speed"
+                label="Speed"
                 disabled={disabled}
                 min={0.25}
                 max={1.5}
@@ -94,23 +135,28 @@ export const AudioSettings = ({
                 showValueText
                 variant="plain"
               />
-              <span className={helpStyle}>Applies to the next response.</span>
-            </>
+            </div>
           )}
         </div>
       </div>
       <div className={sectionStyle}>
         <Button
           className={headingStyle}
+          aria-label="Devices"
           aria-expanded={devicesExpanded}
           aria-controls={`${id}-devices`}
-          iconName={devicesExpanded ? "chevronDown" : "chevronRight"}
-          iconPosition="right"
+          prefix={<Icon name="sliders" size="sm" />}
+          suffix={
+            <Icon
+              name={devicesExpanded ? "chevronDown" : "chevronRight"}
+              size="sm"
+            />
+          }
           onClick={() => setDevicesExpanded((expanded) => !expanded)}
           size="sm"
           variant="ghost"
         >
-          Audio devices
+          Devices
         </Button>
         {devicesExpanded && (
           <div
@@ -159,12 +205,14 @@ export const AudioSettings = ({
             )}
             {devices.canRequestSpeaker && (
               <Button
+                aria-label="Choose output"
                 disabled={deviceDisabled}
                 onClick={actions.requestSpeaker}
+                prefix={<SpeakerIcon muted={false} />}
                 size="sm"
                 variant="ghost"
               >
-                Choose another speaker…
+                Choose output…
               </Button>
             )}
           </div>

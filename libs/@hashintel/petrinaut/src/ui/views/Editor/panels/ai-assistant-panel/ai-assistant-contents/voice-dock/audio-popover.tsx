@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import { Button, Popover, Slider } from "@hashintel/ds-components";
+import { Button, Icon, Popover, Slider } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
@@ -165,7 +165,7 @@ export const AudioPopover = ({
                       padding: "[0 8px 4px]",
                     })}
                   >
-                    Speaker volume
+                    Volume
                     {speakerMuted
                       ? " · Muted"
                       : clampedSpeakerVolume === 0
@@ -225,8 +225,10 @@ export const AudioPopover = ({
                   >
                     {actions.repeatQuestion && (
                       <Button
+                        aria-label={voiceSessionActionLabels.repeatQuestion}
                         className={actionStyle}
                         disabled={!canRepeatQuestion}
+                        iconName="rotate"
                         onClick={actions.repeatQuestion}
                         size="sm"
                         type="button"
@@ -237,8 +239,10 @@ export const AudioPopover = ({
                     )}
                     {actions.readFullResponse && (
                       <Button
+                        aria-label={voiceSessionActionLabels.readFullResponse}
                         className={actionStyle}
                         disabled={!canReadFullResponse}
+                        iconName="play"
                         onClick={actions.readFullResponse}
                         size="sm"
                         type="button"
@@ -249,13 +253,31 @@ export const AudioPopover = ({
                     )}
                     {actions.setInterruptionBySpeaking && (
                       <Button
-                        className={actionStyle}
+                        aria-label={
+                          voiceSessionActionLabels.interruptionBySpeaking
+                        }
+                        className={css({
+                          width: "full",
+                          textAlign: "left",
+                          justifyContent: "space-between",
+                        })}
                         onClick={() =>
                           actions.setInterruptionBySpeaking?.(
                             !interruptionBySpeaking,
                           )
                         }
                         pressed={interruptionBySpeaking}
+                        suffix={
+                          <Icon
+                            name="check"
+                            size="sm"
+                            className={
+                              interruptionBySpeaking
+                                ? undefined
+                                : css({ visibility: "hidden" })
+                            }
+                          />
+                        }
                         size="sm"
                         type="button"
                         variant="ghost"
