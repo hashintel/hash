@@ -74,6 +74,7 @@ export const EditViewSelector = () => {
     isLeftSidebarOpen,
     isSearchOpen,
     leftSidebarWidth,
+    isPanelAnimating,
   } = use(EditorContext);
   const { showAnimations } = use(UserSettingsContext);
   const isCanvas = editViewMode === "canvas";
@@ -86,7 +87,10 @@ export const EditViewSelector = () => {
     <div
       className={cx(
         selectorStyle,
-        placementStyle({ floating: isCanvas, animated: showAnimations }),
+        placementStyle({
+          floating: isCanvas,
+          animated: showAnimations && isPanelAnimating,
+        }),
       )}
       style={{
         left: `min(${left}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,

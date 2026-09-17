@@ -76,6 +76,8 @@ In **Edit**, use **Canvas / Definitions** to switch views. On Canvas, the select
 floats below the main header, beside the Entities sidebar when it is open. Its
 outlined background has a light translucent tint and blurs the canvas behind it.
 The selected tab has a stronger fill to distinguish it from the other view.
+The selector follows manual sidebar resizing immediately and moves smoothly when
+the sidebar opens or closes, if animations are enabled.
 In Definitions, it shares the search and filter toolbar. The controls
 become fully opaque when hovered or focused. Both views work on
 the same net and share the selected entity.
