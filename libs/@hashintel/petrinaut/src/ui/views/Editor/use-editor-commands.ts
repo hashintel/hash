@@ -6,7 +6,7 @@ import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
-export const autoLayoutShortcut = "ctrl+shift+l";
+export const autoLayoutShortcut = "mod+shift+l";
 
 /**
  * The editor's palette commands. A no-op unless the host mounted a
@@ -80,9 +80,8 @@ const useEditorCommands = ({
       !event.defaultPrevented &&
       !event.isComposing &&
       !event.repeat &&
-      event.ctrlKey &&
+      (event.metaKey || event.ctrlKey) &&
       event.shiftKey &&
-      !event.metaKey &&
       !event.altKey &&
       event.key.toLowerCase() === "l"
     ) {

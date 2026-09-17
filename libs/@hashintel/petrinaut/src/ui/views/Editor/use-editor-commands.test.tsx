@@ -26,27 +26,34 @@ const EditableNet = ({ children }: { children: ReactNode }) => {
 afterEach(cleanup);
 
 describe("auto-layout shortcut", () => {
-  it("shows the binding in the palette and runs the same layout-and-fit action", () => {
-    const registry = createCommandRegistry();
-    const layout = vi.fn(async () => {});
-    render(
-      <CommandRegistryProvider registry={registry}>
-        <EditorCommands applyAutoLayoutAndFrame={layout} />
-      </CommandRegistryProvider>,
-      { wrapper: EditableNet },
-    );
-    expect(
-      registry
-        .list()
-        .find((command) => command.id === "petrinaut.net.auto-layout"),
-    ).toMatchObject({ shortcut: "ctrl+shift+l" });
-    expect(
-      fireEvent.keyDown(window, { key: "L", ctrlKey: true, shiftKey: true }),
-    ).toBe(false);
-    expect(layout).toHaveBeenCalledOnce();
-    registry.execute("petrinaut.net.auto-layout");
-    expect(layout).toHaveBeenCalledTimes(2);
-  });
+  it.each(["metaKey", "ctrlKey"])(
+    "shows the binding in the palette and runs the same layout-and-fit action with %s",
+    (modifier) => {
+      const registry = createCommandRegistry();
+      const layout = vi.fn(async () => {});
+      render(
+        <CommandRegistryProvider registry={registry}>
+          <EditorCommands applyAutoLayoutAndFrame={layout} />
+        </CommandRegistryProvider>,
+        { wrapper: EditableNet },
+      );
+      expect(
+        registry
+          .list()
+          .find((command) => command.id === "petrinaut.net.auto-layout"),
+      ).toMatchObject({ shortcut: "mod+shift+l" });
+      expect(
+        fireEvent.keyDown(window, {
+          key: "L",
+          [modifier]: true,
+          shiftKey: true,
+        }),
+      ).toBe(false);
+      expect(layout).toHaveBeenCalledOnce();
+      registry.execute("petrinaut.net.auto-layout");
+      expect(layout).toHaveBeenCalledTimes(2);
+    },
+  );
 
   it("ignores typing, other modifiers, repeats, composition, and handled events", () => {
     const layout = vi.fn(async () => {});
@@ -64,7 +71,7 @@ describe("auto-layout shortcut", () => {
     });
     for (const modifiers of [
       { ctrlKey: true },
-      { metaKey: true, shiftKey: true },
+      { metaKey: true },
       { ctrlKey: true, shiftKey: true, altKey: true },
       { ctrlKey: true, shiftKey: true, repeat: true },
       { ctrlKey: true, shiftKey: true, isComposing: true },
