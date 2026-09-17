@@ -289,11 +289,6 @@ where
         let embedder =
             embedder::openai(credential.into_key(), self.options.progress.detach()).await?;
 
-        if let Some(download) = self.download {
-            let mut download = Download::new(&self.storage, &self.root, &download);
-            download.synchronize().await?;
-        }
-
         let upload = match self.upload.as_ref() {
             Some(path) => {
                 let upload = Upload::prepare(&self.storage, &self.root, path).await?;
@@ -301,6 +296,11 @@ where
             }
             None => None,
         };
+
+        if let Some(download) = self.download {
+            let mut download = Download::new(&self.storage, &self.root, &download);
+            download.synchronize().await?;
+        }
 
         let started = Instant::now();
         let summary = live(
