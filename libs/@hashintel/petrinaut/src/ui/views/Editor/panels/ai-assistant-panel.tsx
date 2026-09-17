@@ -1196,8 +1196,9 @@ const ConversationAiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransport,
-    // Interactive tools retain AI SDK's native continuation; static tools
-    // suppress it while addAutomaticToolOutput owns the explicit chain.
+    // Built-in interactive commands retain AI SDK's native continuation.
+    // Automatic tools and host-owned dynamic widgets coordinate an explicit
+    // continuation below so stream settlement cannot duplicate their send.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       if (
         suppressedAutomaticSendsRef.current !== 0 ||
@@ -2278,11 +2279,26 @@ const ConversationAiAssistantPanel = ({
             throw new Error(`Unknown AI tool: ${toolName}`);
           }
 
+          // A host widget may submit while its tool-call stream is still
+          // settling. Letting AI SDK continue implicitly in that window can
+          // race the ready-state continuation and send the same tool result
+          // twice. Suppress the implicit send and use the existing
+          // ready-state continuation path for exactly one follow-up.
+          suppressedAutomaticSendsRef.current += 1;
           return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
             output,
-          });
+          }).then(
+            () => {
+              suppressedAutomaticSendsRef.current -= 1;
+              setContinuationPending(true);
+            },
+            (caught: unknown) => {
+              suppressedAutomaticSendsRef.current -= 1;
+              throw caught;
+            },
+          );
         }
 
         const petrinautOutput = output as AiToolOutput;

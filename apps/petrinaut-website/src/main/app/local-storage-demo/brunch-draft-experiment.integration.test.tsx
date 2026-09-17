@@ -57,11 +57,19 @@ vi.hoisted(() => {
     removeEventListener() {},
     dispatchEvent: () => true,
   });
-  // Monaco's clipboard contrib reads this at import time; jsdom does not
-  // implement it, and the lazy singleton can finish loading mid-suite.
+  // Monaco installs a WebKit clipboard workaround on macOS and reads these
+  // browser APIs at import time; jsdom does not implement them.
   Object.defineProperty(document, "queryCommandSupported", {
     configurable: true,
     value: () => false,
+  });
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { write: () => Promise.resolve() },
+  });
+  Object.defineProperty(window, "ClipboardItem", {
+    configurable: true,
+    value: class {},
   });
   Object.defineProperty(window, "CSS", {
     configurable: true,
@@ -429,7 +437,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
 
   // The prepared result went back to Brunch as a client-tool result, and the
   // follow-up turn rendered.
-  await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(send.mock.calls.length).toBeGreaterThanOrEqual(2));
   const followUp = send.mock.calls[1]![0].message;
   expect(followUp.kind).toBe("signal");
   const results = JSON.parse((followUp as { body: string }).body) as Array<{
@@ -450,6 +458,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
     ],
   );
   await screen.findByText("Drafted; press Run when you want it started.");
+  expect(send).toHaveBeenCalledTimes(2);
 
   // Nothing ran: the stock active-experiments indicator is absent, and the
   // card still offers Run.
