@@ -30,6 +30,13 @@ mod tests;
 /// // A hostile document's 200 refuses construction instead of panicking a later shift.
 /// assert_eq!(Log2::new(200), None);
 /// ```
+#[cfg_attr(
+    not(feature = "bench"),
+    expect(
+        unreachable_pub,
+        reason = "public through Depth's benchmark API when bench is enabled"
+    )
+)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, zerocopy::Immutable)]
 #[repr(transparent)]
 pub struct Log2(u8);

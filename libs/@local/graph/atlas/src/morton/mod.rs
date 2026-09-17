@@ -225,6 +225,7 @@ impl Zoom {
     }
 
     /// Returns the zoom one level shallower, [`None`] at the root.
+    #[cfg(feature = "bench")]
     #[must_use]
     pub(crate) const fn shallower(self) -> Option<Self> {
         match self.0.checked_sub(1) {
@@ -234,6 +235,7 @@ impl Zoom {
     }
 
     /// Returns the zoom one level deeper, [`None`] at [`Zoom::MAX`].
+    #[cfg(feature = "bench")]
     #[must_use]
     pub(crate) const fn deeper(self) -> Option<Self> {
         // Incrementing a level at or below `Depth::MAX` fits within `u8`.
@@ -608,6 +610,7 @@ impl MortonCell {
     }
 
     /// Returns whether `key` lies in the cell.
+    #[cfg(any(test, feature = "bench"))]
     #[inline]
     #[must_use]
     pub const fn contains(self, key: MortonKey) -> bool {

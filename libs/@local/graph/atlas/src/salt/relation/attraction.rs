@@ -39,6 +39,7 @@ impl AttractionOptions {
     ///
     /// Both values must be finite and non-negative. The defaults are `κ_C = 0` and `η_F = 0`,
     /// disabling Coincident weighting and attraction pruning.
+    #[cfg(any(test, feature = "bench"))]
     #[must_use]
     pub(crate) const fn new(
         coincident_coefficient: NonNegative,
