@@ -268,9 +268,10 @@ Menus, toolbar tooltips, and the command palette show shortcuts as compact outli
 | Cmd+F              | Search                                 |
 | Cmd+Shift+K        | Toggle the AI assistant                |
 | Cmd+,              | Open user settings                     |
+| Ctrl+Shift+L       | Auto-layout and fit the net            |
 | Delete / Backspace | Delete selection                       |
 
-On Windows/Linux, use Ctrl instead of Cmd.
+On Windows/Linux, use Ctrl instead of Cmd. Auto-layout uses Control+Shift+L on every platform, including macOS.
 
 ## Snap to grid
 
@@ -289,6 +290,6 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 ## Auto-layout
 
-From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. Importing a net without positions also lays it out and fits it after the new canvas appears.
+From the hamburger menu, select **Layout**, or press **Control+Shift+L** on the canvas, to apply an automatic graph layout (ELK) that rearranges all nodes, then fit the result inside the visible canvas around open side and bottom panels. The command-palette action and assistant layout action use the same sequence. The shortcut leaves text fields and code editors alone. Importing a net without positions also lays it out and fits it after the new canvas appears.
 
 Layout changes node positions and therefore creates an ordinary document change when positions move. The following fit changes only the saved viewport, not the document, mutation history, or provenance. This is useful after importing a net without positions or when a net has become cluttered, but it will not always be an improvement. The item is hidden on a read-only net, which cannot accept the move.

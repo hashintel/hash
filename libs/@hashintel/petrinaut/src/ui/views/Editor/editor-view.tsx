@@ -73,7 +73,7 @@ import {
 } from "./panels/SimulateView/simulate-view";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
-import { EditorCommands } from "./use-editor-commands";
+import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
@@ -444,6 +444,7 @@ const EditorViewContent = ({
           {
             id: "layout",
             text: "Layout",
+            suffix: <KeyboardShortcut shortcut={autoLayoutShortcut} inMenu />,
             onClick: () => {
               void runAutoLayoutAndFrame();
             },

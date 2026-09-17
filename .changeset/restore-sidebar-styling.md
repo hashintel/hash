@@ -16,3 +16,5 @@ Keep the expanded toolbar from jumping sideways when the bottom panel opens or c
 Keep refractive toolbar glass on Chromium, with background blur in Firefox and Safari.
 
 Enable Petricon by default and remove the Experimental labels from Petricon and Automatic arc connections.
+
+Add Control+Shift+L for auto-layout and display it in the menu and command palette.

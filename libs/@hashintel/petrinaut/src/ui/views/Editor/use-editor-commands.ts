@@ -6,6 +6,8 @@ import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
+export const autoLayoutShortcut = "ctrl+shift+l";
+
 /**
  * The editor's palette commands. A no-op unless the host mounted a
  * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
@@ -33,6 +35,8 @@ const useEditorCommands = ({
   const isReadOnly = useIsReadOnly();
   const canEditNet =
     globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
+  const runAutoLayout = () =>
+    void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
 
   useCommand(
     {
@@ -60,6 +64,31 @@ const useEditorCommands = ({
       event.preventDefault();
       event.stopPropagation();
       onToggleAiAssistant();
+      return;
+    }
+
+    const target = event.target;
+    const isEditingText =
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.closest(
+          'input, textarea, [contenteditable]:not([contenteditable="false"]), .monaco-editor, #sentry-feedback, [role="dialog"]',
+        ) !== null);
+    if (
+      canEditNet &&
+      !isEditingText &&
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      !event.repeat &&
+      event.ctrlKey &&
+      event.shiftKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === "l"
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      runAutoLayout();
     }
   });
   useEffect(() => {
@@ -141,7 +170,8 @@ const useEditorCommands = ({
       label: "Auto-layout the net",
       category: "Net",
       keywords: ["arrange", "tidy", "layout"],
-      run: () => void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout()),
+      shortcut: autoLayoutShortcut,
+      run: runAutoLayout,
     },
     { when: canEditNet },
   );
