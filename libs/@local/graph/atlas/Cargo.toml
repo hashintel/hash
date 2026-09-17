@@ -99,10 +99,14 @@ uuid                      = { workspace = true, features = ["v5"] }
 [features]
 bench      = []
 cli        = ["dep:ratatui", "dep:tracing-subscriber"]
-test-utils = []
+test-utils = ["dep:tracing-subscriber"]
 
 [[test]]
 name              = "generation_transfer"
+required-features = ["test-utils"]
+
+[[test]]
+name              = "route_fixture"
 required-features = ["test-utils"]
 
 [[bin]]
