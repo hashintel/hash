@@ -157,8 +157,10 @@ list. Voice warnings appear after Audio options in the dock.
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
   The information icon at the right explains when changes apply and how to preview.
-  In Brunch, mute your microphone and wait for the agent to finish before selecting
-  a voice. Selection automatically previews a short sample. **Loading…** and then
+  You can select a voice at any time, including before connecting. In Brunch,
+  selection also previews a short sample when the session is connected, your
+  microphone is muted, and the agent is idle. Otherwise, it saves silently for
+  the next connection; it does not queue a preview. **Loading…** and then
   a small equalizer appear at the right of the field; there are no playback buttons.
   Selecting another voice replaces the sample; closing Audio options stops it.
   Samples follow output mute, volume, and speaker selection. Unmuting your mic,

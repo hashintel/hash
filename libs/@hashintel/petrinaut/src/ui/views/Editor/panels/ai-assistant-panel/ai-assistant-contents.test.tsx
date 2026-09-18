@@ -545,19 +545,19 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.queryByText(/^Applies next session\./)).toBeNull();
+  expect(screen.queryByText(/^The voice applies next time/)).toBeNull();
   fireEvent.click(
     screen.getByRole("button", { name: "About voice selection" }),
   );
-  expect(
-    await screen.findByText(
-      "Applies next session. Preview when your mic is muted and the agent is idle.",
-    ),
-  ).not.toBeNull();
+  const voiceInfo = await screen.findByText(/^The voice applies next time/);
+  expect(voiceInfo.textContent).toBe(
+    "The voice applies next time the agent is connected.Preview when your mic is muted and the agent is idle.",
+  );
+  expect(voiceInfo.querySelector("br")).not.toBeNull();
   await waitFor(() =>
     expect(
       screen
-        .getByText(/^Applies next session\./)
+        .getByText(/^The voice applies next time/)
         .closest('[data-part="content"]')
         ?.getAttribute("data-state"),
     ).toBe("open"),
@@ -569,11 +569,11 @@ test("keeps voice visible while toggling devices and refreshes devices when open
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   );
-  fireEvent.keyDown(screen.getByText(/^Applies next session\./), {
+  fireEvent.keyDown(screen.getByText(/^The voice applies next time/), {
     key: "Escape",
   });
   await waitFor(() =>
-    expect(screen.queryByText(/^Applies next session\./)).toBeNull(),
+    expect(screen.queryByText(/^The voice applies next time/)).toBeNull(),
   );
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(
@@ -624,6 +624,7 @@ test("keeps voice visible while toggling devices and refreshes devices when open
 test("gates voice previews and hides only ordinary status text", async () => {
   const stopVoicePreview = vi.fn();
   const setMicrophoneMuted = vi.fn();
+  const setVoice = vi.fn();
   const dock = (
     phase: "listening" | "speaking" | "muted" | "connecting",
     microphoneMuted: boolean,
@@ -636,7 +637,7 @@ test("gates voice previews and hides only ordinary status text", async () => {
           requestSpeaker: vi.fn(),
           setMicrophoneDevice: vi.fn(),
           setSpeakerDevice: vi.fn(),
-          setVoice: vi.fn(),
+          setVoice,
         },
         end: noop,
         pause: noop,
@@ -646,7 +647,10 @@ test("gates voice previews and hides only ordinary status text", async () => {
       audioSettings={{
         activeVoice: "alloy",
         voice: "alloy",
-        voices: [{ value: "alloy", text: "Alloy" }],
+        voices: [
+          { value: "alloy", text: "Alloy" },
+          { value: "verse", text: "Verse" },
+        ],
         devices: {
           microphones: [],
           speakers: [],
@@ -677,7 +681,13 @@ test("gates voice previews and hides only ordinary status text", async () => {
   const voice = await screen.findByRole<HTMLButtonElement>("combobox", {
     name: "Voice",
   });
-  expect(voice.disabled).toBe(true);
+  expect(voice.disabled).toBe(false);
+  const nativeVoice = document.querySelector("select");
+  if (!nativeVoice) throw new Error("Missing native voice field");
+  fireEvent.change(nativeVoice, { target: { value: "verse" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
+  );
   expect(screen.getByText("Mute your mic to preview.")).not.toBeNull();
   const toggle = screen.getByRole("checkbox", { name: "Show status text" });
   expect((toggle as HTMLInputElement).checked).toBe(true);
@@ -691,7 +701,7 @@ test("gates voice previews and hides only ordinary status text", async () => {
   expect(screen.getByTestId("waveform")).not.toBeNull();
 
   rerender(dock("speaking", true));
-  expect(voice.disabled).toBe(true);
+  expect(voice.disabled).toBe(false);
   expect(screen.getByText("Wait for the agent to finish.")).not.toBeNull();
   expect(screen.queryByText("Speaking", { exact: true })).toBeNull();
   rerender(dock("muted", true));
@@ -706,7 +716,12 @@ test("gates voice previews and hides only ordinary status text", async () => {
   );
 
   rerender(dock("connecting", true));
-  expect(voice.disabled).toBe(true);
+  expect(voice.disabled).toBe(false);
+  setVoice.mockClear();
+  fireEvent.change(nativeVoice, { target: { value: "verse" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("verse"),
+  );
   expect(screen.getByText("Connecting", { exact: true })).not.toBeNull();
 });
 

@@ -780,7 +780,7 @@ export const ExtendedAudioSettings: Story = {
       canvas.queryByRole("button", { name: /^Voice/ }),
     ).not.toBeInTheDocument();
     await expect(
-      canvas.queryByText("Applies next session"),
+      canvas.queryByText(/^The voice applies next time/),
     ).not.toBeInTheDocument();
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
@@ -873,7 +873,10 @@ export const AudioSettingsConnecting: Story = {
       notice.getBoundingClientRect().top -
         devices.getBoundingClientRect().bottom,
     ).toBe(8);
-    await expect(voice).toBeDisabled();
+    await expect(voice).toBeEnabled();
+    await userEvent.click(voice);
+    await userEvent.click(await canvas.findByRole("option", { name: "Coral" }));
+    await expect(voice).toHaveTextContent("Coral");
   },
 };
 

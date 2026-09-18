@@ -124,8 +124,9 @@ export const AudioSettings = ({
                     })}
                   >
                     <span className={helpStyle}>
-                      Applies next session. Preview when your mic is muted and
-                      the agent is idle.
+                      The voice applies next time the agent is connected.
+                      <br />
+                      Preview when your mic is muted and the agent is idle.
                     </span>
                   </Popover.Body>
                 </Popover.Container>
@@ -134,14 +135,13 @@ export const AudioSettings = ({
           </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
-            aria-description="Applies next session"
+            aria-description="The voice applies next time the agent is connected."
             aria-describedby={[
               settings.voiceSaveError ? `${id}-voice-help` : "",
               previewDisabledReason ? `${id}-voice-blocked` : "",
             ]
               .filter(Boolean)
               .join(" ")}
-            disabled={previewDisabledReason !== null}
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}

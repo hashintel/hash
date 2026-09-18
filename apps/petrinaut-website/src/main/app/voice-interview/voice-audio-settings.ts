@@ -99,13 +99,6 @@ export class VoiceAudioSettings {
     this.actions = {
       setVoice: (selected) => {
         if (!isSupportedVoice(provider, selected)) return;
-        const tracks = this.#connection?.stream.getAudioTracks();
-        if (
-          this.#state.voicePreviewUnavailable ||
-          !tracks?.length ||
-          tracks.some((track) => track.enabled || track.readyState !== "live")
-        )
-          return;
         let message: string | null = null;
         try {
           if (!storage) throw new Error("Storage unavailable");
@@ -114,11 +107,20 @@ export class VoiceAudioSettings {
           message =
             "Voice preference could not be saved. It will last until this page closes.";
         }
+        this.#stopPreview();
         this.#update({
           voice: selected,
           voiceSaveError: message,
+          voicePreview: null,
+          voicePreviewError: null,
         });
-        this.#stopPreview();
+        const tracks = this.#connection?.stream.getAudioTracks();
+        if (
+          this.#state.voicePreviewUnavailable ||
+          !tracks?.length ||
+          tracks.some((track) => track.enabled || track.readyState !== "live")
+        )
+          return;
         this.#stopPreview = this.preview({
           provider,
           voice: selected,
