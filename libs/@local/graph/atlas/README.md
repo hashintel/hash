@@ -20,6 +20,10 @@ cargo run -p hash-graph -- \
   --annotations annotation-corpus.json
 ```
 
+Placement trains with the corpus's relation attraction by default. Pass `--vacuous-placement-fallback` (or set `HASH_GRAPH_ATLAS_VACUOUS_PLACEMENT_FALLBACK=true`) to omit relation attraction when reviewed Proximal coverage is absent. Coverage requires a resolved Proximal verdict for an attraction group with retained edges, positive strength and positive Proximal weight. A reviewed type without such a group does not establish coverage.
+
+The fallback selects its objective before training. A vacuous objective retains semantic, protection and landmark-support terms, freezes no relation radius and preserves the published relation artifacts. Failures in the selected objective still fail the fit. Use `--vacuous-placement` to omit relation attraction regardless of coverage.
+
 Quality thresholds default to maximally permissive values and require evidence for metrics the population supports. Impose measured bounds with `--quality-thresholds thresholds.json`:
 
 ```json
