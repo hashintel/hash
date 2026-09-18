@@ -60,15 +60,11 @@ pub struct S3Args {
     /// Enable S3 access.
     ///
     /// Off by default.
-    #[arg(long = "s3", env = "HASH_GRAPH_ATLAS_S3")]
+    #[arg(long = "s3", env = "HASH_GRAPH_ATLAS_FITTING_S3")]
     enabled: bool,
 
     /// S3 region. Defaults to the SDK's region configuration.
-    #[arg(
-        long = "s3-region",
-        env = "HASH_GRAPH_ATLAS_S3_REGION",
-        requires = "enabled"
-    )]
+    #[arg(long = "s3-region", env = "HASH_GRAPH_ATLAS_FITTING_S3_REGION")]
     region: Option<String>,
 
     /// Access key id paired with the explicit secret key.
@@ -76,8 +72,7 @@ pub struct S3Args {
     /// Defaults to the SDK credential chain.
     #[arg(
         long = "s3-access-key-id",
-        env = "HASH_GRAPH_ATLAS_S3_ACCESS_KEY_ID",
-        requires = "enabled",
+        env = "HASH_GRAPH_ATLAS_FITTING_S3_ACCESS_KEY_ID",
         requires = "secret_access_key"
     )]
     access_key_id: Option<String>,
@@ -87,9 +82,8 @@ pub struct S3Args {
     /// Defaults to the SDK credential chain.
     #[arg(
         long = "s3-secret-access-key",
-        env = "HASH_GRAPH_ATLAS_S3_SECRET_ACCESS_KEY",
+        env = "HASH_GRAPH_ATLAS_FITTING_S3_SECRET_ACCESS_KEY",
         hide_env_values = true,
-        requires = "enabled",
         requires = "access_key_id"
     )]
     secret_access_key: Option<SecretString>,
@@ -99,7 +93,7 @@ pub struct S3Args {
     /// No token by default.
     #[arg(
         long = "s3-session-token",
-        env = "HASH_GRAPH_ATLAS_S3_SESSION_TOKEN",
+        env = "HASH_GRAPH_ATLAS_FITTING_S3_SESSION_TOKEN",
         hide_env_values = true,
         requires = "access_key_id"
     )]
@@ -108,11 +102,7 @@ pub struct S3Args {
     /// Service endpoint override.
     ///
     /// Defaults to the SDK's endpoint configuration.
-    #[arg(
-        long = "s3-endpoint",
-        env = "HASH_GRAPH_ATLAS_S3_ENDPOINT",
-        requires = "enabled"
-    )]
+    #[arg(long = "s3-endpoint", env = "HASH_GRAPH_ATLAS_FITTING_S3_ENDPOINT")]
     endpoint: Option<String>,
 
     /// Select path-style bucket addressing.
@@ -120,8 +110,7 @@ pub struct S3Args {
     /// Off by default.
     #[arg(
         long = "s3-force-path-style",
-        env = "HASH_GRAPH_ATLAS_S3_FORCE_PATH_STYLE",
-        requires = "enabled"
+        env = "HASH_GRAPH_ATLAS_FITTING_S3_FORCE_PATH_STYLE"
     )]
     force_path_style: bool,
 }
@@ -136,22 +125,41 @@ impl S3Args {
     ///
     /// Returns [`S3ArgsError`] if no region resolves or the configured credential provider fails.
     pub async fn client(self) -> Result<Option<Client>, S3ArgsError> {
-        if !self.enabled {
+        let Self {
+            enabled,
+            region,
+            access_key_id,
+            secret_access_key,
+            session_token,
+            endpoint,
+            force_path_style,
+        } = self;
+
+        if !enabled {
+            if region.is_some()
+                || access_key_id.is_some()
+                || secret_access_key.is_some()
+                || session_token.is_some()
+                || endpoint.is_some()
+                || force_path_style
+            {
+                tracing::warn!(
+                    "ignoring S3 options: enable access with `--s3` or \
+                     `HASH_GRAPH_ATLAS_FITTING_S3=true`"
+                );
+            }
+
             return Ok(None);
         }
 
         let mut loader = aws_config::defaults(BehaviorVersion::latest());
-        if let Some(region) = self.region {
+        if let Some(region) = region {
             loader = loader.region(Region::new(region));
         }
 
-        if let (Some(access_key_id), Some(secret_access_key)) =
-            (self.access_key_id, self.secret_access_key)
-        {
+        if let (Some(access_key_id), Some(secret_access_key)) = (access_key_id, secret_access_key) {
             let secret_access_key = secret_access_key.expose();
-            let session_token = self
-                .session_token
-                .map(|token| String::from(&**token.expose()));
+            let session_token = session_token.map(|token| String::from(&**token.expose()));
 
             loader = loader.credentials_provider(Credentials::new(
                 access_key_id,
@@ -162,7 +170,7 @@ impl S3Args {
             ));
         }
 
-        if let Some(endpoint) = self.endpoint {
+        if let Some(endpoint) = endpoint {
             loader = loader.endpoint_url(endpoint);
         }
 
@@ -177,7 +185,7 @@ impl S3Args {
         }
 
         let config = aws_sdk_s3::config::Builder::from(&config)
-            .force_path_style(self.force_path_style)
+            .force_path_style(force_path_style)
             .build();
 
         Ok(Some(Client::from_conf(config)))
