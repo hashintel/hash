@@ -48,7 +48,7 @@ pub(crate) struct Download<'path, B> {
 }
 
 impl<'path, B> Download<'path, B> {
-    /// Configures acquisition from the parent of the remote `generations/` namespace.
+    /// Configures acquisition directly from the remote generations root.
     pub(crate) const fn new(
         backend: B,
         root: &'path GenerationRoot,

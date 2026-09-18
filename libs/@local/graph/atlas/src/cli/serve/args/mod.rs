@@ -292,7 +292,7 @@ impl From<ManagerArgs> for ManagerOptions {
 /// Source selection and polling cadence for acquiring generations.
 #[derive(Debug, clap::Args)]
 pub(super) struct DownloadArgs {
-    /// Source prefix containing `generations/current` and `generations/active/`.
+    /// Generations root containing `current` and `active/`.
     ///
     /// Source polling is off by default. An S3 prefix requires a configured S3 client. Removing
     /// expired local generations remains opt-in through `--unlink-expired-generations`.
