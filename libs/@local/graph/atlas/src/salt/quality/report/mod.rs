@@ -34,10 +34,11 @@
 //! certifies neither compactness nor within-component placement. Subgroup flags and clump
 //! resolution never affect admission.
 //!
-//! Default thresholds accept all in-domain fidelity values while requiring readings. Configure
-//! measured bounds through [`ThresholdOverrides`] for a stricter assessment.
-//! [`QualityReport::controls`] defines the evidence-presence checks, which do not validate report
-//! provenance or cross-field consistency.
+//! Default thresholds accept all in-domain fidelity values while requiring readings for
+//! population-supported metrics. Insufficient populations permit admission without claiming that
+//! unavailable metrics passed. Configure measured bounds through [`ThresholdOverrides`] for a
+//! stricter assessment. [`QualityReport::controls`] defines the evidence-presence checks, which do
+//! not validate report provenance or cross-field consistency.
 //!
 //! For measurements over published artifacts:
 //! [`calibration`] sweeps the clump threshold over a published k-NN table. [`live`] assesses the
@@ -48,6 +49,17 @@ use alloc::collections::BTreeMap;
 
 use hashql_core::id::{Id as _, IdSlice, IdVec};
 
+use super::{
+    clump::ClumpAggregate,
+    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Step, TypedReadings},
+};
+use crate::{identity::OntologyRowId, math::DFinite};
+
+pub(crate) mod calibration;
+mod document;
+pub(crate) mod live;
+mod thresholds;
+
 pub(crate) use self::{
     document::{
         BaselineRow, BaselineSubgroupReport, ClumpReport, ClumpRow, DensityRow, MetricRow,
@@ -55,16 +67,6 @@ pub(crate) use self::{
     },
     thresholds::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
 };
-use super::{
-    clump::ClumpAggregate,
-    probe::{AnchorOrdinal, ProbeReadings, ReadingGrid, Step, TypedReadings},
-};
-use crate::identity::OntologyRowId;
-
-pub(crate) mod calibration;
-mod document;
-pub(crate) mod live;
-mod thresholds;
 
 /// Renders one probe's typed readings into a report under the thresholds.
 ///
@@ -74,7 +76,7 @@ mod thresholds;
 ///
 /// # Panics
 ///
-/// Panics on empty primary anchor or neighbourhood axes, out-of-domain grid indices, or
+/// Panics on out-of-domain grid indices or
 /// incompatible aggregate shapes. Inconsistent radius counts can also panic with integer overflow
 /// checks enabled.
 #[must_use]
@@ -86,23 +88,31 @@ pub(crate) fn assess<N>(
     let readings = readings.readings();
 
     let neighbourhoods = &*readings.neighbourhoods;
-    let overall_rows = |grid: &ReadingGrid| -> Vec<MetricRow> {
+    let overall_rows = |grid: Option<&ReadingGrid>| -> Vec<MetricRow> {
+        let Some(grid) = grid else {
+            return vec![];
+        };
+
         neighbourhoods
             .iter_enumerated()
             .map(|(step, &neighbourhood)| MetricRow::read(neighbourhood, &grid.overall(step)))
             .collect()
     };
 
-    let map_representation = overall_rows(&readings.map_representation);
+    let map_representation = overall_rows(readings.map_representation.as_ref());
     let clump_overall: Option<IdVec<Step, ClumpAggregate>> =
         readings.clumps.as_ref().map(|clumps| {
             neighbourhoods
                 .ids()
-                .map(|step| clumps.map_representation.overall(step))
+                .filter_map(|step| {
+                    clumps
+                        .map_representation
+                        .as_ref()
+                        .map(|grid| grid.overall(step))
+                })
                 .collect()
         });
 
-    // ontology-row ordering fixes subgroup and flag order
     let mut members: BTreeMap<OntologyRowId, Vec<AnchorOrdinal>> = BTreeMap::new();
     for (anchor, types) in anchor_types.iter().enumerate() {
         for &ontology in types {
@@ -124,14 +134,16 @@ pub(crate) fn assess<N>(
 
     QualityReport {
         anchors: readings.anchors.len(),
-        corpus_universe: readings
-            .map_representation
-            .overall(Step::from_usize(0))
-            .universe(),
+        corpus_universe: readings.corpus_universe,
+        triplet_pairs_requested: readings.triplet_pairs_requested,
         comparisons: readings.comparisons.len(),
         map_representation,
         clumps: readings.clumps.as_ref().map(|clumps| {
-            let rendered = |grid: &ReadingGrid<ClumpAggregate>| -> Vec<ClumpRow> {
+            let rendered = |grid: Option<&ReadingGrid<ClumpAggregate>>| -> Vec<ClumpRow> {
+                let Some(grid) = grid else {
+                    return vec![];
+                };
+
                 neighbourhoods
                     .iter_enumerated()
                     .map(|(step, &neighbourhood)| {
@@ -144,18 +156,21 @@ pub(crate) fn assess<N>(
                     })
                     .collect()
             };
+
             ClumpReport {
                 epsilon: clumps.epsilon,
                 count: clumps.count,
                 groups: clumps.groups,
                 grouped_rows: clumps.grouped_rows,
-                map_representation: rendered(&clumps.map_representation),
-                representation_canonical: rendered(&clumps.representation_canonical),
+                map_representation: rendered(clumps.map_representation.as_ref()),
+                representation_canonical: rendered(clumps.representation_canonical.as_ref()),
             }
         }),
-        sampled_map_representation: overall_rows(&readings.sampled_map_representation),
-        sampled_map_canonical: overall_rows(&readings.sampled_map_canonical),
-        sampled_representation_canonical: overall_rows(&readings.sampled_representation_canonical),
+        sampled_map_representation: overall_rows(readings.sampled_map_representation.as_ref()),
+        sampled_map_canonical: overall_rows(readings.sampled_map_canonical.as_ref()),
+        sampled_representation_canonical: overall_rows(
+            readings.sampled_representation_canonical.as_ref(),
+        ),
         density: density_rows(readings),
         triplet_map_representation: TripletRow::read(&readings.triplet_map_representation),
         triplet_map_canonical: TripletRow::read(&readings.triplet_map_canonical),
@@ -199,9 +214,9 @@ fn subgroup_reports<N>(
             .neighbourhoods
             .ids()
             .zip(overall)
-            .map(|(step, overall_row)| {
-                let merged = readings.map_representation.merged(anchors, step);
-                MetricRow::read(overall_row.neighbourhood, &merged)
+            .filter_map(|(step, overall_row)| {
+                let merged = readings.map_representation.as_ref()?.merged(anchors, step);
+                Some(MetricRow::read(overall_row.neighbourhood, &merged))
             })
             .collect();
 
@@ -216,11 +231,12 @@ fn subgroup_reports<N>(
                 }
 
                 // compare collapsed subgroup degradation with collapsed whole-probe degradation
-                let collapsed = readings.clumps.as_ref().map(|clumps| {
-                    let merged = clumps.map_representation.merged(anchors, step);
+                let collapsed = readings.clumps.as_ref().and_then(|clumps| {
+                    let merged = clumps.map_representation.as_ref()?.merged(anchors, step);
+
                     let overall = &clump_overall
                         .expect("clump readings produce overall clump aggregates")[step];
-                    (merged.recall().complement(), overall.recall().complement())
+                    Some((merged.recall().complement(), overall.recall().complement()))
                 });
 
                 flags.push(SubgroupFlag {
@@ -266,22 +282,27 @@ fn baseline_subgroup_reports<N>(
             let rows = readings
                 .neighbourhoods
                 .iter_enumerated()
-                .map(|(step, &neighbourhood)| {
+                .filter_map(|(step, &neighbourhood)| {
                     let merged = readings
                         .sampled_representation_canonical
+                        .as_ref()?
                         .merged(anchors, step);
 
-                    let collapsed = readings.clumps.as_ref().map(|clumps| {
-                        let merged = clumps.representation_canonical.merged(anchors, step);
-                        merged.recall()
+                    let collapsed = readings.clumps.as_ref().and_then(|clumps| {
+                        let merged = clumps
+                            .representation_canonical
+                            .as_ref()?
+                            .merged(anchors, step);
+
+                        Some(merged.recall())
                     });
 
-                    BaselineRow {
+                    Some(BaselineRow {
                         neighbourhood,
                         queries: merged.queries(),
                         recall: merged.recall(),
                         clump_recall: collapsed,
-                    }
+                    })
                 })
                 .collect();
 
@@ -296,36 +317,42 @@ fn baseline_subgroup_reports<N>(
 
 /// Computes each neighbourhood size's median log ratio and unscaled MAD.
 ///
-/// Positive radii contribute, and zero radii count as degenerate. Finite positive inputs are
-/// required for finite log ratios. Infinity produced by overflowing distance arithmetic survives
-/// the positivity filter.
+/// Positive radii contribute, and zero radii count as degenerate. Any non-finite radius invalidates
+/// the step's median and spread, including a pair whose other radius is zero.
 ///
 /// # Panics
 ///
 /// Panics with integer overflow checks enabled when a step has more contributing radius pairs than
 /// anchors.
 fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
-    let steps = readings.neighbourhoods.len();
+    let steps = readings.density_neighbourhoods.len();
     readings
-        .neighbourhoods
-        .iter_enumerated()
+        .density_neighbourhoods
+        .iter()
+        .enumerate()
         .map(|(step, &neighbourhood)| {
-            let mut ratios: Vec<f64> = readings
-                .radii
-                .iter()
-                .skip(step.as_usize())
-                .step_by(steps.max(1))
-                .filter(|radii| radii.map > 0.0 && radii.representation > 0.0)
-                .map(|radii| f64::from(radii.map).ln() - f64::from(radii.representation).ln())
+            let radii = readings.radii.iter().skip(step).step_by(steps.max(1));
+
+            let mut ratios: Vec<_> = radii
+                .filter_map(|radii| {
+                    let map = radii.map.positive();
+                    let representation = radii.representation.positive();
+
+                    Option::zip(map, representation)
+                })
+                .map(|(map, presentation)| map.ln_wide() - presentation.ln_wide())
                 .collect();
+
             let anchors = ratios.len();
             let degenerate = readings.anchors.len() - anchors;
 
+            // a finite median can conceal non-finite inputs in a minority of anchors.
             let median_log_ratio = median(&mut ratios);
             let spread = median_log_ratio.and_then(|median_value| {
                 for ratio in &mut ratios {
-                    *ratio = (*ratio - median_value).abs();
+                    *ratio = (*ratio - median_value).abs().into();
                 }
+
                 median(&mut ratios)
             });
 
@@ -348,16 +375,22 @@ fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
     clippy::integer_division_remainder_used,
     reason = "the middle index is the floor of half the length by definition"
 )]
-fn median(values: &mut [f64]) -> Option<f64> {
+fn median(values: &mut [DFinite]) -> Option<DFinite> {
     if values.is_empty() {
         return None;
     }
 
-    values.sort_unstable_by(f64::total_cmp);
+    values.sort_unstable();
+
     let middle = values.len() / 2;
     if values.len() % 2 == 1 {
         return Some(values[middle]);
     }
 
-    Some(f64::midpoint(values[middle - 1], values[middle]))
+    Some(values[middle - 1].midpoint(values[middle]))
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    pub(crate) use super::document::MetricEval;
 }

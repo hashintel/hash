@@ -20,7 +20,7 @@ cargo run -p hash-graph -- \
   --annotations annotation-corpus.json
 ```
 
-Quality thresholds default to maximally permissive values, the admission check demanding evidence presence rather than fidelity. Impose measured bounds with `--quality-thresholds thresholds.json`:
+Quality thresholds default to maximally permissive values and require evidence for metrics the population supports. Impose measured bounds with `--quality-thresholds thresholds.json`:
 
 ```json
 {
@@ -30,6 +30,12 @@ Quality thresholds default to maximally permissive values, the admission check d
 ```
 
 The fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`, `maximum_intrusion_rate`, `minimum_triplet_agreement` (each in `[0, 1]`) and `maximum_density_spread` (finite, non-negative). Out-of-domain values and unknown fields refuse the run before it starts.
+
+Quality-probe anchor and comparison counts are upper bounds. Counts that fit stay unchanged. For a smaller population, the probe apportions disjoint samples in the requested ratio, rounding the anchor share down while reserving one anchor and two comparisons whenever at least three nodes exist. Neighbourhood sizes contract to half the comparison count, preserving their reporting order. The comparison budget must be at least two.
+
+Rank metrics and triplet agreement need at least three nodes. Density can be evaluated with two nodes at neighbourhood size one, retaining the single-anchor MAD convention (zero spread for a positive finite radius ratio). The JSON report records actual sample counts and neighbourhood sizes. Its `controls` contain `passed`, `failed`, or `not_evaluated` with reason `insufficient_data`. Such unavailable metrics permit admission without asserting a pass: `admits` can be true while `passes` is false. The CLI prints both decisions and each control's status.
+
+Missing canonical data, execution errors and measured failures still refuse admission. A non-finite density radius invalidates its neighbourhood's evidence. Zero-radius anchors contribute no density ratio, and a neighbourhood with no contributing anchors refuses admission. Other anchors can still supply density evidence when all radii are finite. Zero requested triplet draws also refuse. Fit input requirements, neighbour-recall admission and reviewed-Proximal requirements remain in effect.
 
 Success prints the fit's verdict and writes an admission report:
 

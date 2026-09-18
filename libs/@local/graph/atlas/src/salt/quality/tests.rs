@@ -26,9 +26,10 @@ use super::{
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
         AnchorOrdinal, ClumpReadings, DeliveryError, ProbeCorpus, ProbeError, ProbeOptions,
-        ProbeReadings, RadiusPair, ReadingGrid, Step, match_deliveries, probe, sample_pairs,
+        ProbeReadings, RadiusPair, ReadingGrid, Step, match_deliveries, probe, probe_sample,
+        sample_pairs,
     },
-    report::{QualityThresholds, ThresholdOverrides, assess},
+    report::{QualityThresholds, ThresholdOverrides, assess, tests::MetricEval},
     runner::{QualityRunOptions, run},
 };
 use crate::{
@@ -38,7 +39,7 @@ use crate::{
         memory::{MemoryDataset, MemoryNodeId},
     },
     device::Device,
-    file::generation::GenerationRoot,
+    file::generation::{GenerationRoot, test_utils::publish_fixture},
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
@@ -56,6 +57,7 @@ use crate::{
             TrainingSet, fit as fit_classifier,
         },
         quality::report::{SubgroupFlag, SubgroupReport},
+        runner::{Admission, admit},
     },
 };
 
@@ -859,6 +861,9 @@ fn flag_fixture(hits: &[bool]) -> ProbeReadings<NodeRowId> {
     ProbeReadings {
         anchors: (0..hits.len()).map(NodeRowId::from_usize).collect(),
         comparisons: Box::new([]),
+        corpus_universe: 8,
+        triplet_pairs_requested: 1,
+        density_neighbourhoods: Box::new([nz!(1)]),
         neighbourhoods: IdSlice::from_boxed_slice(Box::new([nz!(1)])),
         map_representation: ReadingGrid::from_anchor_cells(cells.clone(), 1),
         clumps: None,
@@ -1370,44 +1375,473 @@ async fn assess_reads_a_probed_fixture() {
 }
 
 #[tokio::test]
-async fn probe_rejects_impossible_designs() {
+async fn probe_population_domains() {
+    for rows in [0, 1, 2, 3, 4, 12] {
+        let fixture = ProbeFixture::on_circle(&irregular_angles(rows));
+        let readings = probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &ProbeOptions::default(),
+            Xoshiro256PlusPlus::seed_from_u64(7),
+        )
+        .await
+        .expect("should adapt to the population");
+        let selected: HashSet<_> = readings
+            .anchors
+            .iter()
+            .chain(&readings.comparisons)
+            .collect();
+        assert_eq!(
+            selected.len(),
+            rows,
+            "should select disjoint rows within the budgets"
+        );
+        let types = vec![SmallVec::new(); readings.anchors.len()];
+        let report = assess(
+            readings.with_anchor_types(&types),
+            &QualityThresholds::default(),
+        );
+        assert!(
+            report.admits(),
+            "should admit unavailable metrics without claiming they passed"
+        );
+        assert_eq!(report.passes(), rows >= 3);
+        let json = serde_json::to_value(&report).expect("should serialize assessed evidence");
+        assert_eq!(json["anchors"], report.anchors);
+        assert_eq!(json["comparisons"], report.comparisons);
+        assert_eq!(json["corpus_universe"], rows - report.anchors);
+        assert_eq!(json["passes"], rows >= 3);
+        assert_eq!(json["admits"], true);
+        let summary = report.to_string();
+        assert!(summary.contains("admits      true"));
+        assert_eq!(
+            summary.contains("not evaluated: insufficient data"),
+            rows < 3
+        );
+        for (control, serialized) in report.controls().iter().zip(
+            json["controls"]
+                .as_array()
+                .expect("should serialize controls"),
+        ) {
+            let supported = rows
+                >= if control.metric == QualityMetric::DensitySpread {
+                    2
+                } else {
+                    3
+                };
+            if supported {
+                assert_matches!(control.eval, MetricEval::Pass { .. });
+                assert_eq!(serialized["status"], "passed");
+            } else {
+                assert_matches!(control.eval, MetricEval::Inconclusive { .. });
+                assert_eq!(serialized["status"], "not_evaluated");
+                assert_eq!(serialized["reason"], "insufficient_data");
+            }
+        }
+        if rows == 2 {
+            assert!(report.map_representation.is_empty());
+            assert_eq!(json["density"][0]["neighbourhood"], 1);
+            assert_eq!(report.density[0].spread, Some(0.0));
+        }
+        let restored: super::report::QualityReport =
+            serde_json::from_value(json).expect("should restore evidence");
+        assert_eq!(restored, report);
+        assert_eq!(restored.admits(), report.admits());
+    }
+}
+
+#[tokio::test]
+async fn admission_population_insufficient() {
+    for rows in [0, 1, 2] {
+        let root = GenerationRoot::new(runner_scratch(&format!("admission-{rows}")))
+            .expect("should open fixture root");
+        let generation = publish_fixture(&root);
+        let fixture = ProbeFixture::on_circle(&irregular_angles(rows));
+        let readings = probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &ProbeOptions::default(),
+            Xoshiro256PlusPlus::seed_from_u64(7),
+        )
+        .await
+        .expect("should complete available measurements");
+        let types = vec![SmallVec::new(); readings.anchors.len()];
+        let report = assess(
+            readings.with_anchor_types(&types),
+            &QualityThresholds::default(),
+        );
+        assert!(!report.passes());
+        if rows == 2 {
+            let mut missing = report.clone();
+            missing.density[0].spread = None;
+            assert_eq!(
+                admit(&root, generation, &missing).expect("should return a candidate"),
+                Admission::Candidate
+            );
+            assert_eq!(root.current().expect("should read pointer"), None);
+            let mut failing = report.clone();
+            failing.density[0].spread = Some(0.25);
+            failing.maximum_density_spread = NonNegative::ZERO;
+            assert_eq!(
+                admit(&root, generation, &failing).expect("should return a candidate"),
+                Admission::Candidate
+            );
+            assert_eq!(root.current().expect("should read pointer"), None);
+        }
+        assert_eq!(
+            admit(&root, generation, &report).expect("should activate without unsupported metrics"),
+            Admission::Active
+        );
+        assert_eq!(
+            root.current().expect("should read pointer"),
+            Some(generation)
+        );
+    }
+}
+
+#[tokio::test]
+async fn probe_small_missing_evidence() {
+    for rows in [0, 1, 2] {
+        let fixture = ProbeFixture::on_circle(&irregular_angles(rows));
+        let options = ProbeOptions {
+            triplet_pairs: 0,
+            ..
+        };
+        let readings = probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &options,
+            Xoshiro256PlusPlus::seed_from_u64(7),
+        )
+        .await
+        .expect("should complete the zero-triplet probe");
+        let types = vec![SmallVec::new(); readings.anchors.len()];
+        let report = assess(
+            readings.with_anchor_types(&types),
+            &QualityThresholds::default(),
+        );
+        assert!(
+            !report.admits(),
+            "should refuse zero requested triplet draws even below their domain"
+        );
+        assert_matches!(
+            report.controls()[5].eval,
+            MetricEval::Fail { reading: None }
+        );
+    }
+    let fixture = ProbeFixture::new(&[0.0, 0.5], &[0.0, 0.0]);
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &ProbeOptions::default(),
+        Xoshiro256PlusPlus::seed_from_u64(7),
+    )
+    .await
+    .expect("should measure degenerate geometry");
+    let types = vec![SmallVec::new(); readings.anchors.len()];
+    let report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds::default(),
+    );
+    assert!(
+        !report.admits(),
+        "should refuse degenerate density alongside unavailable rank metrics"
+    );
+    assert_matches!(
+        report.controls()[4].eval,
+        MetricEval::Fail { reading: None }
+    );
+    assert_matches!(report.controls()[0].eval, MetricEval::Inconclusive { .. });
+    let json = serde_json::to_value(&report).expect("should serialize rejection");
+    assert_eq!(json["controls"][4]["status"], "failed");
+    assert_eq!(json["controls"][4]["reading"], serde_json::Value::Null);
+}
+
+#[tokio::test]
+#[should_panic(expected = "node 0 has no canonical embedding")]
+async fn probe_small_missing_canonical() {
+    let mut fixture = ProbeFixture::on_circle(&[0.0]);
+    fixture.canonical.clear();
+    probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &ProbeOptions::default(),
+        Xoshiro256PlusPlus::seed_from_u64(0),
+    )
+    .await
+    .expect("should propagate the fixture's missing-canonical panic");
+}
+
+#[tokio::test]
+async fn probe_small_invalid_inputs() {
+    let mut fixture = ProbeFixture::on_circle(&[0.0]);
+    fixture.storage.as_array_mut()[0] = f32::NAN;
+    assert_matches!(
+        probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &ProbeOptions::default(),
+            Xoshiro256PlusPlus::seed_from_u64(0)
+        )
+        .await,
+        Err(ProbeError::NonFiniteEmbedding)
+    );
+
+    let mut fixture = ProbeFixture::on_circle(&[0.0]);
+    fixture
+        .canonical
+        .get_mut(&0)
+        .expect("should contain the canonical row")
+        .as_array_mut()[0] = f32::INFINITY;
+    assert_matches!(
+        probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &ProbeOptions::default(),
+            Xoshiro256PlusPlus::seed_from_u64(0)
+        )
+        .await,
+        Err(ProbeError::NonFiniteEmbedding)
+    );
+
+    let fixture = ProbeFixture::on_circle(&[]);
+    let invalid = ProbeOptions {
+        comparisons: nz!(1),
+        ..
+    };
+    assert_matches!(
+        probe(
+            &fixture.dataset(),
+            fixture.corpus(),
+            &invalid,
+            Xoshiro256PlusPlus::seed_from_u64(0)
+        )
+        .await,
+        Err(ProbeError::Neighbourhood { universe: 1, .. })
+    );
+}
+
+// squared distances enforce finiteness in debug builds. Without that assertion, the density control
+// rejects the non-finite spread.
+#[tokio::test]
+#[cfg_attr(
+    debug_assertions,
+    should_panic(expected = "the square left the domain")
+)]
+async fn probe_small_nonfinite_arithmetic() {
+    let mut fixture = ProbeFixture::on_circle(&[0.0, 0.5]);
+    fixture.coordinates = vec![Vec2::new(f32::MAX, 0.0), Vec2::new(-f32::MAX, 0.0)];
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &ProbeOptions::default(),
+        Xoshiro256PlusPlus::seed_from_u64(7),
+    )
+    .await
+    .expect("should retain overflowed radii for assessment");
+    let types = vec![SmallVec::new(); readings.anchors.len()];
+    let report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds::default(),
+    );
+    assert!(
+        !report.admits(),
+        "should reject overflowed arithmetic alongside unsupported rank metrics"
+    );
+    assert_matches!(
+        report.controls()[4].eval,
+        MetricEval::Fail { reading: None }
+    );
+}
+
+#[tokio::test]
+#[cfg_attr(
+    debug_assertions,
+    should_panic(expected = "the square left the domain")
+)]
+async fn probe_density_minority_overflow() {
+    let mut fixture = ProbeFixture::on_circle(&irregular_angles(5));
+    let options = ProbeOptions {
+        anchors: nz!(8),
+        comparisons: nz!(4),
+        neighbourhoods: Cow::Borrowed(&[nz!(1)]),
+        ..ProbeOptions::default()
+    };
+    let rng = Xoshiro256PlusPlus::seed_from_u64(7);
+    let sample = probe_sample(rng.clone(), IdSlice::from_raw(&fixture.node_ids), 3, 2);
+    for (&row, coordinate) in sample.iter().zip([2.0, 3.0, f32::MAX, 0.0, 1.0]) {
+        fixture.coordinates[row.as_usize()] = Vec2::new(coordinate, 0.0);
+    }
+    fixture.storage.as_array_mut().fill(0.0);
+    for row in 0..5 {
+        fixture.storage.as_array_mut()[row * PROJECTOR_DIMENSIONS + row] = 1.0;
+        let canonical = fixture
+            .canonical
+            .get_mut(&fixture.node_ids[row].get())
+            .expect("should contain the canonical row");
+        canonical.as_array_mut().fill(0.0);
+        canonical.as_array_mut()[row] = 1.0;
+    }
+
+    let mut readings = probe(&fixture.dataset(), fixture.corpus(), &options, rng)
+        .await
+        .expect("should retain overflowed radii for assessment");
+    assert_eq!(readings.anchors.len(), 3);
+    assert_eq!(readings.comparisons.len(), 2);
+    let map_radii: Vec<_> = readings.radii.iter().map(|radii| radii.map.get()).collect();
+    assert_eq!(map_radii, [1.0, 2.0, f32::INFINITY]);
+    assert!(
+        readings
+            .radii
+            .iter()
+            .all(|radii| radii.representation == NonNegative::ONE)
+    );
+
+    // the unchecked median and MAD both equal ln(2), despite the infinite third log ratio.
+    let mut ratios: Vec<_> = map_radii
+        .iter()
+        .map(|&radius| f64::from(radius).ln())
+        .collect();
+    ratios.sort_unstable_by(f64::total_cmp);
+    let median = ratios[1];
+    for ratio in &mut ratios {
+        *ratio = (*ratio - median).abs();
+    }
+    ratios.sort_unstable_by(f64::total_cmp);
+    assert_eq!(median, 2.0_f64.ln());
+    assert_eq!(ratios[1], 2.0_f64.ln());
+
+    let report = assess(
+        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
+        &QualityThresholds::default(),
+    );
+    assert_eq!(report.density[0].median_log_ratio, None);
+    assert_eq!(report.density[0].spread, None);
+    for control in report.controls() {
+        if control.metric == QualityMetric::DensitySpread {
+            assert_matches!(control.outcome, MetricEval::Fail { reading: None });
+        } else {
+            assert_matches!(control.outcome, MetricEval::Pass { .. });
+        }
+    }
+    assert!(!report.admits(), "should refuse non-finite density inputs");
+    let json = serde_json::to_value(&report).expect("should serialize rejection");
+    assert_eq!(json["controls"][4]["status"], "failed");
+    assert_eq!(json["admits"], false);
+    let root = GenerationRoot::new(runner_scratch("density-minority-overflow"))
+        .expect("should open fixture root");
+    let generation = publish_fixture(&root);
+    assert_eq!(
+        admit(&root, generation, &report).expect("should return a candidate"),
+        Admission::Candidate
+    );
+    assert_eq!(root.current().expect("should read pointer"), None);
+
+    readings.radii[2].representation = NonNegative::ZERO;
+    let report = assess(
+        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
+        &QualityThresholds::default(),
+    );
+    assert!(
+        !report.admits(),
+        "should refuse overflow even beside a zero radius"
+    );
+    assert_matches!(
+        report.controls()[4].eval,
+        MetricEval::Fail { reading: None }
+    );
+}
+
+#[test]
+fn assess_nonfinite_density() {
+    let readings = flag_fixture(&[true, true]);
+    let types = types_of(&[&[], &[]]);
+    for spread in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        let mut report = assess(
+            readings.with_anchor_types(&types),
+            &QualityThresholds::default(),
+        );
+        report.density[0].spread = Some(spread);
+        assert!(
+            !report.admits(),
+            "should refuse non-finite density even with permissive bounds"
+        );
+        assert_matches!(
+            report.controls()[4].eval,
+            MetricEval::Fail { reading: None }
+        );
+    }
+}
+
+#[tokio::test]
+async fn probe_adapted_threshold_failure() {
+    let angles = irregular_angles(12);
+    let mut scrambled = angles.clone();
+    scrambled.rotate_left(5);
+    let fixture = ProbeFixture::new(&angles, &scrambled);
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &ProbeOptions::default(),
+        Xoshiro256PlusPlus::seed_from_u64(7),
+    )
+    .await
+    .expect("should adapt and measure a distorted map");
+    let types = vec![SmallVec::new(); readings.anchors.len()];
+    let report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds {
+            minimum_recall: UnitFraction::ONE,
+            ..
+        },
+    );
+    assert!(
+        !report.admits(),
+        "should refuse measured failure after shrinking the sample"
+    );
+    assert_matches!(report.controls()[0].eval, MetricEval::Fail { reading: Some(reading) } if reading < 1.0);
+    let json = serde_json::to_value(&report).expect("should serialize measured rejection");
+    assert_eq!(json["controls"][0]["status"], "failed");
+    assert_eq!(json["admits"], false);
+}
+
+#[tokio::test]
+async fn probe_configuration_boundaries() {
     let fixture = ProbeFixture::on_circle(&irregular_angles(12));
 
-    // The corpus cannot host disjoint samples of 8 + 8.
+    // the requested samples contract to fit the corpus.
     let crowded = ProbeOptions {
         anchors: 8.try_into().expect("nonzero"),
         comparisons: 8.try_into().expect("nonzero"),
         neighbourhoods: vec![2.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
-    assert_matches!(
-        probe(
-            &fixture.dataset(),
-            fixture.corpus(),
-            &crowded,
-            Xoshiro256PlusPlus::seed_from_u64(0),
-        )
-        .await,
-        Err(ProbeError::Design { rows: 12, .. }),
-    );
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &crowded,
+        Xoshiro256PlusPlus::seed_from_u64(0),
+    )
+    .await
+    .expect("should contract the design");
+    assert_eq!((readings.anchors.len(), readings.comparisons.len()), (6, 6));
 
-    // A neighbourhood of 3 exceeds half the 4-row comparison universe.
+    // a neighbourhood of 3 contracts to half the 4-row comparison universe.
     let oversized = ProbeOptions {
         anchors: 2.try_into().expect("nonzero"),
         comparisons: 4.try_into().expect("nonzero"),
         neighbourhoods: vec![3.try_into().expect("nonzero")].into(),
         ..ProbeOptions::default()
     };
-    assert_matches!(
-        probe(
-            &fixture.dataset(),
-            fixture.corpus(),
-            &oversized,
-            Xoshiro256PlusPlus::seed_from_u64(0),
-        )
-        .await,
-        Err(ProbeError::Neighbourhood { k, universe: 4 }) if k.get() == 3,
-    );
+    let readings = probe(
+        &fixture.dataset(),
+        fixture.corpus(),
+        &oversized,
+        Xoshiro256PlusPlus::seed_from_u64(0),
+    )
+    .await
+    .expect("should contract the neighbourhood");
+    assert_eq!(readings.neighbourhoods.as_raw(), &[nz!(2)]);
 
     // An empty neighbourhood ladder reads nothing.
     let empty = ProbeOptions {

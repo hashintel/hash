@@ -69,11 +69,20 @@ impl<A> ReadingGrid<A> {
     ///
     /// # Panics
     ///
-    /// Panics when `steps` is zero or a row's cell count differs from `steps`.
-    pub(crate) fn from_anchor_cells(rows: Vec<Vec<A>>, steps: usize) -> Self {
-        Self {
-            cells: IdMatrix::from_rows(rows, steps),
+    /// Panics when a row's cell count differs from `steps`.
+    pub(crate) fn from_anchor_cells(rows: Vec<Vec<A>>, steps: usize) -> Option<Self> {
+        if steps == 0 {
+            assert!(
+                rows.iter().all(Vec::is_empty),
+                "should have no cells without neighbourhoods"
+            );
+
+            return None;
         }
+
+        Some(Self {
+            cells: IdMatrix::from_rows(rows, steps),
+        })
     }
 
     /// Borrows one anchor's reading at one step.
@@ -98,6 +107,7 @@ impl ReadingGrid<NeighbourhoodAggregate> {
     #[must_use]
     pub(crate) fn overall(&self, step: Step) -> NeighbourhoodAggregate {
         let mut column = self.cells.column(step);
+
         let mut merged = column
             .next()
             .expect("the grid holds at least one anchor")
@@ -123,10 +133,13 @@ impl ReadingGrid<NeighbourhoodAggregate> {
         let (&first, rest) = anchors
             .split_first()
             .expect("a subset merge names at least one anchor");
+
         let mut merged = self.anchor(first, step).clone();
+
         for &anchor in rest {
             merged.merge(self.anchor(anchor, step));
         }
+
         merged
     }
 }
@@ -141,10 +154,12 @@ impl ReadingGrid<ClumpAggregate> {
     #[must_use]
     pub(crate) fn overall(&self, step: Step) -> ClumpAggregate {
         let mut column = self.cells.column(step);
+
         let mut merged = *column.next().expect("the grid holds at least one anchor");
         for cell in column {
             merged.merge(cell);
         }
+
         merged
     }
 
@@ -161,10 +176,12 @@ impl ReadingGrid<ClumpAggregate> {
         let (&first, rest) = anchors
             .split_first()
             .expect("a subset merge names at least one anchor");
+
         let mut merged = *self.anchor(first, step);
         for &anchor in rest {
             merged.merge(self.anchor(anchor, step));
         }
+
         merged
     }
 }
@@ -200,12 +217,12 @@ pub(crate) struct ClumpReadings {
     /// Collapsed corpus map-versus-representation readings.
     ///
     /// On the corpus grid's anchor and neighbourhood axes.
-    pub map_representation: ReadingGrid<ClumpAggregate>,
+    pub map_representation: Option<ReadingGrid<ClumpAggregate>>,
     /// Collapsed representation-versus-canonical readings over the comparison rows.
     ///
     /// The representation baseline collapsed onto clump ids, on the sampled grids' anchor and
     /// neighbourhood axes.
-    pub representation_canonical: ReadingGrid<ClumpAggregate>,
+    pub representation_canonical: Option<ReadingGrid<ClumpAggregate>>,
 }
 
 /// One probe's readings across the three space pairs.
@@ -214,8 +231,10 @@ pub(crate) struct ClumpReadings {
 /// share the comparison rows as their universe. Each grid records its own universe in its
 /// aggregates.
 ///
-/// Values produced by [`probe`](super::probe) have nonempty, aligned anchor and neighbourhood axes.
-/// Direct construction must preserve those axes across grids, radii and triplet columns. The same
+/// Values produced by [`probe`](super::probe) have aligned axes. The neighbourhood axis is empty
+/// when the population cannot support rank metrics. Density has its own neighbourhood axis, which
+/// can remain nonempty with two rows. Direct construction must preserve the grids' neighbourhood
+/// axis and the radius pairs' density axis, with all measurements in anchor order. The same
 /// obligation covers each aggregate's shape and arithmetic capacity, and the fields store what a
 /// caller supplies without a mutual-consistency check.
 #[derive(Debug)]
@@ -224,6 +243,12 @@ pub(crate) struct ProbeReadings<N> {
     pub anchors: Box<[N]>,
     /// Sampled comparison rows, in sampling order: the sampled grids' shared universe.
     pub comparisons: Box<[N]>,
+    /// Non-anchor rows in the corpus, including when rank metrics are unavailable.
+    pub corpus_universe: usize,
+    /// Radius sizes in reporting order, defined with at least one non-anchor row.
+    pub density_neighbourhoods: Box<[NonZero<usize>]>,
+    /// Requested pair draws, distinguishing zero requested draws from population insufficiency.
+    pub triplet_pairs_requested: usize,
     /// The neighbourhood sizes every grid reads at, in options order.
     ///
     /// The size at each [`Step`] of the grids' neighbourhood axis.
@@ -232,7 +257,7 @@ pub(crate) struct ProbeReadings<N> {
     ///
     /// Rankings cover the full non-anchor universe, while aggregate readings retain
     /// anchor-sampling uncertainty.
-    pub map_representation: ReadingGrid,
+    pub map_representation: Option<ReadingGrid>,
     /// The corpus reading collapsed onto clump ids.
     ///
     /// Present exactly when the probe received a clump grouping.
@@ -240,16 +265,17 @@ pub(crate) struct ProbeReadings<N> {
     /// Map versus representation over the comparison rows.
     ///
     /// For like-for-like comparison with the canonical readings.
-    pub sampled_map_representation: ReadingGrid,
+    pub sampled_map_representation: Option<ReadingGrid>,
     /// Map versus canonical space over the comparison rows.
-    pub sampled_map_canonical: ReadingGrid,
+    pub sampled_map_canonical: Option<ReadingGrid>,
     /// Representation versus canonical space over the comparison rows.
     ///
     /// The representation baseline for the map's canonical reading.
-    pub sampled_representation_canonical: ReadingGrid,
+    pub sampled_representation_canonical: Option<ReadingGrid>,
     /// Corpus neighbourhood radii.
     ///
-    /// Anchor-major with one entry per neighbourhood size, in the grids' axis order.
+    /// Anchor-major with one entry per size in
+    /// [`density_neighbourhoods`](Self::density_neighbourhoods).
     pub radii: Box<[RadiusPair]>,
     /// The shared comparison-point pairs the triplet readings sample.
     ///

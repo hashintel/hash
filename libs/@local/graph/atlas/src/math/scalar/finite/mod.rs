@@ -26,8 +26,8 @@ use core::{
 use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
 
 use super::{
-    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, narrow_f32, raw_interop,
-    unsafe_impl_try_from_bytes,
+    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, UnitFraction, narrow_f32,
+    raw_interop, unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
 
@@ -276,6 +276,8 @@ impl<'de> serde::Deserialize<'de> for Finite {
 pub(crate) struct DFinite(f64);
 
 impl DFinite {
+    /// The maximum finite value.
+    pub(crate) const MAX: Self = Self(f64::MAX);
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
@@ -375,6 +377,10 @@ impl DFinite {
         }
     }
 
+    pub(crate) const fn midpoint(self, other: DFinite) -> DFinite {
+        Self(f64::midpoint(self.0, other.0))
+    }
+
     /// Returns the total-order key: a bit pattern monotone in the value.
     ///
     /// Flipping a negative value's bits and setting a nonnegative value's sign bit maps IEEE
@@ -420,6 +426,13 @@ const impl From<DPositive> for DFinite {
 const impl From<DNonNegative> for DFinite {
     #[inline]
     fn from(value: DNonNegative) -> Self {
+        Self(value.get())
+    }
+}
+
+const impl From<UnitFraction> for DFinite {
+    #[inline]
+    fn from(value: UnitFraction) -> Self {
         Self(value.get())
     }
 }
