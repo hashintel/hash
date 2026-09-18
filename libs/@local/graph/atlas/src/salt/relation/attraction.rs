@@ -161,11 +161,14 @@ impl<N, E> AttractionGroup<N, E> {
         self.edges.as_slice()
     }
 
-    /// Returns whether the group exerts force on the graph.
+    /// Returns whether the group has retained edges and positive strength.
+    ///
+    /// Individual class weights and edge confidences may still be zero.
     pub(crate) const fn exerts_force(&self) -> bool {
         !self.edges().is_empty() && !self.weights().strength.is_zero()
     }
 
+    /// Returns whether retained edges have positive strength and Proximal weight.
     const fn exerts_proximal_force(&self) -> bool {
         self.exerts_force() && !self.weights().proximal.is_zero()
     }
@@ -212,6 +215,11 @@ impl<N, E> AttractionIndex<N, E> {
         self.groups.iter().map(|group| group.edges.len()).sum()
     }
 
+    /// Returns whether a reviewed Proximal verdict covers a group with Proximal force.
+    ///
+    /// The verdict's relation must have retained edges, positive strength and positive Proximal
+    /// weight. Edge confidence does not affect this structural check. Calibration measures the
+    /// radius separately and may fail even when this check returns true.
     pub(crate) fn has_resolved_proximal_verdict(&self, verdicts: &[ResolvedVerdict]) -> bool {
         verdicts
             .iter()

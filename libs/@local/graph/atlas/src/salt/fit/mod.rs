@@ -153,9 +153,20 @@ const impl Default for LandmarkSupport {
     }
 }
 
+/// Selection of a trained objective without relation attraction.
+///
+/// A vacuous objective retains semantic, protection and landmark-support terms. Training freezes no
+/// relation radius, and publication retains the corpus's relation artifacts. Objective selection
+/// precedes training. Errors in the selected objective fail the fit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum VacuousProjectorPlacement {
+    /// Disable relation attraction regardless of reviewed coverage.
     Force,
+    /// Disable relation attraction only when reviewed Proximal coverage is absent.
+    ///
+    /// Coverage requires a resolved Proximal verdict for an attraction group with retained edges,
+    /// positive strength and positive Proximal weight. Otherwise training uses the vacuous
+    /// objective.
     Fallback,
 }
 
@@ -214,12 +225,11 @@ pub(crate) struct ProjectorOptions {
     pub forward_rows: NonZero<usize>,
     /// The condition ladder and its canonical step.
     pub ladder: LadderOptions,
-    /// Withhold the relation evidence from the trainer.
+    /// Select when training omits relation attraction.
     ///
-    /// The run is vacuous by construction. The trainer freezes no radius and demands no reviewed
-    /// verdicts, while every other objective term trains and the published relation artifacts stay
-    /// real. For corpora without reviewed-Proximal coverage that still want the full trained
-    /// placement.
+    /// [`None`] by default, retaining the corpus's attraction index and ordinary training
+    /// admission. [`VacuousProjectorPlacement`] permits training without reviewed Proximal
+    /// coverage.
     pub vacuous: Option<VacuousProjectorPlacement>,
 }
 

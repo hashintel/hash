@@ -88,6 +88,10 @@ pub enum Placement {
         /// `floor(steps / 2)`. This is [`None`] by default, retaining the reference 20,000-step
         /// schedule with its boundary at step 5,000.
         steps: Option<NonZero<usize>>,
+        /// Select when training omits relation attraction.
+        ///
+        /// [`None`] by default, retaining ordinary training admission. See
+        /// [`VacuousProjectorPlacement`] for unconditional and coverage-dependent selection.
         vacuous: Option<VacuousProjectorPlacement>,
     },
 }

@@ -246,7 +246,9 @@ impl<'fit> PlacementPass<'fit> {
         let vacuous;
         let attraction = match options.vacuous {
             Some(VacuousProjectorPlacement::Force) => {
-                tracing::info!("select vacous training objective, the relation term is ignored.");
+                tracing::info!(
+                    "selected the vacuous training objective without relation attraction"
+                );
                 vacuous = AttractionIndex::vacuous();
                 &vacuous
             }
@@ -260,10 +262,9 @@ impl<'fit> PlacementPass<'fit> {
             }
             Some(VacuousProjectorPlacement::Fallback) => {
                 tracing::warn!(
-                    "the relation term was selected, but no attraction index resolves to a \
-                     reviewed verdict. This may either be because no link entity exists that \
-                     exhibits a reviewed verdict, or that no link type has been reviewed. Forcing \
-                     vacuous training objective, which ignores the relational attraction term."
+                    "no reviewed Proximal verdict covers an attraction group with retained edges, \
+                     positive strength and positive Proximal weight: selecting the vacuous \
+                     training objective without relation attraction"
                 );
 
                 vacuous = AttractionIndex::vacuous();
