@@ -237,7 +237,7 @@ where
     }
 }
 
-static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/json_schemas");
+static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/legacy/json_schemas");
 
 fn api_resources<S>() -> Vec<Router>
 where
@@ -796,7 +796,7 @@ impl OpenApiDocumentation {
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
-            .join("rest")
+            .join("legacy")
             .join("json_schemas");
 
         let model_path_dir = path.join("models");

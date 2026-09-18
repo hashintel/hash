@@ -20,7 +20,7 @@ use super::{
     CompilationOutputOptions,
     value::{JsonValueSerialize, OwnedValue},
 };
-use crate::rest::{json::Json, status::BoxedResponse};
+use crate::legacy::{json::Json, status::BoxedResponse};
 
 const INFRASTRUCTURE_CATEGORY: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "infrastructure",

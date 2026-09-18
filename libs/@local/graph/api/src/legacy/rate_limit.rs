@@ -224,14 +224,14 @@ mod tests {
                 .into(),
             &meter,
         );
-        let router = crate::rest::attach_request_middlewares::<_, Option<ActorId>>(
+        let router = crate::legacy::attach_request_middlewares::<_, Option<ActorId>>(
             Router::new()
                 .route("/entities", get(async || "ok"))
                 .fallback(|| async { StatusCode::NOT_FOUND }),
             Router::new().route("/openapi.json", get(async || "spec")),
             Arc::new(StaticAuthenticationProvider::Rejected),
             Arc::from(SERVICE_SECRET),
-            Arc::new(crate::rest::auth::AuthenticationMetrics::new(&meter)),
+            Arc::new(crate::legacy::auth::AuthenticationMetrics::new(&meter)),
             limiters,
         )
         .merge(Router::new().route("/health", get(async || "ok")));

@@ -83,7 +83,7 @@ use self::query::{
     request::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
     summarize_entities,
 };
-use crate::rest::{
+use crate::legacy::{
     ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, SearchRequestError,
     json::Json,
     resolve_limit, resolve_search_embedding,

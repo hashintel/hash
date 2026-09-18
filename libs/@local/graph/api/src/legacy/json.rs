@@ -16,7 +16,7 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
 
 use super::status::{BoxedResponse, ErrorInfo, Status};
-use crate::rest::status::status_to_response;
+use crate::legacy::status::status_to_response;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
