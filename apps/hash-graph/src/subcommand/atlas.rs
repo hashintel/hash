@@ -4,7 +4,7 @@ use core::{net::SocketAddr, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{
-    authentication::{build_authentication_provider, build_operator_provider},
+    authentication::{build_session_providers, build_shared_providers},
     rate_limit::RateLimitConfig,
 };
 use hash_graph_atlas::cli::{self, PasswordString, Storage};
@@ -187,14 +187,14 @@ async fn run_atlas(
                 exclusions,
             });
 
-    let operator = Arc::new(build_operator_provider(
+    let shared_providers = Arc::new(build_shared_providers(
         None,
         service_secret.clone().into_unguarded().as_ref().to_owned(),
         &pool,
     ));
-    let provider = Arc::new(build_authentication_provider(
+    let provider = Arc::new(build_session_providers(
         session_auth,
-        operator,
+        shared_providers,
         &pool,
         &telemetry.meter,
     ));

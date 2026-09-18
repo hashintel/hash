@@ -25,27 +25,27 @@ pub struct CloudflareAccessConfig {
     pub kratos_admin: KratosAdminConfig,
 }
 
-/// The operator-facing provider chain: Cloudflare Access JWT (when configured), then service
+/// The providers every API accepts: Cloudflare Access JWT (when configured), then service
 /// delegation.
-pub type OperatorChain<S> = (
+pub type SharedProviders<S> = (
     Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
     ServiceDelegationProvider<StorePoolActorResolver<S>>,
 );
 
-/// The provider chain resolving a Kratos session, then the shared operator credentials.
-pub type ProviderChain<S> = (
+/// The providers of the session-capable APIs: a Kratos session, then the [`SharedProviders`].
+pub type SessionProviders<S> = (
     KratosSessionProvider<StorePoolActorResolver<S>>,
-    Arc<OperatorChain<S>>,
+    Arc<SharedProviders<S>>,
 );
 
-/// Builds an [`OperatorChain`].
+/// Builds the [`SharedProviders`].
 ///
-/// The chain resolves no Kratos end-user session.
-pub fn build_operator_provider<S>(
+/// They resolve no Kratos end-user session.
+pub fn build_shared_providers<S>(
     cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: String,
     store: &Arc<S>,
-) -> OperatorChain<S>
+) -> SharedProviders<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -67,13 +67,13 @@ where
     )
 }
 
-/// Builds a [`ProviderChain`] around an already built [`OperatorChain`].
-pub fn build_authentication_provider<S>(
+/// Builds the [`SessionProviders`] around already built [`SharedProviders`].
+pub fn build_session_providers<S>(
     session: KratosSessionConfig,
-    operator: Arc<OperatorChain<S>>,
+    shared: Arc<SharedProviders<S>>,
     store: &Arc<S>,
     meter: &opentelemetry::metrics::Meter,
-) -> ProviderChain<S>
+) -> SessionProviders<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -84,6 +84,6 @@ where
             StorePoolActorResolver::new(Arc::clone(store)),
             meter,
         ),
-        operator,
+        shared,
     )
 }

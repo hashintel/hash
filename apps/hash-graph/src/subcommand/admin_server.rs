@@ -5,7 +5,7 @@ use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
-    build_operator_provider,
+    build_shared_providers,
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
@@ -315,7 +315,7 @@ pub(crate) async fn run_admin_server(
     })?;
 
     let pool = Arc::new(pool);
-    let authentication_provider = Arc::new(build_operator_provider(
+    let authentication_provider = Arc::new(build_shared_providers(
         cloudflare_access,
         service_secret.clone(),
         &pool,
