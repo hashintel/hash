@@ -18,6 +18,11 @@ type TableHeaderToggleProps<Option extends string> = {
   value: Option;
 };
 
+/**
+ * A segmented control: the options share one track and the selected option is
+ * shown as a raised (pressed) white pill. Built on MUI's `ToggleButtonGroup` so
+ * it stays in step with the surrounding MUI-styled toolbar.
+ */
 export const TableHeaderToggle = <Option extends string>({
   options,
   setValue,
@@ -35,28 +40,44 @@ export const TableHeaderToggle = <Option extends string>({
       aria-label="view"
       size="small"
       sx={{
+        gap: "3px",
+        padding: "3px",
+        borderRadius: "8px",
+        backgroundColor: ({ palette }) => palette.gray[10],
+        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         [`.${toggleButtonClasses.root}`]: {
-          backgroundColor: ({ palette }) => palette.common.white,
-          "&:not(:last-of-type)": {
-            borderRightColor: ({ palette }) => palette.gray[20],
-            borderRightStyle: "solid",
-            borderRightWidth: 2,
+          // Override the grouped defaults (shared borders, collapsed radii) so
+          // each option is an independent pill on the track.
+          border: "0 !important",
+          borderRadius: "6px !important",
+          margin: "0 !important",
+          // A fixed square so every selected pill is 1:1.
+          minWidth: 0,
+          width: "26px",
+          height: "26px",
+          padding: 0,
+          backgroundColor: "transparent",
+          transition: ({ transitions }) =>
+            transitions.create(["background-color", "box-shadow"]),
+          svg: {
+            transition: ({ transitions }) => transitions.create("color"),
+            color: ({ palette }) => palette.gray[50],
           },
           "&:hover": {
-            backgroundColor: ({ palette }) => palette.common.white,
+            backgroundColor: "transparent",
             svg: {
               color: ({ palette }) => palette.gray[80],
             },
           },
           [`&.${toggleButtonClasses.selected}`]: {
             backgroundColor: ({ palette }) => palette.common.white,
+            boxShadow: ({ boxShadows }) => boxShadows.sm,
             svg: {
               color: ({ palette }) => palette.gray[90],
             },
-          },
-          svg: {
-            transition: ({ transitions }) => transitions.create("color"),
-            color: ({ palette }) => palette.gray[50],
+            "&:hover": {
+              backgroundColor: ({ palette }) => palette.common.white,
+            },
           },
         },
       }}
