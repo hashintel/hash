@@ -87,6 +87,13 @@ export const styles = sva({
       "&:focus-visible": {
         boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
       },
+      // A chip inside a keyboard-highlighted tags-input item (OverflowRow's
+      // `withKeyboardControl`) shows the same ring: DOM focus stays on the
+      // row's input, so the highlight only marks the item's wrapper.
+      "[data-scope='tags-input'][data-part='item-preview'][data-highlighted] &":
+        {
+          boxShadow: "[0 0 0 2px var(--chip-ring-color)]",
+        },
       "&:has(:focus-visible)": {
         overflow: "visible",
       },

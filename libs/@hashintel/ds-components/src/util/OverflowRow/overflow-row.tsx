@@ -1,4 +1,8 @@
-import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import {
+  useTagsInput,
+  type UseTagsInputReturn,
+} from "@ark-ui/react/tags-input";
+import { Fragment, useCallback, useId, useMemo, useRef, useState } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -28,6 +32,12 @@ type CountLabelRenderer = (text: string) => React.ReactNode;
  *
  * Fit is measured against the container width via a hidden layer rendering the
  * full row at natural width, re-measured on resize and font load.
+ *
+ * The row can also be interactive: `withInput` appends an inline input that
+ * submits new item names, and `withKeyboardControl` lets the arrow keys walk
+ * a highlight across the items with Backspace/Delete removing the highlighted
+ * one. Both only report intent (`onSubmit`/`onRemove`) — `items` stays owned
+ * by the parent.
  */
 export type OverflowRowProps = {
   className?: string;
@@ -42,6 +52,38 @@ export type OverflowRowProps = {
    * whitespace only leaves the cells spaced by the row gap; anything else
    * supplies the spacing itself and the gap is dropped. */
   separator?: React.ReactNode;
+  /** How the content sits while the row underflows its container. Defaults
+   * to "left". A `scroll` row that overflows re-anchors to the start so
+   * every item stays reachable by scrolling. */
+  align?: "left" | "right" | "center";
+  /** Appends an inline text input for adding items. It claims only a minimum
+   * width while items are fitted, then flexes into the space left over; in a
+   * scrolling row (including the focus-expanded display) it instead grows
+   * with the typed draft, scrolling the items aside, up to 80% of the row.
+   * Enter submits the trimmed draft through `onSubmit` (and clears it) — the
+   * parent decides whether an item is actually added. `value`/`onChange`
+   * optionally control the draft text; `placeholder` shows while the draft
+   * is empty. */
+  withInput?: {
+    value?: string;
+    onChange?: (value: string) => void;
+    onSubmit: (value: string) => void;
+    placeholder?: string;
+  };
+  /** Lets the keyboard operate on the items. With focus in the row's input
+   * (a zero-size focus anchor when `withInput` is off), ArrowLeft/ArrowRight
+   * from the draft's start move a highlight across the items, and
+   * Backspace/Delete remove the highlighted one by calling `onRemove` with
+   * its `name`. So that every item is rendered and reachable, a `truncate`
+   * or `summary` row displays as `scroll` while focus is inside it.
+   *
+   * The highlighted item's wrapper is marked with `data-highlighted` (DOM
+   * focus stays on the input) and the item styles its own highlight from
+   * that — Chip shows its focus ring automatically; custom items can match
+   * on `[data-part='item-preview'][data-highlighted] &`. */
+  withKeyboardControl?: {
+    onRemove: (value: string) => void;
+  };
 } & (
   | {
       overflow: "summary";
@@ -64,22 +106,33 @@ export type OverflowRowProps = {
 // Whitespace HTML collapses (NBSP, which it doesn't, is deliberately absent).
 const collapsibleWhitespace = /^[\t\n\f\r ]*$/;
 
-export const OverflowRow = ({
+const OverflowRowBase = ({
   className,
   items,
   overflow,
   separator,
   total,
   renderCountLabel,
-}: OverflowRowProps) => {
+  align,
+  withInput,
+  withKeyboardControl,
+  tags,
+  onFocusWithinChange,
+}: OverflowRowProps & {
+  tags?: UseTagsInputReturn;
+  /** Reports focus entering/leaving the row, for the focus-expansion of
+   * keyboard-controlled `truncate`/`summary` rows. */
+  onFocusWithinChange?: (focusWithin: boolean) => void;
+}) => {
   const gapless =
     separator !== undefined &&
     (typeof separator !== "string" || !collapsibleWhitespace.test(separator));
-  const classes = styles({ overflow, gapless });
+  const classes = styles({ overflow, gapless, align });
   const count = items.length;
   const hasSeparator = separator !== undefined;
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const cellRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const separatorCellRef = useRef<HTMLSpanElement | null>(null);
@@ -118,6 +171,8 @@ export const OverflowRow = ({
     [items, separator],
   );
 
+  const hasInput = withInput !== undefined;
+
   const measure = useCallback(() => {
     const root = rootRef.current;
     if (!root) {
@@ -125,10 +180,22 @@ export const OverflowRow = ({
     }
 
     const rootStyle = getComputedStyle(root);
+    // The input flexes into whatever remains, so only its min width is a hard
+    // claim on the row; reserve it (plus the gap or margin beside it) before
+    // fitting.
+    const inputEl = inputRef.current;
+    const inputStyle = inputEl ? getComputedStyle(inputEl) : undefined;
+    const reserved =
+      hasInput && inputStyle
+        ? (Number.parseFloat(inputStyle.minWidth) || 0) +
+          (Number.parseFloat(inputStyle.marginLeft) || 0) +
+          (Number.parseFloat(rootStyle.columnGap) || 0)
+        : 0;
     const available =
       root.clientWidth -
       (Number.parseFloat(rootStyle.paddingLeft) || 0) -
-      (Number.parseFloat(rootStyle.paddingRight) || 0);
+      (Number.parseFloat(rootStyle.paddingRight) || 0) -
+      reserved;
 
     if (overflow === "summary") {
       const namesCell = namesCellRef.current;
@@ -191,7 +258,7 @@ export const OverflowRow = ({
       shown += 1;
     }
     setFitCount(shown);
-  }, [overflow, count]);
+  }, [overflow, count, hasInput]);
 
   const updateClip = useCallback(() => {
     const root = rootRef.current;
@@ -232,9 +299,75 @@ export const OverflowRow = ({
   const countLabel = (text: string): React.ReactNode =>
     renderCountLabel ? renderCountLabel(text) : text;
 
+  // With keyboard control on, each visible cell carries the machine's item
+  // parts so it can be highlighted; the measure-layer clones stay plain so
+  // the machine's DOM queries never see them.
+  const itemCell = (
+    item: { name: string; children: React.ReactNode },
+    index: number,
+  ) => {
+    if (tags && withKeyboardControl) {
+      const itemProps = { index, value: item.name };
+      return (
+        <span {...tags.getItemProps(itemProps)} className={classes.item}>
+          <span
+            {...tags.getItemPreviewProps(itemProps)}
+            className={classes.itemPreview}
+          >
+            {item.children}
+          </span>
+        </span>
+      );
+    }
+    return <span className={classes.item}>{item.children}</span>;
+  };
+
+  // The machine anchors all keyboard handling on its input, so keyboard
+  // control without `withInput` still renders one — as a zero-size focus
+  // anchor. The placeholder is applied here rather than through the machine,
+  // which would only show it while `items` is empty. The key keeps the input
+  // element (and its focus) alive when focus-expansion swaps the mode branch.
+  const inputCell = tags ? (
+    withInput ? (
+      <input
+        {...tags.getInputProps()}
+        key="input"
+        ref={inputRef}
+        className={classes.input}
+        placeholder={withInput.placeholder}
+      />
+    ) : (
+      <input
+        {...tags.getInputProps()}
+        key="input"
+        readOnly
+        data-ghost=""
+        className={classes.inputGhost}
+      />
+    )
+  ) : null;
+
+  const focusProps =
+    onFocusWithinChange === undefined
+      ? undefined
+      : {
+          onFocus: () => onFocusWithinChange(true),
+          onBlur: (event: React.FocusEvent<HTMLDivElement>) => {
+            const next = event.relatedTarget;
+            if (
+              !(next instanceof Node) ||
+              !event.currentTarget.contains(next)
+            ) {
+              onFocusWithinChange(false);
+            }
+          },
+        };
+
   if (overflow === "scroll") {
     return (
       <div
+        {...tags?.getRootProps()}
+        {...focusProps}
         ref={rootRef}
         className={cx(classes.root, className)}
         data-clip-start={clipStart || undefined}
@@ -245,9 +378,10 @@ export const OverflowRow = ({
           // eslint-disable-next-line react/no-array-index-key
           <Fragment key={index}>
             {index > 0 ? rowSeparator : null}
-            <span className={classes.item}>{item.children}</span>
+            {itemCell(item, index)}
           </Fragment>
         ))}
+        {inputCell}
       </div>
     );
   }
@@ -266,9 +400,22 @@ export const OverflowRow = ({
     };
 
     return (
-      <div ref={rootRef} className={cx(classes.root, className)}>
-        <span className={classes.summary}>{summaryLabel()}</span>
-        <div ref={measureRef} className={classes.measure} aria-hidden="true">
+      <div
+        {...tags?.getRootProps()}
+        {...focusProps}
+        ref={rootRef}
+        className={cx(classes.root, className)}
+      >
+        <span key="summary" className={classes.summary}>
+          {summaryLabel()}
+        </span>
+        {inputCell}
+        <div
+          key="measure"
+          ref={measureRef}
+          className={classes.measure}
+          aria-hidden="true"
+        >
           <span ref={namesCellRef}>{joinedNames}</span>
           <span ref={countCellRef}>{countLabel(countText)}</span>
         </div>
@@ -280,24 +427,35 @@ export const OverflowRow = ({
   const hiddenCount = count - shownCount;
 
   return (
-    <div ref={rootRef} className={cx(classes.root, className)}>
+    <div
+      {...tags?.getRootProps()}
+      {...focusProps}
+      ref={rootRef}
+      className={cx(classes.root, className)}
+    >
       {items.slice(0, shownCount).map((item, index) => (
         // eslint-disable-next-line react/no-array-index-key
         <Fragment key={index}>
           {index > 0 ? rowSeparator : null}
-          <span className={classes.item}>{item.children}</span>
+          {itemCell(item, index)}
         </Fragment>
       ))}
       {hiddenCount > 0 ? (
-        <>
+        <Fragment key="plus">
           {shownCount > 0 ? rowSeparator : null}
           <span className={classes.plus}>{countLabel(`+${hiddenCount}`)}</span>
-        </>
+        </Fragment>
       ) : null}
+      {inputCell}
 
       {/* Hidden measurement layer: the full row at natural width, plus the
           badge at its widest possible label. */}
-      <div ref={measureRef} className={classes.measure} aria-hidden="true">
+      <div
+        key="measure"
+        ref={measureRef}
+        className={classes.measure}
+        aria-hidden="true"
+      >
         {items.map((item, index) => (
           // eslint-disable-next-line react/no-array-index-key
           <Fragment key={index}>
@@ -325,4 +483,173 @@ export const OverflowRow = ({
       </div>
     </div>
   );
+};
+
+/** Mounts the Ark tags-input machine and hands its api to the base row. The
+ * machine's value is controlled by `items`, so its adds and removes never
+ * apply directly — they surface as `onSubmit`/`onRemove` intents instead. */
+const InteractiveOverflowRow = (props: OverflowRowProps) => {
+  const { items, overflow, withInput, withKeyboardControl } = props;
+  const names = items.map((item) => item.name);
+
+  // Keyboard control needs its items rendered, so a `truncate` or `summary`
+  // row displays as `scroll` while focus is inside it.
+  const [focusWithin, setFocusWithin] = useState(false);
+  const expandOnFocus =
+    withKeyboardControl !== undefined && overflow !== "scroll";
+  const expanded = expandOnFocus && focusWithin;
+  const displayedOverflow = expanded ? "scroll" : overflow;
+
+  // The machine api exposes no highlight getter, so mirror it for the
+  // expansion effect below.
+  const highlightedIdRef = useRef<string | null>(null);
+  const wasExpandedRef = useRef(false);
+  const wasFocusWithinRef = useRef(false);
+
+  // Self-assigned element ids: the scroll housekeeping below needs the root
+  // and input elements in contexts where the machine api isn't at hand.
+  const reactId = useId();
+  const rootId = `overflow-row:${reactId}`;
+  const inputId = `overflow-row:${reactId}:input`;
+
+  const tags = useTagsInput({
+    ids: { root: rootId, input: inputId },
+    value: names,
+    // Items are arbitrary nodes, never editable in place; duplicate
+    // submissions still reach `onSubmit` for the parent to judge.
+    editable: false,
+    allowDuplicates: true,
+    // Enter is the only submit key — a comma is just text.
+    delimiter: "",
+    inputValue: withInput?.value,
+    onInputValueChange: (details) => {
+      withInput?.onChange?.(details.inputValue);
+      // The input grows with the draft in a scroll row, but the container
+      // doesn't follow the caret on its own — keep the input in view.
+      if (displayedOverflow !== "scroll") {
+        return;
+      }
+      const input = document.getElementById(inputId);
+      if (input && document.activeElement === input) {
+        input.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    },
+    onValueChange: (details) => {
+      const next = details.value;
+      if (next.length > names.length) {
+        // The machine appends submissions to the end.
+        const submitted = next[next.length - 1];
+        if (submitted !== undefined) {
+          withInput?.onSubmit(submitted);
+        }
+        return;
+      }
+      // A removal drops a single entry: the first index where the arrays
+      // diverge names it.
+      let index = 0;
+      while (index < next.length && next[index] === names[index]) {
+        index += 1;
+      }
+      const removed = names[index];
+      if (removed !== undefined) {
+        withKeyboardControl?.onRemove(removed);
+      }
+    },
+    onHighlightChange: (details) => {
+      highlightedIdRef.current = details.highlightedValue;
+      if (displayedOverflow !== "scroll") {
+        return;
+      }
+      // Keep the highlighted item in view while arrowing through a scroll row.
+      if (details.highlightedValue !== null) {
+        document
+          .getElementById(details.highlightedValue)
+          ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        return;
+      }
+      // Highlight cleared while focus stays on the input: navigation returned
+      // to it (arrowing past the last item, Escape, typing) — the browser
+      // won't scroll to an already-focused element, so bring it into view.
+      // A blur clears the highlight too, but by then focus has moved on and
+      // the focus-out effect resets the scroll instead.
+      const input = document.getElementById(inputId);
+      if (input && document.activeElement === input) {
+        input.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    },
+  });
+
+  // On expansion: re-anchor focus on the input (in case the mode-branch swap
+  // recreated it, whose blur would immediately collapse the row again), then
+  // reveal the end of the row, where the input sits. When the focus came from
+  // clicking an item, keep that item's highlight in view instead. When focus
+  // leaves the row, scroll back to its start.
+  useIsomorphicLayoutEffect(() => {
+    const justExpanded = expanded && !wasExpandedRef.current;
+    const justBlurred = !focusWithin && wasFocusWithinRef.current;
+    wasExpandedRef.current = expanded;
+    wasFocusWithinRef.current = focusWithin;
+    if (!justExpanded && !justBlurred) {
+      return;
+    }
+    const root = document.getElementById(rootId);
+    if (justBlurred) {
+      if (root) {
+        root.scrollLeft = 0;
+      }
+      return;
+    }
+    tags.focus();
+    const highlightedId = highlightedIdRef.current;
+    if (highlightedId !== null) {
+      document
+        .getElementById(highlightedId)
+        ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      return;
+    }
+    if (root) {
+      root.scrollLeft = root.scrollWidth;
+    }
+  }, [expanded, focusWithin, rootId, tags]);
+
+  if (!expanded) {
+    return (
+      <OverflowRowBase
+        {...props}
+        tags={tags}
+        onFocusWithinChange={setFocusWithin}
+      />
+    );
+  }
+  // The summary-only props are dropped along with the summary display; the
+  // parent's `overflow` still drives measurement once focus leaves.
+  return (
+    <OverflowRowBase
+      {...props}
+      overflow="scroll"
+      total={undefined}
+      renderCountLabel={undefined}
+      tags={tags}
+      onFocusWithinChange={setFocusWithin}
+    />
+  );
+};
+
+export const OverflowRow = ({
+  withInput,
+  withKeyboardControl,
+  ...rest
+}: OverflowRowProps) => {
+  // The tags machine mounts live-region and focus-tracking effects — only
+  // worth paying for when an interactive prop asks for it.
+  if (withInput !== undefined || withKeyboardControl !== undefined) {
+    return (
+      <InteractiveOverflowRow
+        {...rest}
+        withInput={withInput}
+        withKeyboardControl={withKeyboardControl}
+      />
+    );
+  }
+  return <OverflowRowBase {...rest} />;
 };
