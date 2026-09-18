@@ -14,7 +14,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { draftPetrinautExperimentInputSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { createReadableStore } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  createReadableStore,
+} from "@hashintel/petrinaut-core";
 import {
   ExperimentHostContext,
   OptimizationsContext,
@@ -184,18 +188,28 @@ const renderWidget = ({
   optimizationUnavailableReason = null,
   omitOptimizationUnavailableReason = false,
   submitOutput = async () => {},
+  instance: suppliedInstance,
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
   state: WidgetState;
-  definition: ReturnType<typeof createReadableStore<SDCPN>>;
+  definition: Petrinaut["definition"];
   runExperiment: PetrinautExperimentHost["runExperiment"];
   optimizationUnavailableReason?: string | null;
   omitOptimizationUnavailableReason?: boolean;
   submitOutput?: (output: DraftPetrinautExperimentOutput) => Promise<void>;
+  instance?: Petrinaut;
 }) => {
   const submit = vi.fn(submitOutput);
-  const instance = { definition } as unknown as Petrinaut;
+  const instance =
+    suppliedInstance ??
+    ({
+      definition,
+      handle: {
+        doc: () => definition.get(),
+        revisionId: { get: () => "test-revision" },
+      },
+    } as unknown as Petrinaut);
   const host: PetrinautExperimentHost = { runExperiment };
   const optimizationActions = {
     optimizations: [],
@@ -392,6 +406,59 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.getByRole("alert").textContent).toContain("Run is blocked");
     fireEvent.click(run);
     expect(runExperiment).not.toHaveBeenCalled();
+  });
+
+  it("prepares from the observed handle when the readable store normalizes key order", async () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        id: "metric-before-scenario",
+        initial: {
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+        },
+      }),
+    });
+    instance.mutations.addMetric({
+      id: "metric__average_waiting_time",
+      name: "Average waiting time",
+      code: "return 1;",
+    });
+    instance.mutations.addMetric({
+      id: "metric__abandonment_rate",
+      name: "Abandonment rate",
+      code: "return 0;",
+    });
+    instance.mutations.addScenario({
+      id: "scenario__peak_demand",
+      name: "Peak demand",
+      scenarioParameters: [
+        { identifier: "agents", type: "integer", default: 4 },
+        { identifier: "arrival_rate", type: "real", default: 1.5 },
+      ],
+      parameterOverrides: {},
+      initialState: { type: "per_place", content: {} },
+    });
+    const observedDefinition = instance.handle.doc();
+    expect(observedDefinition).toBeDefined();
+    expect(definitionHash(observedDefinition!)).not.toBe(
+      definitionHash(instance.definition.get()),
+    );
+
+    const { submit } = renderWidget({
+      input: makeInput(makeRequest(), [], definitionHash(observedDefinition!)),
+      toolCallId: "metric-before-scenario",
+      state: awaiting,
+      definition: instance.definition,
+      instance,
+      runExperiment: vi.fn(),
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+    instance.dispose();
   });
 
   it("reports invalid without a Run button when the model lacks the metric", async () => {

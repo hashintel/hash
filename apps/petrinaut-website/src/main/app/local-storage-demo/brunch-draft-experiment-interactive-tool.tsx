@@ -31,7 +31,7 @@ import {
   resetSessionDrafts,
   sessionDraftsFor,
 } from "./brunch-draft-experiment-interactive-tool/session-drafts";
-import { hashBrowserDefinition } from "./mutation-record";
+import { observeBrowserDefinition } from "./mutation-record";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type {
@@ -239,9 +239,10 @@ export const BrunchDraftExperimentWidget = ({
     )
       return;
     preparedOnceRef.current = true;
-    const definition = structuredClone(instance.definition.get());
+    const observation = observeBrowserDefinition(instance.handle);
+    const definition = observation.definition;
     const outcome =
-      hashBrowserDefinition(definition) === input.observation.baseHash
+      observation.sha256 === input.observation.baseHash
         ? prepareOrExplain(input.experiment, definition, readTitle())
         : {
             prepared: null,
