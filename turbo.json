@@ -137,8 +137,6 @@
     }
   },
   "globalDependencies": [
-    // Changing any `turbo.json` file will trigger a full rebuild
-    "**/turbo.json",
     // Changing workflows should trigger a full rebuild so it's checked in CI
     ".github/actions/**",
     ".github/scripts/**",
@@ -149,7 +147,6 @@
     ".config/**",
     ".yarn/**",
     // Manifest files
-    "*.lock",
     ".config/mise/**",
     "package.json",
     "pyproject.toml",
