@@ -77,7 +77,10 @@ import {
   brunchPetrinautDynamicToolNames,
 } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
-import { createBrunchDraftExperimentInteractiveTool } from "./brunch-draft-experiment-interactive-tool";
+import {
+  BrunchDraftExperimentIndicator,
+  createBrunchDraftExperimentInteractiveTool,
+} from "./brunch-draft-experiment-interactive-tool";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -999,6 +1002,13 @@ export const LocalStorageDemoApp = ({
               navigation={navigation}
               readonly={false}
               setTitle={setTitle}
+              slots={
+                brunchSelected
+                  ? {
+                      simulateModeIndicator: <BrunchDraftExperimentIndicator />,
+                    }
+                  : undefined
+              }
               title={currentDocument.title}
               viewportActions={[sentryFeedbackAction]}
             />

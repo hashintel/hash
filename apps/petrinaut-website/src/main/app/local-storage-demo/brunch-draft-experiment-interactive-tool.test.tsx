@@ -23,6 +23,7 @@ import {
 } from "@hashintel/petrinaut/react";
 
 import {
+  BrunchDraftExperimentIndicator,
   BrunchDraftExperimentWidget,
   resetBrunchDraftExperimentSession,
 } from "./brunch-draft-experiment-interactive-tool";
@@ -226,10 +227,25 @@ const renderWidget = ({
   return { ...utils, submit, wrap };
 };
 
+const renderIndicator = (
+  definition: ReturnType<typeof createReadableStore<SDCPN>>,
+) => {
+  const instance = { definition } as unknown as Petrinaut;
+
+  return render(
+    <PetrinautInstanceContext.Provider value={instance}>
+      <BrunchDraftExperimentIndicator />
+    </PetrinautInstanceContext.Provider>,
+  );
+};
+
 const heading = () =>
   screen
     .getAllByRole("region", { name: "Drafted experiment" })
     .map((section) => section.getAttribute("data-draft-status"));
+
+const draftBadges = () =>
+  document.querySelectorAll<HTMLElement>("[data-draft-experiment-indicator]");
 
 describe("BrunchDraftExperimentWidget", () => {
   beforeEach(() => {
@@ -375,6 +391,8 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("reports invalid without a Run button when the model lacks the metric", async () => {
     const runExperiment = vi.fn();
+    const definition = createReadableStore(makeDefinition());
+    renderIndicator(definition);
     const { submit } = renderWidget({
       input: makeInput(
         makeRequest({
@@ -390,7 +408,7 @@ describe("BrunchDraftExperimentWidget", () => {
       ),
       toolCallId: "call_draft_invalid",
       state: awaiting,
-      definition: createReadableStore(makeDefinition()),
+      definition,
       runExperiment,
     });
 
@@ -401,6 +419,7 @@ describe("BrunchDraftExperimentWidget", () => {
     });
     expect(heading()).toEqual(["Could not be prepared"]);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+    expect(draftBadges()).toHaveLength(0);
     expect(runExperiment).not.toHaveBeenCalled();
   });
 
@@ -520,6 +539,107 @@ describe("BrunchDraftExperimentWidget", () => {
       "Drafted — not run · not saved with the document",
     ]);
     expect(screen.getAllByRole("button", { name: "Run" })).toHaveLength(1);
+  });
+
+  it("renders an accessible draft badge with a focus tooltip and isolates editors", async () => {
+    const firstDefinition = createReadableStore(makeDefinition());
+    renderIndicator(firstDefinition);
+    const first = renderWidget({
+      input: makeInput(),
+      toolCallId: "indicator-first",
+      state: awaiting,
+      definition: firstDefinition,
+      runExperiment: vi.fn(),
+    });
+    await waitFor(() => expect(first.submit).toHaveBeenCalledTimes(1));
+
+    await waitFor(() => expect(draftBadges()).toHaveLength(1));
+    const firstBadge = draftBadges().item(0);
+    expect(firstBadge.textContent).toBe("1");
+    const tooltipTrigger = firstBadge.parentElement;
+    expect(tooltipTrigger?.tabIndex).toBe(0);
+    fireEvent.pointerMove(tooltipTrigger!, { pointerType: "mouse" });
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      "1 draft experiment",
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
+    fireEvent.keyDown(document, { key: "Tab" });
+    fireEvent.focus(tooltipTrigger!);
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      "1 draft experiment",
+    );
+
+    const secondDefinition = createReadableStore(makeDefinition());
+    renderIndicator(secondDefinition);
+    const second = renderWidget({
+      input: makeInput(),
+      toolCallId: "indicator-second-editor",
+      state: awaiting,
+      definition: secondDefinition,
+      runExperiment: vi.fn(),
+    });
+    await waitFor(() => expect(second.submit).toHaveBeenCalledTimes(1));
+    expect(draftBadges()).toHaveLength(2);
+
+    const later = renderWidget({
+      input: makeInput(),
+      toolCallId: "indicator-later-first-editor",
+      state: awaiting,
+      definition: firstDefinition,
+      runExperiment: vi.fn(),
+    });
+    await waitFor(() => expect(later.submit).toHaveBeenCalledTimes(1));
+    expect(draftBadges()).toHaveLength(2);
+
+    const dismissButtons = screen.getAllByRole("button", { name: "Dismiss" });
+    const currentFirstEditorDismiss = dismissButtons.at(-1);
+    expect(currentFirstEditorDismiss).toBeDefined();
+    fireEvent.click(currentFirstEditorDismiss!);
+
+    await waitFor(() => expect(draftBadges()).toHaveLength(1));
+  });
+
+  it("hides the draft badge as soon as Run starts and keeps it hidden after completion", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const definition = createReadableStore(makeDefinition());
+    renderIndicator(definition);
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "indicator-run",
+      state: awaiting,
+      definition,
+      runExperiment: () => completion.promise,
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(draftBadges()).toHaveLength(1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+    await waitFor(() => expect(draftBadges()).toHaveLength(0));
+    await act(async () => completion.resolve(finishedResult));
+    await waitFor(() => expect(heading()).toEqual(["Run complete"]));
+    expect(draftBadges()).toHaveLength(0);
+  });
+
+  it("forgets the draft badge when the session is reset and the editor remounts", async () => {
+    const definition = createReadableStore(makeDefinition());
+    renderIndicator(definition);
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "indicator-reload",
+      state: awaiting,
+      definition,
+      runExperiment: vi.fn(),
+    });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(draftBadges()).toHaveLength(1));
+
+    cleanup();
+    resetBrunchDraftExperimentSession();
+    renderIndicator(definition);
+
+    expect(draftBadges()).toHaveLength(0);
   });
 
   it("runs exactly one experiment through the host and shows progress and completion", async () => {

@@ -34,6 +34,7 @@ import {
 } from "./assistant-selection";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
+import { BrunchDraftExperimentIndicator } from "./brunch-draft-experiment-interactive-tool";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -137,6 +138,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
+    slots?: { simulateModeIndicator?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -520,6 +522,13 @@ describe("local storage demo Brunch voice integration", () => {
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual(["draft_petrinaut_experiment"]);
+    const simulateModeIndicator =
+      editorProps.current?.slots?.simulateModeIndicator;
+    expect(isValidElement(simulateModeIndicator)).toBe(true);
+    if (!isValidElement(simulateModeIndicator)) {
+      throw new Error("Expected a Simulate mode indicator element");
+    }
+    expect(simulateModeIndicator.type).toBe(BrunchDraftExperimentIndicator);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
