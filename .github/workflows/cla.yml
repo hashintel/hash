@@ -1,0 +1,17 @@
+name: CLA
+
+on:
+  merge_group:
+
+permissions: {}
+
+jobs:
+  cla:
+    # cla-assistant.io reports `license/cla` on pull requests only. Merge-queue
+    # commits come from pull requests that already carry the signature, so this
+    # job supplies the same context there.
+    name: license/cla
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report CLA status
+        run: echo "The CLA is checked on the pull request"
