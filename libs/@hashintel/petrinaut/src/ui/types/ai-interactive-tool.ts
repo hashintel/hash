@@ -10,6 +10,11 @@ type InteractiveToolWidgetCommonProps<Input, Output> = {
   input: Input;
   /** Submit one output for this tool call. Repeated calls are ignored. */
   submit: (output: Output) => void;
+  /**
+   * Submit and await host acceptance. Rejects when this rendered call has no
+   * local completion authority. Repeated calls are ignored.
+   */
+  submitAndWait?: (output: Output) => Promise<void>;
   /** Stable AI SDK identifier for this tool call. */
   toolCallId: string;
 };

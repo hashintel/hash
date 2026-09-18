@@ -98,6 +98,7 @@ const makeHarness = (
   };
   const optimizations: OptimizationsContextValue = {
     optimizations: [],
+    optimizationUnavailableReason: null,
     createOptimization: vi.fn<OptimizationsContextValue["createOptimization"]>(
       (manifest, options) => {
         calls.push("createOptimization");

@@ -19,6 +19,7 @@ export const prepareExperiment = (
   request: PetrinautExperimentRequest;
   input: CreateExperimentInput;
   fixedValues: Record<string, number | boolean>;
+  parameterAxes: ExperimentParameterAxis[];
   optimization: PetrinautOptimizationInput | null;
 } => {
   const request = petrinautExperimentRequestSchema.parse(rawRequest);
@@ -125,5 +126,5 @@ export const prepareExperiment = (
           runsPerStep: execution.runsPerStep,
         })
       : null;
-  return { request, input, fixedValues, optimization };
+  return { request, input, fixedValues, parameterAxes, optimization };
 };
