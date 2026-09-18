@@ -113,6 +113,9 @@ restore the AI header, transcript, and host Voice region. These controls change
 visibility only: they do not pause, stop, or end Voice. Ending Voice while the
 conversation is hidden also closes the AI panel; ending it while the
 conversation is visible returns to the text composer.
+When space is tight, the dock keeps the waveform and action buttons usable and
+truncates only the visible status with an ellipsis. Screen readers still
+announce the complete, untruncated status.
 When the conversation is hidden, the zoom and fullscreen controls remain above
 the compact dock at the right edge.
 
@@ -146,13 +149,15 @@ for each new Voice session. Speaker controls are unavailable while Voice is
 connecting or interrupted by an error; they remain available while Realtime is
 paused. Changing volume does not unmute the speaker, and unmuting restores its
 retained volume. Realtime remembers **Allow interruptions** in this browser;
-a check mark shows when it is enabled.
+change it with the switch beside the hand icon.
 
 When the host provides extended audio settings, Audio options also contains
-**Voice** and **Speed** when supported, always visible. **Devices**
-starts collapsed; expand it to choose a microphone or speaker. The panel fits its content and scrolls when it
-exceeds the available screen height. Opening Audio options refreshes the device
-list. Voice warnings appear after Audio options in the dock.
+**Voice** when supported. **Devices** starts collapsed; expand it to choose a
+microphone or speaker. Providers with numeric speed control also show a
+collapsed **Real-time** section immediately below **Devices**. The panel fits
+its content and scrolls when it exceeds the available screen height. Opening
+Audio options refreshes the device list. Voice warnings appear after Audio
+options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
@@ -172,8 +177,9 @@ list. Voice warnings appear after Audio options in the dock.
 - **Show status text** is on by default. Turn it off to hide ordinary Listening,
   Thinking, and Speaking labels beside the voice indicator. The waveform, controls,
   microphone mute and connection notices, and screen-reader announcements remain.
-- The **Speed** slider shows a multiplier and **Next reply**: it changes the next
-  response, not speech already playing.
+- Expand **Real-time** to use **Speed**. Its compact horizontal slider follows
+  the volume control's layout, with the multiplier at the right. It changes the
+  next response, not speech already playing.
   Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not
   offer numeric speed control.
 - **Microphone** and **Speaker** choose devices for the current session. They
