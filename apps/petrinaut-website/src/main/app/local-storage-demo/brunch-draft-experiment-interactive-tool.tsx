@@ -239,6 +239,8 @@ export const BrunchDraftExperimentWidget = ({
     )
       return;
     preparedOnceRef.current = true;
+    // The server hashes the handle snapshot; the readable store may normalize
+    // its property order and therefore produce a different serialized hash.
     const observation = observeBrowserDefinition(instance.handle);
     const definition = observation.definition;
     const outcome =
