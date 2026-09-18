@@ -688,6 +688,39 @@ const realisticAudioSettings = (
   ...overrides,
 });
 
+export const VoicePreviewPlaying: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({ voicePreview: "playing" }),
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
+export const VoicePreviewUnavailable: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({
+          voicePreviewError:
+            "Preview unavailable. Select a voice to try again.",
+        }),
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
 export const ExtendedAudioSettings: Story = {
   render: () => (
     <Frame
@@ -725,10 +758,12 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.queryByRole("button", { name: /^Voice/ }),
     ).not.toBeInTheDocument();
-    await expect(canvas.getByText("Next session")).toBeInTheDocument();
+    await expect(
+      canvas.queryByText("Applies next session"),
+    ).not.toBeInTheDocument();
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
-    ).toHaveAccessibleDescription("Next session");
+    ).toHaveAccessibleDescription("Applies next session");
     await expect(
       canvas.getByRole("group", { name: "Speaking speed" }),
     ).toHaveAccessibleDescription("Next reply");

@@ -2,6 +2,8 @@ import { expect, test, vi } from "vitest";
 
 import { VoiceAudioSettings } from "./voice-audio-settings";
 
+import type { previewVoice } from "./voice-audio-settings/preview";
+
 const capture = () => {
   const track = Object.assign(new EventTarget(), {
     enabled: true,
@@ -111,6 +113,66 @@ test("storage failure retains the selection in memory with an explanation", () =
   settings.actions.setVoice("quartz");
   expect(settings.getSnapshot().voice).toBe("quartz");
   expect(settings.getSnapshot().voiceSaveError).toContain("could not be saved");
+});
+
+test("selection previews without changing the active voice, replaces samples, and stops on detach", () => {
+  const stops: ReturnType<typeof vi.fn>[] = [];
+  const preview = vi.fn((options: Parameters<typeof previewVoice>[0]) => {
+    options.onState("loading");
+    const stop = vi.fn(() => options.onState(null));
+    stops.push(stop);
+    return stop;
+  });
+  const settings = new VoiceAudioSettings(
+    "live",
+    undefined,
+    {
+      getItem: () => "quartz",
+      setItem: vi.fn(),
+    },
+    preview,
+  );
+  settings.startSession();
+  expect(preview).not.toHaveBeenCalled();
+  const audio = { muted: true, volume: 0.35, sinkId: "headphones" };
+  settings.attach({
+    stream: capture().stream,
+    audio,
+    senders: [],
+    replaceMicrophone: vi.fn(),
+  });
+  settings.actions.setVoice("cedar");
+  expect(preview).not.toHaveBeenCalled();
+  settings.actions.setVoice("willow");
+  expect(settings.getSnapshot()).toMatchObject({
+    voice: "willow",
+    activeVoice: "quartz",
+    voicePreview: "loading",
+  });
+  preview.mock.calls[0]?.[0].onState("playing");
+  expect(settings.getSnapshot().voicePreview).toBe("playing");
+  settings.actions.setVoice("vesper");
+  expect(stops[0]).toHaveBeenCalledOnce();
+  expect(preview.mock.calls[1]?.[0]).toMatchObject({
+    provider: "live",
+    voice: "vesper",
+  });
+  preview.mock.calls[1]?.[0].onState(null, "Preview unavailable");
+  expect(settings.getSnapshot()).toMatchObject({
+    voice: "vesper",
+    activeVoice: "quartz",
+    voicePreviewError: "Preview unavailable",
+  });
+  settings.detach();
+  expect(stops[1]).toHaveBeenCalledOnce();
+  settings.actions.setVoice("quartz");
+  expect(preview.mock.calls[2]?.[0].output()).toEqual({
+    muted: true,
+    volume: 0.35,
+    sinkId: "headphones",
+  });
+  settings.actions.stopVoicePreview?.();
+  expect(stops[2]).toHaveBeenCalledOnce();
 });
 
 test("replaces both Live senders, reapplies mute, and leaves output untouched", async () => {

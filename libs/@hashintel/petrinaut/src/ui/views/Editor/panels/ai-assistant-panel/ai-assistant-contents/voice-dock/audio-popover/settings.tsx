@@ -1,6 +1,12 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
-import { Button, Icon, Select, Slider } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Popover,
+  Select,
+  Slider,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SpeakerIcon } from "../speaker-icon";
@@ -32,7 +38,7 @@ const fieldsStyle = css({
 const labelStyle = css({ fontSize: "sm", color: "neutral.s100" });
 const labelRowStyle = css({
   display: "flex",
-  alignItems: "baseline",
+  alignItems: "center",
   justifyContent: "space-between",
   gap: "2",
 });
@@ -68,9 +74,13 @@ export const AudioSettings = ({
   settings: VoiceAudioSettingsState;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const devices = settings.devices;
   const deviceDisabled = disabled || devices.busy;
+  const stopPreview = actions.stopVoicePreview;
+  useEffect(() => () => stopPreview?.(), [stopPreview]);
 
   return (
     <>
@@ -80,24 +90,88 @@ export const AudioSettings = ({
             <span id={`${id}-voice-label`} className={labelStyle}>
               Voice
             </span>
-            <span id={`${id}-voice-timing`} className={helpStyle}>
-              Next session
-            </span>
+            <Button
+              ref={infoRef}
+              aria-label="About voice selection"
+              aria-expanded={infoOpen}
+              aria-haspopup="dialog"
+              iconName="info"
+              size="xs"
+              variant="ghost"
+              onClick={() => setInfoOpen((open) => !open)}
+            />
+            {infoOpen && (
+              <Popover
+                triggerRef={infoRef}
+                position="top-end"
+                onClose={() => setInfoOpen(false)}
+              >
+                <Popover.Container
+                  className={css({ backgroundColor: "neutral.s00" })}
+                >
+                  <Popover.Body
+                    className={css({
+                      margin: "[0 !important]",
+                      padding: "[8px !important]",
+                      boxShadow: "[none !important]",
+                    })}
+                  >
+                    <span className={helpStyle}>Applies next session</span>
+                  </Popover.Body>
+                </Popover.Container>
+              </Popover>
+            )}
           </div>
           <Select
             aria-labelledby={`${id}-voice-label`}
+            aria-description="Applies next session"
             aria-describedby={
-              settings.voiceSaveError
-                ? `${id}-voice-timing ${id}-voice-help`
-                : `${id}-voice-timing`
+              settings.voiceSaveError ? `${id}-voice-help` : undefined
             }
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}
+            renderSelectedItem={(value) => (
+              <span
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "2",
+                })}
+              >
+                {settings.voices.find((voice) => voice.value === value)?.text ??
+                  value}
+                {settings.voicePreview === "playing" && (
+                  <svg
+                    aria-hidden="true"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="currentColor"
+                  >
+                    <rect x="1" y="5" width="2" height="4" rx="1" />
+                    <rect x="6" y="1" width="2" height="12" rx="1" />
+                    <rect x="11" y="3" width="2" height="8" rx="1" />
+                  </svg>
+                )}
+              </span>
+            )}
             required
             size="sm"
             width="fullWidth"
           />
+          <span role="status" className={css({ srOnly: true })}>
+            {settings.voicePreview === "playing"
+              ? "Voice preview playing"
+              : settings.voicePreview === "loading"
+                ? "Loading voice preview"
+                : ""}
+          </span>
+          {settings.voicePreviewError && (
+            <span className={helpStyle} role="status">
+              {settings.voicePreviewError}
+            </span>
+          )}
           {settings.voiceSaveError && (
             <span id={`${id}-voice-help`} className={helpStyle} role="status">
               {settings.voiceSaveError}

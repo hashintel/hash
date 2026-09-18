@@ -15,6 +15,8 @@ export type VoiceAudioSettingsState = {
   activeVoice: string;
   voices: readonly { value: string; text: string }[];
   voiceSaveError?: string | null;
+  voicePreview?: "loading" | "playing" | null;
+  voicePreviewError?: string | null;
   /** Omitted when the provider does not support numeric speed. */
   speed?: number;
   devices: {
@@ -31,6 +33,7 @@ export type VoiceAudioSettingsState = {
 
 export type VoiceAudioSettingsActions = {
   setVoice: (voice: string) => void;
+  stopVoicePreview?: () => void;
   setSpeed?: (speed: number) => void;
   refreshDevices: () => void;
   setMicrophoneDevice: (deviceId: string) => void;

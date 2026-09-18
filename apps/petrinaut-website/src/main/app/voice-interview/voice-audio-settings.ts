@@ -3,6 +3,7 @@ import {
   voiceNames,
   type VoiceProvider,
 } from "../../../shared/voice-settings";
+import { previewVoice } from "./voice-audio-settings/preview";
 
 import type {
   PetrinautAiVoiceModeControls,
@@ -13,7 +14,12 @@ type SettingsState = NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>;
 type SettingsActions = NonNullable<
   PetrinautAiVoiceModeControls["audioSettings"]
 >;
-type AudioOutput = { setSinkId?: (deviceId: string) => Promise<void> };
+type AudioOutput = {
+  muted: boolean;
+  volume: number;
+  sinkId?: string;
+  setSinkId?: (deviceId: string) => Promise<void>;
+};
 type AudioDevices = Pick<
   MediaDevices,
   | "getUserMedia"
@@ -47,10 +53,12 @@ const browserStorage = (): Storage | undefined => {
 export class VoiceAudioSettings {
   #state: SettingsState;
   #connection: Connection | undefined;
+  #output: AudioOutput = { muted: false, volume: 1 };
   #epoch = 0;
   #recoveryPending = false;
   #listeners = new Set<() => void>();
   #removeTrackListener = () => {};
+  #stopPreview = () => {};
   readonly actions: SettingsActions;
 
   constructor(
@@ -59,6 +67,7 @@ export class VoiceAudioSettings {
     readonly storage:
       | Pick<Storage, "getItem" | "setItem">
       | undefined = browserStorage(),
+    readonly preview = previewVoice,
   ) {
     let voice = "marin";
     try {
@@ -101,7 +110,19 @@ export class VoiceAudioSettings {
           voice: selected,
           voiceSaveError: message,
         });
+        this.#stopPreview();
+        this.#stopPreview = this.preview({
+          provider,
+          voice: selected,
+          output: () => this.#output,
+          onState: (voicePreview, voicePreviewError) =>
+            this.#update({
+              voicePreview,
+              voicePreviewError: voicePreviewError ?? null,
+            }),
+        });
       },
+      stopVoicePreview: () => this.#stopPreview(),
       ...(provider === "realtime"
         ? {
             setSpeed: (speed: number) => {
@@ -140,6 +161,7 @@ export class VoiceAudioSettings {
     this.#update({ devices: { ...this.#state.devices, ...update } });
   }
   startSession(): string {
+    this.#stopPreview();
     this.#update({
       activeVoice: this.#state.voice,
       ...(this.provider === "realtime" ? { speed: 1 } : {}),
@@ -149,6 +171,7 @@ export class VoiceAudioSettings {
   attach(connection: Connection) {
     this.detach();
     this.#connection = connection;
+    this.#output = connection.audio;
     this.#devices({
       microphoneId: "",
       speakerId: "",
@@ -167,6 +190,7 @@ export class VoiceAudioSettings {
     };
   }
   detach() {
+    this.#stopPreview();
     ++this.#epoch;
     this.#connection = undefined;
     this.#recoveryPending = false;

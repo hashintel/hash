@@ -470,15 +470,18 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
 
 test("keeps voice visible while toggling devices and refreshes devices when opened", async () => {
   const refreshDevices = vi.fn();
+  const stopVoicePreview = vi.fn();
+  const setVoice = vi.fn();
   render(
     <VoiceDock
       actions={{
         audioSettings: {
           refreshDevices,
+          stopVoicePreview,
           requestSpeaker: vi.fn(),
           setMicrophoneDevice: vi.fn(),
           setSpeakerDevice: vi.fn(),
-          setVoice: vi.fn(),
+          setVoice,
         },
         end: vi.fn(),
         pause: noop,
@@ -487,6 +490,7 @@ test("keeps voice visible while toggling devices and refreshes devices when open
       audioSettings={{
         activeVoice: "alloy",
         voice: "verse",
+        voicePreview: "playing",
         voices: [
           { value: "alloy", text: "Alloy" },
           { value: "verse", text: "Verse" },
@@ -524,12 +528,50 @@ test("keeps voice visible while toggling devices and refreshes devices when open
     ).getAttribute("aria-valuenow"),
   ).toBe("65");
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
+  expect(screen.getByText("Voice preview playing").getAttribute("role")).toBe(
+    "status",
+  );
+  expect(
+    screen.queryByRole("button", { name: /play preview|pause preview/i }),
+  ).toBeNull();
+  const nativeVoice = document.querySelector("select");
+  if (!nativeVoice) throw new Error("Missing native voice field");
+  fireEvent.change(nativeVoice, { target: { value: "alloy" } });
+  await waitFor(() =>
+    expect(setVoice).toHaveBeenCalledExactlyOnceWith("alloy"),
+  );
   expect(screen.queryByRole("button", { name: /^Voice/ })).toBeNull();
   const devicesToggle = screen.getByRole("button", { name: "Devices" });
   expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.getByText("Next session")).not.toBeNull();
+  expect(screen.queryByText("Applies next session")).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "About voice selection" }),
+  );
+  expect(await screen.findByText("Applies next session")).not.toBeNull();
+  await waitFor(() =>
+    expect(
+      screen
+        .getByText("Applies next session")
+        .closest('[data-part="content"]')
+        ?.getAttribute("data-state"),
+    ).toBe("open"),
+  );
+  // Ark installs the nested dismissable layer on the next animation frame.
+  await act(
+    async () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  fireEvent.keyDown(screen.getByText("Applies next session"), {
+    key: "Escape",
+  });
+  await waitFor(() =>
+    expect(screen.queryByText("Applies next session")).toBeNull(),
+  );
+  expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(
     screen.queryByText(
       "Speaking speed is not available with this voice provider.",
@@ -570,6 +612,7 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledOnce();
+  expect(stopVoicePreview).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledTimes(2);
 });

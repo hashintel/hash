@@ -156,7 +156,14 @@ list. Voice warnings appear after Audio options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
-  **Next session** beside the selector indicates when the choice takes effect.
+  Select the information icon at the right of **Voice** to see **Applies next session**.
+  In Brunch, selecting a voice automatically previews a short sample. A small
+  equalizer beside its name indicates playback; there are no playback buttons.
+  Selecting another voice replaces the sample; closing Audio options stops it.
+  Samples follow output mute, volume, and speaker selection. They may overlap
+  the current conversation, but do not change its voice or send microphone audio.
+  A preview uses a separate, short provider connection, so it may take a moment
+  to start. A failed preview does not discard the saved preference.
   If browser storage is blocked, the selection lasts only until the page closes.
 - The **Speed** slider shows a multiplier and **Next reply**: it changes the next
   response, not speech already playing.
