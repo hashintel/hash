@@ -166,7 +166,7 @@ fn scratch(name: &str) -> Utf8PathBuf {
 }
 
 /// Derives one synthetic entity identity from `seed`, distinct per seed byte.
-fn entity_id_of(seed: u8) -> ArchivedEntityId {
+const fn entity_id_of(seed: u8) -> ArchivedEntityId {
     ArchivedEntityId {
         web_id: Uuid::from_bytes([seed; 16]).into(),
         entity_uuid: Uuid::from_bytes([seed ^ 0xFF; 16]).into(),
@@ -232,7 +232,7 @@ fn parents() -> IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>> {
 ///
 /// The seed and the schedule are what [`Lod::build`] consumes. The remaining fields describe
 /// stages a synthetic generation does not run and carry values their validators accept.
-fn config() -> FitConfig {
+const fn config() -> FitConfig {
     FitConfig {
         seed: SEED,
         selection: SelectionOptions {
@@ -595,6 +595,18 @@ impl TamperFixture {
     #[cfg(test)]
     pub(crate) fn publish(name: &str) -> Self {
         Self::with_config(name, config())
+    }
+
+    /// Publishes a one-cell root grid whose visible rows require a deeper scoped cut.
+    ///
+    /// # Panics
+    ///
+    /// Panics if constructing or publishing the fixture fails.
+    #[cfg(feature = "test-utils")]
+    pub(crate) fn publish_scoped(name: &str) -> Self {
+        let mut config = config();
+        config.lod.span = crate::math::Log2::new(0).expect("should represent the one-cell span");
+        Self::with_config(name, config)
     }
 
     /// Builds and publishes the corpus using the supplied fixture configuration.

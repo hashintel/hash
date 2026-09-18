@@ -920,20 +920,85 @@ export const AudioSettingsUnavailableDevices: Story = {
   },
 };
 
+const longVoiceStatus =
+  "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.";
+
 export const VoiceSessionLongWarning: Story = {
   render: () => (
     <Frame
+      fixedNarrowWidth
       initialVoiceDockCollapsed
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
       voiceModeAvailable
+      voiceProvider="realtime"
       voiceSession={liveSession({
-        phase: "connected",
-        warningMessage:
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+        audioSettings: realisticAudioSettings(),
+        canTakeTurn: true,
+        notice: longVoiceStatus,
+        phase: "speaking",
+        warningMessage: longVoiceStatus,
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const getPart = (part: string) => {
+      const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
+      if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+      return element;
+    };
+
+    await within(dock).findByRole("button", { name: "Show 1 Voice issue" });
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+
+    const dockBounds = dock.getBoundingClientRect();
+    const frameBounds = frame.getBoundingClientRect();
+    const leftActions = getPart("left-actions");
+    const center = getPart("shrinkable-status");
+    const visibleStatus = getPart("visible-status");
+    const rightActions = getPart("right-actions");
+    const centerBounds = center.getBoundingClientRect();
+    const leftBounds = leftActions.getBoundingClientRect();
+    const rightBounds = rightActions.getBoundingClientRect();
+    const statusBounds = visibleStatus.getBoundingClientRect();
+
+    await expect(frameBounds.width).toBeLessThanOrEqual(390);
+    await expect(dockBounds.left).toBeGreaterThanOrEqual(frameBounds.left);
+    await expect(dockBounds.right).toBeLessThanOrEqual(frameBounds.right);
+    await expect(centerBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(centerBounds.right).toBeLessThanOrEqual(rightBounds.left);
+    await expect(statusBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(statusBounds.right).toBeLessThanOrEqual(rightBounds.left);
+
+    for (const cluster of [leftActions, rightActions]) {
+      await expect(cluster).toBeVisible();
+      const clusterBounds = cluster.getBoundingClientRect();
+      await expect(clusterBounds.width).toBeGreaterThan(0);
+      await expect(clusterBounds.left).toBeGreaterThanOrEqual(dockBounds.left);
+      await expect(clusterBounds.right).toBeLessThanOrEqual(dockBounds.right);
+      for (const action of within(cluster).getAllByRole("button")) {
+        await expect(action).toBeVisible();
+        await expect(action.getBoundingClientRect().width).toBeGreaterThan(0);
+      }
+    }
+
+    await expect(visibleStatus).toBeVisible();
+    await expect(visibleStatus).toHaveTextContent(longVoiceStatus);
+    await expect(visibleStatus.clientWidth).toBeGreaterThan(0);
+    await expect(visibleStatus.scrollWidth).toBeGreaterThan(
+      visibleStatus.clientWidth,
+    );
+    await expect(getComputedStyle(visibleStatus).textOverflow).toBe("ellipsis");
+    await expect(
+      within(dock).getByRole("status", { name: "Voice status" }),
+    ).toHaveTextContent(`Voice status: ${longVoiceStatus}`);
+  },
 };
 
 export const VoiceSessionInputNotRetained: Story = {
