@@ -4,6 +4,12 @@
   *Note.* #body
 ]
 
+#let schematic(..parts) = html.elem(
+  "pre",
+  attrs: (class: "schematic-code", tabindex: "0", "aria-label": "Schematic code"),
+  html.code(parts.pos().join()),
+)
+
 #let rule(identifier, body) = {
   let fragment = "rule-" + identifier
   html.div(id: fragment, class: "language-rule")[
@@ -64,6 +70,11 @@
 #let template(body, title: "HashQL", description: none, links: (), vocabulary: (:)) = {
   set document(title: title, description: description)
   set heading(numbering: section-number)
+  set raw(
+    syntaxes: "syntax/hashql.sublime-syntax",
+    theme: "syntax/reference.tmTheme",
+    tab-size: 4,
+  )
 
   show heading.where(level: 1): set heading(numbering: none, outlined: false)
   show heading: section => context {
@@ -85,10 +96,18 @@
   }
 
   show raw: code => {
+    let is-hashql = code.lang == "hashql"
+    let body = if is-hashql { code.lines.map(line => line.body).join("\n") } else { code.text }
+    let attrs = if code.lang == none { (:) } else { ("data-lang": code.lang) }
+    let content = html.elem("code", attrs: attrs, body)
     if code.block {
-      html.elem("pre", attrs: (tabindex: "0", "aria-label": "Code block"), html.code(code.text))
+      html.elem(
+        "pre",
+        attrs: (tabindex: "0", "aria-label": if is-hashql { "HashQL specification example" } else { "Code block" }),
+        content,
+      )
     } else {
-      html.code(code.text)
+      content
     }
   }
 

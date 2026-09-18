@@ -1,0 +1,50 @@
+%YAML 1.2
+---
+name: HashQL specification
+file_extensions: [hashql]
+scope: source.hashql
+
+variables:
+  identifier: '[\p{L}_][\p{L}\p{M}\p{N}_]*'
+
+contexts:
+  main:
+    - match: '//.*$'
+      scope: comment.line.double-slash.hashql
+    - match: '"'
+      push: string
+    - match: '\$exists\b'
+      scope: keyword.control.hashql
+    - match: '[$?]{{identifier}}\b'
+      scope: variable.parameter.input.hashql
+    - match: '::{{identifier}}(?:::{{identifier}})*'
+      scope: variable.other.path.hashql
+    - match: '\b(?:let|in|if|then|else|thunk)\b'
+      scope: keyword.control.hashql
+    - match: '\bas\b!?'
+      scope: keyword.operator.hashql
+    - match: '\b(?:true|false|null)\b'
+      scope: constant.language.hashql
+    - match: '(?:{{identifier}})?\?[0-9]+\b|\b_[0-9]+\b'
+      scope: entity.name.type.diagnostic.hashql
+    - match: '%[0-9]+\b|\b{{identifier}}:[0-9]+\b'
+      scope: variable.other.diagnostic.hashql
+    - match: '\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b'
+      scope: constant.numeric.hashql
+    - match: '\b[A-Z][\p{L}\p{M}\p{N}_]*\b'
+      scope: entity.name.type.hashql
+    - match: '\.\.\.|…'
+      scope: comment.block.omission.hashql
+    - match: '\|>|->|&&|\|\||==|!=|<=|>=|[!~?<>&|=\-]'
+      scope: keyword.operator.hashql
+    - match: '[()\[\]{},.:]'
+      scope: punctuation.hashql
+    - match: '{{identifier}}'
+      scope: variable.other.hashql
+
+  string:
+    - meta_scope: string.quoted.double.hashql
+    - match: '\\(?:u\{[0-9a-fA-F]+\}|x[0-9a-fA-F]{2}|.)'
+      scope: constant.character.escape.hashql
+    - match: '"'
+      pop: true

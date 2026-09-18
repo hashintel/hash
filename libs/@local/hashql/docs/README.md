@@ -32,7 +32,7 @@ Keep `= HashQL` as the document title. Use `==` for sections, `===` for subsecti
 The forms in @notation use the following conventions.
 ```
 
-`@notation` becomes a numbered section link. The template renders ordinary Typst paragraphs, lists, raw code, quotations, tables and captioned figures. Use `table.header(...)` for a table's header cells. Code remains monochrome, including language-tagged blocks. Long code and tables scroll within their own regions.
+`@notation` becomes a numbered section link. The template renders ordinary Typst paragraphs, lists, raw code, quotations, tables and captioned figures. Use `table.header(...)` for a table's header cells. Long code and tables scroll within their own regions.
 
 Import these helpers when needed:
 
@@ -47,6 +47,23 @@ Import these helpers when needed:
 A rule's fragment is `#rule-` followed by its identifier. Use `#link("#rule-example.order")[[example.order]]` to refer to the example above. Choose distinct identifiers within a document.
 
 Write ordinary Typst math: `$x^2$` inline or `$ x^2 $` on its own line for a display equation. Typst exports it as MathML. A show rule gives display equations a focusable scroll region, without changing their notation or requiring a wrapper at each use. Use `#set math.equation(numbering: "(1)")` for numbered equations and ordinary labels for references. An authored description such as `#math.equation(alt: "x squared", $x^2$)` names the surrounding math group. Labels and numbered references for figures use Typst's native `figure` and `@label` syntax.
+
+## Specification examples
+
+Tag examples with `hashql` to highlight the specification notation:
+
+````typst
+```hashql
+let minimum = 18 in
+(value: Integer): Boolean -> value >= minimum
+```
+````
+
+Typst applies the local `syntax/hashql.sublime-syntax` definition and `syntax/reference.tmTheme` palette during compilation. The resulting HTML contains highlighted text without a script or external stylesheet. Untagged code and other language tags remain monochrome. Inline examples can use `#raw("x as Integer", lang: "hashql")`.
+
+The highlighting is lexical rather than a parser or type checker. It recognizes the notation's keywords, literals, paths, input prefixes and type-like names, with `//` for explanatory comments. Compiler-output excerpts retain their diagnostic identifiers, with highlighting for generated locals and type variables. These lexical categories do not establish program validity.
+
+The notation chapter derives expression forms from [`hir/src/pretty.rs`](../hir/src/pretty.rs), aggregate delimiters from [`core/src/pretty/formatter.rs`](../core/src/pretty/formatter.rs), and type forms from [`core/src/type/pretty.rs`](../core/src/type/pretty.rs). `chapters/pseudo.typ` describes the simplifications used in specification examples. These forms do not define a new frontend.
 
 ## Glossary and index
 
