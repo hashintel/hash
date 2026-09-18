@@ -844,6 +844,39 @@ export const ExtendedAudioSettings: Story = {
   },
 };
 
+export const AudioSettingsConnecting: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({ speed: undefined }),
+        phase: "connecting",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    const notice = await canvas.findByText(
+      "Audio controls are unavailable until Voice is connected.",
+    );
+    const voice = canvas.getByRole("combobox", { name: "Voice" });
+    await expect(notice.getBoundingClientRect().left).toBe(
+      canvas.getByText("Voice", { exact: true }).getBoundingClientRect().left,
+    );
+    const devices = canvas.getByRole("button", { name: "Devices" });
+    await expect(
+      notice.getBoundingClientRect().top -
+        devices.getBoundingClientRect().bottom,
+    ).toBe(8);
+    await expect(voice).toBeDisabled();
+  },
+};
+
 export const AudioSettingsUnavailableDevices: Story = {
   render: () => (
     <Frame

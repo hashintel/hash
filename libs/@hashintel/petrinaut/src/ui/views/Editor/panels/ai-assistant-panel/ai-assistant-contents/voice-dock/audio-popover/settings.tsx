@@ -326,17 +326,21 @@ export const AudioSettings = ({
             )}
           </div>
         )}
+        {(devices.message || disabled) && (
+          <div className={fieldsStyle}>
+            {devices.message && (
+              <span className={helpStyle} role="status">
+                {devices.message}
+              </span>
+            )}
+            {disabled && (
+              <span className={helpStyle}>
+                Audio controls are unavailable until Voice is connected.
+              </span>
+            )}
+          </div>
+        )}
       </div>
-      {devices.message && (
-        <p className={helpStyle} role="status">
-          {devices.message}
-        </p>
-      )}
-      {disabled && (
-        <p className={helpStyle}>
-          Audio controls are unavailable until Voice is connected.
-        </p>
-      )}
     </>
   );
 };
