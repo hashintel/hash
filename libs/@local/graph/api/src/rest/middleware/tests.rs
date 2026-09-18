@@ -33,16 +33,16 @@ fn non_zero(value: u32) -> NonZeroU32 {
 }
 
 /// Budgets that refill once per second or hour, so only the bursts decide within a test.
-fn config(gate_burst: u32, principal_burst: u32) -> RateLimitConfig {
+fn config(gate_burst: u32, caller_burst: u32) -> RateLimitConfig {
     RateLimitConfig {
         rate_limit_mode: RateLimitMode::Enforce,
         client_ip_source: ClientIpSource::ConnectInfo,
         rate_limit_gate_per_second: non_zero(1),
         rate_limit_gate_burst: non_zero(gate_burst),
         rate_limit_anonymous_per_hour: non_zero(1),
-        rate_limit_anonymous_burst: non_zero(principal_burst),
+        rate_limit_anonymous_burst: non_zero(caller_burst),
         rate_limit_actor_per_hour: non_zero(1),
-        rate_limit_actor_burst: non_zero(principal_burst),
+        rate_limit_actor_burst: non_zero(caller_burst),
     }
 }
 

@@ -19,7 +19,7 @@ mod sealed {
     impl Sealed for Option<ActorId> {}
 }
 
-/// The principal a provider chain resolves a request to.
+/// The caller a provider chain resolves a request to.
 ///
 /// Exactly two caller types exist: [`ActorId`] for chains that require an actor, and
 /// `Option<ActorId>` for chains that also serve anonymous callers. What a request without a

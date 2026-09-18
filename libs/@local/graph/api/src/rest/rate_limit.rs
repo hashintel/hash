@@ -6,7 +6,7 @@ use hash_middleware::rate_limit::{ClientIpSource, RateLimitMode};
 
 /// Configuration for the request rate limits.
 ///
-/// The address gate takes a per-second rate, the principal budgets take per-hour rates; each
+/// The address gate takes a per-second rate, the caller budgets take per-hour rates; each
 /// pairs with a burst allowance naming how many requests a fresh key may send at once.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]

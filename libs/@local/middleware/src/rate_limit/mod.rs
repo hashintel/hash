@@ -1,15 +1,15 @@
 //! Rate limiting for HTTP request handling.
 //!
 //! [`IpGateLayer`] runs ahead of the authentication layer and throttles each client address before
-//! credential verification. [`PrincipalLimitLayer`] runs behind it and budgets requests by the
-//! resolved principal: the actor for authenticated requests, counted across every address it
+//! credential verification. [`CallerLimitLayer`] runs behind it and budgets requests by the
+//! resolved caller: the actor for authenticated requests, counted across every address it
 //! connects from, and the client address for anonymous ones. [`RateLimiters::start`] holds the
-//! address gate and one set of principal budgets; [`RateLimiters::with_principal_limits`] adds
-//! further principal budgets that share the gate, which the state `start` returned keeps charging,
+//! address gate and one set of caller budgets; [`RateLimiters::with_caller_limits`] adds
+//! further caller budgets that share the gate, which the state `start` returned keeps charging,
 //! maintaining, and gauging.
 //!
 //! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
-//! [`AuthenticationLayer`] have to share one secret: the principal limiter treats a stored
+//! [`AuthenticationLayer`] have to share one secret: the caller limiter treats a stored
 //! authentication error as unreachable because the requests it could arise from passed by secret
 //! above.
 //!
@@ -24,7 +24,7 @@
 //! Budget decisions, unchecked passes, misconfigurations, address fallbacks, maintenance runs,
 //! evicted keys, and denial waits are recorded on the meter the state is built with, and the keys
 //! each limiter store holds are gauged. Every instrument carries a `scope` attribute naming the set
-//! of principal budgets it belongs to. Denials and address fallbacks also log at debug, carrying
+//! of caller budgets it belongs to. Denials and address fallbacks also log at debug, carrying
 //! the key and header detail too wide for a metric label.
 //!
 //! Limiter state lives in process memory, so enforcement is per instance: a deployment with N
@@ -61,7 +61,7 @@ use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
-pub use self::config::{ClientIpSource, PrincipalRateLimitConfig, RateLimitConfig, RateLimitMode};
+pub use self::config::{CallerRateLimitConfig, ClientIpSource, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
     response::{problem_response, problem_response_body, status_problem},
@@ -137,14 +137,14 @@ impl RateLimitMode {
 #[derive(Clone, Copy)]
 enum Stage {
     Gate,
-    Principal,
+    Caller,
 }
 
 impl Stage {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Gate => "gate",
-            Self::Principal => "principal",
+            Self::Caller => "caller",
         }
     }
 }
@@ -165,7 +165,7 @@ impl UncheckedReason {
     }
 }
 
-/// A route wired so the principal limiter cannot budget it.
+/// A route wired so the caller limiter cannot budget it.
 #[derive(Clone, Copy)]
 enum Misconfiguration {
     MissingAuthentication,
@@ -219,7 +219,7 @@ impl RateLimitMetrics {
                 .u64_counter("hash.rate_limit.misconfigurations")
                 .with_description(
                     "Requests answered with an internal error because the route is wired without \
-                     the middleware the principal limiter builds on",
+                     the middleware the caller limiter builds on",
                 )
                 .with_unit("{request}")
                 .build(),
@@ -241,7 +241,7 @@ impl RateLimitMetrics {
                 .with_unit("{key}")
                 .build(),
             // The boundaries span the sub-second waits of the per-second gate quota and the
-            // hour-scale waits of the principal quotas; the defaults are sized for milliseconds
+            // hour-scale waits of the caller quotas; the defaults are sized for milliseconds
             // and would put every wait in one bucket.
             denial_wait: meter
                 .f64_histogram("hash.rate_limit.denial_wait")
@@ -327,14 +327,14 @@ impl IntoResponse for TooManyRequests {
     }
 }
 
-/// The response a request the principal limiter cannot serve is answered with.
+/// The response a request the caller limiter cannot serve is answered with.
 ///
-/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the principal limiter, building
+/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the caller limiter, building
 /// on the layers above it, can find a route miswired.
 pub enum RateLimitRejection {
     /// The request is over its budget.
     TooManyRequests(TooManyRequests),
-    /// The route is wired without the middleware the principal limiter builds on, answered as
+    /// The route is wired without the middleware the caller limiter builds on, answered as
     /// an internal error.
     Misconfigured,
 }
@@ -389,12 +389,12 @@ impl Denial {
 
 /// The shared limiter state both rate-limiting middlewares charge against.
 ///
-/// [`start`] creates the address gate and principal budgets. [`with_principal_limits`] creates
-/// separate principal budgets for a route group while sharing the gate. Each state maintains
+/// [`start`] creates the address gate and caller budgets. [`with_caller_limits`] creates
+/// separate caller budgets for a route group while sharing the gate. Each state maintains
 /// itself for as long as it is held.
 ///
 /// [`start`]: Self::start
-/// [`with_principal_limits`]: Self::with_principal_limits
+/// [`with_caller_limits`]: Self::with_caller_limits
 pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
@@ -457,18 +457,18 @@ impl RateLimiters {
         this
     }
 
-    /// Creates independent principal budgets while sharing this limiter's address gate.
+    /// Creates independent caller budgets while sharing this limiter's address gate.
     ///
     /// The new state inherits the enforcement mode and client-address source. `scope` identifies
-    /// the route group in metrics and must be distinct for each set of principal budgets.
+    /// the route group in metrics and must be distinct for each set of caller budgets.
     ///
     /// # Panics
     ///
     /// Panics when called outside a Tokio runtime.
     #[must_use]
-    pub fn with_principal_limits(
+    pub fn with_caller_limits(
         self: &Arc<Self>,
-        config: &PrincipalRateLimitConfig,
+        config: &CallerRateLimitConfig,
         scope: &'static str,
         meter: &Meter,
     ) -> Arc<Self> {
@@ -796,7 +796,7 @@ where
     }
 }
 
-/// Budgets requests by the principal the authentication middleware resolved.
+/// Budgets requests by the caller the authentication middleware resolved.
 ///
 /// Requests presenting the service secret pass unchecked, as does an anonymous request whose
 /// client address the gate could not determine. A route reached without the authentication
@@ -819,7 +819,7 @@ where
 /// # };
 /// # use http::HeaderMap;
 /// # use type_system::principal::actor::ActorId;
-/// use hash_middleware::rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimiters};
+/// use hash_middleware::rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters};
 /// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
 ///
 /// # struct Verifier;
@@ -852,7 +852,7 @@ where
 ///
 /// let router: Router = Router::new()
 ///     .route("/entities", get(async || "ok"))
-///     .route_layer(PrincipalLimitLayer {
+///     .route_layer(CallerLimitLayer {
 ///         limiters: Arc::clone(&limiters),
 ///         service_secret: Arc::clone(&service_secret),
 ///     })
@@ -870,18 +870,18 @@ where
 /// # }
 /// ```
 #[derive(Clone)]
-pub struct PrincipalLimitLayer {
+pub struct CallerLimitLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
     /// The secret whose presenters pass unchecked.
     pub service_secret: Arc<str>,
 }
 
-impl<S> tower::Layer<S> for PrincipalLimitLayer {
-    type Service = PrincipalLimitService<S>;
+impl<S> tower::Layer<S> for CallerLimitLayer {
+    type Service = CallerLimitService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        PrincipalLimitService {
+        CallerLimitService {
             inner,
             limiters: Arc::clone(&self.limiters),
             service_secret: Arc::clone(&self.service_secret),
@@ -889,16 +889,16 @@ impl<S> tower::Layer<S> for PrincipalLimitLayer {
     }
 }
 
-/// The service [`PrincipalLimitLayer`] wraps its inner service into.
+/// The service [`CallerLimitLayer`] wraps its inner service into.
 #[derive(Clone)]
-pub struct PrincipalLimitService<S> {
+pub struct CallerLimitService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
 }
 
-impl<B, S> tower::Service<http::Request<B>> for PrincipalLimitService<S>
+impl<B, S> tower::Service<http::Request<B>> for CallerLimitService<S>
 where
     S: tower::Service<http::Request<B>>,
 {
@@ -915,7 +915,7 @@ where
         if presents_service_secret(req.headers(), &self.service_secret) {
             self.limiters
                 .metrics
-                .unchecked(Stage::Principal, UncheckedReason::ServiceSecret);
+                .unchecked(Stage::Caller, UncheckedReason::ServiceSecret);
             return Either::Right(self.inner.call(req).map_ok(Ok));
         }
 
@@ -923,7 +923,7 @@ where
             tracing::error!(
                 method = %req.method(),
                 path = req.uri().path(),
-                "`PrincipalLimitLayer` ran on a route without authentication middleware"
+                "`CallerLimitLayer` ran on a route without authentication middleware"
             );
 
             self.limiters
@@ -961,7 +961,7 @@ where
                 tracing::error!(
                     method = %req.method(),
                     path = req.uri().path(),
-                    "`PrincipalLimitLayer` ran on a route without the address gate"
+                    "`CallerLimitLayer` ran on a route without the address gate"
                 );
                 self.limiters
                     .metrics
@@ -970,10 +970,10 @@ where
             };
             let Some(key) = resolved.key() else {
                 // Counted per stage, so the gate's count of this address does not stand in for the
-                // principal stage.
+                // caller stage.
                 self.limiters
                     .metrics
-                    .unchecked(Stage::Principal, UncheckedReason::UnknownAddress);
+                    .unchecked(Stage::Caller, UncheckedReason::UnknownAddress);
                 return Either::Right(self.inner.call(req).map_ok(Ok));
             };
             Budget::Anonymous(key)

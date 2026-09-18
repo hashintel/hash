@@ -8,7 +8,7 @@
 //!   [`AuthenticationProvider`] and [`Caller`], the contract between the middleware and the
 //!   credential verifiers a service supplies.
 //! - [`rate_limit`] budgets requests by client address ahead of authentication and by resolved
-//!   principal behind it — its module documentation states the ordering contract.
+//!   caller behind it — its module documentation states the ordering contract.
 //! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
 //! - [`response`] renders a problem document as an `application/problem+json` response.
 //!
@@ -24,7 +24,7 @@
 //!
 //! # Example
 //!
-//! A router assembles the request middlewares as address gate, authentication, principal
+//! A router assembles the request middlewares as address gate, authentication, caller
 //! limiter — requests traverse them in that order — with the tracing layer on the outside:
 //!
 //! ```
@@ -40,7 +40,7 @@
 //!         request::AuthenticationError,
 //!     },
 //!     rate_limit::{
-//!         ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode,
+//!         CallerLimitLayer, ClientIpSource, IpGateLayer, RateLimitConfig, RateLimitMode,
 //!         RateLimiters,
 //!     },
 //!     telemetry::HttpTracingLayer,
@@ -87,7 +87,7 @@
 //!
 //! let router: Router = Router::new()
 //!     .route("/whoami", get(whoami))
-//!     .route_layer(PrincipalLimitLayer {
+//!     .route_layer(CallerLimitLayer {
 //!         limiters: Arc::clone(&limiters),
 //!         service_secret: Arc::clone(&service_secret),
 //!     })

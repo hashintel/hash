@@ -12,7 +12,7 @@ use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
     },
-    rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimiters},
+    rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
 use http::{Method, StatusCode, Uri};
@@ -61,7 +61,7 @@ where
         }
     }
 
-    /// Attaches authentication and the principal budget to the legacy routes and to each API,
+    /// Attaches authentication and the caller budget to the legacy routes and to each API,
     /// then puts the address gate over everything, including the documentation routes and the 404
     /// fallback. The legacy routes and every API draw on the same budgets.
     ///
@@ -108,9 +108,9 @@ where
             return routes;
         }
 
-        // Authentication runs before the principal limiter; route layers skip unmatched paths.
+        // Authentication runs before the caller limiter; route layers skip unmatched paths.
         routes
-            .route_layer(PrincipalLimitLayer {
+            .route_layer(CallerLimitLayer {
                 limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),
             })

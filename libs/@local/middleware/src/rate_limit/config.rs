@@ -46,7 +46,7 @@ impl ClientIpSource {
 
 /// Configuration for the request rate limits.
 ///
-/// The address gate takes a per-second rate, the principal budgets take per-hour rates; each
+/// The address gate takes a per-second rate, the caller budgets take per-hour rates; each
 /// pairs with a burst allowance naming how many requests a fresh key may send at once.
 ///
 /// How a deployment reads these values — command line, environment, file — is the service's own
@@ -86,7 +86,7 @@ pub struct RateLimitConfig {
 
 /// Actor and anonymous request quotas for one group of routes.
 #[derive(Debug, Clone, Copy)]
-pub struct PrincipalRateLimitConfig {
+pub struct CallerRateLimitConfig {
     /// Sustained anonymous requests per hour and client address.
     pub anonymous_per_hour: NonZeroU32,
     /// Requests a fresh anonymous client address may send at once.
@@ -97,7 +97,7 @@ pub struct PrincipalRateLimitConfig {
     pub actor_burst: NonZeroU32,
 }
 
-impl From<&RateLimitConfig> for PrincipalRateLimitConfig {
+impl From<&RateLimitConfig> for CallerRateLimitConfig {
     fn from(config: &RateLimitConfig) -> Self {
         Self {
             anonymous_per_hour: config.rate_limit_anonymous_per_hour,

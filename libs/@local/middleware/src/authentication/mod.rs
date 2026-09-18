@@ -565,7 +565,7 @@ where
     }
 }
 
-/// Axum extractor providing the acting principal resolved by [`AuthenticationLayer`].
+/// Axum extractor providing the actor resolved by [`AuthenticationLayer`].
 ///
 /// Taking this extractor is how a handler states that it requires an actor: an anonymous caller
 /// is rejected here rather than reaching the handler. Handlers that serve callers without an
