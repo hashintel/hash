@@ -48,20 +48,38 @@ const helpStyle = css({
   color: "neutral.s90",
   lineHeight: "relaxed",
 });
+const sliderRowStyle = css({
+  display: "flex",
+  width: "full",
+  minWidth: "[0]",
+  alignItems: "center",
+  gap: "2",
+});
 const speedStyle = css({
+  flex: "1",
+  minWidth: "[0]",
   '&:not([data-disabled]) [data-part="control"], &:not([data-disabled]) [data-part="thumb"]':
     {
       cursor: "pointer",
     },
-  '& [data-part="value-text"]': {
+  '& [data-part="label"]': {
     position: "absolute",
-    right: "0",
-    bottom: "0",
-    lineHeight: "[16px]",
-    fontVariantNumeric: "tabular-nums",
-    "&::after": { content: '"×"' },
+    width: "[1px]",
+    height: "[1px]",
+    padding: "[0]",
+    margin: "[-1px]",
+    overflow: "hidden",
+    clip: "[rect(0, 0, 0, 0)]",
+    whiteSpace: "nowrap",
+    borderWidth: "[0]",
   },
-  '& [data-part="control"]': { width: "[calc(100% - 36px)]" },
+});
+const speedTextStyle = css({
+  minWidth: "[34px]",
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontVariantNumeric: "tabular-nums",
+  textAlign: "right",
 });
 const defaultDevice = { value: "default", text: "System default" };
 
@@ -77,6 +95,7 @@ export const AudioSettings = ({
   previewDisabledReason: string | null;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
+  const [realTimeExpanded, setRealTimeExpanded] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const infoRef = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -213,40 +232,6 @@ export const AudioSettings = ({
               {settings.voiceSaveError}
             </span>
           )}
-          {settings.speed !== undefined && actions.setSpeed && (
-            <div
-              className={css({ position: "relative" })}
-              role="group"
-              aria-label="Speaking speed"
-              aria-describedby={`${id}-speed-timing`}
-            >
-              <span
-                id={`${id}-speed-timing`}
-                className={css({
-                  position: "absolute",
-                  right: "0",
-                  top: "0",
-                  fontSize: "xs",
-                  color: "neutral.s90",
-                  lineHeight: "relaxed",
-                })}
-              >
-                Next reply
-              </span>
-              <Slider
-                className={speedStyle}
-                label="Speed"
-                disabled={disabled}
-                min={0.25}
-                max={1.5}
-                step={0.25}
-                value={settings.speed}
-                onChange={actions.setSpeed}
-                showValueText
-                variant="plain"
-              />
-            </div>
-          )}
         </div>
       </div>
       <div className={sectionStyle}>
@@ -341,6 +326,48 @@ export const AudioSettings = ({
           </div>
         )}
       </div>
+      {settings.speed !== undefined && actions.setSpeed && (
+        <div className={sectionStyle}>
+          <Button
+            className={headingStyle}
+            aria-label="Real-time"
+            aria-expanded={realTimeExpanded}
+            aria-controls={`${id}-real-time`}
+            suffix={
+              <Icon
+                name={realTimeExpanded ? "chevronDown" : "chevronRight"}
+                size="sm"
+              />
+            }
+            onClick={() => setRealTimeExpanded((expanded) => !expanded)}
+            size="sm"
+            variant="ghost"
+          >
+            Real-time
+          </Button>
+          {realTimeExpanded && (
+            <div id={`${id}-real-time`} className={fieldsStyle}>
+              <span className={labelStyle}>Speed</span>
+              <div className={sliderRowStyle}>
+                <Slider
+                  className={speedStyle}
+                  label="Speed"
+                  disabled={disabled}
+                  min={0.25}
+                  max={1.5}
+                  step={0.25}
+                  value={settings.speed}
+                  onChange={actions.setSpeed}
+                  variant="plain"
+                />
+                <span aria-hidden="true" className={speedTextStyle}>
+                  {settings.speed}×
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 };

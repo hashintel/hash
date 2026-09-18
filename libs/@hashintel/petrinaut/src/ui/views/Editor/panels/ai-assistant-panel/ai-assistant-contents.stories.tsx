@@ -601,7 +601,7 @@ export const LiveSessionAudioOptions: Story = {
       canvas.queryByRole("button", { name: "Read full reply" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Allow interruptions" }),
+      canvas.queryByRole("checkbox", { name: "Allow interruptions" }),
     ).toBeNull();
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
@@ -653,8 +653,8 @@ export const RealtimeSessionAudioOptions: Story = {
       canvas.getByRole("button", { name: "Read full reply" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Allow interruptions" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      canvas.getByRole("checkbox", { name: "Allow interruptions" }),
+    ).toBeChecked();
   },
 };
 
@@ -785,9 +785,9 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toHaveAccessibleDescription("Wait for the agent to finish.");
-    await expect(
-      canvas.getByRole("group", { name: "Speaking speed" }),
-    ).toHaveAccessibleDescription("Next reply");
+    const realTimeToggle = canvas.getByRole("button", { name: "Real-time" });
+    await userEvent.click(realTimeToggle);
+    await expect(realTimeToggle).toHaveAttribute("aria-expanded", "true");
     const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
@@ -830,17 +830,14 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toBeInTheDocument();
-    const interruptions = canvas.getByRole("button", {
+    const interruptions = canvas.getByRole("checkbox", {
       name: "Allow interruptions",
     });
-    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
-    await expect(interruptions.querySelector("svg")).not.toBeVisible();
+    await expect(interruptions).not.toBeChecked();
     await userEvent.click(interruptions);
-    await expect(interruptions).toHaveAttribute("aria-pressed", "true");
-    await expect(interruptions.querySelector("svg")).toBeVisible();
+    await expect(interruptions).toBeChecked();
     await userEvent.click(interruptions);
-    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
-    await expect(interruptions.querySelector("svg")).not.toBeVisible();
+    await expect(interruptions).not.toBeChecked();
   },
 };
 
