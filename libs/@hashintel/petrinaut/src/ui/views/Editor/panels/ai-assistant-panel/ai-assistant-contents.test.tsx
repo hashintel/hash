@@ -211,6 +211,66 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
   expect(end).toHaveBeenCalledOnce();
 });
 
+test("keeps crowded Voice actions fixed while status content can shrink", () => {
+  render(
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices: noop,
+          requestSpeaker: noop,
+          setMicrophoneDevice: noop,
+          setSpeakerDevice: noop,
+          setVoice: noop,
+          stopVoicePreview: noop,
+        },
+        end: noop,
+        pause: noop,
+        retryPlayback: noop,
+        setMicrophoneMuted: noop,
+        setSpeakerMuted: noop,
+        setSpeakerVolume: noop,
+        takeTurn: noop,
+      }}
+      assistantBusy
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canRetryPlayback
+      canTakeTurn
+      collapsed={false}
+      indicator={<span data-testid="waveform" />}
+      microphoneMuted={false}
+      notice="Audio playback is blocked. Select Play voice audio to hear Live."
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase="speaking"
+      speakerMuted={false}
+      speakerVolume={1}
+    />,
+  );
+
+  const dock = screen.getByTestId("ai-voice-dock");
+  expect(
+    Array.from(dock.children, (child) => child.getAttribute("data-part")),
+  ).toEqual([
+    "left-actions",
+    "shrinkable-status",
+    "right-actions",
+    "live-status",
+  ]);
+  const center = dock.querySelector('[data-part="shrinkable-status"]');
+  expect(
+    Array.from(center?.children ?? [], (child) =>
+      child.getAttribute("data-part"),
+    ),
+  ).toEqual(["fixed-indicator", "visible-status"]);
+  expect(within(dock).getByTestId("waveform")).toBeTruthy();
+  expect(
+    within(dock).getByRole("status", { name: "Voice status" }).textContent,
+  ).toBe(
+    "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
+  );
+});
+
 test("offers a user-gesture retry while session audio is blocked", () => {
   const retryPlayback = vi.fn();
   const commonProps = {
