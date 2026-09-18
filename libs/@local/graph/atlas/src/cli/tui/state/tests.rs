@@ -11,7 +11,7 @@ use super::{
     RunState, StageStatus,
 };
 use crate::{
-    math::{Vec2, d_non_negative, open_unit_fraction, unit_fraction},
+    math::{Vec2, d_finite, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -59,7 +59,7 @@ fn secs(seconds: u64) -> Duration {
 ///
 /// Every later stage stays pending, and no stage completes.
 #[test]
-fn a_fresh_run_is_inside_its_first_stage() {
+fn status_initial() {
     let state = RunState::new();
 
     assert_eq!(state.status(0, secs(3)), StageStatus::Running(secs(3)));
@@ -71,7 +71,7 @@ fn a_fresh_run_is_inside_its_first_stage() {
 ///
 /// The stage after the last completion runs for the time since it, and the rest stay pending.
 #[test]
-fn spans_are_differences_between_completions() {
+fn status_completed_spans() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, secs(10));
     state.complete_at(Stage::Classifier, secs(25));
@@ -87,7 +87,7 @@ fn spans_are_differences_between_completions() {
 }
 
 #[test]
-fn the_running_span_grows_with_the_clock() {
+fn status_running_span() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, secs(10));
 
@@ -96,7 +96,7 @@ fn the_running_span_grows_with_the_clock() {
 }
 
 #[test]
-fn a_split_opens_the_counter_and_requests_advance_it() {
+fn embedding_split_progress() {
     let mut state = RunState::new();
     assert_eq!(state.embedding(), None);
 
@@ -131,7 +131,7 @@ fn a_split_opens_the_counter_and_requests_advance_it() {
 ///
 /// The finished workload's progress does not carry into it.
 #[test]
-fn a_second_workload_replaces_the_first() {
+fn embedding_replacement() {
     let mut state = RunState::new();
     state.start_embedding(&CardEmbeddingStats {
         reused: 0,
@@ -160,7 +160,7 @@ fn a_second_workload_replaces_the_first() {
 }
 
 #[test]
-fn an_announced_fold_count_opens_the_counter_and_completions_advance_it() {
+fn classifier_fold_progress() {
     let mut state = RunState::new();
     assert_eq!(state.classifier(), None);
 
@@ -178,7 +178,7 @@ fn an_announced_fold_count_opens_the_counter_and_completions_advance_it() {
 ///
 /// The model invents no total to count against.
 #[test]
-fn a_fold_completion_without_an_announced_count_is_dropped() {
+fn classifier_fold_unannounced() {
     let mut state = RunState::new();
     state.complete_classifier_fold();
 
@@ -190,7 +190,7 @@ fn a_fold_completion_without_an_announced_count_is_dropped() {
 /// Insertion, then the backend's linking, then reading back, then the recall verdict each replace
 /// the predecessor.
 #[test]
-fn each_construction_activity_replaces_the_one_before_it() {
+fn knn_activity_replacement() {
     let mut state = RunState::new();
     assert_eq!(state.knn(), None);
 
@@ -224,7 +224,7 @@ fn each_construction_activity_replaces_the_one_before_it() {
 /// Later steps extend the loss window in order, and the done count and the latest breakdown track
 /// the newest step.
 #[test]
-fn the_first_training_step_opens_the_curve_and_the_rest_extend_it() {
+fn training_curve_progress() {
     let mut state = RunState::new();
     assert_eq!(state.projector(), None);
 
@@ -253,7 +253,7 @@ fn the_first_training_step_opens_the_curve_and_the_rest_extend_it() {
     reason = "the fixture's step count is exactly representable"
 )]
 #[test]
-fn the_curve_scrolls_rather_than_growing_without_limit() {
+fn training_curve_capacity() {
     let mut state = RunState::new();
     let steps = LOSS_CAPACITY + 2;
     for step in 0..steps {
@@ -270,7 +270,7 @@ fn the_curve_scrolls_rather_than_growing_without_limit() {
 }
 
 #[test]
-fn a_second_training_run_does_not_inherit_the_first_curve() {
+fn training_curve_restart() {
     let mut state = RunState::new();
     state.advance_projector(0, 300, &loss(8.0));
     state.advance_projector(1, 300, &loss(7.0));
@@ -287,7 +287,7 @@ fn a_second_training_run_does_not_inherit_the_first_curve() {
 ///
 /// The map shows where the placement is, not where it has been.
 #[test]
-fn a_snapshot_replaces_the_one_before_it() {
+fn placement_replacement() {
     let mut state = RunState::new();
     assert_eq!(state.placement(), None);
 
@@ -305,7 +305,7 @@ fn a_snapshot_replaces_the_one_before_it() {
 }
 
 #[test]
-fn a_landmark_count_past_the_reported_rows_is_clamped() {
+fn placement_landmark_overcount() {
     let mut state = RunState::new();
     state.place_projector(vec![Vec2::new(0.0, 0.0)], 9);
 
@@ -319,7 +319,7 @@ fn a_landmark_count_past_the_reported_rows_is_clamped() {
 ///
 /// Opening a counter would leave no reused-against-embedded split to report.
 #[test]
-fn a_request_without_a_split_is_dropped() {
+fn embedding_unannounced() {
     let mut state = RunState::new();
     state.advance_embedding(Batch { done: 2, total: 5 });
 
@@ -327,22 +327,22 @@ fn a_request_without_a_split_is_dropped() {
 }
 
 #[test]
-fn the_batterys_burst_lands_in_metric_order_however_it_arrives() {
+fn quality_metric_order() {
     let mut state = RunState::new();
     assert_eq!(state.quality().count(), 0);
 
     // The probe reports its readings as its report reduces them. The model owes the renderer
     // the battery's own order, not the arrival order.
-    state.probe_quality(QualityMetric::TripletAgreement, 0.7820);
-    state.probe_quality(QualityMetric::Recall, 0.9021);
-    state.probe_quality(QualityMetric::DensitySpread, 1.83);
+    state.probe_quality(QualityMetric::TripletAgreement, d_finite!(0.7820));
+    state.probe_quality(QualityMetric::Recall, d_finite!(0.9021));
+    state.probe_quality(QualityMetric::DensitySpread, d_finite!(1.83));
 
     assert_eq!(
         state.quality().collect::<Vec<_>>(),
         [
-            (QualityMetric::Recall, 0.9021),
-            (QualityMetric::DensitySpread, 1.83),
-            (QualityMetric::TripletAgreement, 0.7820),
+            (QualityMetric::Recall, d_finite!(0.9021)),
+            (QualityMetric::DensitySpread, d_finite!(1.83)),
+            (QualityMetric::TripletAgreement, d_finite!(0.7820)),
         ]
     );
 }
@@ -351,16 +351,16 @@ fn the_batterys_burst_lands_in_metric_order_however_it_arrives() {
 ///
 /// One reduction over the probe's steps answers one question.
 #[test]
-fn a_second_reading_of_one_metric_replaces_the_first() {
+fn quality_reading_replacement() {
     let mut state = RunState::new();
-    state.probe_quality(QualityMetric::Continuity, 0.8000);
-    state.probe_quality(QualityMetric::Continuity, 0.9104);
+    state.probe_quality(QualityMetric::Continuity, d_finite!(0.8000));
+    state.probe_quality(QualityMetric::Continuity, d_finite!(0.9104));
 
     // One reduction over the probe's steps answers one question. A repeat is a fresher answer and
     // never a second row.
     assert_eq!(
         state.quality().collect::<Vec<_>>(),
-        [(QualityMetric::Continuity, 0.9104)]
+        [(QualityMetric::Continuity, d_finite!(0.9104))]
     );
 }
 
@@ -368,7 +368,7 @@ fn a_second_reading_of_one_metric_replaces_the_first() {
 ///
 /// The oldest line drops and the newest stays.
 #[test]
-fn the_log_tail_evicts_its_oldest_line() {
+fn log_capacity() {
     let mut state = RunState::new();
     for line in 0..=LOG_CAPACITY {
         state.push_log(format!("line {line}"));

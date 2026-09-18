@@ -1,6 +1,6 @@
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
-use crate::math::{Positive, positive};
+use crate::math::{DFinite, Positive, positive};
 
 /// The positive domain is exactly the finite `f32` values strictly above zero.
 #[test]
@@ -23,6 +23,20 @@ fn new_domain() {
     assert_eq!(Positive::new(-1.0), None);
     assert_eq!(Positive::new(f32::INFINITY), None);
     assert_eq!(Positive::new(f32::NAN), None);
+}
+
+#[test]
+fn ln_wide_range_edges() {
+    let lower = Positive::MIN.ln_wide();
+    let upper = Positive::MAX.ln_wide();
+    assert!(
+        149.0_f64
+            .mul_add(core::f64::consts::LN_2, lower.get())
+            .abs()
+            < 1e-12
+    );
+    assert!((upper.get() - f64::from(f32::MAX).ln()).abs() < 1e-12);
+    assert_eq!(Positive::ONE.ln_wide(), DFinite::ZERO);
 }
 
 #[property_test]

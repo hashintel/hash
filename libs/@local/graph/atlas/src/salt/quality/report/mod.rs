@@ -317,8 +317,8 @@ fn baseline_subgroup_reports<N>(
 
 /// Computes each neighbourhood size's median log ratio and unscaled MAD.
 ///
-/// Positive radii contribute, and zero radii count as degenerate. Any non-finite radius invalidates
-/// the step's median and spread, including a pair whose other radius is zero.
+/// Positive radii contribute, and zero radii count as degenerate. A step without contributing
+/// anchors has neither a median nor a spread.
 ///
 /// # Panics
 ///
@@ -346,7 +346,6 @@ fn density_rows<N>(readings: &ProbeReadings<N>) -> Vec<DensityRow> {
             let anchors = ratios.len();
             let degenerate = readings.anchors.len() - anchors;
 
-            // a finite median can conceal non-finite inputs in a minority of anchors.
             let median_log_ratio = median(&mut ratios);
             let spread = median_log_ratio.and_then(|median_value| {
                 for ratio in &mut ratios {
@@ -393,4 +392,32 @@ fn median(values: &mut [DFinite]) -> Option<DFinite> {
 #[cfg(test)]
 pub(crate) mod tests {
     pub(crate) use super::document::MetricEval;
+    use super::median;
+    use crate::math::{DFinite, d_finite};
+
+    #[test]
+    fn median_even_extremes() {
+        assert_eq!(
+            median(&mut [DFinite::MAX, DFinite::MAX]),
+            Some(DFinite::MAX)
+        );
+        assert_eq!(
+            median(&mut [-DFinite::MAX, -DFinite::MAX]),
+            Some(-DFinite::MAX)
+        );
+        assert_eq!(
+            median(&mut [DFinite::MAX, d_finite!(4.0), -DFinite::MAX, d_finite!(2.0)]),
+            Some(d_finite!(3.0))
+        );
+    }
+
+    #[test]
+    fn median_odd_lengths() {
+        assert_eq!(median(&mut []), None);
+        assert_eq!(median(&mut [d_finite!(-2.0)]), Some(d_finite!(-2.0)));
+        assert_eq!(
+            median(&mut [d_finite!(9.0), d_finite!(1.0), d_finite!(5.0)]),
+            Some(d_finite!(5.0))
+        );
+    }
 }

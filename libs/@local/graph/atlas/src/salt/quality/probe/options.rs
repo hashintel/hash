@@ -85,8 +85,7 @@ impl ProbeOptions {
     ///
     /// # Errors
     ///
-    /// Returns [`ProbeError`] for an oversized row domain, an empty neighbourhood list or a
-    /// comparison budget below two.
+    /// Returns [`ProbeError`] for an empty neighbourhood list or a comparison budget below two.
     #[expect(
         clippy::integer_division,
         clippy::integer_division_remainder_used,
@@ -113,8 +112,7 @@ impl ProbeOptions {
             } else if rows < 3 {
                 (rows.min(1), rows.saturating_sub(1))
             } else {
-                // u128 carries both the sum of two usize budgets and their product with a u32 row
-                // count.
+                // u128 carries the sum and product of usize values on 32-bit and 64-bit targets.
                 let share = (rows as u128 * requested_anchors as u128)
                     / (requested_anchors as u128 + requested_comparisons as u128);
 

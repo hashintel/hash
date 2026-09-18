@@ -61,7 +61,7 @@ pub(crate) use d_finite;
 /// A finite `f32`, valid by construction.
 ///
 /// Finiteness is the construction invariant. Quantities with an additional sign or interval bound
-/// take the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`](super::UnitFraction), which
+/// take the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`], which
 /// states that bound too.
 ///
 /// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
@@ -242,7 +242,7 @@ impl<'de> serde::Deserialize<'de> for Finite {
 ///
 /// The double-precision twin of [`Finite`], for a quantity whose contract is that it denotes a
 /// real number and nothing further. A quantity that also has a sign or interval bound carries
-/// the narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`](super::UnitFraction).
+/// the narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`].
 ///
 /// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
 /// format whose number grammar covers exactly the finite values represents every inhabitant of this
@@ -377,7 +377,10 @@ impl DFinite {
         }
     }
 
-    pub(crate) const fn midpoint(self, other: DFinite) -> DFinite {
+    /// Averages two finite values without overflowing their sum.
+    ///
+    /// The result lies between the operands, including when both are near the finite range limits.
+    pub(crate) const fn midpoint(self, other: Self) -> Self {
         Self(f64::midpoint(self.0, other.0))
     }
 
