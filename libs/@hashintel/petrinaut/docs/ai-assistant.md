@@ -164,8 +164,8 @@ list. Voice warnings appear after Audio options in the dock.
   Samples follow output mute, volume, and speaker selection. Unmuting your mic,
   the agent becoming busy, or disconnecting stops the preview. Samples do not
   change the current session's voice or send microphone audio.
-  A preview uses a separate, short provider connection, so it may take a moment
-  to start. A failed preview does not discard the saved preference.
+  Preview audio loads on demand and can be reused from the browser cache. A
+  failed preview does not discard the saved preference.
   If browser storage is blocked, the selection lasts only until the page closes.
 - **Show status text** is on by default. Turn it off to hide ordinary Listening,
   Thinking, and Speaking labels beside the voice indicator. The waveform, controls,

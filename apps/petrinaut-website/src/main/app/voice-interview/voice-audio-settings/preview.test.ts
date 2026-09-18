@@ -1,5 +1,10 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { afterEach, expect, test, vi } from "vitest";
 
+import { voiceNames } from "../../../../shared/voice-settings";
 import { previewVoice } from "./preview";
 
 afterEach(() => {
@@ -9,60 +14,22 @@ afterEach(() => {
 
 const setup = () => {
   vi.useFakeTimers();
-  const channel = Object.assign(new EventTarget(), {
-    send: vi.fn(),
-    close: vi.fn(),
-    readyState: "open",
-  });
-  const peer = Object.assign(new EventTarget(), {
-    createDataChannel: () => channel,
-    iceGatheringState: "complete",
-    addTrack: vi.fn(),
-    createOffer: vi.fn(async () => ({ type: "offer", sdp: "v=0 offer" })),
-    setLocalDescription: vi.fn(async () => {}),
-    localDescription: { sdp: "v=0 offer" },
-    setRemoteDescription: vi.fn(async () => {}),
-    close: vi.fn(),
-  });
-  const track = { stop: vi.fn() };
-  const stream = { getTracks: () => [track] };
-  const audio = {
-    srcObject: null,
+  const audio = Object.assign(new EventTarget(), {
+    src: "",
     muted: false,
     volume: 1,
     setSinkId: vi.fn(async (_id: string) => {}),
     play: vi.fn(async () => {}),
     pause: vi.fn(),
-  };
-  let signal = 0;
-  const node = {
-    connect: vi.fn().mockReturnThis(),
-    start: vi.fn(),
-    stop: vi.fn(),
-    gain: { value: 1 },
-  };
-  const context = {
-    resume: vi.fn(async () => {}),
-    close: vi.fn(async () => {}),
-    createMediaStreamDestination: () => ({ stream }),
-    createOscillator: () => node,
-    createGain: () => node,
-    createMediaStreamSource: () => node,
-    createAnalyser: () => ({
-      fftSize: 8,
-      getFloatTimeDomainData: (samples: Float32Array) => samples.fill(signal),
+    removeAttribute: vi.fn((name: string) => {
+      if (name === "src") audio.src = "";
     }),
-  };
-  vi.stubGlobal("AudioContext", function MockAudioContext() {
-    return context;
   });
-  vi.stubGlobal("Audio", function MockAudio() {
+  vi.stubGlobal("Audio", function MockAudio(source?: string) {
+    audio.src = source ?? "";
     return audio;
   });
-  vi.stubGlobal("RTCPeerConnection", function MockPeerConnection() {
-    return peer;
-  });
-  const fetch = vi.fn(async () => new Response("v=0 answer"));
+  const fetch = vi.fn();
   vi.stubGlobal("fetch", fetch);
   const output = { muted: false, volume: 0.35, sinkId: "headphones" };
   const onState = vi.fn();
@@ -72,105 +39,46 @@ const setup = () => {
     output: () => output,
     onState,
   };
-  const receiveTrack = () =>
-    peer.dispatchEvent(
-      Object.assign(new Event("track"), { streams: [stream], track }),
-    );
-  const receive = (type: string) =>
-    channel.dispatchEvent(
-      new MessageEvent("message", { data: JSON.stringify({ type }) }),
-    );
   return {
-    channel,
-    peer,
-    track,
     audio,
-    context,
-    node,
     fetch,
     output,
     onState,
     options,
-    receive,
-    receiveTrack,
-    sound: (value: number) => {
-      signal = value;
-    },
   };
 };
 
 test.each(["live", "realtime"] as const)(
-  "previews the exact %s voice using only silent input",
+  "loads the exact %s voice from a versioned static asset",
   async (provider) => {
     const harness = setup();
-    harness.fetch.mockImplementation(async () =>
-      provider === "live"
-        ? Response.json({ sdp: "v=0 live" })
-        : new Response("v=0 realtime"),
-    );
     const stop = previewVoice({
       ...harness.options,
       provider,
       voice: provider === "live" ? "quartz" : "cedar",
     });
     await vi.advanceTimersByTimeAsync(0);
-    expect(harness.fetch).toHaveBeenCalledWith(
-      `/api/voice/${provider === "live" ? "live-session" : "realtime-call"}`,
-      expect.objectContaining({
-        headers: {
-          "content-type": "application/sdp",
-          "x-petrinaut-voice": provider === "live" ? "quartz" : "cedar",
-        },
-      }),
+    expect(harness.audio.src).toBe(
+      `/voice-previews/v1/${provider}/${
+        provider === "live" ? "quartz" : "cedar"
+      }.mp3`,
     );
-    expect(harness.node.gain.value).toBe(0);
-    expect(harness.peer.addTrack).toHaveBeenCalledWith(
-      harness.track,
-      expect.anything(),
-    );
-    expect(harness.channel.send).not.toHaveBeenCalled();
-    harness.receive(
-      provider === "live" ? "session.started" : "session.created",
-    );
-    expect(
-      JSON.parse(harness.channel.send.mock.calls[0]![0] as string),
-    ).toMatchObject(
-      provider === "live"
-        ? { type: "session.instructions.append", delegation_id: null }
-        : {
-            type: "response.create",
-            response: {
-              conversation: "none",
-              input: [],
-              tools: [],
-              tool_choice: "none",
-            },
-          },
-    );
+    expect(harness.audio.play).toHaveBeenCalledOnce();
+    expect(harness.fetch).not.toHaveBeenCalled();
+    expect(harness.onState.mock.calls).toEqual([["loading"], ["playing"]]);
     stop();
-    if (provider === "live") {
-      expect(harness.peer.close).not.toHaveBeenCalled();
-      expect(harness.channel.send).toHaveBeenLastCalledWith(
-        JSON.stringify({ type: "session.close" }),
-      );
-      harness.receive("session.closed");
-    }
-    expect(harness.peer.close).toHaveBeenCalledOnce();
-    expect(harness.track.stop).toHaveBeenCalledOnce();
-    expect(harness.context.close).toHaveBeenCalledOnce();
+    expect(harness.audio.pause).toHaveBeenCalledOnce();
+    expect(harness.audio.removeAttribute).toHaveBeenCalledWith("src");
+    expect(harness.onState).toHaveBeenLastCalledWith(null, undefined);
   },
 );
 
-test("reports playing only for audible samples and follows mute, volume, and output", async () => {
+test("follows mute, volume, and speaker changes while the sample plays", async () => {
   const harness = setup();
   previewVoice(harness.options);
-  harness.receiveTrack();
-  await vi.advanceTimersByTimeAsync(100);
+  await vi.advanceTimersByTimeAsync(0);
   expect(harness.audio).toMatchObject({ muted: false, volume: 0.35 });
   expect(harness.audio.setSinkId).toHaveBeenLastCalledWith("headphones");
-  expect(harness.onState).not.toHaveBeenCalledWith("playing");
-  harness.sound(0.2);
-  await vi.advanceTimersByTimeAsync(100);
   expect(harness.onState).toHaveBeenLastCalledWith("playing");
   harness.output.muted = true;
   harness.output.volume = 0.7;
@@ -179,48 +87,61 @@ test("reports playing only for audible samples and follows mute, volume, and out
   expect(harness.audio).toMatchObject({ muted: true, volume: 0.7 });
   expect(harness.audio.setSinkId).toHaveBeenLastCalledWith("");
   expect(harness.onState).toHaveBeenLastCalledWith(null);
-  harness.sound(0);
-  await vi.advanceTimersByTimeAsync(1000);
-  expect(harness.peer.close).toHaveBeenCalledOnce();
+  harness.output.muted = false;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(harness.onState).toHaveBeenLastCalledWith("playing");
+  harness.audio.dispatchEvent(new Event("ended"));
   expect(harness.audio.pause).toHaveBeenCalledOnce();
+  expect(harness.onState).toHaveBeenLastCalledWith(null, undefined);
 });
 
-test("stopping during connection ignores its late answer and events", async () => {
+test("stopping during loading ignores late playback", async () => {
   const harness = setup();
-  const pending = Promise.withResolvers<Response>();
-  harness.fetch.mockReturnValue(pending.promise);
+  const pending = Promise.withResolvers<void>();
+  harness.audio.play.mockReturnValue(pending.promise);
   const stop = previewVoice(harness.options);
   await vi.advanceTimersByTimeAsync(0);
   stop();
-  pending.resolve(new Response("v=0 late"));
-  harness.receive("session.created");
-  harness.receiveTrack();
+  pending.resolve();
   await vi.advanceTimersByTimeAsync(0);
-  expect(harness.peer.setRemoteDescription).not.toHaveBeenCalled();
-  expect(harness.audio.play).not.toHaveBeenCalled();
-  expect(harness.channel.send).not.toHaveBeenCalled();
+  expect(harness.audio.play).toHaveBeenCalledOnce();
   expect(harness.onState.mock.calls).toEqual([["loading"], [null, undefined]]);
 });
 
-test("bounds stalled previews and releases resources on denied playback", async () => {
+test("bounds stalled previews", async () => {
   const harness = setup();
+  harness.audio.play.mockReturnValue(new Promise(() => {}));
   previewVoice(harness.options);
   await vi.advanceTimersByTimeAsync(15_000);
   expect(harness.onState).toHaveBeenLastCalledWith(
     null,
     expect.stringContaining("timed out"),
   );
-  expect(harness.peer.close).toHaveBeenCalledOnce();
-  harness.peer.close.mockClear();
+  expect(harness.audio.pause).toHaveBeenCalledOnce();
+});
+
+test("releases a sample when playback is denied", async () => {
+  const harness = setup();
   harness.audio.play.mockRejectedValue(
     new DOMException("Blocked", "NotAllowedError"),
   );
   previewVoice(harness.options);
-  harness.receiveTrack();
   await vi.advanceTimersByTimeAsync(0);
   expect(harness.onState).toHaveBeenLastCalledWith(
     null,
     expect.stringContaining("Preview unavailable"),
   );
-  expect(harness.peer.close).toHaveBeenCalledOnce();
+  expect(harness.audio.pause).toHaveBeenCalledOnce();
+});
+
+test("has a static preview asset for every supported provider voice", () => {
+  const assetRoot = fileURLToPath(
+    new URL("../../../../../public/voice-previews/v1", import.meta.url),
+  );
+  for (const [provider, voices] of Object.entries(voiceNames)) {
+    for (const voice of voices) {
+      const asset = join(assetRoot, provider, `${voice}.mp3`);
+      expect(existsSync(asset), asset).toBe(true);
+    }
+  }
 });
