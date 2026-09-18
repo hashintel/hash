@@ -1,298 +1,100 @@
 {
   "components": {
     "responses": {
-      "AuthenticationRejected": {
+      "BadRequest": {
         "content": {
           "application/problem+json": {
+            "example": {
+              "status": 400,
+              "title": "Bad Request",
+              "type": "about:blank"
+            },
             "schema": {
-              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "$ref": "#/components/schemas/ProblemDetails",
               "properties": {
-                "detail": {
-                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-                  "examples": [
-                    "This operation requires a machine actor."
-                  ],
-                  "type": "string"
-                },
-                "instance": {
-                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-                  "examples": [
-                    "https://example.com/problem-occurrences/42"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                },
-                "status": {
-                  "const": 401,
-                  "description": "The HTTP status code sent with this occurrence.",
-                  "examples": [
-                    401
-                  ],
-                  "type": "integer"
-                },
-                "title": {
-                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-                  "examples": [
-                    "Unauthorized"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "default": "about:blank",
-                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-                  "examples": [
-                    "https://example.com/problems/unauthorized"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type",
-                "title",
-                "status"
-              ],
-              "title": "Problem Details",
-              "type": "object"
-            }
-          }
-        },
-        "description": "The credentials cannot resolve to a permitted caller."
-      },
-      "AuthenticationUnavailable": {
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
-              "properties": {
-                "detail": {
-                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-                  "examples": [
-                    "This operation requires a machine actor."
-                  ],
-                  "type": "string"
-                },
-                "instance": {
-                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-                  "examples": [
-                    "https://example.com/problem-occurrences/42"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                },
-                "status": {
-                  "const": 503,
-                  "description": "The HTTP status code sent with this occurrence.",
-                  "examples": [
-                    503
-                  ],
-                  "type": "integer"
-                },
-                "title": {
-                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-                  "examples": [
-                    "Service Unavailable"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "default": "about:blank",
-                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-                  "examples": [
-                    "https://example.com/problems/service-unavailable"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type",
-                "title",
-                "status"
-              ],
-              "title": "Problem Details",
-              "type": "object"
-            }
-          }
-        },
-        "description": "The credential provider or actor store is unavailable."
-      },
-      "InternalServerError": {
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
-              "properties": {
-                "detail": {
-                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-                  "examples": [
-                    "This operation requires a machine actor."
-                  ],
-                  "type": "string"
-                },
-                "instance": {
-                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-                  "examples": [
-                    "https://example.com/problem-occurrences/42"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                },
-                "status": {
-                  "const": 500,
-                  "description": "The HTTP status code sent with this occurrence.",
-                  "examples": [
-                    500
-                  ],
-                  "type": "integer"
-                },
-                "title": {
-                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-                  "examples": [
-                    "Internal Server Error"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "default": "about:blank",
-                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-                  "examples": [
-                    "https://example.com/problems/internal-server-error"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "type",
-                "title",
-                "status"
-              ],
-              "title": "Problem Details",
-              "type": "object"
-            }
-          }
-        },
-        "description": "An internal error prevented the request from completing."
-      },
-      "MalformedCredentials": {
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
-              "properties": {
-                "detail": {
-                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-                  "examples": [
-                    "This operation requires a machine actor."
-                  ],
-                  "type": "string"
-                },
-                "instance": {
-                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-                  "examples": [
-                    "https://example.com/problem-occurrences/42"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                },
                 "status": {
                   "const": 400,
-                  "description": "The HTTP status code sent with this occurrence.",
                   "examples": [
                     400
-                  ],
-                  "type": "integer"
-                },
-                "title": {
-                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-                  "examples": [
-                    "Bad Request"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "default": "about:blank",
-                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-                  "examples": [
-                    "https://example.com/problems/bad-request"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
+                  ]
                 }
-              },
-              "required": [
-                "type",
-                "title",
-                "status"
-              ],
-              "title": "Problem Details",
-              "type": "object"
+              }
             }
           }
         },
         "description": "Malformed credentials or actor header."
       },
-      "RateLimited": {
+      "InternalServerError": {
         "content": {
           "application/problem+json": {
+            "example": {
+              "status": 500,
+              "title": "Internal Server Error",
+              "type": "about:blank"
+            },
             "schema": {
-              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "$ref": "#/components/schemas/ProblemDetails",
               "properties": {
-                "detail": {
-                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
-                  "examples": [
-                    "This operation requires a machine actor."
-                  ],
-                  "type": "string"
-                },
-                "instance": {
-                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
-                  "examples": [
-                    "https://example.com/problem-occurrences/42"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
-                },
                 "status": {
-                  "const": 429,
-                  "description": "The HTTP status code sent with this occurrence.",
+                  "const": 500,
                   "examples": [
-                    429
-                  ],
-                  "type": "integer"
-                },
-                "title": {
-                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
-                  "examples": [
-                    "Too Many Requests"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "default": "about:blank",
-                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
-                  "examples": [
-                    "https://example.com/problems/too-many-requests"
-                  ],
-                  "format": "uri-reference",
-                  "type": "string"
+                    500
+                  ]
                 }
-              },
-              "required": [
-                "type",
-                "title",
-                "status"
-              ],
-              "title": "Problem Details",
-              "type": "object"
+              }
             }
           }
         },
-        "description": "The request exceeds its rate limit.",
+        "description": "An internal error prevented the request from completing."
+      },
+      "ServiceUnavailable": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 503,
+              "title": "Service Unavailable",
+              "type": "about:blank"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails",
+              "properties": {
+                "status": {
+                  "const": 503,
+                  "examples": [
+                    503
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "The credential provider or actor store is unavailable."
+      },
+      "TooManyRequests": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 429,
+              "title": "Too Many Requests",
+              "type": "about:blank"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails",
+              "properties": {
+                "status": {
+                  "const": 429,
+                  "examples": [
+                    429
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "The request exceeded its rate-limit budget.",
         "headers": {
           "Retry-After": {
-            "description": "Whole seconds before retrying.",
+            "description": "Whole seconds before retrying the request.",
             "required": true,
             "schema": {
               "minimum": 1,
@@ -301,6 +103,29 @@
             "style": "simple"
           }
         }
+      },
+      "Unauthorized": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "status": 401,
+              "title": "Unauthorized",
+              "type": "about:blank"
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails",
+              "properties": {
+                "status": {
+                  "const": 401,
+                  "examples": [
+                    401
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "The credentials cannot resolve to a permitted caller."
       }
     },
     "schemas": {
@@ -361,7 +186,7 @@
               "actorType",
               "id"
             ],
-            "title": "Ai",
+            "title": "AI",
             "type": "object"
           }
         ]
@@ -401,6 +226,58 @@
         "required": [
           "actor"
         ],
+        "type": "object"
+      },
+      "ProblemDetails": {
+        "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+        "properties": {
+          "detail": {
+            "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+            "examples": [
+              "This operation requires a machine actor."
+            ],
+            "type": "string"
+          },
+          "instance": {
+            "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+            "examples": [
+              "https://example.com/problem-occurrences/42"
+            ],
+            "format": "uri-reference",
+            "type": "string"
+          },
+          "status": {
+            "description": "The HTTP status code sent with this occurrence.",
+            "examples": [
+              403
+            ],
+            "format": "uint16",
+            "maximum": 599,
+            "minimum": 100,
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+            "examples": [
+              "Wrong actor type"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+            "examples": [
+              "https://example.com/problems/wrong-actor-type"
+            ],
+            "format": "uri-reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status"
+        ],
+        "title": "Problem Details",
         "type": "object"
       }
     },
@@ -447,19 +324,19 @@
             "description": "The resolved caller."
           },
           "400": {
-            "$ref": "#/components/responses/MalformedCredentials"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/AuthenticationRejected"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "429": {
-            "$ref": "#/components/responses/RateLimited"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           },
           "503": {
-            "$ref": "#/components/responses/AuthenticationUnavailable"
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
         "security": [
@@ -493,19 +370,19 @@
             "description": "The resolved caller."
           },
           "400": {
-            "$ref": "#/components/responses/MalformedCredentials"
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
-            "$ref": "#/components/responses/AuthenticationRejected"
+            "$ref": "#/components/responses/Unauthorized"
           },
           "429": {
-            "$ref": "#/components/responses/RateLimited"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           },
           "503": {
-            "$ref": "#/components/responses/AuthenticationUnavailable"
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
         "security": [

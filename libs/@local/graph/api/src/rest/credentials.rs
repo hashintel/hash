@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use aide::{
     OperationInput,
     generate::GenContext,
-    openapi::{ApiKeyLocation, OpenApi, Operation, SecurityScheme},
+    openapi::{ApiKeyLocation, Operation, SecurityScheme},
     transform::TransformOperation,
 };
 use axum::extract::{FromRequestParts, OptionalFromRequestParts};
@@ -16,11 +16,21 @@ use http::{header::AUTHORIZATION, request::Parts};
 use indexmap::IndexMap;
 use type_system::principal::actor::ActorId;
 
-use crate::rest::openapi::{add_response, problem_response};
+use super::Audience;
 
 pub(super) const CLOUDFLARE_ACCESS: &str = "cloudflareAccess";
 pub(super) const SERVICE_SECRET: &str = "serviceSecret";
 pub(super) const DELEGATED_ACTOR: &str = "delegatedActor";
+
+/// The credentials an API accepts.
+///
+/// `AUDIENCE` selects the provider chain verifying them, `schemes` documents them, and the
+/// [`OperationInput`] impl states them as an operation's security requirements.
+pub(super) trait Credentials: OperationInput + 'static {
+    const AUDIENCE: Audience;
+
+    fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)>;
+}
 
 pub(super) fn api_key(
     location: ApiKeyLocation,
@@ -70,28 +80,6 @@ pub(super) fn shared_schemes() -> [(&'static str, SecurityScheme); 3] {
     ]
 }
 
-pub(super) fn responses(api: &mut OpenApi) {
-    for (status, name, description) in [
-        (
-            400,
-            "MalformedCredentials",
-            "Malformed credentials or actor header.",
-        ),
-        (
-            401,
-            "AuthenticationRejected",
-            "The credentials cannot resolve to a permitted caller.",
-        ),
-        (
-            503,
-            "AuthenticationUnavailable",
-            "The credential provider or actor store is unavailable.",
-        ),
-    ] {
-        add_response(api, status, name, problem_response(status, description));
-    }
-}
-
 pub(super) struct Actor<C>(ActorId, PhantomData<fn() -> C>);
 
 impl<C> From<Actor<C>> for ActorId {
@@ -110,7 +98,7 @@ impl<S: Sync, C> FromRequestParts<S> for Actor<C> {
     }
 }
 
-impl<C: OperationInput> OperationInput for Actor<C> {
+impl<C: Credentials> OperationInput for Actor<C> {
     fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
         C::operation_input(ctx, operation);
     }
@@ -134,7 +122,7 @@ impl<S: Sync, C> FromRequestParts<S> for MaybeActor<C> {
     }
 }
 
-impl<C: OperationInput> OperationInput for MaybeActor<C> {
+impl<C: Credentials> OperationInput for MaybeActor<C> {
     fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
         let _: TransformOperation<'_> =
             TransformOperation::new(operation).security_requirement_multi([]);

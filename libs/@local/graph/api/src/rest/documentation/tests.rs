@@ -7,27 +7,44 @@ use crate::rest::{
 };
 
 #[tokio::test]
-async fn documents_served() {
+async fn documentation_serves_each_document() {
     let apis = apis();
     let router = documentation::routes(&apis);
     for api in apis {
-        let response = request(&router, &format!("{}/openapi.json", api.prefix)).await;
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers()[CONTENT_TYPE], "application/json");
+        let path = format!("{}/openapi.json", api.prefix());
+        let response = request(&router, &path).await;
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "{path} should serve the API's document"
+        );
+        assert_eq!(
+            response.headers()[CONTENT_TYPE],
+            "application/json",
+            "{path} should declare the document as JSON"
+        );
         assert_eq!(
             response_json(response).await,
-            serde_json::to_value(api.document).expect("the specification should serialize"),
-            "each document route should serve its registered specification",
+            serde_json::to_value(api.document()).expect("the specification should serialize"),
+            "{path} should serve its registered specification",
         );
     }
 }
 
 #[tokio::test]
-async fn documentation_self_hosted() {
+async fn documentation_serves_local_scalar() {
     let router = documentation::routes(&apis());
     let response = request(&router, "/").await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(response.headers()[CONTENT_TYPE], "text/html; charset=utf-8");
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "the reference should be served at the root"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "text/html; charset=utf-8",
+        "the reference should be served as HTML"
+    );
     let body = to_bytes(response.into_body(), 16 * 1024 * 1024)
         .await
         .expect("the reference body should be readable");
@@ -37,13 +54,21 @@ async fn documentation_self_hosted() {
         "the reference should load its local Scalar bundle"
     );
     let response = request(&router, "/openapi/scalar.js").await;
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(response.headers()[CONTENT_TYPE], "application/javascript");
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "the Scalar bundle should be served locally"
+    );
+    assert_eq!(
+        response.headers()[CONTENT_TYPE],
+        "application/javascript",
+        "the Scalar bundle should be served as JavaScript"
+    );
     let javascript = to_bytes(response.into_body(), 16 * 1024 * 1024)
         .await
         .expect("the Scalar bundle should be readable");
     assert!(
         !javascript.is_empty(),
-        "the Scalar bundle should contain JavaScript"
+        "the Scalar bundle should not be empty"
     );
 }

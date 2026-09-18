@@ -10,6 +10,7 @@
 //! - [`rate_limit`] budgets requests by client address ahead of authentication and by resolved
 //!   principal behind it — its module documentation states the ordering contract.
 //! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
+//! - [`response`] renders a problem document as an `application/problem+json` response.
 //!
 //! The providers are the extension point, and the credential vocabulary is not. A new failure
 //! mode extends [`AuthenticationErrorKind`], a new caller type the sealed [`Caller`], and both
@@ -111,8 +112,9 @@
 //!
 //! # Feature flags
 //!
-//! Both are off by default.
+//! All are off by default.
 //!
+//! - `aide`: documents authentication and rate-limit rejections in OpenAPI.
 //! - `clap`: derives `clap::ValueEnum` on [`RateLimitMode`] and [`ClientIpSource`], so a service
 //!   parses them straight from its command line.
 //! - `test-utils`: exposes the fixed-outcome provider `StaticAuthenticationProvider` and
@@ -128,9 +130,11 @@
 
 extern crate alloc;
 
+#[cfg(feature = "aide")]
+mod aide;
 pub mod authentication;
 pub mod rate_limit;
-mod response;
+pub mod response;
 pub mod telemetry;
 #[cfg(test)]
 mod test_metrics;

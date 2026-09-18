@@ -21,7 +21,7 @@ hash-graph-embeddings     = { workspace = true, public = true }
 hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-type-fetcher   = { workspace = true, public = true }
 hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
-hash-middleware           = { workspace = true, public = true }
+hash-middleware           = { workspace = true, public = true, features = ["aide"] }
 hash-status               = { workspace = true, public = true }
 hash-temporal-client      = { workspace = true, public = true }
 

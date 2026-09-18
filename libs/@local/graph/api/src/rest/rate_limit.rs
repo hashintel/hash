@@ -114,38 +114,3 @@ impl From<&RateLimitConfig> for hash_middleware::rate_limit::RateLimitConfig {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use core::num::NonZeroU32;
-
-    use super::{ClientIpSource, RateLimitConfig, RateLimitMode};
-
-    fn non_zero(value: u32) -> NonZeroU32 {
-        NonZeroU32::new(value).expect("the value should be non-zero")
-    }
-
-    /// Converts a configuration whose fields all differ, so a swapped field cannot hide.
-    #[test]
-    fn conversion_maps_every_field_to_its_namesake() {
-        let converted = hash_middleware::rate_limit::RateLimitConfig::from(&RateLimitConfig {
-            rate_limit_mode: RateLimitMode::Enforce,
-            client_ip_source: ClientIpSource::CfConnectingIp,
-            rate_limit_gate_per_second: non_zero(11),
-            rate_limit_gate_burst: non_zero(12),
-            rate_limit_anonymous_per_hour: non_zero(13),
-            rate_limit_anonymous_burst: non_zero(14),
-            rate_limit_actor_per_hour: non_zero(15),
-            rate_limit_actor_burst: non_zero(16),
-        });
-
-        assert_eq!(converted.rate_limit_mode, RateLimitMode::Enforce);
-        assert_eq!(converted.client_ip_source, ClientIpSource::CfConnectingIp);
-        assert_eq!(converted.rate_limit_gate_per_second, non_zero(11));
-        assert_eq!(converted.rate_limit_gate_burst, non_zero(12));
-        assert_eq!(converted.rate_limit_anonymous_per_hour, non_zero(13));
-        assert_eq!(converted.rate_limit_anonymous_burst, non_zero(14));
-        assert_eq!(converted.rate_limit_actor_per_hour, non_zero(15));
-        assert_eq!(converted.rate_limit_actor_burst, non_zero(16));
-    }
-}

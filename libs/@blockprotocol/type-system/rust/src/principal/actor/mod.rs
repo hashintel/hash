@@ -115,7 +115,7 @@ pub enum ActorId {
     User(UserId),
     #[cfg_attr(feature = "schemars", schemars(title = "Machine"))]
     Machine(MachineId),
-    #[cfg_attr(feature = "schemars", schemars(title = "Ai"))]
+    #[cfg_attr(feature = "schemars", schemars(title = "AI"))]
     Ai(AiId),
 }
 

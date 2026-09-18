@@ -1059,7 +1059,7 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
 }
 
 #[tokio::test]
-async fn scoped_budgets_share_only_the_gate() {
+async fn scoped_budgets_share_only_gate() {
     for (budget, actor) in [("anonymous", None), ("actor", Some(random_actor()))] {
         let provider = || {
             actor.map_or(
@@ -1085,11 +1085,13 @@ async fn scoped_budgets_share_only_the_gate() {
 
         assert_eq!(
             send(&entities_router, request(client)).await.status(),
-            StatusCode::OK
+            StatusCode::OK,
+            "the first request should pass the entities budget"
         );
         assert_eq!(
             send(&entities_router, request(client)).await.status(),
-            StatusCode::TOO_MANY_REQUESTS
+            StatusCode::TOO_MANY_REQUESTS,
+            "the second request should exhaust the entities budget"
         );
         assert_eq!(
             send(&types_router, request(client)).await.status(),
@@ -1109,7 +1111,8 @@ async fn scoped_budgets_share_only_the_gate() {
                     "hash.rate_limit.tracked_keys",
                     &[("scope", scope), ("limiter", budget)]
                 ),
-                Some(1)
+                Some(1),
+                "each scope should gauge its own {budget} key"
             );
             assert_eq!(
                 recorded.gauge(
@@ -1129,7 +1132,8 @@ async fn scoped_budgets_share_only_the_gate() {
                     ("outcome", "denied")
                 ]
             ),
-            1
+            1,
+            "the denial should be recorded under the scope that denied"
         );
         assert_eq!(
             recorded.counter(
@@ -1140,7 +1144,8 @@ async fn scoped_budgets_share_only_the_gate() {
                     ("outcome", "denied")
                 ]
             ),
-            1
+            1,
+            "the root scope should record the shared gate's denial"
         );
     }
 }

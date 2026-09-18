@@ -32,14 +32,15 @@ pub type OperatorChain<S> = (
     ServiceDelegationProvider<StorePoolActorResolver<S>>,
 );
 
-/// The session and operator provider chain for the internal and legacy APIs.
+/// The provider chain resolving a Kratos session, then the shared operator credentials.
 pub type ProviderChain<S> = (
     KratosSessionProvider<StorePoolActorResolver<S>>,
-    OperatorChain<S>,
+    Arc<OperatorChain<S>>,
 );
 
-/// Builds the provider chain for public and admin APIs: Cloudflare Access JWT (when configured),
-/// then service delegation.
+/// Builds an [`OperatorChain`].
+///
+/// The chain resolves no Kratos end-user session.
 pub fn build_operator_provider<S>(
     cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: String,
@@ -66,12 +67,10 @@ where
     )
 }
 
-/// Builds the chain for internal and legacy APIs: Kratos session, then the operator
-/// credentials.
+/// Builds a [`ProviderChain`] around an already built [`OperatorChain`].
 pub fn build_authentication_provider<S>(
     session: KratosSessionConfig,
-    cloudflare_access: Option<CloudflareAccessConfig>,
-    service_secret: String,
+    operator: Arc<OperatorChain<S>>,
     store: &Arc<S>,
     meter: &opentelemetry::metrics::Meter,
 ) -> ProviderChain<S>
@@ -85,6 +84,6 @@ where
             StorePoolActorResolver::new(Arc::clone(store)),
             meter,
         ),
-        build_operator_provider(cloudflare_access, service_secret, store),
+        operator,
     )
 }

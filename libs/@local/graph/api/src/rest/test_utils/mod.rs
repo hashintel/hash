@@ -1,19 +1,22 @@
 mod authentication;
 
-use core::num::NonZeroU32;
-
+use aide::{
+    OperationInput,
+    axum::{ApiRouter, routing::get},
+    openapi::{Info, SecurityScheme},
+};
 use axum::{
     Router,
     body::{Body, to_bytes},
     response::Response,
 };
-use hash_middleware::rate_limit::PrincipalRateLimitConfig;
 use http::Request;
 use serde_json::Value;
 use tower::ServiceExt as _;
 
 pub(super) use self::authentication::assert_authentication;
 pub(super) use super::caller::caller as echo_caller;
+use super::{Api, Audience, credentials::Credentials, openapi};
 
 pub(super) async fn request(router: &Router, path: &str) -> Response {
     router
@@ -35,14 +38,29 @@ pub(super) async fn response_json(response: Response) -> Value {
     serde_json::from_slice(&body).expect("the response body should be JSON")
 }
 
-pub(crate) fn apis() -> Vec<super::Api> {
-    super::apis(
-        &PrincipalRateLimitConfig {
-            anonymous_per_hour: NonZeroU32::MAX,
-            anonymous_burst: NonZeroU32::MAX,
-            actor_per_hour: NonZeroU32::MAX,
-            actor_burst: NonZeroU32::MAX,
-        }
-        .into(),
+pub(crate) fn apis() -> Vec<Api> {
+    super::apis().collect()
+}
+
+/// A public credential set documenting no security scheme.
+pub(super) struct NoCredentials;
+
+impl OperationInput for NoCredentials {}
+
+impl Credentials for NoCredentials {
+    const AUDIENCE: Audience = Audience::Public;
+
+    fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)> {
+        core::iter::empty()
+    }
+}
+
+/// A public API answering `GET {prefix}/test`.
+pub(super) fn api(prefix: &'static str) -> Api {
+    openapi::build::<NoCredentials>(
+        prefix,
+        Info::default(),
+        || ApiRouter::new().api_route("/test", get(async || String::from("ok"))),
+        |document| document,
     )
 }

@@ -3,18 +3,40 @@ mod tests;
 
 use alloc::sync::Arc;
 
+use aide::{
+    transform::{TransformOpenApi, TransformOperation},
+    util::iter_operations_mut,
+};
 use axum::Router;
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
     },
     rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimiters},
+    response::{problem_response, status_problem},
 };
-use http::StatusCode;
-use opentelemetry::metrics::Meter;
+use http::{Method, StatusCode, Uri};
 use type_system::principal::actor::ActorId;
 
 use super::{Api, Audience, legacy};
+
+/// Documents the responses the authentication and rate-limit layers answer on every operation.
+pub(super) fn document(mut document: TransformOpenApi<'_>) -> TransformOpenApi<'_> {
+    if let Some(paths) = &mut document.inner_mut().paths {
+        for path in paths
+            .paths
+            .values_mut()
+            .filter_map(|path| path.as_item_mut())
+        {
+            for (_, operation) in iter_operations_mut(path) {
+                let _: TransformOperation<'_> = TransformOperation::new(operation)
+                    .with(hash_middleware::authentication::document)
+                    .with(hash_middleware::rate_limit::document);
+            }
+        }
+    }
+    document
+}
 
 pub(super) struct Middleware<P, I> {
     pub public_provider: Arc<P>,
@@ -22,7 +44,6 @@ pub(super) struct Middleware<P, I> {
     pub service_secret: Arc<str>,
     pub authentication_metrics: Arc<AuthenticationMetrics>,
     pub rate_limiters: Arc<RateLimiters>,
-    pub meter: Meter,
 }
 
 impl<P, I> Middleware<P, I>
@@ -31,21 +52,22 @@ where
     I: AuthenticationProvider<Option<ActorId>> + 'static,
 {
     fn attach_api(&self, api: Api) -> Router {
-        let rate_limiters =
-            self.rate_limiters
-                .with_principal_limits(&api.rate_limits, api.prefix, &self.meter);
-        match api.audience {
-            Audience::Public => {
-                self.attach(api.router, &self.public_provider, rate_limiters, |_| false)
-            }
-            Audience::Internal => {
-                self.attach(api.router, &self.internal_provider, rate_limiters, |_| {
-                    false
-                })
-            }
+        let Api {
+            audience, router, ..
+        } = api;
+        match audience {
+            Audience::Public => self.attach(router, &self.public_provider, |_| false),
+            Audience::Internal => self.attach(router, &self.internal_provider, |_| false),
         }
     }
 
+    /// Attaches authentication and the principal budget to the legacy routes and to each API,
+    /// then puts the address gate over everything, including the documentation routes and the 404
+    /// fallback. The legacy routes and every API draw on the same budgets.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the routes of two groups overlap.
     pub(super) fn assemble(
         &self,
         legacy_routes: Router,
@@ -55,7 +77,6 @@ where
         let mut router = self.attach(
             legacy_routes,
             &self.internal_provider,
-            Arc::clone(&self.rate_limiters),
             legacy::is_bootstrap_route,
         );
         for api in apis {
@@ -63,9 +84,9 @@ where
         }
         router
             .merge(documentation)
-            .fallback(|| async {
-                tracing::debug!("404: Not found");
-                StatusCode::NOT_FOUND
+            .fallback(|method: Method, uri: Uri| async move {
+                tracing::debug!(%method, path = uri.path(), "no route matched");
+                problem_response(&status_problem(StatusCode::NOT_FOUND))
             })
             .layer(IpGateLayer {
                 limiters: Arc::clone(&self.rate_limiters),
@@ -77,20 +98,20 @@ where
         &self,
         routes: Router,
         provider: &Arc<A>,
-        rate_limiters: Arc<RateLimiters>,
         bootstrap_route: fn(&str) -> bool,
     ) -> Router
     where
         A: AuthenticationProvider<Option<ActorId>> + 'static,
     {
+        // `route_layer` panics on a router without routes.
         if !routes.has_routes() {
             return routes;
         }
 
-        // Authentication runs before principal accounting; route layers exclude unmatched paths.
+        // Authentication runs before the principal limiter; route layers skip unmatched paths.
         routes
             .route_layer(PrincipalLimitLayer {
-                limiters: rate_limiters,
+                limiters: Arc::clone(&self.rate_limiters),
                 service_secret: Arc::clone(&self.service_secret),
             })
             .route_layer(AuthenticationLayer::<_, Option<ActorId>> {

@@ -5,10 +5,6 @@ use uuid::Uuid;
 use super::ActorEntityUuid;
 use crate::{knowledge::entity::id::EntityUuid, principal::role::RoleId};
 
-/// A type-safe identifier for an AI agent.
-///
-/// Branded [`ActorEntityUuid`] type that specifically represents AI agent accounts,
-/// providing compile-time guarantees when working with AI agent identifiers.
 #[derive(
     Debug,
     Copy,

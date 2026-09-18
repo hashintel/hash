@@ -6439,6 +6439,7 @@ dependencies = [
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [
+ "aide",
  "axum",
  "axum-core",
  "clap",
@@ -10895,6 +10896,7 @@ dependencies = [
 name = "problematic"
 version = "0.0.0"
 dependencies = [
+ "aide",
  "erased-serde",
  "error-stack",
  "http 1.4.2",

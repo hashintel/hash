@@ -1,11 +1,11 @@
 use crate::rest::test_utils::apis;
 
 #[test]
-fn spec_documents() {
+fn documents_match_snapshots() {
     for api in apis() {
-        let suffix = api.prefix.trim_matches('/').replace('/', "-");
+        let suffix = api.slug();
         let mut document =
-            serde_json::to_value(api.document).expect("the specification should be a JSON value");
+            serde_json::to_value(api.document()).expect("the specification should be a JSON value");
         document.sort_all_objects();
         insta::with_settings!({
             snapshot_path => concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/openapi"),

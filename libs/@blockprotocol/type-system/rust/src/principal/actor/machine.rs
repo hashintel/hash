@@ -5,10 +5,6 @@ use uuid::Uuid;
 use super::ActorEntityUuid;
 use crate::{knowledge::entity::id::EntityUuid, principal::role::RoleId};
 
-/// A type-safe identifier for a machine actor.
-///
-/// Branded [`ActorEntityUuid`] type that specifically represents machine actors,
-/// providing compile-time guarantees when working with machine identifiers.
 #[derive(
     Debug,
     Copy,

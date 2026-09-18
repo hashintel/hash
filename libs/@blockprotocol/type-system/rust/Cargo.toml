@@ -56,8 +56,8 @@ required-features = ["codegen"]
 [features]
 codegen  = ["dep:specta", "hash-codec/codegen"]
 postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
-utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 schemars = ["dep:schemars"]
+utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 
 [lints]
 workspace = true

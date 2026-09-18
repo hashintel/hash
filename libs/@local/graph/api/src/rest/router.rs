@@ -7,10 +7,7 @@ use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::pool::StorePool;
-use hash_middleware::{
-    authentication::AuthenticationMetrics,
-    rate_limit::{PrincipalRateLimitConfig, RateLimiters},
-};
+use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
@@ -24,10 +21,7 @@ use super::{
     probe, rate_limit, telemetry,
 };
 
-pub struct Dependencies<S>
-where
-    S: StorePool + Send + Sync + 'static,
-{
+pub struct Dependencies<S> {
     pub store: Arc<S>,
     pub postgres: PostgresStorePool,
     pub temporal_client: Option<Arc<TemporalClient>>,
@@ -48,35 +42,36 @@ where
 ///
 /// # Panics
 ///
-/// Panics when called outside a Tokio runtime or if API paths overlap.
+/// Panics when called outside a Tokio runtime, if routes overlap, if an OpenAPI document does not
+/// generate or serialize, or if the documentation routes cannot be built from the embedded Scalar
+/// bundle and configuration.
 pub fn router<S>(dependencies: Dependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
     let public_provider = Arc::new(authentication::build_operator_provider(
-        dependencies.cloudflare_access.clone(),
+        dependencies.cloudflare_access,
         dependencies.service_secret.clone(),
         &dependencies.store,
     ));
     let internal_provider = Arc::new(authentication::build_authentication_provider(
         dependencies.session_auth,
-        dependencies.cloudflare_access,
-        dependencies.service_secret.clone(),
+        Arc::clone(&public_provider),
         &dependencies.store,
         &dependencies.meter,
     ));
-    let rate_limit_config = (&dependencies.rate_limit).into();
+    let rate_limit_config =
+        hash_middleware::rate_limit::RateLimitConfig::from(&dependencies.rate_limit);
     let middleware = Middleware {
         public_provider,
         internal_provider,
         service_secret: Arc::from(dependencies.service_secret),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),
-        meter: dependencies.meter,
     };
 
-    let apis = super::apis(&PrincipalRateLimitConfig::from(&rate_limit_config).into());
+    let apis = super::apis().collect::<Vec<_>>();
     let documentation = documentation::routes(&apis);
     let mut router = middleware
         .assemble(legacy::routes::<S>(), apis, documentation)
@@ -99,6 +94,6 @@ where
         router = router.layer(Extension(query_logger));
     }
 
-    // Health checks must remain reachable when request budgets are exhausted.
+    // Merged after the layers, so the probe carries no budget, no span, and no extensions.
     router.merge(probe::router())
 }

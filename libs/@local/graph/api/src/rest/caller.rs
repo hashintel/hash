@@ -1,12 +1,13 @@
 use aide::{
-    OperationInput,
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
 };
-use axum::{Json, extract::FromRequestParts};
+use axum::Json;
 use schemars::JsonSchema;
 use serde::Serialize;
 use type_system::principal::actor::ActorId;
+
+use super::credentials::{Actor, Credentials, MaybeActor};
 
 /// The resolved caller.
 #[derive(Serialize, JsonSchema)]
@@ -16,7 +17,7 @@ pub(super) struct CallerResponse {
     actor: Option<ActorId>,
 }
 
-pub(super) async fn caller<Actor: Into<Option<ActorId>>>(actor: Actor) -> Json<CallerResponse> {
+pub(super) async fn caller<A: Into<Option<ActorId>>>(actor: A) -> Json<CallerResponse> {
     Json(CallerResponse {
         actor: actor.into(),
     })
@@ -29,9 +30,7 @@ struct AuthenticatedCallerResponse {
     actor: ActorId,
 }
 
-async fn authenticated_caller<Actor: Into<ActorId>>(
-    actor: Actor,
-) -> Json<AuthenticatedCallerResponse> {
+async fn authenticated_caller<A: Into<ActorId>>(actor: A) -> Json<AuthenticatedCallerResponse> {
     Json(AuthenticatedCallerResponse {
         actor: actor.into(),
     })
@@ -50,16 +49,18 @@ fn document_authenticated_caller(operation: TransformOperation<'_>) -> Transform
         .summary("Get the authenticated caller")
 }
 
-pub(super) fn routes<Actor, MaybeActor>() -> ApiRouter
-where
-    Actor: FromRequestParts<()> + OperationInput + Into<ActorId> + Send + 'static,
-    MaybeActor: FromRequestParts<()> + OperationInput + Into<Option<ActorId>> + Send + 'static,
-{
+pub(super) fn routes<C: Credentials>() -> ApiRouter {
     ApiRouter::new()
-        .api_route("/caller", get_with(caller::<MaybeActor>, document_caller))
+        .api_route(
+            "/caller",
+            get_with(caller::<MaybeActor<C>>, document_caller),
+        )
         .api_route(
             "/authenticated-caller",
-            get_with(authenticated_caller::<Actor>, document_authenticated_caller),
+            get_with(
+                authenticated_caller::<Actor<C>>,
+                document_authenticated_caller,
+            ),
         )
         .with_path_items(|path| path.tag("Caller"))
 }

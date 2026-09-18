@@ -5,15 +5,19 @@ use aide::{
     transform::TransformOperation,
 };
 
-use crate::rest::credentials::{self, CLOUDFLARE_ACCESS, DELEGATED_ACTOR, SERVICE_SECRET};
+use crate::rest::{
+    Audience,
+    credentials::{self, CLOUDFLARE_ACCESS, DELEGATED_ACTOR, SERVICE_SECRET},
+};
 
 pub(super) struct Credentials;
 
-pub(super) type Actor = credentials::Actor<Credentials>;
-pub(super) type MaybeActor = credentials::MaybeActor<Credentials>;
+impl credentials::Credentials for Credentials {
+    const AUDIENCE: Audience = Audience::Public;
 
-pub(super) fn schemes() -> [(&'static str, SecurityScheme); 3] {
-    credentials::shared_schemes()
+    fn schemes() -> impl IntoIterator<Item = (&'static str, SecurityScheme)> {
+        credentials::shared_schemes()
+    }
 }
 
 impl OperationInput for Credentials {
@@ -26,11 +30,11 @@ impl OperationInput for Credentials {
 
 #[cfg(test)]
 mod tests {
-    use super::{Actor, MaybeActor};
-    use crate::rest::{Audience, test_utils::assert_authentication};
+    use super::Credentials;
+    use crate::rest::test_utils::assert_authentication;
 
     #[tokio::test]
-    async fn caller_authentication() {
-        assert_authentication::<Actor, MaybeActor>(Audience::Public).await;
+    async fn credentials_resolve_callers() {
+        assert_authentication::<Credentials>().await;
     }
 }

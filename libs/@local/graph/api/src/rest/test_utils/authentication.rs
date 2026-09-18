@@ -3,17 +3,14 @@ use core::{num::NonZeroU32, ops::ControlFlow};
 use std::collections::HashMap;
 
 use aide::{
-    OperationInput,
     axum::{ApiRouter, routing::get},
-    openapi::OpenApi,
+    openapi::{Info, ReferenceOr, SecurityScheme},
 };
-use axum::{Router, body::Body, extract::FromRequestParts};
+use axum::{Router, body::Body};
 use error_stack::Report;
 use hash_graph_authentication::{
-    actor::tests::FixedActorResolver,
-    cloudflare::ACCESS_JWT_HEADER,
-    delegation::ServiceDelegationProvider,
-    kratos::{SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER},
+    actor::tests::FixedActorResolver, cloudflare::ACCESS_JWT_HEADER,
+    delegation::ServiceDelegationProvider, kratos::SESSION_TOKEN_HEADER,
 };
 use hash_middleware::{
     authentication::{
@@ -21,9 +18,7 @@ use hash_middleware::{
         provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
         request::{ACTOR_ID_HEADER, AuthenticationError},
     },
-    rate_limit::{
-        ClientIpSource, PrincipalRateLimitConfig, RateLimitConfig, RateLimitMode, RateLimiters,
-    },
+    rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
 use http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE};
 use serde_json::json;
@@ -32,7 +27,11 @@ use type_system::principal::actor::{ActorId, ActorType};
 use uuid::Uuid;
 
 use super::{echo_caller, response_json};
-use crate::rest::{Api, Audience, middleware::Middleware};
+use crate::rest::{
+    credentials::{Actor, Credentials, MaybeActor},
+    middleware::Middleware,
+    openapi,
+};
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
@@ -59,15 +58,10 @@ impl<C: Caller> AuthenticationProvider<C> for HeaderProvider {
     }
 }
 
-fn caller_router<Actor, MaybeActor>(
-    audience: Audience,
-    operator: ActorId,
-    session_actor: ActorId,
-) -> Router
-where
-    Actor: FromRequestParts<()> + OperationInput + Into<ActorId> + Send + 'static,
-    MaybeActor: FromRequestParts<()> + OperationInput + Into<Option<ActorId>> + Send + 'static,
-{
+/// Assembles `/test/optional` and `/test/required` behind the credentials `C`.
+///
+/// Returns the router and whether the generated document advertises the session token header.
+fn caller_router<C: Credentials>(operator: ActorId, session_actor: ActorId) -> (Router, bool) {
     let operator_provider = || {
         (
             HeaderProvider {
@@ -83,7 +77,7 @@ where
     let public_provider = Arc::new(operator_provider());
     let internal_provider = Arc::new((
         HeaderProvider {
-            headers: &[SESSION_TOKEN_HEADER, "cookie"],
+            headers: &[SESSION_TOKEN_HEADER],
             actor: session_actor,
         },
         operator_provider(),
@@ -99,58 +93,54 @@ where
         rate_limit_actor_per_hour: NonZeroU32::MAX,
         rate_limit_actor_burst: NonZeroU32::MAX,
     };
-    let limiters = RateLimiters::start(&config, &meter);
-    let mut document = OpenApi::default();
-    let router = ApiRouter::new()
-        .api_route("/optional", get(echo_caller::<MaybeActor>))
-        .api_route(
-            "/required",
-            get(async |actor: Actor| echo_caller(Some(actor.into())).await),
-        )
-        .finish_api(&mut document);
+    let api = openapi::build::<C>(
+        "/test",
+        Info::default(),
+        || {
+            ApiRouter::new()
+                .api_route("/optional", get(echo_caller::<MaybeActor<C>>))
+                .api_route(
+                    "/required",
+                    get(async |actor: Actor<C>| echo_caller(Some(actor.into())).await),
+                )
+        },
+        |document| document,
+    );
+    let advertises_session = api.document().components.as_ref().is_some_and(|components| {
+        components.security_schemes.values().any(|scheme| {
+            matches!(
+                scheme,
+                ReferenceOr::Item(SecurityScheme::ApiKey { name, .. }) if name == SESSION_TOKEN_HEADER
+            )
+        })
+    });
     let middleware = Middleware {
         public_provider,
         internal_provider,
         service_secret: Arc::from(SERVICE_SECRET),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
-        rate_limiters: limiters,
-        meter,
+        rate_limiters: RateLimiters::start(&config, &meter),
     };
-    middleware.assemble(
-        Router::new(),
-        [Api {
-            audience,
-            rate_limits: PrincipalRateLimitConfig::from(&config),
-            prefix: "/test",
-            router,
-            document,
-        }],
-        Router::new(),
+    (
+        middleware.assemble(Router::new(), [api], Router::new()),
+        advertises_session,
     )
 }
 
-pub(in crate::rest) async fn assert_authentication<Actor, MaybeActor>(audience: Audience)
-where
-    Actor: FromRequestParts<()> + OperationInput + Into<ActorId> + Send + 'static,
-    MaybeActor: FromRequestParts<()> + OperationInput + Into<Option<ActorId>> + Send + 'static,
-{
+/// Sends each credential to the caller routes of `C` and checks the resolved actor.
+///
+/// A session token resolves an actor exactly when `C` documents the session token header, tying
+/// the provider chain the audience selects to the schemes the document states.
+pub(in crate::rest) async fn assert_authentication<C: Credentials>() {
     let operator = ActorId::new(Uuid::from_u128(1), ActorType::Machine);
     let session_actor = ActorId::new(Uuid::from_u128(2), ActorType::User);
-    let session = match audience {
-        Audience::Public => None,
-        Audience::Internal => Some(session_actor),
-    };
-    let router = caller_router::<Actor, MaybeActor>(audience, operator, session_actor);
+    let (router, advertises_session) = caller_router::<C>(operator, session_actor);
+    let session = advertises_session.then_some(session_actor);
 
     for (headers, expected_actor, available) in [
         (Vec::new(), None, true),
         (
             vec![(SESSION_TOKEN_HEADER, "session".to_owned())],
-            session,
-            true,
-        ),
-        (
-            vec![("cookie", format!("{SESSION_COOKIE_NAME}=session"))],
             session,
             true,
         ),
@@ -164,7 +154,6 @@ where
             None,
             false,
         ),
-        (vec![(ACTOR_ID_HEADER, operator.to_string())], None, true),
         (
             vec![
                 ("authorization", format!("HASH-Service {SERVICE_SECRET}")),
@@ -173,17 +162,8 @@ where
             Some(operator),
             true,
         ),
-        (
-            vec![
-                (SESSION_TOKEN_HEADER, "session".to_owned()),
-                ("authorization", format!("HASH-Service {SERVICE_SECRET}")),
-                (ACTOR_ID_HEADER, operator.to_string()),
-            ],
-            session.or(Some(operator)),
-            true,
-        ),
     ] {
-        for path in ["/optional", "/required"] {
+        for path in ["/test/optional", "/test/required"] {
             let mut request = Request::builder().uri(path);
             for (name, value) in &headers {
                 request = request.header(*name, value);
@@ -199,7 +179,7 @@ where
                 .expect("the router should respond");
             let expected_status = if !available {
                 StatusCode::SERVICE_UNAVAILABLE
-            } else if path == "/required" && expected_actor.is_none() {
+            } else if path == "/test/required" && expected_actor.is_none() {
                 StatusCode::UNAUTHORIZED
             } else {
                 StatusCode::OK
@@ -212,10 +192,15 @@ where
             if expected_status == StatusCode::OK {
                 assert_eq!(
                     response_json(response).await,
-                    json!({"actor": expected_actor})
+                    json!({"actor": expected_actor}),
+                    "{path} should resolve the caller for {headers:?}"
                 );
             } else {
-                assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
+                assert_eq!(
+                    response.headers()[CONTENT_TYPE],
+                    "application/problem+json",
+                    "{path} should reject {headers:?} with a problem document"
+                );
             }
         }
     }

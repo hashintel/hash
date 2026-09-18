@@ -116,6 +116,20 @@ where
     }
 }
 
+/// A shared provider answers as the provider it shares.
+impl<C, P> AuthenticationProvider<C> for Arc<P>
+where
+    C: Caller,
+    P: AuthenticationProvider<C> + ?Sized,
+{
+    async fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
+        P::authenticate(self, headers).await
+    }
+}
+
 /// Chains two providers: the second is consulted only when the first recognizes no credential.
 impl<C, A, B> AuthenticationProvider<C> for (A, B)
 where

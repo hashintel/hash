@@ -20,13 +20,12 @@ Each API has its own `openapi.json`; the legacy specification remains at
 http://localhost:4000/openapi.json.
 
 OpenAPI snapshots for Entities v1, Types v1, and Internal are stored as JSON in
-[`tests/snapshots/openapi/`](tests/snapshots/openapi/). Their filenames are independent of the Rust
-module layout, so downstream crates can use them as test fixtures.
+[`tests/snapshots/openapi/`](tests/snapshots/openapi/). Each filename is the API's route prefix
+with slashes replaced by hyphens.
 
 Scalar display settings live in [`scalar.json`](src/rest/documentation/scalar.json) and are
 embedded at build time. Rust supplies the document sources and enables authentication persistence
 across browser refreshes only in debug builds.
 
-Entities v1, Types v1, and Internal each have separate actor and anonymous rate-limit budgets.
-Their configurations are passed separately and initially use the same CLI values. All APIs share
-the IP rate-limit budget before authentication.
+Entities v1, Types v1, Internal, and Legacy share one set of actor and anonymous rate-limit
+budgets, configured through the CLI, and one IP rate-limit budget ahead of authentication.

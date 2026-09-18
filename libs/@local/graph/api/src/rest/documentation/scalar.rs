@@ -1,13 +1,28 @@
+use std::sync::LazyLock;
+
 use axum::{Router, body::Bytes, http::header::CONTENT_TYPE, response::Html, routing::get};
 use scalar_api_reference::{get_asset, render_scalar};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::rest::Api;
+
+/// One document the Scalar reference lists.
 #[derive(Serialize)]
-pub(crate) struct Source {
+pub(super) struct Source {
     pub title: String,
     pub slug: String,
     pub url: String,
+}
+
+impl From<&Api> for Source {
+    fn from(api: &Api) -> Self {
+        Self {
+            title: api.document().info.title.clone(),
+            slug: api.slug(),
+            url: format!("{}/openapi.json", api.prefix()),
+        }
+    }
 }
 
 fn render(configuration: &str, sources: Value) -> Result<Bytes, serde_json::Error> {
@@ -26,13 +41,14 @@ fn render(configuration: &str, sources: Value) -> Result<Bytes, serde_json::Erro
     )))
 }
 
-fn javascript() -> Bytes {
+/// The Scalar bundle with the optional-authentication correction applied.
+static JAVASCRIPT: LazyLock<Bytes> = LazyLock::new(|| {
     let mut javascript =
         String::from_utf8(get_asset("scalar.js").expect("the Scalar bundle should exist"))
             .expect("the Scalar bundle should be UTF-8");
 
-    // Scalar 1.49.2 incorrectly makes an empty security alternative mandatory when another
-    // alternative combines schemes.
+    // @scalar/api-reference 1.49.2 incorrectly makes an empty security alternative mandatory when
+    // another alternative combines schemes.
     for (original, corrected) in [
         (
             "!t.some((e=>Object.keys(e).length>1))&&e.length<t.length",
@@ -46,17 +62,17 @@ fn javascript() -> Bytes {
         assert_eq!(
             javascript.matches(original).count(),
             1,
-            "the Scalar optional-auth correction should match exactly once; recheck it after \
-             updating scalar_api_reference"
+            "the Scalar optional-auth correction should match exactly once"
         );
         javascript = javascript.replacen(original, corrected, 1);
     }
 
     Bytes::from(javascript)
-}
+});
 
 pub(super) fn routes(sources: &[Source]) -> Router {
     let sources = serde_json::to_value(sources).expect("the document sources should serialize");
+    LazyLock::force(&JAVASCRIPT);
 
     let reference = {
         let html = render(include_str!("scalar.json"), sources)
@@ -64,13 +80,12 @@ pub(super) fn routes(sources: &[Source]) -> Router {
         get(move || core::future::ready(Html(html.clone())))
     };
 
-    let javascript = javascript();
     Router::new().route("/", reference).route(
         "/openapi/scalar.js",
-        get(move || {
+        get(|| {
             core::future::ready((
                 [(CONTENT_TYPE, "application/javascript")],
-                javascript.clone(),
+                JAVASCRIPT.clone(),
             ))
         }),
     )

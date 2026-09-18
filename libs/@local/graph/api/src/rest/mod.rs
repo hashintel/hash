@@ -17,26 +17,39 @@ pub(crate) mod test_utils;
 
 use aide::openapi::OpenApi;
 use axum::Router;
-use hash_middleware::rate_limit::PrincipalRateLimitConfig;
 
-pub(crate) use self::rate_limit::RateLimits;
 pub use self::router::{Dependencies, router};
 
+/// The callers an API admits, which selects the provider chain authenticating its requests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Audience {
     Public,
     Internal,
 }
 
+/// An API's routes, nested under its prefix, with the document describing them.
 pub(crate) struct Api {
-    pub audience: Audience,
-    pub rate_limits: PrincipalRateLimitConfig,
-    pub prefix: &'static str,
-    pub router: Router,
-    pub document: OpenApi,
+    audience: Audience,
+    prefix: &'static str,
+    router: Router,
+    document: OpenApi,
 }
 
-pub(crate) fn apis(rate_limits: &RateLimits) -> Vec<Api> {
-    public::apis(&rate_limits.public)
-        .chain([internal::api(rate_limits.internal)])
-        .collect()
+impl Api {
+    pub(crate) const fn prefix(&self) -> &'static str {
+        self.prefix
+    }
+
+    pub(crate) const fn document(&self) -> &OpenApi {
+        &self.document
+    }
+
+    /// The prefix without its leading slash and with hyphens for the remaining slashes.
+    pub(crate) fn slug(&self) -> String {
+        self.prefix.trim_matches('/').replace('/', "-")
+    }
+}
+
+pub(crate) fn apis() -> impl Iterator<Item = Api> {
+    public::apis().chain([internal::api()])
 }

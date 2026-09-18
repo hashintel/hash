@@ -1,10 +1,12 @@
 //! Rate limiting for HTTP request handling.
 //!
-//! Two middlewares share the limiter state in `RateLimiters`. [`IpGateLayer`] runs ahead of the
-//! authentication layer and throttles each client address before credential verification.
-//! [`PrincipalLimitLayer`] runs behind it and budgets requests by the resolved principal: the
-//! actor for authenticated requests, counted across every address it connects from, and the
-//! client address for anonymous ones.
+//! [`IpGateLayer`] runs ahead of the authentication layer and throttles each client address before
+//! credential verification. [`PrincipalLimitLayer`] runs behind it and budgets requests by the
+//! resolved principal: the actor for authenticated requests, counted across every address it
+//! connects from, and the client address for anonymous ones. [`RateLimiters::start`] holds the
+//! address gate and one set of principal budgets; [`RateLimiters::with_principal_limits`] adds
+//! further principal budgets that share the gate, which the state `start` returned keeps charging,
+//! maintaining, and gauging.
 //!
 //! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
 //! [`AuthenticationLayer`] have to share one secret: the principal limiter treats a stored
@@ -15,22 +17,26 @@
 //!
 //! A request over its budget receives `429 Too Many Requests` with an `application/problem+json`
 //! body and `Retry-After` in [`RateLimitMode::Enforce`], the default. The problem type is
-//! `about:blank`, and `Retry-After` gives the delay in seconds before retrying. HASH treats
-//! replacing `about:blank` with a specific problem type URI as a non-breaking API change.
+//! `about:blank`, and `Retry-After` gives the delay in seconds before retrying.
 //! In [`RateLimitMode::Observe`], requests are served unchanged; the `would_deny` outcome of the
 //! decisions metric records requests that enforcement would have denied.
 //!
-//! Every budget decision, unchecked pass, address fallback, and maintenance run is counted on
-//! the meter the state is built with, and the keys each limiter store holds are gauged. Denials
-//! and address fallbacks also log at debug, carrying the key and header detail too wide for a
-//! metric label.
+//! Budget decisions, unchecked passes, misconfigurations, address fallbacks, maintenance runs,
+//! evicted keys, and denial waits are recorded on the meter the state is built with, and the keys
+//! each limiter store holds are gauged. Every instrument carries a `scope` attribute naming the set
+//! of principal budgets it belongs to. Denials and address fallbacks also log at debug, carrying
+//! the key and header detail too wide for a metric label.
 //!
 //! Limiter state lives in process memory, so enforcement is per instance: a deployment with N
 //! instances admits up to N times the configured rates, and a rolling release starts every budget
 //! over.
 
 mod address;
+#[cfg(feature = "aide")]
+mod aide;
 mod config;
+#[cfg(feature = "aide")]
+pub use self::aide::document;
 #[cfg(test)]
 mod tests;
 
@@ -330,7 +336,7 @@ pub enum RateLimitRejection {
     TooManyRequests(TooManyRequests),
     /// The route is wired without the middleware the principal limiter builds on, answered as
     /// an internal error.
-    InternalError,
+    Misconfigured,
 }
 
 impl From<TooManyRequests> for RateLimitRejection {
@@ -345,7 +351,7 @@ impl Problem for RateLimitRejection {
     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.details(),
-            Self::InternalError => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
+            Self::Misconfigured => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }
@@ -354,7 +360,7 @@ impl IntoResponse for RateLimitRejection {
     fn into_response(self) -> Response {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.into_response(),
-            Self::InternalError => problem_response(&self.details()),
+            Self::Misconfigured => problem_response(&self.details()),
         }
     }
 }
@@ -612,7 +618,8 @@ impl RateLimiters {
             .add(1, core::slice::from_ref(&self.metrics.scope));
 
         tracing::debug!(
-            gate_keys = self.gate.len(),
+            scope = %self.metrics.scope.value,
+            gate_keys = self.parent.is_none().then(|| self.gate.len()),
             anonymous_keys = self.anonymous.len(),
             actor_keys = self.actor.len(),
             "rate limiter maintenance run"
@@ -914,6 +921,7 @@ where
 
         let Some(resolved) = req.extensions().get::<ResolvedAuthentication>() else {
             tracing::error!(
+                method = %req.method(),
                 path = req.uri().path(),
                 "`PrincipalLimitLayer` ran on a route without authentication middleware"
             );
@@ -921,7 +929,7 @@ where
             self.limiters
                 .metrics
                 .misconfiguration(Misconfiguration::MissingAuthentication);
-            return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+            return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
         };
 
         let actor = match resolved.outcome() {
@@ -932,12 +940,17 @@ where
                 // arm means the middleware order broke, so the report's attachments are the only
                 // account of what the provider saw: `Display` would print the first context and
                 // drop them.
-                tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
+                tracing::error!(
+                    method = %req.method(),
+                    path = req.uri().path(),
+                    error = ?error,
+                    "authentication error reached the rate limiter unrejected"
+                );
 
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
             }
         };
 
@@ -946,13 +959,14 @@ where
         } else {
             let Some(resolved) = req.extensions().get::<ResolvedClientAddress>() else {
                 tracing::error!(
+                    method = %req.method(),
                     path = req.uri().path(),
                     "`PrincipalLimitLayer` ran on a route without the address gate"
                 );
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::MissingAddressGate);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
             };
             let Some(key) = resolved.key() else {
                 // Counted per stage, so the gate's count of this address does not stand in for the

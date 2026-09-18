@@ -1,4 +1,4 @@
-//! Service-secret authentication for legacy bootstrap routes.
+//! The bootstrap routes of the legacy API.
 
 /// Returns whether the path is a bootstrap route.
 ///
