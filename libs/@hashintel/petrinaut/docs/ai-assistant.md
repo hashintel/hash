@@ -113,6 +113,9 @@ restore the AI header, transcript, and host Voice region. These controls change
 visibility only: they do not pause, stop, or end Voice. Ending Voice while the
 conversation is hidden also closes the AI panel; ending it while the
 conversation is visible returns to the text composer.
+When space is tight, the dock keeps the waveform and action buttons usable and
+truncates only the visible status with an ellipsis. Screen readers still
+announce the complete, untruncated status.
 When the conversation is hidden, the zoom and fullscreen controls remain above
 the compact dock at the right edge.
 
@@ -137,21 +140,64 @@ cancel canonical Brunch work already in progress, so select Stop first when
 you also need to cancel that work.
 
 Open **Audio options** for session-local speaker controls. Both Live and
-Realtime Voice provide **Mute speaker** / **Unmute speaker** and **Speaker
-volume**. These controls affect assistant playback only: they do not affect
+Realtime Voice provide **Mute speaker** / **Unmute speaker** and **Volume**.
+These controls affect assistant playback only: they do not affect
 microphone input, Brunch work, or the **Speaking** state. When the speaker is
 muted during playback, the dock therefore continues to say **Speaking** and
 Audio options shows the pressed speaker state. Speaker mute and volume reset
 for each new Voice session. Speaker controls are unavailable while Voice is
 connecting or interrupted by an error; they remain available while Realtime is
-paused. They are the only Audio options preferences that reset per Voice
-session: Realtime remembers **Interruption by speaking** in this browser. The
-dock does not promise device switching, voice or speed selection, helmet
-animation, or persistence of the speaker settings.
+paused. Changing volume does not unmute the speaker, and unmuting restores its
+retained volume. Realtime remembers **Allow interruptions** in this browser;
+change it with the switch beside the hand icon.
+
+When the host provides extended audio settings, Audio options also contains
+**Voice** when supported. **Devices** starts collapsed; expand it to choose a
+microphone or speaker. Providers with numeric speed control also show a
+collapsed **Real-time** section immediately below **Devices**. The panel fits
+its content and scrolls when it exceeds the available screen height. Opening
+Audio options refreshes the device list. Voice warnings appear after Audio
+options in the dock.
+
+- **Voice** saves a preference in this browser for the selected provider and
+  applies it to the next Voice session, without restarting the current session.
+  The information icon at the right explains when changes apply and how to preview.
+  You can select a voice at any time, including before connecting. In Brunch,
+  selection also previews a short sample when the session is connected, your
+  microphone is muted, and the agent is idle. Otherwise, it saves silently for
+  the next connection; it does not queue a preview. **Loading…** and then
+  a small equalizer appear at the right of the field; there are no playback buttons.
+  Selecting another voice replaces the sample; closing Audio options stops it.
+  Samples follow output mute, volume, and speaker selection. Unmuting your mic,
+  the agent becoming busy, or disconnecting stops the preview. Samples do not
+  change the current session's voice or send microphone audio.
+  Preview audio loads on demand and can be reused from the browser cache. A
+  failed preview does not discard the saved preference.
+  If browser storage is blocked, the selection lasts only until the page closes.
+- **Show status text** is on by default. Turn it off to hide ordinary Listening,
+  Thinking, and Speaking labels beside the voice indicator. The waveform, controls,
+  microphone mute and connection notices, and screen-reader announcements remain.
+- Expand **Real-time** to use **Speed**. Its compact horizontal slider follows
+  the volume control's layout, with the multiplier at the right. It changes the
+  next response, not speech already playing.
+  Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not
+  offer numeric speed control.
+- **Microphone** and **Speaker** choose devices for the current session. They
+  start at **System default**. If a selected device disconnects, Voice attempts
+  to switch that input or output to the system default without changing mute or
+  volume. Reconnecting the old device does not automatically select it again.
+- Device selection depends on browser support and permission. If speaker
+  selection is unsupported, use your system's output settings. **Choose output…**
+  requests permission where supported. After granting microphone
+  access or connecting a missing device, reopen Audio options to refresh the list.
+  If recovery fails, check the message in Audio options or continue in text.
+
+Volume affects app output, not microphone gain. These settings do not add a
+separate transcription view.
 
 Realtime-based Brunch Voice additionally provides **Repeat question**, **Read
-full response**, and **Interruption by speaking** in Audio options. Live Voice
-does not show these controls. **Read full response** becomes available after
+full reply**, and **Allow interruptions** in Audio options. Live Voice
+does not show these controls. **Read full reply** becomes available after
 the matching response and speech have both finished and replays every exact
 retained canonical segment in order. **Repeat question** uses the same
 availability gates and replays only exact question text explicitly marked by
@@ -160,12 +206,12 @@ finalized assistant text.
 Both replay controls stay unavailable while capture, submission, cancellation,
 pause, or an error makes playback unsafe.
 
-With **Interruption by speaking** enabled, start speaking while Brunch is
+With **Allow interruptions** enabled, start speaking while Brunch is
 talking to stop its audio and give your answer. Your interrupting words are
 captured; you do not need to repeat them. If Brunch is still finishing its
 previous turn, the dock shows **Answer captured. Waiting for Brunch.** and
 sends that answer when it is ready. Wait for it to be sent before giving
-another one. Disable **Interruption by speaking** to use manual handover. In
+another one. Disable **Allow interruptions** to use manual handover. In
 manual mode, select **Your turn**, wait for cancellation to finish, then speak;
 audio before that handover is discarded. **Your turn** is hidden while
 interruption by speaking is enabled.
