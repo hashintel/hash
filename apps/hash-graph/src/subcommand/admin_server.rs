@@ -3,7 +3,7 @@ use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::legacy::auth::{
+use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
     build_operator_provider,
 };
@@ -321,12 +321,12 @@ pub(crate) async fn run_admin_server(
         &pool,
     ));
 
-    let router = hash_graph_api::legacy::admin::routes(
+    let router = hash_graph_api::rest::legacy::admin::routes(
         pool,
         authentication_provider,
         Arc::from(service_secret),
         Arc::new(AuthenticationMetrics::new(&meter)),
-        hash_graph_api::legacy::admin::ExternalServicesConfig {
+        hash_graph_api::rest::legacy::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
             mailchimp_api_key: config.external_services.mailchimp_api_key,

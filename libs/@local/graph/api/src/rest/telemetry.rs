@@ -2,7 +2,7 @@
 
 pub use hash_middleware::telemetry::HttpTracingLayer;
 
-use crate::legacy::probe;
+use super::probe;
 
 /// The graph's tracing layer: every request produces a span, except the health probe.
 #[must_use]

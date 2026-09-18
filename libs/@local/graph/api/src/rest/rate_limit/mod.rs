@@ -1,3 +1,5 @@
+mod config;
+
 use aide::openapi::{
     Header, HeaderStyle, OpenApi, ParameterSchemaOrContent, ReferenceOr, SchemaObject,
 };
@@ -5,6 +7,7 @@ use hash_middleware::rate_limit::PrincipalRateLimitConfig;
 use indexmap::IndexMap;
 use schemars::json_schema;
 
+pub use self::config::RateLimitConfig;
 use crate::rest::openapi::{add_response, problem_response};
 
 pub(crate) struct RateLimits {

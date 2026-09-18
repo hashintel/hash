@@ -17,7 +17,7 @@ use hash_graph_store::{
 };
 use type_system::knowledge::Entity;
 
-use crate::legacy::{ApiConfig, LimitExceededError, resolve_limit};
+use crate::rest::legacy::{ApiConfig, LimitExceededError, resolve_limit};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum QueryEntitySubgraphError {

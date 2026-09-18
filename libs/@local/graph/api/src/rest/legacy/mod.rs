@@ -1,8 +1,6 @@
 #![expect(clippy::needless_for_each, reason = "Utoipa derive macro uses it")]
 
-//! The Axum webserver for accessing the Graph API operations.
-//!
-//! Handler methods are grouped by routes that make up the REST API.
+//! Legacy Graph HTTP handlers and their OpenAPI document.
 
 pub mod data_type;
 pub mod entity;
@@ -13,15 +11,12 @@ pub mod property_type;
 pub mod status;
 
 pub mod admin;
-pub mod auth;
-pub mod probe;
-pub mod rate_limit;
-pub mod telemetry;
+mod auth;
 
 pub mod hashql;
 mod json;
 mod utoipa_typedef;
-use alloc::{borrow::Cow, sync::Arc};
+use alloc::borrow::Cow;
 use core::error::Error;
 use std::{
     fs,
@@ -30,18 +25,17 @@ use std::{
 };
 
 use axum::{
-    Extension, Json, Router,
+    Router,
     extract::{FromRequestParts, Path},
     http::{StatusCode, request::Parts},
     response::{IntoResponse as _, Response},
-    routing::get,
 };
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbeddingClient};
-use hash_graph_postgres_store::store::{PostgresStorePool, error::VersionedUrlAlreadyExists};
+use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
     account::AccountStore,
     data_type::DataTypeStore,
@@ -71,20 +65,11 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::Embedding;
-use hash_middleware::{
-    authentication::{
-        AuthenticationLayer,
-        provider::{AuthenticationProvider, Caller},
-    },
-    rate_limit::{IpGateLayer, PrincipalLimitLayer, PrincipalRateLimitConfig},
-};
+pub use hash_middleware::authentication::AuthenticatedActorId;
 use hash_status::Status;
-use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
-use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, value::RawValue as RawJsonValue};
-use tower::ServiceBuilder;
 use type_system::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
@@ -107,9 +92,8 @@ use utoipa::{
     },
 };
 
-pub use self::auth::AuthenticatedActorId;
+pub(crate) use self::auth::is_bootstrap_route;
 use self::{
-    entity::ClusteringContext,
     status::{BoxedResponse, report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
@@ -236,21 +220,24 @@ where
     }
 }
 
-static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/legacy/json_schemas");
+static STATIC_SCHEMAS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/src/rest/legacy/json_schemas");
 
-fn api_resources<S>() -> Vec<Router>
+pub(crate) fn routes<S>() -> Router
 where
     S: StorePool + Send + Sync + 'static,
     for<'pool> S::Store<'pool>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    vec![
+    [
         data_type::DataTypeResource::routes::<S>(),
         property_type::PropertyTypeResource::routes::<S>(),
         entity_type::EntityTypeResource::routes::<S>(),
         entity::EntityResource::routes::<S>(),
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
+        hashql::HashQlResource::routes(),
     ]
+    .into_iter()
+    .fold(Router::new(), Router::merge)
 }
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
@@ -490,7 +477,7 @@ const fn embedding_error_status(error: &EmbeddingError) -> hash_status::StatusCo
     }
 }
 
-/// Server-side configuration for the REST API, shared across handlers via an [`Extension`].
+/// Server-side configuration for the legacy API, shared across handlers via an [`axum::Extension`].
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "clap", derive(clap::Parser))]
 pub struct ApiConfig {
@@ -515,201 +502,7 @@ pub struct ApiConfig {
     pub query_ontology_limit: usize,
 }
 
-pub struct RestRouterDependencies<S>
-where
-    S: StorePool + Send + Sync + 'static,
-{
-    pub store: Arc<S>,
-    pub postgres: PostgresStorePool,
-    pub temporal_client: Option<Arc<TemporalClient>>,
-    pub embedding_client: Option<Arc<OpenAiEmbeddingClient>>,
-    pub domain_regex: DomainValidator,
-    pub query_logger: Option<QueryLogger>,
-    pub api_config: ApiConfig,
-    pub session_auth: auth::KratosSessionConfig,
-    pub cloudflare_access: Option<auth::CloudflareAccessConfig>,
-    pub service_secret: String,
-    pub rate_limit: rate_limit::RateLimitConfig,
-    pub meter: opentelemetry::metrics::Meter,
-    pub compiler: Arc<hashql::CompilerContext>,
-    pub clustering: Arc<ClusteringContext>,
-}
-
-/// Attaches the three request middlewares, which requests traverse as address gate,
-/// authentication, principal limiter.
-///
-/// `route_layer` keeps the 404 fallback outside authentication and the principal limiter, so an
-/// unmatched path is answered without resolving a credential or drawing on a principal budget.
-/// The gate is a `layer` and so covers the fallback too, which puts a request for an unmatched
-/// path on the same address budget as any other.
-///
-/// `unauthenticated` is merged between the two, so its routes carry the address gate but neither
-/// authentication nor a principal budget. Routes merged after this call carry none of the three.
-fn attach_request_middlewares<P, C>(
-    routes: Router,
-    unauthenticated: Router,
-    provider: Arc<P>,
-    service_secret: Arc<str>,
-    authentication_metrics: Arc<auth::AuthenticationMetrics>,
-    rate_limiters: Arc<rate_limit::RateLimiters>,
-) -> Router
-where
-    P: AuthenticationProvider<C> + Send + Sync + 'static,
-    C: Caller + Send + Sync + 'static,
-{
-    routes
-        .route_layer(PrincipalLimitLayer {
-            limiters: Arc::clone(&rate_limiters),
-            service_secret: Arc::clone(&service_secret),
-        })
-        .route_layer(AuthenticationLayer::<_, C> {
-            provider,
-            service_secret: Arc::clone(&service_secret),
-            metrics: authentication_metrics,
-            bootstrap_route: auth::is_bootstrap_route,
-            caller: core::marker::PhantomData,
-        })
-        .merge(unauthenticated)
-        .layer(IpGateLayer {
-            limiters: rate_limiters,
-            service_secret,
-        })
-}
-
-pub(crate) fn attach_api_middlewares<P, I>(
-    api: crate::rest::Api,
-    public_provider: Arc<P>,
-    internal_provider: Arc<I>,
-    service_secret: Arc<str>,
-    authentication_metrics: Arc<auth::AuthenticationMetrics>,
-    rate_limiters: &Arc<rate_limit::RateLimiters>,
-    meter: &opentelemetry::metrics::Meter,
-) -> Router
-where
-    P: AuthenticationProvider<Option<ActorId>> + 'static,
-    I: AuthenticationProvider<Option<ActorId>> + 'static,
-{
-    let rate_limiters = rate_limiters.with_principal_limits(&api.rate_limits, api.prefix, meter);
-    match api.audience {
-        crate::rest::Audience::Public => attach_request_middlewares::<_, Option<ActorId>>(
-            api.router,
-            Router::new(),
-            public_provider,
-            service_secret,
-            authentication_metrics,
-            rate_limiters,
-        ),
-        crate::rest::Audience::Internal => attach_request_middlewares::<_, Option<ActorId>>(
-            api.router,
-            Router::new(),
-            internal_provider,
-            service_secret,
-            authentication_metrics,
-            rate_limiters,
-        ),
-    }
-}
-
-/// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
-///
-/// # Panics
-///
-/// Panics when called outside a Tokio runtime.
-pub fn rest_api_router<S>(dependencies: RestRouterDependencies<S>) -> Router
-where
-    S: StorePool + Send + Sync + 'static,
-    for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
-{
-    let public_provider = Arc::new(auth::build_operator_provider(
-        dependencies.cloudflare_access.clone(),
-        dependencies.service_secret.clone(),
-        &dependencies.store,
-    ));
-    let authentication_provider = Arc::new(auth::build_authentication_provider(
-        dependencies.session_auth,
-        dependencies.cloudflare_access,
-        dependencies.service_secret.clone(),
-        &dependencies.store,
-        &dependencies.meter,
-    ));
-    let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
-    let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));
-
-    let rate_limit_config = (&dependencies.rate_limit).into();
-    let rate_limiters = rate_limit::RateLimiters::start(&rate_limit_config, &dependencies.meter);
-
-    let apis = crate::rest::apis(&PrincipalRateLimitConfig::from(&rate_limit_config).into());
-    let legacy_document = OpenApiDocumentation::openapi();
-    // The legacy document refers to `./models/…`, so both routes must share the same base path.
-    let documentation = crate::rest::documentation::routes(
-        &apis,
-        [crate::rest::documentation::Source {
-            title: "Legacy".to_owned(),
-            slug: "legacy".to_owned(),
-            url: "/openapi.json".to_owned(),
-        }],
-    )
-    .route("/openapi.json", get(|| async { Json(legacy_document) }))
-    .route("/models/{*path}", get(serve_static_schema));
-
-    // All api resources are merged together into a super-router.
-    let merged_routes = api_resources::<S>()
-        .into_iter()
-        .fold(Router::new(), Router::merge)
-        .merge(hashql::HashQlResource::routes())
-        .fallback(|| {
-            tracing::debug!("404: Not found");
-            async { StatusCode::NOT_FOUND }
-        });
-
-    let api_routes = apis.into_iter().fold(Router::new(), |router, api| {
-        router.merge(attach_api_middlewares(
-            api,
-            Arc::clone(&public_provider),
-            Arc::clone(&authentication_provider),
-            Arc::clone(&service_secret),
-            Arc::clone(&authentication_metrics),
-            &rate_limiters,
-            &dependencies.meter,
-        ))
-    });
-
-    // super-router can then be used as any other router.
-    // Make sure extensions are added at the end so they are made available to merged routers.
-    let mut router = attach_request_middlewares::<_, Option<ActorId>>(
-        merged_routes,
-        documentation,
-        authentication_provider,
-        service_secret,
-        authentication_metrics,
-        rate_limiters,
-    )
-    .merge(api_routes)
-    .layer(
-        ServiceBuilder::new()
-            .layer(NewSentryLayer::new_from_top())
-            .layer(SentryHttpLayer::default().enable_transaction()),
-    )
-    .layer(telemetry::layer())
-    .layer(Extension(dependencies.store))
-    .layer(Extension(Arc::new(dependencies.postgres)))
-    .layer(Extension(dependencies.temporal_client))
-    .layer(Extension(dependencies.embedding_client))
-    .layer(Extension(dependencies.domain_regex))
-    .layer(Extension(dependencies.api_config))
-    .layer(Extension(dependencies.compiler))
-    .layer(Extension(dependencies.clustering));
-
-    if let Some(query_logger) = dependencies.query_logger {
-        router = router.layer(Extension(query_logger));
-    }
-
-    // The health probe is merged after the layers, so it is served outside the middlewares and
-    // carries no budget.
-    router.merge(probe::router())
-}
-
-async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
+pub(crate) async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {
     let path = path.trim_start_matches('/');
 
     STATIC_SCHEMAS
@@ -830,6 +623,7 @@ impl OpenApiDocumentation {
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
+            .join("rest")
             .join("legacy")
             .join("json_schemas");
 

@@ -32,7 +32,7 @@ use type_system::principal::actor::{ActorId, ActorType};
 use uuid::Uuid;
 
 use super::{echo_caller, response_json};
-use crate::rest::{Api, Audience};
+use crate::rest::{Api, Audience, middleware::Middleware};
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
@@ -108,20 +108,24 @@ where
             get(async |actor: Actor| echo_caller(Some(actor.into())).await),
         )
         .finish_api(&mut document);
-    crate::legacy::attach_api_middlewares(
-        Api {
+    let middleware = Middleware {
+        public_provider,
+        internal_provider,
+        service_secret: Arc::from(SERVICE_SECRET),
+        authentication_metrics: Arc::new(AuthenticationMetrics::new(&meter)),
+        rate_limiters: limiters,
+        meter,
+    };
+    middleware.assemble(
+        Router::new(),
+        [Api {
             audience,
             rate_limits: PrincipalRateLimitConfig::from(&config),
             prefix: "/test",
             router,
             document,
-        },
-        public_provider,
-        internal_provider,
-        Arc::from(SERVICE_SECRET),
-        Arc::new(AuthenticationMetrics::new(&meter)),
-        &limiters,
-        &meter,
+        }],
+        Router::new(),
     )
 }
 

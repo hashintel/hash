@@ -9,7 +9,7 @@ use crate::rest::{
 #[tokio::test]
 async fn documents_served() {
     let apis = apis();
-    let router = documentation::routes(&apis, []);
+    let router = documentation::routes(&apis);
     for api in apis {
         let response = request(&router, &format!("{}/openapi.json", api.prefix)).await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -24,7 +24,7 @@ async fn documents_served() {
 
 #[tokio::test]
 async fn documentation_self_hosted() {
-    let router = documentation::routes(&apis(), []);
+    let router = documentation::routes(&apis());
     let response = request(&router, "/").await;
     assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(response.headers()[CONTENT_TYPE], "text/html; charset=utf-8");

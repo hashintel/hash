@@ -1,10 +1,16 @@
+pub mod authentication;
 mod caller;
 mod credentials;
-pub(crate) mod documentation;
+mod documentation;
 mod internal;
+pub mod legacy;
+mod middleware;
 mod openapi;
+pub mod probe;
 mod public;
-mod rate_limit;
+pub mod rate_limit;
+mod router;
+pub mod telemetry;
 
 #[cfg(test)]
 pub(crate) mod test_utils;
@@ -14,6 +20,7 @@ use axum::Router;
 use hash_middleware::rate_limit::PrincipalRateLimitConfig;
 
 pub(crate) use self::rate_limit::RateLimits;
+pub use self::router::{Dependencies, router};
 
 pub(crate) enum Audience {
     Public,

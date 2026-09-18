@@ -3,10 +3,11 @@ mod tests;
 
 mod scalar;
 
-use axum::{Router, body::Bytes, http::header::CONTENT_TYPE, routing::get};
+use axum::{Json, Router, body::Bytes, http::header::CONTENT_TYPE, routing::get};
+use utoipa::OpenApi as _;
 
-pub(crate) use self::scalar::Source;
-use super::Api;
+use self::scalar::Source;
+use super::{Api, legacy};
 
 pub(super) const OVERVIEW: &str = include_str!("overview.md");
 
@@ -16,8 +17,12 @@ pub(super) const OVERVIEW: &str = include_str!("overview.md");
 ///
 /// Panics if a document cannot be serialized, document paths overlap, the Scalar bundle is
 /// missing, or the embedded Scalar configuration is invalid.
-pub(crate) fn routes(apis: &[Api], additional_sources: impl IntoIterator<Item = Source>) -> Router {
-    let mut router = Router::new();
+pub(crate) fn routes(apis: &[Api]) -> Router {
+    let legacy_document = legacy::OpenApiDocumentation::openapi();
+    // Legacy subschemas use relative `./models/…` references.
+    let mut router = Router::new()
+        .route("/openapi.json", get(|| async { Json(legacy_document) }))
+        .route("/models/{*path}", get(legacy::serve_static_schema));
     for api in apis {
         let document =
             serde_json::to_vec(&api.document).expect("the OpenAPI document should serialize");
@@ -38,7 +43,11 @@ pub(crate) fn routes(apis: &[Api], additional_sources: impl IntoIterator<Item = 
             slug: api.prefix.trim_matches('/').replace('/', "-"),
             url: format!("{}/openapi.json", api.prefix),
         })
-        .chain(additional_sources)
+        .chain([Source {
+            title: "Legacy".to_owned(),
+            slug: "legacy".to_owned(),
+            url: "/openapi.json".to_owned(),
+        }])
         .collect::<Vec<_>>();
     router.merge(scalar::routes(&sources))
 }

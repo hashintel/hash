@@ -62,15 +62,14 @@ use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    AuthenticatedActorId, auth, probe,
-    status::{BoxedResponse, status_to_response},
-    telemetry,
+    AuthenticatedActorId,
+    status::{BoxedResponse, report_to_response, status_to_response},
 };
 use crate::{
     email_subscription::MailchimpSubscriptionProvider,
     identity_provider::{EmailLookupError, KratosIdentityProvider},
-    legacy::status::report_to_response,
     oauth_provider::HydraOAuthProvider,
+    rest::{authentication, probe, telemetry},
 };
 
 /// HTTP timeout for the Kratos admin client.
@@ -99,7 +98,7 @@ pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
     service_secret: Arc<str>,
-    authentication_metrics: Arc<auth::AuthenticationMetrics>,
+    authentication_metrics: Arc<authentication::AuthenticationMetrics>,
     external_services: ExternalServicesConfig,
 ) -> Router
 where
@@ -124,7 +123,7 @@ where
         provider: authentication_provider,
         service_secret,
         metrics: authentication_metrics,
-        bootstrap_route: auth::is_bootstrap_route,
+        bootstrap_route: super::is_bootstrap_route,
         caller: core::marker::PhantomData,
     }));
 

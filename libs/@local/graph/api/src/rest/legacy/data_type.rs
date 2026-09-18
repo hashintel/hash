@@ -1,4 +1,4 @@
-//! Web routes for CRU operations on Property types.
+//! Web routes for CRU operations on Data Types.
 
 use alloc::sync::Arc;
 use std::collections::{HashMap, HashSet, hash_map};
@@ -14,27 +14,31 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     account::AccountStore as _,
-    pool::StorePool,
-    property_type::{
-        ArchivePropertyTypeParams, CreatePropertyTypeParams, HasPermissionForPropertyTypesParams,
-        PropertyTypeQueryToken, PropertyTypeStore, QueryPropertyTypeSubgraphParams,
-        QueryPropertyTypesParams, QueryPropertyTypesResponse, UnarchivePropertyTypeParams,
-        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+    data_type::{
+        ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
+        DataTypeStore, FindDataTypeConversionTargetsParams, FindDataTypeConversionTargetsResponse,
+        HasPermissionForDataTypesParams, QueryDataTypeSubgraphParams, QueryDataTypesParams,
+        QueryDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
     },
+    entity_type::ClosedDataTypeDefinition,
+    pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_types::ontology::PropertyTypeEmbedding;
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use type_system::{
     ontology::{
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PropertyTypeWithMetadata,
-        id::VersionedUrl,
-        json_schema::{DomainValidator, ValidateOntologyType as _},
-        property_type::{PropertyType, PropertyTypeMetadata, schema::PropertyValueType},
+        DataTypeWithMetadata, OntologyTemporalMetadata, OntologyTypeMetadata,
+        OntologyTypeReference,
+        data_type::{
+            ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+            DataTypeMetadata, Operator, Variable,
+        },
+        id::{BaseUrl, VersionedUrl},
+        json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::actor_group::WebId,
@@ -42,58 +46,68 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
-use crate::legacy::{
+use crate::rest::legacy::{
     ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     resolve_limit,
     status::{report_to_response, status_to_response},
-    utoipa_typedef::{ListOrValue, MaybeListOfPropertyType, subgraph::Subgraph},
+    utoipa_typedef::{ListOrValue, MaybeListOfDataType, subgraph::Subgraph},
 };
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        has_permission_for_property_types,
+        has_permission_for_data_types,
 
-        create_property_type,
-        load_external_property_type,
-        query_property_types,
-        query_property_type_subgraph,
-        update_property_type,
-        update_property_types,
-        update_property_type_embeddings,
-        archive_property_type,
-        unarchive_property_type,
+        create_data_type,
+        load_external_data_type,
+        query_data_types,
+        query_data_type_subgraph,
+        find_data_type_conversion_targets,
+        update_data_type,
+        update_data_types,
+        update_data_type_embeddings,
+        archive_data_type,
+        unarchive_data_type,
     ),
     components(
         schemas(
-            PropertyTypeWithMetadata,
+            DataTypeWithMetadata,
+            HasPermissionForDataTypesParams,
 
-            PropertyTypeEmbedding,
-            PropertyValueType,
-            HasPermissionForPropertyTypesParams,
+            CreateDataTypeRequest,
+            LoadExternalDataTypeRequest,
+            UpdateDataTypeRequest,
+            UpdateDataTypeEmbeddingParams,
+            DataTypeQueryToken,
+            QueryDataTypesParams,
+            QueryDataTypesResponse,
+            QueryDataTypeSubgraphParams,
+            QueryDataTypeSubgraphResponse,
+            FindDataTypeConversionTargetsParams,
+            FindDataTypeConversionTargetsResponse,
+            DataTypeConversionTargets,
+            ArchiveDataTypeParams,
+            UnarchiveDataTypeParams,
+            ClosedDataTypeDefinition,
+            JsonSchemaValueType,
 
-            CreatePropertyTypeRequest,
-            LoadExternalPropertyTypeRequest,
-            UpdatePropertyTypeRequest,
-            UpdatePropertyTypeEmbeddingParams,
-            PropertyTypeQueryToken,
-            QueryPropertyTypesParams,
-            QueryPropertyTypesResponse,
-            QueryPropertyTypeSubgraphParams,
-            QueryPropertyTypeSubgraphResponse,
-            ArchivePropertyTypeParams,
-            UnarchivePropertyTypeParams,
+            ConversionDefinition,
+            ConversionExpression,
+            ConversionValue,
+            Conversions,
+            Operator,
+            Variable,
         )
     ),
     tags(
-        (name = "PropertyType", description = "Property type management API")
+        (name = "DataType", description = "Data Type management API")
     )
 )]
-pub(crate) struct PropertyTypeResource;
+pub(crate) struct DataTypeResource;
 
-impl PropertyTypeResource {
-    /// Create routes for interacting with property types.
+impl DataTypeResource {
+    /// Create routes for interacting with data types.
     pub(crate) fn routes<S>() -> Router
     where
         S: StorePool + Send + Sync + 'static,
@@ -101,59 +115,62 @@ impl PropertyTypeResource {
     {
         // TODO: The URL format here is preliminary and will have to change.
         Router::new().nest(
-            "/property-types",
+            "/data-types",
             Router::new()
-                .route(
-                    "/",
-                    post(create_property_type::<S>).put(update_property_type::<S>),
-                )
-                .route("/bulk", put(update_property_types::<S>))
-                .route("/permissions", post(has_permission_for_property_types::<S>))
+                .route("/", post(create_data_type::<S>).put(update_data_type::<S>))
+                .route("/bulk", put(update_data_types::<S>))
+                .route("/permissions", post(has_permission_for_data_types::<S>))
                 .nest(
                     "/query",
                     Router::new()
-                        .route("/", post(query_property_types::<S>))
-                        .route("/subgraph", post(query_property_type_subgraph::<S>)),
+                        .route("/", post(query_data_types::<S>))
+                        .route("/subgraph", post(query_data_type_subgraph::<S>)),
                 )
-                .route("/load", post(load_external_property_type::<S>))
-                .route("/archive", put(archive_property_type::<S>))
-                .route("/unarchive", put(unarchive_property_type::<S>))
-                .route("/embeddings", post(update_property_type_embeddings::<S>)),
+                .nest(
+                    "/find",
+                    Router::new()
+                        .route("/conversions", post(find_data_type_conversion_targets::<S>)),
+                )
+                .route("/load", post(load_external_data_type::<S>))
+                .route("/archive", put(archive_data_type::<S>))
+                .route("/unarchive", put(unarchive_data_type::<S>))
+                .route("/embeddings", post(update_data_type_embeddings::<S>)),
         )
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct CreatePropertyTypeRequest {
+struct CreateDataTypeRequest {
     #[schema(inline)]
-    schema: MaybeListOfPropertyType,
+    schema: MaybeListOfDataType,
     provenance: ProvidedOntologyEditionProvenance,
+    conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[utoipa::path(
     post,
-    path = "/property-types",
-    request_body = CreatePropertyTypeRequest,
-    tag = "PropertyType",
+    path = "/data-types",
+    request_body = CreateDataTypeRequest,
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the created property type", body = MaybeListOfPropertyTypeMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the created data type", body = MaybeListOfDataTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 409, description = "Unable to create property type in the store as the base property type ID already exists"),
+        (status = 409, description = "Unable to create data type in the store as the base data type URL already exists"),
         (status = 500, description = "Store error occurred"),
     ),
 )]
-async fn create_property_type<S>(
+async fn create_data_type<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
-    body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, BoxedResponse>
+    body: Json<CreateDataTypeRequest>,
+) -> Result<Json<ListOrValue<DataTypeMetadata>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -163,7 +180,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let Json(CreatePropertyTypeRequest { schema, provenance }) = body;
+    let Json(CreateDataTypeRequest {
+        schema,
+        provenance,
+        conversions,
+    }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
 
@@ -197,16 +218,17 @@ where
             }
         };
 
-        params.push(CreatePropertyTypeParams {
+        params.push(CreateDataTypeParams {
             schema,
             ownership: OntologyOwnership::Local { web_id },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: provenance.clone(),
+            conversions: conversions.clone(),
         });
     }
 
     let mut metadata = store
-        .create_property_types(actor_id, params)
+        .create_data_types(actor_id, params)
         .await
         .map_err(report_to_response)?;
 
@@ -221,39 +243,40 @@ where
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, untagged)]
-enum LoadExternalPropertyTypeRequest {
+enum LoadExternalDataTypeRequest {
     #[serde(rename_all = "camelCase")]
-    Fetch { property_type_id: VersionedUrl },
+    Fetch { data_type_id: VersionedUrl },
     #[serde(rename_all = "camelCase")]
     Create {
-        schema: PropertyType,
+        schema: Box<DataType>,
         provenance: Box<ProvidedOntologyEditionProvenance>,
+        conversions: HashMap<BaseUrl, Conversions>,
     },
 }
 
 #[utoipa::path(
     post,
-    path = "/property-types/load",
-    request_body = LoadExternalPropertyTypeRequest,
-    tag = "PropertyType",
+    path = "/data-types/load",
+    request_body = LoadExternalDataTypeRequest,
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the loaded property type", body = PropertyTypeMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the loaded data type", body = DataTypeMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 409, description = "Unable to load property type in the store as the base property type ID already exists"),
+        (status = 409, description = "Unable to load data type in the store as the base data type ID already exists"),
         (status = 500, description = "Store error occurred"),
     ),
 )]
-async fn load_external_property_type<S>(
+async fn load_external_data_type<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
-    Json(request): Json<LoadExternalPropertyTypeRequest>,
-) -> Result<Json<PropertyTypeMetadata>, BoxedResponse>
+    Json(request): Json<LoadExternalDataTypeRequest>,
+) -> Result<Json<DataTypeMetadata>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -264,21 +287,25 @@ where
         .map_err(report_to_response)?;
 
     match request {
-        LoadExternalPropertyTypeRequest::Fetch { property_type_id } => {
-            let OntologyTypeMetadata::PropertyType(metadata) = store
+        LoadExternalDataTypeRequest::Fetch { data_type_id } => {
+            let OntologyTypeMetadata::DataType(metadata) = store
                 .load_external_type(
                     actor_id,
                     &domain_validator,
-                    OntologyTypeReference::PropertyTypeReference((&property_type_id).into()),
+                    OntologyTypeReference::DataTypeReference((&data_type_id).into()),
                 )
                 .await?
             else {
                 // TODO: Make the type fetcher typed
-                panic!("`load_external_type` should have returned a `PropertyTypeMetadata`");
+                panic!("`load_external_type` should have returned a `DataTypeMetadata`");
             };
             Ok(Json(metadata))
         }
-        LoadExternalPropertyTypeRequest::Create { schema, provenance } => {
+        LoadExternalDataTypeRequest::Create {
+            schema,
+            provenance,
+            conversions,
+        } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
                 tracing::error!(id=%schema.id, error);
@@ -291,15 +318,16 @@ where
 
             Ok(Json(
                 store
-                    .create_property_type(
+                    .create_data_type(
                         actor_id,
-                        CreatePropertyTypeParams {
-                            schema,
+                        CreateDataTypeParams {
+                            schema: *schema,
                             ownership: OntologyOwnership::Remote {
                                 fetched_at: OffsetDateTime::now_utc(),
                             },
                             conflict_behavior: ConflictBehavior::Fail,
                             provenance: *provenance,
+                            conversions: conversions.clone(),
                         },
                     )
                     .await
@@ -311,9 +339,9 @@ where
 
 #[utoipa::path(
     post,
-    path = "/property-types/query",
-    request_body = QueryPropertyTypesParams,
-    tag = "PropertyType",
+    path = "/data-types/query",
+    request_body = QueryDataTypesParams,
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
@@ -321,32 +349,33 @@ where
         (
             status = 200,
             content_type = "application/json",
-            body = QueryPropertyTypesResponse,
-            description = "Gets a a list of property types that satisfy the given query.",
+            body = QueryDataTypesResponse,
+            description = "Gets a a list of data types that satisfy the given query.",
         ),
+
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_property_types<S>(
+async fn query_data_types<S>(
     actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryPropertyTypesResponse>, BoxedResponse>
+) -> Result<Json<QueryDataTypesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
     let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypes(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypes(&request));
     }
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization
     // and better error reporting.
-    let mut params = QueryPropertyTypesParams::deserialize(&request)
+    let mut params = QueryDataTypesParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
 
@@ -362,7 +391,7 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .query_property_types(actor_id, params)
+        .query_data_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json);
@@ -374,16 +403,16 @@ where
 
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-struct QueryPropertyTypeSubgraphResponse {
+struct QueryDataTypeSubgraphResponse {
     subgraph: Subgraph,
     cursor: Option<VersionedUrl>,
 }
 
 #[utoipa::path(
     post,
-    path = "/property-types/query/subgraph",
-    request_body = QueryPropertyTypeSubgraphParams,
-    tag = "PropertyType",
+    path = "/data-types/query/subgraph",
+    request_body = QueryDataTypeSubgraphParams,
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
@@ -391,35 +420,33 @@ struct QueryPropertyTypeSubgraphResponse {
         (
             status = 200,
             content_type = "application/json",
-            body = QueryPropertyTypeSubgraphResponse,
-            description = "A subgraph rooted at property types that satisfy the given query, each resolved to the requested depth.",
-            headers(
-                ("Link" = String, description = "The link to be used to query the next page of property types"),
-            ),
-
+            body = QueryDataTypeSubgraphResponse,
+            description = "Gets a subgraph rooted at all data types that satisfy the given query, each resolved to the requested depth.",
         ),
 
         (status = 422, content_type = "text/plain", description = "Provided query is invalid"),
         (status = 500, description = "Store error occurred"),
     )
 )]
-async fn query_property_type_subgraph<S>(
+async fn query_data_type_subgraph<S>(
     actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryPropertyTypeSubgraphResponse>, BoxedResponse>
+) -> Result<Json<QueryDataTypeSubgraphResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
     let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypeSubgraph(&request));
+        query_logger.capture(actor_id, OpenApiQuery::GetDataTypeSubgraph(&request));
     }
 
-    let mut params = QueryPropertyTypeSubgraphParams::deserialize(&request)
+    // Manually deserialize the query from a JSON value to allow borrowed deserialization
+    // and better error reporting.
+    let mut params = QueryDataTypeSubgraphParams::deserialize(&request)
         .map_err(Report::from)
         .map_err(report_to_response)?;
     params
@@ -439,11 +466,11 @@ where
         .map_err(report_to_response)?;
 
     let response = store
-        .query_property_type_subgraph(actor_id, params)
+        .query_data_type_subgraph(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(|response| {
-            Json(QueryPropertyTypeSubgraphResponse {
+            Json(QueryDataTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
             })
@@ -454,49 +481,90 @@ where
     response
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct UpdatePropertyTypeRequest {
-    #[schema(value_type = UpdatePropertyType)]
-    schema: serde_json::Value,
-    type_to_update: VersionedUrl,
-    provenance: ProvidedOntologyEditionProvenance,
-}
-
 #[utoipa::path(
-    put,
-    path = "/property-types",
-    tag = "PropertyType",
+    post,
+    path = "/data-types/find/conversions",
+    request_body = FindDataTypeConversionTargetsParams,
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = PropertyTypeMetadata),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
-
-        (status = 404, description = "Base property type ID was not found"),
+        (
+            status = 200,
+            content_type = "application/json",
+            body = FindDataTypeConversionTargetsResponse,
+        ),
         (status = 500, description = "Store error occurred"),
-    ),
-    request_body = UpdatePropertyTypeRequest,
+    )
 )]
-async fn update_property_type<S>(
-    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+async fn find_data_type_conversion_targets<S>(
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    body: Json<UpdatePropertyTypeRequest>,
-) -> Result<Json<PropertyTypeMetadata>, BoxedResponse>
+    Json(request): Json<FindDataTypeConversionTargetsParams>,
+) -> Result<Json<FindDataTypeConversionTargetsResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
-    let Json(UpdatePropertyTypeRequest {
+    store_pool
+        .acquire(temporal_client.0)
+        .await
+        .map_err(report_to_response)?
+        .find_data_type_conversion_targets(
+            actor_id.map(|AuthenticatedActorId(actor_id)| actor_id),
+            request,
+        )
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct UpdateDataTypeRequest {
+    #[schema(value_type = UpdateDataType)]
+    schema: serde_json::Value,
+    type_to_update: VersionedUrl,
+    provenance: ProvidedOntologyEditionProvenance,
+    conversions: HashMap<BaseUrl, Conversions>,
+}
+
+#[utoipa::path(
+    put,
+    path = "/data-types",
+    tag = "DataType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = DataTypeMetadata),
+        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+
+        (status = 404, description = "Base data type ID was not found"),
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = UpdateDataTypeRequest,
+)]
+async fn update_data_type<S>(
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    store_pool: Extension<Arc<S>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    body: Json<UpdateDataTypeRequest>,
+) -> Result<Json<DataTypeMetadata>, BoxedResponse>
+where
+    S: StorePool + Send + Sync,
+{
+    let Json(UpdateDataTypeRequest {
         schema,
         mut type_to_update,
         provenance,
+        conversions,
     }) = body;
 
     type_to_update.version.major += 1;
 
-    let property_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
+    let data_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(temporal_client.0)
@@ -504,11 +572,12 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_property_type(
+        .update_data_type(
             actor_id,
-            UpdatePropertyTypesParams {
-                schema: property_type,
+            UpdateDataTypesParams {
+                schema: data_type,
                 provenance,
+                conversions,
             },
         )
         .await
@@ -518,26 +587,26 @@ where
 
 #[utoipa::path(
     put,
-    path = "/property-types/bulk",
-    tag = "PropertyType",
+    path = "/data-types/bulk",
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated property types", body = [PropertyTypeMetadata]),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data types", body = [DataTypeMetadata]),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Base property types ID were not found"),
+        (status = 404, description = "Base data types ID were not found"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = [UpdatePropertyTypeRequest],
+    request_body = [UpdateDataTypeRequest],
 )]
-async fn update_property_types<S>(
+async fn update_data_types<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    bodies: Json<Vec<UpdatePropertyTypeRequest>>,
-) -> Result<Json<Vec<PropertyTypeMetadata>>, BoxedResponse>
+    bodies: Json<Vec<UpdateDataTypeRequest>>,
+) -> Result<Json<Vec<DataTypeMetadata>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -550,23 +619,25 @@ where
         .0
         .into_iter()
         .map(
-            |UpdatePropertyTypeRequest {
+            |UpdateDataTypeRequest {
                  schema,
                  mut type_to_update,
                  provenance,
+                 conversions,
              }| {
                 type_to_update.version.major += 1;
 
-                Ok(UpdatePropertyTypesParams {
+                Ok(UpdateDataTypesParams {
                     schema: patch_id_and_parse(&type_to_update, schema)
                         .map_err(report_to_response)?,
                     provenance,
+                    conversions,
                 })
             },
         )
         .collect::<Result<Vec<_>, BoxedResponse>>()?;
     store
-        .update_property_types(actor_id, params)
+        .update_data_types(actor_id, params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -574,20 +645,20 @@ where
 
 #[utoipa::path(
     post,
-    path = "/property-types/embeddings",
-    tag = "PropertyType",
+    path = "/data-types/embeddings",
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
         (status = 204, content_type = "application/json", description = "The embeddings were created"),
 
-        (status = 403, description = "Insufficient permissions to update the property type"),
+        (status = 403, description = "Insufficient permissions to update the data type"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UpdatePropertyTypeEmbeddingParams,
+    request_body = UpdateDataTypeEmbeddingParams,
 )]
-async fn update_property_type_embeddings<S>(
+async fn update_data_type_embeddings<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -598,7 +669,7 @@ where
 {
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
-    let params = UpdatePropertyTypeEmbeddingParams::deserialize(body)
+    let params = UpdateDataTypeEmbeddingParams::deserialize(body)
         .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
@@ -608,29 +679,29 @@ where
         .map_err(report_to_response)?;
 
     store
-        .update_property_type_embeddings(actor_id, params)
+        .update_data_type_embeddings(actor_id, params)
         .await
         .map_err(report_to_response)
 }
 
 #[utoipa::path(
     put,
-    path = "/property-types/archive",
-    tag = "PropertyType",
+    path = "/data-types/archive",
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The metadata of the updated property type", body = OntologyTemporalMetadata),
+        (status = 200, content_type = "application/json", description = "The metadata of the updated data type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Property type ID was not found"),
-        (status = 409, description = "Property type ID is already archived"),
+        (status = 404, description = "Data type ID was not found"),
+        (status = 409, description = "Data type ID is already archived"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = ArchivePropertyTypeParams,
+    request_body = ArchiveDataTypeParams,
 )]
-async fn archive_property_type<S>(
+async fn archive_data_type<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -641,7 +712,7 @@ where
 {
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
-    let params = ArchivePropertyTypeParams::deserialize(body)
+    let params = ArchiveDataTypeParams::deserialize(body)
         .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
@@ -651,7 +722,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .archive_property_type(actor_id, params)
+        .archive_data_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
@@ -667,22 +738,22 @@ where
 
 #[utoipa::path(
     put,
-    path = "/property-types/unarchive",
-    tag = "PropertyType",
+    path = "/data-types/unarchive",
+    tag = "DataType",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The temporal metadata of the updated property type", body = OntologyTemporalMetadata),
+        (status = 200, content_type = "application/json", description = "The temporal metadata of the updated data type", body = OntologyTemporalMetadata),
         (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
 
-        (status = 404, description = "Property type ID was not found"),
-        (status = 409, description = "Property type ID already exists and is not archived"),
+        (status = 404, description = "Data type ID was not found"),
+        (status = 409, description = "Data type ID already exists and is not archived"),
         (status = 500, description = "Store error occurred"),
     ),
-    request_body = UnarchivePropertyTypeParams,
+    request_body = UnarchiveDataTypeParams,
 )]
-async fn unarchive_property_type<S>(
+async fn unarchive_data_type<S>(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -693,7 +764,7 @@ where
 {
     // Manually deserialize the request from a JSON value to allow borrowed deserialization and
     // better error reporting.
-    let params = UnarchivePropertyTypeParams::deserialize(body)
+    let params = UnarchiveDataTypeParams::deserialize(body)
         .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
@@ -703,7 +774,7 @@ where
         .map_err(report_to_response)?;
 
     store
-        .unarchive_property_type(actor_id, params)
+        .unarchive_data_type(actor_id, params)
         .await
         .map_err(|mut report| {
             if report.contains::<OntologyVersionDoesNotExist>() {
@@ -719,33 +790,33 @@ where
 
 #[utoipa::path(
     post,
-    path = "/property-types/permissions",
-    tag = "PropertyType",
-    request_body = HasPermissionForPropertyTypesParams,
+    path = "/data-types/permissions",
+    tag = "DataType",
+    request_body = HasPermissionForDataTypesParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, body = Vec<VersionedUrl>, description = "Information if the actor has the permission for the property types"),
+        (status = 200, body = Vec<VersionedUrl>, description = "Information if the actor has the permission for the data types"),
 
         (status = 500, description = "Internal error occurred"),
     )
 )]
-async fn has_permission_for_property_types<S>(
+async fn has_permission_for_data_types<S>(
     AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-    Json(params): Json<HasPermissionForPropertyTypesParams<'static>>,
+    Json(params): Json<HasPermissionForDataTypesParams<'static>>,
 ) -> Result<Json<HashSet<VersionedUrl>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
-    for<'p> S::Store<'p>: PropertyTypeStore,
+    for<'p> S::Store<'p>: DataTypeStore,
 {
     store_pool
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_property_types(actor, params)
+        .has_permission_for_data_types(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)

@@ -1,103 +1,4 @@
-//! The graph's authentication wiring over [`hash_middleware`]'s middleware.
-//!
-//! [`build_authentication_provider`] and [`build_operator_provider`] assemble the provider chains
-//! the routers authenticate with — a Kratos session, a Cloudflare Access JWT, or the service
-//! secret with its actor header. [`is_bootstrap_route`] names the routes that require the service
-//! secret regardless of the chain. The middleware and the [`AuthenticatedActorId`] extractor come
-//! from [`hash_middleware::authentication`] and are re-exported here.
-
-use alloc::sync::Arc;
-
-use hash_graph_authentication::{
-    actor::StorePoolActorResolver,
-    delegation::ServiceDelegationProvider,
-    kratos::{KratosEmailActorResolver, KratosSessionProvider},
-};
-pub use hash_graph_authentication::{
-    cloudflare::CloudflareAccessProvider,
-    jwt::{JwtValidator, JwtValidatorConfig},
-    kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
-};
-use hash_graph_authorization::policies::store::PrincipalStore;
-use hash_graph_store::pool::StorePool;
-pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
-
-/// Configuration for Cloudflare Access authentication.
-#[derive(Debug, Clone)]
-pub struct CloudflareAccessConfig {
-    /// JWT validation parameters for the Access team.
-    pub jwt: JwtValidatorConfig,
-    /// Kratos admin API access for resolving token emails to actors.
-    pub kratos_admin: KratosAdminConfig,
-}
-
-/// The operator-facing provider chain: Cloudflare Access JWT (when configured), then service
-/// delegation.
-pub type OperatorChain<S> = (
-    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
-    ServiceDelegationProvider<StorePoolActorResolver<S>>,
-);
-
-/// The provider chain of the REST router.
-pub type ProviderChain<S> = (
-    KratosSessionProvider<StorePoolActorResolver<S>>,
-    OperatorChain<S>,
-);
-
-/// Builds the chain the admin API authenticates with: Cloudflare Access JWT (when configured),
-/// then service delegation.
-///
-/// Deliberately without the Kratos session provider. The admin API deletes users and erases
-/// entities, and its handlers do not authorize beyond "some actor", so an end-user session must
-/// not reach it — operators arrive through Access, internal services through the shared secret.
-pub fn build_operator_provider<S>(
-    cloudflare_access: Option<CloudflareAccessConfig>,
-    service_secret: String,
-    store: &Arc<S>,
-) -> OperatorChain<S>
-where
-    S: StorePool + Send + Sync,
-    for<'p> S::Store<'p>: PrincipalStore,
-{
-    (
-        cloudflare_access.map(|config| {
-            CloudflareAccessProvider::new(
-                JwtValidator::new(config.jwt),
-                KratosEmailActorResolver::new(
-                    config.kratos_admin,
-                    StorePoolActorResolver::new(Arc::clone(store)),
-                ),
-            )
-        }),
-        ServiceDelegationProvider::new(
-            service_secret,
-            StorePoolActorResolver::new(Arc::clone(store)),
-        ),
-    )
-}
-
-/// Builds the chain the REST router authenticates with: Kratos session, then the operator
-/// credentials.
-pub fn build_authentication_provider<S>(
-    session: KratosSessionConfig,
-    cloudflare_access: Option<CloudflareAccessConfig>,
-    service_secret: String,
-    store: &Arc<S>,
-    meter: &opentelemetry::metrics::Meter,
-) -> ProviderChain<S>
-where
-    S: StorePool + Send + Sync,
-    for<'p> S::Store<'p>: PrincipalStore,
-{
-    (
-        KratosSessionProvider::new(
-            session,
-            StorePoolActorResolver::new(Arc::clone(store)),
-            meter,
-        ),
-        build_operator_provider(cloudflare_access, service_secret, store),
-    )
-}
+//! Service-secret authentication for legacy bootstrap routes.
 
 /// Returns whether the path is a bootstrap route.
 ///
@@ -106,7 +7,7 @@ where
 ///
 /// [`AuthenticationLayer`]: hash_middleware::authentication::AuthenticationLayer
 #[must_use]
-pub fn is_bootstrap_route(path: &str) -> bool {
+pub(crate) fn is_bootstrap_route(path: &str) -> bool {
     if path == "/policies/seed" {
         return true;
     }
@@ -124,14 +25,16 @@ mod tests {
     use hash_graph_authentication::{
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
-    use hash_middleware::authentication::AuthenticationLayer;
+    use hash_middleware::authentication::{
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
+    };
     use http::{Request, StatusCode, header::CONTENT_TYPE};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;
     use type_system::principal::actor::ActorId;
     use uuid::Uuid;
 
-    use super::{AuthenticatedActorId, AuthenticationMetrics, is_bootstrap_route};
+    use super::is_bootstrap_route;
 
     #[test]
     fn bootstrap_routes_match() {

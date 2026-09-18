@@ -15,13 +15,14 @@ use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    legacy::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
-        auth::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
-        entity::ClusteringContext,
-        hashql::CompilerContext,
+    rest::{
+        self,
+        authentication::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
+        legacy::{
+            ApiConfig, QueryLogger, RestApiStore, entity::ClusteringContext,
+            hashql::CompilerContext,
+        },
         rate_limit::RateLimitConfig,
-        rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -608,7 +609,7 @@ where
         )?;
     }
 
-    let router = rest_api_router(RestRouterDependencies {
+    let router = rest::router(rest::Dependencies {
         store,
         postgres,
         temporal_client,

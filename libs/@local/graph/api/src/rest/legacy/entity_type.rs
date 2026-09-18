@@ -46,7 +46,7 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use super::status::{BoxedResponse, ErrorInfo, Status};
-use crate::legacy::{
+use crate::rest::legacy::{
     ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore, SearchRequestError,
     json::Json,
     resolve_limit, resolve_search_embedding,
