@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import {
   Button,
   Icon,
+  LoadingSpinner,
   Popover,
   Select,
   Slider,
@@ -68,10 +69,12 @@ export const AudioSettings = ({
   actions,
   disabled,
   settings,
+  previewDisabledReason,
 }: {
   actions: VoiceAudioSettingsActions;
   disabled: boolean;
   settings: VoiceAudioSettingsState;
+  previewDisabledReason: string | null;
 }) => {
   const [devicesExpanded, setDevicesExpanded] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -107,7 +110,11 @@ export const AudioSettings = ({
                 onClose={() => setInfoOpen(false)}
               >
                 <Popover.Container
-                  className={css({ backgroundColor: "neutral.s00" })}
+                  className={css({
+                    backgroundColor: "neutral.s00",
+                    width: "[220px]",
+                    maxWidth: "[calc(100vw - 24px)]",
+                  })}
                 >
                   <Popover.Body
                     className={css({
@@ -116,7 +123,10 @@ export const AudioSettings = ({
                       boxShadow: "[none !important]",
                     })}
                   >
-                    <span className={helpStyle}>Applies next session</span>
+                    <span className={helpStyle}>
+                      Applies next session. Preview when your mic is muted and
+                      the agent is idle.
+                    </span>
                   </Popover.Body>
                 </Popover.Container>
               </Popover>
@@ -125,9 +135,13 @@ export const AudioSettings = ({
           <Select
             aria-labelledby={`${id}-voice-label`}
             aria-description="Applies next session"
-            aria-describedby={
-              settings.voiceSaveError ? `${id}-voice-help` : undefined
-            }
+            aria-describedby={[
+              settings.voiceSaveError ? `${id}-voice-help` : "",
+              previewDisabledReason ? `${id}-voice-blocked` : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            disabled={previewDisabledReason !== null}
             items={settings.voices}
             value={settings.voice}
             onChange={actions.setVoice}
@@ -136,23 +150,40 @@ export const AudioSettings = ({
                 className={css({
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "full",
                   gap: "2",
                 })}
               >
                 {settings.voices.find((voice) => voice.value === value)?.text ??
                   value}
-                {settings.voicePreview === "playing" && (
-                  <svg
+                {settings.voicePreview === "loading" ? (
+                  <span
                     aria-hidden="true"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="currentColor"
+                    className={css({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1",
+                      fontSize: "xs",
+                      color: "neutral.s90",
+                    })}
                   >
-                    <rect x="1" y="5" width="2" height="4" rx="1" />
-                    <rect x="6" y="1" width="2" height="12" rx="1" />
-                    <rect x="11" y="3" width="2" height="8" rx="1" />
-                  </svg>
+                    <LoadingSpinner size="xs" /> Loading…
+                  </span>
+                ) : (
+                  settings.voicePreview === "playing" && (
+                    <svg
+                      aria-hidden="true"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="currentColor"
+                    >
+                      <rect x="1" y="5" width="2" height="4" rx="1" />
+                      <rect x="6" y="1" width="2" height="12" rx="1" />
+                      <rect x="11" y="3" width="2" height="8" rx="1" />
+                    </svg>
+                  )
                 )}
               </span>
             )}
@@ -160,6 +191,11 @@ export const AudioSettings = ({
             size="sm"
             width="fullWidth"
           />
+          {previewDisabledReason && (
+            <span id={`${id}-voice-blocked`} className={helpStyle}>
+              {previewDisabledReason}
+            </span>
+          )}
           <span role="status" className={css({ srOnly: true })}>
             {settings.voicePreview === "playing"
               ? "Voice preview playing"
@@ -219,7 +255,6 @@ export const AudioSettings = ({
           aria-label="Devices"
           aria-expanded={devicesExpanded}
           aria-controls={`${id}-devices`}
-          prefix={<Icon name="sliders" size="sm" />}
           suffix={
             <Icon
               name={devicesExpanded ? "chevronDown" : "chevronRight"}

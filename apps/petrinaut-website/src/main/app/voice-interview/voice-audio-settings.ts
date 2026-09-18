@@ -79,6 +79,7 @@ export class VoiceAudioSettings {
     this.#state = {
       voice,
       activeVoice: voice,
+      voicePreviewUnavailable: "Connect Voice to preview.",
       voices: voiceNames[provider].map((name) => ({
         value: name,
         text: name.charAt(0).toUpperCase() + name.slice(1),
@@ -98,6 +99,13 @@ export class VoiceAudioSettings {
     this.actions = {
       setVoice: (selected) => {
         if (!isSupportedVoice(provider, selected)) return;
+        const tracks = this.#connection?.stream.getAudioTracks();
+        if (
+          this.#state.voicePreviewUnavailable ||
+          !tracks?.length ||
+          tracks.some((track) => track.enabled || track.readyState !== "live")
+        )
+          return;
         let message: string | null = null;
         try {
           if (!storage) throw new Error("Storage unavailable");
@@ -160,6 +168,26 @@ export class VoiceAudioSettings {
   #devices(update: Partial<SettingsState["devices"]>) {
     this.#update({ devices: { ...this.#state.devices, ...update } });
   }
+  setPreviewAvailability({
+    connected,
+    microphoneMuted,
+    busy,
+  }: {
+    connected: boolean;
+    microphoneMuted: boolean;
+    busy: boolean;
+  }) {
+    const reason = !connected
+      ? "Connect Voice to preview."
+      : busy
+        ? "Wait for the agent to finish."
+        : !microphoneMuted
+          ? "Mute your mic to preview."
+          : null;
+    if (reason) this.#stopPreview();
+    if (reason !== this.#state.voicePreviewUnavailable)
+      this.#update({ voicePreviewUnavailable: reason });
+  }
   startSession(): string {
     this.#stopPreview();
     this.#update({
@@ -190,7 +218,11 @@ export class VoiceAudioSettings {
     };
   }
   detach() {
-    this.#stopPreview();
+    this.setPreviewAvailability({
+      connected: false,
+      microphoneMuted: false,
+      busy: false,
+    });
     ++this.#epoch;
     this.#connection = undefined;
     this.#recoveryPending = false;

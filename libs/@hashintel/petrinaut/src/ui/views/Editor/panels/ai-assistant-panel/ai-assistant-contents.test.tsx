@@ -512,7 +512,7 @@ test("keeps voice visible while toggling devices and refreshes devices when open
       canTakeTurn={false}
       collapsed={false}
       indicator={<span />}
-      microphoneMuted={false}
+      microphoneMuted={true}
       onCollapsedToggle={noop}
       onStop={noop}
       phase="connected"
@@ -545,15 +545,19 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(devicesToggle.getAttribute("aria-expanded")).toBe("false");
   expect(screen.queryByRole("combobox", { name: "Microphone" })).toBeNull();
   expect(screen.queryByRole("combobox", { name: "Speaker" })).toBeNull();
-  expect(screen.queryByText("Applies next session")).toBeNull();
+  expect(screen.queryByText(/^Applies next session\./)).toBeNull();
   fireEvent.click(
     screen.getByRole("button", { name: "About voice selection" }),
   );
-  expect(await screen.findByText("Applies next session")).not.toBeNull();
+  expect(
+    await screen.findByText(
+      "Applies next session. Preview when your mic is muted and the agent is idle.",
+    ),
+  ).not.toBeNull();
   await waitFor(() =>
     expect(
       screen
-        .getByText("Applies next session")
+        .getByText(/^Applies next session\./)
         .closest('[data-part="content"]')
         ?.getAttribute("data-state"),
     ).toBe("open"),
@@ -565,11 +569,11 @@ test("keeps voice visible while toggling devices and refreshes devices when open
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   );
-  fireEvent.keyDown(screen.getByText("Applies next session"), {
+  fireEvent.keyDown(screen.getByText(/^Applies next session\./), {
     key: "Escape",
   });
   await waitFor(() =>
-    expect(screen.queryByText("Applies next session")).toBeNull(),
+    expect(screen.queryByText(/^Applies next session\./)).toBeNull(),
   );
   expect(screen.getByRole("combobox", { name: "Voice" })).not.toBeNull();
   expect(
@@ -615,6 +619,95 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(stopVoicePreview).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledTimes(2);
+});
+
+test("gates voice previews and hides only ordinary status text", async () => {
+  const stopVoicePreview = vi.fn();
+  const setMicrophoneMuted = vi.fn();
+  const dock = (
+    phase: "listening" | "speaking" | "muted" | "connecting",
+    microphoneMuted: boolean,
+  ) => (
+    <VoiceDock
+      actions={{
+        audioSettings: {
+          refreshDevices: vi.fn(),
+          stopVoicePreview,
+          requestSpeaker: vi.fn(),
+          setMicrophoneDevice: vi.fn(),
+          setSpeakerDevice: vi.fn(),
+          setVoice: vi.fn(),
+        },
+        end: noop,
+        pause: noop,
+        setSpeakerVolume: noop,
+        setMicrophoneMuted,
+      }}
+      audioSettings={{
+        activeVoice: "alloy",
+        voice: "alloy",
+        voices: [{ value: "alloy", text: "Alloy" }],
+        devices: {
+          microphones: [],
+          speakers: [],
+          microphoneId: "",
+          speakerId: "",
+          canSelectSpeaker: false,
+          canRequestSpeaker: false,
+          busy: false,
+          message: null,
+        },
+      }}
+      assistantBusy={false}
+      canReadFullResponse={false}
+      canRepeatQuestion={false}
+      canTakeTurn={false}
+      collapsed={false}
+      indicator={<span data-testid="waveform" />}
+      microphoneMuted={microphoneMuted}
+      onCollapsedToggle={noop}
+      onStop={noop}
+      phase={phase}
+      speakerMuted={false}
+      speakerVolume={1}
+    />
+  );
+  const { rerender } = render(dock("listening", false));
+  fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
+  const voice = await screen.findByRole<HTMLButtonElement>("combobox", {
+    name: "Voice",
+  });
+  expect(voice.disabled).toBe(true);
+  expect(screen.getByText("Mute your mic to preview.")).not.toBeNull();
+  const toggle = screen.getByRole("checkbox", { name: "Show status text" });
+  expect((toggle as HTMLInputElement).checked).toBe(true);
+  fireEvent.click(screen.getByText("Show status text"));
+  await waitFor(() =>
+    expect(screen.queryByText("Listening", { exact: true })).toBeNull(),
+  );
+  expect(screen.getByRole("status", { name: "Voice status" }).textContent).toBe(
+    "Voice status: Listening",
+  );
+  expect(screen.getByTestId("waveform")).not.toBeNull();
+
+  rerender(dock("speaking", true));
+  expect(voice.disabled).toBe(true);
+  expect(screen.getByText("Wait for the agent to finish.")).not.toBeNull();
+  expect(screen.queryByText("Speaking", { exact: true })).toBeNull();
+  rerender(dock("muted", true));
+  expect(voice.disabled).toBe(false);
+  expect(screen.getByText("Muted", { exact: true })).not.toBeNull();
+  stopVoicePreview.mockClear();
+  fireEvent.click(screen.getByRole("button", { name: "Unmute microphone" }));
+  expect(stopVoicePreview).toHaveBeenCalledOnce();
+  expect(setMicrophoneMuted).toHaveBeenCalledExactlyOnceWith(false);
+  expect(stopVoicePreview.mock.invocationCallOrder[0]).toBeLessThan(
+    setMicrophoneMuted.mock.invocationCallOrder[0]!,
+  );
+
+  rerender(dock("connecting", true));
+  expect(voice.disabled).toBe(true);
+  expect(screen.getByText("Connecting", { exact: true })).not.toBeNull();
 });
 
 describe("AiAssistantContents", () => {

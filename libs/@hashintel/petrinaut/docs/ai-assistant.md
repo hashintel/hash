@@ -156,15 +156,20 @@ list. Voice warnings appear after Audio options in the dock.
 
 - **Voice** saves a preference in this browser for the selected provider and
   applies it to the next Voice session, without restarting the current session.
-  Select the information icon at the right of **Voice** to see **Applies next session**.
-  In Brunch, selecting a voice automatically previews a short sample. A small
-  equalizer beside its name indicates playback; there are no playback buttons.
+  The information icon at the right explains when changes apply and how to preview.
+  In Brunch, mute your microphone and wait for the agent to finish before selecting
+  a voice. Selection automatically previews a short sample. **Loading…** and then
+  a small equalizer appear at the right of the field; there are no playback buttons.
   Selecting another voice replaces the sample; closing Audio options stops it.
-  Samples follow output mute, volume, and speaker selection. They may overlap
-  the current conversation, but do not change its voice or send microphone audio.
+  Samples follow output mute, volume, and speaker selection. Unmuting your mic,
+  the agent becoming busy, or disconnecting stops the preview. Samples do not
+  change the current session's voice or send microphone audio.
   A preview uses a separate, short provider connection, so it may take a moment
   to start. A failed preview does not discard the saved preference.
   If browser storage is blocked, the selection lasts only until the page closes.
+- **Show status text** is on by default. Turn it off to hide ordinary Listening,
+  Thinking, and Speaking labels beside the voice indicator. The waveform, controls,
+  microphone mute and connection notices, and screen-reader announcements remain.
 - The **Speed** slider shows a multiplier and **Next reply**: it changes the next
   response, not speech already playing.
   Realtime offers 0.25×–1.5× and resets to 1× for a new session. Live does not

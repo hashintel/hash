@@ -697,6 +697,25 @@ export const VoicePreviewPlaying: Story = {
       voiceProvider="realtime"
       voiceSession={liveSession({
         audioSettings: realisticAudioSettings({ voicePreview: "playing" }),
+        microphoneMuted: true,
+        phase: "muted",
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
+export const VoicePreviewLoading: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({ voicePreview: "loading" }),
+        microphoneMuted: true,
+        phase: "muted",
         speakerVolume: 0.65,
       })}
     />
@@ -715,6 +734,8 @@ export const VoicePreviewUnavailable: Story = {
           voicePreviewError:
             "Preview unavailable. Select a voice to try again.",
         }),
+        microphoneMuted: true,
+        phase: "muted",
         speakerVolume: 0.65,
       })}
     />
@@ -763,7 +784,7 @@ export const ExtendedAudioSettings: Story = {
     ).not.toBeInTheDocument();
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
-    ).toHaveAccessibleDescription("Applies next session");
+    ).toHaveAccessibleDescription("Wait for the agent to finish.");
     await expect(
       canvas.getByRole("group", { name: "Speaking speed" }),
     ).toHaveAccessibleDescription("Next reply");

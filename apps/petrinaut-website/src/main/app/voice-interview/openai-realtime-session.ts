@@ -1525,6 +1525,7 @@ export class OpenAIRealtimeSession {
           this.#canonicalSpeechQueue.length === 0 &&
           this.#responseCreateEventId === null &&
           this.#speakingResponseId === null));
+    if (enabled) this.#dependencies.audioSettings?.actions.stopVoicePreview?.();
     this.#microphoneTrack.enabled = enabled;
     if (enabled) {
       this.#startMeter();

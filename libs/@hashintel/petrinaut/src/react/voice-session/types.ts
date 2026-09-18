@@ -17,6 +17,8 @@ export type VoiceAudioSettingsState = {
   voiceSaveError?: string | null;
   voicePreview?: "loading" | "playing" | null;
   voicePreviewError?: string | null;
+  /** Host safety gate; null means a muted, idle session can preview. */
+  voicePreviewUnavailable?: string | null;
   /** Omitted when the provider does not support numeric speed. */
   speed?: number;
   devices: {

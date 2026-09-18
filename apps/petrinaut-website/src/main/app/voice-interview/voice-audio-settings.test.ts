@@ -25,6 +25,22 @@ const device = (kind: MediaDeviceKind, deviceId: string): MediaDeviceInfo => ({
   label: deviceId,
   toJSON: () => ({}),
 });
+const readyPreview = (settings: VoiceAudioSettings) => {
+  const microphone = capture();
+  microphone.track.enabled = false;
+  settings.attach({
+    stream: microphone.stream,
+    audio: { muted: false, volume: 1 },
+    senders: [],
+    replaceMicrophone: vi.fn(),
+  });
+  settings.setPreviewAvailability({
+    connected: true,
+    microphoneMuted: true,
+    busy: false,
+  });
+  return microphone;
+};
 const setup = () => {
   const initial = capture();
   const replacement = capture();
@@ -79,6 +95,7 @@ test("persists only valid provider voices and applies them at the next session",
   };
   const settings = new VoiceAudioSettings("realtime", undefined, storage);
   expect(settings.startSession()).toBe("marin");
+  readyPreview(settings);
   settings.actions.setVoice("cedar");
   settings.actions.setVoice("quartz");
   expect(settings.getSnapshot()).toMatchObject({
@@ -110,6 +127,7 @@ test("storage failure retains the selection in memory with an explanation", () =
     },
   });
   expect(settings.getSnapshot().voice).toBe("marin");
+  readyPreview(settings);
   settings.actions.setVoice("quartz");
   expect(settings.getSnapshot().voice).toBe("quartz");
   expect(settings.getSnapshot().voiceSaveError).toContain("could not be saved");
@@ -135,11 +153,18 @@ test("selection previews without changing the active voice, replaces samples, an
   settings.startSession();
   expect(preview).not.toHaveBeenCalled();
   const audio = { muted: true, volume: 0.35, sinkId: "headphones" };
+  const microphone = capture();
+  microphone.track.enabled = false;
   settings.attach({
-    stream: capture().stream,
+    stream: microphone.stream,
     audio,
     senders: [],
     replaceMicrophone: vi.fn(),
+  });
+  settings.setPreviewAvailability({
+    connected: true,
+    microphoneMuted: true,
+    busy: false,
   });
   settings.actions.setVoice("cedar");
   expect(preview).not.toHaveBeenCalled();
@@ -163,16 +188,63 @@ test("selection previews without changing the active voice, replaces samples, an
     activeVoice: "quartz",
     voicePreviewError: "Preview unavailable",
   });
-  settings.detach();
-  expect(stops[1]).toHaveBeenCalledOnce();
-  settings.actions.setVoice("quartz");
-  expect(preview.mock.calls[2]?.[0].output()).toEqual({
+  expect(preview.mock.calls[1]?.[0].output()).toEqual({
     muted: true,
     volume: 0.35,
     sinkId: "headphones",
   });
-  settings.actions.stopVoicePreview?.();
-  expect(stops[2]).toHaveBeenCalledOnce();
+  settings.detach();
+  expect(stops[1]).toHaveBeenCalledOnce();
+  settings.actions.setVoice("quartz");
+  expect(preview).toHaveBeenCalledTimes(2);
+  expect(settings.getSnapshot().voice).toBe("vesper");
+});
+
+test.each([
+  { connected: false, microphoneMuted: true, busy: false },
+  { connected: true, microphoneMuted: false, busy: false },
+  { connected: true, microphoneMuted: true, busy: true },
+])(
+  "rejects voice changes and stops playback when unsafe: %j",
+  (availability) => {
+    const stop = vi.fn();
+    const preview = vi.fn(() => stop);
+    const storage = { getItem: () => null, setItem: vi.fn() };
+    const settings = new VoiceAudioSettings(
+      "live",
+      undefined,
+      storage,
+      preview,
+    );
+    readyPreview(settings);
+    settings.actions.setVoice("quartz");
+    expect(preview).toHaveBeenCalledOnce();
+    settings.setPreviewAvailability(availability);
+    expect(stop).toHaveBeenCalledOnce();
+    settings.actions.setVoice("willow");
+    expect(settings.getSnapshot().voice).toBe("quartz");
+    expect(preview).toHaveBeenCalledOnce();
+    expect(storage.setItem).toHaveBeenCalledOnce();
+  },
+);
+
+test("checks the real capture track even if the published mute state is stale", () => {
+  const preview = vi.fn(() => vi.fn());
+  const settings = new VoiceAudioSettings(
+    "live",
+    undefined,
+    undefined,
+    preview,
+  );
+  const microphone = readyPreview(settings);
+  microphone.track.enabled = true;
+  settings.actions.setVoice("quartz");
+  expect(preview).not.toHaveBeenCalled();
+  expect(settings.getSnapshot().voice).toBe("marin");
+  microphone.track.enabled = false;
+  microphone.track.readyState = "ended";
+  settings.actions.setVoice("quartz");
+  expect(preview).not.toHaveBeenCalled();
 });
 
 test("replaces both Live senders, reapplies mute, and leaves output untouched", async () => {

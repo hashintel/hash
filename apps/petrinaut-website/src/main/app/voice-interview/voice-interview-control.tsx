@@ -360,10 +360,29 @@ const AvailableVoiceInterviewControl = ({
     controller.setInterruptionBySpeaking(
       readInterruptionBySpeakingPreference(),
     );
+    let previewChatBusy = false;
+    const updatePreviewAvailability = () => {
+      const current = controller.getSnapshot();
+      audioSettings.setPreviewAvailability({
+        connected:
+          current.connection === "connected" && current.input !== "paused",
+        microphoneMuted: !current.microphoneEnabled,
+        busy:
+          previewChatBusy ||
+          current.input === "submitting" ||
+          current.lastAnswerDelivery === "pending" ||
+          (current.output !== "idle" && current.output !== "interrupted"),
+      });
+    };
+    controller.subscribe(updatePreviewAvailability);
     return {
       audioSettings,
       bridge,
       controller,
+      setPreviewChatBusy: (busy: boolean) => {
+        previewChatBusy = busy;
+        updatePreviewAvailability();
+      },
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
@@ -428,6 +447,10 @@ const AvailableVoiceInterviewControl = ({
   );
 
   useLayoutEffect(() => {
+    store.setPreviewChatBusy(
+      !context.stopped &&
+        (context.status === "submitted" || context.status === "streaming"),
+    );
     store.updateSubmissionContext(
       context.submitVoiceInput,
       resolveInputSubmission,

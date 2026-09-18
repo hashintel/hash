@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 
-import { Button, Icon, Popover, Slider } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Popover,
+  Slider,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { voiceSessionActionLabels } from "../../../../components/voice-session-labels";
@@ -100,6 +106,9 @@ export const AudioPopover = ({
   speakerControlsDisabled,
   speakerMuted,
   speakerVolume,
+  previewDisabledReason,
+  showStatusText,
+  setShowStatusText,
 }: {
   actions: VoiceSessionActions;
   settings?: VoiceAudioSettingsState;
@@ -109,6 +118,9 @@ export const AudioPopover = ({
   speakerControlsDisabled: boolean;
   speakerMuted: boolean;
   speakerVolume: number;
+  previewDisabledReason: string | null;
+  showStatusText: boolean;
+  setShowStatusText: (value: boolean) => void;
 }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -215,8 +227,32 @@ export const AudioPopover = ({
                     actions={actions.audioSettings}
                     settings={settings}
                     disabled={speakerControlsDisabled}
+                    previewDisabledReason={previewDisabledReason}
                   />
                 )}
+                <div
+                  className={css({
+                    borderTopWidth: "thin",
+                    borderTopStyle: "solid",
+                    borderTopColor: "neutral.a20",
+                    marginTop: "2",
+                    padding: "2",
+                  })}
+                >
+                  <Toggle
+                    className={css({
+                      width: "[100% !important]",
+                      justifyContent: "space-between",
+                    })}
+                    labelOffText="Show status text"
+                    aria-label="Show status text"
+                    aria-description="Show Listening, Thinking, and Speaking beside the voice indicator."
+                    value={showStatusText}
+                    onChange={setShowStatusText}
+                    size="sm"
+                    tone="brand"
+                  />
+                </div>
                 {hasAdvancedControls && (
                   <div
                     className={advancedControlsStyle({

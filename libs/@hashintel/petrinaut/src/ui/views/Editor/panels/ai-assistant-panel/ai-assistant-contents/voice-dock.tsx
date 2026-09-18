@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
@@ -184,6 +186,19 @@ export const VoiceDock = ({
   speakerMuted,
   speakerVolume,
 }: VoiceDockProps) => {
+  const [showStatusText, setShowStatusText] = useState(true);
+  const previewDisabledReason =
+    phase === "connecting" || phase === "error" || phase === "paused"
+      ? "Connect Voice to preview."
+      : assistantBusy || phase === "speaking" || phase === "thinking"
+        ? "Wait for the agent to finish."
+        : !microphoneMuted
+          ? "Mute your mic to preview."
+          : (audioSettings?.voicePreviewUnavailable ?? null);
+  const stopPreview = actions?.audioSettings?.stopVoicePreview;
+  useEffect(() => {
+    if (previewDisabledReason) stopPreview?.();
+  }, [previewDisabledReason, stopPreview]);
   const collapseLabel =
     purpose === "setup"
       ? collapsed
@@ -236,6 +251,9 @@ export const VoiceDock = ({
               speakerControlsDisabled={speakerControlsDisabled}
               speakerMuted={speakerMuted}
               speakerVolume={speakerVolume}
+              previewDisabledReason={previewDisabledReason}
+              showStatusText={showStatusText}
+              setShowStatusText={setShowStatusText}
             />
           )}
         {errorIndicator}
@@ -243,7 +261,15 @@ export const VoiceDock = ({
 
       <div className={centerStyle({ withError: !!errorIndicator })}>
         {indicator ?? <LiveVoiceSessionIndicator />}
-        <span className={statusStyle({ phase })}>{statusLabel}</span>
+        {(showStatusText ||
+          notice ||
+          purpose === "setup" ||
+          phase === "error" ||
+          phase === "muted" ||
+          phase === "paused" ||
+          phase === "connecting") && (
+          <span className={statusStyle({ phase })}>{statusLabel}</span>
+        )}
       </div>
 
       <span
@@ -303,7 +329,10 @@ export const VoiceDock = ({
                   phase === "error" ||
                   phase === "paused"
                 }
-                onClick={() => actions.setMicrophoneMuted?.(!microphoneMuted)}
+                onClick={() => {
+                  if (microphoneMuted) stopPreview?.();
+                  actions.setMicrophoneMuted?.(!microphoneMuted);
+                }}
                 prefix={<MicrophoneIcon muted={microphoneMuted} />}
                 pressed={microphoneMuted}
                 size="sm"

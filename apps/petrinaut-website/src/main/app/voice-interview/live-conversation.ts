@@ -128,6 +128,7 @@ export const createLiveConversation = (
   };
 
   const applyMicrophoneMuted = () => {
+    if (!microphoneMuted) audioSettings?.actions.stopVoicePreview?.();
     if (!microphone) return;
     for (const audioTrack of microphone.getAudioTracks()) {
       audioTrack.enabled = !microphoneMuted;

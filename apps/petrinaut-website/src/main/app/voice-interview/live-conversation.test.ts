@@ -134,6 +134,25 @@ const connect = async (fixture: ReturnType<typeof setup>) => {
   fixture.emit(1, { type: "session.created" });
 };
 
+test("stops voice preview before reopening the Live microphone", async () => {
+  const settings = new VoiceAudioSettings("live", undefined);
+  const fixture = setup({ audioSettings: settings });
+  await connect(fixture);
+  fixture.conversation.setMicrophoneMuted(true);
+  const stop = vi
+    .spyOn(settings.actions, "stopVoicePreview")
+    .mockImplementation(() => {
+      expect(fixture.input.enabled).toBe(false);
+    });
+  fixture.conversation.setMicrophoneMuted(false);
+  expect(stop).toHaveBeenCalledOnce();
+  expect(fixture.input.enabled).toBe(true);
+  stop.mockRestore();
+  const stopped = fixture.conversation.stop();
+  fixture.emit(0, { type: "session.closed" });
+  await stopped;
+});
+
 test("wires selected voice and both Live senders to session-owned audio settings", async () => {
   const settings = new VoiceAudioSettings("live", undefined, {
     getItem: () => "quartz",

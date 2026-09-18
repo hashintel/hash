@@ -104,6 +104,22 @@ export const LiveConversationControl = ({
     },
   });
   useLayoutEffect(() => {
+    audioSettingsStore.setPreviewAvailability({
+      connected: phase === "connected",
+      microphoneMuted,
+      busy:
+        !!activity?.outputActive ||
+        (!stopped && (status === "submitted" || status === "streaming")),
+    });
+  }, [
+    audioSettingsStore,
+    phase,
+    microphoneMuted,
+    activity?.outputActive,
+    status,
+    stopped,
+  ]);
+  useLayoutEffect(() => {
     const segments = selectCanonicalSpeech(messages).segments.map(
       (segment) => ({
         ...segment,
@@ -167,6 +183,16 @@ export const LiveConversationControl = ({
     const next = createLiveConversation(
       (nextState) => {
         if (session.current !== next) return;
+        if (
+          nextState.phase !== "connected" ||
+          nextState.activity?.outputActive
+        ) {
+          audioSettingsStore.setPreviewAvailability({
+            connected: nextState.phase === "connected",
+            microphoneMuted: false,
+            busy: true,
+          });
+        }
         if (
           nextState.phase === "stopping" ||
           nextState.phase === "ended" ||

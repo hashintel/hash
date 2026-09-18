@@ -193,6 +193,23 @@ describe("OpenAIRealtimeSession", () => {
     vi.useRealTimers();
   });
 
+  test("stops voice preview before reopening the Realtime microphone", async () => {
+    const audioSettings = new VoiceAudioSettings("realtime", undefined);
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(false);
+    const stop = vi
+      .spyOn(audioSettings.actions, "stopVoicePreview")
+      .mockImplementation(() => {
+        expect(harness.localTracks[0]?.enabled).toBe(false);
+      });
+    harness.session.setMicrophoneEnabled(true);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(harness.localTracks[0]?.enabled).toBe(true);
+    stop.mockRestore();
+    await harness.session.disconnect();
+  });
+
   test("defers selected speed until the next response and persists the session voice header", async () => {
     const storage = {
       getItem: vi.fn(() => "cedar"),
