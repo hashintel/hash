@@ -249,23 +249,32 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
   );
 
   const dock = screen.getByTestId("ai-voice-dock");
+  const getPart = (part: string) => {
+    const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
+    if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+    return element;
+  };
+  const leftActions = getPart("left-actions");
+  const center = getPart("shrinkable-status");
+  const indicator = getPart("fixed-indicator");
+  const status = getPart("visible-status");
+  const rightActions = getPart("right-actions");
+  const liveStatus = getPart("live-status");
+
+  expect(dock.className).toContain("d_grid");
+  expect(dock.className).toContain(
+    "grid-tc_[auto_minmax(0,_1fr)_auto]",
+  );
+  expect(leftActions.className).toContain("flex-sh_0");
+  expect(rightActions.className).toContain("flex-sh_0");
+  expect(center.className).toContain("min-w_[0]");
+  expect(status.className).toContain("min-w_[0]");
+  expect(indicator.className).toContain("flex-sh_0");
+  expect(status.className).toContain("ov_hidden");
+  expect(status.className).toContain("tov_ellipsis");
+  expect(within(indicator).getByTestId("waveform")).toBeTruthy();
   expect(
-    Array.from(dock.children, (child) => child.getAttribute("data-part")),
-  ).toEqual([
-    "left-actions",
-    "shrinkable-status",
-    "right-actions",
-    "live-status",
-  ]);
-  const center = dock.querySelector('[data-part="shrinkable-status"]');
-  expect(
-    Array.from(center?.children ?? [], (child) =>
-      child.getAttribute("data-part"),
-    ),
-  ).toEqual(["fixed-indicator", "visible-status"]);
-  expect(within(dock).getByTestId("waveform")).toBeTruthy();
-  expect(
-    within(dock).getByRole("status", { name: "Voice status" }).textContent,
+    liveStatus.textContent,
   ).toBe(
     "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
   );
