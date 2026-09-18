@@ -42,7 +42,7 @@ use tracing_subscriber::fmt::MakeWriter;
 
 use self::state::{KnnActivity, Observation, RunState};
 use crate::{
-    math::Vec2,
+    math::{DFinite, Vec2},
     progress::{Batch, DescentIteration, Progress, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -237,7 +237,7 @@ impl Progress for Observer {
         });
     }
 
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         self.report(Observation::QualityProbe {
             metric,
             reading: value,

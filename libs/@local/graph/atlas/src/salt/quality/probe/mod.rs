@@ -47,18 +47,7 @@ use hashql_core::id::{Id, IdSlice, bit_vec::DenseBitSet};
 use rand::Rng;
 use rayon::iter::IndexedParallelIterator as _;
 
-pub(crate) use self::{
-    error::{DeliveryError, ProbeError},
-    options::ProbeOptions,
-    readings::{
-        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
-        SpacePairArray, Step, TypedReadings,
-    },
-};
-use self::{
-    options::validate_design,
-    pass::{CorpusPass, SampledPass},
-};
+use self::pass::{CorpusPass, SampledPass};
 use super::{
     clump::{ClumpAggregate, Clumps},
     metric::{NeighbourhoodAggregate, TripletAggregate},
@@ -74,6 +63,15 @@ mod error;
 mod options;
 mod pass;
 mod readings;
+
+pub(crate) use self::{
+    error::{DeliveryError, ProbeError},
+    options::ProbeOptions,
+    readings::{
+        AnchorOrdinal, ClumpReadings, ProbeReadings, RadiusPair, ReadingGrid, SpacePair,
+        SpacePairArray, Step, TypedReadings,
+    },
+};
 
 /// One generation's row-aligned probe inputs.
 ///
@@ -135,6 +133,28 @@ impl<'corpus, N> ProbeCorpus<'corpus, N> {
 
         self.clumps = Some(clumps);
         self
+    }
+
+    /// Checks embedding components when the population cannot support rank measurements.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ProbeError::NonFiniteEmbedding`] for a non-finite component below the rank domain.
+    fn validate_small_embeddings<E>(
+        &self,
+        canonical: &[Cow<'_, AlignedVecN<CANONICAL_DIMENSIONS>>],
+    ) -> Result<(), ProbeError<E>> {
+        if self.rows() < 3
+            && (self
+                .representations
+                .iter()
+                .any(|embedding| !embedding.is_finite())
+                || canonical.iter().any(|embedding| !embedding.is_finite()))
+        {
+            return Err(ProbeError::NonFiniteEmbedding);
+        }
+
+        Ok(())
     }
 
     /// Returns the corpus row count.
@@ -261,18 +281,17 @@ async fn fetch_canonical<'data, D: Dataset>(
 /// This samples anchor and comparison rows disjointly without replacement, then fetches both
 /// samples' canonical embeddings through the dataset's probe-scoped stream before any ranking
 /// begins. The dataset must supply the same canonical values as the corpus represents, with finite
-/// components. The requested count sum and all aggregate totals and normalization products must fit
-/// their integer carriers. Design validation checks corpus size and neighbourhood shape, not those
-/// arithmetic capacities.
+/// components. Sample counts are upper bounds resolved against the corpus. All aggregate totals and
+/// normalization products must fit their integer carriers.
 ///
 /// # Errors
 ///
-/// Returns [`ProbeError`] for an invalid probe design or a failed or mismatched canonical delivery.
+/// Returns [`ProbeError`] for an invalid probe design, a failed or mismatched canonical delivery,
+/// or non-finite embeddings in a population below the rank domain.
 ///
 /// # Panics
 ///
-/// An overflowing design count or aggregate arithmetic can panic when integer overflow checks are
-/// enabled.
+/// Overflowing aggregate arithmetic can panic with integer overflow checking.
 pub(crate) async fn probe<D: Dataset>(
     dataset: &D,
     corpus: ProbeCorpus<'_, D::NodeId>,
@@ -280,24 +299,30 @@ pub(crate) async fn probe<D: Dataset>(
     mut rng: impl Rng,
 ) -> Result<ProbeReadings<NodeRowId>, ProbeError<D::Error>> {
     let rows = corpus.rows();
-    validate_design(rows, options)?;
+    let design = options.resolve(rows)?;
 
-    let anchors = options.anchors.get();
-    let comparisons = options.comparisons.get();
-    let corpus_template = aggregate_template(rows - anchors, options)?;
-    let sampled_template = aggregate_template(comparisons, options)?;
-    let search = options
-        .neighbourhoods
+    let anchors = design.anchors;
+    let comparisons = design.comparisons;
+    let corpus_template = aggregate_template(
+        rows - anchors,
+        &design.neighbourhoods,
+        options.horizon_factor,
+    )?;
+    let sampled_template =
+        aggregate_template(comparisons, &design.neighbourhoods, options.horizon_factor)?;
+    let search = design
+        .density_neighbourhoods
         .iter()
         .map(|k| k.get())
         .max()
-        .expect("the options name at least one neighbourhood size");
+        .unwrap_or(0);
 
     let sample = probe_sample(&mut rng, corpus.node_ids, anchors, comparisons);
     let (anchor_rows, comparison_rows) = sample.split_at(anchors);
     let pairs = sample_pairs(&mut rng, comparisons, options.triplet_pairs);
 
     let canonical = fetch_canonical(dataset, corpus.node_ids, &sample).await?;
+    corpus.validate_small_embeddings(&canonical)?;
     let (anchor_canonical, comparison_canonical) = canonical.split_at(anchors);
 
     let mut anchor_mask = DenseBitSet::new_empty(rows);
@@ -312,12 +337,13 @@ pub(crate) async fn probe<D: Dataset>(
         anchor_mask: &anchor_mask,
         search,
         template: &corpus_template,
-        neighbourhoods: &options.neighbourhoods,
+        neighbourhoods: &design.neighbourhoods,
+        density_neighbourhoods: &design.density_neighbourhoods,
         clumps: corpus.clumps,
     }
     .run(anchor_rows)
     .collect_into_vec(&mut sampled_readings);
-    let anchors = AnchorColumns::new(sampled_readings.into_iter());
+    let anchor_columns = AnchorColumns::new(sampled_readings.into_iter());
 
     let mut sampled_readings = Vec::new();
     SampledPass {
@@ -327,7 +353,7 @@ pub(crate) async fn probe<D: Dataset>(
         comparison_canonical,
         comparison_rows,
         template: &sampled_template,
-        neighbourhoods: &options.neighbourhoods,
+        neighbourhoods: &design.neighbourhoods,
         pairs: &pairs,
         clumps: corpus.clumps,
     }
@@ -335,7 +361,7 @@ pub(crate) async fn probe<D: Dataset>(
     .collect_into_vec(&mut sampled_readings);
     let sampled = SampledColumns::new(sampled_readings.into_iter());
 
-    let steps = options.neighbourhoods.len();
+    let steps = design.neighbourhoods.len();
     let mut triplet_columns = transpose_triplets(sampled.triplets);
 
     // use typed pair indices when assigning the named result fields
@@ -352,14 +378,17 @@ pub(crate) async fn probe<D: Dataset>(
     Ok(ProbeReadings {
         anchors: anchor_rows.iter().copied().collect(),
         comparisons: comparison_rows.iter().copied().collect(),
-        neighbourhoods: IdSlice::from_boxed_slice(options.neighbourhoods.iter().copied().collect()),
-        map_representation: ReadingGrid::from_anchor_cells(anchors.cells, steps),
+        corpus_universe: rows - anchors,
+        neighbourhoods: IdSlice::from_boxed_slice(design.neighbourhoods.into_boxed_slice()),
+        density_neighbourhoods: design.density_neighbourhoods.into_boxed_slice(),
+        triplet_pairs_requested: options.triplet_pairs,
+        map_representation: ReadingGrid::from_anchor_cells(anchor_columns.cells, steps),
         clumps: corpus.clumps.map(|clumps| ClumpReadings {
             epsilon: clumps.epsilon(),
             count: clumps.clumps(),
             groups: clumps.groups(),
             grouped_rows: clumps.grouped_rows(),
-            map_representation: ReadingGrid::from_anchor_cells(anchors.clumps, steps),
+            map_representation: ReadingGrid::from_anchor_cells(anchor_columns.clumps, steps),
             representation_canonical: ReadingGrid::from_anchor_cells(
                 sampled.baseline_clumps,
                 steps,
@@ -368,7 +397,7 @@ pub(crate) async fn probe<D: Dataset>(
         sampled_map_representation: sampled_grid(SpacePair::MapRepresentation),
         sampled_map_canonical: sampled_grid(SpacePair::MapCanonical),
         sampled_representation_canonical: sampled_grid(SpacePair::RepresentationCanonical),
-        radii: anchors.radii.into_boxed_slice(),
+        radii: anchor_columns.radii.into_boxed_slice(),
         triplet_pairs: pairs,
         triplet_map_representation: triplet_column(SpacePair::MapRepresentation),
         triplet_map_canonical: triplet_column(SpacePair::MapCanonical),
@@ -448,13 +477,13 @@ impl SampledColumns {
 /// `universe`.
 fn aggregate_template<E>(
     universe: usize,
-    options: &ProbeOptions,
+    neighbourhoods: &[NonZero<usize>],
+    horizon_factor: NonZero<usize>,
 ) -> Result<Vec<NeighbourhoodAggregate>, ProbeError<E>> {
-    options
-        .neighbourhoods
+    neighbourhoods
         .iter()
         .map(|&k| {
-            NeighbourhoodAggregate::clamped(universe, k, options.horizon_factor)
+            NeighbourhoodAggregate::clamped(universe, k, horizon_factor)
                 .ok_or(ProbeError::Neighbourhood { k, universe })
         })
         .collect()

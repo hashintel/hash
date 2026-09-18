@@ -110,9 +110,9 @@ pub struct Options<P> {
     ///
     /// This is `false` by default.
     pub fresh: bool = false,
-    /// Sampled anchor rows of the admission probe, `1,024` by default.
+    /// Upper bound on sampled anchor rows of the admission probe, `1,024` by default.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows of the admission probe, `4,096` by default.
+    /// Upper bound on sampled comparison rows of the admission probe, `4,096` by default.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Path of a reviewed-verdicts document to supply to the run.
     ///
@@ -155,8 +155,6 @@ pub(crate) struct Summary {
     pub reused: usize,
     /// Unique card texts supplied to the embedder rather than copied from the prior.
     pub embedded: usize,
-    /// Whether every admission control had evidence within its bound.
-    pub passes: bool,
     /// Whether the run activated the generation.
     pub activated: bool,
     /// The full structured admission report.
@@ -486,7 +484,6 @@ impl From<Outcome> for Summary {
             recall: metadata.evidence.recall,
             reused: metadata.evidence.cards.reused,
             embedded: metadata.evidence.cards.embedded,
-            passes: outcome.report.passes(),
             activated: outcome.admission == Admission::Active,
             report: outcome.report,
         }

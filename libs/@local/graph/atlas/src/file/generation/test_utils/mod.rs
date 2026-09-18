@@ -13,3 +13,19 @@ pub use self::integration::{
 };
 #[cfg(test)]
 pub(crate) use super::scratch::tests::{entry_count, root as scratch_root, scratch};
+
+/// Publishes a byte-bound fixture for tests of activation decisions.
+///
+/// # Panics
+///
+/// Panics when staging or publication fails.
+#[cfg(test)]
+pub(crate) fn publish_fixture(root: &super::GenerationRoot) -> super::GenerationId {
+    let repository = super::fixture::repository();
+    let staging = root.stage().expect("should create fixture staging");
+    super::fixture::stage_all(&staging, &repository);
+    staging
+        .seal(&repository)
+        .expect("should publish fixture")
+        .id()
+}

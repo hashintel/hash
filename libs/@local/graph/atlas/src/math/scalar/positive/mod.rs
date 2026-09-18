@@ -9,7 +9,9 @@ use core::{
 #[cfg(test)]
 use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
 
-use super::{DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
+use super::{
+    DFinite, DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes,
+};
 use crate::math::Derivation;
 
 #[cfg(test)]
@@ -233,6 +235,11 @@ impl Positive {
         );
 
         Self(reciprocal)
+    }
+
+    // i think this is always guaranteed to be finite?
+    pub(crate) fn ln_wide(self) -> DFinite {
+        DFinite::new_unchecked((self.0 as f64).ln())
     }
 }
 
