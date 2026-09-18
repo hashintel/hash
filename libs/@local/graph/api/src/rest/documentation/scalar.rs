@@ -61,18 +61,17 @@ pub(super) fn routes(sources: &[Source]) -> Router {
     let reference = {
         let html = render(include_str!("scalar.json"), sources)
             .expect("the Scalar configuration should be a JSON object");
-        get(move || {
-            let html = html.clone();
-            async move { Html(html) }
-        })
+        get(move || core::future::ready(Html(html.clone())))
     };
 
     let javascript = javascript();
     Router::new().route("/", reference).route(
         "/openapi/scalar.js",
         get(move || {
-            let javascript = javascript.clone();
-            async move { ([(CONTENT_TYPE, "application/javascript")], javascript) }
+            core::future::ready((
+                [(CONTENT_TYPE, "application/javascript")],
+                javascript.clone(),
+            ))
         }),
     )
 }
