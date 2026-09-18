@@ -535,20 +535,6 @@ where
     pub clustering: Arc<ClusteringContext>,
 }
 
-/// A [`Router`] serving the `OpenAPI` specification (JSON, and necessary subschemas) for the
-/// REST API.
-///
-/// The specification is served at `/openapi.json`. It references its subschemas by relative path
-/// (`./models/…`), so `/models/{path}` has to stay a sibling of the specification for those
-/// references to resolve.
-pub fn openapi_only_router() -> Router {
-    let open_api_doc = OpenApiDocumentation::openapi();
-
-    Router::new()
-        .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-        .route("/models/{*path}", get(serve_static_schema))
-}
-
 /// Attaches the three request middlewares, which requests traverse as address gate,
 /// authentication, principal limiter.
 ///
@@ -653,6 +639,8 @@ where
     let rate_limiters = rate_limit::RateLimiters::start(&rate_limit_config, &dependencies.meter);
 
     let apis = crate::rest::apis(&PrincipalRateLimitConfig::from(&rate_limit_config).into());
+    let legacy_document = OpenApiDocumentation::openapi();
+    // The legacy document refers to `./models/…`, so both routes must share the same base path.
     let documentation = crate::rest::documentation::routes(
         &apis,
         [crate::rest::documentation::Source {
@@ -660,7 +648,9 @@ where
             slug: "legacy".to_owned(),
             url: "/openapi.json".to_owned(),
         }],
-    );
+    )
+    .route("/openapi.json", get(|| async { Json(legacy_document) }))
+    .route("/models/{*path}", get(serve_static_schema));
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -688,7 +678,7 @@ where
     // Make sure extensions are added at the end so they are made available to merged routers.
     let mut router = attach_request_middlewares::<_, Option<ActorId>>(
         merged_routes,
-        openapi_only_router().merge(documentation),
+        documentation,
         authentication_provider,
         service_secret,
         authentication_metrics,
