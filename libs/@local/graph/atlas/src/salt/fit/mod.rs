@@ -153,6 +153,12 @@ const impl Default for LandmarkSupport {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum VacuousProjectorPlacement {
+    Force,
+    Fallback,
+}
+
 /// Every setting of the projector placement.
 ///
 /// The model, its training run, and the condition ladder that publishes the canonical field.
@@ -214,7 +220,7 @@ pub(crate) struct ProjectorOptions {
     /// verdicts, while every other objective term trains and the published relation artifacts stay
     /// real. For corpora without reviewed-Proximal coverage that still want the full trained
     /// placement.
-    pub vacuous: bool,
+    pub vacuous: Option<VacuousProjectorPlacement>,
 }
 
 impl ProjectorOptions {
@@ -288,7 +294,7 @@ impl ProjectorOptions {
             landmark_support: LandmarkSupport { .. },
             forward_rows: nz!(1 << 16),
             ladder: LadderOptions { .. },
-            vacuous: false,
+            vacuous: None,
         };
 
         LIVE
