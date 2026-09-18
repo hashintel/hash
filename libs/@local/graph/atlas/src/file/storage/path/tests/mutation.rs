@@ -5,7 +5,7 @@ use bytes::Bytes;
 use tokio::io::AsyncReadExt as _;
 
 use crate::file::{
-    generation::scratch::tests::{entry_count, root, scratch},
+    generation::test_utils::{entry_count, scratch, scratch_root},
     storage::{
         Storage, WriteCondition,
         error::StorageError,
@@ -49,8 +49,8 @@ fn join_s3_literal() {
 #[tokio::test]
 async fn get_replaced_contents() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
 
     path.put(
@@ -70,7 +70,7 @@ async fn get_replaced_contents() {
     path.put(
         &storage,
         Bytes::from_static(b"new"),
-        &WriteCondition::Match(revision),
+        &WriteCondition::Match(&revision),
     )
     .await
     .expect("should replace the observed contents");
@@ -94,8 +94,8 @@ async fn get_replaced_contents() {
 #[tokio::test]
 async fn put_absent_existing() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
 
     fs::write(&file, b"retained").expect("should seed the destination");
@@ -123,8 +123,8 @@ async fn put_absent_existing() {
 #[tokio::test]
 async fn put_match_missing() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("current");
 
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     fs::write(&file, b"old").expect("should seed the destination");
@@ -140,7 +140,7 @@ async fn put_match_missing() {
         .put(
             &storage,
             Bytes::from_static(b"new"),
-            &WriteCondition::Match(revision),
+            &WriteCondition::Match(&revision),
         )
         .await
         .expect_err("should refuse the missing revision");
@@ -156,8 +156,8 @@ async fn put_match_missing() {
 #[tokio::test]
 async fn put_any_nested() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("nested/current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("nested/current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     for bytes in [b"first".as_slice(), b"replacement"] {
         path.put(
@@ -181,8 +181,8 @@ async fn put_any_nested() {
 #[tokio::test]
 async fn put_absent_competing() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     let (first, second) = tokio::join!(
         path.put(
@@ -214,8 +214,8 @@ async fn put_absent_competing() {
 #[tokio::test]
 async fn put_match_competing() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("current");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("current");
     let path: FilePath = file.as_str().parse().expect("should parse the destination");
     fs::write(&file, b"initial").expect("should seed the destination");
     let (_, first_revision) = path
@@ -228,8 +228,8 @@ async fn put_match_competing() {
         .await
         .expect("should capture the second revision")
         .into_parts();
-    let first_condition = WriteCondition::Match(first_revision);
-    let second_condition = WriteCondition::Match(second_revision);
+    let first_condition = WriteCondition::Match(&first_revision);
+    let second_condition = WriteCondition::Match(&second_revision);
     let (first, second) = tokio::join!(
         path.put(&storage, Bytes::from_static(b"first"), &first_condition),
         path.put(&storage, Bytes::from_static(b"second"), &second_condition),
@@ -252,9 +252,9 @@ async fn put_match_competing() {
 #[tokio::test]
 async fn put_reserved_destination() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
+    let storage = Storage::new(scratch_root(&directory).to_owned());
     for suffix in ["missing/.storage-lock", "missing/.storage-stage/contents"] {
-        let path: FilePath = root(&directory)
+        let path: FilePath = scratch_root(&directory)
             .join(suffix)
             .as_str()
             .parse()
@@ -266,7 +266,7 @@ async fn put_reserved_destination() {
         assert_matches!(error, StorageError::InvalidLocalDestination);
     }
 
-    assert_eq!(entry_count(root(&directory)), 0);
+    assert_eq!(entry_count(scratch_root(&directory)), 0);
 
     drop(storage);
     drop(directory);
@@ -276,11 +276,11 @@ async fn put_reserved_destination() {
 #[tokio::test]
 async fn copy_local_nested() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
-    let file = root(&directory).join("source");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+    let file = scratch_root(&directory).join("source");
     fs::write(&file, b"complete artifact").expect("should seed the source");
     let source: FilePath = file.as_str().parse().expect("should parse the source");
-    let target = root(&directory).join("nested/target");
+    let target = scratch_root(&directory).join("nested/target");
     let destination: FilePath = target
         .as_str()
         .parse()
@@ -312,9 +312,9 @@ async fn copy_local_nested() {
 #[tokio::test]
 async fn mutations_s3_unconfigured() {
     let directory = scratch();
-    let storage = Storage::new(root(&directory).to_owned());
+    let storage = Storage::new(scratch_root(&directory).to_owned());
     let path: FilePath = "s3://bucket/key".parse().expect("should parse the S3 path");
-    let missing = root(&directory).join("missing");
+    let missing = scratch_root(&directory).join("missing");
     assert_matches!(
         path.put(&storage, Bytes::new(), &WriteCondition::Absent)
             .await,
@@ -330,6 +330,6 @@ async fn mutations_s3_unconfigured() {
             .await,
         Err(StorageError::S3Unavailable)
     );
-    assert_eq!(entry_count(root(&directory)), 0);
+    assert_eq!(entry_count(scratch_root(&directory)), 0);
     drop(directory);
 }

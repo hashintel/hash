@@ -2,11 +2,15 @@ use alloc::borrow::Cow;
 use core::{assert_matches, pin::pin};
 use std::{fs, io};
 
+use aws_sdk_s3::{
+    Client,
+    config::{BehaviorVersion, Credentials, Region},
+};
 use tokio::io::AsyncReadExt as _;
 
 use super::{FilePath, FilePathVariant};
 use crate::file::{
-    generation::scratch::tests::{entry_count, root, scratch},
+    generation::test_utils::{entry_count, scratch, scratch_root},
     storage::{
         Storage,
         error::StorageError,
@@ -56,15 +60,40 @@ fn parse_empty_bucket() {
     );
 }
 
+/// Backend validation accepts configured S3 storage without accessing the source object.
+#[tokio::test]
+async fn validate_s3_unavailable_object() {
+    let client = Client::from_conf(
+        aws_sdk_s3::Config::builder()
+            .behavior_version(BehaviorVersion::latest())
+            .region(Region::new("us-east-1"))
+            .credentials_provider(Credentials::new(
+                "fixture", "fixture", None, None, "fixture",
+            ))
+            .endpoint_url("http://127.0.0.1:0")
+            .build(),
+    );
+    let storage = Storage::in_temp_dir()
+        .await
+        .expect("should create temporary storage")
+        .with_s3(client);
+    let source: FilePath = "s3://unavailable-bucket/source"
+        .parse()
+        .expect("should parse the source");
+    source
+        .validate_backend(&storage)
+        .expect("should accept a configured backend without reading an object");
+}
+
 /// Reading a local file yields its bytes without an S3 backend.
 #[tokio::test]
 async fn read_local() {
     let directory = scratch();
-    let file = root(&directory).join("input.bin");
+    let file = scratch_root(&directory).join("input.bin");
     fs::write(&file, b"local contents").expect("should write the source file");
     let reader = {
         let path: FilePath = file.as_str().parse().expect("should parse a local path");
-        let storage = Storage::new(root(&directory).join("unused"));
+        let storage = Storage::new(scratch_root(&directory).join("unused"));
         path.read(&storage).await.expect("should open without S3")
     };
     let mut reader = pin!(reader);
@@ -81,9 +110,9 @@ async fn read_local() {
 #[tokio::test]
 async fn read_local_missing() {
     let directory = scratch();
-    let file = root(&directory).join("missing.bin");
+    let file = scratch_root(&directory).join("missing.bin");
     let path: FilePath = file.as_str().parse().expect("should parse a local path");
-    let storage = Storage::new(root(&directory).to_owned());
+    let storage = Storage::new(scratch_root(&directory).to_owned());
 
     let error = path
         .read(&storage)
@@ -102,7 +131,7 @@ async fn read_local_missing() {
 async fn read_s3_unconfigured() {
     let directory = scratch();
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
-    let storage = Storage::new(root(&directory).to_owned());
+    let storage = Storage::new(scratch_root(&directory).to_owned());
 
     let error = path
         .read(&storage)
@@ -120,17 +149,17 @@ async fn read_s3_unconfigured() {
 #[tokio::test]
 async fn sync_local() {
     let source = scratch();
-    let file = root(&source).join("input.bin");
+    let file = scratch_root(&source).join("input.bin");
     fs::write(&file, b"local contents").expect("should write the source file");
     let path: FilePath = file.as_str().parse().expect("should parse a local path");
     let destination = scratch();
-    let storage = Storage::new(root(&destination).to_owned());
+    let storage = Storage::new(scratch_root(&destination).to_owned());
     let resolved = path
         .sync_to_local(&storage)
         .await
         .expect("should resolve the local path without S3");
     assert_matches!(resolved, Cow::Borrowed(value) if value == file);
-    assert_eq!(entry_count(root(&destination)), 0);
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
     drop(storage);
     drop(destination);
     drop(source);
@@ -140,20 +169,20 @@ async fn sync_local() {
 #[tokio::test]
 async fn into_local_missing() {
     let directory = scratch();
-    let file = root(&directory).join("missing.bin");
+    let file = scratch_root(&directory).join("missing.bin");
     let allocation = file.as_str().as_ptr();
     let path = FilePath {
         variant: FilePathVariant::Local(file),
     };
-    let storage = Storage::new(root(&directory).join("unused"));
+    let storage = Storage::new(scratch_root(&directory).join("unused"));
     let resolved = path
         .into_local_file(&storage)
         .await
         .expect("should return the local path without opening it");
 
-    assert_eq!(resolved, root(&directory).join("missing.bin"));
+    assert_eq!(resolved, scratch_root(&directory).join("missing.bin"));
     assert_eq!(resolved.as_str().as_ptr(), allocation);
-    assert_eq!(entry_count(root(&directory)), 0);
+    assert_eq!(entry_count(scratch_root(&directory)), 0);
 
     drop(storage);
     drop(directory);
@@ -163,7 +192,7 @@ async fn into_local_missing() {
 #[tokio::test]
 async fn into_local_unconfigured() {
     let destination = scratch();
-    let storage = Storage::new(root(&destination).join("missing"));
+    let storage = Storage::new(scratch_root(&destination).join("missing"));
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
 
     let error = path
@@ -172,7 +201,7 @@ async fn into_local_unconfigured() {
         .expect_err("should require S3 before creating a destination");
 
     assert_matches!(error, StorageError::S3Unavailable);
-    assert_eq!(entry_count(root(&destination)), 0);
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
 
     drop(storage);
     drop(destination);
@@ -183,11 +212,11 @@ async fn into_local_unconfigured() {
 async fn sync_s3_unconfigured() {
     let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
     let destination = scratch();
+    let missing = scratch_root(&destination).join("missing");
     let storages = [
-        Storage::new(root(&destination).to_owned()),
-        Storage::new(root(&destination).join("missing")),
+        Storage::new(scratch_root(&destination).to_owned()),
+        Storage::new(missing),
     ];
-
     for storage in &storages {
         let error = path
             .sync_to_local(storage)
@@ -195,7 +224,7 @@ async fn sync_s3_unconfigured() {
             .expect_err("should require S3 before accessing the destination");
         assert_matches!(error, StorageError::S3Unavailable);
     }
-    assert_eq!(entry_count(root(&destination)), 0);
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
 
     drop(storages);
     drop(destination);

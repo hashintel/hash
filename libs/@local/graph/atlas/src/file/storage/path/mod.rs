@@ -42,6 +42,18 @@ pub(crate) struct FilePath {
 }
 
 impl FilePath {
+    /// Verifies that storage provides this path's backend without accessing the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError::S3Unavailable`] when an S3 location has no configured backend.
+    pub(crate) fn validate_backend(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(_) => Ok(()),
+            FilePathVariant::Bucket(_) => storage.s3().map(|_| ()),
+        }
+    }
+
     /// Appends a suffix using the destination's path syntax.
     ///
     /// Local suffixes follow filesystem path rules. S3 suffixes append literal key text, separated
@@ -110,7 +122,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         body: Bytes,
-        condition: &WriteCondition,
+        condition: &WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
@@ -140,7 +152,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: impl AsRef<Utf8Path>,
-        condition: &WriteCondition,
+        condition: &WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         match &self.variant {
             FilePathVariant::Local(path) => {
@@ -172,7 +184,7 @@ impl FilePath {
         &self,
         storage: &Storage,
         source: &Self,
-        condition: &WriteCondition,
+        condition: &WriteCondition<'_>,
     ) -> Result<(), StorageError> {
         if let (FilePathVariant::Bucket(source), FilePathVariant::Bucket(destination)) =
             (&source.variant, &self.variant)
@@ -216,6 +228,37 @@ impl FilePath {
                 .read(path)
                 .await
                 .map(|(_, reader)| Either::Right(reader)),
+        }
+    }
+
+    /// Removes this file or object.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if the backend is unavailable or deletion fails. An absent local
+    /// file returns a not-found error. S3 accepts an absent object.
+    pub(crate) async fn remove(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => tokio::fs::remove_file(path).await.map_err(From::from),
+            FilePathVariant::Bucket(path) => storage.s3()?.remove(path).await,
+        }
+    }
+
+    /// Removes a local directory recursively or every S3 object under its slash-delimited prefix.
+    ///
+    /// Retains an S3 object whose key equals this path without a trailing slash.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StorageError`] if the backend is unavailable or listing or deletion fails. Removal
+    /// may be partial. An absent local directory returns a not-found error. An empty S3 prefix
+    /// succeeds.
+    pub(crate) async fn remove_dir_all(&self, storage: &Storage) -> Result<(), StorageError> {
+        match &self.variant {
+            FilePathVariant::Local(path) => {
+                tokio::fs::remove_dir_all(path).await.map_err(From::from)
+            }
+            FilePathVariant::Bucket(path) => storage.s3()?.remove_dir_all(path).await,
         }
     }
 

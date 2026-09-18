@@ -262,9 +262,7 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
   const liveStatus = getPart("live-status");
 
   expect(dock.className).toContain("d_grid");
-  expect(dock.className).toContain(
-    "grid-tc_[auto_minmax(0,_1fr)_auto]",
-  );
+  expect(dock.className).toContain("grid-tc_[auto_minmax(0,_1fr)_auto]");
   expect(leftActions.className).toContain("flex-sh_0");
   expect(rightActions.className).toContain("flex-sh_0");
   expect(center.className).toContain("min-w_[0]");
@@ -273,9 +271,7 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
   expect(status.className).toContain("ov_hidden");
   expect(status.className).toContain("tov_ellipsis");
   expect(within(indicator).getByTestId("waveform")).toBeTruthy();
-  expect(
-    liveStatus.textContent,
-  ).toBe(
+  expect(liveStatus.textContent).toBe(
     "Voice status: Audio playback is blocked. Select Play voice audio to hear Live.",
   );
 });
@@ -593,11 +589,16 @@ test("collapses Real-time speed settings until expanded", async () => {
 
   fireEvent.click(realTime);
   expect(realTime.getAttribute("aria-expanded")).toBe("true");
-  expect(
-    screen.getByRole("slider", { name: "Speed" }).getAttribute("aria-valuenow"),
-  ).toBe("1");
+  const speed = screen.getByRole("slider", { name: "Speed" });
+  expect(speed.getAttribute("aria-valuemin")).toBe("0.25");
+  expect(speed.getAttribute("aria-valuemax")).toBe("1.5");
+  expect(speed.getAttribute("aria-valuenow")).toBe("1");
   expect(screen.getByText("1×")).not.toBeNull();
   expect(screen.queryByText("Next reply")).toBeNull();
+
+  speed.focus();
+  fireEvent.keyDown(speed, { key: "ArrowRight" });
+  await waitFor(() => expect(setSpeed).toHaveBeenCalledExactlyOnceWith(1.25));
 });
 
 test("keeps voice visible while toggling devices and refreshes devices when opened", async () => {
@@ -713,6 +714,7 @@ test("keeps voice visible while toggling devices and refreshes devices when open
       "Speaking speed is not available with this voice provider.",
     ),
   ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Real-time" })).toBeNull();
   expect(screen.queryByRole("slider", { name: "Speed" })).toBeNull();
 
   expect(refreshDevices).toHaveBeenCalledOnce();
