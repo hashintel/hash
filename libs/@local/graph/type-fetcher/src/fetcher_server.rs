@@ -248,7 +248,7 @@ impl FetchServer {
 ///
 /// Serves [`FETCH_ONTOLOGY_TYPES_PATH`] for fetching ontology types and `/health` for healthchecks.
 ///
-/// The probe body duplicates `hash_graph_api::rest::probe`, which cannot be reused because that
+/// The probe body duplicates `hash_graph_api::legacy::probe`, which cannot be reused because that
 /// crate depends on this one.
 pub fn router(server: FetchServer) -> Router {
     Router::new()

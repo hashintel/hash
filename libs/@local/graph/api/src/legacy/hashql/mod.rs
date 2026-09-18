@@ -38,7 +38,7 @@ use self::{
     error::{HashQlDiagnosticCategory, status_to_response},
     value::OwnedValue,
 };
-use crate::rest::{
+use crate::legacy::{
     AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse,
 };
 

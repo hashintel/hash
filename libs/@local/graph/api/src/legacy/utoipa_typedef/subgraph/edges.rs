@@ -254,7 +254,7 @@ mod tests {
     };
     use uuid::Uuid;
 
-    use crate::rest::utoipa_typedef::subgraph::Edges;
+    use crate::legacy::utoipa_typedef::subgraph::Edges;
 
     #[test]
     fn merge_ontology() {

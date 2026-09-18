@@ -69,8 +69,8 @@ use super::{
 use crate::{
     email_subscription::MailchimpSubscriptionProvider,
     identity_provider::{EmailLookupError, KratosIdentityProvider},
+    legacy::status::report_to_response,
     oauth_provider::HydraOAuthProvider,
-    rest::status::report_to_response,
 };
 
 /// HTTP timeout for the Kratos admin client.
