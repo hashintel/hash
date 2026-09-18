@@ -4,7 +4,7 @@ use core::{net::SocketAddr, time::Duration};
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::{
-    authentication::{build_session_providers, build_shared_providers},
+    authentication::{EnvironmentProviders, build_explicit_providers, build_session_providers},
     rate_limit::RateLimitConfig,
 };
 use hash_graph_atlas::cli::{self, PasswordString, Storage};
@@ -187,16 +187,15 @@ async fn run_atlas(
                 exclusions,
             });
 
-    let shared_providers = Arc::new(build_shared_providers(
-        None,
-        service_secret.clone().into_unguarded().as_ref().to_owned(),
-        &pool,
-    ));
-    let provider = Arc::new(build_session_providers(
-        session_auth,
-        shared_providers,
-        &pool,
-        &telemetry.meter,
+    let provider = Arc::new((
+        build_explicit_providers(
+            service_secret.clone().into_unguarded().as_ref().to_owned(),
+            &pool,
+        ),
+        (
+            build_session_providers(session_auth, &pool, &telemetry.meter),
+            EnvironmentProviders::<PostgresStorePool>::None,
+        ),
     ));
 
     let serve = cli::ServeCommand::new(args.root, args.serve)

@@ -50,22 +50,34 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
-    let shared_providers = Arc::new(authentication::build_shared_providers(
-        dependencies.cloudflare_access,
-        dependencies.service_secret.clone(),
-        &dependencies.store,
-    ));
-    let session_providers = Arc::new(authentication::build_session_providers(
-        dependencies.session_auth,
-        Arc::clone(&shared_providers),
-        &dependencies.store,
-        &dependencies.meter,
+    let environment = Arc::new(
+        dependencies
+            .cloudflare_access
+            .map(|config| authentication::build_environment_provider(config, &dependencies.store)),
+    );
+    let explicit = || {
+        authentication::build_explicit_providers(
+            dependencies.service_secret.clone(),
+            &dependencies.store,
+        )
+    };
+    let public_provider = Arc::new((explicit(), Arc::clone(&environment)));
+    let internal_provider = Arc::new((
+        explicit(),
+        (
+            authentication::build_session_providers(
+                dependencies.session_auth,
+                &dependencies.store,
+                &dependencies.meter,
+            ),
+            environment,
+        ),
     ));
     let rate_limit_config =
         hash_middleware::rate_limit::RateLimitConfig::from(&dependencies.rate_limit);
     let middleware = Middleware {
-        public_provider: shared_providers,
-        internal_provider: session_providers,
+        public_provider,
+        internal_provider,
         service_secret: Arc::from(dependencies.service_secret),
         authentication_metrics: Arc::new(AuthenticationMetrics::new(&dependencies.meter)),
         rate_limiters: RateLimiters::start(&rate_limit_config, &dependencies.meter),

@@ -62,25 +62,26 @@ impl<C: Caller> AuthenticationProvider<C> for HeaderProvider {
 ///
 /// Returns the router and whether the generated document advertises the session token header.
 fn caller_router<C: Credentials>(operator: ActorId, session_actor: ActorId) -> (Router, bool) {
-    let operator_provider = || {
-        (
-            HeaderProvider {
-                headers: &[ACCESS_JWT_HEADER],
-                actor: operator,
-            },
-            ServiceDelegationProvider::new(
-                SERVICE_SECRET.to_owned(),
-                FixedActorResolver::new(HashMap::from([(operator.into(), operator)])),
-            ),
+    let explicit = || {
+        ServiceDelegationProvider::new(
+            SERVICE_SECRET.to_owned(),
+            FixedActorResolver::new(HashMap::from([(operator.into(), operator)])),
         )
     };
-    let public_provider = Arc::new(operator_provider());
+    let environment = || HeaderProvider {
+        headers: &[ACCESS_JWT_HEADER],
+        actor: operator,
+    };
+    let public_provider = Arc::new((explicit(), environment()));
     let internal_provider = Arc::new((
-        HeaderProvider {
-            headers: &[SESSION_TOKEN_HEADER],
-            actor: session_actor,
-        },
-        operator_provider(),
+        explicit(),
+        (
+            HeaderProvider {
+                headers: &[SESSION_TOKEN_HEADER],
+                actor: session_actor,
+            },
+            environment(),
+        ),
     ));
     let meter = opentelemetry::global::meter("test");
     let config = RateLimitConfig {

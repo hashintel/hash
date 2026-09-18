@@ -1,4 +1,8 @@
 //! Authentication providers shared by the Graph HTTP APIs.
+//!
+//! A router composes them as a chain that consults the explicit credential first, then a session,
+//! then what the environment stamps onto the request: `(ExplicitProviders, (SessionProviders,
+//! EnvironmentProviders))`, or without sessions `(ExplicitProviders, EnvironmentProviders)`.
 
 use alloc::sync::Arc;
 
@@ -25,52 +29,32 @@ pub struct CloudflareAccessConfig {
     pub kratos_admin: KratosAdminConfig,
 }
 
-/// The providers every API accepts: Cloudflare Access JWT (when configured), then service
-/// delegation.
-pub type SharedProviders<S> = (
-    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>,
-    ServiceDelegationProvider<StorePoolActorResolver<S>>,
-);
+/// The credentials a caller presents on purpose: service delegation naming the acting actor.
+pub type ExplicitProviders<S> = ServiceDelegationProvider<StorePoolActorResolver<S>>;
 
-/// The providers of the session-capable APIs: a Kratos session, then the [`SharedProviders`].
-pub type SessionProviders<S> = (
-    KratosSessionProvider<StorePoolActorResolver<S>>,
-    Arc<SharedProviders<S>>,
-);
+/// The credentials a browser carries: the Kratos session.
+pub type SessionProviders<S> = KratosSessionProvider<StorePoolActorResolver<S>>;
 
-/// Builds the [`SharedProviders`].
-///
-/// They resolve no Kratos end-user session.
-pub fn build_shared_providers<S>(
-    cloudflare_access: Option<CloudflareAccessConfig>,
-    service_secret: String,
-    store: &Arc<S>,
-) -> SharedProviders<S>
+/// The credentials the infrastructure stamps onto a request: the Cloudflare Access JWT, when
+/// configured.
+pub type EnvironmentProviders<S> =
+    Option<CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>>;
+
+/// Builds the [`ExplicitProviders`].
+pub fn build_explicit_providers<S>(service_secret: String, store: &Arc<S>) -> ExplicitProviders<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
 {
-    (
-        cloudflare_access.map(|config| {
-            CloudflareAccessProvider::new(
-                JwtValidator::new(config.jwt),
-                KratosEmailActorResolver::new(
-                    config.kratos_admin,
-                    StorePoolActorResolver::new(Arc::clone(store)),
-                ),
-            )
-        }),
-        ServiceDelegationProvider::new(
-            service_secret,
-            StorePoolActorResolver::new(Arc::clone(store)),
-        ),
+    ServiceDelegationProvider::new(
+        service_secret,
+        StorePoolActorResolver::new(Arc::clone(store)),
     )
 }
 
-/// Builds the [`SessionProviders`] around already built [`SharedProviders`].
+/// Builds the [`SessionProviders`].
 pub fn build_session_providers<S>(
     session: KratosSessionConfig,
-    shared: Arc<SharedProviders<S>>,
     store: &Arc<S>,
     meter: &opentelemetry::metrics::Meter,
 ) -> SessionProviders<S>
@@ -78,12 +62,30 @@ where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
 {
-    (
-        KratosSessionProvider::new(
-            session,
+    KratosSessionProvider::new(
+        session,
+        StorePoolActorResolver::new(Arc::clone(store)),
+        meter,
+    )
+}
+
+/// Builds the Cloudflare Access provider of the [`EnvironmentProviders`].
+///
+/// The provider caches the JWKS it verifies against, so a process shares one instance between
+/// its routers.
+pub fn build_environment_provider<S>(
+    config: CloudflareAccessConfig,
+    store: &Arc<S>,
+) -> CloudflareAccessProvider<KratosEmailActorResolver<StorePoolActorResolver<S>>>
+where
+    S: StorePool + Send + Sync,
+    for<'p> S::Store<'p>: PrincipalStore,
+{
+    CloudflareAccessProvider::new(
+        JwtValidator::new(config.jwt),
+        KratosEmailActorResolver::new(
+            config.kratos_admin,
             StorePoolActorResolver::new(Arc::clone(store)),
-            meter,
         ),
-        shared,
     )
 }
