@@ -423,6 +423,19 @@ test("reports permission failure without replacing capture or output", async () 
   harness.detach();
 });
 
+test("clears a device-listing error after a successful refresh", async () => {
+  const harness = setup();
+  await harness.settings.refresh();
+  harness.devices.enumerateDevices.mockRejectedValueOnce(new Error("blocked"));
+  await harness.settings.refresh();
+  expect(harness.settings.getSnapshot().devices.message).toContain(
+    "Could not list audio devices",
+  );
+  await harness.settings.refresh();
+  expect(harness.settings.getSnapshot().devices.message).toBeNull();
+  harness.detach();
+});
+
 test("shows missing devices and allows refreshing a dead default microphone", async () => {
   const harness = setup();
   await harness.settings.refresh();

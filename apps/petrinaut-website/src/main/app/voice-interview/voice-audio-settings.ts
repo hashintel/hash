@@ -246,13 +246,14 @@ export class VoiceAudioSettings {
     void this.refresh(true);
   };
 
-  async refresh(recover = false) {
+  async refresh(recover = false, preserveMessage = false) {
     const epoch = this.#epoch;
     if (!this.mediaDevices?.enumerateDevices || !this.#connection) return;
     if (recover && this.#state.devices.busy) {
       this.#recoveryPending = true;
       return;
     }
+    const devicesAtStart = this.#state.devices;
     try {
       const devices = await this.mediaDevices.enumerateDevices();
       if (epoch !== this.#epoch) return;
@@ -271,16 +272,18 @@ export class VoiceAudioSettings {
               device.label ||
               `${kind === "audioinput" ? "Microphone" : "Speaker"} ${index + 1}`,
           }));
+      const hasMicrophone = devices.some(
+        (device) => device.kind === "audioinput",
+      );
       this.#devices({
         microphones: options("audioinput"),
         speakers: options("audiooutput"),
-        ...(this.#state.devices.message === null &&
-        !devices.some((device) => device.kind === "audioinput")
-          ? {
-              message:
-                "No microphone detected. Connect one and refresh devices, or continue in text.",
-            }
-          : {}),
+        message:
+          preserveMessage || this.#state.devices !== devicesAtStart
+            ? this.#state.devices.message
+            : hasMicrophone
+              ? null
+              : "No microphone detected. Connect one and refresh devices, or continue in text.",
       });
       if (recover && this.#state.devices.busy) this.#recoveryPending = true;
       if (recover && !this.#state.devices.busy) {
@@ -374,7 +377,7 @@ export class VoiceAudioSettings {
     this.#devices({ busy: false });
     const recover = this.#recoveryPending;
     this.#recoveryPending = false;
-    void this.refresh(recover);
+    void this.refresh(recover, true);
   }
 
   async setSpeaker(deviceId: string, fallback = false) {
