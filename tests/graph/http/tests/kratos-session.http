@@ -99,6 +99,7 @@ Content-Type: application/json
 ### Session token authenticates as the provisioned account
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 > {%
@@ -110,6 +111,7 @@ X-Session-Token: {{session_token}}
 ### Session actor is subject to user policies
 POST http://127.0.0.1:4000/actors/user
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: {{session_token}}
 
 {
@@ -164,6 +166,7 @@ X-Session-Token: {{session_token}}
 # would a request without credentials — not with the invalid-session text.
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: invalid-session-token
 
 > {%
@@ -181,6 +184,7 @@ X-Session-Token: invalid-session-token
 ### Invalid session token does not fall back to the actor-ID header
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: invalid-session-token
 X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
@@ -246,6 +250,7 @@ Content-Type: application/json
 ### Session of an unprovisioned identity is rejected
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: {{unprovisioned_session_token}}
 
 > {%
@@ -319,6 +324,7 @@ Content-Type: application/json
 ### Session provisioned for an unknown actor is rejected
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
+Authorization: <omit>
 X-Session-Token: {{unknown_actor_session_token}}
 
 > {%
