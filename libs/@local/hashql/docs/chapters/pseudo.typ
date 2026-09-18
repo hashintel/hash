@@ -18,28 +18,73 @@ $dots$ is used to omit elements, and has no specific meaning outside of it, it m
 
 Thea: please derive the syntax from the HIR pretty-printer (and syntax highlighting for it).
 
-The specification notation follows the expression forms of the high-level intermediate representation (HIR) pretty-printer. Examples use descriptive names in place of compiler-generated identifiers and abbreviate expanded types where the surrounding text defines the abbreviation. These conventions expose the expression structure without defining a concrete frontend grammar.
+#import "../template/grammar.typ": grammar
+#import "../template/lib.typ": schematic
 
-=== Reading conventions <pseudo-conventions>
+#let definitions = json("../syntax/pseudo-grammar.json")
+#let lexical-tokens = ("IDENTIFIER", "NUMBER_LITERAL", "STRING_LITERAL")
+#let syntax(..names) = grammar(definitions, names.pos(), tokens: lexical-tokens)
 
-Schematic forms use `e`, `e1` and `e2` for expressions, `x` for a local name, and `T` and `U` for types. An ellipsis `...` marks omitted elements rather than an operation. Parentheses make grouping explicit, while indentation and line breaks organize longer expressions for reading. Explanatory comments begin with `//`; they are annotations added to examples, not part of the printer's output.
+The following extended BNF (EBNF) defines the notation used in specification examples. Its expression forms follow the high-level intermediate representation (HIR) pretty-printer, with readable names in place of compiler-assigned identifiers. The grammar presentation adapts the Rust Reference's distinction between terminals, productions and repetition operators @rust-reference-notation.
 
-=== Values and access <pseudo-values>
+=== Grammar notation <pseudo-grammar-notation>
 
-Primitive values use `null`, `true`, `false`, decimal numbers and double-quoted strings. String escapes follow the printer's display notation, including `\n`, `\"`, `\\` and `\u{3bb}`. Aggregate values retain distinct delimiters for positional elements, named fields and key-value pairs:
+A production associates a name with its permitted forms through `::=`. Monospace text denotes a terminal, linked names denote productions or lexical tokens, and adjacent items form a sequence. The following operators extend BNF with optional and repeated groups:
 
 #table(
   columns: (auto, 1fr),
-  table.header([Form], [Notation]),
-  [Tuple], [`()`, `(e,)`, `(e1, e2)`],
-  [Struct], [`(:)`, `(name: e)`, `(name: e1, active: e2)`],
-  [List], [`[]`, `[e1, e2]`],
-  [Dictionary], [`{}`, `{e1: e2}`],
-  [Field access], [`e.name`],
-  [Index access], [`e1[e2]`],
+  table.header([Notation], [Meaning]),
+  [`x y`], [A sequence containing `x` followed by `y`.],
+  [`x | y`], [Either `x` or `y`.],
+  [`x?`], [Zero or one occurrence of `x`.],
+  [`x*`], [Zero or more occurrences of `x`.],
+  [`x+`], [One or more occurrences of `x`.],
+  [`(x)`], [A group in the grammar, rather than a literal parenthesis.],
 )
 
-The trailing comma distinguishes the single-element tuple `(e,)` from the grouped expression `(e)`. A struct labels each field with a name, whereas a dictionary associates a key expression with a value expression. Field access uses a dot; index access encloses its index in brackets. Parentheses group compound receivers, as in `(if test then left else right).name`.
+Postfix repetition binds more tightly than sequence, and sequence binds more tightly than alternation. Alternatives describe permitted forms without prescribing a parser's choice order. Each production has an expandable railroad diagram: rounded rectangles denote terminals, square rectangles denote references, bypass paths denote optionality, and return paths denote repetition.
+
+The expression metavariables from @pseudo-conventions can occur inside schematic code:
+
+#schematic("let x = ", $bb(e)_1$, " in ", $bb(e)_2$)
+
+The two metavariables stand for complete expressions rather than identifier tokens. Ordinary code examples retain their literal spelling, including underscores in identifiers and strings.
+
+The lexical tokens below describe readable example text. Whitespace and `//` comments may separate tokens, but do not occur inside an identifier or number. Input prefixes and type-argument lists adjoin the names they qualify: `$limit`, `?limit` and `f<T>`.
+
+#table(
+  columns: (auto, 1fr),
+  table.header([Token], [Spelling]),
+  [#html.span(id: "grammar-IDENTIFIER")[`IDENTIFIER`]],
+  [An ASCII letter or `_`, followed by ASCII letters, digits or `_`. The words `let`, `in`, `if`, `then`, `else`, `thunk`, `as`, `true`, `false` and `null` are excluded.],
+  [#html.span(id: "grammar-NUMBER_LITERAL")[`NUMBER_LITERAL`]],
+  [A decimal integer part, optionally followed by a fractional part and an exponent. The integer part is `0` or a nonzero digit followed by digits; the fractional part is `.` followed by digits; the exponent is `e` or `E`, an optional sign, and digits. A leading minus is a unary operator.],
+  [#html.span(id: "grammar-STRING_LITERAL")[`STRING_LITERAL`]],
+  [A double-quoted string containing printable ASCII characters other than `"` and `\`, or escape sequences. Escapes are `\t`, `\r`, `\n`, `\'`, `\"`, `\\` and `\u{h}`, where `h` is one to six hexadecimal digits denoting a Unicode scalar value.],
+)
+
+The identifier alphabet is a readability convention for this notation, not a restriction on frontend names. String escapes retain the printer's display convention. Literal compiler-output excerpts may contain diagnostic spellings outside these lexical tokens.
+
+=== Expressions <pseudo-expressions>
+
+An expression is a binding, conditional, closure, thunk, graph read or operation. Operands combine a primary expression with field access, index access or calls. Parentheses admit an arbitrary expression in a primary position: `(if test then left else right).name` uses a conditional as its receiver.
+
+#syntax("Expression", "Operand", "PrimaryExpression", "GroupedExpression")
+
+=== Literals and aggregates <pseudo-values>
+
+Aggregate delimiters distinguish positional elements, named fields and key-value pairs. The empty struct is `(:)`, the empty tuple is `()`, and a single-element tuple retains its comma. Other comma-separated forms omit a trailing comma, as in the printer's output.
+
+#syntax(
+  "LiteralExpression",
+  "ExpressionList",
+  "TupleExpression",
+  "StructExpression",
+  "FieldInitializer",
+  "ListExpression",
+  "DictionaryExpression",
+  "DictionaryEntry",
+)
 
 ```hashql
 (name: "Ada", active: true)
@@ -48,21 +93,17 @@ The trailing comma distinguishes the single-element tuple `(e,)` from the groupe
 (2,)
 ```
 
-=== Names and calls <pseudo-calls>
+=== Names, calls and access <pseudo-calls>
 
-A local reference uses a name such as `x`; a qualified name uses a leading `::` and separates path segments with `::`. Calls append a parenthesized argument list to the function expression. Type arguments, when shown, occur between the name and the argument list:
+A path is either a local name or a fully qualified name beginning with `::`. A reference can carry type arguments without being called, as in `f<T>`. Postfix forms compose from left to right; `f(x).name` denotes field access on the call result, while `f()` retains an empty value-argument list.
 
-```hashql
-f(x, y)
-::core::math::add(left, right)
-::core::math::add<Number>(left, right)
-```
-
-A reference such as `f<T>` does not include a value-argument list. The form `f()` denotes a call with no value arguments. Type constructors use the same call shape, with the constructor's name in the function position.
+#syntax("ReferenceExpression", "Path", "Postfix", "CallSuffix", "FieldSuffix", "IndexSuffix")
 
 === Bindings and conditionals <pseudo-bindings>
 
-A binding expression has the form `let x = e1 in e2`. A comma-separated binding list shares one `let` and a single `in` before the body. A conditional has the form `if test then e1 else e2`; both branches occupy expression positions. The following example combines these forms with field access:
+A `let` expression contains one or more bindings followed by a body. A conditional supplies both branch expressions. Type assertions attach to a binding's value rather than introducing a typed binding pattern.
+
+#syntax("LetExpression", "Binding", "IfExpression")
 
 ```hashql
 let person = (name: "Ada", age: 37),
@@ -73,62 +114,50 @@ if person.age >= minimum then person.name else "unavailable"
 
 === Closures and thunks <pseudo-closures>
 
-A closure consists of typed parameters, a result type and an expression body: `(x: T): U -> e`. The colon after the parameter list introduces the result type, and `->` introduces the body. Generic parameters precede the parameter list; a bound follows the corresponding parameter after a colon.
+A closure declares typed parameters and a result type before its body. Generic parameters precede the value-parameter list. The distinct `thunk` form retains the printer's keyword instead of sharing the syntax of a zero-parameter closure.
+
+#syntax("ClosureExpression", "ParameterList", "Parameter", "ThunkExpression")
 
 ```hashql
-(value: Integer): Boolean -> value >= 18
-<T>(value: T): T -> value
 <T: Number>(left: T, right: T): T ->
     ::core::math::add<T>(left, right)
 ```
 
-A zero-parameter closure retains its parameter list, as in `(): Integer -> 2`. Compiler-transformation examples use `thunk -> e` for the distinct HIR thunk form. These two forms remain distinguishable even when their bodies are identical.
+=== Operators and inputs <pseudo-operations>
 
-=== Operators and type notation <pseudo-types>
+An operation takes operands rather than arbitrary ungrouped expressions. Nested operations therefore use parentheses, as in `(x >= lower) && (x < upper)`, without relying on an implicit precedence table. Arithmetic uses qualified calls such as `::core::math::add(x, y)`.
 
-Binary operations appear between their operands. The printer exposes comparison operators `==`, `!=`, `<`, `<=`, `>` and `>=`, together with Boolean operators `&&` and `||`. Unary forms place `!`, `-` or `~` before the operand. Arithmetic examples use calls such as `::core::math::add(x, y)`.
+#syntax("OperationExpression", "UnaryOperator", "BinaryOperator", "AssertionOperator")
 
-```hashql
-(x >= lower) && (x < upper)
-!(x == y)
-value as Number
-value as! Number
-```
+The assertion spellings distinguish non-forcing `as` from forcing `as!`. Input operations distinguish a required load, a non-required load and a presence test. The grammar states their spelling rather than their runtime failure or conversion behavior.
 
-Nested operator expressions use parentheses rather than relying on an implicit precedence table. The spellings `e as T` and `e as! T` distinguish non-forcing and forcing type assertions. They identify the HIR assertion forms without defining a runtime conversion or failure behavior.
-
-Type expressions use the following forms. The same tuple and struct delimiters apply, with types in place of value expressions. A closure type contains parameter types without parameter names, which distinguishes `(T) -> U` from the closure expression `(x: T): U -> e`.
-
-#table(
-  columns: (auto, 1fr),
-  table.header([Form], [Notation]),
-  [Primitive type], [`Boolean`, `Integer`, `Number`, `String`, `Null`],
-  [Tuple type], [`()`, `(T,)`, `(T, U)`],
-  [Struct type], [`(:)`, `(name: T, active: Boolean)`],
-  [List type], [`List<T>`],
-  [Dictionary type], [`Dict<T, U>`],
-  [Union], [`T | U`],
-  [Intersection], [`T & U`],
-  [Closure type], [`(T, U) -> T`],
-  [Never type], [`!`],
-  [Unknown type], [`?`],
-)
-
-Named types use their names, with qualification where needed. Parentheses retain grouping in nested type expressions, as in `(T | U) & V`. The type position distinguishes `!` and `?` from expression-level operators and input prefixes.
-
-=== Query inputs <pseudo-inputs>
-
-Input operations refer to parameters by name. The printer writes a required load as `$name`, a non-required load as `?name`, and a presence test as `$exists(name)`. The following form uses the presence test to choose between a load and a default expression:
+#syntax("InputExpression")
 
 ```hashql
 if $exists(limit) then ?limit else (10 as Integer)
 ```
 
-The non-required prefix is `?`, not `$?`. Its spelling is distinct from the standalone unknown type `?` in @pseudo-types. The example tests presence before the load and makes no assumption about a non-required load from an absent input.
+=== Types <pseudo-types>
+
+Type references use the same path and type-argument notation as expression references. Primitive types have names such as `Boolean`, `Integer`, `Number`, `String` and `Null`; `List<T>` and `Dict<K, V>` use the generic reference form. The standalone terminals `!` and `?` denote the never and unknown types.
+
+#syntax("Type", "TypePrimary", "TypeReference", "TypeList", "TupleType", "StructType", "TypeField")
+
+Unions and intersections contain primary types. Mixing the two operators requires grouping, as in `(T | U) & V`. A closure type gives parameter types without parameter names; a generic type prefixes its body with type parameters.
+
+#syntax("UnionType", "IntersectionType", "ClosureType", "GenericType")
+
+Type parameters can carry bounds. Type arguments supply types at a reference site. Both lists are nonempty when their angle brackets are present.
+
+#syntax("TypeParameters", "TypeParameter", "TypeArguments")
 
 === Graph reads <pseudo-graph>
 
-A specialized HIR graph read consists of a head, zero or more body stages and a tail. The printer separates these stages with `|>` and retains their qualified names. The following example abbreviates the entity type as `Entity`, with `axis` standing for the head's temporal-axis argument:
+A specialized graph read has a head, zero or more filter stages and a collect tail. The `|>` separators belong to these graph stages rather than introducing a general composition operator. Each filter receives an expression, which can be a closure literal or a reference to a predicate.
+
+#syntax("GraphReadExpression", "GraphHead", "GraphFilter", "GraphTail")
+
+The following example abbreviates the entity type as `Entity`, with `axis` standing for the head's temporal-axis argument. The collect tail has no explicit argument list. The pipeline retains the printer's qualified stage names.
 
 ```hashql
 ::graph::head::entities(axis)
@@ -138,10 +167,8 @@ A specialized HIR graph read consists of a head, zero or more body stages and a 
 |> ::graph::tail::collect
 ```
 
-The filter takes a closure, whereas the collect tail has no explicit argument list. The pipeline makes the graph-read structure visible without nesting each stage inside the next stage's call. This use of `|>` is specific to the graph-read form rather than a general function-composition operator.
-
 === Relationship to compiler output <pseudo-diagnostics>
 
-Compiler output can contain mangled local names such as `x:0`, generated locals such as `%0`, generic parameter identifiers such as `?30`, and inference variables such as `_0`. Specification examples replace these identifiers with descriptive names and keep distinct bindings distinct. Generic parameters therefore appear as `T` or `U` rather than compiler-assigned numbers.
+The grammar describes specification examples rather than a lossless serialization of HIR. Examples replace mangled names such as `x:0`, generated locals such as `%0`, generic identifiers such as `?30`, and inference variables such as `_0` with readable names. Distinct binding identities retain distinct names, and opaque representations or substitution annotations appear only when the example discusses them.
 
-The type printer can also expose opaque representations, substitutions and recursive-type truncation. Examples omit these diagnostic expansions unless the expansion is the subject of the discussion. Literal compiler-output excerpts retain the original identifiers and expansions; the simplified examples are explanatory notation rather than text intended for round-trip parsing.
+The printer receives a structured tree, whereas a written example must expose its own grouping. The grammar therefore requires parentheses around nested operator expressions and compound call or access receivers. Literal compiler-output excerpts retain their original identifiers and formatting instead of being rewritten to satisfy these presentation conventions.

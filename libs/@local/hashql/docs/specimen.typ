@@ -1,4 +1,4 @@
-#import "template.typ": note, rule, template, term
+#import "template/lib.typ": note, rule, template, term
 
 #show: body => template(
   body,

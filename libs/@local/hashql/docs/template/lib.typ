@@ -149,7 +149,7 @@
       #html.meta(name: "viewport", content: "width=device-width, initial-scale=1")
       #html.title(title)
       #if description != none { html.meta(name: "description", content: description) }
-      #html.style(read("template.css"))
+      #html.style(read("template.css") + "\n" + read("grammar.css"))
     ]
     #html.body[
       #html.a(class: "skip-link", href: "#main")[Skip to content]

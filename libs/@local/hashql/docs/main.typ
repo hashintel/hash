@@ -1,4 +1,4 @@
-#import "template.typ": template
+#import "template/lib.typ": template
 
 #show: it => template(
   it,
@@ -10,3 +10,6 @@
 = HashQL
 
 #include "chapters/pseudo.typ"
+
+#heading(level: 2, numbering: none)[References] <references>
+#bibliography("references.yml", title: none, style: "ieee", full: true)

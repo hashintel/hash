@@ -37,7 +37,7 @@ The forms in @notation use the following conventions.
 Import these helpers when needed:
 
 ```typst
-#import "template.typ": note, rule
+#import "template/lib.typ": note, rule
 
 #rule("example.order")[A statement with a named fragment.]
 
@@ -59,18 +59,47 @@ let minimum = 18 in
 ```
 ````
 
-Typst applies the local `syntax/hashql.sublime-syntax` definition and `syntax/reference.tmTheme` palette during compilation. The resulting HTML contains highlighted text without a script or external stylesheet. Untagged code and other language tags remain monochrome. Inline examples can use `#raw("x as Integer", lang: "hashql")`.
+Typst applies the local `template/syntax/hashql.sublime-syntax` definition and `template/syntax/reference.tmTheme` palette during compilation. The resulting HTML contains highlighted text without a script or external stylesheet. Untagged code and other language tags remain monochrome. Inline examples can use `#raw("x as Integer", lang: "hashql")`.
 
 The highlighting is lexical rather than a parser or type checker. It recognizes the notation's keywords, literals, paths, input prefixes and type-like names, with `//` for explanatory comments. Compiler-output excerpts retain their diagnostic identifiers, with highlighting for generated locals and type variables. These lexical categories do not establish program validity.
 
 The notation chapter derives expression forms from [`hir/src/pretty.rs`](../hir/src/pretty.rs), aggregate delimiters from [`core/src/pretty/formatter.rs`](../core/src/pretty/formatter.rs), and type forms from [`core/src/type/pretty.rs`](../core/src/type/pretty.rs). `chapters/pseudo.typ` describes the simplifications used in specification examples. These forms do not define a new frontend.
+
+## Grammar blocks
+
+`syntax/pseudo-grammar.json` holds the specification's EBNF productions. A production's value uses backticks for terminal text, names for references, whitespace for sequence, `|` for alternatives, parentheses for grouping, and postfix `?`, `*` or `+` for optionality and repetition.
+
+`template/grammar.typ` renders linked productions and expandable railroad diagrams from the same parsed definition. Rebuilding with Typst updates both representations; there is no separate diagram-generation command or browser script. `chapters/pseudo.typ` supplies the lexical-token definitions and selects the productions shown in each section.
+
+To change a production, edit its right-hand side in the JSON file. To add a production, add its definition and include its name in the chapter's corresponding `syntax(...)` call. Display each production once so its fragment has one destination. Malformed EBNF and unknown references fail compilation.
+
+The diagrams use local KH Teka Mono, with DejaVu Sans Mono as the compiler fallback. Their glyphs and colors are part of the compiled SVG. Edit the diagram constants in `template/grammar.typ` alongside the page palette when changing those colors. `template/grammar.css` styles the production text and disclosures. Printing retains the textual grammar and omits the expandable diagrams.
+
+## Schematic code
+
+Use `schematic` to mix literal code text with mathematical metavariables:
+
+```typst
+#import "template/lib.typ": schematic
+
+#schematic("let x = ", $bb(e)_1$, " in ", $bb(e)_2$)
+#schematic($bb(e)^"call"_1$, ".name")
+```
+
+The math uses native MathML, including subscripts and superscripts. String arguments remain literal: `"value_1"` does not become a subscript, and the helper does not reinterpret strings or ordinary raw code. Use `hashql` blocks for code highlighting and `schematic` for forms containing mathematical placeholders.
+
+## References
+
+`references.yml` is a Hayagriva bibliography. Cite an entry with `@mccarthy1960` or `#cite(<mccarthy1960>)`. `main.typ` renders the References section with Typst's numeric IEEE style. It currently includes every entry through `full: true`, so background references remain visible while citations in the prose are still being placed. Set `full: false` to include only cited entries.
+
+The bibliography stores journal information in an entry's `parent`, DOI values under `serial-number`, and web access dates in `url.date`. Add or revise metadata there rather than editing the generated HTML. A missing citation key fails compilation.
 
 ## Glossary and index
 
 Pass a `vocabulary` dictionary to the template and mark term uses with `term`. This example uses the specimen's synthetic sequence notation:
 
 ```typst
-#import "template.typ": template, term
+#import "template/lib.typ": template, term
 
 #show: template.with(vocabulary: (
   sequence: (
@@ -92,6 +121,6 @@ The template appends a glossary containing every supplied definition, sorted by 
 
 ## Fonts and styling
 
-`template.css` uses locally installed KH Teka for text and headings, KH Teka Mono for code, and KH Giga for block quotations. System sans-serif, monospace and serif families provide fallbacks. The HTML does not load or include those font files. The browser renders equations from MathML.
+`template/template.css` uses locally installed KH Teka for text and headings, KH Teka Mono for code, and KH Giga for block quotations. System sans-serif, monospace and serif families provide fallbacks. The HTML does not load or include those font files. The browser renders equations from MathML.
 
-The page stays light regardless of the browser's preferred color scheme. Browser printing removes navigation and wraps long code lines. Edit `template.css` to change the presentation, then rebuild the HTML.
+The page stays light regardless of the browser's preferred color scheme. Browser printing removes navigation and wraps long code lines. Edit `template/template.css` to change the presentation, then rebuild the HTML.

@@ -1,0 +1,30 @@
+mccarthy1960:
+  type: Article
+  title: "Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part {I}"
+  author: "McCarthy, John"
+  date: 1960-04
+  page-range: 184-195
+  serial-number:
+    doi: 10.1145/367177.367199
+  parent:
+    type: Periodical
+    title: "Communications of the {ACM}"
+    volume: 3
+    issue: 4
+
+rfc8259:
+  type: Report
+  title: "The {JavaScript Object Notation (JSON)} Data Interchange Format"
+  editor: "Bray, Tim"
+  date: 2017-12
+  genre: RFC
+  serial-number: "8259"
+  organization: Internet Engineering Task Force
+  url: https://www.rfc-editor.org/rfc/rfc8259
+
+rust-reference-notation:
+  type: Web
+  title: "The {Rust} Reference: Notation"
+  url:
+    value: https://doc.rust-lang.org/reference/notation.html
+    date: 2026-09-18

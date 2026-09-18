@@ -1,0 +1,80 @@
+.grammar-rule {
+  margin-block: 1.75rem;
+  scroll-margin-top: 2rem;
+}
+
+.grammar-body {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.grammar-name {
+  font-family: var(--font-code);
+  font-size: 0.9375em;
+  font-weight: 500;
+}
+
+.grammar-name a {
+  color: var(--ink);
+}
+
+.grammar-op {
+  margin-inline: 0.15em;
+  color: var(--secondary);
+}
+
+.grammar-term {
+  font-family: var(--font-code);
+  font-size: 0.9375em;
+  white-space: pre;
+}
+
+.grammar-nonterm {
+  color: var(--link);
+  font-style: italic;
+}
+
+.grammar-body a {
+  text-decoration: none;
+}
+
+.grammar-body a:is(:hover, :focus-visible) {
+  text-decoration: underline;
+}
+
+.grammar-diagram {
+  margin-block: 0.6rem 0;
+}
+
+.grammar-diagram summary {
+  cursor: pointer;
+  color: var(--secondary);
+  font-size: 0.875rem;
+}
+
+.grammar-diagram summary:is(:hover, :focus-visible) {
+  color: var(--link);
+}
+
+.grammar-diagram-scroll {
+  margin-block: 0.5rem 0;
+  overflow-x: auto;
+  padding-block: 0.5rem;
+}
+
+.grammar-diagram-scroll svg {
+  display: block;
+  max-width: none;
+}
+
+.grammar-diagram-scroll a {
+  text-decoration: none;
+}
+
+@media print {
+  .grammar-diagram {
+    display: none;
+  }
+}
