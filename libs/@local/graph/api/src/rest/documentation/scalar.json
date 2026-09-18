@@ -1,0 +1,10 @@
+{
+  "agent": {
+    "disabled": true
+  },
+  "hideClientButton": true,
+  "orderSchemaPropertiesBy": "preserve",
+  "showOperationId": true,
+  "telemetry": false,
+  "withDefaultFonts": false
+}

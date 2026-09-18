@@ -83,3 +83,27 @@ pub struct RateLimitConfig {
     /// Requests a fresh actor may send at once.
     pub rate_limit_actor_burst: NonZeroU32,
 }
+
+/// Actor and anonymous request quotas for one group of routes.
+#[derive(Debug, Clone, Copy)]
+pub struct PrincipalRateLimitConfig {
+    /// Sustained anonymous requests per hour and client address.
+    pub anonymous_per_hour: NonZeroU32,
+    /// Requests a fresh anonymous client address may send at once.
+    pub anonymous_burst: NonZeroU32,
+    /// Sustained requests per hour and actor.
+    pub actor_per_hour: NonZeroU32,
+    /// Requests a fresh actor may send at once.
+    pub actor_burst: NonZeroU32,
+}
+
+impl From<&RateLimitConfig> for PrincipalRateLimitConfig {
+    fn from(config: &RateLimitConfig) -> Self {
+        Self {
+            anonymous_per_hour: config.rate_limit_anonymous_per_hour,
+            anonymous_burst: config.rate_limit_anonymous_burst,
+            actor_per_hour: config.rate_limit_actor_per_hour,
+            actor_burst: config.rate_limit_actor_burst,
+        }
+    }
+}

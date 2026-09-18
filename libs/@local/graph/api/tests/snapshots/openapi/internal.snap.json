@@ -1,0 +1,552 @@
+{
+  "components": {
+    "responses": {
+      "AuthenticationRejected": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "properties": {
+                "detail": {
+                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+                  "examples": [
+                    "This operation requires a machine actor."
+                  ],
+                  "type": "string"
+                },
+                "instance": {
+                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+                  "examples": [
+                    "https://example.com/problem-occurrences/42"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                },
+                "status": {
+                  "const": 401,
+                  "description": "The HTTP status code sent with this occurrence.",
+                  "examples": [
+                    401
+                  ],
+                  "type": "integer"
+                },
+                "title": {
+                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+                  "examples": [
+                    "Unauthorized"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "default": "about:blank",
+                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+                  "examples": [
+                    "https://example.com/problems/unauthorized"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "title",
+                "status"
+              ],
+              "title": "Problem Details",
+              "type": "object"
+            }
+          }
+        },
+        "description": "The credentials cannot resolve to a permitted caller."
+      },
+      "AuthenticationUnavailable": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "properties": {
+                "detail": {
+                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+                  "examples": [
+                    "This operation requires a machine actor."
+                  ],
+                  "type": "string"
+                },
+                "instance": {
+                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+                  "examples": [
+                    "https://example.com/problem-occurrences/42"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                },
+                "status": {
+                  "const": 503,
+                  "description": "The HTTP status code sent with this occurrence.",
+                  "examples": [
+                    503
+                  ],
+                  "type": "integer"
+                },
+                "title": {
+                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+                  "examples": [
+                    "Service Unavailable"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "default": "about:blank",
+                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+                  "examples": [
+                    "https://example.com/problems/service-unavailable"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "title",
+                "status"
+              ],
+              "title": "Problem Details",
+              "type": "object"
+            }
+          }
+        },
+        "description": "The credential provider or actor store is unavailable."
+      },
+      "InternalServerError": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "properties": {
+                "detail": {
+                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+                  "examples": [
+                    "This operation requires a machine actor."
+                  ],
+                  "type": "string"
+                },
+                "instance": {
+                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+                  "examples": [
+                    "https://example.com/problem-occurrences/42"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                },
+                "status": {
+                  "const": 500,
+                  "description": "The HTTP status code sent with this occurrence.",
+                  "examples": [
+                    500
+                  ],
+                  "type": "integer"
+                },
+                "title": {
+                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+                  "examples": [
+                    "Internal Server Error"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "default": "about:blank",
+                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+                  "examples": [
+                    "https://example.com/problems/internal-server-error"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "title",
+                "status"
+              ],
+              "title": "Problem Details",
+              "type": "object"
+            }
+          }
+        },
+        "description": "An internal error prevented the request from completing."
+      },
+      "MalformedCredentials": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "properties": {
+                "detail": {
+                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+                  "examples": [
+                    "This operation requires a machine actor."
+                  ],
+                  "type": "string"
+                },
+                "instance": {
+                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+                  "examples": [
+                    "https://example.com/problem-occurrences/42"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                },
+                "status": {
+                  "const": 400,
+                  "description": "The HTTP status code sent with this occurrence.",
+                  "examples": [
+                    400
+                  ],
+                  "type": "integer"
+                },
+                "title": {
+                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+                  "examples": [
+                    "Bad Request"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "default": "about:blank",
+                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+                  "examples": [
+                    "https://example.com/problems/bad-request"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "title",
+                "status"
+              ],
+              "title": "Problem Details",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Malformed credentials or actor header."
+      },
+      "RateLimited": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "description": "An RFC 9457 problem details object with problem-specific extension members.\n\nSerialization includes `type`, `title`, and `status`, plus `detail` and `instance` when\nsupplied.",
+              "properties": {
+                "detail": {
+                  "description": "A human-readable explanation of this occurrence that helps the client correct the problem.\nUse extension members for structured information.",
+                  "examples": [
+                    "This operation requires a machine actor."
+                  ],
+                  "type": "string"
+                },
+                "instance": {
+                  "description": "A URI reference identifying this occurrence. It may identify the occurrence without\nresolving to further information.",
+                  "examples": [
+                    "https://example.com/problem-occurrences/42"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                },
+                "status": {
+                  "const": 429,
+                  "description": "The HTTP status code sent with this occurrence.",
+                  "examples": [
+                    429
+                  ],
+                  "type": "integer"
+                },
+                "title": {
+                  "description": "A short, human-readable summary of the problem type. Keep it the same across occurrences,\nexcept for localization.",
+                  "examples": [
+                    "Too Many Requests"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "default": "about:blank",
+                  "description": "A URI reference identifying the problem type. Use `about:blank` when the HTTP status code\nfully describes the problem type. If `type` is omitted during deserialization, it defaults\nto `about:blank`.",
+                  "examples": [
+                    "https://example.com/problems/too-many-requests"
+                  ],
+                  "format": "uri-reference",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "title",
+                "status"
+              ],
+              "title": "Problem Details",
+              "type": "object"
+            }
+          }
+        },
+        "description": "The request exceeds its rate limit.",
+        "headers": {
+          "Retry-After": {
+            "description": "Whole seconds before retrying.",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "simple"
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ActorId": {
+        "description": "An actor's type and UUID.",
+        "oneOf": [
+          {
+            "properties": {
+              "actorType": {
+                "const": "user",
+                "type": "string"
+              },
+              "id": {
+                "description": "The UUID of a user.",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "title": "User",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "actorType": {
+                "const": "machine",
+                "type": "string"
+              },
+              "id": {
+                "description": "The UUID of a machine actor.",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "title": "Machine",
+            "type": "object"
+          },
+          {
+            "properties": {
+              "actorType": {
+                "const": "ai",
+                "type": "string"
+              },
+              "id": {
+                "description": "The UUID of an AI agent.",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "actorType",
+              "id"
+            ],
+            "title": "Ai",
+            "type": "object"
+          }
+        ]
+      },
+      "AuthenticatedCallerResponse": {
+        "description": "The resolved caller.",
+        "properties": {
+          "actor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorId"
+              }
+            ],
+            "description": "The resolved actor."
+          }
+        },
+        "required": [
+          "actor"
+        ],
+        "type": "object"
+      },
+      "CallerResponse": {
+        "description": "The resolved caller.",
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorId"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The resolved actor, or `null` for an anonymous request."
+          }
+        },
+        "required": [
+          "actor"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "cloudflareAccess": {
+        "description": "Cloudflare Access JWT, when configured.",
+        "in": "header",
+        "name": "Cf-Access-Jwt-Assertion",
+        "type": "apiKey"
+      },
+      "delegatedActor": {
+        "description": "Delegated actor UUID, used with the service credential. The nil UUID resolves as anonymous.",
+        "in": "header",
+        "name": "X-Authenticated-User-Actor-Id",
+        "type": "apiKey"
+      },
+      "serviceSecret": {
+        "description": "Enter the complete Authorization header value: `HASH-Service <secret>`. Include the `HASH-Service` prefix; the client sends this value unchanged. Requires the `X-Authenticated-User-Actor-Id` header to name the delegated actor.",
+        "in": "header",
+        "name": "authorization",
+        "type": "apiKey"
+      },
+      "sessionCookie": {
+        "description": "Kratos browser session.",
+        "in": "cookie",
+        "name": "ory_kratos_session",
+        "type": "apiKey"
+      },
+      "sessionToken": {
+        "description": "Kratos session token.",
+        "in": "header",
+        "name": "X-Session-Token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Errors use RFC 9457 Problem Details with the `application/problem+json` media type.\n\nReplacing `about:blank` with a specific problem type URI is a non-breaking change. Clients should handle unrecognized problem types using the HTTP status code.\n",
+    "title": "Internal",
+    "version": "unversioned"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/internal/authenticated-caller": {
+      "get": {
+        "operationId": "getAuthenticatedCaller",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedCallerResponse"
+                }
+              }
+            },
+            "description": "The resolved caller."
+          },
+          "400": {
+            "$ref": "#/components/responses/MalformedCredentials"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationRejected"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/AuthenticationUnavailable"
+          }
+        },
+        "security": [
+          {
+            "sessionToken": []
+          },
+          {
+            "sessionCookie": []
+          },
+          {
+            "cloudflareAccess": []
+          },
+          {
+            "delegatedActor": [],
+            "serviceSecret": []
+          }
+        ],
+        "summary": "Get the authenticated caller",
+        "tags": [
+          "Caller"
+        ]
+      }
+    },
+    "/internal/caller": {
+      "get": {
+        "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
+        "operationId": "getCaller",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallerResponse"
+                }
+              }
+            },
+            "description": "The resolved caller."
+          },
+          "400": {
+            "$ref": "#/components/responses/MalformedCredentials"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationRejected"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/AuthenticationUnavailable"
+          }
+        },
+        "security": [
+          {},
+          {
+            "sessionToken": []
+          },
+          {
+            "sessionCookie": []
+          },
+          {
+            "cloudflareAccess": []
+          },
+          {
+            "delegatedActor": [],
+            "serviceSecret": []
+          }
+        ],
+        "summary": "Get the caller",
+        "tags": [
+          "Caller"
+        ]
+      }
+    }
+  }
+}

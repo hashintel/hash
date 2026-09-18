@@ -33,7 +33,7 @@ use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
     http::{StatusCode, request::Parts},
-    response::{Html, IntoResponse as _, Response},
+    response::{IntoResponse as _, Response},
     routing::get,
 };
 use error_stack::{Report, ResultExt as _};
@@ -76,7 +76,7 @@ use hash_middleware::{
         AuthenticationLayer,
         provider::{AuthenticationProvider, Caller},
     },
-    rate_limit::{IpGateLayer, PrincipalLimitLayer},
+    rate_limit::{IpGateLayer, PrincipalLimitLayer, PrincipalRateLimitConfig},
 };
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
@@ -106,7 +106,6 @@ use utoipa::{
         SchemaFormat, SchemaType, schema,
     },
 };
-use utoipa_scalar::Scalar;
 
 pub use self::auth::AuthenticatedActorId;
 use self::{
@@ -534,10 +533,6 @@ where
     pub meter: opentelemetry::metrics::Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
-    /// Whether to serve an interactive rendering of the `OpenAPI` specification.
-    ///
-    /// See [`openapi_only_router`] for the route this adds.
-    pub serve_api_reference: bool,
 }
 
 /// A [`Router`] serving the `OpenAPI` specification (JSON, and necessary subschemas) for the
@@ -546,25 +541,12 @@ where
 /// The specification is served at `/openapi.json`. It references its subschemas by relative path
 /// (`./models/…`), so `/models/{path}` has to stay a sibling of the specification for those
 /// references to resolve.
-///
-/// When `serve_api_reference` is set, an interactive rendering of the specification is served at
-/// `/openapi` in addition to the raw JSON. The rendered page pulls the viewer from a public CDN,
-/// so it requires the browser to have internet access.
-pub fn openapi_only_router(serve_api_reference: bool) -> Router {
+pub fn openapi_only_router() -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-    let api_reference =
-        serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
-
-    let mut router = Router::new()
+    Router::new()
         .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-        .route("/models/{*path}", get(serve_static_schema));
-
-    if let Some(api_reference) = api_reference {
-        router = router.route("/openapi", get(|| async { api_reference }));
-    }
-
-    router
+        .route("/models/{*path}", get(serve_static_schema))
 }
 
 /// Attaches the three request middlewares, which requests traverse as address gate,
@@ -608,6 +590,40 @@ where
         })
 }
 
+pub(crate) fn attach_api_middlewares<P, I>(
+    api: crate::rest::Api,
+    public_provider: Arc<P>,
+    internal_provider: Arc<I>,
+    service_secret: Arc<str>,
+    authentication_metrics: Arc<auth::AuthenticationMetrics>,
+    rate_limiters: &Arc<rate_limit::RateLimiters>,
+    meter: &opentelemetry::metrics::Meter,
+) -> Router
+where
+    P: AuthenticationProvider<Option<ActorId>> + 'static,
+    I: AuthenticationProvider<Option<ActorId>> + 'static,
+{
+    let rate_limiters = rate_limiters.with_principal_limits(&api.rate_limits, api.prefix, meter);
+    match api.audience {
+        crate::rest::Audience::Public => attach_request_middlewares::<_, Option<ActorId>>(
+            api.router,
+            Router::new(),
+            public_provider,
+            service_secret,
+            authentication_metrics,
+            rate_limiters,
+        ),
+        crate::rest::Audience::Internal => attach_request_middlewares::<_, Option<ActorId>>(
+            api.router,
+            Router::new(),
+            internal_provider,
+            service_secret,
+            authentication_metrics,
+            rate_limiters,
+        ),
+    }
+}
+
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
 ///
 /// # Panics
@@ -618,6 +634,11 @@ where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
+    let public_provider = Arc::new(auth::build_operator_provider(
+        dependencies.cloudflare_access.clone(),
+        dependencies.service_secret.clone(),
+        &dependencies.store,
+    ));
     let authentication_provider = Arc::new(auth::build_authentication_provider(
         dependencies.session_auth,
         dependencies.cloudflare_access,
@@ -628,8 +649,18 @@ where
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
     let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));
 
-    let rate_limiters =
-        rate_limit::RateLimiters::start(&(&dependencies.rate_limit).into(), &dependencies.meter);
+    let rate_limit_config = (&dependencies.rate_limit).into();
+    let rate_limiters = rate_limit::RateLimiters::start(&rate_limit_config, &dependencies.meter);
+
+    let apis = crate::rest::apis(&PrincipalRateLimitConfig::from(&rate_limit_config).into());
+    let documentation = crate::rest::documentation::routes(
+        &apis,
+        [crate::rest::documentation::Source {
+            title: "Legacy".to_owned(),
+            slug: "legacy".to_owned(),
+            url: "/openapi.json".to_owned(),
+        }],
+    );
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -641,16 +672,29 @@ where
             async { StatusCode::NOT_FOUND }
         });
 
+    let api_routes = apis.into_iter().fold(Router::new(), |router, api| {
+        router.merge(attach_api_middlewares(
+            api,
+            Arc::clone(&public_provider),
+            Arc::clone(&authentication_provider),
+            Arc::clone(&service_secret),
+            Arc::clone(&authentication_metrics),
+            &rate_limiters,
+            &dependencies.meter,
+        ))
+    });
+
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
     let mut router = attach_request_middlewares::<_, Option<ActorId>>(
         merged_routes,
-        openapi_only_router(dependencies.serve_api_reference),
+        openapi_only_router().merge(documentation),
         authentication_provider,
         service_secret,
         authentication_metrics,
         rate_limiters,
     )
+    .merge(api_routes)
     .layer(
         ServiceBuilder::new()
             .layer(NewSentryLayer::new_from_top())

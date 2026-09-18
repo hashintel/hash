@@ -126,7 +126,8 @@ mod tests {
 
     use axum::{Router, body::Body, extract::ConnectInfo, routing::get};
     use hash_middleware::{
-        authentication::provider::StaticAuthenticationProvider, rate_limit::IpGateLayer,
+        authentication::provider::StaticAuthenticationProvider,
+        rate_limit::{IpGateLayer, PrincipalRateLimitConfig},
     };
     use http::{
         Request, StatusCode,
@@ -213,27 +214,42 @@ mod tests {
     /// so what each route carries is read off the production assembly rather than a copy of it.
     #[tokio::test]
     async fn attaching_budgets_unmatched_paths_and_spares_later_merges() {
-        // Two requests of gate budget: the specification, then one unmatched path before it runs
-        // out.
+        // Four requests of gate budget: both specifications, then two unmatched paths.
         let meter = opentelemetry::global::meter("test");
         let limiters = RateLimiters::start(
             &(&RateLimitConfig {
-                rate_limit_gate_burst: non_zero(2),
+                rate_limit_gate_burst: non_zero(4),
                 ..config(1)
             })
                 .into(),
             &meter,
         );
+        let apis = crate::rest::test_utils::apis();
+        let documentation = crate::rest::documentation::routes(&apis, []);
+        let api_routes = apis.into_iter().fold(Router::new(), |router, api| {
+            router.merge(crate::legacy::attach_api_middlewares(
+                api,
+                Arc::new(StaticAuthenticationProvider::Unreachable),
+                Arc::new(StaticAuthenticationProvider::Unreachable),
+                Arc::from(SERVICE_SECRET),
+                Arc::new(crate::legacy::auth::AuthenticationMetrics::new(&meter)),
+                &limiters,
+                &meter,
+            ))
+        });
         let router = crate::legacy::attach_request_middlewares::<_, Option<ActorId>>(
             Router::new()
                 .route("/entities", get(async || "ok"))
                 .fallback(|| async { StatusCode::NOT_FOUND }),
-            Router::new().route("/openapi.json", get(async || "spec")),
-            Arc::new(StaticAuthenticationProvider::Rejected),
+            Router::new()
+                .route("/openapi.json", get(async || "spec"))
+                .merge(documentation),
+            Arc::new(StaticAuthenticationProvider::Unreachable),
             Arc::from(SERVICE_SECRET),
             Arc::new(crate::legacy::auth::AuthenticationMetrics::new(&meter)),
             limiters,
         )
+        .merge(api_routes)
         .merge(Router::new().route("/health", get(async || "ok")));
         let client: IpAddr = "192.0.2.1".parse().expect("the address should parse");
 
@@ -246,6 +262,21 @@ mod tests {
              everything here"
         );
 
+        assert_eq!(
+            send(&router, request_to("/entities/v1/openapi.json", client))
+                .await
+                .status(),
+            StatusCode::OK,
+            "the v1 specification should skip authentication and share the address budget"
+        );
+
+        assert_eq!(
+            send(&router, request_to("/entities/v1/does-not-exist", client))
+                .await
+                .status(),
+            StatusCode::NOT_FOUND,
+            "an unmatched public path should skip authentication and consume one gate request"
+        );
         assert_eq!(
             send(&router, request_to("/does-not-exist", client))
                 .await
@@ -266,6 +297,53 @@ mod tests {
                 send(&router, request_to("/health", client)).await.status(),
                 StatusCode::OK,
                 "a probe merged after the gate should stay outside it, whatever the budget holds"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn attaching_scopes_principal_budgets() {
+        let meter = opentelemetry::global::meter("test");
+        let limits = (&RateLimitConfig {
+            rate_limit_gate_burst: non_zero(20),
+            ..config(1)
+        })
+            .into();
+        let limiters = RateLimiters::start(&limits, &meter);
+        let mut module_limits =
+            crate::rest::RateLimits::from(PrincipalRateLimitConfig::from(&limits));
+        module_limits.public.entities.anonymous_burst = non_zero(2);
+        let provider = Arc::new(StaticAuthenticationProvider::NotRecognized);
+        let metrics = Arc::new(crate::legacy::auth::AuthenticationMetrics::new(&meter));
+        let router =
+            crate::rest::apis(&module_limits)
+                .into_iter()
+                .fold(Router::new(), |router, mut api| {
+                    api.router =
+                        Router::new().route(&format!("{}/test", api.prefix), get(async || "ok"));
+                    router.merge(crate::legacy::attach_api_middlewares(
+                        api,
+                        Arc::clone(&provider),
+                        Arc::clone(&provider),
+                        Arc::from(SERVICE_SECRET),
+                        Arc::clone(&metrics),
+                        &limiters,
+                        &meter,
+                    ))
+                });
+        let client: IpAddr = "192.0.2.1".parse().expect("the address should parse");
+        for (prefix, burst) in [("/entities/v1", 2), ("/types/v1", 1), ("/internal", 1)] {
+            let path = format!("{prefix}/test");
+            for _ in 0..burst {
+                assert_eq!(
+                    send(&router, request_to(&path, client)).await.status(),
+                    StatusCode::OK,
+                    "{prefix} should have its own configured principal budget"
+                );
+            }
+            assert_eq!(
+                send(&router, request_to(&path, client)).await.status(),
+                StatusCode::TOO_MANY_REQUESTS
             );
         }
     }

@@ -55,7 +55,7 @@ use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
-pub use self::config::{ClientIpSource, RateLimitConfig, RateLimitMode};
+pub use self::config::{ClientIpSource, PrincipalRateLimitConfig, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
     response::{problem_response, problem_response_body, status_problem},
@@ -179,6 +179,7 @@ impl Misconfiguration {
 
 /// Instruments recording what the limiter decides and what passes it unchecked.
 struct RateLimitMetrics {
+    scope: KeyValue,
     decisions: Counter<u64>,
     unchecked: Counter<u64>,
     misconfigurations: Counter<u64>,
@@ -189,13 +190,15 @@ struct RateLimitMetrics {
 }
 
 impl RateLimitMetrics {
-    fn new(meter: &Meter, mode: RateLimitMode) -> Self {
+    fn new(meter: &Meter, mode: RateLimitMode, scope: &'static str) -> Self {
+        let scope = KeyValue::new("scope", scope);
         meter
             .u64_gauge("hash.rate_limit.mode")
             .with_description("One at the mode the limiter runs in")
             .build()
-            .record(1, &[KeyValue::new("mode", mode.as_str())]);
+            .record(1, &[scope.clone(), KeyValue::new("mode", mode.as_str())]);
         Self {
+            scope,
             decisions: meter
                 .u64_counter("hash.rate_limit.decisions")
                 .with_description("Budget decisions by limiter and outcome")
@@ -249,6 +252,7 @@ impl RateLimitMetrics {
         self.decisions.add(
             1,
             &[
+                self.scope.clone(),
                 KeyValue::new("limiter", budget.as_str()),
                 KeyValue::new("outcome", outcome.as_str()),
             ],
@@ -261,6 +265,7 @@ impl RateLimitMetrics {
         self.denial_wait.record(
             wait.as_secs_f64(),
             &[
+                self.scope.clone(),
                 KeyValue::new("limiter", budget.as_str()),
                 KeyValue::new("outcome", outcome.as_str()),
             ],
@@ -271,6 +276,7 @@ impl RateLimitMetrics {
         self.unchecked.add(
             1,
             &[
+                self.scope.clone(),
                 KeyValue::new("stage", stage.as_str()),
                 KeyValue::new("reason", reason.as_str()),
             ],
@@ -278,8 +284,10 @@ impl RateLimitMetrics {
     }
 
     fn misconfiguration(&self, reason: Misconfiguration) {
-        self.misconfigurations
-            .add(1, &[KeyValue::new("reason", reason.as_str())]);
+        self.misconfigurations.add(
+            1,
+            &[self.scope.clone(), KeyValue::new("reason", reason.as_str())],
+        );
     }
 }
 
@@ -375,14 +383,18 @@ impl Denial {
 
 /// The shared limiter state both rate-limiting middlewares charge against.
 ///
-/// [`start`] one per router from the configuration and hand it to [`IpGateLayer`] and
-/// [`PrincipalLimitLayer`]; it maintains itself for as long as it is held.
+/// [`start`] creates the address gate and principal budgets. [`with_principal_limits`] creates
+/// separate principal budgets for a route group while sharing the gate. Each state maintains
+/// itself for as long as it is held.
 ///
 /// [`start`]: Self::start
+/// [`with_principal_limits`]: Self::with_principal_limits
 pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
-    gate: KeyedLimiter<BucketKey>,
+    gate: Arc<KeyedLimiter<BucketKey>>,
+    // The parent owns maintenance and metrics for the shared gate.
+    parent: Option<Arc<Self>>,
     anonymous: KeyedLimiter<BucketKey>,
     actor: KeyedLimiter<ActorId>,
     metrics: RateLimitMetrics,
@@ -414,11 +426,14 @@ impl RateLimiters {
         let this = Arc::new(Self {
             mode: config.rate_limit_mode,
             client_ip_source: config.client_ip_source,
-            gate: RateLimiter::keyed(
-                Quota::per_second(config.rate_limit_gate_per_second)
-                    .allow_burst(config.rate_limit_gate_burst),
-            )
-            .with_middleware(),
+            gate: Arc::new(
+                RateLimiter::keyed(
+                    Quota::per_second(config.rate_limit_gate_per_second)
+                        .allow_burst(config.rate_limit_gate_burst),
+                )
+                .with_middleware(),
+            ),
+            parent: None,
             anonymous: RateLimiter::keyed(
                 Quota::per_hour(config.rate_limit_anonymous_per_hour)
                     .allow_burst(config.rate_limit_anonymous_burst),
@@ -429,31 +444,81 @@ impl RateLimiters {
                     .allow_burst(config.rate_limit_actor_burst),
             )
             .with_middleware(),
-            metrics: RateLimitMetrics::new(meter, config.rate_limit_mode),
+            metrics: RateLimitMetrics::new(meter, config.rate_limit_mode, "global"),
         });
 
+        this.start_maintenance(meter);
+        this
+    }
+
+    /// Creates independent principal budgets while sharing this limiter's address gate.
+    ///
+    /// The new state inherits the enforcement mode and client-address source. `scope` identifies
+    /// the route group in metrics and must be distinct for each set of principal budgets.
+    ///
+    /// # Panics
+    ///
+    /// Panics when called outside a Tokio runtime.
+    #[must_use]
+    pub fn with_principal_limits(
+        self: &Arc<Self>,
+        config: &PrincipalRateLimitConfig,
+        scope: &'static str,
+        meter: &Meter,
+    ) -> Arc<Self> {
+        let this = Arc::new(Self {
+            mode: self.mode,
+            client_ip_source: self.client_ip_source,
+            gate: Arc::clone(&self.gate),
+            parent: Some(Arc::clone(self)),
+            anonymous: RateLimiter::keyed(
+                Quota::per_hour(config.anonymous_per_hour).allow_burst(config.anonymous_burst),
+            )
+            .with_middleware(),
+            actor: RateLimiter::keyed(
+                Quota::per_hour(config.actor_per_hour).allow_burst(config.actor_burst),
+            )
+            .with_middleware(),
+            metrics: RateLimitMetrics::new(meter, self.mode, scope),
+        });
+        this.start_maintenance(meter);
+        this
+    }
+
+    fn start_maintenance(self: &Arc<Self>, meter: &Meter) {
         meter
             .u64_observable_gauge("hash.rate_limit.tracked_keys")
             .with_description("Keys currently held by each limiter store")
             .with_unit("{key}")
             .with_callback({
-                let limiters = Arc::downgrade(&this);
+                let limiters = Arc::downgrade(self);
                 move |observer| {
                     let Some(limiters) = limiters.upgrade() else {
                         return;
                     };
                     for (limiter, keys) in [
-                        (Budget::GATE, limiters.gate.len()),
-                        (Budget::ANONYMOUS, limiters.anonymous.len()),
-                        (Budget::ACTOR, limiters.actor.len()),
+                        (
+                            Budget::GATE,
+                            limiters.parent.is_none().then(|| limiters.gate.len()),
+                        ),
+                        (Budget::ANONYMOUS, Some(limiters.anonymous.len())),
+                        (Budget::ACTOR, Some(limiters.actor.len())),
                     ] {
-                        observer.observe(keys as u64, &[KeyValue::new("limiter", limiter)]);
+                        if let Some(keys) = keys {
+                            observer.observe(
+                                keys as u64,
+                                &[
+                                    limiters.metrics.scope.clone(),
+                                    KeyValue::new("limiter", limiter),
+                                ],
+                            );
+                        }
                     }
                 }
             })
             .build();
 
-        let limiters = Arc::downgrade(&this);
+        let limiters = Arc::downgrade(self);
         let maintenance = tokio::spawn(async move {
             let mut interval = tokio::time::interval(MAINTENANCE_INTERVAL);
             loop {
@@ -473,8 +538,6 @@ impl RateLimiters {
                 );
             }
         });
-
-        this
     }
 
     /// Reads the budget key of a request from the configured source.
@@ -489,9 +552,13 @@ impl RateLimiters {
         match address::from_header(request, header) {
             Ok(key) => Some(key),
             Err(fallback) => {
-                self.metrics
-                    .address_fallbacks
-                    .add(1, &[KeyValue::new("reason", fallback.as_str())]);
+                self.metrics.address_fallbacks.add(
+                    1,
+                    &[
+                        self.metrics.scope.clone(),
+                        KeyValue::new("reason", fallback.as_str()),
+                    ],
+                );
                 tracing::debug!(
                     reason = fallback.as_str(),
                     header = %header,
@@ -523,15 +590,26 @@ impl RateLimiters {
     /// until this runs.
     fn maintain(&self) {
         for (limiter, evicted) in [
-            (Budget::GATE, release(&self.gate)),
-            (Budget::ANONYMOUS, release(&self.anonymous)),
-            (Budget::ACTOR, release(&self.actor)),
+            (
+                Budget::GATE,
+                self.parent.is_none().then(|| release(&self.gate)),
+            ),
+            (Budget::ANONYMOUS, Some(release(&self.anonymous))),
+            (Budget::ACTOR, Some(release(&self.actor))),
         ] {
-            self.metrics
-                .evicted_keys
-                .add(evicted as u64, &[KeyValue::new("limiter", limiter)]);
+            if let Some(evicted) = evicted {
+                self.metrics.evicted_keys.add(
+                    evicted as u64,
+                    &[
+                        self.metrics.scope.clone(),
+                        KeyValue::new("limiter", limiter),
+                    ],
+                );
+            }
         }
-        self.metrics.maintenance_runs.add(1, &[]);
+        self.metrics
+            .maintenance_runs
+            .add(1, core::slice::from_ref(&self.metrics.scope));
 
         tracing::debug!(
             gate_keys = self.gate.len(),
@@ -544,7 +622,10 @@ impl RateLimiters {
     /// Charges one request against the store the budget names.
     fn charge(&self, budget: Budget) -> Result<(), Denial> {
         match budget {
-            Budget::Gate(key) => self.charge_key(budget, &self.gate, &key),
+            Budget::Gate(key) => self.parent.as_ref().map_or_else(
+                || self.charge_key(budget, &self.gate, &key),
+                |parent| parent.charge(budget),
+            ),
             Budget::Anonymous(key) => self.charge_key(budget, &self.anonymous, &key),
             Budget::Actor(actor) => self.charge_key(budget, &self.actor, &actor),
         }

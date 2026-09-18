@@ -51,39 +51,43 @@ hashql-eval                    = { workspace = true }
 hashql-hir                     = { workspace = true }
 hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
-type-system                    = { workspace = true, features = ["utoipa"] }
-
-# Private third-party dependencies (optional)
-clap = { workspace = true, optional = true, features = ["derive", "env"] }
+problematic                    = { workspace = true, features = ["schemars"] }
+type-system                    = { workspace = true, features = ["schemars", "utoipa"] }
 
 # Private third-party dependencies
-base16ct       = { workspace = true }
-bytes          = { workspace = true }
-derive-where   = { workspace = true }
-derive_more    = { workspace = true, features = ["display", "error"] }
-error-stack    = { workspace = true, features = ["futures", "spantrace", "unstable"] }
-frunk          = { workspace = true }
-futures        = { workspace = true }
-hyper          = { workspace = true }
-include_dir    = { workspace = true }
-md-5           = { workspace = true }
-mime           = { workspace = true }
-reqwest        = { workspace = true }
-sentry         = { workspace = true }
-serde          = { workspace = true, features = ['derive'] }
-serde_json     = { workspace = true, features = ["raw_value"] }
-simple-mermaid = { workspace = true }
-time           = { workspace = true }
-tokio          = { workspace = true, features = ["rt", "time"] }
-tokio-util     = { workspace = true, features = ["codec", "io"] }
-tower          = { workspace = true }
-utoipa         = { workspace = true }
-utoipa-scalar  = { workspace = true }
-uuid           = { workspace = true }
+aide                 = { workspace = true, features = ["axum", "axum-json"] }
+base16ct             = { workspace = true }
+bytes                = { workspace = true }
+clap                 = { workspace = true, optional = true, features = ["derive", "env"] }
+convert_case         = { workspace = true }
+derive-where         = { workspace = true }
+derive_more          = { workspace = true, features = ["display", "error"] }
+error-stack          = { workspace = true, features = ["futures", "spantrace", "unstable"] }
+frunk                = { workspace = true }
+futures              = { workspace = true }
+hyper                = { workspace = true }
+include_dir          = { workspace = true }
+indexmap             = { workspace = true }
+md-5                 = { workspace = true }
+mime                 = { workspace = true }
+reqwest              = { workspace = true }
+scalar_api_reference = { workspace = true }
+schemars             = { workspace = true, features = ["uuid1"] }
+sentry               = { workspace = true }
+serde                = { workspace = true, features = ['derive'] }
+serde_json           = { workspace = true, features = ["raw_value"] }
+simple-mermaid       = { workspace = true }
+time                 = { workspace = true }
+tokio                = { workspace = true, features = ["rt", "time"] }
+tokio-util           = { workspace = true, features = ["codec", "io"] }
+tower                = { workspace = true }
+utoipa               = { workspace = true }
+uuid                 = { workspace = true }
 
 [dev-dependencies]
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
 hash-middleware           = { workspace = true, features = ["test-utils"] }
+insta                     = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }

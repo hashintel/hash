@@ -19,7 +19,8 @@ use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode, RateLimiters,
+    ClientIpSource, IpGateLayer, PrincipalLimitLayer, PrincipalRateLimitConfig, RateLimitConfig,
+    RateLimitMode, RateLimiters,
 };
 use crate::{
     authentication::{
@@ -872,7 +873,12 @@ async fn denials_and_fallbacks_reach_the_meter() {
 
     assert_eq!(
         recorded.counter_attribute_keys("hash.rate_limit.decisions"),
-        ["limiter".to_owned(), "outcome".to_owned()].into(),
+        [
+            "scope".to_owned(),
+            "limiter".to_owned(),
+            "outcome".to_owned()
+        ]
+        .into(),
         "an added label would fan the decisions series out per value, so the key set is pinned"
     );
 }
@@ -927,7 +933,22 @@ async fn started_state_drops_once_its_last_holder_does() {
     let limiters = RateLimiters::start(&config(1), &recorded.meter());
     let weak = Arc::downgrade(&limiters);
 
+    let scoped = limiters.with_principal_limits(
+        &PrincipalRateLimitConfig::from(&config(1)),
+        "test",
+        &recorded.meter(),
+    );
+    let scoped_weak = Arc::downgrade(&scoped);
     drop(limiters);
+    assert!(
+        weak.upgrade().is_some(),
+        "a scope should keep the shared gate's maintenance owner alive"
+    );
+    drop(scoped);
+    assert!(
+        scoped_weak.upgrade().is_none(),
+        "the scoped maintenance should hold the state weakly"
+    );
 
     assert!(
         weak.upgrade().is_none(),
@@ -1033,6 +1054,93 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
             recorded.counter("hash.rate_limit.evicted_keys", &[("limiter", limiter)]),
             1,
             "the released {limiter} key should be counted"
+        );
+    }
+}
+
+#[tokio::test]
+async fn scoped_budgets_share_only_the_gate() {
+    for (budget, actor) in [("anonymous", None), ("actor", Some(random_actor()))] {
+        let provider = || {
+            actor.map_or(
+                StaticAuthenticationProvider::NotRecognized,
+                StaticAuthenticationProvider::Verified,
+            )
+        };
+
+        let recorded = RecordedMetrics::new();
+        let global = RateLimiters::start(
+            &RateLimitConfig {
+                rate_limit_gate_burst: non_zero(3),
+                ..config(1)
+            },
+            &recorded.meter(),
+        );
+        let quotas = PrincipalRateLimitConfig::from(&config(1));
+        let entities = global.with_principal_limits(&quotas, "entities", &recorded.meter());
+        let types = global.with_principal_limits(&quotas, "types", &recorded.meter());
+        let entities_router = full_stack_router_with(&entities, provider());
+        let types_router = full_stack_router_with(&types, provider());
+        let client = address("192.0.2.1");
+
+        assert_eq!(
+            send(&entities_router, request(client)).await.status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            send(&entities_router, request(client)).await.status(),
+            StatusCode::TOO_MANY_REQUESTS
+        );
+        assert_eq!(
+            send(&types_router, request(client)).await.status(),
+            StatusCode::OK,
+            "exhausting entities should leave the types principal budget available"
+        );
+        assert_eq!(
+            send(&gate_router_with(&global), request(client))
+                .await
+                .status(),
+            StatusCode::TOO_MANY_REQUESTS,
+            "requests across both scopes should exhaust the shared address budget"
+        );
+        for scope in ["entities", "types"] {
+            assert_eq!(
+                recorded.gauge(
+                    "hash.rate_limit.tracked_keys",
+                    &[("scope", scope), ("limiter", budget)]
+                ),
+                Some(1)
+            );
+            assert_eq!(
+                recorded.gauge(
+                    "hash.rate_limit.tracked_keys",
+                    &[("scope", scope), ("limiter", "gate")]
+                ),
+                None,
+                "scoped gauges should not count the shared gate again"
+            );
+        }
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.decisions",
+                &[
+                    ("scope", "entities"),
+                    ("limiter", budget),
+                    ("outcome", "denied")
+                ]
+            ),
+            1
+        );
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.decisions",
+                &[
+                    ("scope", "global"),
+                    ("limiter", "gate"),
+                    ("outcome", "denied")
+                ]
+            ),
+            1
         );
     }
 }

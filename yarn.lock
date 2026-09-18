@@ -15214,6 +15214,7 @@ __metadata:
     "@rust/hashql-hir": "workspace:*"
     "@rust/hashql-mir": "workspace:*"
     "@rust/hashql-syntax-jexpr": "workspace:*"
+    "@rust/problematic": "workspace:*"
   languageName: unknown
   linkType: soft
 
