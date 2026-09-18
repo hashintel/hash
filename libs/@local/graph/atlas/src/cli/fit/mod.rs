@@ -113,8 +113,8 @@ pub struct FitArgs {
 
     /// Train the full placement with the relation evidence withheld.
     ///
-    /// No reviewed verdicts or radius needed, every other objective term trains. The unblocking
-    /// flag for corpora without reviewed-Proximal coverage.
+    /// Off by default. Every other objective term trains, without requiring reviewed verdicts or a
+    /// relation radius. Published relation artifacts retain the corpus's evidence.
     #[arg(
         long,
         conflicts_with = "baseline",
@@ -122,6 +122,11 @@ pub struct FitArgs {
     )]
     vacuous_placement: bool,
 
+    /// Disable relation attraction only when reviewed Proximal coverage is absent.
+    ///
+    /// Off by default. Coverage requires a resolved Proximal verdict for an attraction group with
+    /// retained edges, positive strength and positive Proximal weight. Selects the objective
+    /// before training and propagates failures from that objective.
     #[arg(
         long,
         env = "HASH_GRAPH_ATLAS_VACUOUS_PLACEMENT_FALLBACK",
