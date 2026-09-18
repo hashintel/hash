@@ -120,6 +120,7 @@ where
             )?),
             None => None,
         };
+
         let mut plan = options.plan;
         if vacuous {
             // No group exerts force, and relation draws would be dead

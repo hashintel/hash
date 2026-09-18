@@ -34,7 +34,7 @@ use crate::{
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
-            annotations::SupplyError as AnnotationSupplyError,
+            VacuousProjectorPlacement, annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
@@ -88,12 +88,7 @@ pub enum Placement {
         /// `floor(steps / 2)`. This is [`None`] by default, retaining the reference 20,000-step
         /// schedule with its boundary at step 5,000.
         steps: Option<NonZero<usize>>,
-        /// Disable relation attraction in the trained placement.
-        ///
-        /// This is `false` by default. Enabling it supplies an empty attraction index while
-        /// retaining semantic, protection and landmark-support inputs. It permits trained
-        /// placement without reviewed Proximal pairs.
-        vacuous: bool,
+        vacuous: Option<VacuousProjectorPlacement>,
     },
 }
 
@@ -127,7 +122,7 @@ pub struct Options<P> {
     /// Placement strategy, [`Placement::Projector`] with no overrides by default.
     pub placement: Placement = Placement::Projector {
         steps: None,
-        vacuous: false,
+        vacuous: None,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
