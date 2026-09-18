@@ -26,8 +26,8 @@ use core::{
 use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
 
 use super::{
-    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, narrow_f32, raw_interop,
-    unsafe_impl_try_from_bytes,
+    DNonNegative, DPositive, NonNegative, OpenUnitFraction, Positive, UnitFraction, narrow_f32,
+    raw_interop, unsafe_impl_try_from_bytes,
 };
 use crate::math::Derivation;
 
@@ -61,7 +61,7 @@ pub(crate) use d_finite;
 /// A finite `f32`, valid by construction.
 ///
 /// Finiteness is the construction invariant. Quantities with an additional sign or interval bound
-/// take the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`](super::UnitFraction), which
+/// take the narrower [`Positive`], [`NonNegative`], or [`UnitFraction`], which
 /// states that bound too.
 ///
 /// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
@@ -242,7 +242,7 @@ impl<'de> serde::Deserialize<'de> for Finite {
 ///
 /// The double-precision twin of [`Finite`], for a quantity whose contract is that it denotes a
 /// real number and nothing further. A quantity that also has a sign or interval bound carries
-/// the narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`](super::UnitFraction).
+/// the narrower [`DPositive`], [`DNonNegative`], or [`UnitFraction`].
 ///
 /// Both zeros are admitted with their sign bits intact. Serialization writes plain numbers. A
 /// format whose number grammar covers exactly the finite values represents every inhabitant of this
@@ -276,6 +276,8 @@ impl<'de> serde::Deserialize<'de> for Finite {
 pub(crate) struct DFinite(f64);
 
 impl DFinite {
+    /// The maximum finite value.
+    pub(crate) const MAX: Self = Self(f64::MAX);
     /// The value one.
     pub(crate) const ONE: Self = Self(1.0);
     /// The value zero.
@@ -375,6 +377,13 @@ impl DFinite {
         }
     }
 
+    /// Averages two finite values without overflowing their sum.
+    ///
+    /// The result lies between the operands, including when both are near the finite range limits.
+    pub(crate) const fn midpoint(self, other: Self) -> Self {
+        Self(f64::midpoint(self.0, other.0))
+    }
+
     /// Returns the total-order key: a bit pattern monotone in the value.
     ///
     /// Flipping a negative value's bits and setting a nonnegative value's sign bit maps IEEE
@@ -420,6 +429,13 @@ const impl From<DPositive> for DFinite {
 const impl From<DNonNegative> for DFinite {
     #[inline]
     fn from(value: DNonNegative) -> Self {
+        Self(value.get())
+    }
+}
+
+const impl From<UnitFraction> for DFinite {
+    #[inline]
+    fn from(value: UnitFraction) -> Self {
         Self(value.get())
     }
 }

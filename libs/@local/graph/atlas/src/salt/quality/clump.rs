@@ -230,7 +230,7 @@ where
 /// matched total within u64.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ClumpAggregate {
-    k: usize,
+    k: NonZero<usize>,
     queries: usize,
     matched: u64,
 }
@@ -241,7 +241,7 @@ impl ClumpAggregate {
     #[must_use]
     pub(crate) const fn new(k: NonZero<usize>) -> Self {
         Self {
-            k: k.get(),
+            k,
             queries: 0,
             matched: 0,
         }
@@ -258,12 +258,12 @@ impl ClumpAggregate {
     pub(crate) fn observe(&mut self, reference: &mut [u32], map: &mut [u32]) {
         assert_eq!(
             reference.len(),
-            self.k,
+            self.k.get(),
             "the reference neighbourhood must hold exactly k clump ids",
         );
         assert_eq!(
             map.len(),
-            self.k,
+            self.k.get(),
             "the map neighbourhood must hold exactly k clump ids",
         );
 
@@ -321,6 +321,6 @@ impl ClumpAggregate {
             return UnitFraction::ONE;
         }
 
-        UnitFraction::new_unchecked(self.matched as f64 / (self.queries * self.k) as f64)
+        UnitFraction::new_unchecked(self.matched as f64 / (self.queries * self.k.get()) as f64)
     }
 }

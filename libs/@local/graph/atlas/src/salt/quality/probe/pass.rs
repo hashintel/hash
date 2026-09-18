@@ -163,6 +163,8 @@ pub(super) struct CorpusPass<'pass, N> {
     pub template: &'pass [NeighbourhoodAggregate],
     /// The neighbourhood sizes, in the template's order.
     pub neighbourhoods: &'pass [NonZero<usize>],
+    /// Density radius sizes, also bounded by `search`.
+    pub density_neighbourhoods: &'pass [NonZero<usize>],
     /// Clump labels over the corpus rows.
     ///
     /// When the probe reads recall collapsed onto clump ids beside the plain reading.
@@ -289,16 +291,19 @@ where
         }
 
         let mut cells = self.template.to_vec();
-        let mut radii = Vec::with_capacity(self.neighbourhoods.len());
-
         for (aggregate, &k) in cells.iter_mut().zip(self.neighbourhoods) {
             aggregate.observe_ranks(&reference_ranks[..k.get()], &counts[..k.get()]);
-            radii.push(RadiusPair {
+        }
+
+        let radii = self
+            .density_neighbourhoods
+            .iter()
+            .map(|k| RadiusPair {
                 // rankings use squared distance, but density ratios use Euclidean radii
                 map: nearest[k.get() - 1].distance.sqrt(),
                 representation: reference_nearest[k.get() - 1].distance,
-            });
-        }
+            })
+            .collect();
 
         AnchorReading {
             cells,

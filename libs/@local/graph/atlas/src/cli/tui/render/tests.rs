@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     cli::tui::state::{KnnActivity, PlacementMap, RunState},
-    math::{Vec2, d_non_negative, open_unit_fraction, unit_fraction},
+    math::{Vec2, d_finite, d_non_negative, open_unit_fraction, unit_fraction},
     progress::{Batch, DescentIteration, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -121,7 +121,7 @@ fn training(steps: usize, total: usize) -> RunState {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn a_fresh_run_shows_every_stage_with_the_first_one_running() {
+fn initial_stage() {
     let drawn = draw(&RunState::new(), 0);
 
     // The rail is the run's whole shape from the first frame: the
@@ -137,7 +137,7 @@ fn a_fresh_run_shows_every_stage_with_the_first_one_running() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn a_completed_stage_carries_its_glyph_span_and_leader_dots() {
+fn completed_stage() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, Duration::from_millis(12_400));
 
@@ -158,7 +158,7 @@ fn a_completed_stage_carries_its_glyph_span_and_leader_dots() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_running_ingest_row_carries_the_embedding_counter() {
+fn ingest_progress() {
     let mut state = RunState::new();
     state.start_embedding(&CardEmbeddingStats {
         reused: 3_072,
@@ -186,7 +186,7 @@ fn the_running_ingest_row_carries_the_embedding_counter() {
 ///
 /// A bar in its place would read as no progress.
 #[test]
-fn a_wholly_reused_workload_says_so_instead_of_drawing_an_empty_bar() {
+fn reused_workload() {
     let mut state = RunState::new();
     state.start_embedding(&CardEmbeddingStats {
         reused: 4_096,
@@ -206,7 +206,7 @@ fn a_wholly_reused_workload_says_so_instead_of_drawing_an_empty_bar() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn a_completed_ingest_stage_drops_its_counter_for_its_span() {
+fn completed_ingest() {
     let mut state = RunState::new();
     state.start_embedding(&CardEmbeddingStats {
         reused: 0,
@@ -232,7 +232,7 @@ fn a_completed_ingest_stage_drops_its_counter_for_its_span() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_running_classifier_row_carries_its_fold_counter() {
+fn classifier_progress() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, Duration::from_secs(1));
     state.start_classifier(4);
@@ -253,7 +253,7 @@ fn the_running_classifier_row_carries_its_fold_counter() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_classifier_row_carries_the_derived_boundary_until_the_folds_start() {
+fn classifier_boundary() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, Duration::from_secs(1));
     state.derive_assembly_boundary(3.6218e-4);
@@ -282,7 +282,7 @@ fn the_classifier_row_carries_the_derived_boundary_until_the_folds_start() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_classifier_row_carries_the_selected_strength_once_chosen() {
+fn classifier_strength() {
     let mut state = RunState::new();
     state.complete_at(Stage::Ingest, Duration::from_secs(1));
     state.start_classifier(4);
@@ -305,7 +305,7 @@ fn the_classifier_row_carries_the_selected_strength_once_chosen() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
+fn knn_progress() {
     let mut state = RunState::new();
     for stage in [
         Stage::Ingest,
@@ -374,7 +374,7 @@ fn the_running_knn_row_carries_whichever_part_of_the_construction_reported() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_running_projector_row_carries_its_step_counter() {
+fn projector_progress() {
     let drawn = draw(&training(150, 600), 0);
 
     // A quarter of the schedule is behind it. Two of the eight cells are lit.
@@ -389,7 +389,7 @@ fn the_running_projector_row_carries_its_step_counter() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_loss_chart_labels_the_floor_and_the_peak_the_run_reached() {
+fn loss_chart_bounds() {
     let drawn = draw_on(&training(150, 600), 0, 96, 30);
     let chart = drawn[14..23].join("\n");
 
@@ -409,7 +409,7 @@ fn the_loss_chart_labels_the_floor_and_the_peak_the_run_reached() {
 ///
 /// The footer row keeps an unbroken border, rather than a title clipped mid-word.
 #[test]
-fn a_pane_too_narrow_for_the_breakdown_drops_it_rather_than_the_corner() {
+fn narrow_pane_breakdown() {
     let drawn = draw_on(&training(150, 600), 0, 60, 30);
 
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
@@ -430,7 +430,7 @@ fn is_dot(glyph: char) -> bool {
 }
 
 #[test]
-fn the_map_draws_beside_the_curve_on_a_wide_pane() {
+fn wide_pane_map() {
     let drawn = draw_on(&placed(), 0, 120, 30);
     let band = drawn[14..23].join("\n");
 
@@ -450,7 +450,7 @@ fn the_map_draws_beside_the_curve_on_a_wide_pane() {
 }
 
 #[test]
-fn a_pane_too_narrow_for_both_keeps_the_curve_alone() {
+fn narrow_pane_map() {
     let drawn = draw_on(&placed(), 0, 70, 30);
 
     // The curve is the reading an operator acts on. A narrow pane gives up the map rather than the
@@ -460,7 +460,7 @@ fn a_pane_too_narrow_for_both_keeps_the_curve_alone() {
 }
 
 #[test]
-fn a_run_with_no_snapshot_leaves_the_curve_the_whole_band() {
+fn no_snapshot_chart() {
     let drawn = draw_on(&training(150, 600), 0, 120, 30);
 
     assert!(drawn[14].contains(" loss "), "{drawn:#?}");
@@ -470,7 +470,7 @@ fn a_run_with_no_snapshot_leaves_the_curve_the_whole_band() {
 }
 
 #[test]
-fn a_landmark_colors_the_cell_it_lands_in() {
+fn landmark_color() {
     let buffer = buffer_on(&placed(), 0, 120, 30);
     let colors: Vec<Color> = buffer
         .content()
@@ -486,7 +486,7 @@ fn a_landmark_colors_the_cell_it_lands_in() {
 }
 
 #[test]
-fn the_map_keeps_the_placement_square() {
+fn square_map() {
     let inner = Rect::new(0, 0, 40, 7);
 
     // A braille dot is as tall as it is wide, so equal data units per dot on both axes is what
@@ -527,7 +527,7 @@ fn the_map_keeps_the_placement_square() {
 ///
 /// The canvas would otherwise clamp it into a corner it does not occupy.
 #[test]
-fn a_row_the_canvas_cannot_place_is_dropped_rather_than_drawn() {
+fn unplaceable_row() {
     let mut state = training(150, 600);
     let mut positions = placement();
     positions.push(Vec2::new(f32::NAN, 0.0));
@@ -542,7 +542,7 @@ fn a_row_the_canvas_cannot_place_is_dropped_rather_than_drawn() {
 }
 
 #[test]
-fn a_placement_with_no_extent_still_has_a_viewport() {
+fn empty_placement() {
     let inner = Rect::new(0, 0, 40, 7);
 
     // A collapsed placement and a frame with nothing finite in it
@@ -601,12 +601,12 @@ fn probed(readings: usize) -> RunState {
         state.complete_at(stage, Duration::from_secs(index as u64 + 1));
     }
     for (metric, reading) in [
-        (QualityMetric::Recall, 0.9021),
-        (QualityMetric::Trustworthiness, 0.8712),
-        (QualityMetric::Continuity, 0.9104),
-        (QualityMetric::IntrusionRate, 0.0413),
-        (QualityMetric::DensitySpread, 1.83),
-        (QualityMetric::TripletAgreement, 0.7820),
+        (QualityMetric::Recall, d_finite!(0.9021)),
+        (QualityMetric::Trustworthiness, d_finite!(0.8712)),
+        (QualityMetric::Continuity, d_finite!(0.9104)),
+        (QualityMetric::IntrusionRate, d_finite!(0.0413)),
+        (QualityMetric::DensitySpread, d_finite!(1.83)),
+        (QualityMetric::TripletAgreement, d_finite!(0.7820)),
     ]
     .into_iter()
     .take(readings)
@@ -626,7 +626,7 @@ fn probed(readings: usize) -> RunState {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn the_admission_readings_hang_under_the_stage_that_measured_them() {
+fn admission_readings() {
     let drawn = draw_on(&probed(6), 0, 60, 26);
 
     // The battery's readings are the admission stage's detail: indented
@@ -655,7 +655,7 @@ fn the_admission_readings_hang_under_the_stage_that_measured_them() {
     reason = "the assertions read the dashboard's own glyphs"
 )]
 #[test]
-fn a_battery_missing_evidence_draws_only_the_readings_it_has() {
+fn partial_readings() {
     let drawn = draw_on(&probed(2), 0, 60, 26);
 
     // An absent reading is absent evidence, which the report refuses
@@ -671,7 +671,7 @@ fn a_battery_missing_evidence_draws_only_the_readings_it_has() {
 /// Half a battery would read as evidence the probe could not measure. The log keeps its place
 /// below.
 #[test]
-fn readings_a_short_pane_cannot_hold_whole_stay_out_of_the_rail() {
+fn narrow_pane_readings() {
     let drawn = draw_on(&probed(6), 0, 60, 20);
     let pane = drawn.join("\n");
 
@@ -687,7 +687,7 @@ fn readings_a_short_pane_cannot_hold_whole_stay_out_of_the_rail() {
 ///
 /// The rail and the log, the run's shape and its voice, are both still drawn.
 #[test]
-fn a_pane_too_short_for_a_chart_keeps_the_rail_and_the_log() {
+fn short_pane() {
     let drawn = draw(&training(150, 600), 0);
     let pane = drawn.join("\n");
 
@@ -699,7 +699,7 @@ fn a_pane_too_short_for_a_chart_keeps_the_rail_and_the_log() {
 }
 
 #[test]
-fn the_step_axis_spans_exactly_the_curve_it_draws() {
+fn step_axis_bounds() {
     let state = training(150, 600);
     let plotted = state.projector().expect("the fixture reported its steps");
     let points: Vec<(f64, f64)> = curve(plotted).into_iter().collect();
@@ -717,7 +717,7 @@ fn the_step_axis_spans_exactly_the_curve_it_draws() {
     reason = "the bounds are exactly the fixture's own values and the unit fallback"
 )]
 #[test]
-fn the_value_axis_spans_zero_to_the_highest_loss_observed() {
+fn value_axis_bounds() {
     assert_eq!(value_bounds([3.0, 1.0, 2.0]), [0.0, 3.0]);
     // A flat curve draws along the top of its own axis.
     assert_eq!(value_bounds([2.0, 2.0]), [0.0, 2.0]);
@@ -729,7 +729,7 @@ fn the_value_axis_spans_zero_to_the_highest_loss_observed() {
 }
 
 #[test]
-fn the_log_pane_shows_the_newest_lines_that_fit() {
+fn log_tail() {
     let mut state = RunState::new();
     for line in 0..40 {
         state.push_log(format!("INFO line {line}"));
@@ -749,7 +749,7 @@ fn the_log_pane_shows_the_newest_lines_that_fit() {
 /// At or above a minute they render as minutes and zero-padded seconds, including the minute
 /// boundary itself.
 #[test]
-fn spans_read_as_a_clock() {
+fn duration_format() {
     assert_eq!(duration(Duration::from_millis(400)), "0.4s");
     assert_eq!(duration(Duration::from_millis(12_400)), "12.4s");
     assert_eq!(duration(Duration::from_secs(59)), "59.0s");
