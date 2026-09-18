@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import {
+  draftPetrinautExperimentToolName,
   mutatePetrinautNetToolName,
   readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -34,10 +35,11 @@ const createRecorder = () => {
   return { handle, recorder };
 };
 
-test("validates only the canonical batched mutation tool", () => {
+test("waits for server validation before releasing provenance-bound client tools", () => {
   const { recorder } = createRecorder();
   expect([...recorder.validatedClientToolNames]).toEqual([
     mutatePetrinautNetToolName,
+    draftPetrinautExperimentToolName,
   ]);
 });
 

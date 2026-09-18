@@ -84,6 +84,14 @@ export const draftPetrinautExperimentInputSchema = z
   })
   .superRefine((draft, context) => {
     for (const [index, condition] of draft.unsupported.entries()) {
+      if (!condition.blocksRun && draft.basis.kind !== "declared") {
+        context.addIssue({
+          code: "custom",
+          path: ["unsupported", index, "blocksRun"],
+          message:
+            "A reporting-only run requires recorded acceptance in a declared workpiece basis.",
+        });
+      }
       if (
         condition.reportedByMetricId &&
         !draft.experiment.metricIds.includes(condition.reportedByMetricId)

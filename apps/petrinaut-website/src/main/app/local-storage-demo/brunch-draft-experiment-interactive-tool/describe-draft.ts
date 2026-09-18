@@ -14,8 +14,7 @@ const nameOfMetric = (definition: SDCPN, metricId: string) =>
   definition.metrics?.find((metric) => metric.id === metricId)?.name ??
   metricId;
 
-const formatNumber = (value: number) =>
-  Number.isInteger(value) ? String(value) : value.toPrecision(3);
+const formatNumber = (value: number) => String(value);
 
 /**
  * The one sentence the person reads first: what varies, over what range,
@@ -23,21 +22,27 @@ const formatNumber = (value: number) =>
  * the live definition; identifiers are only shown when a name is missing.
  */
 export const describeExperiment = (
-  request: PetrinautExperimentRequest,
+  prepared: PreparedExperiment,
   definition: SDCPN,
 ): string => {
-  const ranges = Object.entries(request.scenarioParameterValues).flatMap(
-    ([identifier, parameter]) =>
-      parameter.mode === "range"
-        ? [
-            `${identifier} ${formatNumber(parameter.min)}–${formatNumber(parameter.max)}`,
-          ]
-        : [],
+  const axes = new Map(
+    prepared.parameterAxes.map((axis) => [axis.identifier, axis]),
   );
-  const fixed = Object.entries(request.scenarioParameterValues).flatMap(
-    ([identifier, parameter]) =>
-      parameter.mode === "fixed" ? [`${identifier} = ${parameter.value}`] : [],
-  );
+  const ranges: string[] = [];
+  const fixed: string[] = [];
+  for (const identifier of Object.keys(
+    prepared.input.scenarioParameterValues,
+  )) {
+    const axis = axes.get(identifier);
+    if (axis) {
+      ranges.push(
+        `${identifier} ${formatNumber(axis.min)}–${formatNumber(axis.max)}`,
+      );
+    } else if (Object.hasOwn(prepared.fixedValues, identifier)) {
+      fixed.push(`${identifier} = ${String(prepared.fixedValues[identifier])}`);
+    }
+  }
+  const { request } = prepared;
   const scenario = nameOfScenario(definition, request.scenarioId);
   const varying =
     ranges.length > 0 ? `Vary ${ranges.join(", ")}` : "Simulate as saved";
@@ -88,11 +93,11 @@ export const metricRoles = (
  * sentence plus the things the model must not misreport.
  */
 export const summarizeForAgent = (
-  request: PetrinautExperimentRequest,
+  prepared: PreparedExperiment,
   definition: SDCPN,
   unsupportedCount: number,
 ): string =>
-  `Drafted for this session, not run and not saved with the document: ${describeExperiment(request, definition)} ${describeBudget(request)} ${
+  `Drafted for this session, not run and not saved with the document: ${describeExperiment(prepared, definition)} ${describeBudget(prepared.request)} ${
     unsupportedCount === 0
       ? "No restrictions were stated; none are enforced."
       : `${unsupportedCount} stated ${unsupportedCount === 1 ? "restriction is" : "restrictions are"} not carried into execution.`
@@ -110,10 +115,12 @@ export const preparationDiffers = (
   JSON.stringify({
     input: drafted.input,
     fixed: drafted.fixedValues,
+    axes: drafted.parameterAxes,
     optimization: drafted.optimization,
   }) !==
   JSON.stringify({
     input: current.input,
     fixed: current.fixedValues,
+    axes: current.parameterAxes,
     optimization: current.optimization,
   });

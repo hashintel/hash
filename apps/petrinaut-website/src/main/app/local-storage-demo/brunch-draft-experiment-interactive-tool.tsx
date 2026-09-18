@@ -31,6 +31,7 @@ import {
   resetSessionDrafts,
   sessionDraftsFor,
 } from "./brunch-draft-experiment-interactive-tool/session-drafts";
+import { hashBrowserDefinition } from "./mutation-record";
 
 import type { PreparedExperiment } from "./brunch-draft-experiment-interactive-tool/describe-draft";
 import type {
@@ -204,12 +205,13 @@ export const BrunchDraftExperimentWidget = ({
   input,
   readTitle,
   state,
-  submit,
+  submitAndWait,
   toolCallId,
 }: WidgetProps & { readTitle: () => string }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
-  const { optimizationUnavailableReason } = use(OptimizationsContext);
+  const optimizationUnavailableReason =
+    use(OptimizationsContext).optimizationUnavailableReason ?? null;
   const executionUnavailable =
     input.experiment.execution.mode === "optimize"
       ? optimizationUnavailableReason
@@ -221,55 +223,77 @@ export const BrunchDraftExperimentWidget = ({
     prepared: PreparedExperiment;
     definition: SDCPN;
   } | null>(null);
+  const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
   // not reported through the tool result.
   useEffect(() => {
-    if (state !== "awaiting" || preparedOnceRef.current) return;
+    if (
+      state !== "awaiting" ||
+      preparedOnceRef.current ||
+      submitAndWait === undefined
+    )
+      return;
     preparedOnceRef.current = true;
     const definition = structuredClone(instance.definition.get());
-    const outcome = prepareOrExplain(input.experiment, definition, readTitle());
-    const registered = sessionDrafts.register({
+    const outcome =
+      hashBrowserDefinition(definition) === input.observation.baseHash
+        ? prepareOrExplain(input.experiment, definition, readTitle())
+        : {
+            prepared: null,
+            error:
+              "The model changed since the verified observation. Ask Brunch to read the current model and draft again.",
+          };
+    const candidate = {
       toolCallId,
       input,
       definition,
       prepared: outcome.prepared,
       invalid: outcome.error,
       dismissed: false,
-      run: { phase: "idle" },
-    });
-    submit(
-      registered.prepared
-        ? {
-            status: "drafted",
-            summary: `${summarizeForAgent(
-              registered.prepared.request,
-              registered.definition,
-              registered.input.unsupported.length,
-            )}${
-              executionUnavailable === null
-                ? ""
-                : ` Execution unavailable: ${executionUnavailable}.`
-            }`,
-            diagnostics: [
-              "No constraints or constraint policy are carried; nothing is enforced.",
-              ...registered.input.unsupported.map(
-                (condition) =>
-                  `${condition.blocksRun ? "Run blocked" : "Not carried"}: ${condition.condition}`,
-              ),
-              ...(executionUnavailable === null
-                ? []
-                : [`Execution unavailable: ${executionUnavailable}`]),
-            ],
-          }
-        : {
-            status: "invalid",
-            summary: `The browser could not prepare this experiment against the current model: ${registered.invalid}`,
-            diagnostics: [registered.invalid ?? "Preparation failed"],
-          },
-    );
+      run: { phase: "idle" as const },
+    };
+    const submissionDraft =
+      sessionDrafts.get().drafts.get(toolCallId) ?? candidate;
+    const output: DraftPetrinautExperimentOutput = submissionDraft.prepared
+      ? {
+          status: "drafted",
+          summary: `${summarizeForAgent(
+            submissionDraft.prepared,
+            submissionDraft.definition,
+            submissionDraft.input.unsupported.length,
+          )}${
+            executionUnavailable === null
+              ? ""
+              : ` Execution unavailable: ${executionUnavailable}.`
+          }`,
+          diagnostics: [
+            "No constraints or constraint policy are carried; nothing is enforced.",
+            ...submissionDraft.input.unsupported.map(
+              (condition) =>
+                `${condition.blocksRun ? "Run blocked" : "Not carried"}: ${condition.condition}`,
+            ),
+            ...(executionUnavailable === null
+              ? []
+              : [`Execution unavailable: ${executionUnavailable}`]),
+          ],
+        }
+      : {
+          status: "invalid",
+          summary: `The browser could not prepare this experiment against the current model: ${submissionDraft.invalid}`,
+          diagnostics: [submissionDraft.invalid ?? "Preparation failed"],
+        };
+    const submitAndRegister = async () => {
+      try {
+        await submitAndWait(output);
+      } catch {
+        return;
+      }
+      sessionDrafts.register(candidate);
+    };
+    void submitAndRegister();
   }, [
     executionUnavailable,
     input,
@@ -277,13 +301,14 @@ export const BrunchDraftExperimentWidget = ({
     readTitle,
     sessionDrafts,
     state,
-    submit,
+    submitAndWait,
     toolCallId,
   ]);
 
   const definition =
     reviewed?.definition ?? draft?.definition ?? instance.definition.get();
-  const request = draft?.prepared?.request ?? null;
+  const displayedPrepared = reviewed?.prepared ?? draft?.prepared ?? null;
+  const request = displayedPrepared?.request ?? null;
   const blocksRun = input.unsupported.some((condition) => condition.blocksRun);
   const optimizationUnavailable =
     request?.execution.mode === "optimize" ? executionUnavailable : null;
@@ -326,9 +351,11 @@ export const BrunchDraftExperimentWidget = ({
         prepared: current.prepared,
         definition: currentDefinition,
       });
+      setReviewAccepted(false);
       setRunError(null);
       return;
     }
+    if (reviewed && !reviewAccepted) return;
     setRunError(null);
     const controller = new AbortController();
     sessionDrafts.update(toolCallId, {
@@ -388,22 +415,28 @@ export const BrunchDraftExperimentWidget = ({
     >
       <p className={statusStyle}>{heading}</p>
       <p className={titleStyle}>{input.experiment.name}</p>
-      {request ? (
+      {displayedPrepared ? (
         <>
-          <p className={bodyStyle}>{describeExperiment(request, definition)}</p>
-          <p className={bodyStyle}>{describeBudget(request)}</p>
+          <p className={bodyStyle}>
+            {describeExperiment(displayedPrepared, definition)}
+          </p>
+          <p className={bodyStyle}>
+            {describeBudget(displayedPrepared.request)}
+          </p>
           <p className={sectionLabelStyle}>Metrics</p>
           <ul className={listStyle}>
-            {metricRoles(request, definition).map((metric) => (
-              <li key={metric.metricId}>
-                {metric.name}
-                <span className={tagStyle}>
-                  {metric.role === "objective"
-                    ? "objective"
-                    : "reported, not enforced"}
-                </span>
-              </li>
-            ))}
+            {metricRoles(displayedPrepared.request, definition).map(
+              (metric) => (
+                <li key={metric.metricId}>
+                  {metric.name}
+                  <span className={tagStyle}>
+                    {metric.role === "objective"
+                      ? "objective"
+                      : "reported, not enforced"}
+                  </span>
+                </li>
+              ),
+            )}
           </ul>
         </>
       ) : (
@@ -522,14 +555,25 @@ export const BrunchDraftExperimentWidget = ({
             Dismiss
           </button>
           {canRun ? (
-            <button
-              className={primaryButtonStyle}
-              disabled={blocksRun}
-              onClick={() => void onRun()}
-              type="button"
-            >
-              {reviewed ? "Run against current model" : "Run"}
-            </button>
+            reviewed && !reviewAccepted ? (
+              <button
+                className={primaryButtonStyle}
+                disabled={blocksRun}
+                onClick={() => setReviewAccepted(true)}
+                type="button"
+              >
+                Accept current model
+              </button>
+            ) : (
+              <button
+                className={primaryButtonStyle}
+                disabled={blocksRun}
+                onClick={() => void onRun()}
+                type="button"
+              >
+                {reviewed ? "Run against current model" : "Run"}
+              </button>
+            )
           ) : null}
         </div>
       ) : null}

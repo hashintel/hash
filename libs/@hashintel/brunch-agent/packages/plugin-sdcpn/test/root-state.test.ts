@@ -527,6 +527,21 @@ describe("saved scenarios and metrics an experiment names", () => {
     definition.places.push(agents);
     return definition;
   };
+  const expectMetricMutationsSupported = (before: SDCPN) => {
+    const afterAdd = expectedNodeDefinition(
+      request("addMetric", metric),
+      before,
+    );
+    expect(afterAdd.metrics).toEqual([metric]);
+    const afterUpdate = expectedNodeDefinition(
+      request("updateMetric", {
+        metricId: metric.id,
+        update: { name: "Average waiting time" },
+      }),
+      afterAdd,
+    );
+    expect(afterUpdate.metrics?.[0]?.name).toBe("Average waiting time");
+  };
 
   test("admits a scenario whose integer parameter sets a place count by expression", () => {
     const before = withAgents();
@@ -637,6 +652,76 @@ describe("saved scenarios and metrics an experiment names", () => {
     ).toThrow(/Unknown or ambiguous metric/);
   });
 
+  test("refuses duplicate metric names before they can make every run fail", () => {
+    const before = withAgents();
+    before.metrics = [
+      metric,
+      { ...metric, id: "queue-length", name: "Queue length" },
+    ];
+
+    expect(() =>
+      assertStateIdentity(
+        request("addMetric", {
+          ...metric,
+          id: "duplicate-name",
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/metric name/u);
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: "queue-length",
+          update: { name: metric.name },
+        }),
+        before,
+        [],
+      ),
+    ).toThrow(/metric name/u);
+    expect(() =>
+      assertStateIdentity(
+        request("updateMetric", {
+          metricId: metric.id,
+          update: { name: metric.name },
+        }),
+        before,
+        [],
+      ),
+    ).not.toThrow();
+  });
+
+  test("metric changes are independent of code-authored scenario footprints", () => {
+    const before = withAgents();
+    before.scenarios = [
+      {
+        id: "code-scenario",
+        name: "Code scenario",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "code", content: "return {};" },
+      },
+    ];
+    expectMetricMutationsSupported(before);
+  });
+
+  test("metric changes are independent of nested nets", () => {
+    const before = withAgents();
+    before.subnets = [
+      {
+        id: "nested-net",
+        name: "Nested net",
+        places: [],
+        transitions: [],
+        types: [],
+        parameters: [],
+        differentialEquations: [],
+        componentInstances: [],
+      },
+    ];
+    expectMetricMutationsSupported(before);
+  });
+
   test("removals of a scenario or metric are one direct deletion at the located index", () => {
     const before = withAgents();
     before.scenarios = [
@@ -644,10 +729,10 @@ describe("saved scenarios and metrics an experiment names", () => {
       { ...staffing, parameterOverrides: {} },
     ];
     before.metrics = [metric, { ...metric, id: "queue-length", name: "Queue" }];
-    const dropScenario = request("removeScenario", { scenarioId: staffing.id });
+    const dropScenario = request("removeScenario", { scenarioId: "baseline" });
     const afterScenario = expectedNodeDefinition(dropScenario, before);
     expect(afterScenario.scenarios?.map((entry) => entry.id)).toEqual([
-      "baseline",
+      staffing.id,
     ]);
     const scenarioEffects = deriveMutationEffects(
       dropScenario,
@@ -655,23 +740,23 @@ describe("saved scenarios and metrics an experiment names", () => {
       afterScenario,
     );
     expect(scenarioEffects.deleted.map((change) => change.path)).toEqual([
-      "/scenarios/1",
+      "/scenarios/0",
     ]);
     expect(scenarioEffects.derived).toEqual([]);
     expect(outcome(dropScenario, before, afterScenario)).toBe("applied");
 
-    // Like every root removal, the positional diff attributes a final-index
-    // removal directly; removing an earlier entry shifts its successors.
-    const dropMetric = request("removeMetric", { metricId: "queue-length" });
+    const dropMetric = request("removeMetric", { metricId: metric.id });
     const afterMetric = expectedNodeDefinition(dropMetric, before);
-    expect(afterMetric.metrics?.map((entry) => entry.id)).toEqual([metric.id]);
+    expect(afterMetric.metrics?.map((entry) => entry.id)).toEqual([
+      "queue-length",
+    ]);
     const metricEffects = deriveMutationEffects(
       dropMetric,
       before,
       afterMetric,
     );
     expect(metricEffects.deleted.map((change) => change.path)).toEqual([
-      "/metrics/1",
+      "/metrics/0",
     ]);
     expect(metricEffects.derived).toEqual([]);
     expect(outcome(dropMetric, before, afterMetric)).toBe("applied");

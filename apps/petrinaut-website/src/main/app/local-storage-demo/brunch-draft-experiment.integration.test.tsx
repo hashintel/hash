@@ -48,6 +48,10 @@ import {
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
+import {
+  createJoinedBrowserMutationRecorder,
+  observeBrowserDefinition,
+} from "./mutation-record";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { LspWorkerFactory, SDCPN } from "@hashintel/petrinaut-core";
@@ -166,8 +170,8 @@ const supportDesk: SDCPN = {
   ],
 };
 
-const draftInput: DraftPetrinautExperimentInput = {
-  observation: { toolCallId: "read-net-1", baseHash: "b".repeat(64) },
+const draftInputFor = (baseHash: string): DraftPetrinautExperimentInput => ({
+  observation: { toolCallId: "read-net-1", baseHash },
   experiment: {
     name: "Staffing under peak demand",
     scenarioId: "scenario__peak_demand",
@@ -207,7 +211,7 @@ const draftInput: DraftPetrinautExperimentInput = {
       blocksRun: false,
     },
   ],
-};
+});
 
 type ObservedDraftWidgetProps = PetrinautAiInteractiveToolWidgetProps<
   DraftPetrinautExperimentInput,
@@ -358,6 +362,13 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   const availableOptimization = createControlledOptimization(
     continueTrials.promise,
   );
+  const handle = createJsonDocHandle({
+    id: "draft-experiment-test",
+    initial: supportDesk,
+  });
+  const draftInput = draftInputFor(observeBrowserDefinition(handle).sha256);
+  const serverValidationPending = Promise.withResolvers<void>();
+  const releaseServerValidation = Promise.withResolvers<void>();
   const settleInitialStream = Promise.withResolvers<void>();
   const toolOutputSubmitted = Promise.withResolvers<void>();
   const tracker = new BrunchPanelConversationTracker();
@@ -392,6 +403,15 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
         input: draftInput,
         position: position(),
       });
+      serverValidationPending.resolve();
+      await releaseServerValidation.promise;
+      await options?.onEvent?.({
+        type: "tool-output",
+        conversationId: "test",
+        toolCallId: "draft-1",
+        output: { awaiting: "client" },
+        position: position(),
+      });
       await settleInitialStream.promise;
     } else {
       await options?.onEvent?.({
@@ -421,9 +441,13 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
     FlueClient,
     "send" | "wait"
   > as FlueClient;
-  const handle = createJsonDocHandle({
-    id: "draft-experiment-test",
-    initial: supportDesk,
+  const mutationRecorder = createJoinedBrowserMutationRecorder({
+    handle,
+    binding: {
+      conversationId: "test",
+      documentId: handle.id,
+      incarnationId: "incarnation",
+    },
   });
 
   render(
@@ -448,6 +472,8 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
               {
                 clientToolNames: batchedConstructionClientToolNames,
                 dynamicClientToolNames: brunchPetrinautDynamicToolNames,
+                validatedClientToolNames:
+                  mutationRecorder.validatedClientToolNames,
               },
             ),
           }}
@@ -470,9 +496,17 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
   });
 
-  // Hold the first response open until its host-owned widget has submitted.
+  await serverValidationPending.promise;
+  await act(async () => {});
+  expect(
+    screen.queryByRole("region", { name: "Drafted experiment" }),
+  ).toBeNull();
+
+  // Release the browser input only after Brunch has accepted the draft, then
+  // hold the first response open until its host-owned widget has submitted.
   // This is the ordering that used to let AI SDK's stream-end continuation
   // race Petrinaut's ready-state continuation.
+  await act(async () => releaseServerValidation.resolve());
   await toolOutputSubmitted.promise;
   await act(async () => settleInitialStream.resolve());
 

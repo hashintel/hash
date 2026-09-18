@@ -1,6 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex } from "@noble/hashes/utils.js";
 import {
   act,
   cleanup,
@@ -17,12 +19,17 @@ import {
   ExperimentHostContext,
   OptimizationsContext,
   PetrinautInstanceContext,
+  prepareExperiment,
 } from "@hashintel/petrinaut/react";
 
 import {
   BrunchDraftExperimentWidget,
   resetBrunchDraftExperimentSession,
 } from "./brunch-draft-experiment-interactive-tool";
+import {
+  describeBudget,
+  describeExperiment,
+} from "./brunch-draft-experiment-interactive-tool/describe-draft";
 
 // The `/ui` entry pulls in chart code that probes `matchMedia` at import time.
 vi.hoisted(() => {
@@ -127,13 +134,15 @@ const makeRequest = (
   ...overrides,
 });
 
-const sha = "a".repeat(64);
+const definitionHash = (definition: SDCPN) =>
+  bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(definition))));
 
 const makeInput = (
   experiment: PetrinautExperimentRequest = makeRequest(),
   unsupported: DraftPetrinautExperimentInput["unsupported"] = [],
+  baseHash = definitionHash(makeDefinition()),
 ): DraftPetrinautExperimentInput => ({
-  observation: { toolCallId: "call_read_1", baseHash: sha },
+  observation: { toolCallId: "call_read_1", baseHash },
   experiment,
   declarations: [
     {
@@ -141,7 +150,14 @@ const makeInput = (
       statement: "Minutes; the two-hour peak window is 120 minutes.",
     },
   ],
-  basis: { kind: "absent", reason: "Fixture without a workpiece." },
+  basis: {
+    kind: "declared",
+    revisionId: "workpiece-revision",
+    sha256: "a".repeat(64),
+    locators: [{ start: 0, end: 1 }],
+    rationale: "The person accepted this experiment configuration.",
+    scope: "operation",
+  },
   unsupported,
 });
 
@@ -160,6 +176,8 @@ const renderWidget = ({
   definition,
   runExperiment,
   optimizationUnavailableReason = null,
+  omitOptimizationUnavailableReason = false,
+  submitOutput = async () => {},
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
@@ -167,17 +185,23 @@ const renderWidget = ({
   definition: ReturnType<typeof createReadableStore<SDCPN>>;
   runExperiment: PetrinautExperimentHost["runExperiment"];
   optimizationUnavailableReason?: string | null;
+  omitOptimizationUnavailableReason?: boolean;
+  submitOutput?: (output: DraftPetrinautExperimentOutput) => Promise<void>;
 }) => {
-  const submit = vi.fn<(output: DraftPetrinautExperimentOutput) => void>();
+  const submit = vi.fn(submitOutput);
   const instance = { definition } as unknown as Petrinaut;
   const host: PetrinautExperimentHost = { runExperiment };
-  const optimizations: OptimizationsContextValue = {
+  const optimizationActions = {
     optimizations: [],
-    optimizationUnavailableReason,
     createOptimization: () => Promise.reject(new Error("Not used")),
     cancelOptimization: () => {},
     removeOptimization: () => {},
   };
+  const optimizations = (
+    omitOptimizationUnavailableReason
+      ? optimizationActions
+      : { ...optimizationActions, optimizationUnavailableReason }
+  ) as OptimizationsContextValue;
   const wrap = (children: ReactNode) => (
     <OptimizationsContext value={optimizations}>
       <PetrinautInstanceContext.Provider value={instance}>
@@ -193,7 +217,8 @@ const renderWidget = ({
         {...state}
         input={input}
         readTitle={() => "Support desk"}
-        submit={submit}
+        submit={() => {}}
+        submitAndWait={submit}
         toolCallId={toolCallId}
       />,
     ),
@@ -213,6 +238,49 @@ describe("BrunchDraftExperimentWidget", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("shows executable numeric values without rounding them", () => {
+    const request = makeRequest({
+      scenarioParameterValues: {
+        arrival_rate: { mode: "range", min: 1001.4, max: 1002.4 },
+      },
+      dt: 0.123456,
+      maxTime: 1001.4,
+    });
+    const definition = makeDefinition();
+
+    expect(
+      describeExperiment(
+        prepareExperiment(request, definition, "Support desk"),
+        definition,
+      ),
+    ).toContain("arrival_rate 1001.4–1002.4");
+    expect(describeBudget(request)).toContain("horizon 1001.4, step 0.123456");
+  });
+
+  it("shows the canonical prepared range and implicit fixed defaults before approval", async () => {
+    const runExperiment = vi.fn();
+    const { submit } = renderWidget({
+      input: makeInput(
+        makeRequest({
+          scenarioParameterValues: {
+            agents: { mode: "range", min: 1.2, max: 7.8 },
+          },
+        }),
+      ),
+      toolCallId: "canonical-review",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0].summary).toContain(
+      "Vary agents 1–8 with arrival_rate = 1.5",
+    );
+    expect(screen.getByText(/Vary agents 1–8/u)).toBeTruthy();
+    expect(screen.queryByText(/agents 1.2–7.8/u)).toBeNull();
   });
 
   it("prepares, reports drafted once, and starts nothing", async () => {
@@ -266,7 +334,8 @@ describe("BrunchDraftExperimentWidget", () => {
           {...submitted}
           input={makeInput()}
           readTitle={() => "Support desk"}
-          submit={submit}
+          submit={() => {}}
+          submitAndWait={submit}
           toolCallId="call_draft_1"
         />,
       ),
@@ -335,6 +404,47 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(runExperiment).not.toHaveBeenCalled();
   });
 
+  it("refuses a draft whose cited observation differs from the live model", async () => {
+    const runExperiment = vi.fn();
+    const changed = makeDefinition();
+    changed.metrics![0]!.code = "return 2;";
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "stale-observation",
+      state: awaiting,
+      definition: createReadableStore(changed),
+      runExperiment,
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "invalid" });
+    expect(submit.mock.calls[0]?.[0].diagnostics[0]).toMatch(
+      /changed since the verified observation/u,
+    );
+    expect(heading()).toEqual(["Could not be prepared"]);
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  });
+
+  it("does not retain an awaiting draft when the host rejects its submission", async () => {
+    const rejection = Promise.reject(
+      new Error("This observed AI tool is display-only."),
+    );
+    void rejection.catch(() => {});
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "display-only-draft",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      submitOutput: () => rejection,
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(heading()).toEqual(["Not retained in this session"]);
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+  });
+
   it("does not offer Run when optimization is unavailable", async () => {
     const runExperiment = vi.fn();
     const { submit } = renderWidget({
@@ -360,6 +470,22 @@ describe("BrunchDraftExperimentWidget", () => {
     );
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
     expect(runExperiment).not.toHaveBeenCalled();
+  });
+
+  it("keeps legacy optimization contexts without an availability reason usable", async () => {
+    const runExperiment = vi.fn();
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "legacy-optimization-context",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment,
+      omitOptimizationUnavailableReason: true,
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(submit.mock.calls[0]?.[0].summary).not.toContain("undefined");
+    expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
   });
 
   it("lets a later draft supersede the earlier card", async () => {
@@ -509,6 +635,9 @@ describe("BrunchDraftExperimentWidget", () => {
     };
     act(() => definition.set(changedAgain));
     fireEvent.click(
+      screen.getByRole("button", { name: "Accept current model" }),
+    );
+    fireEvent.click(
       screen.getByRole("button", { name: "Run against current model" }),
     );
     expect(runExperiment).not.toHaveBeenCalled();
@@ -516,17 +645,22 @@ describe("BrunchDraftExperimentWidget", () => {
       '"queue": "7"',
     );
 
-    const confirm = screen.getByRole("button", {
-      name: "Run against current model",
+    const accept = screen.getByRole("button", {
+      name: "Accept current model",
     });
     act(() => {
-      confirm.click();
-      confirm.click();
+      accept.click();
+      accept.click();
     });
+    expect(runExperiment).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Run against current model" }),
+    );
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(1));
   });
 
-  it("stops before running when the model changed since drafting, then runs on the second press", async () => {
+  it("requires a separate acknowledgement before running a changed model", async () => {
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const definition = createReadableStore(makeDefinition());
     const { submit } = renderWidget({
@@ -548,11 +682,14 @@ describe("BrunchDraftExperimentWidget", () => {
       "The model changed since this was drafted",
     );
     expect(runExperiment).not.toHaveBeenCalled();
-    const rerun = screen.getByRole("button", {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Accept current model" }),
+    );
+    const runReviewed = screen.getByRole("button", {
       name: "Run against current model",
     });
 
-    fireEvent.click(rerun);
+    fireEvent.click(runReviewed);
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(1));
   });
 

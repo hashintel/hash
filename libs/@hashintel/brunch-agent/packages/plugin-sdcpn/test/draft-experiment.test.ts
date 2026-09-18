@@ -142,6 +142,29 @@ describe("draft_petrinaut_experiment input schema", () => {
     ).toBe(true);
   });
 
+  test("requires recorded workpiece acceptance before unblocking a reporting-only run", () => {
+    const result = draftPetrinautExperimentInputSchema.safeParse({
+      ...input,
+      basis: {
+        kind: "absent",
+        reason: "No settled acceptance was recorded.",
+      },
+      unsupported: [
+        {
+          ...input.unsupported[0],
+          blocksRun: false,
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual([
+      "unsupported",
+      0,
+      "blocksRun",
+    ]);
+  });
+
   test("rejects an objective that is not among the saved metrics", () => {
     const result = draftPetrinautExperimentInputSchema.safeParse(
       withExperiment({

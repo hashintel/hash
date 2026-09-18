@@ -143,10 +143,11 @@ export type OptimizationsContextValue = {
   optimizations: readonly OptimizationRecord[];
   /**
    * Why a new study cannot start in this host, or null while the connected
-   * optimizer is available. Consumers check this before creating the sweep
-   * record a study would drive.
+   * optimizer is available. Omission retains the legacy meaning that a custom
+   * provider's optimizer is available. Consumers check this before creating
+   * the sweep record a study would drive.
    */
-  optimizationUnavailableReason: string | null;
+  optimizationUnavailableReason?: string | null;
   /**
    * Starts a study driving a sweep. Rejects when no in-browser optimizer is
    * connected: a sweep can only be optimized in the browser.

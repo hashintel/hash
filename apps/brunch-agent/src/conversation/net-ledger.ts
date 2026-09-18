@@ -15,6 +15,7 @@
  */
 import {
   canonicalContent,
+  isDraftPetrinautExperimentToolName,
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
   isReadPetrinautDocsToolName,
@@ -92,7 +93,8 @@ const resultMessages = (snapshot: FlueConversationSnapshot) =>
 const isNonMutatingBrowserTool = (name: string): boolean =>
   isReadPetrinautNetToolName(name) ||
   isReadPetrinautDiagnosticsToolName(name) ||
-  isReadPetrinautDocsToolName(name);
+  isReadPetrinautDocsToolName(name) ||
+  isDraftPetrinautExperimentToolName(name);
 
 /** A model-selected ID selects a recorded browser observation, never a model-supplied hash. */
 export const recordedBrowserObservation = async (

@@ -170,12 +170,15 @@ export const assertStateIdentity = (
   const input = petrinautAiTools[mutation.toolName].inputSchema.parse(
     mutation.input,
   );
+  const isMetricMutation =
+    mutation.toolName === "addMetric" || mutation.toolName === "updateMetric";
   if ("targetSubnetId" in input && input.targetSubnetId)
     throw new Error("Nested construction is unavailable.");
   // Migration searches root and subnet types/places. Do not admit an unearned nested footprint.
   if (
-    (current.subnets?.length ?? 0) ||
-    (current.componentInstances?.length ?? 0)
+    !isMetricMutation &&
+    ((current.subnets?.length ?? 0) ||
+      (current.componentInstances?.length ?? 0))
   )
     throw new Error(
       "Typed construction with nested nets/components is unavailable.",
@@ -255,6 +258,26 @@ export const assertStateIdentity = (
       .length !== 1
   )
     throw new Error("Unknown or ambiguous scenario identity.");
+  if (mutation.toolName === "addMetric") {
+    const metric = petrinautAiTools.addMetric.inputSchema.parse(mutation.input);
+    if (current.metrics?.some((entry) => entry.name === metric.name))
+      throw new Error("Duplicate metric name cannot be created.");
+    return;
+  }
+  if (mutation.toolName === "updateMetric") {
+    const update = petrinautAiTools.updateMetric.inputSchema.parse(
+      mutation.input,
+    );
+    if (
+      update.update.name !== undefined &&
+      current.metrics?.some(
+        (entry) =>
+          entry.id !== update.metricId && entry.name === update.update.name,
+      )
+    )
+      throw new Error("Duplicate metric name cannot be created.");
+    return;
+  }
   const scenario =
     "initialState" in input
       ? input

@@ -671,6 +671,45 @@ const deriveNodeEffects = (
     deleted: [],
     derived: [],
   };
+  const removedOptionalCollection =
+    request.toolName === "removeScenario"
+      ? "scenarios"
+      : request.toolName === "removeMetric"
+        ? "metrics"
+        : undefined;
+  if (removedOptionalCollection && state) {
+    const targetId = batchedStateLocator(request).name;
+    const targetStillExists = (post[removedOptionalCollection] ?? []).some(
+      (entry) => entry.id === targetId,
+    );
+    if (!targetStillExists) {
+      const expectedPost = JSON.parse(
+        JSON.stringify(pre),
+      ) as DefinitionObservation["definition"];
+      const collection = expectedPost[removedOptionalCollection];
+      const targetIndex =
+        collection?.findIndex((entry) => entry.id === targetId) ?? -1;
+      const removed = collection?.[targetIndex];
+      if (collection && targetIndex >= 0 && removed) {
+        collection.splice(targetIndex, 1);
+        return {
+          created: [],
+          updated: [],
+          deleted: [
+            {
+              kind: "deleted",
+              path: `/${removedOptionalCollection}/${targetIndex}`,
+              before: removed,
+            },
+          ],
+          derived: definitionChanges(
+            expectedPost,
+            JSON.parse(JSON.stringify(post)),
+          ),
+        };
+      }
+    }
+  }
   const changes = definitionChanges(
     JSON.parse(JSON.stringify(pre)),
     JSON.parse(JSON.stringify(post)),

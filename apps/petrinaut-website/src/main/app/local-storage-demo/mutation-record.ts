@@ -7,6 +7,7 @@ import {
   classifyMutationOutcome,
   deriveLayoutEffects,
   deriveMutationEffects,
+  draftPetrinautExperimentToolName,
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
   isReadPetrinautNetToolName,
@@ -24,11 +25,14 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 
 type MutationExecutor = NonNullable<PetrinautAiAssistant["executeMutation"]>;
 type MutationOutput = ReturnType<MutationExecutor>;
+
+export const hashBrowserDefinition = (definition: SDCPN): string =>
+  bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(definition))));
 
 /** Read the bound handle, never the request or React's last rendered snapshot. */
 export const observeBrowserDefinition = (
@@ -39,9 +43,7 @@ export const observeBrowserDefinition = (
   const definition = structuredClone(live);
   return {
     definition,
-    sha256: bytesToHex(
-      sha256(new TextEncoder().encode(JSON.stringify(definition))),
-    ),
+    sha256: hashBrowserDefinition(definition),
     revisionId: handle.revisionId.get(),
   };
 };
@@ -441,6 +443,9 @@ export const createJoinedBrowserMutationRecorder = (input: {
     mapClientToolInput,
     clientToolResultMetadata,
     clientToolResultOutput,
-    validatedClientToolNames: new Set([mutatePetrinautNetToolName]),
+    validatedClientToolNames: new Set([
+      mutatePetrinautNetToolName,
+      draftPetrinautExperimentToolName,
+    ]),
   };
 };

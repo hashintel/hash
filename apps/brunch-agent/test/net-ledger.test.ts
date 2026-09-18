@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 
 import {
+  draftPetrinautExperimentToolName,
   layoutPetrinautNetToolName,
   deriveMutationEffects,
   mutatePetrinetInputSchema,
@@ -336,6 +337,25 @@ describe("the net ledger is a projection over Flue history", () => {
     const before = JSON.stringify(snapshot);
     await deriveNetLedger(snapshot, browser);
     expect(JSON.stringify(snapshot)).toBe(before);
+  });
+
+  test("ignores a completed experiment draft because it cannot change the net", async () => {
+    const events = await deriveNetLedger(
+      snapshotOf([
+        ...readTurn("read-1", emptyNet),
+        assistantCall("draft-1", draftPetrinautExperimentToolName),
+        resultDelivery("draft-1", draftPetrinautExperimentToolName, {
+          status: "drafted",
+          summary: "Prepared only",
+          diagnostics: [],
+        }),
+      ]),
+      browser,
+    );
+
+    expect(events.map((event) => [event.kind, event.toolCallId])).toEqual([
+      ["read", "read-1"],
+    ]);
   });
 
   test("introduces no identities: every event names a tool call the assistant made, at its own position", async () => {

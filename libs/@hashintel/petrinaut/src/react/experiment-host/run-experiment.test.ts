@@ -535,6 +535,21 @@ describe("runExperiment", () => {
     expect(harness.actions.createExperiment).not.toHaveBeenCalled();
   });
 
+  it("treats an omitted availability reason from a legacy context as available", async () => {
+    const harness = createHarness(true);
+    const {
+      optimizationUnavailableReason: _optimizationUnavailableReason,
+      ...legacyDependencies
+    } = harness.dependencies;
+    const pending = runExperiment(legacyDependencies, makeRequest(true));
+
+    await vi.waitFor(() =>
+      expect(harness.actions.createOptimization).toHaveBeenCalledOnce(),
+    );
+    harness.createOptions?.ownership?.cancel();
+    expect((await pending).status).toBe("cancelled");
+  });
+
   it.each<Partial<PetrinautExperimentRequest>>([
     { scenarioId: "missing" },
     { metricIds: ["missing"] },
