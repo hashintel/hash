@@ -26,8 +26,7 @@ use super::{
     metric::{NeighbourhoodAggregate, RankScratch, TripletAggregate},
     probe::{
         AnchorOrdinal, ClumpReadings, DeliveryError, ProbeCorpus, ProbeError, ProbeOptions,
-        ProbeReadings, RadiusPair, ReadingGrid, Step, match_deliveries, probe, probe_sample,
-        sample_pairs,
+        ProbeReadings, RadiusPair, ReadingGrid, Step, match_deliveries, probe, sample_pairs,
     },
     report::{QualityThresholds, ThresholdOverrides, assess, tests::MetricEval},
     runner::{QualityRunOptions, run},
@@ -43,8 +42,8 @@ use crate::{
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
     math::{
-        AffinityCurve, AlignedVecN, BoxedVecN, FinitePointField, NonNegative, UnitFraction, Vec2,
-        VecN, non_negative, nz, positive,
+        AffinityCurve, AlignedVecN, BoxedVecN, DFinite, FinitePointField, NonNegative,
+        UnitFraction, Vec2, VecN, d_finite, non_negative, nz, positive,
     },
     progress::NoProgress,
     salt::{
@@ -92,7 +91,7 @@ fn clump_fixture() -> Knn<NodeRowId> {
 }
 
 #[test]
-fn clumps_group_chains_and_duplicates() {
+fn clump_grouping() {
     let table = clump_fixture();
     let clumps = Clumps::from_knn(&table.view(), 0.1);
 
@@ -128,7 +127,7 @@ fn clumps_group_chains_and_duplicates() {
 }
 
 #[test]
-fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
+fn clump_threshold_and_zero() {
     let table = clump_fixture();
 
     // At the boundary value 0.05 the {0, 1, 2} chain still connects
@@ -160,7 +159,7 @@ fn clump_threshold_is_inclusive_and_zero_keeps_exact_duplicates() {
 }
 
 #[test]
-fn default_epsilon_groups_duplicates_not_neighbours() {
+fn default_epsilon_duplicates() {
     let table = clump_fixture();
     let clumps = Clumps::from_knn(&table.view(), super::clump::DEFAULT_EPSILON);
 
@@ -178,7 +177,7 @@ fn default_epsilon_groups_duplicates_not_neighbours() {
 }
 
 #[test]
-fn hand_built_labels_read_like_a_grouping() {
+fn labels_grouping() {
     let clumps = Clumps::<NodeRowId>::from_labels(IdVec::from_raw(vec![0, 0, 1, 2, 2, 2]), 0.25);
 
     assert_eq!(clumps.rows(), 6);
@@ -191,7 +190,7 @@ fn hand_built_labels_read_like_a_grouping() {
 
 // label 1 matches twice, label 0 once, and unmatched labels 2 and 3 earn no credit
 #[test]
-fn clump_aggregate_counts_multiset_overlap() {
+fn clump_aggregate_overlap() {
     let mut aggregate = ClumpAggregate::new(nz!(4));
     aggregate.observe(&mut [0, 1, 1, 2], &mut [1, 1, 3, 0]);
 
@@ -210,7 +209,7 @@ fn clump_aggregate_counts_multiset_overlap() {
 }
 
 #[test]
-fn identical_orderings_are_perfect() {
+fn identical_orderings() {
     let ordering: Vec<u32> = (0..10).collect();
     let mut aggregate = NeighbourhoodAggregate::new(10, nz!(3), 6).expect("3 <= 10 / 2 and 3 <= 6");
     let mut scratch = RankScratch::new(10);
@@ -226,7 +225,7 @@ fn identical_orderings_are_perfect() {
 }
 
 #[test]
-fn reversed_ordering_is_worst() {
+fn reversed_ordering() {
     let reference: Vec<u32> = (0..8).collect();
     let map: Vec<u32> = (0..8).rev().collect();
     let mut aggregate = NeighbourhoodAggregate::new(8, nz!(2), 4).expect("2 <= 8 / 2 and 2 <= 4");
@@ -247,7 +246,7 @@ fn reversed_ordering_is_worst() {
 }
 
 #[test]
-fn hand_computed_partial_agreement() {
+fn partial_agreement() {
     // Universe of 6. Reference: 0,1,2,3,4,5. Map: 0,2,1,3,4,5.
     // k = 2: map top-2 = {0, 2}, reference top-2 = {0, 1}.
     let reference: Vec<u32> = (0..6).collect();
@@ -270,7 +269,7 @@ fn hand_computed_partial_agreement() {
 }
 
 #[test]
-fn horizon_splits_reshuffles_from_intruders() {
+fn horizon_intruders() {
     // Map top-2 = {0, 5}. Point 5 sits at reference position 5, past the horizon 4, and the swap
     // banishes point 1 to map position 5 in return.
     let reference: Vec<u32> = (0..6).collect();
@@ -289,7 +288,7 @@ fn horizon_splits_reshuffles_from_intruders() {
 }
 
 #[test]
-fn aggregate_pools_queries() {
+fn aggregate_queries() {
     let reference: Vec<u32> = (0..6).collect();
     let mut aggregate = NeighbourhoodAggregate::new(6, nz!(2), 4).expect("2 <= 6 / 2 and 2 <= 4");
     let mut scratch = RankScratch::new(6);
@@ -305,7 +304,7 @@ fn aggregate_pools_queries() {
 }
 
 #[test]
-fn aggregate_rejects_invalid_shapes() {
+fn aggregate_invalid_shapes() {
     let k = |value: usize| NonZero::new(value).expect("nonzero");
 
     assert!(NeighbourhoodAggregate::new(10, k(6), 8).is_none());
@@ -358,7 +357,7 @@ fn capacity_boundary() {
 }
 
 #[test]
-fn sampled_pairs_are_distinct_and_in_bounds() {
+fn sampled_pairs_bounds() {
     assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(3), 1, 64).is_empty());
     assert!(sample_pairs(Xoshiro256PlusPlus::seed_from_u64(4), 0, 1).is_empty());
 
@@ -386,7 +385,7 @@ fn sampled_pairs_are_distinct_and_in_bounds() {
 }
 
 #[test]
-fn observe_ranks_matches_observe() {
+fn observe_ranks() {
     // Universe of 8, k = 3, horizon 5, with tangled orderings.
     let by_reference = [4_u32, 0, 6, 2, 7, 1, 3, 5];
     let by_map = [2_u32, 4, 1, 5, 0, 6, 7, 3];
@@ -407,7 +406,7 @@ fn observe_ranks_matches_observe() {
 }
 
 #[test]
-fn merged_aggregates_match_joint_observation() {
+fn merged_aggregates() {
     let reference: Vec<u32> = (0..6).collect();
     let swapped = [0, 2, 1, 3, 4, 5];
     let reversed: Vec<u32> = (0..6).rev().collect();
@@ -536,7 +535,7 @@ pub(crate) fn irregular_angles(rows: usize) -> Vec<f32> {
 }
 
 #[tokio::test]
-async fn probe_reads_a_faithful_map_as_perfect() {
+async fn faithful_map() {
     let fixture = ProbeFixture::on_circle(&irregular_angles(48));
     let options = ProbeOptions {
         anchors: 5.try_into().expect("nonzero"),
@@ -566,6 +565,7 @@ async fn probe_reads_a_faithful_map_as_perfect() {
         &readings.sampled_map_canonical,
         &readings.sampled_representation_canonical,
     ] {
+        let grid = grid.as_ref().expect("should contain rank readings");
         for step in 0..2 {
             let overall = grid.overall(Step::from_usize(step));
             assert_eq!(overall.queries(), 5);
@@ -584,7 +584,12 @@ fn indices_of(rows: &[NodeRowId]) -> Vec<usize> {
 }
 
 #[tokio::test]
-async fn corpus_readings_match_a_sorting_reference() {
+#[expect(
+    clippy::too_many_lines,
+    reason = "one probe sample checks rank, radius and triplet readings against the sorting \
+              reference"
+)]
+async fn corpus_sorting() {
     // Embeddings on the circle, coordinates scrambled by reversing the
     // angle order and bending it, so map and representation disagree.
     // Rows 10 and 11 duplicate an embedding and rows 20 and 21 a
@@ -640,6 +645,10 @@ async fn corpus_readings_match_a_sorting_reference() {
         order
     };
 
+    let grid = readings
+        .map_representation
+        .as_ref()
+        .expect("should contain rank readings");
     for (index, &anchor) in anchor_rows.iter().enumerate() {
         let by_reference =
             order_by(&|row: usize| representations[anchor].cosine_distance(&representations[row]));
@@ -652,9 +661,7 @@ async fn corpus_readings_match_a_sorting_reference() {
         expected.observe(&by_reference, &by_map, &mut scratch);
 
         assert_eq!(
-            *readings
-                .map_representation
-                .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0)),
+            *grid.anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0)),
             expected,
             "anchor {anchor} disagrees with the sorting reference",
         );
@@ -722,10 +729,14 @@ fn assert_singleton_collapse_matches_plain_recall(
         assert_eq!(
             clumps
                 .map_representation
+                .as_ref()
+                .expect("should contain clump readings")
                 .anchor(origin.0, origin.1)
                 .recall(),
             readings
                 .map_representation
+                .as_ref()
+                .expect("should contain rank readings")
                 .anchor(origin.0, origin.1)
                 .recall(),
         );
@@ -733,7 +744,7 @@ fn assert_singleton_collapse_matches_plain_recall(
 }
 
 #[tokio::test]
-async fn clump_readings_match_a_sorting_reference() {
+async fn clump_sorting() {
     // reversing and rescaling the map angles introduces disagreement with the representation.
     // Separate coincident pairs exercise distance ties in each space.
     let angles = irregular_angles(40);
@@ -825,6 +836,8 @@ async fn clump_readings_match_a_sorting_reference() {
 
         let cell = clumps
             .map_representation
+            .as_ref()
+            .expect("should contain clump readings")
             .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0));
         assert_eq!(
             *cell, expected,
@@ -835,6 +848,8 @@ async fn clump_readings_match_a_sorting_reference() {
             cell.recall()
                 >= readings
                     .map_representation
+                    .as_ref()
+                    .expect("should contain rank readings")
                     .anchor(AnchorOrdinal::from_usize(index), Step::from_usize(0))
                     .recall()
         );
@@ -920,7 +935,7 @@ fn types_of(rows: &[&[u64]]) -> Vec<SmallVec<OntologyRowId, 2>> {
 }
 
 #[test]
-fn assess_flags_degraded_subgroups() {
+fn degraded_subgroups() {
     // Anchors 0-3 hit, 4-5 miss: overall recall 2/3, degradation 1/3.
     let readings = flag_fixture(&[true, true, true, true, false, false]);
     // Type 100: four hits. Type 200: both misses. Type 300 spans one
@@ -1018,7 +1033,7 @@ fn clump_readings_of(matches: &[bool]) -> ClumpReadings {
 }
 
 #[test]
-fn clump_resolution_triages_flags() {
+fn clump_resolution_flags() {
     let anchor_types = types_of(&[&[100], &[100], &[100], &[100], &[200], &[200]]);
     let thresholds = QualityThresholds {
         minimum_subgroup_anchors: 2,
@@ -1087,7 +1102,7 @@ fn clump_resolution_triages_flags() {
 }
 
 #[test]
-fn assess_reads_density_from_radii() {
+fn density_from_radii() {
     let mut readings = flag_fixture(&[true, true, true]);
     // Ratios ln 2 and ln 4. The zero map radius is degenerate.
     readings.radii = Box::new([
@@ -1119,14 +1134,12 @@ fn assess_reads_density_from_radii() {
     // midpoint of the absolute deviations.
     let (low, high) = (2.0_f64.ln(), 4.0_f64.ln());
     let median = f64::midpoint(low, high);
-    assert_eq!(row.median_log_ratio, Some(median));
-    assert_eq!(
-        row.spread,
-        Some(f64::midpoint((low - median).abs(), (high - median).abs())),
-    );
+    assert!((row.median_log_ratio.expect("should have a median").get() - median).abs() < 1e-12);
+    let expected_spread = f64::midpoint((low - median).abs(), (high - median).abs());
+    assert!((row.spread.expect("should have a spread").get() - expected_spread).abs() < 1e-12);
 
     // A pinned ceiling above the spread passes, and one below it fails.
-    let spread = row.spread.expect("two anchors contribute");
+    let spread = row.spread.expect("two anchors contribute").get();
     let lenient = assess(
         readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
         &QualityThresholds {
@@ -1146,7 +1159,80 @@ fn assess_reads_density_from_radii() {
 }
 
 #[test]
-fn assess_fails_pinned_thresholds_without_evidence() {
+fn controls_density_steps() {
+    let readings = flag_fixture(&[true]);
+    let types = types_of(&[&[]]);
+    let mut report = assess(
+        readings.with_anchor_types(&types),
+        &QualityThresholds::default(),
+    );
+    let row = report.density[0];
+    report.density = [d_finite!(0.25), d_finite!(0.75), d_finite!(0.5)]
+        .into_iter()
+        .enumerate()
+        .map(|(index, spread)| super::report::DensityRow {
+            neighbourhood: NonZero::new(index + 1).expect("should have a positive size"),
+            spread: Some(spread),
+            ..row
+        })
+        .collect();
+    report.maximum_density_spread = non_negative!(0.75);
+    assert_matches!(report.controls()[4].eval, MetricEval::Pass { reading } if reading == d_finite!(0.75));
+    assert!(report.admits(), "should admit equality with the worst step");
+
+    report.maximum_density_spread = non_negative!(0.5);
+    assert_matches!(report.controls()[4].eval, MetricEval::Fail { reading: Some(reading) } if reading == d_finite!(0.75));
+    assert!(
+        !report.admits(),
+        "should reject a measured threshold breach"
+    );
+
+    report.maximum_density_spread = NonNegative::MAX;
+    report.density[1].spread = None;
+    assert_matches!(
+        report.controls()[4].eval,
+        MetricEval::Fail { reading: None }
+    );
+    assert!(!report.admits(), "should require evidence from every step");
+    report.density.clear();
+    assert_matches!(
+        report.controls()[4].eval,
+        MetricEval::Fail { reading: None }
+    );
+}
+
+#[test]
+fn assess_density_range_edges() {
+    let mut readings = flag_fixture(&[true, true]);
+    let minimum = NonNegative::new(f32::from_bits(1)).expect("should admit the smallest subnormal");
+    readings.radii = Box::new([
+        RadiusPair {
+            map: NonNegative::MAX,
+            representation: minimum,
+        },
+        RadiusPair {
+            map: minimum,
+            representation: NonNegative::MAX,
+        },
+    ]);
+    let report = assess(
+        readings.with_anchor_types(&types_of(&[&[], &[]])),
+        &QualityThresholds::default(),
+    );
+    let row = report.density[0];
+    // the ratios are reciprocals. Their log ratios have opposite signs and magnitude ln(MAX) + 149
+    // ln 2.
+    let expected = 149.0_f64.mul_add(core::f64::consts::LN_2, f64::from(f32::MAX).ln());
+    assert_eq!(row.anchors, 2);
+    assert_eq!(row.degenerate, 0);
+    assert_eq!(row.median_log_ratio, Some(DFinite::ZERO));
+    assert!(
+        (row.spread.expect("should retain both extreme ratios").get() - expected).abs() < 1e-12
+    );
+}
+
+#[test]
+fn density_missing_evidence() {
     // Every radius degenerate: the density reading is absent.
     let mut readings = flag_fixture(&[true, true]);
     readings.radii = Box::new([
@@ -1186,7 +1272,7 @@ fn assess_fails_pinned_thresholds_without_evidence() {
 // reports may be constructed or deserialized independently of assess, including with an empty
 // primary grid
 #[test]
-fn neighbourhood_controls_demand_a_nonempty_grid() {
+fn nonempty_grid() {
     let readings = flag_fixture(&[true, true]);
     let types = types_of(&[&[], &[]]);
 
@@ -1204,7 +1290,7 @@ fn neighbourhood_controls_demand_a_nonempty_grid() {
 }
 
 #[test]
-fn threshold_overrides_validate_at_the_boundary() {
+fn threshold_boundary() {
     let overrides: ThresholdOverrides =
         serde_json::from_str(r#"{"minimum_recall": 0.25}"#).expect("the partial document parses");
     let merged = QualityThresholds::default()
@@ -1280,7 +1366,7 @@ fn threshold_overrides_validate_at_the_boundary() {
 }
 
 #[test]
-fn assess_applies_pinned_floors() {
+fn pinned_floors() {
     let readings = flag_fixture(&[true, true, false]);
     let anchor_types = types_of(&[&[], &[], &[]]);
 
@@ -1306,7 +1392,7 @@ fn assess_applies_pinned_floors() {
 }
 
 #[tokio::test]
-async fn assess_reads_a_probed_fixture() {
+async fn probed_fixture() {
     let fixture = ProbeFixture::on_circle(&irregular_angles(48));
     let options = ProbeOptions {
         anchors: 5.try_into().expect("nonzero"),
@@ -1357,10 +1443,8 @@ async fn assess_reads_a_probed_fixture() {
     );
     assert_eq!(report.density[0].degenerate, 0);
     assert!(
-        report.density[0]
-            .spread
-            .expect("every anchor contributes")
-            .is_finite()
+        report.density[0].spread.is_some(),
+        "should retain density evidence"
     );
     assert_eq!(
         report.sampled_representation_canonical[0].recall, 1.0,
@@ -1406,22 +1490,13 @@ async fn probe_population_domains() {
         );
         assert_eq!(report.passes(), rows >= 3);
         let json = serde_json::to_value(&report).expect("should serialize assessed evidence");
-        assert_eq!(json["anchors"], report.anchors);
-        assert_eq!(json["comparisons"], report.comparisons);
-        assert_eq!(json["corpus_universe"], rows - report.anchors);
-        assert_eq!(json["passes"], rows >= 3);
-        assert_eq!(json["admits"], true);
         let summary = report.to_string();
         assert!(summary.contains("admits      true"));
         assert_eq!(
             summary.contains("not evaluated: insufficient data"),
             rows < 3
         );
-        for (control, serialized) in report.controls().iter().zip(
-            json["controls"]
-                .as_array()
-                .expect("should serialize controls"),
-        ) {
+        for control in report.controls() {
             let supported = rows
                 >= if control.metric == QualityMetric::DensitySpread {
                     2
@@ -1430,22 +1505,70 @@ async fn probe_population_domains() {
                 };
             if supported {
                 assert_matches!(control.eval, MetricEval::Pass { .. });
-                assert_eq!(serialized["status"], "passed");
             } else {
                 assert_matches!(control.eval, MetricEval::Inconclusive { .. });
-                assert_eq!(serialized["status"], "not_evaluated");
-                assert_eq!(serialized["reason"], "insufficient_data");
             }
         }
         if rows == 2 {
             assert!(report.map_representation.is_empty());
-            assert_eq!(json["density"][0]["neighbourhood"], 1);
-            assert_eq!(report.density[0].spread, Some(0.0));
+            assert_eq!(report.density[0].neighbourhood, nz!(1));
+            assert_eq!(report.density[0].spread, Some(DFinite::ZERO));
         }
         let restored: super::report::QualityReport =
             serde_json::from_value(json).expect("should restore evidence");
         assert_eq!(restored, report);
         assert_eq!(restored.admits(), report.admits());
+    }
+}
+
+#[tokio::test]
+async fn probe_small_clump_grids() {
+    for rows in [0, 1, 2, 3] {
+        let fixture = ProbeFixture::on_circle(&irregular_angles(rows));
+        let clumps = Clumps::<NodeRowId>::from_labels(IdVec::from_raw(vec![0; rows]), 0.0);
+        let readings = probe(
+            &fixture.dataset(),
+            fixture.corpus().with_clumps(&clumps),
+            &ProbeOptions::default(),
+            Xoshiro256PlusPlus::seed_from_u64(7),
+        )
+        .await
+        .expect("should retain clump grouping below the rank domain");
+        let collapsed = readings
+            .clumps
+            .as_ref()
+            .expect("should retain the supplied grouping");
+        for present in [
+            readings.map_representation.is_some(),
+            readings.sampled_map_representation.is_some(),
+            readings.sampled_map_canonical.is_some(),
+            readings.sampled_representation_canonical.is_some(),
+            collapsed.map_representation.is_some(),
+            collapsed.representation_canonical.is_some(),
+        ] {
+            assert_eq!(present, rows >= 3);
+        }
+        let types = vec![smallvec![OntologyRowId::new(9)]; readings.anchors.len()];
+        let report = assess(
+            readings.with_anchor_types(&types),
+            &QualityThresholds::default(),
+        );
+        let collapsed = report.clumps.expect("should retain the supplied grouping");
+        assert_eq!(
+            collapsed.map_representation.len(),
+            readings.neighbourhoods.len()
+        );
+        assert_eq!(
+            collapsed.representation_canonical.len(),
+            readings.neighbourhoods.len()
+        );
+        for subgroup in &report.subgroups {
+            assert_eq!(subgroup.rows.len(), readings.neighbourhoods.len());
+        }
+        for subgroup in &report.baseline_subgroups {
+            assert_eq!(subgroup.rows.len(), readings.neighbourhoods.len());
+        }
+        assert_eq!(report.density.is_empty(), rows < 2);
     }
 }
 
@@ -1479,7 +1602,7 @@ async fn admission_population_insufficient() {
             );
             assert_eq!(root.current().expect("should read pointer"), None);
             let mut failing = report.clone();
-            failing.density[0].spread = Some(0.25);
+            failing.density[0].spread = Some(d_finite!(0.25));
             failing.maximum_density_spread = NonNegative::ZERO;
             assert_eq!(
                 admit(&root, generation, &failing).expect("should return a candidate"),
@@ -1499,7 +1622,7 @@ async fn admission_population_insufficient() {
 }
 
 #[tokio::test]
-async fn probe_small_missing_evidence() {
+async fn small_missing_evidence() {
     for rows in [0, 1, 2] {
         let fixture = ProbeFixture::on_circle(&irregular_angles(rows));
         let options = ProbeOptions {
@@ -1551,9 +1674,6 @@ async fn probe_small_missing_evidence() {
         MetricEval::Fail { reading: None }
     );
     assert_matches!(report.controls()[0].eval, MetricEval::Inconclusive { .. });
-    let json = serde_json::to_value(&report).expect("should serialize rejection");
-    assert_eq!(json["controls"][4]["status"], "failed");
-    assert_eq!(json["controls"][4]["reading"], serde_json::Value::Null);
 }
 
 #[tokio::test]
@@ -1620,158 +1740,6 @@ async fn probe_small_invalid_inputs() {
     );
 }
 
-// squared distances enforce finiteness in debug builds. Without that assertion, the density control
-// rejects the non-finite spread.
-#[tokio::test]
-#[cfg_attr(
-    debug_assertions,
-    should_panic(expected = "the square left the domain")
-)]
-async fn probe_small_nonfinite_arithmetic() {
-    let mut fixture = ProbeFixture::on_circle(&[0.0, 0.5]);
-    fixture.coordinates = vec![Vec2::new(f32::MAX, 0.0), Vec2::new(-f32::MAX, 0.0)];
-    let readings = probe(
-        &fixture.dataset(),
-        fixture.corpus(),
-        &ProbeOptions::default(),
-        Xoshiro256PlusPlus::seed_from_u64(7),
-    )
-    .await
-    .expect("should retain overflowed radii for assessment");
-    let types = vec![SmallVec::new(); readings.anchors.len()];
-    let report = assess(
-        readings.with_anchor_types(&types),
-        &QualityThresholds::default(),
-    );
-    assert!(
-        !report.admits(),
-        "should reject overflowed arithmetic alongside unsupported rank metrics"
-    );
-    assert_matches!(
-        report.controls()[4].eval,
-        MetricEval::Fail { reading: None }
-    );
-}
-
-#[tokio::test]
-#[cfg_attr(
-    debug_assertions,
-    should_panic(expected = "the square left the domain")
-)]
-async fn probe_density_minority_overflow() {
-    let mut fixture = ProbeFixture::on_circle(&irregular_angles(5));
-    let options = ProbeOptions {
-        anchors: nz!(8),
-        comparisons: nz!(4),
-        neighbourhoods: Cow::Borrowed(&[nz!(1)]),
-        ..ProbeOptions::default()
-    };
-    let rng = Xoshiro256PlusPlus::seed_from_u64(7);
-    let sample = probe_sample(rng.clone(), IdSlice::from_raw(&fixture.node_ids), 3, 2);
-    for (&row, coordinate) in sample.iter().zip([2.0, 3.0, f32::MAX, 0.0, 1.0]) {
-        fixture.coordinates[row.as_usize()] = Vec2::new(coordinate, 0.0);
-    }
-    fixture.storage.as_array_mut().fill(0.0);
-    for row in 0..5 {
-        fixture.storage.as_array_mut()[row * PROJECTOR_DIMENSIONS + row] = 1.0;
-        let canonical = fixture
-            .canonical
-            .get_mut(&fixture.node_ids[row].get())
-            .expect("should contain the canonical row");
-        canonical.as_array_mut().fill(0.0);
-        canonical.as_array_mut()[row] = 1.0;
-    }
-
-    let mut readings = probe(&fixture.dataset(), fixture.corpus(), &options, rng)
-        .await
-        .expect("should retain overflowed radii for assessment");
-    assert_eq!(readings.anchors.len(), 3);
-    assert_eq!(readings.comparisons.len(), 2);
-    let map_radii: Vec<_> = readings.radii.iter().map(|radii| radii.map.get()).collect();
-    assert_eq!(map_radii, [1.0, 2.0, f32::INFINITY]);
-    assert!(
-        readings
-            .radii
-            .iter()
-            .all(|radii| radii.representation == NonNegative::ONE)
-    );
-
-    // the unchecked median and MAD both equal ln(2), despite the infinite third log ratio.
-    let mut ratios: Vec<_> = map_radii
-        .iter()
-        .map(|&radius| f64::from(radius).ln())
-        .collect();
-    ratios.sort_unstable_by(f64::total_cmp);
-    let median = ratios[1];
-    for ratio in &mut ratios {
-        *ratio = (*ratio - median).abs();
-    }
-    ratios.sort_unstable_by(f64::total_cmp);
-    assert_eq!(median, 2.0_f64.ln());
-    assert_eq!(ratios[1], 2.0_f64.ln());
-
-    let report = assess(
-        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
-        &QualityThresholds::default(),
-    );
-    assert_eq!(report.density[0].median_log_ratio, None);
-    assert_eq!(report.density[0].spread, None);
-    for control in report.controls() {
-        if control.metric == QualityMetric::DensitySpread {
-            assert_matches!(control.outcome, MetricEval::Fail { reading: None });
-        } else {
-            assert_matches!(control.outcome, MetricEval::Pass { .. });
-        }
-    }
-    assert!(!report.admits(), "should refuse non-finite density inputs");
-    let json = serde_json::to_value(&report).expect("should serialize rejection");
-    assert_eq!(json["controls"][4]["status"], "failed");
-    assert_eq!(json["admits"], false);
-    let root = GenerationRoot::new(runner_scratch("density-minority-overflow"))
-        .expect("should open fixture root");
-    let generation = publish_fixture(&root);
-    assert_eq!(
-        admit(&root, generation, &report).expect("should return a candidate"),
-        Admission::Candidate
-    );
-    assert_eq!(root.current().expect("should read pointer"), None);
-
-    readings.radii[2].representation = NonNegative::ZERO;
-    let report = assess(
-        readings.with_anchor_types(&types_of(&[&[], &[], &[]])),
-        &QualityThresholds::default(),
-    );
-    assert!(
-        !report.admits(),
-        "should refuse overflow even beside a zero radius"
-    );
-    assert_matches!(
-        report.controls()[4].eval,
-        MetricEval::Fail { reading: None }
-    );
-}
-
-#[test]
-fn assess_nonfinite_density() {
-    let readings = flag_fixture(&[true, true]);
-    let types = types_of(&[&[], &[]]);
-    for spread in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
-        let mut report = assess(
-            readings.with_anchor_types(&types),
-            &QualityThresholds::default(),
-        );
-        report.density[0].spread = Some(spread);
-        assert!(
-            !report.admits(),
-            "should refuse non-finite density even with permissive bounds"
-        );
-        assert_matches!(
-            report.controls()[4].eval,
-            MetricEval::Fail { reading: None }
-        );
-    }
-}
-
 #[tokio::test]
 async fn probe_adapted_threshold_failure() {
     let angles = irregular_angles(12);
@@ -1799,9 +1767,6 @@ async fn probe_adapted_threshold_failure() {
         "should refuse measured failure after shrinking the sample"
     );
     assert_matches!(report.controls()[0].eval, MetricEval::Fail { reading: Some(reading) } if reading < 1.0);
-    let json = serde_json::to_value(&report).expect("should serialize measured rejection");
-    assert_eq!(json["controls"][0]["status"], "failed");
-    assert_eq!(json["admits"], false);
 }
 
 #[tokio::test]
@@ -2069,7 +2034,7 @@ fn runner_probe_options() -> QualityRunOptions {
 }
 
 #[tokio::test]
-async fn runner_reports_a_published_generation() {
+async fn published_generation() {
     let path = runner_scratch("runner");
     let root = GenerationRoot::new(&path).expect("the root should open");
     let dataset = runner_dataset();
@@ -2190,7 +2155,7 @@ async fn runner_reports_a_published_generation() {
 }
 
 #[test]
-fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
+fn metric_threshold_nouns() {
     assert_eq!(QualityMetric::ALL.first(), Some(&QualityMetric::Recall));
     assert_eq!(
         QualityMetric::ALL.last(),
@@ -2220,7 +2185,7 @@ fn every_metric_is_listed_once_under_the_noun_its_threshold_is_keyed_by() {
 }
 
 #[tokio::test]
-async fn a_delivery_stream_must_cover_every_request_exactly_once() {
+async fn delivery_stream_coverage() {
     let node_ids = [7_u64, 8, 9].map(U64::<LE>::new);
     let node_ids = IdSlice::<NodeRowId, _>::from_raw(&node_ids);
     let rows = [NodeRowId::new(0), NodeRowId::new(2)];

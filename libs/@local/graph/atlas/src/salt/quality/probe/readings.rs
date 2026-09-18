@@ -65,7 +65,10 @@ pub(crate) struct ReadingGrid<A = NeighbourhoodAggregate> {
 }
 
 impl<A> ReadingGrid<A> {
-    /// Gathers per-anchor cell rows into a grid.
+    /// Gathers per-anchor cell rows into a grid when a neighbourhood axis exists.
+    ///
+    /// Returns [`None`] when `steps` is zero. Each present grid has at least one neighbourhood
+    /// column.
     ///
     /// # Panics
     ///
@@ -232,11 +235,12 @@ pub(crate) struct ClumpReadings {
 /// aggregates.
 ///
 /// Values produced by [`probe`](super::probe) have aligned axes. The neighbourhood axis is empty
-/// when the population cannot support rank metrics. Density has its own neighbourhood axis, which
-/// can remain nonempty with two rows. Direct construction must preserve the grids' neighbourhood
-/// axis and the radius pairs' density axis, with all measurements in anchor order. The same
-/// obligation covers each aggregate's shape and arithmetic capacity, and the fields store what a
-/// caller supplies without a mutual-consistency check.
+/// when the population cannot support rank metrics, and every corresponding grid is [`None`].
+/// Density has its own neighbourhood axis, which can remain nonempty with two rows. Direct
+/// construction must preserve the grids' neighbourhood axis and the radius pairs' density axis,
+/// with all measurements in anchor order. The same obligation covers each aggregate's shape and
+/// arithmetic capacity, and the fields store what a caller supplies without a mutual-consistency
+/// check.
 #[derive(Debug)]
 pub(crate) struct ProbeReadings<N> {
     /// Sampled anchor rows, in sampling order: the grids' anchor axis.
@@ -368,7 +372,8 @@ mod tests {
 
     #[test]
     fn from_anchor_cells_dimensions() {
-        let grid = ReadingGrid::from_anchor_cells(vec![vec![0_u8; 2]; 5], 2);
+        let grid = ReadingGrid::from_anchor_cells(vec![vec![0_u8; 2]; 5], 2)
+            .expect("should construct a grid with neighbourhood columns");
         assert_eq!(grid.cells.rows(), 5);
         assert_eq!(grid.cells.columns(), 2);
     }
@@ -402,6 +407,7 @@ mod tests {
             &readings.sampled_map_canonical,
             &readings.sampled_representation_canonical,
         ] {
+            let grid = grid.as_ref().expect("should contain rank readings");
             assert_eq!(grid.cells.rows(), 5);
             assert_eq!(grid.cells.columns(), 2);
         }

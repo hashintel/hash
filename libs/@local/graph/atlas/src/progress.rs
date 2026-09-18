@@ -205,6 +205,10 @@ pub trait Progress {
     fn classifier_regularization_selected(&self, regularization: f64) {}
 
     /// Reports an admission metric's aggregate reading across the probe steps.
+    #[expect(
+        private_interfaces,
+        reason = "public command bounds require Progress, but its callbacks remain crate-internal"
+    )]
     fn quality_probe(&self, metric: QualityMetric, value: DFinite) {}
 
     /// Reports completion of a pipeline stage.
@@ -281,6 +285,10 @@ where
         T::classifier_regularization_selected(self, regularization);
     }
 
+    #[expect(
+        private_interfaces,
+        reason = "public command bounds require Progress, but its callbacks remain crate-internal"
+    )]
     fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         T::quality_probe(self, metric, value);
     }

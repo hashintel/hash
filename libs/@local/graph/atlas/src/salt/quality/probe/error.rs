@@ -7,8 +7,6 @@ pub(crate) enum ProbeError<E> {
     NoNeighbourhoods,
     /// A neighbourhood size violates the aggregate domain over one of the probe's universes.
     Neighbourhood { k: NonZero<usize>, universe: usize },
-    /// The corpus row count exceeds the crate's `u32` row encoding.
-    RowsExceedProbeDomain { rows: usize },
     /// A population below the rank domain contains a non-finite embedding component.
     NonFiniteEmbedding,
     /// The canonical stream failed.
@@ -32,9 +30,6 @@ impl<E> fmt::Display for ProbeError<E> {
                 "neighbourhood size {k} lies outside the aggregate domain over a universe of \
                  {universe}",
             ),
-            Self::RowsExceedProbeDomain { rows } => {
-                write!(fmt, "{rows} rows exceed the crate's u32 row encoding")
-            }
             Self::NonFiniteEmbedding => {
                 fmt.write_str("a probe embedding contains a non-finite component")
             }
@@ -63,7 +58,6 @@ impl<E: Error + 'static> Error for ProbeError<E> {
             Self::NoNeighbourhoods
             | Self::NonFiniteEmbedding
             | Self::Neighbourhood { .. }
-            | Self::RowsExceedProbeDomain { .. }
             | Self::UnrequestedEmbedding
             | Self::RepeatedEmbedding
             | Self::MissingEmbeddings { .. } => None,

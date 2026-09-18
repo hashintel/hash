@@ -60,10 +60,7 @@ impl MetricRow {
 pub(crate) struct DensityRow {
     /// The neighbourhood size both radii come from.
     pub neighbourhood: NonZero<usize>,
-    /// Anchors with positive radii contributing a log ratio.
-    ///
-    /// Finite radii give finite ratios, though positivity alone admits an overflowed infinite
-    /// radius.
+    /// Anchors with positive finite radii contributing a log ratio.
     pub anchors: usize,
     /// Anchors excluded for a zero radius.
     ///
@@ -246,21 +243,29 @@ pub(crate) enum InconclusiveReason {
     InsufficientData,
 }
 
-/// A metric's measured verdict or population-insufficient outcome.
+/// A metric's threshold verdict or inconclusive result.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) enum MetricEval {
     /// A finite reading satisfies its bound.
     Pass { reading: DFinite },
-    /// A reading violates its bound, or where required evidence is missing.
+    /// A reading violates its bound, or required evidence is missing.
     Fail { reading: Option<DFinite> },
     /// The population cannot define the measurement.
     Inconclusive { reason: InconclusiveReason },
 }
 
+/// The evidence available for a metric before applying its threshold.
+///
+/// [`Inconclusive`](Self::Inconclusive) identifies a metric outside the population's supported
+/// domain. [`Missing`](Self::Missing) identifies absent evidence for a metric that requires it. The
+/// distinction determines whether [`Control`] permits admission.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) enum MetricReading {
+    /// The population cannot define the measurement.
     Inconclusive(InconclusiveReason),
+    /// A finite aggregate ready for threshold comparison.
     Value(DFinite),
+    /// Required evidence is absent.
     Missing,
 }
 
@@ -415,14 +420,14 @@ impl fmt::Display for QualityReport {
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// Neighbourhood floors use the lowest primary-grid reading and the intrusion ceiling uses the
-    /// highest. An empty primary grid yields absent readings. The density control is absent for an
-    /// empty density list or any row with no spread, otherwise it uses the maximum spread. Triplet
-    /// agreement is present only when its recorded triplet count is positive.
-    ///
     /// Populations below three cannot define the rank or triplet metrics. Density requires two
-    /// rows. These unavailable metrics permit admission. Missing evidence above those population
-    /// floors refuses admission, as do zero requested triplet draws and non-finite density spreads.
+    /// rows. These controls are inconclusive regardless of stored readings and permit admission.
+    /// Triplet agreement requires a positive requested draw count to qualify as inconclusive.
+    ///
+    /// For supported metrics, neighbourhood floors use the lowest primary-grid reading and the
+    /// intrusion ceiling uses the highest. Density uses the maximum spread across all neighbourhood
+    /// sizes. An empty primary grid, an empty density list or any missing spread fails its
+    /// corresponding control. Triplet agreement requires a positive recorded triplet count.
     #[must_use]
     pub(crate) fn controls(&self) -> [Control; variant_count::<QualityMetric>()] {
         let population = self.anchors.saturating_add(self.corpus_universe);
@@ -432,15 +437,13 @@ impl QualityReport {
                 return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
             }
 
-            match self
-                .map_representation
+            self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::min)
-            {
-                Some(value) => MetricReading::Value(value.into()),
-                None => MetricReading::Missing,
-            }
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
 
         let highest = |read: fn(&MetricRow) -> UnitFraction, min_population: usize| {
@@ -448,15 +451,13 @@ impl QualityReport {
                 return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
             }
 
-            match self
-                .map_representation
+            self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::max)
-            {
-                Some(value) => MetricReading::Value(value.into()),
-                None => MetricReading::Missing,
-            }
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
 
         let spread = self
@@ -464,7 +465,7 @@ impl QualityReport {
             .iter()
             .try_fold(None::<DFinite>, |highest, row| {
                 let spread = row.spread?;
-                let highest = highest.unwrap_or(DFinite::MAX);
+                let highest = highest.unwrap_or(spread);
 
                 Some(Some(highest.max(spread)))
             })
