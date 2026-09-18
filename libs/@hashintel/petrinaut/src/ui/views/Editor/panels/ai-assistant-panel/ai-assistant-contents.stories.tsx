@@ -601,7 +601,7 @@ export const LiveSessionAudioOptions: Story = {
       canvas.queryByRole("button", { name: "Read full reply" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Allow interruptions" }),
+      canvas.queryByRole("checkbox", { name: "Allow interruptions" }),
     ).toBeNull();
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
@@ -653,8 +653,8 @@ export const RealtimeSessionAudioOptions: Story = {
       canvas.getByRole("button", { name: "Read full reply" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Allow interruptions" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      canvas.getByRole("checkbox", { name: "Allow interruptions" }),
+    ).toBeChecked();
   },
 };
 
@@ -785,9 +785,9 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toHaveAccessibleDescription("Wait for the agent to finish.");
-    await expect(
-      canvas.getByRole("group", { name: "Speaking speed" }),
-    ).toHaveAccessibleDescription("Next reply");
+    const realTimeToggle = canvas.getByRole("button", { name: "Real-time" });
+    await userEvent.click(realTimeToggle);
+    await expect(realTimeToggle).toHaveAttribute("aria-expanded", "true");
     const speed = canvas.getByRole("slider", { name: "Speed" });
     await expect(speed).toBeInTheDocument();
     await new Promise<void>((resolve) =>
@@ -830,17 +830,14 @@ export const ExtendedAudioSettings: Story = {
     await expect(
       canvas.getByRole("combobox", { name: "Voice" }),
     ).toBeInTheDocument();
-    const interruptions = canvas.getByRole("button", {
+    const interruptions = canvas.getByRole("checkbox", {
       name: "Allow interruptions",
     });
-    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
-    await expect(interruptions.querySelector("svg")).not.toBeVisible();
+    await expect(interruptions).not.toBeChecked();
     await userEvent.click(interruptions);
-    await expect(interruptions).toHaveAttribute("aria-pressed", "true");
-    await expect(interruptions.querySelector("svg")).toBeVisible();
+    await expect(interruptions).toBeChecked();
     await userEvent.click(interruptions);
-    await expect(interruptions).toHaveAttribute("aria-pressed", "false");
-    await expect(interruptions.querySelector("svg")).not.toBeVisible();
+    await expect(interruptions).not.toBeChecked();
   },
 };
 
@@ -923,20 +920,85 @@ export const AudioSettingsUnavailableDevices: Story = {
   },
 };
 
+const longVoiceStatus =
+  "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.";
+
 export const VoiceSessionLongWarning: Story = {
   render: () => (
     <Frame
+      fixedNarrowWidth
       initialVoiceDockCollapsed
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
       voiceModeAvailable
+      voiceProvider="realtime"
       voiceSession={liveSession({
-        phase: "connected",
-        warningMessage:
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+        audioSettings: realisticAudioSettings(),
+        canTakeTurn: true,
+        notice: longVoiceStatus,
+        phase: "speaking",
+        warningMessage: longVoiceStatus,
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const getPart = (part: string) => {
+      const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
+      if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+      return element;
+    };
+
+    await within(dock).findByRole("button", { name: "Show 1 Voice issue" });
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+
+    const dockBounds = dock.getBoundingClientRect();
+    const frameBounds = frame.getBoundingClientRect();
+    const leftActions = getPart("left-actions");
+    const center = getPart("shrinkable-status");
+    const visibleStatus = getPart("visible-status");
+    const rightActions = getPart("right-actions");
+    const centerBounds = center.getBoundingClientRect();
+    const leftBounds = leftActions.getBoundingClientRect();
+    const rightBounds = rightActions.getBoundingClientRect();
+    const statusBounds = visibleStatus.getBoundingClientRect();
+
+    await expect(frameBounds.width).toBeLessThanOrEqual(390);
+    await expect(dockBounds.left).toBeGreaterThanOrEqual(frameBounds.left);
+    await expect(dockBounds.right).toBeLessThanOrEqual(frameBounds.right);
+    await expect(centerBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(centerBounds.right).toBeLessThanOrEqual(rightBounds.left);
+    await expect(statusBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(statusBounds.right).toBeLessThanOrEqual(rightBounds.left);
+
+    for (const cluster of [leftActions, rightActions]) {
+      await expect(cluster).toBeVisible();
+      const clusterBounds = cluster.getBoundingClientRect();
+      await expect(clusterBounds.width).toBeGreaterThan(0);
+      await expect(clusterBounds.left).toBeGreaterThanOrEqual(dockBounds.left);
+      await expect(clusterBounds.right).toBeLessThanOrEqual(dockBounds.right);
+      for (const action of within(cluster).getAllByRole("button")) {
+        await expect(action).toBeVisible();
+        await expect(action.getBoundingClientRect().width).toBeGreaterThan(0);
+      }
+    }
+
+    await expect(visibleStatus).toBeVisible();
+    await expect(visibleStatus).toHaveTextContent(longVoiceStatus);
+    await expect(visibleStatus.clientWidth).toBeGreaterThan(0);
+    await expect(visibleStatus.scrollWidth).toBeGreaterThan(
+      visibleStatus.clientWidth,
+    );
+    await expect(getComputedStyle(visibleStatus).textOverflow).toBe("ellipsis");
+    await expect(
+      within(dock).getByRole("status", { name: "Voice status" }),
+    ).toHaveTextContent(`Voice status: ${longVoiceStatus}`);
+  },
 };
 
 export const VoiceSessionInputNotRetained: Story = {

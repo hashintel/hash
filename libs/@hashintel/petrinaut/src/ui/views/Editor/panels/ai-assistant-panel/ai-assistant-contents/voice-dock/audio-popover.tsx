@@ -42,6 +42,23 @@ const actionStyle = css({
   width: "full",
 });
 
+const interruptionStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+  minHeight: "[32px]",
+  paddingX: "2",
+});
+
+const interruptionLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  fontSize: "sm",
+  fontWeight: "medium",
+});
+
 const speakerControlsStyle = css({
   display: "flex",
   width: "full",
@@ -288,38 +305,23 @@ export const AudioPopover = ({
                       </Button>
                     )}
                     {actions.setInterruptionBySpeaking && (
-                      <Button
-                        aria-label={
-                          voiceSessionActionLabels.interruptionBySpeaking
-                        }
-                        className={css({
-                          width: "full",
-                          textAlign: "left",
-                          justifyContent: "space-between",
-                        })}
-                        onClick={() =>
-                          actions.setInterruptionBySpeaking?.(
-                            !interruptionBySpeaking,
-                          )
-                        }
-                        pressed={interruptionBySpeaking}
-                        suffix={
-                          <Icon
-                            name="check"
-                            size="sm"
-                            className={
-                              interruptionBySpeaking
-                                ? undefined
-                                : css({ visibility: "hidden" })
-                            }
-                          />
-                        }
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        {voiceSessionActionLabels.interruptionBySpeaking}
-                      </Button>
+                      <div className={interruptionStyle}>
+                        <span className={interruptionLabelStyle}>
+                          <Icon name="hand" size="sm" />
+                          {voiceSessionActionLabels.interruptionBySpeaking}
+                        </span>
+                        <Toggle
+                          aria-label={
+                            voiceSessionActionLabels.interruptionBySpeaking
+                          }
+                          onChange={(enabled) =>
+                            actions.setInterruptionBySpeaking?.(enabled)
+                          }
+                          size="sm"
+                          tone="brand"
+                          value={interruptionBySpeaking}
+                        />
+                      </div>
                     )}
                   </div>
                 )}

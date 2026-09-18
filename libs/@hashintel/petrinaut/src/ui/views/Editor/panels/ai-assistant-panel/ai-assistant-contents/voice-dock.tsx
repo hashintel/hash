@@ -34,10 +34,11 @@ import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assis
 import type { ReactNode } from "react";
 
 const dockStyle = css({
-  display: "flex",
+  display: "grid",
   flexShrink: 0,
   boxSizing: "border-box",
   minHeight: `[${aiFooterMinHeight}px]`,
+  gridTemplateColumns: "[auto minmax(0, 1fr) auto]",
   alignItems: "center",
   gap: "2",
   padding: "[10px 12px]",
@@ -53,37 +54,30 @@ const dockStyle = css({
   },
 });
 
-// Equal flexible sides keep the ribbon on the panel's centre line however wide
-// the phase label or the action cluster turn out to be. With an error control,
-// reserve the controls' width and let the status shrink instead of overlapping.
-const sideStyle = cva({
-  base: {
-    display: "flex",
-    flex: "1",
-    minWidth: "[0]",
-    alignItems: "center",
-  },
-  variants: {
-    withError: { true: { flex: "[0 0 auto]" } },
-  },
+const sideStyle = css({
+  display: "flex",
+  flexShrink: "0",
+  alignItems: "center",
 });
 
-const centerStyle = cva({
-  base: {
-    display: "flex",
-    minWidth: "[0]",
-    alignItems: "center",
-    gap: "2",
-  },
-  variants: {
-    withError: { true: { flex: "1", justifyContent: "center" } },
-  },
+const centerStyle = css({
+  display: "flex",
+  minWidth: "[0]",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "2",
+});
+
+const indicatorStyle = css({
+  display: "flex",
+  flexShrink: "0",
 });
 
 const statusStyle = cva({
   base: {
     fontSize: "xs",
     fontWeight: "medium",
+    minWidth: "[0]",
     overflow: "hidden",
     letterSpacing: "[0.04em]",
     textOverflow: "ellipsis",
@@ -225,7 +219,7 @@ export const VoiceDock = ({
       data-phase={phase}
       data-testid="ai-voice-dock"
     >
-      <span className={sideStyle({ withError: !!errorIndicator })}>
+      <span className={sideStyle} data-part="left-actions">
         <Button
           aria-label={collapseLabel}
           iconName={collapsed ? "chevronUp" : "chevronDown"}
@@ -259,8 +253,10 @@ export const VoiceDock = ({
         {errorIndicator}
       </span>
 
-      <div className={centerStyle({ withError: !!errorIndicator })}>
-        {indicator ?? <LiveVoiceSessionIndicator />}
+      <div className={centerStyle} data-part="shrinkable-status">
+        <span className={indicatorStyle} data-part="fixed-indicator">
+          {indicator ?? <LiveVoiceSessionIndicator />}
+        </span>
         {(showStatusText ||
           notice ||
           purpose === "setup" ||
@@ -268,12 +264,15 @@ export const VoiceDock = ({
           phase === "muted" ||
           phase === "paused" ||
           phase === "connecting") && (
-          <span className={statusStyle({ phase })}>{statusLabel}</span>
+          <span className={statusStyle({ phase })} data-part="visible-status">
+            {statusLabel}
+          </span>
         )}
       </div>
 
       <span
-        className={`${sideStyle({ withError: !!errorIndicator })} ${actionsStyle}`}
+        className={`${sideStyle} ${actionsStyle}`}
+        data-part="right-actions"
       >
         {actions !== null && (
           <>
@@ -376,6 +375,7 @@ export const VoiceDock = ({
         aria-label="Voice status"
         aria-live="polite"
         className={visuallyHiddenStyle}
+        data-part="live-status"
         role="status"
       >
         Voice status: {statusLabel}

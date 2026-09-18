@@ -9,7 +9,7 @@ use camino::{Utf8Path, Utf8PathBuf};
 use uuid::Uuid;
 
 #[cfg(test)]
-pub(crate) mod tests;
+pub(super) mod tests;
 
 /// A dot-prefixed directory for one run's transient working state.
 ///

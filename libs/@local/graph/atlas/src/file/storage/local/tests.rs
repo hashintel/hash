@@ -6,7 +6,7 @@ use tokio::sync::oneshot;
 
 use super::{LocalFile, WriteCondition};
 use crate::file::{
-    generation::scratch::tests::{entry_count, root, scratch},
+    generation::test_utils::{entry_count, scratch, scratch_root},
     storage::error::StorageError,
 };
 
@@ -46,7 +46,7 @@ impl Read for PausedReader {
 #[tokio::test]
 async fn write_partial_source() {
     let directory = scratch();
-    let path = root(&directory).join("current");
+    let path = scratch_root(&directory).join("current");
     fs::write(&path, b"retained").expect("should seed the destination");
     let source = Cursor::new(b"partial").chain(FailedReader);
     let error = LocalFile::new(&path)
@@ -59,7 +59,7 @@ async fn write_partial_source() {
         b"retained"
     );
     assert_eq!(
-        entry_count(root(&directory)),
+        entry_count(scratch_root(&directory)),
         2,
         "should retain only the destination and persistent lock"
     );
@@ -70,8 +70,8 @@ async fn write_partial_source() {
 #[tokio::test]
 async fn write_transfer_lock() {
     let directory = scratch();
-    let path = root(&directory).join("current");
-    let lock_path = root(&directory).join(".storage-lock");
+    let path = scratch_root(&directory).join("current");
+    let lock_path = scratch_root(&directory).join(".storage-lock");
     let (entered, started) = oneshot::channel();
     let (release, proceed) = oneshot::channel();
     let writer = tokio::spawn(async move {
