@@ -1,3 +1,5 @@
+import { createContext } from "react";
+
 import { type ItemOrGroup } from "../../util/SelectableList/selectable-list";
 
 import type { IconName } from "../Icon/icon";
@@ -6,6 +8,7 @@ import type {
   SelectItem,
   SelectProps,
 } from "../Select/select";
+import type { CSSProperties } from "react";
 
 export type InputSeparator = string | { iconName: IconName };
 
@@ -285,3 +288,206 @@ export const normalizeSlots = (
       : parseFloat(slot);
     return Number.isNaN(parsed) ? null : parsed;
   });
+
+/**
+ * Derived from the DOM (the segment's trigger carries zag's `data-state`) rather than tracked in a
+ * ref: an open select can unmount without ever firing `onOpenChange(false)`
+ */
+export const isSelectDropdownOpen = (
+  segments: Array<HTMLElement | null>,
+): boolean =>
+  segments.some(
+    (element) =>
+      element?.isConnected &&
+      element.querySelector("[data-part=trigger][data-state=open]") !== null,
+  );
+
+/**
+ * Focus a segment on the chip's behalf without surfacing the focus ring:
+ * programmatic focus following a click often still matches `:focus-visible`,
+ * which flashes a keyboard ring the user never asked for. A marker on
+ * the chip root blanks `--filter-ring` until the next real interaction.
+ */
+export const focusWithoutRing = (
+  chipRoot: HTMLElement,
+  target: HTMLElement,
+): void => {
+  chipRoot.setAttribute("data-focus-ring-suppressed", "");
+  const lift = () => {
+    chipRoot.removeAttribute("data-focus-ring-suppressed");
+    document.removeEventListener("keydown", lift, true);
+    document.removeEventListener("pointerdown", lift, true);
+    chipRoot.removeEventListener("focusout", lift, true);
+  };
+  document.addEventListener("keydown", lift, true);
+  document.addEventListener("pointerdown", lift, true);
+  chipRoot.addEventListener("focusout", lift, true);
+  target.focus();
+};
+
+/** How long the group sits untouched before abandoned chips start fading. */
+export const ABANDONED_GRACE_MS = 1000;
+export const ABANDONED_FADE_MS = 2000;
+/** How long a chip's width-collapse removal runs before onRemove fires. */
+export const CHIP_COLLAPSE_MS = 200;
+
+/** Inline style applied to an abandoned chip's root while the fade runs. */
+export const abandonedFadeStyle: CSSProperties = {
+  opacity: 0,
+  transition: `opacity ${ABANDONED_FADE_MS}ms ease-out`,
+};
+
+export const shouldAnimateChipRemoval = (root: HTMLElement | null): boolean =>
+  !!root?.closest("[data-part=filter-group]") &&
+  !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Kick off the chip's width collapse: pin the measured width, then
+ * transition it to zero over.
+ */
+export const startChipCollapse = (root: HTMLElement): void => {
+  const { style } = root;
+  style.width = `${root.getBoundingClientRect().width}px`;
+  style.minWidth = "0";
+  style.overflow = "hidden";
+  // Commit the start width before the transition targets zero.
+  root.getBoundingClientRect();
+  style.transition = `width ${CHIP_COLLAPSE_MS}ms ease`;
+  style.width = "0px";
+};
+
+/**
+ * Whether the chip currently counts as abandonable: it is removeable and its
+ * draft is incomplete — no operator chosen, or at least one input empty. The
+ * committed value is deliberately not consulted: emptying an input of a
+ * previously committed chip makes it abandonable again.
+ * */
+export const isAbandonable = ({
+  removeable,
+  disabled,
+  draftComplete,
+  selectedOperator,
+}: {
+  removeable: boolean;
+  disabled: boolean;
+  /** Operator selected and every input slot filled (see isDraftComplete). */
+  draftComplete: boolean;
+  selectedOperator: LooseOperator | undefined;
+}): boolean =>
+  removeable &&
+  !disabled &&
+  !draftComplete &&
+  !(
+    selectedOperator !== undefined &&
+    inputConfigsOf(selectedOperator).length === 0
+  );
+
+export interface AbandonableChip {
+  isAbandonable: () => boolean;
+  dismiss: () => void;
+}
+
+export interface FilterGroupAbandonment {
+  fading: boolean;
+  register: (chip: AbandonableChip) => () => void;
+}
+
+export const FilterGroupAbandonmentContext =
+  createContext<FilterGroupAbandonment | null>(null);
+
+/**
+ * Drives a FilterGroup's abandoned-chip countdown: once the user focuses or
+ * clicks outside the group while a member chip is abandonable, waits, then fades
+ * out any chips with empty input.
+ */
+export const attachAbandonmentController = ({
+  getRoot,
+  getChips,
+  onFadingChange,
+}: {
+  getRoot: () => HTMLElement | null;
+  getChips: () => Iterable<AbandonableChip>;
+  onFadingChange: (fading: boolean) => void;
+}): (() => void) => {
+  let graceTimer: number | null = null;
+  let fadeTimer: number | null = null;
+
+  const cancel = () => {
+    if (graceTimer !== null) {
+      window.clearTimeout(graceTimer);
+      graceTimer = null;
+    }
+    if (fadeTimer !== null) {
+      window.clearTimeout(fadeTimer);
+      fadeTimer = null;
+    }
+    onFadingChange(false);
+  };
+
+  const isInside = () => {
+    const root = getRoot();
+    if (!root) {
+      // Not mounted: nothing can be dismissed, so treat as inside (cancels).
+      return true;
+    }
+    const active = document.activeElement;
+    return (
+      (!!active && root.contains(active)) ||
+      root.querySelector('[data-state="open"], [aria-expanded="true"]') !== null
+    );
+  };
+  const anyAbandonable = () => {
+    for (const chip of getChips()) {
+      if (chip.isAbandonable()) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const evaluate = () => {
+    if (isInside() || !anyAbandonable()) {
+      cancel();
+      return;
+    }
+    // Already counting down: keep the original timing.
+    if (graceTimer !== null || fadeTimer !== null) {
+      return;
+    }
+    graceTimer = window.setTimeout(() => {
+      graceTimer = null;
+      onFadingChange(true);
+      fadeTimer = window.setTimeout(() => {
+        fadeTimer = null;
+        // Snapshot: a dismissal can remove its chip synchronously (the chip
+        // flushSyncs its onRemove), unregistering it mid-iteration.
+        for (const chip of [...getChips()]) {
+          chip.dismiss();
+        }
+        onFadingChange(false);
+      }, ABANDONED_FADE_MS);
+    }, ABANDONED_GRACE_MS);
+  };
+  // Deferred so the event's fallout (focus moving, a dropdown closing on an
+  // outside click) settles before deciding.
+  const scheduleEvaluate = () => {
+    window.setTimeout(evaluate, 0);
+  };
+
+  const onInteraction = (event: Event) => {
+    const target = event.target instanceof Node ? event.target : null;
+    if (target && getRoot()?.contains(target)) {
+      cancel();
+      return;
+    }
+    scheduleEvaluate();
+  };
+
+  document.addEventListener("pointerdown", onInteraction, true);
+  document.addEventListener("focusin", onInteraction, true);
+  return () => {
+    document.removeEventListener("pointerdown", onInteraction, true);
+    document.removeEventListener("focusin", onInteraction, true);
+    cancel();
+  };
+};
