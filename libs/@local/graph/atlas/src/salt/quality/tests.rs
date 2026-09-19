@@ -1691,7 +1691,7 @@ async fn runner_reports_a_published_generation() {
 
     // Anchor types resolved through the dataset's probe-scoped stream:
     // every anchor carries exactly one of the two node types.
-    assert_eq!(report.subgroups, [] as [SubgroupReport; 0]);
+    assert_ne!(report.subgroups, [] as [SubgroupReport; 0]);
     assert_eq!(
         report
             .subgroups
