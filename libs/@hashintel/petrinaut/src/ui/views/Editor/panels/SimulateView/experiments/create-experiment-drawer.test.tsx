@@ -323,6 +323,7 @@ const TestProviders = ({
           <OptimizationsContext
             value={{
               optimizations: [],
+              optimizationUnavailableReason: null,
               createOptimization,
               cancelOptimization: () => {},
               removeOptimization: () => {},

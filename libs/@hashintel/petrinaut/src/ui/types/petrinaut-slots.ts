@@ -12,6 +12,12 @@
  */
 export type PetrinautSlots = {
   /**
+   * Rendered immediately after the Simulate mode label inside its selector.
+   * The indicator remains part of the Simulate control's click target and
+   * accessible name.
+   */
+  simulateModeIndicator?: React.ReactNode;
+  /**
    * Rendered in the top bar's leading section, after the built-in
    * sidebar-toggle and burger-menu buttons and immediately before the net
    * title (when shown) — e.g. for host breadcrumbs leading up to the title.
