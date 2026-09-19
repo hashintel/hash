@@ -547,7 +547,7 @@ where
                 JOIN actor_group AS parent ON parent.id = parent_id
                 WHERE child_id = $1
                 ORDER BY depth ASC",
-                &[&id],
+                [&id],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -833,7 +833,7 @@ where
                  FROM actor_role
                  JOIN role ON actor_role.role_id = role.id
                  WHERE actor_role.actor_id = $1",
-                &[&actor_id],
+                [&actor_id],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -902,7 +902,7 @@ where
                  FROM actor_role
                  JOIN actor ON actor_role.actor_id = actor.id
                  WHERE actor_role.role_id = $1",
-                &[&role_id],
+                [&role_id],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -1118,7 +1118,7 @@ where
                       FROM action_hierarchy
                      WHERE child_name = $1 AND depth > 0
                      ORDER BY depth",
-                &[&action],
+                [&action],
             )
             .instrument(tracing::info_span!(
                 "SELECT",

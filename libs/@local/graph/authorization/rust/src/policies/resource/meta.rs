@@ -31,7 +31,7 @@ impl PolicyMetaResource<'_> {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         let parents = match self.resource {
             Some(
-                ResourceConstraint::Web { web_id, .. }
+                ResourceConstraint::Web { web_id }
                 | ResourceConstraint::Meta(MetaResourceConstraint::Web { web_id, .. })
                 | ResourceConstraint::Entity(EntityResourceConstraint::Web { web_id, .. })
                 | ResourceConstraint::EntityType(EntityTypeResourceConstraint::Web {

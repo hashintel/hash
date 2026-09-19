@@ -2,7 +2,7 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
+    alloc::AllocatorClone,
     cmp,
     fmt::{self, Display},
     num::NonZero,
@@ -39,11 +39,11 @@ use crate::body::place::FieldIndex;
 ///
 /// [`Value::Unit`]: super::Value::Unit
 #[derive(Debug, Clone)]
-pub struct Tuple<'heap, A: Allocator> {
+pub struct Tuple<'heap, A: AllocatorClone> {
     values: Rc<[Value<'heap, A>], A>,
 }
 
-impl<'heap, A: Allocator> Tuple<'heap, A> {
+impl<'heap, A: AllocatorClone> Tuple<'heap, A> {
     /// Creates a new tuple without checking invariants.
     ///
     /// The caller must ensure that `values` is non-empty.
@@ -225,7 +225,7 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
     }
 }
 
-impl<'this, 'heap, A: Allocator> IntoIterator for &'this Tuple<'heap, A> {
+impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this Tuple<'heap, A> {
     type IntoIter = core::slice::Iter<'this, Value<'heap, A>>;
     type Item = &'this Value<'heap, A>;
 
@@ -234,7 +234,7 @@ impl<'this, 'heap, A: Allocator> IntoIterator for &'this Tuple<'heap, A> {
     }
 }
 
-impl<A: Allocator> PartialEq for Tuple<'_, A> {
+impl<A: AllocatorClone> PartialEq for Tuple<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         let Self { values } = self;
@@ -243,16 +243,16 @@ impl<A: Allocator> PartialEq for Tuple<'_, A> {
     }
 }
 
-impl<A: Allocator> Eq for Tuple<'_, A> {}
+impl<A: AllocatorClone> Eq for Tuple<'_, A> {}
 
-impl<A: Allocator> PartialOrd for Tuple<'_, A> {
+impl<A: AllocatorClone> PartialOrd for Tuple<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for Tuple<'_, A> {
+impl<A: AllocatorClone> Ord for Tuple<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { values } = self;

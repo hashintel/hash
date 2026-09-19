@@ -17,13 +17,6 @@ use crate::salt::projector::model::Projector;
 pub(crate) type TrainerOptimizer<B> = OptimizerAdaptor<Adam, Projector<B>, B>;
 
 /// Per-parameter Adam moments for the trainer's optimizer.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "the resume checkpoint record is its consumer, and nothing resumes yet"
-    )
-)]
 pub(crate) type TrainerOptimizerRecord<B> =
     <TrainerOptimizer<B> as Optimizer<Projector<B>, B>>::Record;
 

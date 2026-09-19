@@ -4,10 +4,6 @@
 //! aggregate values, and complete serialized values check each outcome's wire shape.
 
 #![expect(
-    clippy::float_cmp,
-    reason = "the quantile oracle returns the same represented input reading"
-)]
-#![expect(
     clippy::cast_precision_loss,
     reason = "test populations stay far below exact f64 integer precision"
 )]
@@ -256,7 +252,7 @@ fn control_deciles_stratify_the_candidate_census() {
 fn control_deciles_share_tied_boundaries_and_vanish_without_candidates() {
     // A Q = 0 reading persists no strata at all, which stays distinguishable from
     // strata that are merely empty.
-    assert!(ControlDecile::over(&mut [], &[]).is_empty());
+    assert_eq!(ControlDecile::over(&mut [], &[]), [] as [ControlDecile; 0]);
 
     // Equal candidate readings collapse every boundary onto one value. The first stratum
     // absorbs the whole census and the boundary ties leave the rest without candidates.

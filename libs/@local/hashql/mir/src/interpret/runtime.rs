@@ -40,7 +40,7 @@
 //! [`Continuation`]: super::suspension::Continuation
 
 use alloc::{alloc::Global, borrow::Cow};
-use core::{alloc::Allocator, debug_assert_matches, hint::cold_path, ops::ControlFlow};
+use core::{alloc::AllocatorClone, debug_assert_matches, hint::cold_path, ops::ControlFlow};
 
 use hashql_core::span::SpanId;
 use hashql_hir::node::operation::InputOp;
@@ -66,7 +66,7 @@ use crate::{
 };
 
 /// Creates a new call frame for the given body with the provided arguments.
-fn make_frame_in<'ctx, 'heap, E, A: Allocator + Clone>(
+fn make_frame_in<'ctx, 'heap, E, A: AllocatorClone + Clone>(
     body: &'ctx Body<'heap>,
     args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
     alloc: A,
@@ -100,7 +100,7 @@ pub(super) struct CurrentBlock<'ctx, 'heap> {
 /// - Local variable storage
 /// - The function body being executed
 /// - Current position (block and statement index)
-pub(super) struct Frame<'ctx, 'heap, A: Allocator> {
+pub(super) struct Frame<'ctx, 'heap, A: AllocatorClone> {
     /// Local variable storage for this function call.
     pub locals: Locals<'ctx, 'heap, A>,
     /// The MIR body being executed.
@@ -121,11 +121,11 @@ pub(super) struct Frame<'ctx, 'heap, A: Allocator> {
     clippy::field_scoped_visibility_modifiers,
     reason = "used when resolving the suspension"
 )]
-pub struct CallStack<'ctx, 'heap, A: Allocator = Global> {
+pub struct CallStack<'ctx, 'heap, A: AllocatorClone = Global> {
     pub(super) frames: Vec<Frame<'ctx, 'heap, A>, A>,
 }
 
-impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: AllocatorClone> CallStack<'ctx, 'heap, A> {
     /// Creates a new call stack with an initial call to the entry function.
     ///
     /// The entry function is called with the provided arguments, which become
@@ -157,7 +157,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
         alloc: A,
     ) -> Result<Self, E>
     where
-        A: Allocator + Clone,
+        A: AllocatorClone + Clone,
     {
         let frame = make_frame_in(body, args.into_iter(), alloc.clone())?;
         let mut frames = Vec::new_in(alloc);
@@ -192,7 +192,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns [`RuntimeError::CallstackEmpty`] if there are no active calls.
-    pub fn locals<E, R: Allocator>(
+    pub fn locals<E, R: AllocatorClone>(
         &self,
     ) -> Result<&Locals<'ctx, 'heap, A>, RuntimeError<'heap, E, R>> {
         self.frames
@@ -206,7 +206,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     /// # Errors
     ///
     /// Returns [`RuntimeError::CallstackEmpty`] if there are no active calls.
-    pub fn locals_mut<R: Allocator>(
+    pub fn locals_mut<R: AllocatorClone>(
         &mut self,
     ) -> Result<&mut Locals<'ctx, 'heap, A>, RuntimeError<'heap, !, R>> {
         self.frames
@@ -260,7 +260,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
 /// where it needs external data (such as a database query result) before it
 /// can continue.
 #[derive(Debug)]
-pub enum Yield<'ctx, 'heap, A: Allocator> {
+pub enum Yield<'ctx, 'heap, A: AllocatorClone> {
     /// The entry function returned a value. Interpretation is complete.
     Return(Value<'heap, A>),
     /// The interpreter suspended and needs external data to continue.
@@ -318,7 +318,7 @@ impl Default for RuntimeConfig {
 /// 3. Execute with [`Runtime::run`] to get the result
 ///
 /// [`Input`]: crate::body::rvalue::Input
-pub struct Runtime<'ctx, 'heap, A: Allocator = Global> {
+pub struct Runtime<'ctx, 'heap, A: AllocatorClone = Global> {
     alloc: A,
 
     /// Runtime configuration.
@@ -347,7 +347,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 }
 
-impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: AllocatorClone + Clone> Runtime<'ctx, 'heap, A> {
     /// Creates a new runtime with the given configuration, bodies, inputs, and allocator.
     ///
     /// See [`Runtime::new`] for details on the parameters.

@@ -176,7 +176,6 @@ impl TransMatrix {
         }
     }
 
-    #[must_use]
     pub(crate) fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = (TargetId, TargetId, &Option<Cost>)> {

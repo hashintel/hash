@@ -4,7 +4,6 @@
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Language Features
-    never_type,
     stmt_expr_attributes,
     trait_alias,
 

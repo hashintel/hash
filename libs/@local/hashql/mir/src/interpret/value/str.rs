@@ -2,7 +2,7 @@
 
 use alloc::{alloc::Global, rc::Rc};
 use core::{
-    alloc::{AllocError, Allocator},
+    alloc::{AllocError, AllocatorClone},
     cmp, fmt,
 };
 
@@ -14,12 +14,12 @@ use hashql_core::{
 
 /// Internal storage for string values.
 #[derive(Clone)]
-enum StrInner<'heap, A: Allocator> {
+enum StrInner<'heap, A: AllocatorClone> {
     Owned(Rc<str, A>),
     Interned(Symbol<'heap>),
 }
 
-impl<A: Allocator> StrInner<'_, A> {
+impl<A: AllocatorClone> StrInner<'_, A> {
     fn as_str(&self) -> &str {
         match self {
             StrInner::Owned(value) => value,
@@ -28,21 +28,21 @@ impl<A: Allocator> StrInner<'_, A> {
     }
 }
 
-impl<A: Allocator> PartialEq for StrInner<'_, A> {
+impl<A: AllocatorClone> PartialEq for StrInner<'_, A> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str() == other.as_str()
     }
 }
 
-impl<A: Allocator> Eq for StrInner<'_, A> {}
+impl<A: AllocatorClone> Eq for StrInner<'_, A> {}
 
-impl<A: Allocator> PartialOrd for StrInner<'_, A> {
+impl<A: AllocatorClone> PartialOrd for StrInner<'_, A> {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for StrInner<'_, A> {
+impl<A: AllocatorClone> Ord for StrInner<'_, A> {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.as_str().cmp(other.as_str())
     }
@@ -67,11 +67,11 @@ impl<A: Allocator> Ord for StrInner<'_, A> {
 /// assert_eq!(a, b);
 /// ```
 #[derive(Clone)]
-pub struct Str<'heap, A: Allocator = Global> {
+pub struct Str<'heap, A: AllocatorClone = Global> {
     inner: StrInner<'heap, A>,
 }
 
-impl<A: Allocator> Str<'_, A> {
+impl<A: AllocatorClone> Str<'_, A> {
     /// Returns this string as a string slice.
     ///
     /// # Examples
@@ -125,7 +125,7 @@ impl<A: Allocator> Str<'_, A> {
     }
 }
 
-impl<'heap, A: Allocator> From<Symbol<'heap>> for Str<'heap, A> {
+impl<'heap, A: AllocatorClone> From<Symbol<'heap>> for Str<'heap, A> {
     fn from(value: Symbol<'heap>) -> Self {
         Self {
             inner: StrInner::Interned(value),
@@ -133,7 +133,7 @@ impl<'heap, A: Allocator> From<Symbol<'heap>> for Str<'heap, A> {
     }
 }
 
-impl<'heap, A: Allocator> From<String<'heap>> for Str<'heap, A> {
+impl<'heap, A: AllocatorClone> From<String<'heap>> for Str<'heap, A> {
     #[inline]
     fn from(value: String<'heap>) -> Self {
         Self {
@@ -142,7 +142,7 @@ impl<'heap, A: Allocator> From<String<'heap>> for Str<'heap, A> {
     }
 }
 
-impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
+impl<'heap, A: AllocatorClone> From<&String<'heap>> for Str<'heap, A> {
     #[inline]
     fn from(value: &String<'heap>) -> Self {
         Self {
@@ -151,7 +151,7 @@ impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
     }
 }
 
-impl<A: Allocator> From<Rc<str, A>> for Str<'_, A> {
+impl<A: AllocatorClone> From<Rc<str, A>> for Str<'_, A> {
     #[inline]
     fn from(value: Rc<str, A>) -> Self {
         Self {
@@ -160,28 +160,28 @@ impl<A: Allocator> From<Rc<str, A>> for Str<'_, A> {
     }
 }
 
-impl<A: Allocator> core::fmt::Debug for Str<'_, A> {
+impl<A: AllocatorClone> core::fmt::Debug for Str<'_, A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Str").field(&self.as_str()).finish()
     }
 }
 
-impl<A: Allocator> PartialEq for Str<'_, A> {
+impl<A: AllocatorClone> PartialEq for Str<'_, A> {
     fn eq(&self, other: &Self) -> bool {
         let Self { inner } = self;
         *inner == other.inner
     }
 }
 
-impl<A: Allocator> Eq for Str<'_, A> {}
+impl<A: AllocatorClone> Eq for Str<'_, A> {}
 
-impl<A: Allocator> PartialOrd for Str<'_, A> {
+impl<A: AllocatorClone> PartialOrd for Str<'_, A> {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for Str<'_, A> {
+impl<A: AllocatorClone> Ord for Str<'_, A> {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { inner } = self;
 
@@ -189,7 +189,7 @@ impl<A: Allocator> Ord for Str<'_, A> {
     }
 }
 
-impl<'heap, A: Allocator, B: Allocator> TryCloneIn<B> for Str<'heap, A> {
+impl<'heap, A: AllocatorClone, B: AllocatorClone> TryCloneIn<B> for Str<'heap, A> {
     type Cloned = Str<'heap, B>;
 
     fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {

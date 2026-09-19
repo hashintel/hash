@@ -10,7 +10,7 @@
 //!
 //! [`CallStack`]: hashql_mir::interpret::CallStack
 
-use core::alloc::Allocator;
+use core::alloc::AllocatorClone;
 
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, local::Local},
@@ -37,7 +37,7 @@ use crate::{
 /// indicating no resumption is needed).
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
-pub(crate) struct PartialPostgresState<A: Allocator> {
+pub(crate) struct PartialPostgresState<A: AllocatorClone> {
     pub body: DefId,
     pub island: IslandId,
 
@@ -46,7 +46,7 @@ pub(crate) struct PartialPostgresState<A: Allocator> {
     values: Optional<Vec<serde_json::Value>>,
 }
 
-impl<A: Allocator> PartialPostgresState<A> {
+impl<A: AllocatorClone> PartialPostgresState<A> {
     pub(crate) const fn new(body: DefId, island: IslandId) -> Self {
         Self {
             body,
@@ -213,7 +213,7 @@ impl<A: Allocator> PartialPostgresState<A> {
 /// callstack's current frame, advancing execution to the continuation point.
 ///
 /// [`CallStack`]: hashql_mir::interpret::CallStack
-pub(crate) struct PostgresState<'heap, A: Allocator> {
+pub(crate) struct PostgresState<'heap, A: AllocatorClone> {
     pub body: DefId,
     pub island: IslandId,
 
@@ -221,7 +221,7 @@ pub(crate) struct PostgresState<'heap, A: Allocator> {
     locals: Vec<(Local, Value<'heap, A>), A>,
 }
 
-impl<'heap, A: Allocator> PostgresState<'heap, A> {
+impl<'heap, A: AllocatorClone> PostgresState<'heap, A> {
     /// Writes the continuation state into `callstack`, setting the current
     /// block to the target and populating locals with the decoded values.
     pub(crate) fn flush<'ctx, E>(

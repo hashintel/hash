@@ -541,8 +541,8 @@ impl WalkBench {
         let mut centers = [[0.0_f64; 2]; 8];
         for center in &mut centers {
             *center = [
-                uniform(&mut rng) * 1.5 - 0.75,
-                uniform(&mut rng) * 1.5 - 0.75,
+                uniform(&mut rng).mul_add(1.5, -0.75),
+                uniform(&mut rng).mul_add(1.5, -0.75),
             ];
         }
 
@@ -555,13 +555,13 @@ impl WalkBench {
                 let radius = SIGMAS[pick] * (-2.0 * unit.max(f64::MIN_POSITIVE).ln()).sqrt();
                 let [x, y] = centers[pick];
                 Vec2::new(
-                    (x + radius * (TAU * angle).cos()) as f32,
-                    (y + radius * (TAU * angle).sin()) as f32,
+                    radius.mul_add((TAU * angle).cos(), x) as f32,
+                    radius.mul_add((TAU * angle).sin(), y) as f32,
                 )
             } else {
                 Vec2::new(
-                    (uniform(&mut rng) * 2.0 - 1.0) as f32,
-                    (uniform(&mut rng) * 2.0 - 1.0) as f32,
+                    uniform(&mut rng).mul_add(2.0, -1.0) as f32,
+                    uniform(&mut rng).mul_add(2.0, -1.0) as f32,
                 )
             };
             coordinates.push(point);

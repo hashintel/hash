@@ -615,7 +615,7 @@ fn draw_computes_the_estimator_scales() {
         reason = "fixture draw counts are tiny exact integers"
     )]
     let expected = 3.5 / populations.ordinary.len() as f32;
-    assert!(!populations.ordinary.is_empty());
+    assert_ne!(populations.ordinary, [] as [NodePair<NodeRowId>; 0]);
     assert_eq!(populations.ordinary_scale, expected);
 
     // One of two groups drawn: G / g = 2.
@@ -627,7 +627,7 @@ fn draw_computes_the_estimator_scales() {
     assert_eq!(populations.landmark_scale, 1.5);
 
     // No mined frame yet: the family is empty.
-    assert!(populations.hard.is_empty());
+    assert_eq!(populations.hard, [] as [(NodePair<NodeRowId>, f32); 0]);
     assert_eq!(populations.hard_scale, 0.0);
 }
 
@@ -1638,7 +1638,7 @@ fn an_observer_with_no_appetite_is_never_reported_to() {
 
     // Not an empty snapshot - no snapshot: the silent observer's
     // reporting path allocates nothing.
-    assert!(observer.snapshots().is_empty());
+    assert_eq!(observer.snapshots(), [] as [(Vec<Vec2>, usize); 0]);
 }
 
 #[test]

@@ -385,9 +385,7 @@ impl fmt::Display for DataTypeQueryPath<'_> {
                 edge_kind.serialize(&mut *fmt)?;
                 write!(fmt, ">.{path}")
             }
-            Self::PropertyTypeEdge {
-                edge_kind, path, ..
-            } => {
+            Self::PropertyTypeEdge { edge_kind, path } => {
                 fmt.write_char('<')?;
                 edge_kind.serialize(&mut *fmt)?;
                 write!(fmt, ">.{path}")

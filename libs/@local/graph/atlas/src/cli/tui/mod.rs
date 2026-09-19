@@ -553,7 +553,7 @@ mod tests {
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");
         writer.flush().expect("should flush");
-        assert!(lines(&arrived).is_empty());
+        assert_eq!(lines(&arrived), [] as [String; 0]);
 
         writer
             .write_all(b"halfway\nWARN and then some\n")

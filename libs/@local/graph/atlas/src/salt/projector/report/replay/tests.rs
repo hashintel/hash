@@ -459,11 +459,6 @@ fn neighbourhood_oversized() {
 /// every refit and deployed reading lies at its optimum, every paired difference is exactly zero,
 /// and the per-query, class and control rows carry the expected identities and member counts.
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture geometry makes every reading exact: shared counts divide evenly and \
-              zero penalties normalize to exactly one"
-)]
 fn faithful_path_optimum() {
     let replay = standing_replay(7).expect("the standing pair carries the design");
     let report = replay.report(&mut PlanarProjector, &NoProgress);
@@ -591,10 +586,6 @@ fn incident_edges_once() {
 /// A projector placing every arrival out of frame yields out-of-frame outcomes with refit readings
 /// kept and no deployed or paired readings.
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture geometry makes the refit readings exactly one"
-)]
 fn out_of_frame_keeps_refit() {
     /// A projector that places every embedding out of frame at world `(9, 9)`.
     struct Outside;

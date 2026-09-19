@@ -398,10 +398,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn writes_through_rows_land_at_their_offsets() {
         let mut matrix = DSquareMatrix::zeroed(3);
         matrix.row_mut(1)[0] = 1.0;

@@ -462,11 +462,7 @@ impl<'graph> PackageResolver<'graph> for PackageQueryResolver<'_> {
             return false;
         }
 
-        if !self.dependency.eval(link) {
-            return false;
-        }
-
-        true
+        self.dependency.eval(link)
     }
 }
 

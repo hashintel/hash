@@ -1,9 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are the point: single-element identities, asymptotes over \
-              exactly-representable values, and round-trip narrowing are exact contracts"
-)]
-
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
 use crate::math::{Positive, positive};

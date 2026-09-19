@@ -1096,7 +1096,7 @@ fn collect_constraints_empty_empty() {
 
     // No constraints should be generated for this trivial case
     let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [Constraint<'_>; 0]);
 }
 
 #[test]
@@ -1119,7 +1119,7 @@ fn collect_constraints_empty_subtype() {
 
     // No constraints should be generated as Never is subtype of everything
     let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [Constraint<'_>; 0]);
 }
 
 #[test]
@@ -1387,7 +1387,7 @@ fn collect_constraints_concrete_types_only() {
     concrete_a.collect_constraints(concrete_b, &mut inference_env);
 
     // No variable constraints should be generated for concrete types
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(inference_env.take_constraints(), [] as [Constraint<'_>; 0]);
 }
 
 #[test]
@@ -1889,7 +1889,7 @@ fn collect_constraints_invariant_union_left() {
     let rhs = builder.string();
     inference.collect_constraints(Variance::Invariant, lhs, rhs);
     let constraints = inference.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [Constraint<'_>; 0]);
 }
 
 #[test]
@@ -1917,5 +1917,5 @@ fn collect_constraints_invariant_union_both() {
 
     inference.collect_constraints(Variance::Invariant, lhs, rhs);
     let constraints = inference.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [Constraint<'_>; 0]);
 }

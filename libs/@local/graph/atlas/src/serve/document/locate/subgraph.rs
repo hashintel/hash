@@ -171,7 +171,6 @@ where
         match &mut self.retained {
             Retained::Buffered(buffer) if buffer.len() < self.capacity => {
                 buffer.push(edge);
-                Ok(())
             }
             Retained::Buffered(buffer) => {
                 self.truncated = true;
@@ -191,15 +190,14 @@ where
                 let key = (self.rank)(&edge)?;
                 Self::keep_smaller(&mut kept, Keyed { key, edge });
                 self.retained = Retained::Ranked(kept);
-                Ok(())
             }
             Retained::Ranked(kept) => {
                 self.truncated = true;
                 let key = (self.rank)(&edge)?;
                 Self::keep_smaller(kept, Keyed { key, edge });
-                Ok(())
             }
         }
+        Ok(())
     }
 
     /// Replaces the largest kept key with `candidate` when the candidate is smaller.
@@ -526,7 +524,7 @@ mod tests {
         }
         let set = nearest.into_set();
         assert!(!set.complete);
-        assert!(set.edges.is_empty());
+        assert_eq!(set.edges, [] as [DeliveredEdge; 0]);
         assert_eq!(calls.get(), 0);
 
         let empty = NearestCap::new(0, incident.rank(&calls));

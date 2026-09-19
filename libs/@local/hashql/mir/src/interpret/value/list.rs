@@ -1,6 +1,6 @@
 //! List collection for the MIR interpreter.
 
-use core::{alloc::Allocator, cmp};
+use core::{alloc::AllocatorClone, cmp};
 
 use super::{Int, Value};
 
@@ -41,11 +41,11 @@ use super::{Int, Value};
 /// assert_eq!(list.get(Int::from(-4_i32)), None);
 /// ```
 #[derive(Debug, Clone)]
-pub struct List<'heap, A: Allocator> {
+pub struct List<'heap, A: AllocatorClone> {
     inner: rpds::Vector<Value<'heap, A>>,
 }
 
-impl<'heap, A: Allocator> List<'heap, A> {
+impl<'heap, A: AllocatorClone> List<'heap, A> {
     /// Creates a new empty list.
     ///
     /// # Examples
@@ -230,43 +230,42 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// let values: Vec<_> = list.iter().collect();
     /// assert_eq!(values.len(), 2);
     /// ```
-    #[must_use]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator {
         self.inner.iter()
     }
 }
 
-impl<A: Allocator> PartialEq for List<'_, A> {
+impl<A: AllocatorClone> PartialEq for List<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<A: Allocator> Eq for List<'_, A> {}
+impl<A: AllocatorClone> Eq for List<'_, A> {}
 
-impl<A: Allocator> PartialOrd for List<'_, A> {
+impl<A: AllocatorClone> PartialOrd for List<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for List<'_, A> {
+impl<A: AllocatorClone> Ord for List<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.inner.cmp(&other.inner)
     }
 }
 
-impl<A: Allocator> Default for List<'_, A> {
+impl<A: AllocatorClone> Default for List<'_, A> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'this, 'heap, A: Allocator> IntoIterator for &'this List<'heap, A> {
+impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this List<'heap, A> {
     type Item = &'this Value<'heap, A>;
 
     type IntoIter = impl ExactSizeIterator<Item = &'this Value<'heap, A>> + DoubleEndedIterator;

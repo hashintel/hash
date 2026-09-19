@@ -253,7 +253,6 @@ impl<T, S: IntervalBound<T>, E: IntervalBound<T>> Interval<T, S, E> {
     ///
     /// A complement is the interval of all points that are not in the this interval. The resulting
     /// interval and this interval do not overlap.
-    #[must_use]
     pub fn complement(self) -> impl ExactSizeIterator<Item = Self>
     where
         T: Ord,

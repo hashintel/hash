@@ -299,7 +299,7 @@ mod tests {
         let request = Request::builder()
             .uri("/anonymous-allowed")
             .header("Authorization", format!("HASH-Service {SERVICE_SECRET}"))
-            .header("X-Authenticated-User-Actor-Id", &Uuid::nil().to_string())
+            .header("X-Authenticated-User-Actor-Id", Uuid::nil().to_string())
             .body(Body::empty())
             .expect("the request should build");
 

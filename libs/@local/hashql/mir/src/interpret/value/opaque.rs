@@ -2,10 +2,10 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
     cmp,
     fmt::{self, Display},
 };
+use std::alloc::AllocatorClone;
 
 use hashql_core::symbol::Symbol;
 
@@ -34,12 +34,12 @@ use super::Value;
 /// assert_eq!(opaque.value(), &Value::Integer(42.into()));
 /// ```
 #[derive(Debug, Clone)]
-pub struct Opaque<'heap, A: Allocator> {
+pub struct Opaque<'heap, A: AllocatorClone> {
     name: Symbol<'heap>,
     value: Rc<Value<'heap, A>, A>,
 }
 
-impl<'heap, A: Allocator> Opaque<'heap, A> {
+impl<'heap, A: AllocatorClone> Opaque<'heap, A> {
     /// Creates a new opaque value with the given `name` and wrapped `value`.
     ///
     /// # Examples
@@ -203,7 +203,7 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     }
 }
 
-impl<A: Allocator> PartialEq for Opaque<'_, A> {
+impl<A: AllocatorClone> PartialEq for Opaque<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         let Self { name, value } = self;
@@ -211,16 +211,16 @@ impl<A: Allocator> PartialEq for Opaque<'_, A> {
     }
 }
 
-impl<A: Allocator> Eq for Opaque<'_, A> {}
+impl<A: AllocatorClone> Eq for Opaque<'_, A> {}
 
-impl<A: Allocator> PartialOrd for Opaque<'_, A> {
+impl<A: AllocatorClone> PartialOrd for Opaque<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for Opaque<'_, A> {
+impl<A: AllocatorClone> Ord for Opaque<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { name, value } = self;

@@ -3,11 +3,6 @@
 //! The asserted medians are exact contracts: fixture distances and coordinates are hand-picked
 //! exactly representable values.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "medians of exactly representable distances are exact contracts"
-)]
-
 use hashql_core::id::IdSlice;
 
 use super::LocalScales;

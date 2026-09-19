@@ -112,7 +112,7 @@ fn normalize(input: &str) -> String {
 ///
 /// Returns [`TestError::Serialization`] if the value cannot be serialized to
 /// JSON.
-pub(crate) fn render_success<A: Allocator>(
+pub(crate) fn render_success<A: Allocator + std::alloc::AllocatorClone>(
     source: &str,
     value: &Value<'_, A>,
     events: &[Event],

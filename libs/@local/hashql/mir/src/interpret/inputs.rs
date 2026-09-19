@@ -11,7 +11,7 @@
 //! [`Runtime`]: super::Runtime
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::alloc::AllocatorClone;
 
 use hashql_core::{
     collections::{
@@ -51,7 +51,7 @@ use super::value::Value;
 ///
 /// [`InputOp::Load`]: hashql_hir::node::operation::InputOp::Load
 /// [`InputOp::Exists`]: hashql_hir::node::operation::InputOp::Exists
-pub struct Inputs<'heap, A: Allocator = Global> {
+pub struct Inputs<'heap, A: AllocatorClone = Global> {
     inner: hashql_core::collections::FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
 }
 
@@ -100,7 +100,7 @@ impl Default for Inputs<'_> {
     }
 }
 
-impl<'heap, A: Allocator> Inputs<'heap, A> {
+impl<'heap, A: AllocatorClone> Inputs<'heap, A> {
     /// Creates an empty input set in the given allocator.
     #[inline]
     #[must_use]
