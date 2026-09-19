@@ -13,6 +13,7 @@ problematic = { workspace = true, public = true, features = ["error-stack"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+aide          = { workspace = true, public = true, optional = true }
 axum          = { workspace = true, public = true }
 axum-core     = { workspace = true, public = true }
 http          = { workspace = true, public = true }
@@ -47,6 +48,7 @@ tracing-subscriber = { workspace = true, features = ["registry"] }
 uuid               = { workspace = true, features = ["v4"] }
 
 [features]
+aide       = ["dep:aide", "problematic/aide"]
 clap       = ["dep:clap"]
 test-utils = []
 

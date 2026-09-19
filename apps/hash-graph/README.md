@@ -103,7 +103,7 @@ To generate the TypeScript client used by the frontend:
 cargo run --bin openapi-spec-generator
 ```
 
-The OpenAPI spec is generated from code using [`utoipa`](https://github.com/juhaku/utoipa/). Complex types are defined manually in `libs/@local/graph/api/src/legacy/json_schemas/`.
+The OpenAPI spec is generated from code using [`utoipa`](https://github.com/juhaku/utoipa/). Complex types are defined manually in `libs/@local/graph/api/src/rest/legacy/json_schemas/`.
 
 ### Endpoints
 
@@ -198,7 +198,7 @@ All telemetry data is automatically sent to the [OpenTelemetry Collector](../../
 
 API responses containing non-OK statuses follow the `Status` format defined in [`@local/status`](/libs/@local/status/README.md).
 
-The [`status.json`](../../libs/@local/graph/api/src/legacy/json_schemas/status.json) schema defines this type and should be updated when new error payloads are added.
+The [`status.json`](../../libs/@local/graph/api/src/rest/legacy/json_schemas/status.json) schema defines this type and should be updated when new error payloads are added.
 
 ## Troubleshooting
 

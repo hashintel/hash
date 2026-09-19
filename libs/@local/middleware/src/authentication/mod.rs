@@ -26,6 +26,8 @@ pub mod provider;
 pub mod request;
 pub mod service_secret;
 
+#[cfg(feature = "aide")]
+mod aide;
 use alloc::sync::Arc;
 use core::{
     future,
@@ -49,6 +51,8 @@ use problematic::{NoExtensions, Problem, ProblemDetails, error_stack::ReportExt 
 use serde_core::Serialize;
 use type_system::principal::actor::ActorId;
 
+#[cfg(feature = "aide")]
+pub use self::aide::document;
 use self::{
     provider::{AuthenticationProvider, Caller},
     request::{AuthenticationError, AuthenticationErrorKind, resolve_request_actor},
@@ -144,7 +148,7 @@ pub enum AuthenticationRejection {
     /// [`AuthenticatedActorId`] was extracted on a route without [`AuthenticationLayer`].
     ///
     /// Answered as an internal error: the fault is the router's wiring, never the request.
-    Misconfigured,
+    Misconfigured { method: http::Method, path: String },
 }
 
 #[derive(serde::Serialize)]
@@ -158,27 +162,36 @@ impl Problem for AuthenticationRejection {
     type Extensions<'a> = impl Serialize + 'a;
 
     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
-        if let Self::Authentication { report, .. } = self
-            && let Some(ProblemDetails {
-                type_uri,
-                title,
-                status,
-                detail,
-                instance,
-                extensions,
-            }) = report.problem_details().next()
-        {
-            ProblemDetails {
-                type_uri,
-                title,
-                status,
-                detail,
-                instance,
-                extensions: RejectionExtensions::Attached(extensions),
+        match self {
+            Self::Authentication { report, .. } => {
+                if let Some(ProblemDetails {
+                    type_uri,
+                    title,
+                    status,
+                    detail,
+                    instance,
+                    extensions,
+                }) = report.problem_details().next()
+                {
+                    ProblemDetails {
+                        type_uri,
+                        title,
+                        status,
+                        detail,
+                        instance,
+                        extensions: RejectionExtensions::Attached(extensions),
+                    }
+                } else {
+                    tracing::error!(
+                        error = ?report,
+                        "authentication rejection carries no problem details"
+                    );
+                    status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
+                        .extensions(RejectionExtensions::Empty(NoExtensions {}))
+                }
             }
-        } else {
-            status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
-                .extensions(RejectionExtensions::Empty(NoExtensions {}))
+            Self::Misconfigured { .. } => status_problem(http::StatusCode::INTERNAL_SERVER_ERROR)
+                .extensions(RejectionExtensions::Empty(NoExtensions {})),
         }
     }
 }
@@ -206,8 +219,10 @@ impl Drop for AuthenticationRejection {
                     metrics.record_rejection(report.current_context());
                 }
             }
-            Self::Misconfigured => {
+            Self::Misconfigured { method, path } => {
                 tracing::error!(
+                    %method,
+                    %path,
                     "`AuthenticatedActorId` extracted on a route without authentication middleware"
                 );
             }
@@ -550,7 +565,7 @@ where
     }
 }
 
-/// Axum extractor providing the acting principal resolved by [`AuthenticationLayer`].
+/// Axum extractor providing the actor resolved by [`AuthenticationLayer`].
 ///
 /// Taking this extractor is how a handler states that it requires an actor: an anonymous caller
 /// is rejected here rather than reaching the handler. Handlers that serve callers without an
@@ -592,7 +607,10 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
                 metrics: Arc::clone(metrics),
                 recorded: Arc::clone(rejection_recorded),
             }),
-            None => Err(AuthenticationRejection::Misconfigured),
+            None => Err(AuthenticationRejection::Misconfigured {
+                method: parts.method.clone(),
+                path: parts.uri.path().to_owned(),
+            }),
         })
     }
 }
@@ -623,7 +641,10 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
                 metrics: Arc::clone(metrics),
                 recorded: Arc::clone(rejection_recorded),
             }),
-            None => Err(AuthenticationRejection::Misconfigured),
+            None => Err(AuthenticationRejection::Misconfigured {
+                method: parts.method.clone(),
+                path: parts.uri.path().to_owned(),
+            }),
         })
     }
 }
@@ -1415,7 +1436,11 @@ mod tests {
         }
         .into_response();
 
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            response.status(),
+            StatusCode::FORBIDDEN,
+            "the decided status should survive extensions that do not serialize"
+        );
         assert_eq!(response.headers()[CONTENT_TYPE], "application/problem+json");
         assert_eq!(
             recorded.counter(
@@ -1435,9 +1460,10 @@ mod tests {
             serde_json::from_slice::<Value>(&body).expect("the response body should be JSON"),
             json!({
                 "type": "about:blank",
-                "title": "Internal Server Error",
-                "status": 500,
+                "title": "Forbidden",
+                "status": 403,
             }),
+            "the body should fall back to the bare problem of the decided status"
         );
     }
 

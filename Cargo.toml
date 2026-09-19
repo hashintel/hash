@@ -270,6 +270,7 @@ roaring                            = { version = "0.11.2", default-features = fa
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
+scalar_api_reference               = { version = "0.2.2", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
 schemars                           = { version = "1.2.2" }
 semver                             = { version = "1.0.27", default-features = false }
@@ -337,7 +338,6 @@ unicode-segmentation               = { version = "1.12.0", default-features = fa
 unsynn                             = { version = "0.3.0", default-features = false, features = ["proc_macro2"] }
 url                                = { version = "2.5.7", default-features = false }
 utoipa                             = { version = "4.2.3", default-features = false }
-utoipa-scalar                      = { version = "0.1.0", default-features = false }
 uuid                               = { version = "1.18.1", default-features = false }
 walkdir                            = { version = "2.5.0", default-features = false }
 wasm-bindgen                       = { version = "0.2.100", default-features = false }

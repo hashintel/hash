@@ -6,6 +6,9 @@
 //!
 //! The optional `serde` feature enables serialization and deserialization. The `schemars` feature
 //! independently adds JSON Schema support to [`ProblemDetails`] and [`NoExtensions`].
+//! The `aide` feature documents [`ProblemDetails`] responses as `application/problem+json` and
+//! includes `schemars`. Response inference uses the default response because each occurrence
+//! supplies its own HTTP status.
 //! The `error-stack` feature retrieves problems from error contexts and attachments and includes
 //! `serde`.
 
@@ -15,6 +18,8 @@
 
 extern crate alloc;
 
+#[cfg(feature = "aide")]
+mod aide;
 #[cfg(feature = "error-stack")]
 pub mod error_stack;
 mod problem;

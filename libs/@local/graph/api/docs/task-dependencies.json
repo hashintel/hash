@@ -28,7 +28,8 @@
     "@rust/hashql-eval",
     "@rust/hashql-hir",
     "@rust/hashql-mir",
-    "@rust/hashql-syntax-jexpr"
+    "@rust/hashql-syntax-jexpr",
+    "@rust/problematic"
   ],
   "tasks": {
     "build:openapi": {

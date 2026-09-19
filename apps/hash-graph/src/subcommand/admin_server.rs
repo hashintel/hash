@@ -3,9 +3,9 @@ use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::legacy::auth::{
+use hash_graph_api::rest::authentication::{
     AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
-    build_operator_provider,
+    build_environment_provider, build_explicit_providers,
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
@@ -315,18 +315,17 @@ pub(crate) async fn run_admin_server(
     })?;
 
     let pool = Arc::new(pool);
-    let authentication_provider = Arc::new(build_operator_provider(
-        cloudflare_access,
-        service_secret.clone(),
-        &pool,
+    let authentication_provider = Arc::new((
+        build_explicit_providers(service_secret.clone(), &pool),
+        cloudflare_access.map(|config| build_environment_provider(config, &pool)),
     ));
 
-    let router = hash_graph_api::legacy::admin::routes(
+    let router = hash_graph_api::rest::legacy::admin::routes(
         pool,
         authentication_provider,
         Arc::from(service_secret),
         Arc::new(AuthenticationMetrics::new(&meter)),
-        hash_graph_api::legacy::admin::ExternalServicesConfig {
+        hash_graph_api::rest::legacy::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
             mailchimp_api_key: config.external_services.mailchimp_api_key,

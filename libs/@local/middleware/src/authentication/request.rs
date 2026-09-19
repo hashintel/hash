@@ -1,4 +1,4 @@
-//! Resolution of a request's credentials to the acting principal.
+//! Resolution of a request's credentials to the caller.
 
 use alloc::sync::Arc;
 use core::{
@@ -421,7 +421,7 @@ impl Problem for AuthenticationError {
     }
 }
 
-/// Resolves the acting principal from the request headers.
+/// Resolves the caller from the request headers.
 ///
 /// The provider is the only credential path: a request without a recognized credential resolves
 /// through [`Caller::anonymous`], and so does one whose credential the provider verified and

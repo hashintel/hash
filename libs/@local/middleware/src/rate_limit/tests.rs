@@ -19,7 +19,8 @@ use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode, RateLimiters,
+    CallerLimitLayer, CallerRateLimitConfig, ClientIpSource, IpGateLayer, RateLimitConfig,
+    RateLimitMode, RateLimiters,
 };
 use crate::{
     authentication::{
@@ -72,14 +73,14 @@ fn gate_router(config: &RateLimitConfig) -> Router {
     gate_router_with(&limiters(config))
 }
 
-fn principal_router(config: &RateLimitConfig) -> Router {
-    principal_router_with(&limiters(config))
+fn caller_router(config: &RateLimitConfig) -> Router {
+    caller_router_with(&limiters(config))
 }
 
-fn principal_router_with(limiters: &Arc<RateLimiters>) -> Router {
+fn caller_router_with(limiters: &Arc<RateLimiters>) -> Router {
     Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(PrincipalLimitLayer {
+        .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
             service_secret: Arc::from(SERVICE_SECRET),
         })
@@ -97,7 +98,7 @@ fn full_stack_router_with(
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(PrincipalLimitLayer {
+        .route_layer(CallerLimitLayer {
             limiters: Arc::clone(limiters),
             service_secret: Arc::clone(&service_secret),
         })
@@ -367,7 +368,7 @@ async fn gate_rejects_the_scheme_without_the_secret() {
 
 #[tokio::test]
 async fn actor_budget_rejects_the_scheme_without_the_secret() {
-    let router = principal_router(&config(1));
+    let router = caller_router(&config(1));
     let actor = random_actor();
 
     let mut statuses = Vec::new();
@@ -378,13 +379,13 @@ async fn actor_budget_rejects_the_scheme_without_the_secret() {
     assert_eq!(
         statuses,
         [StatusCode::OK, StatusCode::TOO_MANY_REQUESTS],
-        "the principal limiter should verify the secret rather than trust the scheme"
+        "the caller limiter should verify the secret rather than trust the scheme"
     );
 }
 
 #[tokio::test]
 async fn actors_hold_one_budget_across_addresses() {
-    let router = principal_router(&config(1));
+    let router = caller_router(&config(1));
     let actor = random_actor();
 
     assert_eq!(
@@ -443,7 +444,7 @@ async fn anonymous_requests_draw_from_their_address_budget() {
 #[tokio::test]
 async fn route_without_authentication_fails_loudly() {
     let recorded = RecordedMetrics::new();
-    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
+    let router = caller_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let response = send(&router, request(IpAddr::V4(Ipv4Addr::LOCALHOST))).await;
     assert_eq!(
@@ -473,7 +474,7 @@ async fn route_without_authentication_fails_loudly() {
 #[tokio::test]
 async fn route_without_the_address_gate_fails_loudly() {
     let recorded = RecordedMetrics::new();
-    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
+    let router = caller_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let response = send(&router, anonymous_request(address("192.0.2.1"))).await;
     assert_eq!(
@@ -667,7 +668,7 @@ async fn enforced_denials_skip_the_inner_stack() {
                 "ok"
             }),
         )
-        .route_layer(PrincipalLimitLayer {
+        .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
             service_secret: Arc::clone(&service_secret),
         })
@@ -708,7 +709,7 @@ async fn enforced_denials_skip_the_inner_stack() {
 #[tokio::test]
 async fn authentication_error_fails_loudly() {
     let recorded = RecordedMetrics::new();
-    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
+    let router = caller_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let mut request = request(IpAddr::V4(Ipv4Addr::LOCALHOST));
     request.extensions_mut().insert(ResolvedAuthentication::new(
@@ -744,7 +745,7 @@ async fn unknown_addresses_count_once_per_stage() {
         StatusCode::OK
     );
 
-    for stage in ["gate", "principal"] {
+    for stage in ["gate", "caller"] {
         assert_eq!(
             recorded.counter(
                 "hash.rate_limit.unchecked",
@@ -772,7 +773,7 @@ async fn service_secret_passes_count_as_unchecked_at_each_stage() {
     .await;
     assert_eq!(response.status(), StatusCode::OK);
 
-    for stage in ["gate", "principal"] {
+    for stage in ["gate", "caller"] {
         assert_eq!(
             recorded.counter(
                 "hash.rate_limit.unchecked",
@@ -872,7 +873,12 @@ async fn denials_and_fallbacks_reach_the_meter() {
 
     assert_eq!(
         recorded.counter_attribute_keys("hash.rate_limit.decisions"),
-        ["limiter".to_owned(), "outcome".to_owned()].into(),
+        [
+            "scope".to_owned(),
+            "limiter".to_owned(),
+            "outcome".to_owned()
+        ]
+        .into(),
         "an added label would fan the decisions series out per value, so the key set is pinned"
     );
 }
@@ -927,7 +933,22 @@ async fn started_state_drops_once_its_last_holder_does() {
     let limiters = RateLimiters::start(&config(1), &recorded.meter());
     let weak = Arc::downgrade(&limiters);
 
+    let scoped = limiters.with_caller_limits(
+        &CallerRateLimitConfig::from(&config(1)),
+        "test",
+        &recorded.meter(),
+    );
+    let scoped_weak = Arc::downgrade(&scoped);
     drop(limiters);
+    assert!(
+        weak.upgrade().is_some(),
+        "a scope should keep the shared gate's maintenance owner alive"
+    );
+    drop(scoped);
+    assert!(
+        scoped_weak.upgrade().is_none(),
+        "the scoped maintenance should hold the state weakly"
+    );
 
     assert!(
         weak.upgrade().is_none(),
@@ -960,7 +981,7 @@ async fn maintenance_runs_on_its_interval() {
 
 #[tokio::test]
 async fn admitted_requests_carry_no_budget_headers() {
-    let router = principal_router(&config(3));
+    let router = caller_router(&config(3));
 
     let response = send(&router, actor_request(random_actor())).await;
     assert_eq!(response.status(), StatusCode::OK);
@@ -988,7 +1009,7 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let router = Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(PrincipalLimitLayer {
+        .route_layer(CallerLimitLayer {
             limiters: Arc::clone(&limiters),
             service_secret: Arc::clone(&service_secret),
         })
@@ -1033,6 +1054,98 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
             recorded.counter("hash.rate_limit.evicted_keys", &[("limiter", limiter)]),
             1,
             "the released {limiter} key should be counted"
+        );
+    }
+}
+
+#[tokio::test]
+async fn scoped_budgets_share_only_gate() {
+    for (budget, actor) in [("anonymous", None), ("actor", Some(random_actor()))] {
+        let provider = || {
+            actor.map_or(
+                StaticAuthenticationProvider::NotRecognized,
+                StaticAuthenticationProvider::Verified,
+            )
+        };
+
+        let recorded = RecordedMetrics::new();
+        let global = RateLimiters::start(
+            &RateLimitConfig {
+                rate_limit_gate_burst: non_zero(3),
+                ..config(1)
+            },
+            &recorded.meter(),
+        );
+        let quotas = CallerRateLimitConfig::from(&config(1));
+        let entities = global.with_caller_limits(&quotas, "entities", &recorded.meter());
+        let types = global.with_caller_limits(&quotas, "types", &recorded.meter());
+        let entities_router = full_stack_router_with(&entities, provider());
+        let types_router = full_stack_router_with(&types, provider());
+        let client = address("192.0.2.1");
+
+        assert_eq!(
+            send(&entities_router, request(client)).await.status(),
+            StatusCode::OK,
+            "the first request should pass the entities budget"
+        );
+        assert_eq!(
+            send(&entities_router, request(client)).await.status(),
+            StatusCode::TOO_MANY_REQUESTS,
+            "the second request should exhaust the entities budget"
+        );
+        assert_eq!(
+            send(&types_router, request(client)).await.status(),
+            StatusCode::OK,
+            "exhausting entities should leave the types caller budget available"
+        );
+        assert_eq!(
+            send(&gate_router_with(&global), request(client))
+                .await
+                .status(),
+            StatusCode::TOO_MANY_REQUESTS,
+            "requests across both scopes should exhaust the shared address budget"
+        );
+        for scope in ["entities", "types"] {
+            assert_eq!(
+                recorded.gauge(
+                    "hash.rate_limit.tracked_keys",
+                    &[("scope", scope), ("limiter", budget)]
+                ),
+                Some(1),
+                "each scope should gauge its own {budget} key"
+            );
+            assert_eq!(
+                recorded.gauge(
+                    "hash.rate_limit.tracked_keys",
+                    &[("scope", scope), ("limiter", "gate")]
+                ),
+                None,
+                "scoped gauges should not count the shared gate again"
+            );
+        }
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.decisions",
+                &[
+                    ("scope", "entities"),
+                    ("limiter", budget),
+                    ("outcome", "denied")
+                ]
+            ),
+            1,
+            "the denial should be recorded under the scope that denied"
+        );
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.decisions",
+                &[
+                    ("scope", "global"),
+                    ("limiter", "gate"),
+                    ("outcome", "denied")
+                ]
+            ),
+            1,
+            "the root scope should record the shared gate's denial"
         );
     }
 }
