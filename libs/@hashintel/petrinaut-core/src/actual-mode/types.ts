@@ -1,6 +1,5 @@
-import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
-
 import type { SDCPN } from "../types/sdcpn";
+import type { SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS } from "./constants";
 
 /**
  * Host-provided live execution state for Petrinaut's Actual mode.
@@ -11,17 +10,38 @@ import type { SDCPN } from "../types/sdcpn";
 
 export type ActualModeTokenColour = Record<string, number>;
 
+/**
+ * At-rest token attribute value in a firing record or reconstructed marking.
+ * The wire format is JSON, so `uuid` values are canonical lowercase strings,
+ * as in documents.
+ */
+export type ActualModeTokenValue = number | boolean | string;
+
+export type ActualModeTokenRecord = Record<string, ActualModeTokenValue>;
+
 export type ActualModeMarking = Record<
   string,
-  number | ActualModeTokenColour[]
+  number | ActualModeTokenRecord[]
 >;
 
 export type ActualModeTransitionEffect = Record<string, number>;
 
+/**
+ * Attribute values of the tokens a firing consumed or produced, keyed like
+ * `input`/`output`: placeId, or `instanceId::placeId` for a
+ * componentInstance's copy of a subnet place (see `scoped-ids.ts`). A record
+ * may carry a subset of the colour's attributes — at least the identity key
+ * elements — and missing attributes resolve to type defaults on replay.
+ */
+export type ActualModeTokenValues = Record<string, ActualModeTokenRecord[]>;
+
 export type ActualModeTransitionFiring = {
+  /** Scoped id (`instanceId::transitionId`) when inside a component instance. */
   transitionId: string;
   input: ActualModeTransitionEffect;
   output: ActualModeTransitionEffect;
+  inputTokens?: ActualModeTokenValues;
+  outputTokens?: ActualModeTokenValues;
   ts: string;
 };
 
@@ -36,8 +56,11 @@ export type ActualModeSource = {
   runId?: string;
 };
 
+export type ActualModeRecordingVersion =
+  (typeof SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS)[number];
+
 export type ActualModeRecording = {
-  version: typeof ACTUAL_MODE_RECORDING_VERSION;
+  version: ActualModeRecordingVersion;
   exportedAt: string;
   title: string | null;
   source: ActualModeSource | null;
@@ -47,7 +70,7 @@ export type ActualModeRecording = {
 };
 
 export type ActualModeReceivedEventsRecording = {
-  version: typeof ACTUAL_MODE_RECORDING_VERSION;
+  version: ActualModeRecordingVersion;
   exportedAt: string;
   title: string | null;
   source: ActualModeSource | null;

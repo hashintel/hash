@@ -24,12 +24,13 @@ import {
  */
 export const sharedModes = ["edit", "simulate", "actual"] as const;
 
-export const sharedEditViews = ["canvas", "definitions"] as const;
+export const sharedEditViews = ["canvas", "definitions", "kanban"] as const;
 
 export const sharedSimulateViews = [
   "scenarios",
   "metrics",
   "experiments",
+  "status-views",
 ] as const;
 
 export const sharedOverlays = [
@@ -38,6 +39,7 @@ export const sharedOverlays = [
   "create-scenario",
   "create-metric",
   "create-experiment",
+  "create-status-view",
 ] as const;
 
 export const sharedSettingsSections = ["general", "viewport", "labs"] as const;
@@ -46,6 +48,7 @@ export const sharedResourceTypes = [
   "scenario",
   "metric",
   "experiment",
+  "status-view",
 ] as const;
 
 export type SharedEditView = (typeof sharedEditViews)[number];

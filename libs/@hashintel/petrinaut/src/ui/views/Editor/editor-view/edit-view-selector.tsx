@@ -3,8 +3,17 @@ import { use } from "react";
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
+import {
+  EditorContext,
+  type EditViewMode,
+} from "../../../../react/state/editor-context";
+import {
+  useEffectiveEditViewMode,
+  useKanbanViewAvailable,
+} from "../../../../react/state/use-effective-edit-view-mode";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+
+import type { SegmentedControlItem } from "@hashintel/ds-components";
 
 const selectorStyle = css({
   display: "flex",
@@ -67,9 +76,13 @@ const placementStyle = cva({
   },
 });
 
+/**
+ * Definitions is an editing surface, so Actual mode offers only the canvas
+ * and, when available, the Kanban board.
+ */
 export const EditViewSelector = () => {
   const {
-    editViewMode,
+    globalMode,
     setEditViewMode,
     isLeftSidebarOpen,
     isSearchOpen,
@@ -77,39 +90,47 @@ export const EditViewSelector = () => {
     isPanelAnimating,
   } = use(EditorContext);
   const { showAnimations } = use(UserSettingsContext);
-  const isCanvas = editViewMode === "canvas";
+  const editViewMode = useEffectiveEditViewMode();
+  const kanbanAvailable = useKanbanViewAvailable();
+  // The canvas and the Kanban board share the floating panels, so the
+  // selector clears the left sidebar over both; Definitions has a toolbar.
+  const overlaysPanels = editViewMode !== "definitions";
   const left =
-    isCanvas && (isLeftSidebarOpen || isSearchOpen)
+    overlaysPanels && (isLeftSidebarOpen || isSearchOpen)
       ? leftSidebarWidth + 12
       : 12;
+  const items: SegmentedControlItem<EditViewMode>[] = [
+    { label: "Canvas", value: "canvas" },
+    ...(globalMode === "edit"
+      ? [{ label: "Definitions", value: "definitions" as const }]
+      : []),
+    ...(kanbanAvailable ? [{ label: "Kanban", value: "kanban" as const }] : []),
+  ];
 
   return (
     <div
       className={cx(
         selectorStyle,
         placementStyle({
-          floating: isCanvas,
+          floating: overlaysPanels,
           animated: showAnimations && isPanelAnimating,
         }),
       )}
       style={{
         left: `min(${left}px, max(12px, calc(100% - var(--edit-view-selector-width) - 12px)))`,
-        top: isCanvas ? 12 : 10,
+        top: overlaysPanels ? 12 : 10,
       }}
     >
       <SegmentedControl
         className={controlStyle({
-          floating: isCanvas,
+          floating: overlaysPanels,
           animated: showAnimations,
         })}
-        aria-label="Edit view"
+        aria-label={globalMode === "actual" ? "Actual view" : "Edit view"}
         size="xs"
         value={editViewMode}
         onChange={setEditViewMode}
-        items={[
-          { label: "Canvas", value: "canvas" },
-          { label: "Definitions", value: "definitions" },
-        ]}
+        items={items}
       />
     </div>
   );

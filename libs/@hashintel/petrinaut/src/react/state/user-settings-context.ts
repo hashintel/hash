@@ -55,6 +55,15 @@ export type UserSettings = {
   partialSelection: boolean;
   enableNetComponents: boolean;
   /**
+   * Experimental: derive per-instance statuses from the net. On, the Simulate
+   * panel gains a Status views tab, a token type's attributes offer an
+   * identity to key instances by, a net with status views gets a Kanban board
+   * toggle above the canvas, and Actual mode's Events tab gains a status
+   * changes column. Off, none of those show; a document's identities and
+   * status views are kept and still round-trip through import and export.
+   */
+  enableStatusViews: boolean;
+  /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
    * held as component state seeded from this value, so toggling the preference
@@ -100,6 +109,7 @@ export type UserSettingsActions = {
   setHighlightOnHover: (value: boolean) => void;
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
+  setEnableStatusViews: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setBrunchDemoMode: (value: boolean) => void;
@@ -133,6 +143,7 @@ export const defaultUserSettings: UserSettings = {
   highlightOnHover: true,
   partialSelection: true,
   enableNetComponents: false,
+  enableStatusViews: false,
   showWalkthroughOnInit: true,
   showCompilationOutput: false,
   brunchDemoMode: false,
@@ -165,6 +176,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setHighlightOnHover: () => {},
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
+  setEnableStatusViews: () => {},
   setShowWalkthroughOnInit: () => {},
   setShowCompilationOutput: () => {},
   setBrunchDemoMode: () => {},

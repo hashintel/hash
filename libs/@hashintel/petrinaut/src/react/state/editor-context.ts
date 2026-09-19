@@ -15,7 +15,12 @@ export type DraggingStateByNodeId = Record<
 >;
 
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "definitions";
+/**
+ * The surface the workspace shows instead of a simulation. The Kanban board
+ * projects a status view over the same frame source as the canvas, so it is
+ * a view of Edit and Actual mode rather than an `EditorGlobalMode`.
+ */
+export type EditViewMode = "canvas" | "definitions" | "kanban";
 type EditorEditionMode =
   | "cursor"
   | "add-place"
@@ -32,7 +37,11 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+export type SimulateViewMode =
+  | "scenarios"
+  | "metrics"
+  | "experiments"
+  | "status-views";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -41,7 +50,9 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
+  | { type: "create-experiment" }
+  | { type: "view-status-view"; statusViewId: string }
+  | { type: "create-status-view" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;

@@ -241,6 +241,7 @@ class HirSurfaceKind(Enum):
     metric = "metric"
     scenario_expression = "scenario-expression"
     scenario_code = "scenario-code"
+    status_condition = "status-condition"
 
 
 class HirNamedSpan(BaseModel):

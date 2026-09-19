@@ -13,9 +13,11 @@
 export {
   ACTUAL_MODE_RECORDING_VERSION,
   ACTUAL_MODE_TIMELINE_TICK_MS,
+  SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,
   actualModeMarkingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
+  actualModeTokenValuesSchema,
   actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
   applyActualModeTransitionFiring,
@@ -35,10 +37,14 @@ export type {
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
   ActualModeRecording,
+  ActualModeRecordingVersion,
   ActualModeSource,
   ActualModeTimelinePoint,
   ActualModeTimelinePointKind,
   ActualModeTokenColour,
+  ActualModeTokenRecord,
+  ActualModeTokenValue,
+  ActualModeTokenValues,
   ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./actual-mode";
@@ -206,6 +212,7 @@ export {
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
+  identitySchema,
   metricSchema,
   parameterSchema,
   petrinautAiCommandTools,
@@ -220,6 +227,7 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
+  statusViewSchema,
   subnetSchema,
   transitionSchema,
 } from "./ai";
@@ -362,7 +370,9 @@ export type {
   HirCompileResult,
   HirDiagnostic,
   HirMetricArtifact,
+  HirStatusConditionArtifact,
 } from "./hir";
+export { getStatusConditionArtifactKey } from "./hir/instantiate";
 
 // --- Playback ---
 export {
@@ -424,6 +434,18 @@ export {
   placeArcEndpoint,
 } from "./arc-endpoints";
 export { GRID_SIZE } from "./grid-size";
+export {
+  formatScopedId,
+  parseScopedId,
+  SCOPED_ID_SEPARATOR,
+  type ParsedScopedId,
+} from "./scoped-ids";
+export {
+  getStatusViewEvaluationScope,
+  resolveStatusViewLabelPlace,
+  visitComponentInstancePlaces,
+  type ScopedPlaceVisit,
+} from "./status-view-scope";
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
@@ -569,6 +591,22 @@ export {
 } from "./simulation/authoring/scenario/ad-hoc/scenario-to-ad-hoc-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
+export {
+  createStatusViewFrameEvaluator,
+  type InstanceKey,
+  type StatusConditionEvaluationError,
+  type StatusViewInstanceAssignment,
+} from "./simulation/frames/hir-status-view";
+export {
+  createStatusViewTracker,
+  getStatusViewExitLabel,
+  summarizeStatusIntervals,
+  type InstanceLabelState,
+  type InstanceStatus,
+  type StatusInterval,
+  type StatusLabelDwell,
+  type StatusViewTracker,
+} from "./simulation/status-views";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,

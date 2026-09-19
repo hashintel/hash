@@ -16,6 +16,7 @@ import preview from "../../../../../../docs/preview.md?raw";
 import scenarios from "../../../../../../docs/scenarios.md?raw";
 import simulationPanels from "../../../../../../docs/simulation-panels.md?raw";
 import simulation from "../../../../../../docs/simulation.md?raw";
+import statusViews from "../../../../../../docs/status-views.md?raw";
 import usefulPatterns from "../../../../../../docs/useful-patterns.md?raw";
 import visualSettings from "../../../../../../docs/visual-settings.md?raw";
 
@@ -42,6 +43,7 @@ const rawDocsByName: Record<PetrinautDocName, string> = {
   "simulation-panels": simulationPanels,
   "actual-mode": actualMode,
   preview,
+  "status-views": statusViews,
   "ai-assistant": aiAssistant,
   "visual-settings": visualSettings,
   "code-editor": codeEditor,

@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState } from "react";
+import { Activity, use, useState, type CSSProperties } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,23 +13,16 @@ import {
   type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import {
-  cafeQueue,
-  deploymentPipelineSDCPN,
-  dronePatrol,
-  probabilisticSatellitesSDCPN,
-  productionMachines,
-  sirModel,
-  supplyChainWithDisruption,
-  supplyChainProfit,
-  vaccinationCampaign,
-} from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
 import { usePetrinautNavigation } from "../../../react/navigation";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import {
+  useEffectiveEditViewMode,
+  useKanbanViewAvailable,
+} from "../../../react/state/use-effective-edit-view-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -47,6 +40,7 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { KanbanView } from "../Kanban/kanban-view";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -61,6 +55,7 @@ import {
 } from "./editor-view/create-new-net-menu";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
+import { loadExampleMenuItem } from "./editor-view/load-example-menu";
 import { useCanvasControllerRegistration } from "./editor-view/use-canvas-controller-registration";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
@@ -206,7 +201,6 @@ const EditorViewContent = ({
   // Get editor context
   const {
     globalMode,
-    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
@@ -220,6 +214,8 @@ const EditorViewContent = ({
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
+  const editViewMode = useEffectiveEditViewMode();
+  const kanbanAvailable = useKanbanViewAvailable();
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -234,6 +230,7 @@ const EditorViewContent = ({
   const {
     brunchDemoMode,
     enableExperimentalIconPack,
+    enableStatusViews,
     showAnimations,
     showWalkthroughOnInit,
     setShowWalkthroughOnInit,
@@ -452,84 +449,13 @@ const EditorViewContent = ({
         ]),
     ...(showNetManagementMenuItems
       ? [
-          {
-            id: "load-example",
-            text: "Load example",
-            subItems: [
-              {
-                id: "load-example-sir-model",
-                text: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-cafe-queue",
-                text: "Café Queue",
-                onClick: () => {
-                  createNewNet(cafeQueue);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-drone-patrol",
-                text: "Drone Patrol",
-                onClick: () => {
-                  createNewNet(dronePatrol);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-deployment-pipeline",
-                text: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-production-machines",
-                text: "Production with Machine Failure",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-stochastic",
-                text: "Supply Chain with Disruption",
-                onClick: () => {
-                  createNewNet(supplyChainWithDisruption);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-probabilistic-satellites",
-                text: "Probabilistic Satellite Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-supply-chain-profit",
-                text: "Supply Chain Profit",
-                onClick: () => {
-                  createNewNet(supplyChainProfit);
-                  clearSelection();
-                },
-              },
-              {
-                id: "load-example-vaccination-campaign",
-                text: "Vaccination Campaign",
-                onClick: () => {
-                  createNewNet(vaccinationCampaign);
-                  clearSelection();
-                },
-              },
-            ],
-          },
+          loadExampleMenuItem({
+            enableStatusViews,
+            onLoadExample: (example) => {
+              createNewNet(example);
+              clearSelection();
+            },
+          }),
         ]
       : []),
     {
@@ -554,6 +480,16 @@ const EditorViewContent = ({
       },
     },
   ];
+
+  // Actual mode has no Definitions view, so its selector appears only once
+  // the Kanban board gives it a second option.
+  const showEditViewSelector =
+    globalMode === "edit" || (globalMode === "actual" && kanbanAvailable);
+  // Three labels need more room than the two the selector is sized for.
+  const workspaceVariables = {
+    "--edit-view-selector-width":
+      globalMode === "edit" && kanbanAvailable ? "232px" : undefined,
+  } as CSSProperties;
 
   const showEmptyAiHero =
     aiAssistant !== undefined &&
@@ -616,14 +552,10 @@ const EditorViewContent = ({
             {globalMode === "simulate" ? (
               <SimulateView />
             ) : (
-              <div className={workspaceStyle}>
-                {globalMode === "edit" && <EditViewSelector />}
+              <div className={workspaceStyle} style={workspaceVariables}>
+                {showEditViewSelector && <EditViewSelector />}
                 <Activity
-                  mode={
-                    globalMode === "actual" || editViewMode === "canvas"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "hidden" : "visible"}
                 >
                   <Box className={canvasContainerStyle}>
                     {/* Left Sidebar - Tools and content panels */}
@@ -632,11 +564,28 @@ const EditorViewContent = ({
                     {/* Properties Panel - Right Side */}
                     <PropertiesPanel />
 
-                    {/* SDCPN Visualization */}
-                    <SDCPNView
-                      onControllerChange={registerController}
-                      viewportActions={viewportActions}
-                    />
+                    {/* SDCPN Visualization, or the Kanban projection of a status
+                        view over the same frame source */}
+                    <Activity
+                      mode={editViewMode === "kanban" ? "hidden" : "visible"}
+                    >
+                      <SDCPNView
+                        onControllerChange={registerController}
+                        viewportActions={viewportActions}
+                      />
+                    </Activity>
+                    <Activity
+                      mode={editViewMode === "kanban" ? "visible" : "hidden"}
+                    >
+                      <KanbanView
+                        toolbarStart={
+                          <div
+                            aria-hidden
+                            className={editViewSelectorSpaceStyle}
+                          />
+                        }
+                      />
+                    </Activity>
 
                     {showEmptyAiHero && (
                       <AiCtaModal
@@ -664,11 +613,7 @@ const EditorViewContent = ({
                   </Box>
                 </Activity>
                 <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
+                  mode={editViewMode === "definitions" ? "visible" : "hidden"}
                 >
                   <NotebookView
                     key={petriNetId ?? "no-net"}
@@ -681,8 +626,7 @@ const EditorViewContent = ({
             )}
             <Activity
               mode={
-                globalMode === "actual" ||
-                (globalMode === "edit" && editViewMode === "canvas")
+                globalMode !== "simulate" && editViewMode !== "definitions"
                   ? "visible"
                   : "hidden"
               }
