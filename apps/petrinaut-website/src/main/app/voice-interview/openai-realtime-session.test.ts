@@ -5,6 +5,7 @@ import {
   type OpenAIRealtimeSessionEvent,
 } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { VoiceAudioSettings } from "./voice-audio-settings";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
@@ -43,8 +44,10 @@ const canonicalSegment = (
 });
 
 const createHarness = ({
+  audioSettings,
   connectionTimeoutMs = 15_000,
 }: {
+  readonly audioSettings?: VoiceAudioSettings;
   readonly connectionTimeoutMs?: number;
 } = {}) => {
   let requestNumber = 0;
@@ -74,7 +77,14 @@ const createHarness = ({
     setRemoteDescription: ReturnType<typeof vi.fn<() => Promise<void>>>;
   }> = [];
   const getUserMedia = vi.fn(async () => {
-    const track = { enabled: true, kind: "audio", stop: vi.fn() };
+    const track = {
+      addEventListener: vi.fn(),
+      enabled: true,
+      kind: "audio",
+      readyState: "live",
+      removeEventListener: vi.fn(),
+      stop: vi.fn(),
+    };
     localTracks.push(track);
     return {
       getAudioTracks: () => [track],
@@ -116,6 +126,7 @@ const createHarness = ({
           sdp: "v=0\r\no=browser offer",
           type: "offer" as RTCSdpType,
         })),
+        getSenders: vi.fn(() => []),
         onconnectionstatechange: null as (() => void) | null,
         ontrack: null as ((event: RTCTrackEvent) => void) | null,
         setLocalDescription: vi.fn(async () => undefined),
@@ -124,6 +135,7 @@ const createHarness = ({
       peers.push(peer);
       return peer as unknown as RTCPeerConnection;
     },
+    audioSettings,
     createRemoteAudio: () => {
       const audio = {
         autoplay: false,
@@ -179,6 +191,75 @@ const authorizeLatestSpeechResponse = (
 describe("OpenAIRealtimeSession", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  test("stops voice preview before reopening the Realtime microphone", async () => {
+    const audioSettings = new VoiceAudioSettings("realtime", undefined);
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(false);
+    const stop = vi
+      .spyOn(audioSettings.actions, "stopVoicePreview")
+      .mockImplementation(() => {
+        expect(harness.localTracks[0]?.enabled).toBe(false);
+      });
+    harness.session.setMicrophoneEnabled(true);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(harness.localTracks[0]?.enabled).toBe(true);
+    stop.mockRestore();
+    await harness.session.disconnect();
+  });
+
+  test("defers selected speed until the next response and persists the session voice header", async () => {
+    const storage = {
+      getItem: vi.fn(() => "cedar"),
+      setItem: vi.fn(),
+    };
+    const audioSettings = new VoiceAudioSettings(
+      "realtime",
+      undefined,
+      storage,
+    );
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const requestHeaders = new Headers(
+      harness.fetch.mock.calls[0]?.[1]?.headers,
+    );
+    expect(requestHeaders.get("x-petrinaut-voice")).toBe("cedar");
+
+    harness.session.speakCanonical([
+      canonicalSegment("first", "First question"),
+    ]);
+    authorizeLatestSpeechResponse(channel, "first-response");
+    channel.receive({
+      type: "output_audio_buffer.started",
+      response_id: "first-response",
+    });
+    channel.send.mockClear();
+
+    audioSettings.actions.setSpeed?.(1.25);
+    harness.session.speakCanonical([
+      canonicalSegment("second", "Second question"),
+    ]);
+    expect(channel.send).not.toHaveBeenCalled();
+
+    channel.receive({
+      type: "response.done",
+      response: { id: "first-response", status: "completed", output: [] },
+    });
+    channel.receive({
+      type: "output_audio_buffer.cleared",
+      response_id: "first-response",
+    });
+
+    expect(sentEvents(channel).map(({ type }) => type)).toEqual([
+      "session.update",
+      "response.create",
+    ]);
+    expect(sentEvents(channel)[0]).toMatchObject({
+      session: { audio: { output: { speed: 1.25 } } },
+    });
   });
 
   test.each([

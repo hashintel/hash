@@ -138,7 +138,7 @@ const stubUnavailableMicrophone = () => {
     },
   );
   vi.stubGlobal("navigator", {
-    mediaDevices: { getUserMedia },
+    mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
   });
   return getUserMedia;
 };
@@ -460,7 +460,9 @@ describe("voice interview control", () => {
           resolveCheck = resolve;
         }),
     );
-    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    vi.stubGlobal("navigator", {
+      mediaDevices: Object.assign(new EventTarget(), { getUserMedia }),
+    });
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
@@ -486,11 +488,11 @@ describe("voice interview control", () => {
       failure: "getUserMedia throws synchronously",
       stubMedia: () =>
         vi.stubGlobal("navigator", {
-          mediaDevices: {
+          mediaDevices: Object.assign(new EventTarget(), {
             getUserMedia: () => {
               throw new DOMException("Unavailable", "NotSupportedError");
             },
-          },
+          }),
         }),
     },
   ])(
