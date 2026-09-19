@@ -239,6 +239,10 @@ struct ExtendedKeywords {
     },
     "typeless": { "properties": { "inner": Store::json_schema(&mut SchemaGenerator::default()) } }
 })))]
+#[expect(
+    clippy::empty_structs_with_brackets,
+    reason = "a unit struct would carry `type: null` instead of an object"
+)]
 struct UntypedShapes {}
 
 // A root that denies unknown fields carries `additionalProperties` beside the inserted close.
@@ -276,7 +280,7 @@ struct Timeouts {
 #[derive(JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum Rule {
-    All { rules: Vec<Rule> },
+    All { rules: Vec<Self> },
     Field { name: String },
 }
 
