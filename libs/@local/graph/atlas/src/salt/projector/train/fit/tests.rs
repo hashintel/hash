@@ -7,11 +7,6 @@
 //! and the model can learn the separation the semantic edges describe. Landmarks on one row per
 //! cluster keep the frame from collapsing or drifting.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "structurally-zero displacements and frozen radii are bit-exact contracts"
-)]
-
 use core::assert_matches;
 use std::sync::{LazyLock, Mutex};
 

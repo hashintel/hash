@@ -29,10 +29,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn writes_through_rows_land_at_the_row_major_offsets() {
         let mut matrix = MatrixN::<8>::zeroed(3);
 
@@ -45,10 +41,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn clone_is_equal_and_independent() {
         let mut matrix = MatrixN::<8>::zeroed(2);
         matrix.rows_mut()[0].as_array_mut()[3] = 4.0;

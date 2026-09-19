@@ -524,7 +524,7 @@ mod tests {
         }
         let set = nearest.into_set();
         assert!(!set.complete);
-        assert!(set.edges.is_empty());
+        assert_eq!(set.edges, [] as [DeliveredEdge; 0]);
         assert_eq!(calls.get(), 0);
 
         let empty = NearestCap::new(0, incident.rank(&calls));

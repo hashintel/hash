@@ -4,10 +4,6 @@
 //! aggregate values, and complete serialized values check each outcome's wire shape.
 
 #![expect(
-    clippy::float_cmp,
-    reason = "the quantile oracle returns the same represented input reading"
-)]
-#![expect(
     clippy::cast_precision_loss,
     reason = "test populations stay far below exact f64 integer precision"
 )]

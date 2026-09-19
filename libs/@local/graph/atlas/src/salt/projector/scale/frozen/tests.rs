@@ -4,11 +4,6 @@
 //! and denominator is exactly representable, and the asserted constants are therefore exact
 //! contracts rather than tolerances.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "the asserted constants are exactly representable, and equality on them is exact"
-)]
-
 use core::assert_matches;
 
 use hashql_core::id::{Id as _, IdSlice};

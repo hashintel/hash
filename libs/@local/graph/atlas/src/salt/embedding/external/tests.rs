@@ -1,7 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "ordering and conversion must preserve the fixture's exactly representable components"
-)]
 use alloc::sync::Arc;
 use core::{assert_matches, future::ready};
 use std::sync::Mutex;

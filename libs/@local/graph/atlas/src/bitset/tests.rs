@@ -5,7 +5,7 @@ use hashql_core::id::{
     bit_vec::{BitRelations as _, DenseBitSet},
 };
 use proptest::{arbitrary::any, prop_assert_eq, property_test};
-use zerocopy::IntoBytes as _;
+use zerocopy::{IntoBytes as _, LE, U64};
 
 use super::{CompressedBitSet, DenseBitSlice, DenseBitSliceArray};
 use crate::identity::{EdgeRowId, NodeRowId};
@@ -242,7 +242,7 @@ fn dense_bit_slice_words_cross_the_word_boundary() {
 fn dense_bit_slice_zero_domain_packs_to_no_words() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(0);
 
-    assert!(set.words().is_empty());
+    assert_eq!(set.words(), [] as [U64<LE>; 0]);
 }
 
 /// Membership, cardinality, iteration order, and the byte round trip agree with a reference set.

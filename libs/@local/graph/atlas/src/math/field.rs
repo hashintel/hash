@@ -492,11 +492,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    #![expect(
-        clippy::float_cmp,
-        reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
-    )]
-
     use hashql_core::id::{Id as _, IdSlice};
 
     use super::{DVec2, FinitePointField, NonFinitePoint, Vec2};

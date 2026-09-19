@@ -1,5 +1,4 @@
 #![expect(
-    clippy::float_cmp,
     clippy::float_cmp_const,
     reason = "perfect and worst-case orderings hit the metric bounds exactly: the penalties are \
               integer sums divided by their own integer maxima, and cross-path readings divide \
@@ -56,6 +55,7 @@ use crate::{
             FitConfig as ClassifierFitConfig, FitOptions as ClassifierFitOptions, TrainingRow,
             TrainingSet, fit as fit_classifier,
         },
+        quality::report::{SubgroupFlag, SubgroupReport},
     },
 };
 
@@ -985,7 +985,7 @@ fn assess_flags_degraded_subgroups() {
             ..
         },
     );
-    assert!(floored.flags.is_empty());
+    assert_eq!(floored.flags, [] as [SubgroupFlag; 0]);
     assert_eq!(floored.subgroups.len(), 3);
     assert!(floored.passes());
 }
@@ -1691,7 +1691,7 @@ async fn runner_reports_a_published_generation() {
 
     // Anchor types resolved through the dataset's probe-scoped stream:
     // every anchor carries exactly one of the two node types.
-    assert!(!report.subgroups.is_empty());
+    assert_eq!(report.subgroups, [] as [SubgroupReport; 0]);
     assert_eq!(
         report
             .subgroups
@@ -1748,7 +1748,7 @@ async fn runner_reports_a_published_generation() {
 
     // the k=2 step has no density spread when every anchor has a zero radius in at least one space.
     // Missing density evidence rejects even under the permissive ceiling.
-    assert!(report.flags.is_empty());
+    assert_eq!(report.flags, [] as [SubgroupFlag; 0]);
     assert!(
         report.density[0].spread.is_none(),
         "the small step's density evidence is absent on this fixture",

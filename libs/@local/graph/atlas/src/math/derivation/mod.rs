@@ -327,11 +327,6 @@ const impl<
 
 #[cfg(test)]
 mod tests {
-    #![expect(
-        clippy::float_cmp,
-        reason = "exactness assertions on raw carriers are bit-precise contracts"
-    )]
-
     use super::{Derivation, Diverged, Domain as _};
     use crate::math::{
         DFinite, DNonNegative, Finite, NonNegative, Positive, d_non_negative, d_positive, finite,
