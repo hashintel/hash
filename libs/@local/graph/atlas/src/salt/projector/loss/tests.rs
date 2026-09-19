@@ -4,7 +4,7 @@
 //! value function and assert hand-computed dyadic points bit-exactly. They also compare the
 //! autodiff support term against an independent analytic gradient formula.
 
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "bit-exact assertions over dyadic values are contracts: the chosen points make every \
               intermediate exactly representable"

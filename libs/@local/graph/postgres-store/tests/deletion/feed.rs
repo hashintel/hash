@@ -183,8 +183,14 @@ async fn create_fires_updated() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     let update = updated[0];
     assert_eq!(
         update.entity.entity_uuid,
@@ -196,14 +202,29 @@ async fn create_fires_updated() {
     // Re-reading with an unchanged watermark returns the same events.
     let (updated_again, ended_again, deleted_again) = collect_events(&api, cursor).await;
     assert_eq!(updated_again, updated);
-    assert!(ended_again.is_empty());
-    assert!(deleted_again.is_empty());
+    assert_eq!(
+        ended_again,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted_again,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 
     // The comparison is strict, so the event's own time excludes it.
     let (updated_after, ended_after, deleted_after) = collect_events(&api, update.changed_at).await;
-    assert!(updated_after.is_empty());
-    assert!(ended_after.is_empty());
-    assert!(deleted_after.is_empty());
+    assert_eq!(
+        updated_after,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended_after,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted_after,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 }
 
 /// An update at the present fires [`EntityEvent::Updated`] with the new edition, and the
@@ -225,8 +246,14 @@ async fn update_at_present_fires_updated_with_new_edition() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(updated[0].edition, patched.metadata.record_id.edition_id);
 }
 
@@ -257,9 +284,18 @@ async fn backdated_patch_into_closed_slice_fires_nothing() {
     );
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
-    assert!(updated.is_empty());
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        updated,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 }
 
 /// A backdated patch whose decision time falls inside the open present slice rewrites the
@@ -278,8 +314,14 @@ async fn backdated_patch_into_open_slice_fires_updated() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(updated[0].edition, patched.metadata.record_id.edition_id);
 }
 
@@ -299,8 +341,14 @@ async fn archived_flag_patch_fires_updated() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(updated[0].edition, archived.metadata.record_id.edition_id);
     assert!(updated[0].archived);
 
@@ -310,8 +358,14 @@ async fn archived_flag_patch_fires_updated() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(updated[0].edition, unarchived.metadata.record_id.edition_id);
     assert!(!updated[0].archived);
 }
@@ -343,7 +397,10 @@ async fn purge_with_archived_links_ends_link_and_deletes_target() {
         .expect("could not purge entity");
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
-    assert!(updated.is_empty());
+    assert_eq!(
+        updated,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
     assert_eq!(ended.len(), 1);
     assert_eq!(
         ended[0].entity.entity_uuid,
@@ -379,8 +436,14 @@ async fn purge_fires_deleted_only() {
         .expect("could not purge entity");
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
-    assert!(updated.is_empty());
-    assert!(ended.is_empty());
+    assert_eq!(
+        updated,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
     assert_eq!(deleted.len(), 1);
     assert_eq!(
         deleted[0].entity.entity_uuid,
@@ -389,9 +452,18 @@ async fn purge_fires_deleted_only() {
 
     let (updated_after, ended_after, deleted_after) =
         collect_events(&api, deleted[0].provenance.deleted_at_transaction_time).await;
-    assert!(updated_after.is_empty());
-    assert!(ended_after.is_empty());
-    assert!(deleted_after.is_empty());
+    assert_eq!(
+        updated_after,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended_after,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted_after,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 }
 
 /// Erase removes the `entity_ids` row itself, so the feed carries no record of the entity, from
@@ -418,9 +490,18 @@ async fn erase_fires_nothing() {
         .expect("could not erase entity");
 
     let (updated, ended, deleted) = collect_events(&api, Timestamp::UNIX_EPOCH).await;
-    assert!(updated.is_empty());
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        updated,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 }
 
 /// Draft activity never enters the feed, and undrafting is the first event the entity fires.
@@ -434,16 +515,31 @@ async fn draft_lifecycle_silent_until_undraft() {
     let draft_patched = patch_properties(&mut api, &draft, bob(), None).await;
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
-    assert!(updated.is_empty());
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        updated,
+        [] as [hash_graph_postgres_store::store::EntityUpdate; 0]
+    );
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
 
     let published = set_draft(&mut api, &draft_patched, false).await;
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(
         updated[0].entity.entity_uuid,
         published.metadata.record_id.entity_id.entity_uuid
@@ -473,8 +569,14 @@ async fn draft_supersedes_live_fires_updated_not_ended() {
 
     let (updated, ended, deleted) = collect_events(&api, cursor).await;
     assert_eq!(updated.len(), 1);
-    assert!(ended.is_empty());
-    assert!(deleted.is_empty());
+    assert_eq!(
+        ended,
+        [] as [hash_graph_postgres_store::store::EntityEnd; 0]
+    );
+    assert_eq!(
+        deleted,
+        [] as [hash_graph_postgres_store::store::EntityDeletion; 0]
+    );
     assert_eq!(
         updated[0].entity.entity_uuid,
         live.metadata.record_id.entity_id.entity_uuid

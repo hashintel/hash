@@ -943,7 +943,7 @@ fn collect_constraints_empty() {
 
     // No constraints should be generated for this trivial case
     let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [r#type::inference::Constraint<'_>; 0]);
 }
 
 #[test]
@@ -1200,7 +1200,10 @@ fn collect_constraints_concrete_types_only() {
     concrete_a.collect_constraints(concrete_b, &mut inference_env);
 
     // No variable constraints should be generated for concrete types
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(
+        inference_env.take_constraints(),
+        [] as [r#type::inference::Constraint<'_>; 0]
+    );
 }
 
 #[test]
@@ -1344,7 +1347,7 @@ fn collect_dependencies_empty_intersection() {
 
     // Empty intersection has no variants, so no edges should be collected
     let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
+    assert_eq!(constraints, [] as [r#type::inference::Constraint<'_>; 0]);
 }
 
 #[test]

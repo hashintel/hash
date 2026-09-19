@@ -973,7 +973,10 @@ fn collect_constraints_missing_field() {
     // This should not generate constraints since the subtype is missing a field
     // During constraint collection this is ignored, and the error would be reported
     // in is_subtype_of instead
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(
+        inference_env.take_constraints(),
+        [] as [r#type::inference::Constraint<'_>; 0]
+    );
 }
 
 #[test]
@@ -1095,7 +1098,10 @@ fn collect_constraints_concrete() {
 
     // No constraints should have been generated since both types are concrete
     // and constraints are only generated for inference variables
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(
+        inference_env.take_constraints(),
+        [] as [r#type::inference::Constraint<'_>; 0]
+    );
 }
 
 #[test]

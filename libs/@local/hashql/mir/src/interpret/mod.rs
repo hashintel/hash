@@ -22,6 +22,11 @@
 //! [`Severity::Bug`]: hashql_diagnostics::severity::Severity::Bug
 //! [`Severity::Error`]: hashql_diagnostics::severity::Severity::Error
 
+#![expect(
+    clippy::type_repetition_in_bounds,
+    reason = "derive-where applies the stricter allocator bound only to Clone"
+)]
+
 pub mod error;
 mod inputs;
 mod locals;

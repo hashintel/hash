@@ -11,6 +11,11 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
+#![expect(
+    clippy::type_repetition_in_bounds,
+    reason = "derive-where applies the stricter allocator bound only to Clone"
+)]
+
 use alloc::{alloc::Allocator, sync::Arc};
 use core::{error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr};
 use std::alloc::Global;

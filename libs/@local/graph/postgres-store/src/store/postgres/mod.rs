@@ -1028,7 +1028,7 @@ where
                     FROM role
                     WHERE role.actor_group_id = $1 AND role.principal_type = 'web_role'
                 ",
-                &[&web_id],
+                [&web_id],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -1067,7 +1067,7 @@ where
                     FROM role
                     WHERE role.actor_group_id = $1 AND role.principal_type = 'team_role'
                 ",
-                &[&team_id],
+                [&team_id],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -1393,7 +1393,7 @@ where
                  FROM web
                  JOIN groups ON web.id = groups.id
                  ",
-                &[&group_ids],
+                [&group_ids],
             )
             .instrument(tracing::info_span!(
                 "SELECT",

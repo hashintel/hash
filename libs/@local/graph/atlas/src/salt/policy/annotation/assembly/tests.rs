@@ -405,7 +405,7 @@ fn lone_simple_pair_hoists_into_the_independent_sections() {
     );
 }
 
-#[expect(
+#[allow(
     clippy::float_cmp,
     reason = "the expected targets and weights are the exact expressions the assembly computes, \
               not measured values"

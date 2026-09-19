@@ -207,7 +207,6 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     ///     vec![Value::Integer(1.into()), Value::Integer(2.into())]
     /// );
     /// ```
-    #[must_use]
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = (&Value<'heap, A>, &Value<'heap, A>)> + DoubleEndedIterator

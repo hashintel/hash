@@ -129,7 +129,6 @@ impl Depth {
 
     /// Iterates every depth, [`Depth::MIN`] through [`Depth::MAX`].
     #[inline]
-    #[must_use]
     pub fn all() -> impl DoubleEndedIterator<Item = Self> {
         Self::MIN..=Self::MAX
     }

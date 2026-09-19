@@ -1,4 +1,4 @@
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "ordering and conversion must preserve the fixture's exactly representable components"
 )]
@@ -405,7 +405,10 @@ async fn rejects_reserved_tokens_before_any_request() {
         result,
         Err(ExternalEmbeddingError::ReservedToken { index: 0, .. })
     );
-    assert!(provider.generator.requests().is_empty());
+    assert_eq!(
+        provider.generator.requests(),
+        [] as [std::vec::Vec<std::string::String>; 0]
+    );
 }
 
 #[tokio::test]

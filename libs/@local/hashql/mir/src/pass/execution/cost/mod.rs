@@ -18,7 +18,6 @@ use core::{
     iter::Sum,
     ops::{Add, AddAssign, Index, IndexMut, Mul, MulAssign},
 };
-use std::f32;
 
 use hashql_core::id::Id as _;
 

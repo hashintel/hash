@@ -71,7 +71,7 @@ fn representations(written: &TempFile) -> Representations {
 }
 
 #[test]
-#[expect(
+#[allow(
     clippy::float_cmp,
     reason = "the fixture's exactly representable values round-trip through the mapped file"
 )]

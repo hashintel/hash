@@ -492,7 +492,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    #![expect(
+    #![allow(
         clippy::float_cmp,
         reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
     )]

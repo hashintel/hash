@@ -459,7 +459,7 @@ fn neighbourhood_oversized() {
 /// every refit and deployed reading lies at its optimum, every paired difference is exactly zero,
 /// and the per-query, class and control rows carry the expected identities and member counts.
 #[test]
-#[expect(
+#[allow(
     clippy::float_cmp,
     reason = "the fixture geometry makes every reading exact: shared counts divide evenly and \
               zero penalties normalize to exactly one"
@@ -591,7 +591,7 @@ fn incident_edges_once() {
 /// A projector placing every arrival out of frame yields out-of-frame outcomes with refit readings
 /// kept and no deployed or paired readings.
 #[test]
-#[expect(
+#[allow(
     clippy::float_cmp,
     reason = "the fixture geometry makes the refit readings exactly one"
 )]

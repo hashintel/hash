@@ -398,7 +398,7 @@ mod miri {
     }
 
     #[test]
-    #[expect(
+    #[allow(
         clippy::float_cmp,
         reason = "the values are stored literals, not computed results"
     )]

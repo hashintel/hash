@@ -182,14 +182,14 @@ fn an_empty_pair_domain_draws_no_controls() {
         Draw::over(rule(), salt(), 10, &groups, &edges).expect("the fixture index is well-formed");
 
     assert_eq!(draw.pair_candidates(), 0);
-    assert!(draw.pairs().is_empty());
+    assert_eq!(draw.pairs(), []);
     assert_eq!(
         draw.control_candidates(),
         0,
         "the P = 0 outcome constructs no control population",
     );
-    assert!(draw.controls().is_empty());
-    assert!(draw.anchors().is_empty());
+    assert_eq!(draw.controls(), []);
+    assert_eq!(draw.anchors(), [] as [identity::node::NodeRowId; 0]);
 }
 
 #[test]
@@ -207,7 +207,7 @@ fn saturated_participation_draws_pairs_and_zero_controls() {
         0,
         "Q = 0 while P > 0 measures pairs and leaves no controls",
     );
-    assert!(draw.controls().is_empty());
+    assert_eq!(draw.controls(), []);
 }
 
 #[test]

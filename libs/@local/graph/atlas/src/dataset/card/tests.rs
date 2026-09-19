@@ -219,7 +219,7 @@ fn verbatim_adopts_text_with_heuristic_diagnostics() {
     assert_eq!(card.card_text(), "Relation: fixture");
     // 17 UTF-8 bytes count as ceil(17 / 4) = 5 heuristic tokens.
     assert_eq!(card.token_count(), 5);
-    assert!(card.truncations().is_empty());
+    assert_eq!(card.truncations(), []);
     assert!(!card.severely_truncated());
 }
 
@@ -261,7 +261,7 @@ fn canonical_block_rendering_is_deterministic() {
             "Slug: part-of\n",
         )
     );
-    assert!(first.truncations().is_empty());
+    assert_eq!(first.truncations(), []);
     assert!(!first.severely_truncated());
 }
 

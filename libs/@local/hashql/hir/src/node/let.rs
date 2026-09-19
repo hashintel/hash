@@ -1,11 +1,6 @@
 use core::fmt::{self, Display};
 
-use hashql_core::{
-    id::{self},
-    intern::Interned,
-    span::SpanId,
-    symbol::Symbol,
-};
+use hashql_core::{id, intern::Interned, span::SpanId, symbol::Symbol};
 
 use super::Node;
 

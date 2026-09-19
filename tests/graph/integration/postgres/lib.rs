@@ -3,6 +3,7 @@
     clippy::missing_errors_doc,
     clippy::unwrap_used
 )]
+#![recursion_limit = "256"]
 
 extern crate alloc;
 

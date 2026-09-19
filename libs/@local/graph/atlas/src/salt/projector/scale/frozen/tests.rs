@@ -4,7 +4,7 @@
 //! and denominator is exactly representable, and the asserted constants are therefore exact
 //! contracts rather than tolerances.
 
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "the asserted constants are exactly representable, and equality on them is exact"
 )]

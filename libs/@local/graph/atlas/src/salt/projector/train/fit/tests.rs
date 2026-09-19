@@ -7,7 +7,7 @@
 //! and the model can learn the separation the semantic edges describe. Landmarks on one row per
 //! cluster keep the frame from collapsing or drifting.
 
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "structurally-zero displacements and frozen radii are bit-exact contracts"
 )]
@@ -524,7 +524,7 @@ fn forceless_corpus_trains_vacuously() {
         .expect("the boundary ran within the schedule");
     assert_eq!(boundary.radius, FrozenRadius::Vacuous);
     assert_eq!(boundary.calibration.radius(), None);
-    assert!(boundary.calibration.types().is_empty());
+    assert_eq!(boundary.calibration.types(), []);
     assert_eq!(boundary.calibration.stability(), None);
     assert!(
         fitted.evidence.fractions.is_empty(),
@@ -1167,7 +1167,10 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     // with the corpus's two landmark rows first.
     let snapshots = observer.snapshots();
     assert_eq!(snapshots.len(), watched.evidence.telemetry.len());
-    assert!(!snapshots.is_empty());
+    assert_ne!(
+        snapshots,
+        [] as [(std::vec::Vec<math::vec2::Vec2>, usize); 0]
+    );
     assert!(
         snapshots
             .iter()
@@ -1601,7 +1604,10 @@ fn boundary_freeze_refusal_carries_the_boundary_evidence() {
     // ran); no drift reading exists, because the first belongs to that unrun tick.
     assert_eq!(record.losses.len(), 6);
     assert_eq!(record.telemetry.len(), 2);
-    assert!(record.fractions.is_empty());
+    assert_eq!(
+        record.fractions,
+        [] as [salt::projector::train::fit::evidence::RefreshFraction; 0]
+    );
 }
 
 /// Re-freezes the ruler bit-identically from the recorded boundary field and tables.

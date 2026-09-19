@@ -230,7 +230,6 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// let values: Vec<_> = list.iter().collect();
     /// assert_eq!(values.len(), 2);
     /// ```
-    #[must_use]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator {
         self.inner.iter()
     }

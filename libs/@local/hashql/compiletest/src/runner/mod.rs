@@ -183,8 +183,6 @@ impl Runner {
                     writeln!(stdout, "  {CYAN}{}{CYAN:#}", suite.name())?;
                     writeln!(stdout, "      {GRAY}{}{GRAY:#}", suite.description())?;
                 }
-
-                Ok(())
             }
             OutputFormat::Json => {
                 let _json = Json::init();
@@ -196,10 +194,10 @@ impl Runner {
                     escape_json(&mut stdout, suite.description())?;
                     writeln!(stdout, r#""}}"#)?;
                 }
-
-                Ok(())
             }
         }
+
+        Ok(())
     }
 
     pub(crate) fn execute(self, command: Command) -> io::Result<ExitCode> {

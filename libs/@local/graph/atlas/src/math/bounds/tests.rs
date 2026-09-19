@@ -1,4 +1,4 @@
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "exactness assertions are the point: corner selection and fits over \
               exactly-representable values are bit-precise contracts"
@@ -374,7 +374,7 @@ fn growth_representability() {
     // The intent as the rounding contract states it: the extent scaled, and each corner shifted
     // by half the change.
     let extent = f64::from(half_max);
-    let shift = (extent * f64::from(margin) - extent) * 0.5;
+    let shift = f64::mul_add(extent, f64::from(margin), -extent) * 0.5;
     assert_axis_encloses_tightly(widened.min().x(), widened.max().x(), -shift, extent + shift);
 }
 

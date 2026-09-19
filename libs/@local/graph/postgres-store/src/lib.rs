@@ -2,6 +2,7 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
+#![recursion_limit = "256"]
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,

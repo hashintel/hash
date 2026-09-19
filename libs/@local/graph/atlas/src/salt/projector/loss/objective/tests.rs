@@ -4,7 +4,7 @@
 //! assert exact contracts. The finite-difference certificates compare the gradient fields against
 //! central differences of an `f64` mirror of the estimand on scattered fixtures.
 
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "the dyadic fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"

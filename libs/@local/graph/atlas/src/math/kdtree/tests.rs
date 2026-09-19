@@ -303,7 +303,10 @@ fn an_empty_frame_builds_and_a_point_readout_returns_nothing() {
     let tree = KdTree::build(frame(&[]));
 
     let readout = tree.nearest_point(Vec2::new(0.0, 0.0), nz!(3));
-    assert!(readout.is_empty());
+    assert_eq!(
+        readout,
+        [] as [math::kdtree::KdNeighbour<math::kdtree::tests::RowId>; 0]
+    );
 }
 
 #[test]

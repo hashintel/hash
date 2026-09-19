@@ -1,4 +1,4 @@
-#![expect(
+#![allow(
     clippy::float_cmp,
     reason = "placement and round-trips must preserve the fixture's exactly representable \
               components"
@@ -352,7 +352,10 @@ async fn skips_the_provider_when_every_row_reuses() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    assert!(embedder.calls().is_empty());
+    assert_eq!(
+        embedder.calls(),
+        [] as [std::vec::Vec<std::string::String>; 0]
+    );
     assert_eq!(
         stats,
         CardEmbeddingStats {
@@ -435,9 +438,12 @@ async fn embeds_nothing_for_an_empty_card_list() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    assert!(embedder.calls().is_empty());
+    assert_eq!(
+        embedder.calls(),
+        [] as [std::vec::Vec<std::string::String>; 0]
+    );
     assert_eq!(stats, CardEmbeddingStats::default());
-    assert!(table.view().hashes.is_empty());
+    assert_eq!(table.view().hashes, []);
 
     let mut bytes = Vec::new();
     table
