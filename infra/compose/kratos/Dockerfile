@@ -6,7 +6,9 @@ COPY ./identity.schema.json /etc/config/kratos/
 COPY kratos.yml /etc/config/kratos/kratos.yml
 
 # Add AWS certificate bundle for SSL connection
+WORKDIR /home/nonroot/.postgresql
 ADD --chmod=644 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /home/nonroot/.postgresql/root.crt
+WORKDIR /home/nonroot
 
 USER 65532
 
