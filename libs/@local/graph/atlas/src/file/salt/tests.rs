@@ -1115,10 +1115,9 @@ fn an_old_document_without_the_optional_keys_decodes_as_absent() {
         .projector
         .expect("the projector evidence survives");
     assert_eq!(evidence.proximal_calibration, None);
-    assert!(
-        evidence.ladder.expect("the ladder survives").steps[0]
-            .relation_losses
-            .is_empty()
+    assert_eq!(
+        evidence.ladder.expect("the ladder survives").steps[0].relation_losses,
+        [] as [TypeRelationLoss; 0]
     );
 }
 

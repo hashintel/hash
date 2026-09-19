@@ -1,7 +1,7 @@
 mod miri {
     use core::simd::f32x8;
 
-    use crate::math::{matrixn::MatrixN, test_alloc::CountingAllocator};
+    use crate::math::{AlignedVecN, matrixn::MatrixN, test_alloc::CountingAllocator};
 
     #[test]
     fn zeroed_matrix_reads_zero_everywhere() {
@@ -57,8 +57,8 @@ mod miri {
     fn empty_matrix_is_well_formed() {
         let matrix = MatrixN::<8>::zeroed(0);
 
-        assert!(matrix.rows().is_empty());
-        assert!(matrix.as_components().is_empty());
+        assert_eq!(matrix.rows(), [] as [AlignedVecN<8>; 0]);
+        assert_eq!(matrix.as_components(), [] as [f32; 0]);
         assert_eq!(matrix, matrix.clone());
     }
 

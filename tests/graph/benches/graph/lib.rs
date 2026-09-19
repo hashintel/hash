@@ -2,6 +2,7 @@
     // Language Features
     custom_test_frameworks,
 )]
+#![recursion_limit = "256"]
 #![test_runner(criterion::runner)]
 #![expect(
     unreachable_pub,

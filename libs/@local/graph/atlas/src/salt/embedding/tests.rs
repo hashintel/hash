@@ -347,7 +347,7 @@ async fn skips_the_provider_when_every_row_reuses() {
     .await
     .unwrap_or_else(|error| panic!("the fixture embedder is infallible: {error}"));
 
-    assert!(embedder.calls().is_empty());
+    assert_eq!(embedder.calls(), [] as [Vec<String>; 0]);
     assert_eq!(
         stats,
         CardEmbeddingStats {

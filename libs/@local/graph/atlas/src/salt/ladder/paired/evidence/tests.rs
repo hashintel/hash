@@ -252,7 +252,7 @@ fn control_deciles_stratify_the_candidate_census() {
 fn control_deciles_share_tied_boundaries_and_vanish_without_candidates() {
     // A Q = 0 reading persists no strata at all, which stays distinguishable from
     // strata that are merely empty.
-    assert!(ControlDecile::over(&mut [], &[]).is_empty());
+    assert_eq!(ControlDecile::over(&mut [], &[]), [] as [ControlDecile; 0]);
 
     // Equal candidate readings collapse every boundary onto one value. The first stratum
     // absorbs the whole census and the boundary ties leave the rest without candidates.

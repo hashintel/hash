@@ -424,7 +424,7 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read, &*set);
         assert_eq!(read.iter().collect::<Vec<_>>(), [3, 64].map(NodeRowId::new));
-        assert!(rest.is_empty());
+        assert_eq!(rest, [] as [u8; 0]);
     }
 
     /// A zero-domain frame is exactly its 8-byte header and parses back to an empty set over
@@ -438,7 +438,7 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read.count(), 0);
         assert_eq!(read.domain_size(), 0);
-        assert!(rest.is_empty());
+        assert_eq!(rest, [] as [u8; 0]);
     }
 
     /// The final word carries in-domain bits and refuses bits above the domain.

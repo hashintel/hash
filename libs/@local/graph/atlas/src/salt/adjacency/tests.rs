@@ -267,6 +267,6 @@ mod miri {
             .write_into(&mut bytes)
             .expect("an in-memory write cannot fail");
 
-        assert!(!bytes.is_empty());
+        assert_ne!(bytes, [] as [u8; 0]);
     }
 }

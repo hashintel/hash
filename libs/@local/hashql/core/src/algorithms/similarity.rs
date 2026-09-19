@@ -392,7 +392,7 @@ mod tests {
         let matches = did_you_mean(lookup, &candidates, None, Some(1.0));
         let matches = collect_strings(&matches);
 
-        assert!(!matches.is_empty());
+        assert_ne!(matches, [] as [&str; 0]);
 
         assert!(matches.contains(&"user_data"));
         assert!(matches.contains(&"name_validator"));
@@ -404,7 +404,7 @@ mod tests {
         let lookup = heap.intern_symbol("test");
 
         let matches = did_you_mean(lookup, core::iter::empty::<Symbol<'_>>(), None, None);
-        assert!(matches.is_empty());
+        assert_eq!(matches, [] as [Symbol<'_>; 0]);
     }
 
     #[test]
@@ -414,7 +414,7 @@ mod tests {
         let candidates = collect_symbols(&heap, ["xyz", "abc", "123"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
-        assert!(matches.is_empty());
+        assert_eq!(matches, [] as [Symbol<'_>; 0]);
     }
 
     #[test]
