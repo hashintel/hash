@@ -1,9 +1,0 @@
-{
-  "name": "@rust/hash-telemetry",
-  "version": "0.0.0-private",
-  "private": true,
-  "license": "AGPL-3",
-  "dependencies": {
-    "@rust/error-stack": "workspace:*"
-  }
-}

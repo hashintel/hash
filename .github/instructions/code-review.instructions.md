@@ -48,7 +48,7 @@ Spend your effort here, in priority order:
 3. **Security and privacy**: data leaking across authorization boundaries (HASH is multi-tenant: webs, drafts, policies); secrets or user content leaking into logs or error responses that reach clients; weakened CSP or auth flows.
 4. **Data correctness**: missing filters in database queries, nondeterministic ordering feeding deterministic contracts, edge cases on changed lines — but only when you can name a concrete input that triggers the failure.
 5. **Tests as behavior specs**: new behavior should have a test asserting it. Ask whether the tests would actually catch a plausible regression. Point to the existing suite where a test belongs (e.g. `tests/graph/integration/postgres/`).
-6. **Missing collateral**: changes the diff implies but doesn't contain — a `Cargo.toml` dependency change without the regenerated `package.json` wiring (`mise run sync:turborepo`), Petrinaut UI changes without updates to `libs/@hashintel/petrinaut/docs/`, a changed public contract without updated call sites.
+6. **Missing collateral**: changes the diff implies but doesn't contain — a new crate task without its `command` in the crate's `turbo.json`, Petrinaut UI changes without updates to `libs/@hashintel/petrinaut/docs/`, a changed public contract without updated call sites.
 
 ## Writing comments that help
 
@@ -63,7 +63,6 @@ Do not review or comment on generated files — they are produced by codegen and
 - `libs/@local/graph/api/openapi/**` (OpenAPI spec and models, generated from the Rust API)
 - `libs/@local/hash-isomorphic-utils/src/system-types/**` (codegen'd system types)
 - `*.gen.ts` files and GraphQL codegen output
-- The generated identity/dependency wiring in Rust crates' `package.json` files (managed by `mise run sync:turborepo`)
 - Lockfiles (`yarn.lock`, `Cargo.lock`)
 
 If a generated file looks wrong, the source it is generated from is the only place worth commenting — and only if the generated output being out of sync is NOT something CI would catch.

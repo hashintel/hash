@@ -17,8 +17,6 @@ const updatePackageJson = () => {
 
   delete packageJson.devDependencies;
 
-  delete packageJson.dependencies["@blockprotocol/type-system-rs"];
-
   fs.writeFileSync(
     packageJsonPath,
     `${JSON.stringify(packageJson, null, 2)}\n`,
@@ -27,7 +25,7 @@ const updatePackageJson = () => {
 
 /**
  * `Real` is the only type the generated declarations pull from another crate. Inlining it keeps the
- * published package free of a dependency on the unpublished `@rust/hash-codec`.
+ * published package free of a dependency on the unpublished `hash-codec` crate.
  */
 const inlineUtilityTypes = () => {
   const generatedDir = path.join(packageRoot, "src", "generated");

@@ -129,13 +129,9 @@ For Rust packages, you can add features as needed with `--all-features`, specifi
 
 ### Monorepo wiring for Rust crates
 
-Each Rust crate has a `package.json` whose **identity and workspace-dependency wiring** — its `@rust/<name>` name, version, and the `dependencies` mirroring its `Cargo.toml` — is generated from `Cargo.toml`. After **adding, removing, or renaming a Rust crate**, or changing its `Cargo.toml` dependencies, re-sync that wiring:
+Turborepo reads the Cargo workspace directly (`futureFlags.experimentalCargoWorkspaces`): every workspace member is a Turborepo package under its `Cargo.toml` `[package].name`, its dependencies follow `Cargo.toml`, and the root `Cargo.toml`'s `[workspace.metadata].name` names the synthetic package that stands for the whole workspace. Crates carry no `package.json`.
 
-```bash
-mise run sync:turborepo    # sync package.json identity + deps from Cargo.toml metadata
-```
-
-`sync:turborepo` only manages that generated wiring. A crate's tasks live in its `turbo.json`, each with the `command` Turborepo runs (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`); the `package.json` carries no `scripts`. Add or edit tasks there by hand. The task wraps the `repo-chores` CLI; the equivalent direct invocation is `cargo run --package hash-repo-chores --bin repo-chores-cli -- sync-turborepo`. A related task, `mise run fix:package-json`, sorts `package.json` keys consistently.
+A crate's tasks live in its `turbo.json`, each with the `command` Turborepo runs (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`). A TypeScript package that reads a crate's sources or generated files declares that as a task edge on the crate's task (for example `hash-codec#build:types` or `hash-codec#manifest`), never as a `package.json` dependency.
 
 ## Git commits
 

@@ -3,6 +3,9 @@ fail-fast      = false
 failure-output = "final"
 status-level   = "skip"
 
+# The two tests live in `harpc-net`. A package matcher would name the crate, but nextest
+# rejects a matcher that names no package of the workspace, and a pruned workspace may not
+# contain the crate.
 [[profile.ci.overrides]]
-filter  = 'package(harpc-net) and (test(session::test::echo_tcp_concurrent) or test(session::test::echo_memory_concurrent))'
+filter  = 'test(session::test::echo_tcp_concurrent) or test(session::test::echo_memory_concurrent)'
 retries = 3

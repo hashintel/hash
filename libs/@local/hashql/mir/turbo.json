@@ -49,7 +49,7 @@
       ]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hashql-mir"]
+      "command": ["mise", "run", "test:unit", "hashql-mir"]
     }
   }
 }

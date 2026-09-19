@@ -33,7 +33,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/hash-graph-test-data",
+        "hash-graph-test-data",
         "--test-strategy=powerset"
       ]
     }

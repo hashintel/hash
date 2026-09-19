@@ -65,7 +65,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/hash-graph-authorization",
+        "hash-graph-authorization",
         "--test-strategy=powerset",
         "--",
         "--all-targets",

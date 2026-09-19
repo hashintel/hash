@@ -1,14 +1,11 @@
 [package]
-name              = "hash-status"
+authors.workspace = true
 description       = "The HASH Status and Error Model."
-version.workspace = true
 edition.workspace = true
 license           = "MIT OR Apache-2.0"
+name              = "hash-status"
 publish.workspace = true
-authors.workspace = true
-
-[package.metadata.sync.turborepo]
-extra-dependencies = [{ name = "@local/status", version = "workspace:*" }]
+version.workspace = true
 
 [dependencies]
 # Public workspace dependencies

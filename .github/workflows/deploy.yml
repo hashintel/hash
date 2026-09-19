@@ -91,7 +91,7 @@ jobs:
 
           CATALOG=$(jq -nc '[
             {
-              package:    "@apps/hash-graph",
+              package:    "hash-graph",
               service:    "graph",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/hash-graph/docker/Dockerfile",
@@ -146,7 +146,7 @@ jobs:
               ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
             },
             {
-              package:    "@rust/hash-graph-atlas",
+              package:    "hash-graph-atlas",
               service:    "atlas-fit",
               push:       ["ecr", "ghcr"],
               # The fit runs on x86 GPU hosts, so this image is amd64 rather than

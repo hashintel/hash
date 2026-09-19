@@ -1,14 +1,11 @@
 [package]
-name              = "hash-graph"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-publish.workspace = true
 authors.workspace = true
 description       = "The entity-graph query-layer for the HASH datastore"
-
-[package.metadata.sync.turborepo]
-package-name = "@apps/hash-graph"
+edition.workspace = true
+license.workspace = true
+name              = "hash-graph"
+publish.workspace = true
+version.workspace = true
 
 [dependencies]
 # Workspace dependencies

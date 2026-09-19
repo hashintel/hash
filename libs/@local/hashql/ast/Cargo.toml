@@ -1,10 +1,10 @@
 [package]
-name              = "hashql-ast"
-version.workspace = true
+authors.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "hashql-ast"
 publish.workspace = true
-authors.workspace = true
+version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
@@ -25,10 +25,5 @@ hashql-compiletest = { workspace = true }
 workspace = true
 
 [[test]]
-name    = "compiletest"
 harness = false
-
-[package.metadata.sync.turborepo]
-ignore-dev-dependencies = [
-    "hashql-compiletest",
-]
+name    = "compiletest"

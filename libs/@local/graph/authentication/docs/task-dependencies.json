@@ -1,21 +1,23 @@
 {
-  "package": "@rust/hash-graph-authentication",
+  "package": "hash-graph-authentication",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-store",
-    "@rust/hash-middleware",
-    "@rust/problematic"
+    "error-stack",
+    "hash-graph-authorization",
+    "hash-graph-store",
+    "hash-middleware",
+    "problematic",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -25,18 +27,27 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:integration": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

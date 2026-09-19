@@ -6480,7 +6480,6 @@ dependencies = [
  "hash-telemetry",
  "inferno",
  "lcov",
- "nodejs_package_json",
  "serde",
  "serde_json",
  "simple-mermaid",
@@ -9281,21 +9280,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418abd1b6d34fbf6cae440dc874771b0525a604428704c76e48b29a5e67b8003"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "nodejs_package_json"
-version = "0.4.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c87ccf239f2f9d82f1efe31340ae1229c50a0e46ddd4d57a2518a25476061cd"
-dependencies = [
- "indexmap 2.14.0",
- "regex",
- "rustc-hash 2.1.2",
- "semver",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
 ]
 
 [[package]]

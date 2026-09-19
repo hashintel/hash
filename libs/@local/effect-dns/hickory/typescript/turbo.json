@@ -3,10 +3,10 @@
   "extends": ["//"],
   "tasks": {
     "manifest": {
-      "dependsOn": ["^manifest", "@rust/effect-dns-hickory#manifest"]
+      "dependsOn": ["^manifest", "effect-dns-hickory#manifest"]
     },
     "build": {
-      "dependsOn": ["^build", "@rust/effect-dns-hickory#manifest"],
+      "dependsOn": ["^build", "effect-dns-hickory#manifest"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "../rust/src/**",

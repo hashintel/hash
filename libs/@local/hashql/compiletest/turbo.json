@@ -29,7 +29,7 @@
       "command": ["just", "clippy"]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hashql-compiletest"]
+      "command": ["mise", "run", "test:unit", "hashql-compiletest"]
     }
   }
 }

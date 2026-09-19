@@ -12,7 +12,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/antsi",
+        "antsi",
         "--",
         "--no-tests",
         "warn"
