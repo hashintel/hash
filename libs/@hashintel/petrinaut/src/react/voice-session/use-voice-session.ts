@@ -63,6 +63,15 @@ export const useVoiceSessionSpeakerVolume = (): number => {
   );
 };
 
+export const useVoiceSessionAudioSettings = () => {
+  const store = use(VoiceSessionContext);
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.audioSettings,
+    () => undefined,
+  );
+};
+
 export const useVoiceSessionErrorMessage = (): string | null => {
   const store = use(VoiceSessionContext);
 
