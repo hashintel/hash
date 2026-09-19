@@ -1,5 +1,35 @@
 # @hashintel/ds-components
 
+## 0.4.0
+
+### Minor Changes
+
+- `Select`, `TextInput`, and `NumberInput` now accept `clearable` as `boolean | { onClear: () => void }`, and `Select` accepts `searchable` as `boolean | { onSearch?, hideCount?, hideSelectAllToggle? }`, replacing the previous `{ clearable: boolean, onClear }` and `{ searchable: boolean, onSearch }` object shapes. `Banner`'s `dismissible` and `Chip`'s and `Filter`'s `removeable` are now `false | { onDismiss: () => void }` / `false | { onRemove: () => void }` instead of objects with an inner enabled flag. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+### Patch Changes
+
+- Add an IconProvider for overriding named icons within a component tree while retaining defaults for omitted replacements. ([@kube](https://github.com/kube), [#9695](https://github.com/hashintel/hash/pull/9695))
+
+- Support content refs and inline styles on Dialog for movable, resizable layouts. ([@kube](https://github.com/kube))
+
+- `Drawer` accepts `initialFocusRef` and `returnFocusRef` refs that start `null`, as `Popover` does. ([@kube](https://github.com/kube), [#9607](https://github.com/hashintel/hash/pull/9607))
+
+- `Filter` operators can now declare select inputs, overflowing content on Select + Inputs is improved, and keyboard navigation for Select updated to better match APG guidelines. ([@alex-e-leon](https://github.com/alex-e-leon), [#9646](https://github.com/hashintel/hash/pull/9646))
+
+- Allow `Menu` and `SelectableList` items that carry `subItems` to accept a `menuClassName` ([@CiaranMn](https://github.com/CiaranMn), [#9739](https://github.com/hashintel/hash/pull/9739))
+
+- `Slider` accepts `disabled`, which dims the control and turns its input off. ([@kube](https://github.com/kube), [#9516](https://github.com/hashintel/hash/pull/9516))
+
+- `Slider` gains a `plain` variant: a small round thumb of one fixed size that never swells while dragged, for dense control rows. The rail now spans the slider's root whatever aligns the root's children. ([@kube](https://github.com/kube), [#9607](https://github.com/hashintel/hash/pull/9607))
+
+- Extract the contour plot into a `ContourSurface` component shared by the sweep and optimization surfaces, decouple `SweepNavigator` from the experiments context, and add Storybook stories for each component's states. Sweep navigation is continuous: a point selection uses a single-thumb slider, slider moves commit during the drag, and charts keep their axes, grid and size while frames stream in. `Slider` treats 0 as a real value, and `useElementSize` follows an element that mounts after the first render. ([@kube](https://github.com/kube), [#9421](https://github.com/hashintel/hash/pull/9421))
+
+- Optimization studies with two or more optimized numeric parameters gain a Surface section: a contour of the objective over two chosen parameters, computed locally against the study's frozen model, with the study's trials as markers. Sliders and clicks move the selected point, which refines with escalating batches. `Slider` accepts `step` and `onChangeEnd`. ([@kube](https://github.com/kube), [#9398](https://github.com/hashintel/hash/pull/9398))
+
+- Add header + footer options to selectable list + other minor ui improvements ([@alex-e-leon](https://github.com/alex-e-leon), [#9584](https://github.com/hashintel/hash/pull/9584))
+
+- Add Breadcrumb component ([@alex-e-leon](https://github.com/alex-e-leon), [#9502](https://github.com/hashintel/hash/pull/9502))
+
 ## 0.3.1
 
 ### Patch Changes
