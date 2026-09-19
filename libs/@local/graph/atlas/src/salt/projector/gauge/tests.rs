@@ -5,7 +5,7 @@
 //! the recovery fixture therefore asserts exact contracts. The finite-difference certificate uses
 //! a generic constellation and an f64 mirror of the closed form.
 
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "the exact fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"

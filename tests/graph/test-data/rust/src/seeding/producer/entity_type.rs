@@ -517,8 +517,8 @@ mod tests {
             .expect("should generate entity type");
 
         // Verify generated entity type structure
-        assert_ne!(entity_type.schema.title, "");
-        assert_ne!(entity_type.schema.description, "");
+        assert!(!entity_type.schema.title.is_empty());
+        assert!(!entity_type.schema.description.is_empty());
         assert_eq!(entity_type.schema.constraints.properties.len(), 2);
         assert_eq!(entity_type.schema.constraints.required.len(), 2);
         assert!(entity_type.schema.constraints.links.is_empty());

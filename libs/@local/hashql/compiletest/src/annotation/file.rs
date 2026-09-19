@@ -183,10 +183,7 @@ mod tests {
         let result = annotations.parse_file(Cursor::new(""), true);
 
         assert!(result.is_ok(), "should successfully parse an empty file");
-        assert_eq!(
-            annotations.diagnostics,
-            [] as [annotation::diagnostic::DiagnosticAnnotation; 0]
-        );
+        assert!(annotations.diagnostics.is_empty());
     }
 
     #[test]

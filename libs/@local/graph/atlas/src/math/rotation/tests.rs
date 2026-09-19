@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "exactness assertions are the point: inverse negation is a bit-precise contract"
 )]

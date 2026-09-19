@@ -507,7 +507,7 @@ async fn dump_roundtrips_byte_identically() {
 ///
 /// The rows are nodes, edges, ontology, cards, legends and icons, with embeddings bit-identical.
 #[tokio::test]
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
 )]
@@ -597,7 +597,7 @@ async fn offline_dataset_serves_the_row_streams_verbatim() {
 ///
 /// Node types come back equal as well.
 #[tokio::test]
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
 )]
@@ -700,7 +700,7 @@ async fn served_embeddings_borrow_the_mapped_stream_files() {
 }
 
 #[tokio::test]
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
 )]

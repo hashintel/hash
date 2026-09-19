@@ -402,7 +402,7 @@ mod miri {
         let boxed = BoxedVecN::new(VecN::from_ref(&source));
 
         let (lanes, remainder) = boxed.lanes();
-        assert_eq!(remainder, []);
+        assert!(remainder.is_empty());
         assert_eq!(
             lanes.iter().map(|lane| lane.to_array()).collect::<Vec<_>>(),
             [
@@ -568,7 +568,7 @@ mod miri {
 
         // An empty slice at an aligned base yields zero rows.
         let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
-        assert_eq!(empty, []);
+        assert!(empty.is_empty());
     }
 
     /// `Hash` follows the components and `Debug` prints them.

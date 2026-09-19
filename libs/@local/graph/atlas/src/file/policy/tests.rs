@@ -3,7 +3,7 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "the format persists values verbatim; round trips are bit-exact contracts"
 )]

@@ -403,7 +403,7 @@ fn collect_constraints_different_names() {
     // No constraints should be generated since the names are different
     // This is important for nominal typing - different named types don't interact
     let constraints = inference_env.take_constraints();
-    assert_eq!(constraints, [] as [r#type::inference::Constraint<'_>; 0]);
+    assert!(constraints.is_empty());
 }
 
 #[test]
@@ -460,7 +460,7 @@ fn collect_constraints_concrete() {
     // The invariance check would fail during is_subtype_of, but we don't handle
     // that during constraint collection
     let constraints = inference_env.take_constraints();
-    assert_eq!(constraints, [] as [r#type::inference::Constraint<'_>; 0]);
+    assert!(constraints.is_empty());
 }
 
 #[test]

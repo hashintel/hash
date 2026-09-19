@@ -2,7 +2,6 @@
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![recursion_limit = "256"]
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
@@ -16,6 +15,7 @@
     unreachable_pub,
     reason = "This should be enabled but it's currently too noisy"
 )]
+#![recursion_limit = "256"]
 
 extern crate alloc;
 

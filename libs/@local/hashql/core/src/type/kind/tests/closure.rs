@@ -623,7 +623,7 @@ fn collect_constraints_closure_with_different_param_count() {
     // Should have no constraints since we only collect for common prefix
     // and there's no inference variable in the common prefix
     let constraints = inference_env.take_constraints();
-    assert_eq!(constraints, [] as [r#type::inference::Constraint<'_>; 0]);
+    assert!(constraints.is_empty());
 
     // Now test with inference variable in the common parameter
     let hole_first = HoleId::new(1);
@@ -715,10 +715,7 @@ fn collect_constraints_concrete_closures() {
     // For concrete types, no constraints should be generated
     fn_a.collect_constraints(fn_b, &mut inference_env);
 
-    assert_eq!(
-        inference_env.take_constraints(),
-        [] as [r#type::inference::Constraint<'_>; 0]
-    );
+    assert!(inference_env.take_constraints().is_empty());
 }
 
 #[test]

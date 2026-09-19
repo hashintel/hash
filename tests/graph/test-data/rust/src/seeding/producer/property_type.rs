@@ -426,11 +426,8 @@ pub(crate) mod tests {
         let property_type = producer
             .generate(context)
             .expect("should generate property type");
-        assert_ne!(property_type.schema.title, "");
-        assert_ne!(property_type.schema.description, "");
-        assert_ne!(
-            property_type.schema.one_of,
-            [] as [type_system::ontology::property_type::schema::PropertyValues; 0]
-        );
+        assert!(!property_type.schema.title.is_empty());
+        assert!(!property_type.schema.description.is_empty());
+        assert!(!property_type.schema.one_of.is_empty());
     }
 }

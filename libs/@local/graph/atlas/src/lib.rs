@@ -86,7 +86,6 @@
 //! and retries failures. The current-generation endpoint answers 503 before initial publication.
 //!
 //! ## Workspace dependencies
-#![recursion_limit = "256"]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features

@@ -167,9 +167,9 @@ mod tests {
 
         assert_eq!(vec.len(), 3);
         assert_eq!(vec.block_count(), 3);
-        assert_eq!(vec.of(BasicBlockId::new(0)), []);
+        assert!(vec.of(BasicBlockId::new(0)).is_empty());
         assert_eq!(vec.of(BasicBlockId::new(1)).len(), 3);
-        assert_eq!(vec.of(BasicBlockId::new(2)), []);
+        assert!(vec.of(BasicBlockId::new(2)).is_empty());
     }
 
     /// Zero blocks is valid.

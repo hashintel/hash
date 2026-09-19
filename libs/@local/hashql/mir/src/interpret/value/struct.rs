@@ -855,8 +855,8 @@ mod tests {
         let mut builder = StructBuilder::<'_, Global, 3>::new();
         assert!(builder.is_empty());
         assert_eq!(builder.len(), 0);
-        assert_eq!(builder.fields(), []);
-        assert_eq!(builder.values(), []);
+        assert!(builder.fields().is_empty());
+        assert!(builder.values().is_empty());
 
         builder.push(sym_a, int(1));
         assert_eq!(builder.len(), 1);

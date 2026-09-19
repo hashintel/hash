@@ -553,7 +553,7 @@ mod tests {
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");
         writer.flush().expect("should flush");
-        assert_eq!(lines(&arrived), [] as [std::string::String; 0]);
+        assert!(lines(&arrived).is_empty());
 
         writer
             .write_all(b"halfway\nWARN and then some\n")

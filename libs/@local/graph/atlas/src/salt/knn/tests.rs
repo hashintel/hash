@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "bit-exact assertions are contracts; fixtures use exactly representable values or \
               compare cross-path results of the same kernel"

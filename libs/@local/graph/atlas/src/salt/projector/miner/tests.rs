@@ -3,7 +3,7 @@
 //! Exhaustive set-algebra agreement with a brute-force reference, dyadic rank weights, honest short
 //! sets, channel-correct protection vetoes, max-weight pooling, and determinism.
 
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "fixture coordinates are small integers, and squared distances and dyadic rank \
               weights are therefore exact in both the reference and the kd-tree path"

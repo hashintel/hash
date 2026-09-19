@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "exact comparisons test the exactly representable results of the exact-fit fixtures"
 )]

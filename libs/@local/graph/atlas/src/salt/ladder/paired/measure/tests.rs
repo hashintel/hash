@@ -158,7 +158,7 @@ fn an_injected_movement_refusal_keeps_its_counts_and_no_partial_aggregates() {
 /// Each boundary stratum holds one candidate and one drawn control, and every other stratum
 /// sits individually empty with an absent displacement family.
 #[test]
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "the median differences are exactly representable integers"
 )]

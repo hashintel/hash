@@ -76,7 +76,7 @@ mod tests {
         let a = [1, 2];
         let b: [i32; 0] = [];
         let result = cartesian_product::<_, _, 8>(&[a.as_slice(), b.as_slice()]);
-        assert_eq!(result, [] as [smallvec::SmallVec<i32, 8>; 0]);
+        assert!(result.is_empty());
     }
 
     #[test]

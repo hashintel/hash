@@ -355,10 +355,10 @@ fn induced_nonqualifying_tail() {
     assert_eq!(actual.edges, [expected]);
     assert!(actual.complete);
     let actual = graph.select([0, 1, 2, 3], 0);
-    assert_eq!(actual.edges, [] as [serve::neighbourhood::DeliveredEdge; 0]);
+    assert!(actual.edges.is_empty());
     assert!(!actual.complete);
     let actual = graph.select([2, 3], 0);
-    assert_eq!(actual.edges, [] as [serve::neighbourhood::DeliveredEdge; 0]);
+    assert!(actual.edges.is_empty());
     assert!(actual.complete);
 }
 
@@ -396,7 +396,7 @@ fn cap_zero() {
     assert!(cap.excludes(priority));
     let actual = cap.into_set();
     assert!(!actual.complete);
-    assert_eq!(actual.edges, [] as [serve::neighbourhood::DeliveredEdge; 0]);
+    assert!(actual.edges.is_empty());
 }
 
 /// A full cap is not yet truncated and remains complete until it turns an offer away.

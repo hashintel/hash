@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
 )]

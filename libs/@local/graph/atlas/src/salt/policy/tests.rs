@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "bit-exact assertions are contracts on exactly representable values"
 )]

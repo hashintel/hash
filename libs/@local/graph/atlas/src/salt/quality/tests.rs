@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     clippy::float_cmp_const,
     reason = "perfect and worst-case orderings hit the metric bounds exactly: the penalties are \
@@ -985,10 +985,7 @@ fn assess_flags_degraded_subgroups() {
             ..
         },
     );
-    assert_eq!(
-        floored.flags,
-        [] as [salt::quality::report::document::SubgroupFlag; 0]
-    );
+    assert!(floored.flags.is_empty());
     assert_eq!(floored.subgroups.len(), 3);
     assert!(floored.passes());
 }
@@ -1694,10 +1691,7 @@ async fn runner_reports_a_published_generation() {
 
     // Anchor types resolved through the dataset's probe-scoped stream:
     // every anchor carries exactly one of the two node types.
-    assert_ne!(
-        report.subgroups,
-        [] as [salt::quality::report::document::SubgroupReport; 0]
-    );
+    assert!(!report.subgroups.is_empty());
     assert_eq!(
         report
             .subgroups
@@ -1754,10 +1748,7 @@ async fn runner_reports_a_published_generation() {
 
     // the k=2 step has no density spread when every anchor has a zero radius in at least one space.
     // Missing density evidence rejects even under the permissive ceiling.
-    assert_eq!(
-        report.flags,
-        [] as [salt::quality::report::document::SubgroupFlag; 0]
-    );
+    assert!(report.flags.is_empty());
     assert!(
         report.density[0].spread.is_none(),
         "the small step's density evidence is absent on this fixture",

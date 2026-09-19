@@ -242,7 +242,7 @@ fn dense_bit_slice_words_cross_the_word_boundary() {
 fn dense_bit_slice_zero_domain_packs_to_no_words() {
     let set = DenseBitSlice::<NodeRowId>::new_empty(0);
 
-    assert_eq!(set.words(), []);
+    assert!(set.words().is_empty());
 }
 
 /// Membership, cardinality, iteration order, and the byte round trip agree with a reference set.
@@ -424,7 +424,7 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read, &*set);
         assert_eq!(read.iter().collect::<Vec<_>>(), [3, 64].map(NodeRowId::new));
-        assert_eq!(rest, []);
+        assert!(rest.is_empty());
     }
 
     /// A zero-domain frame is exactly its 8-byte header and parses back to an empty set over
@@ -438,7 +438,7 @@ mod miri {
             DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
         assert_eq!(read.count(), 0);
         assert_eq!(read.domain_size(), 0);
-        assert_eq!(rest, []);
+        assert!(rest.is_empty());
     }
 
     /// The final word carries in-domain bits and refuses bits above the domain.

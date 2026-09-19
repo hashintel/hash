@@ -29,7 +29,7 @@ mod miri {
     }
 
     #[test]
-    #[allow(
+    #[expect(
         clippy::float_cmp,
         reason = "the values are stored literals, not computed results"
     )]
@@ -45,7 +45,7 @@ mod miri {
     }
 
     #[test]
-    #[allow(
+    #[expect(
         clippy::float_cmp,
         reason = "the values are stored literals, not computed results"
     )]
@@ -65,8 +65,8 @@ mod miri {
     fn empty_matrix_is_well_formed() {
         let matrix = MatrixN::<8>::zeroed(0);
 
-        assert_eq!(matrix.rows(), []);
-        assert_eq!(matrix.as_components(), []);
+        assert!(matrix.rows().is_empty());
+        assert!(matrix.as_components().is_empty());
         assert_eq!(matrix, matrix.clone());
     }
 

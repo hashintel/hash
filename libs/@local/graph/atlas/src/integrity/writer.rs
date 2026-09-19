@@ -333,6 +333,6 @@ mod tests {
             .expect_err("should surface the writer's refusal");
 
         assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
-        assert_eq!(writer.accumulator.0, [] as [u8; 0]);
+        assert!(writer.accumulator.0.is_empty());
     }
 }

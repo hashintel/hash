@@ -471,6 +471,7 @@ fn inline_budget_exhaustion() {
 ///
 /// This is a regression test for a bug where the ordering was accidentally reversed.
 #[test]
+#[expect(clippy::float_cmp)]
 fn candidates_ordered_by_descending_score() {
     // Create callsites with different scores
     let callsite_low = CallSite {

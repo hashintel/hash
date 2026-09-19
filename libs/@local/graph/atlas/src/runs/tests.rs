@@ -42,7 +42,7 @@ fn from_parts_accepts_an_empty_domain() {
         .expect("a lone zero anchor closes an empty structure");
 
     assert_eq!(runs.runs(), 0);
-    assert_eq!(runs.items(), []);
+    assert!(runs.items().is_empty());
     assert_eq!(runs.iter().next(), None);
 }
 
@@ -156,7 +156,7 @@ fn from_pairs_accepts_an_empty_domain() {
     let runs = Runs::<NodeRowId, u32>::from_pairs(0, core::iter::empty());
 
     assert_eq!(runs.runs(), 0);
-    assert_eq!(runs.items(), []);
+    assert!(runs.items().is_empty());
 }
 
 /// `from_pairs` panics with the documented message when a pair names a key beyond the domain.

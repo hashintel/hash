@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     clippy::float_cmp_const,
     reason = "exactness assertions are the point: zero gradients for coincident pairs and exact \

@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
 )]

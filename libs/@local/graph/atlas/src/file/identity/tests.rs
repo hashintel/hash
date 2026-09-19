@@ -200,10 +200,10 @@ fn empty_table_reopens() {
     let file = IdentityFile::open(&path).expect("the empty file reopens");
     assert_eq!(file.kind(), Kind::Ontology);
     assert_eq!(file.rows(), 0);
-    assert_eq!(file.keys(), []);
+    assert!(file.keys().is_empty());
     assert_eq!(file.index().len(), 0);
-    assert_eq!(file.spans(), []);
-    assert_eq!(file.payload(), []);
+    assert!(file.spans().is_empty());
+    assert!(file.payload().is_empty());
 }
 
 #[test]

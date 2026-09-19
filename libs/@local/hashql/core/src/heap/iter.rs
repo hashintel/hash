@@ -86,6 +86,6 @@ mod tests {
         let heap = Heap::new();
         let vec: Vec<u8, &Heap> = core::iter::empty().collect_in(&heap);
 
-        assert_eq!(vec, [] as [u8; 0]);
+        assert!(vec.is_empty());
     }
 }

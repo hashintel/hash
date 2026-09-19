@@ -327,7 +327,7 @@ const impl<
 
 #[cfg(test)]
 mod tests {
-    #![allow(
+    #![expect(
         clippy::float_cmp,
         reason = "exactness assertions on raw carriers are bit-precise contracts"
     )]

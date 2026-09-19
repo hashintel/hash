@@ -645,6 +645,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::float_cmp)]
     fn regression() {
         let value = Real::try_from(0.0254).expect("valid value");
         assert_eq!(value.to_f64_lossy(), 0.0254);

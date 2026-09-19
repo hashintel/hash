@@ -4,7 +4,7 @@
 //! overshoots are exactly representable), and the record therefore asserts exact contracts. The
 //! landing point itself carries the documented margin: its assertions bound rather than pin.
 
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "the dyadic fixtures produce exactly representable readings, and the asserted \
               constants are exact contracts"

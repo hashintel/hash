@@ -1,4 +1,4 @@
-#![allow(
+#![expect(
     clippy::float_cmp,
     reason = "exactness assertions are the point: corner selection and fits over \
               exactly-representable values are bit-precise contracts"

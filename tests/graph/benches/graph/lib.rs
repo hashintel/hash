@@ -3,7 +3,6 @@
     custom_test_frameworks,
 )]
 #![test_runner(criterion::runner)]
-#![recursion_limit = "256"]
 #![expect(
     unreachable_pub,
     reason = "This is a benchmark but as we want to document this crate as well this should be a \

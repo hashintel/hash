@@ -666,7 +666,7 @@ fn members_sccs_iterator() {
     let mut all_nodes: Vec<NodeId> = Vec::new();
     for scc_id in &scc_ids {
         let scc_members = members.of(*scc_id);
-        assert_ne!(scc_members, []);
+        assert!(!scc_members.is_empty());
         all_nodes.extend_from_slice(scc_members);
     }
 

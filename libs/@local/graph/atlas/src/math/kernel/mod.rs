@@ -153,7 +153,7 @@ pub(crate) fn pow_f32x4(base: f32x4, exponent: f32x4) -> f32x4 {
 }
 
 #[cfg(test)]
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "exactness assertions are the point: sleef guarantees exact values at special points \
               such as exp(0) and pow(x, 0)"

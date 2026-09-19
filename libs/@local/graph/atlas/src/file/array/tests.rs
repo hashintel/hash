@@ -271,9 +271,9 @@ fn zero_rows_seal_as_the_empty_array() {
     // every dimension.
     let file = TempFile::create(buffer.get_ref());
     let opened = ArrayFile::open(&file.path).expect("an empty array should open");
-    assert_eq!(opened.header().shape.dims(), []);
-    assert_eq!(opened.vectors::<512>().expect("zero rows"), []);
-    assert_eq!(opened.vectors::<8>().expect("zero rows"), []);
+    assert!(opened.header().shape.dims().is_empty());
+    assert!(opened.vectors::<512>().expect("zero rows").is_empty());
+    assert!(opened.vectors::<8>().expect("zero rows").is_empty());
 }
 
 #[test]

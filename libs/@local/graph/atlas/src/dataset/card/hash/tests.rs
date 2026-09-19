@@ -630,6 +630,6 @@ fn assembled_contents_render_the_canonical_card() {
             "Slug: owns\n",
         )
     );
-    assert_eq!(card.truncations(), []);
+    assert!(card.truncations().is_empty());
     assert!(!card.severely_truncated());
 }

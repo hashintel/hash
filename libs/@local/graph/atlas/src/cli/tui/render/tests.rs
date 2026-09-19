@@ -712,7 +712,7 @@ fn the_step_axis_spans_exactly_the_curve_it_draws() {
     assert_eq!(points.last().map(|&(step, _)| step), Some(last));
 }
 
-#[allow(
+#[expect(
     clippy::float_cmp,
     reason = "the bounds are exactly the fixture's own values and the unit fallback"
 )]

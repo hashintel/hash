@@ -135,7 +135,7 @@ async fn empty_dataset_seals_an_empty_matrix() {
     assert_eq!(bytes.len(), PAGE_BYTES);
     let header = PaddedFileHeader::try_ref_from_bytes(bytes.as_slice())
         .expect("a finished file should carry a valid header");
-    assert_eq!(header.shape.dims(), []);
+    assert!(header.shape.dims().is_empty());
 }
 
 #[test]

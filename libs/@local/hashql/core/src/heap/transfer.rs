@@ -105,7 +105,7 @@ mod tests {
         let original: &[u8] = &[];
         let transferred = original.transfer_into(&heap);
 
-        assert_eq!(transferred, []);
+        assert!(transferred.is_empty());
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
         let original = "";
         let transferred = original.transfer_into(&heap);
 
-        assert_eq!(transferred, "");
+        assert!(transferred.is_empty());
     }
 
     #[test]

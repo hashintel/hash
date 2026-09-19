@@ -967,7 +967,7 @@ mod tests {
 
         assert_eq!(result, Ok(()));
         assert_eq!(beef.as_slice(), &[100, 200, 300, 400]);
-        assert_eq!(expected_prefixes, [] as [std::vec::Vec<i32>; 0]);
+        assert!(expected_prefixes.is_empty());
     }
 
     #[test]
