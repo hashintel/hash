@@ -34,7 +34,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
 RUN mise trust && \
-    turbo prune $(.github/scripts/prune-scopes.sh '@apps/brunch-agent') --docker && \
+    turbo prune '@apps/brunch-agent' --docker && \
     find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/repo/out/full/$1" ] || ( \
     mkdir -p "/repo/out/full/$(dirname "$1")/src" && \
