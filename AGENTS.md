@@ -135,7 +135,7 @@ Each Rust crate has a `package.json` whose **identity and workspace-dependency w
 mise run sync:turborepo    # sync package.json identity + deps from Cargo.toml metadata
 ```
 
-`sync:turborepo` only manages that generated wiring — the `scripts` section is hand-maintained and is used by CI and Turborepo (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`), so add or edit scripts by hand. The task wraps the `repo-chores` CLI; the equivalent direct invocation is `cargo run --package hash-repo-chores --bin repo-chores-cli -- sync-turborepo`. A related task, `mise run fix:package-json`, sorts `package.json` keys consistently.
+`sync:turborepo` only manages that generated wiring. A crate's tasks live in its `turbo.json`, each with the `command` Turborepo runs (e.g. `test:unit`, `lint:clippy`, `doc:dependency-diagram`); the `package.json` carries no `scripts`. Add or edit tasks there by hand. The task wraps the `repo-chores` CLI; the equivalent direct invocation is `cargo run --package hash-repo-chores --bin repo-chores-cli -- sync-turborepo`. A related task, `mise run fix:package-json`, sorts `package.json` keys consistently.
 
 ## Git commits
 

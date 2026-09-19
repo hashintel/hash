@@ -2,24 +2,134 @@
   "extends": ["//"],
   "tasks": {
     "start:migrate": {
+      "command": [
+        "../../target/release/hash-graph",
+        "migrate",
+        "--user",
+        "postgres",
+        "--password",
+        "postgres"
+      ],
       "cache": false,
       "dependsOn": ["compile:release"]
     },
     "start:healthcheck": {
+      "command": [
+        "../../target/release/hash-graph",
+        "server",
+        "--healthcheck",
+        "--wait",
+        "--timeout",
+        "1200",
+        "--logging-console-level=warn"
+      ],
       "dependsOn": ["compile:release"]
     },
     "start": {
+      "command": ["../../target/release/hash-graph", "server"],
       "dependsOn": ["start:migrate"]
     },
     "start:test:migrate": {
+      "command": [
+        "../../target/debug/hash-graph",
+        "migrate",
+        "--user",
+        "postgres",
+        "--password",
+        "postgres"
+      ],
       "cache": false,
       "dependsOn": ["compile"]
     },
     "start:test:healthcheck": {
+      "command": [
+        "../../target/debug/hash-graph",
+        "server",
+        "--healthcheck",
+        "--wait",
+        "--timeout",
+        "300",
+        "--logging-console-level=warn"
+      ],
       "dependsOn": ["compile"]
     },
     "start:test": {
+      "command": ["../../target/debug/hash-graph", "server"],
       "dependsOn": ["start:test:migrate"]
+    },
+    "build:docker": {
+      "command": [
+        "docker",
+        "buildx",
+        "build",
+        "--build-arg",
+        "PROFILE=release",
+        "--tag",
+        "hash-graph",
+        "--file",
+        "docker/Dockerfile",
+        "../../",
+        "--load"
+      ]
+    },
+    "build:docker:dev": {
+      "cache": false,
+      "command": [
+        "docker",
+        "buildx",
+        "build",
+        "--build-arg",
+        "PROFILE=dev",
+        "--tag",
+        "hash-graph",
+        "--file",
+        "docker/Dockerfile",
+        "../../",
+        "--load"
+      ]
+    },
+    "compile": {
+      "command": ["cargo", "build", "--bin", "hash-graph", "--all-features"]
+    },
+    "compile:release": {
+      "command": [
+        "cargo",
+        "build",
+        "--bin",
+        "hash-graph",
+        "--all-features",
+        "--release"
+      ]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "@apps/hash-graph"]
     }
   }
 }

@@ -2,7 +2,14 @@
   "extends": ["//"],
   "tasks": {
     "test:integration": {
+      "command": ["cargo", "nextest", "run", "--all-features", "--all-targets"],
       "dependsOn": ["^manifest"]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
     }
   }
 }

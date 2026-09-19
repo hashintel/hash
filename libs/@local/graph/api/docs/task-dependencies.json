@@ -58,8 +58,19 @@
         "@rust/darwin-kperf-codegen"
       ]
     },
+    "lint:openapi": {
+      "dependsOn": [
+        "build:openapi"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
     "test:unit": {
-      "dependsOn": [],
+      "dependsOn": [
+        "lint:openapi"
+      ],
       "env": [
         "TEST_COVERAGE"
       ],

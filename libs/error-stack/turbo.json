@@ -1,0 +1,41 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:miri": {
+      "command": ["just", "miri"]
+    },
+    "test:unit": {
+      "command": [
+        "env",
+        "RUST_BACKTRACE=1",
+        "mise",
+        "run",
+        "test:unit",
+        "@rust/error-stack",
+        "--test-strategy=extremes"
+      ]
+    },
+    "test:unit:bless": {
+      "cache": false,
+      "command": [
+        "env",
+        "TRYBUILD=overwrite",
+        "INSTA_FORCE_PASS=1",
+        "INSTA_UPDATE=new",
+        "UPDATE_EXPECT=1",
+        "RUST_BACKTRACE=1",
+        "mise",
+        "run",
+        "test:unit",
+        "@rust/error-stack",
+        "--test-strategy=extremes"
+      ]
+    }
+  }
+}

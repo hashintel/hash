@@ -1,0 +1,73 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build:docker": {
+      "command": [
+        "docker",
+        "buildx",
+        "build",
+        "--build-arg",
+        "PROFILE=release",
+        "--tag",
+        "hash-graph-atlas",
+        "--file",
+        "docker/Dockerfile",
+        "../../../../",
+        "--load"
+      ]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph-atlas",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:integration": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--package",
+        "hash-graph-atlas",
+        "--all-features",
+        "--filterset",
+        "kind(test)"
+      ]
+    },
+    "test:miri": {
+      "command": ["cargo", "miri", "test", "--lib", "--", "::miri::"]
+    },
+    "test:unit": {
+      "command": [
+        "mise",
+        "run",
+        "test:unit",
+        "@rust/hash-graph-atlas",
+        "--",
+        "--filterset",
+        "not kind(test)"
+      ]
+    }
+  }
+}

@@ -21,6 +21,10 @@
       "env": [
         "TEST_COVERAGE"
       ]
+    },
+    "test:unit:bless": {
+      "dependsOn": [],
+      "cache": false
     }
   }
 }

@@ -24,6 +24,10 @@
         "@rust/darwin-kperf-codegen"
       ]
     },
+    "build:docker:dev": {
+      "dependsOn": [],
+      "cache": false
+    },
     "compile": {
       "dependsOn": [],
       "cache": false
