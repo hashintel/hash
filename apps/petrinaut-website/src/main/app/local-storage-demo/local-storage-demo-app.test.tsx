@@ -34,6 +34,7 @@ import {
 } from "./assistant-selection";
 import { brunchClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
+import { BrunchDraftExperimentIndicator } from "./brunch-draft-experiment-interactive-tool";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -137,6 +138,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
+    slots?: { simulateModeIndicator?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -515,7 +517,18 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
-    expect(aiAssistant.interactiveTools).toEqual([]);
+    // The only interactive tool is the session experiment draft card; the
+    // voice-only brunch_ask widget is never mounted here.
+    expect(
+      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual(["draft_petrinaut_experiment"]);
+    const simulateModeIndicator =
+      editorProps.current?.slots?.simulateModeIndicator;
+    expect(isValidElement(simulateModeIndicator)).toBe(true);
+    if (!isValidElement(simulateModeIndicator)) {
+      throw new Error("Expected a Simulate mode indicator element");
+    }
+    expect(simulateModeIndicator.type).toBe(BrunchDraftExperimentIndicator);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1372,6 +1385,7 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "draft_petrinaut_experiment",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
       "read_petrinaut_diagnostics",
@@ -1384,6 +1398,7 @@ describe("local storage demo Brunch controls", () => {
       "read_petrinaut_diagnostics",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
+      "draft_petrinaut_experiment",
     ]);
   });
 });

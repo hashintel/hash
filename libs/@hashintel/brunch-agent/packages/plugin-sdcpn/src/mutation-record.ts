@@ -57,6 +57,8 @@ const batchedStateMutationNames = [
   "removeTypeElement",
   "removeParameter",
   "removeDifferentialEquation",
+  "removeScenario",
+  "removeMetric",
 ] as const;
 type BatchedStateMutationName = (typeof batchedStateMutationNames)[number];
 
@@ -448,6 +450,26 @@ export const expectedNodeDefinition = (
         mutationActionInputSchemas.updateScenario.parse(request.input),
       );
       break;
+    case "removeScenario":
+      actions.removeScenario(
+        mutationActionInputSchemas.removeScenario.parse(request.input),
+      );
+      break;
+    case "addMetric":
+      actions.addMetric(
+        mutationActionInputSchemas.addMetric.parse(request.input),
+      );
+      break;
+    case "updateMetric":
+      actions.updateMetric(
+        mutationActionInputSchemas.updateMetric.parse(request.input),
+      );
+      break;
+    case "removeMetric":
+      actions.removeMetric(
+        mutationActionInputSchemas.removeMetric.parse(request.input),
+      );
+      break;
     case "removePlace":
       actions.removePlace(
         mutationActionInputSchemas.removePlace.parse(request.input),
@@ -483,7 +505,15 @@ const batchedStateLocator = (
   removing: boolean;
   fields: Record<string, unknown>;
 } & (
-  | { kind: "parameter" | "differential-equation" | "type"; typeId?: never }
+  | {
+      kind:
+        | "parameter"
+        | "differential-equation"
+        | "type"
+        | "scenario"
+        | "metric";
+      typeId?: never;
+    }
   | { kind: "type-element"; typeId: string }
 ) => {
   switch (request.toolName) {
@@ -545,6 +575,28 @@ const batchedStateLocator = (
         kind: "type-element",
         name: parsed.elementId,
         typeId: parsed.typeId,
+        removing: true,
+        fields: {},
+      };
+    }
+    case "removeScenario": {
+      const parsed = mutationActionInputSchemas.removeScenario.parse(
+        request.input,
+      );
+      return {
+        kind: "scenario",
+        name: parsed.scenarioId,
+        removing: true,
+        fields: {},
+      };
+    }
+    case "removeMetric": {
+      const parsed = mutationActionInputSchemas.removeMetric.parse(
+        request.input,
+      );
+      return {
+        kind: "metric",
+        name: parsed.metricId,
         removing: true,
         fields: {},
       };
@@ -619,20 +671,68 @@ const deriveNodeEffects = (
     deleted: [],
     derived: [],
   };
+  const removedOptionalCollection =
+    request.toolName === "removeScenario"
+      ? "scenarios"
+      : request.toolName === "removeMetric"
+        ? "metrics"
+        : undefined;
+  if (removedOptionalCollection && state) {
+    const targetId = batchedStateLocator(request).name;
+    const targetStillExists = (post[removedOptionalCollection] ?? []).some(
+      (entry) => entry.id === targetId,
+    );
+    if (!targetStillExists) {
+      const expectedPost = JSON.parse(
+        JSON.stringify(pre),
+      ) as DefinitionObservation["definition"];
+      const collection = expectedPost[removedOptionalCollection];
+      const targetIndex =
+        collection?.findIndex((entry) => entry.id === targetId) ?? -1;
+      const removed = collection?.[targetIndex];
+      if (collection && targetIndex >= 0 && removed) {
+        collection.splice(targetIndex, 1);
+        return {
+          created: [],
+          updated: [],
+          deleted: [
+            {
+              kind: "deleted",
+              path: `/${removedOptionalCollection}/${targetIndex}`,
+              before: removed,
+            },
+          ],
+          derived: definitionChanges(
+            expectedPost,
+            JSON.parse(JSON.stringify(post)),
+          ),
+        };
+      }
+    }
+  }
   const changes = definitionChanges(
     JSON.parse(JSON.stringify(pre)),
     JSON.parse(JSON.stringify(post)),
   );
+  // Scenarios and metrics are optional collections: the first addition creates
+  // the whole array, which is one entity creation, not a collection creation.
+  const createdOptionalCollections = state
+    ? (["scenarios", "metrics"] as const).filter(
+        (collectionName) => pre[collectionName] === undefined,
+      )
+    : [];
   const entityChanges =
-    state && pre.scenarios === undefined
+    createdOptionalCollections.length > 0
       ? changes.flatMap((change): DefinitionChange[] =>
-          change.path === "/scenarios" &&
+          createdOptionalCollections.some(
+            (collectionName) => change.path === `/${collectionName}`,
+          ) &&
           change.kind === "created" &&
           Array.isArray(change.after) &&
           change.after.length > 0
             ? change.after.map((after: unknown, index) => ({
                 kind: "created",
-                path: `/scenarios/${index}`,
+                path: `${change.path}/${index}`,
                 after,
               }))
             : [change],

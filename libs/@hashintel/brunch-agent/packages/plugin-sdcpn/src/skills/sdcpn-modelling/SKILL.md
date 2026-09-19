@@ -41,6 +41,8 @@ After each meaning-bearing settlement, compare the supported account with the cu
 
 Construction may infer a representation from recorded operational meaning; it may not invent operational facts. Record construction inferences, defaults, approximations and target losses in the workpiece. Labelling an unsupported operational default as an assumption does not authorize using it.
 
+Saved scenarios and metrics are ordinary construction: build them when the workpiece settles a regime or a measure, not when an experiment is proposed. When the settled workpiece states a decision the model should answer, read `references/experiment-configuration.md` as part of the same disposition and assess experiment readiness from the workpiece's meaning and the current net's executability together. Propose the derived experiment when both are present, once per configuration; when only the net is missing something, construct it; when only a fact is missing, ask for it. Parameters or metrics in the net never trigger a proposal by themselves, and nothing runs until the person presses Run on the drafted card.
+
 ### Check and deliver
 
 Apply `references/checks.md` whenever construction is prepared or attempted. Deliver the current workpiece in every branch. Deliver a net only when the mounted tool path has produced and checked one. State what the result can support, what remains open, what was assumed or simplified, and what the target or current tools could not represent.

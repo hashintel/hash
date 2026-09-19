@@ -46,6 +46,8 @@ export const usePersistedState = <Value>({
       setValue(next);
     };
     refresh();
+    // Hydrate from external storage after mount, then expose its readiness.
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Tracks completion of the localStorage synchronization above, including mode changes.
     setLoadedMode(enabled);
     if (!enabled || storageKey === undefined) return;
     const onStorage = (event: StorageEvent) => {

@@ -48,6 +48,14 @@ describe("native root node construction", () => {
         [],
       ),
     ).toThrow(/Duplicate/);
+    current.metrics = [{ id: "metric-id", name: "Metric", code: "return 1;" }];
+    expect(() =>
+      assertNodeIdentity(
+        request("addTransition", { ...transition, id: "metric-id" }),
+        current,
+        [],
+      ),
+    ).toThrow(/Duplicate/);
     expect(() =>
       assertNodeIdentity(request("addPlace", place), empty(), [current]),
     ).toThrow(/retired/);
