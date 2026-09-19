@@ -13,9 +13,33 @@
       ]
     },
     "build": {
-      // "outputs": ["./.next/**"],
-      "cache": false,
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["^build", "codegen"],
+      // `vercel.json` sets `outputDirectory` to `./.next`, and nothing in
+      // `next.config.js` moves it. `.next/cache` is webpack's own cache rather
+      // than part of the deployable output, and is what makes the directory too
+      // big to be worth storing. `next-env.d.ts` is written at the package root
+      // and read back by `tsconfig.json`.
+      "outputs": [".next/**", "!.next/cache/**", "next-env.d.ts"],
+      // `next.config.js` reads these and re-exports them under `NEXT_PUBLIC_`,
+      // which Next inlines into the client bundle, so a `.next` built for one
+      // environment must never be restored for another. `NODE_ENV` decides which
+      // dotenv file loads.
+      "env": [
+        "ANALYZE",
+        "API_ORIGIN",
+        "ENVIRONMENT",
+        "FRONTEND_URL",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF",
+        "NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA",
+        "NODE_ENV",
+        "NOTIFICATION_POLL_INTERVAL",
+        "SELF_HOSTED_HASH",
+        "SENTRY_DSN",
+        "SENTRY_ENVIRONMENT",
+        "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
+        "SHOW_WORKER_COST"
+      ]
     },
     "dev": {
       "dependsOn": ["codegen", "^build"],
