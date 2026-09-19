@@ -1,0 +1,38 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "exported::<FlattenedOpenMapEnum>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlattenedOpenMapEnum",
+  "type": "object",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "const": "memory"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "disk"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": true
+}

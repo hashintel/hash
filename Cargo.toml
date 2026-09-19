@@ -203,6 +203,7 @@ insta                              = { version = "1.47.2", default-features = fa
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
+jsonschema                         = { version = "0.51.0", default-features = false }
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
 kiddo                              = { version = "6.0.0" }
 lcov                               = { version = "0.8.1" }
