@@ -25,7 +25,8 @@
       ]
     },
     "bench:integration:manual": {
-      "dependsOn": []
+      "dependsOn": [],
+      "cache": false
     },
     "fix:clippy": {
       "dependsOn": []
@@ -51,7 +52,8 @@
       ]
     },
     "test:integration:manual": {
-      "dependsOn": []
+      "dependsOn": [],
+      "cache": false
     }
   }
 }

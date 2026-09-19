@@ -73,6 +73,7 @@
       ]
     },
     "build:docker:dev": {
+      "cache": false,
       "command": [
         "docker",
         "buildx",

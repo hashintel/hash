@@ -21,6 +21,7 @@
       "dependsOn": ["^manifest", "@apps/hash-graph#start:test:healthcheck"]
     },
     "bench:integration:manual": {
+      "cache": false,
       "command": ["cargo", "bench", "--bench", "manual-queries"]
     },
     "fix:clippy": {
@@ -30,6 +31,7 @@
       "command": ["just", "clippy"]
     },
     "test:integration:manual": {
+      "cache": false,
       "command": ["cargo", "test", "--bench", "manual-queries"]
     }
   }

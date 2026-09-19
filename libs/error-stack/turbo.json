@@ -22,6 +22,7 @@
       ]
     },
     "test:unit:bless": {
+      "cache": false,
       "command": [
         "env",
         "TRYBUILD=overwrite",

@@ -23,7 +23,8 @@
       ]
     },
     "test:unit:bless": {
-      "dependsOn": []
+      "dependsOn": [],
+      "cache": false
     }
   }
 }

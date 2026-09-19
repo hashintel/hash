@@ -25,7 +25,8 @@
       ]
     },
     "build:docker:dev": {
-      "dependsOn": []
+      "dependsOn": [],
+      "cache": false
     },
     "compile": {
       "dependsOn": [],
