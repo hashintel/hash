@@ -20,7 +20,7 @@
 mod graph_read;
 mod temporal;
 
-use core::alloc::Allocator;
+use core::alloc::AllocatorClone;
 
 pub(crate) use self::graph_read::extract_axis;
 pub use self::temporal::{TemporalAxesInterval, TemporalInterval, Timestamp};
@@ -61,7 +61,7 @@ pub struct GraphReadSuspension<'ctx, 'heap> {
 
 impl<'ctx, 'heap> GraphReadSuspension<'ctx, 'heap> {
     /// Resolves this suspension with the query result, producing a [`Continuation`].
-    pub const fn resolve<A: Allocator>(
+    pub const fn resolve<A: AllocatorClone>(
         self,
         value: Value<'heap, A>,
     ) -> Continuation<'ctx, 'heap, A> {
@@ -74,12 +74,12 @@ impl<'ctx, 'heap> GraphReadSuspension<'ctx, 'heap> {
 
 /// The fulfilled result of a [`Suspension`], ready to be fed back into the
 /// interpreter via [`Runtime::resume`](super::runtime::Runtime::resume).
-pub enum Continuation<'ctx, 'heap, A: Allocator> {
+pub enum Continuation<'ctx, 'heap, A: AllocatorClone> {
     /// Fulfilled result of a [`GraphRead`] suspension.
     GraphRead(GraphReadContinuation<'ctx, 'heap, A>),
 }
 
-impl<'ctx, 'heap, A: Allocator> Continuation<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: AllocatorClone> Continuation<'ctx, 'heap, A> {
     /// Applies a [`Continuation`] to the suspended call stack.
     ///
     /// Writes the continuation's result value into the target block's parameter
@@ -132,7 +132,7 @@ impl<'ctx, 'heap, A: Allocator> Continuation<'ctx, 'heap, A> {
 
 /// Carries the result of a graph read query back to the interpreter.
 #[expect(clippy::field_scoped_visibility_modifiers)]
-pub struct GraphReadContinuation<'ctx, 'heap, A: Allocator> {
+pub struct GraphReadContinuation<'ctx, 'heap, A: AllocatorClone> {
     pub(crate) read: &'ctx GraphRead<'heap>,
     pub(crate) value: Value<'heap, A>,
 }

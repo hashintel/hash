@@ -1,14 +1,14 @@
-use core::alloc::Allocator;
+use core::alloc::AllocatorClone;
 
 use super::value::Value;
 use crate::body::local::Local;
 
-pub(crate) struct Scratch<'heap, A: Allocator> {
+pub(crate) struct Scratch<'heap, A: AllocatorClone> {
     pub indices: Vec<Value<'heap, A>, A>,
     pub target_args: Vec<(Local, Value<'heap, A>), A>,
 }
 
-impl<A: Allocator> Scratch<'_, A> {
+impl<A: AllocatorClone> Scratch<'_, A> {
     pub(crate) fn new_in(alloc: A) -> Self
     where
         A: Clone,

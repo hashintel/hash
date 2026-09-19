@@ -1,6 +1,6 @@
 //! Dictionary collection for the MIR interpreter.
 
-use core::{alloc::Allocator, cmp};
+use core::{alloc::AllocatorClone, cmp};
 
 use super::Value;
 
@@ -31,11 +31,11 @@ use super::Value;
 /// assert_eq!(dict.get(&Value::Integer(99.into())), None);
 /// ```
 #[derive(Debug, Clone)]
-pub struct Dict<'heap, A: Allocator> {
+pub struct Dict<'heap, A: AllocatorClone> {
     inner: rpds::RedBlackTreeMap<Value<'heap, A>, Value<'heap, A>>,
 }
 
-impl<'heap, A: Allocator> Dict<'heap, A> {
+impl<'heap, A: AllocatorClone> Dict<'heap, A> {
     /// Creates a new empty dictionary.
     ///
     /// # Examples
@@ -215,37 +215,37 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     }
 }
 
-impl<A: Allocator> PartialEq for Dict<'_, A> {
+impl<A: AllocatorClone> PartialEq for Dict<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<A: Allocator> Eq for Dict<'_, A> {}
+impl<A: AllocatorClone> Eq for Dict<'_, A> {}
 
-impl<A: Allocator> PartialOrd for Dict<'_, A> {
+impl<A: AllocatorClone> PartialOrd for Dict<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for Dict<'_, A> {
+impl<A: AllocatorClone> Ord for Dict<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.inner.cmp(&other.inner)
     }
 }
 
-impl<A: Allocator> Default for Dict<'_, A> {
+impl<A: AllocatorClone> Default for Dict<'_, A> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'this, 'heap, A: Allocator> IntoIterator for &'this Dict<'heap, A> {
+impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this Dict<'heap, A> {
     type Item = (&'this Value<'heap, A>, &'this Value<'heap, A>);
 
     type IntoIter = impl ExactSizeIterator<Item = (&'this Value<'heap, A>, &'this Value<'heap, A>)>

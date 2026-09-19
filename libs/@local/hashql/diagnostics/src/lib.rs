@@ -7,7 +7,6 @@
     const_trait_impl,
     const_convert,
     const_default,
-    never_type,
 
     // Library Features
     variant_count,

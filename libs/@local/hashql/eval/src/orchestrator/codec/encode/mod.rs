@@ -1,4 +1,4 @@
-use core::{alloc::Allocator, error, ops::Bound};
+use core::{alloc::AllocatorClone, error, ops::Bound};
 
 use bytes::BytesMut;
 use hashql_core::{symbol::Symbol, value::Primitive};
@@ -117,7 +117,7 @@ impl ToSql for Postgres<Symbol<'_>> {
     }
 }
 
-impl<A: Allocator> Serialize for Serde<&Value<'_, A>> {
+impl<A: AllocatorClone> Serialize for Serde<&Value<'_, A>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -184,7 +184,7 @@ impl<A: Allocator> Serialize for Serde<&Value<'_, A>> {
 /// unsupported shapes (e.g. pointer values).
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
-pub(crate) fn serialize_value<'heap, V: Allocator>(
+pub(crate) fn serialize_value<'heap, V: AllocatorClone>(
     value: &Value<'heap, V>,
 ) -> Result<Json<Box<RawValue>>, BridgeError<'heap>> {
     let string = serde_json::to_string(&Serde(value))
@@ -208,9 +208,9 @@ pub(crate) fn serialize_value<'heap, V: Allocator>(
 /// serialization fails.
 ///
 /// [`ToSql`]: postgres_types::ToSql
-pub(crate) fn encode_parameter_in<'ctx, 'heap, V: Allocator + 'ctx, A: Allocator>(
+pub(crate) fn encode_parameter_in<'ctx, 'heap, V: AllocatorClone + 'ctx, A: AllocatorClone>(
     parameter: &ParameterValue<'heap>,
-    inputs: &'ctx Inputs<'heap, impl Allocator>,
+    inputs: &'ctx Inputs<'heap, impl AllocatorClone>,
     temporal_axes: &TemporalAxesInterval,
     env: impl FnOnce(
         Local,

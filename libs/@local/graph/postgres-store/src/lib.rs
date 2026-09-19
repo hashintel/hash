@@ -6,7 +6,6 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-    never_type,
 
     // Library Features
     extend_one,

@@ -1,5 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::{alloc::Allocator, num::FpCategory};
+use core::{alloc::AllocatorClone, num::FpCategory};
 
 use hashql_core::id::Id as _;
 use hashql_mir::interpret::value::{Int, Num, Ptr, Value};
@@ -60,7 +60,7 @@ pub(crate) enum OwnedValue {
     Dict(#[serde(serialize_with = "serialize_dict")] BTreeMap<Self, Self>),
 }
 
-impl<'heap, A: Allocator + Clone> From<Value<'heap, A>> for OwnedValue {
+impl<'heap, A: AllocatorClone + Clone> From<Value<'heap, A>> for OwnedValue {
     fn from(value: Value<'heap, A>) -> Self {
         match value {
             Value::Unit => Self::Unit,

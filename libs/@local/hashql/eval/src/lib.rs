@@ -7,7 +7,6 @@
     // Language Features
     coverage_attribute,
     exhaustive_patterns,
-    never_type,
 
     // Library Features
     allocator_api,

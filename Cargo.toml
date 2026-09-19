@@ -429,6 +429,7 @@ unreachable                   = "allow"
 
 # Does not apply to us:
 blanket_clippy_restriction_lints = "allow"
+definition_in_module_root        = "allow"
 exhaustive_enums                 = "allow"
 exhaustive_structs               = "allow"
 implicit_return                  = "allow"
@@ -442,6 +443,7 @@ pub_with_shorthand               = "allow" # Opposite of `clippy::pub_without_sh
 question_mark_used               = "allow"
 redundant_pub_crate              = "allow" # Opposite of `unreachable_pub`
 ref_patterns                     = "allow"
+rest_pattern_accessible_field    = "allow"
 semicolon_outside_block          = "allow" # Opposite of `clippy::semicolon_inside_block`
 separated_literal_suffix         = "allow" # Opposite of `clippy::unseparated_literal_suffix`
 shadow_reuse                     = "allow"

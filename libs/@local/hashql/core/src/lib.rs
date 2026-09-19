@@ -11,7 +11,6 @@
     impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
-    never_type,
     type_alias_impl_trait,
 
     // Library Features

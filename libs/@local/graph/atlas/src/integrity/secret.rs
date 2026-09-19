@@ -11,13 +11,10 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
-#![expect(
-    clippy::type_repetition_in_bounds,
-    reason = "derive-where applies the stricter allocator bound only to Clone"
-)]
-
-use alloc::{alloc::Allocator, sync::Arc};
-use core::{error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr};
+use alloc::sync::Arc;
+use core::{
+    alloc::AllocatorClone, error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr,
+};
 use std::alloc::Global;
 
 use clap::builder::TypedValueParser;
@@ -38,9 +35,9 @@ use super::{ParseHexError, hex::HexBytes};
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
 #[derive(Clone)]
-pub struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
+pub struct SecretString<A: AllocatorClone = Global>(Arc<Zeroizing<str>, A>);
 
-impl<A: Allocator> SecretString<A> {
+impl<A: AllocatorClone> SecretString<A> {
     /// Consumes the secret, handing the shared allocation onward with custody intact.
     ///
     /// The returned guard is the same allocation, and it zeroizes when its last holder drops.
@@ -98,18 +95,18 @@ impl<A: Allocator> SecretString<A> {
 
 impl<A> PartialEq for SecretString<A>
 where
-    A: Allocator,
+    A: AllocatorClone,
 {
     fn eq(&self, other: &Self) -> bool {
         subtle::ConstantTimeEq::ct_eq(self.0.as_bytes(), other.0.as_bytes()).into()
     }
 }
 
-impl<A> Eq for SecretString<A> where A: Allocator {}
+impl<A> Eq for SecretString<A> where A: AllocatorClone {}
 
 impl<A> fmt::Debug for SecretString<A>
 where
-    A: Allocator,
+    A: AllocatorClone,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SecretString")
@@ -120,7 +117,7 @@ where
 
 impl<A> fmt::Display for SecretString<A>
 where
-    A: Allocator,
+    A: AllocatorClone,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("[redacted]")
@@ -211,9 +208,9 @@ impl Error for EmptyPasswordError {}
 /// guarded allocation zeroizes when its last guarded owner drops. [`fmt::Debug`] reveals the
 /// trimmed byte length, and the type has no `Serialize`.
 #[derive(Clone)]
-pub struct PasswordString<A: Allocator = Global>(SecretString<A>);
+pub struct PasswordString<A: AllocatorClone = Global>(SecretString<A>);
 
-impl<A: Allocator> fmt::Debug for PasswordString<A> {
+impl<A: AllocatorClone> fmt::Debug for PasswordString<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("PasswordString")
             .field("len", &self.0.0.len())
@@ -221,7 +218,7 @@ impl<A: Allocator> fmt::Debug for PasswordString<A> {
     }
 }
 
-impl<A: Allocator> From<PasswordString<A>> for SecretString<A> {
+impl<A: AllocatorClone> From<PasswordString<A>> for SecretString<A> {
     fn from(PasswordString(secret): PasswordString<A>) -> Self {
         secret
     }

@@ -1,5 +1,5 @@
 use alloc::{rc::Rc, vec};
-use core::alloc::Allocator;
+use core::alloc::AllocatorClone;
 
 use hashql_core::{
     algorithms::co_sort,
@@ -47,7 +47,7 @@ pub struct Decoder<'env, 'heap, A> {
     alloc: A,
 }
 
-impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
+impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
     pub const fn new(
         env: &'env Environment<'heap>,
         interner: &'env crate::intern::Interner<'heap>,

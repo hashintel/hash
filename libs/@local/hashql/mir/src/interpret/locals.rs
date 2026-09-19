@@ -10,7 +10,7 @@
 
 use alloc::{borrow::Cow, rc::Rc};
 use core::{
-    alloc::Allocator,
+    alloc::AllocatorClone,
     mem::{self, MaybeUninit},
 };
 
@@ -32,7 +32,7 @@ use crate::{
 ///
 /// Stores the values of local variables during interpretation of a function.
 /// Locals are indexed by [`Local`] and may be uninitialized.
-pub struct Locals<'ctx, 'heap, A: Allocator> {
+pub struct Locals<'ctx, 'heap, A: AllocatorClone> {
     /// Allocator for creating new values.
     alloc: A,
     /// Local variable declarations (for error reporting).
@@ -41,7 +41,7 @@ pub struct Locals<'ctx, 'heap, A: Allocator> {
     inner: LocalVec<Value<'heap, A>, A>,
 }
 
-impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
     /// Creates a new locals storage with a custom allocator.
     ///
     /// Initializes the storage with the provided arguments as the first locals.

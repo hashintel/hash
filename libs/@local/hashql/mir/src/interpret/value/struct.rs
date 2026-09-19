@@ -2,7 +2,7 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
+    alloc::AllocatorClone,
     cmp,
     fmt::{self, Display},
     mem::MaybeUninit,
@@ -58,12 +58,12 @@ use crate::body::place::FieldIndex;
 /// );
 /// ```
 #[derive(Debug, Clone)]
-pub struct Struct<'heap, A: Allocator> {
+pub struct Struct<'heap, A: AllocatorClone> {
     fields: Interned<'heap, [Symbol<'heap>]>,
     values: Rc<[Value<'heap, A>], A>,
 }
 
-impl<'heap, A: Allocator> Struct<'heap, A> {
+impl<'heap, A: AllocatorClone> Struct<'heap, A> {
     /// Creates a new struct without checking invariants.
     ///
     /// # Safety
@@ -406,7 +406,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 }
 
-impl<'this, 'heap, A: Allocator> IntoIterator for &'this Struct<'heap, A> {
+impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this Struct<'heap, A> {
     type IntoIter = StructIter<'this, 'heap, A>;
     type Item = (Symbol<'heap>, &'this Value<'heap, A>);
 
@@ -415,7 +415,7 @@ impl<'this, 'heap, A: Allocator> IntoIterator for &'this Struct<'heap, A> {
     }
 }
 
-impl<A: Allocator> PartialEq for Struct<'_, A> {
+impl<A: AllocatorClone> PartialEq for Struct<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         let Self { fields, values } = self;
@@ -424,16 +424,16 @@ impl<A: Allocator> PartialEq for Struct<'_, A> {
     }
 }
 
-impl<A: Allocator> Eq for Struct<'_, A> {}
+impl<A: AllocatorClone> Eq for Struct<'_, A> {}
 
-impl<A: Allocator> PartialOrd for Struct<'_, A> {
+impl<A: AllocatorClone> PartialOrd for Struct<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: Allocator> Ord for Struct<'_, A> {
+impl<A: AllocatorClone> Ord for Struct<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { fields, values } = self;
@@ -445,12 +445,12 @@ impl<A: Allocator> Ord for Struct<'_, A> {
 }
 
 /// Iterator over (field name, value) pairs of a [`Struct`].
-pub struct StructIter<'this, 'heap, A: Allocator> {
+pub struct StructIter<'this, 'heap, A: AllocatorClone> {
     fields: core::iter::Copied<core::slice::Iter<'this, Symbol<'heap>>>,
     values: core::slice::Iter<'this, Value<'heap, A>>,
 }
 
-impl<'this, 'heap, A: Allocator> Iterator for StructIter<'this, 'heap, A> {
+impl<'this, 'heap, A: AllocatorClone> Iterator for StructIter<'this, 'heap, A> {
     type Item = (Symbol<'heap>, &'this Value<'heap, A>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -462,16 +462,16 @@ impl<'this, 'heap, A: Allocator> Iterator for StructIter<'this, 'heap, A> {
     }
 }
 
-impl<A: Allocator> DoubleEndedIterator for StructIter<'_, '_, A> {
+impl<A: AllocatorClone> DoubleEndedIterator for StructIter<'_, '_, A> {
     fn next_back(&mut self) -> Option<Self::Item> {
         Some((self.fields.next_back()?, self.values.next_back()?))
     }
 }
 
-impl<A: Allocator> ExactSizeIterator for StructIter<'_, '_, A> {}
+impl<A: AllocatorClone> ExactSizeIterator for StructIter<'_, '_, A> {}
 
 /// A builder for [`Struct`] values with capacity for `N` fields.
-pub struct StructBuilder<'heap, A: Allocator, const N: usize> {
+pub struct StructBuilder<'heap, A: AllocatorClone, const N: usize> {
     /// Number of initialized field-value pairs. Only elements in
     /// `[..initialized]` are considered live for dropping.
     initialized: usize,
@@ -481,7 +481,7 @@ pub struct StructBuilder<'heap, A: Allocator, const N: usize> {
 }
 
 #[expect(unsafe_code)]
-impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
+impl<'heap, A: AllocatorClone, const N: usize> StructBuilder<'heap, A, N> {
     /// Creates an empty builder with capacity for `N` fields.
     ///
     /// # Examples
@@ -666,14 +666,14 @@ impl<'heap, A: Allocator, const N: usize> StructBuilder<'heap, A, N> {
     }
 }
 
-impl<A: Allocator, const N: usize> Default for StructBuilder<'_, A, N> {
+impl<A: AllocatorClone, const N: usize> Default for StructBuilder<'_, A, N> {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[expect(unsafe_code)]
-impl<A: Allocator, const N: usize> Drop for StructBuilder<'_, A, N> {
+impl<A: AllocatorClone, const N: usize> Drop for StructBuilder<'_, A, N> {
     fn drop(&mut self) {
         // SAFETY: by invariant, `[..initialized]` is fully initialized.
         // After `finish()` sets `initialized = 0`, this is a no-op.

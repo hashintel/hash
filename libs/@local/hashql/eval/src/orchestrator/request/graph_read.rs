@@ -17,7 +17,7 @@
 //! [`Continuation`]: hashql_mir::interpret::suspension::Continuation
 //! [`Tail`]: super::super::tail::Tail
 
-use core::{alloc::Allocator, pin::pin};
+use core::{alloc::AllocatorClone, pin::pin};
 
 use futures_lite::StreamExt as _;
 use hashql_mir::{
@@ -57,12 +57,12 @@ type State<'heap, L> = (Value<'heap, L>, Vec<PostgresState<'heap, L>, L>);
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 /// [`Orchestrator`]: super::super::Orchestrator
-pub(crate) struct GraphReadOrchestrator<'or, 'env, 'ctx, 'heap, C, E, A: Allocator> {
+pub(crate) struct GraphReadOrchestrator<'or, 'env, 'ctx, 'heap, C, E, A: AllocatorClone> {
     inner: &'or Orchestrator<'env, 'ctx, 'heap, C, E, A>,
 }
 
 #[expect(clippy::future_not_send)]
-impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
+impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: AllocatorClone>
     GraphReadOrchestrator<'or, 'env, 'ctx, 'heap, C, E, A>
 {
     pub(crate) const fn new(orchestrator: &'or Orchestrator<'env, 'ctx, 'heap, C, E, A>) -> Self {
@@ -71,11 +71,11 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         }
     }
 
-    fn postgres_hydrate_in<L: Allocator + Clone>(
+    fn postgres_hydrate_in<L: AllocatorClone + Clone>(
         &self,
         decoder: &Decoder<'env, 'heap, L>,
 
-        query: &PreparedQuery<'_, impl Allocator>,
+        query: &PreparedQuery<'_, impl AllocatorClone>,
         row: &Row,
 
         alloc: L,
@@ -127,7 +127,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok((partial, partial_states))
     }
 
-    fn finish_in<L: Allocator + Clone>(
+    fn finish_in<L: AllocatorClone + Clone>(
         &self,
 
         decoder: &Decoder<'env, 'heap, L>,
@@ -157,7 +157,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
     }
 
     #[expect(clippy::too_many_arguments)]
-    async fn process_row_filter_in<L: Allocator + Clone>(
+    async fn process_row_filter_in<L: AllocatorClone + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
 
@@ -277,7 +277,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok(eval)
     }
 
-    async fn process_row_transform_in<L: Allocator + Clone>(
+    async fn process_row_transform_in<L: AllocatorClone + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
@@ -330,13 +330,13 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok(Some(entity))
     }
 
-    async fn process_row_in<L: Allocator + Clone>(
+    async fn process_row_in<L: AllocatorClone + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
 
         read: &GraphRead<'heap>,
-        query: &PreparedQuery<'heap, impl Allocator>,
+        query: &PreparedQuery<'heap, impl AllocatorClone>,
 
         row: Row,
 
@@ -364,7 +364,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
 
     // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
     // the primary data store.
-    pub(crate) async fn fulfill_in<L: Allocator + Clone>(
+    pub(crate) async fn fulfill_in<L: AllocatorClone + Clone>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
