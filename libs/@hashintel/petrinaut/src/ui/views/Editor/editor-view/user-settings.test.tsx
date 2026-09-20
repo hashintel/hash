@@ -8,6 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -49,6 +50,7 @@ afterEach(() => {
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
+  settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();
   const result = render(
@@ -56,7 +58,7 @@ const renderSettings = (
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
-            <UserSettings />
+            <UserSettings settingsLabs={settingsLabs} />
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
@@ -428,6 +430,32 @@ describe("Labs settings", () => {
     expect(
       screen.queryByText(/Define initial state and parameters inline/),
     ).toBeNull();
+  });
+
+  it("renders host Labs content after the built-in groups", async () => {
+    const withoutHost = renderSettings({
+      overlay: { type: "user-settings", section: "labs" },
+    });
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(
+      screen.queryByRole("region", { name: "Host AI settings" }),
+    ).toBeNull();
+    withoutHost.unmount();
+
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      <section aria-label="Host AI settings">
+        <button type="button">Use Brunch</button>
+      </section>,
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(
+      screen.getByRole("region", { name: "Host AI settings" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Use Brunch" }),
+    ).toBeTruthy();
   });
 });
 

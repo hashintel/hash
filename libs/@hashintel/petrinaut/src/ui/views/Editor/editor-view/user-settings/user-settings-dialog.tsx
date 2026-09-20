@@ -352,10 +352,12 @@ const SettingsTabs = () => {
 
 export const UserSettingsDialog = ({
   section,
+  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
+  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -576,6 +578,7 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowCompilationOutput}
                         />
                       </SettingsGroup>
+                      {settingsLabs}
                     </>
                   )}
                 </FocusStack>
