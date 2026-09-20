@@ -39,7 +39,7 @@ mod tuple;
 
 use alloc::{alloc::Global, borrow::Cow};
 use core::{
-    alloc::AllocatorClone,
+    alloc::{Allocator, AllocatorClone},
     cmp,
     fmt::{self, Display},
     hint::cold_path,
@@ -77,7 +77,7 @@ enum ValueDiscriminant {
 
 impl ValueDiscriminant {
     #[inline]
-    const fn new<A: AllocatorClone>(value: &Value<'_, A>) -> Self {
+    const fn new<A: Allocator>(value: &Value<'_, A>) -> Self {
         match value {
             Value::Unit => Self::Unit,
             Value::Integer(_) => Self::Integer,
@@ -97,8 +97,8 @@ impl ValueDiscriminant {
 ///
 /// Represents all possible values that can be produced during interpretation.
 /// Values are immutable and use structural sharing.
-#[derive(Debug, Clone)]
-pub enum Value<'heap, A: AllocatorClone = Global> {
+#[derive(Debug)]
+pub enum Value<'heap, A: Allocator = Global> {
     /// The unit value.
     Unit,
     /// An integer value (also represents booleans).
@@ -122,7 +122,7 @@ pub enum Value<'heap, A: AllocatorClone = Global> {
     Dict(Dict<'heap, A>),
 }
 
-impl<'heap, A: AllocatorClone> Value<'heap, A> {
+impl<'heap, A: Allocator> Value<'heap, A> {
     const UNIT: Self = Self::Unit;
 
     /// Returns a displayable representation of this value's runtime type.
@@ -249,7 +249,7 @@ impl<'heap, A: AllocatorClone> Value<'heap, A> {
         index: &Self,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
         match self {
@@ -349,7 +349,7 @@ impl<'heap, A: AllocatorClone> Value<'heap, A> {
         index: FieldIndex,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
 
@@ -453,7 +453,7 @@ impl<'heap, A: AllocatorClone> Value<'heap, A> {
         index: Symbol<'heap>,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
         match self {
@@ -482,7 +482,46 @@ impl<'heap, A: AllocatorClone> Value<'heap, A> {
     }
 }
 
-impl<'heap, A: AllocatorClone> From<Constant<'heap>> for Value<'heap, A> {
+impl<A> Clone for Value<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        match self {
+            Self::Unit => Self::Unit,
+            &Self::Integer(int) => Self::Integer(int),
+            &Self::Number(num) => Self::Number(num),
+            Self::String(str) => Self::String(str.clone()),
+            &Self::Pointer(ptr) => Self::Pointer(ptr),
+            Self::Opaque(opaque) => Self::Opaque(opaque.clone()),
+            Self::Struct(struct_) => Self::Struct(struct_.clone()),
+            Self::Tuple(tuple) => Self::Tuple(tuple.clone()),
+            Self::List(list) => Self::List(list.clone()),
+            Self::Dict(dict) => Self::Dict(dict.clone()),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        match (&mut *self, source) {
+            (Self::Unit, Self::Unit) => {}
+            (Self::Integer(this), &Self::Integer(source)) => *this = source,
+            (Self::Number(this), &Self::Number(source)) => *this = source,
+            (Self::String(this), Self::String(source)) => this.clone_from(source),
+            (Self::Pointer(this), &Self::Pointer(source)) => *this = source,
+            (Self::Opaque(this), Self::Opaque(source)) => this.clone_from(source),
+            (Self::Struct(this), Self::Struct(source)) => this.clone_from(source),
+            (Self::Tuple(this), Self::Tuple(source)) => this.clone_from(source),
+            (Self::List(this), Self::List(source)) => this.clone_from(source),
+            (Self::Dict(this), Self::Dict(source)) => this.clone_from(source),
+            // Variants differ, so there is nothing to reuse; fall back to a fresh clone.
+            (this, source) => *this = source.clone(),
+        }
+    }
+}
+
+impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
     #[inline]
     fn from(value: Constant<'heap>) -> Self {
         match value {
@@ -507,7 +546,7 @@ impl<'heap, A: AllocatorClone> From<Constant<'heap>> for Value<'heap, A> {
     }
 }
 
-impl<'heap, A: AllocatorClone> From<&Constant<'heap>> for Value<'heap, A> {
+impl<'heap, A: Allocator> From<&Constant<'heap>> for Value<'heap, A> {
     #[inline]
     fn from(value: &Constant<'heap>) -> Self {
         match value {
@@ -532,7 +571,7 @@ impl<'heap, A: AllocatorClone> From<&Constant<'heap>> for Value<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> PartialEq for Value<'_, A> {
+impl<A: Allocator> PartialEq for Value<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -554,16 +593,16 @@ impl<A: AllocatorClone> PartialEq for Value<'_, A> {
     }
 }
 
-impl<A: AllocatorClone> Eq for Value<'_, A> {}
+impl<A: Allocator> Eq for Value<'_, A> {}
 
-impl<A: AllocatorClone> PartialOrd for Value<'_, A> {
+impl<A: Allocator> PartialOrd for Value<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: AllocatorClone> Ord for Value<'_, A> {
+impl<A: Allocator> Ord for Value<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let self_discr = ValueDiscriminant::new(self);
@@ -595,7 +634,7 @@ impl<A: AllocatorClone> Ord for Value<'_, A> {
 }
 
 #[derive(Debug, Copy, Clone)]
-enum ValueTypeNameInner<'value, 'heap, A: AllocatorClone> {
+enum ValueTypeNameInner<'value, 'heap, A: Allocator> {
     Const(&'static str),
     Pointer(Ptr),
     Opaque(&'value Opaque<'heap, A>),
@@ -603,7 +642,7 @@ enum ValueTypeNameInner<'value, 'heap, A: AllocatorClone> {
     Tuple(&'value Tuple<'heap, A>),
 }
 
-impl<A: AllocatorClone> Display for ValueTypeNameInner<'_, '_, A> {
+impl<A: Allocator> Display for ValueTypeNameInner<'_, '_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Const(value) => fmt.write_str(value),
@@ -616,9 +655,9 @@ impl<A: AllocatorClone> Display for ValueTypeNameInner<'_, '_, A> {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct ValueTypeName<'value, 'heap, A: AllocatorClone>(ValueTypeNameInner<'value, 'heap, A>);
+pub struct ValueTypeName<'value, 'heap, A: Allocator>(ValueTypeNameInner<'value, 'heap, A>);
 
-impl<A: AllocatorClone> ValueTypeName<'_, '_, A> {
+impl<A: Allocator> ValueTypeName<'_, '_, A> {
     pub(super) fn into_type_name(self) -> TypeName {
         match self.0 {
             ValueTypeNameInner::Const(value) => TypeName::Static(Cow::Borrowed(value)),
@@ -630,13 +669,13 @@ impl<A: AllocatorClone> ValueTypeName<'_, '_, A> {
     }
 }
 
-impl<A: AllocatorClone> Display for ValueTypeName<'_, '_, A> {
+impl<A: Allocator> Display for ValueTypeName<'_, '_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(fmt)
     }
 }
 
-impl<'value, 'heap, A: AllocatorClone> From<&'value Value<'heap, A>>
+impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
     for ValueTypeName<'value, 'heap, A>
 {
     fn from(value: &'value Value<'heap, A>) -> Self {

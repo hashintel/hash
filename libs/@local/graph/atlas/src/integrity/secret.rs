@@ -11,9 +11,9 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
-use alloc::sync::Arc;
+use alloc::{alloc::AllocatorClone, sync::Arc};
 use core::{
-    alloc::AllocatorClone, error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr,
+    alloc::Allocator, error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr,
 };
 use std::alloc::Global;
 
@@ -34,10 +34,9 @@ use super::{ParseHexError, hex::HexBytes};
 /// The zeroing covers buffers this type and its guard own, never copies made from them. A consumer
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
-#[derive(Clone)]
-pub struct SecretString<A: AllocatorClone = Global>(Arc<Zeroizing<str>, A>);
+pub struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
 
-impl<A: AllocatorClone> SecretString<A> {
+impl<A: Allocator> SecretString<A> {
     /// Consumes the secret, handing the shared allocation onward with custody intact.
     ///
     /// The returned guard is the same allocation, and it zeroizes when its last holder drops.
@@ -93,20 +92,35 @@ impl<A: AllocatorClone> SecretString<A> {
     }
 }
 
-impl<A> PartialEq for SecretString<A>
+impl<A> Clone for SecretString<A>
 where
     A: AllocatorClone,
+{
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        let Self(inner) = self;
+
+        inner.clone_from(&source.0);
+    }
+}
+
+impl<A> PartialEq for SecretString<A>
+where
+    A: Allocator,
 {
     fn eq(&self, other: &Self) -> bool {
         subtle::ConstantTimeEq::ct_eq(self.0.as_bytes(), other.0.as_bytes()).into()
     }
 }
 
-impl<A> Eq for SecretString<A> where A: AllocatorClone {}
+impl<A> Eq for SecretString<A> where A: Allocator {}
 
 impl<A> fmt::Debug for SecretString<A>
 where
-    A: AllocatorClone,
+    A: Allocator,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SecretString")
@@ -117,7 +131,7 @@ where
 
 impl<A> fmt::Display for SecretString<A>
 where
-    A: AllocatorClone,
+    A: Allocator,
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("[redacted]")
@@ -207,10 +221,9 @@ impl Error for EmptyPasswordError {}
 /// Parsing trims surrounding whitespace and refuses an input that is empty afterwards. The
 /// guarded allocation zeroizes when its last guarded owner drops. [`fmt::Debug`] reveals the
 /// trimmed byte length, and the type has no `Serialize`.
-#[derive(Clone)]
-pub struct PasswordString<A: AllocatorClone = Global>(SecretString<A>);
+pub struct PasswordString<A: Allocator = Global>(SecretString<A>);
 
-impl<A: AllocatorClone> fmt::Debug for PasswordString<A> {
+impl<A: Allocator> fmt::Debug for PasswordString<A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("PasswordString")
             .field("len", &self.0.0.len())
@@ -218,9 +231,25 @@ impl<A: AllocatorClone> fmt::Debug for PasswordString<A> {
     }
 }
 
-impl<A: AllocatorClone> From<PasswordString<A>> for SecretString<A> {
+impl<A: Allocator> From<PasswordString<A>> for SecretString<A> {
     fn from(PasswordString(secret): PasswordString<A>) -> Self {
         secret
+    }
+}
+
+impl<A> Clone for PasswordString<A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self(secret) = self;
+        secret.clone_from(&source.0);
     }
 }
 

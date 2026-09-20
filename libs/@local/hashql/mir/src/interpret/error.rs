@@ -5,7 +5,7 @@
 
 use alloc::borrow::Cow;
 use core::{
-    alloc::AllocatorClone,
+    alloc::{Allocator, AllocatorClone},
     fmt::{self, Display},
 };
 
@@ -143,7 +143,7 @@ impl Display for TypeName {
     }
 }
 
-impl<A: AllocatorClone> From<ValueTypeName<'_, '_, A>> for TypeName {
+impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
     fn from(value: ValueTypeName<'_, '_, A>) -> Self {
         value.into_type_name()
     }
@@ -153,8 +153,8 @@ impl<A: AllocatorClone> From<ValueTypeName<'_, '_, A>> for TypeName {
 ///
 /// Contains the operator, expected types, and actual values for diagnostic
 /// reporting when a binary operation receives operands of incorrect types.
-#[derive(Debug, Clone)]
-pub struct BinaryTypeMismatch<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct BinaryTypeMismatch<'heap, A: Allocator> {
     /// The binary operator that was applied.
     pub op: BinOp,
     /// The expected type of the left-hand operand.
@@ -167,18 +167,78 @@ pub struct BinaryTypeMismatch<'heap, A: AllocatorClone> {
     pub rhs: Value<'heap, A>,
 }
 
+impl<A> Clone for BinaryTypeMismatch<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            op: self.op,
+            lhs_expected: self.lhs_expected.clone(),
+            rhs_expected: self.rhs_expected.clone(),
+            lhs: self.lhs.clone(),
+            rhs: self.rhs.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self {
+            op,
+            lhs_expected,
+            rhs_expected,
+            lhs,
+            rhs,
+        } = self;
+
+        *op = source.op;
+        lhs_expected.clone_from(&source.lhs_expected);
+        rhs_expected.clone_from(&source.rhs_expected);
+        lhs.clone_from(&source.lhs);
+        rhs.clone_from(&source.rhs);
+    }
+}
+
 /// Details of a unary operator type mismatch.
 ///
 /// Contains the operator, expected type, and actual value for diagnostic
 /// reporting when a unary operation receives an operand of incorrect type.
-#[derive(Debug, Clone)]
-pub struct UnaryTypeMismatch<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct UnaryTypeMismatch<'heap, A: Allocator> {
     /// The unary operator that was applied.
     pub op: UnOp,
     /// The expected type of the operand.
     pub expected: TypeName,
     /// The actual value.
     pub value: Value<'heap, A>,
+}
+
+impl<A> Clone for UnaryTypeMismatch<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            op: self.op,
+            expected: self.expected.clone(),
+            value: self.value.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self {
+            op,
+            expected,
+            value,
+        } = self;
+
+        *op = source.op;
+        expected.clone_from(&source.expected);
+        value.clone_from(&source.value);
+    }
 }
 
 /// Errors that can occur during MIR interpretation.
@@ -189,8 +249,8 @@ pub struct UnaryTypeMismatch<'heap, A: AllocatorClone> {
 ///
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
-#[derive(Debug, Clone)]
-pub enum RuntimeError<'heap, E, A: AllocatorClone> {
+#[derive(Debug)]
+pub enum RuntimeError<'heap, E, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///
     /// This is an ICE: MIR construction should ensure locals are initialized
@@ -361,7 +421,7 @@ pub enum RuntimeError<'heap, E, A: AllocatorClone> {
     Suspension(E),
 }
 
-impl<E, A: AllocatorClone> RuntimeError<'_, E, A> {
+impl<E, A: Allocator> RuntimeError<'_, E, A> {
     /// Converts this runtime error into an [`InterpretDiagnostic`] using the
     /// provided callstack.
     ///
@@ -498,7 +558,7 @@ impl<E, A: AllocatorClone> RuntimeError<'_, E, A> {
     }
 }
 
-impl<'heap, A: AllocatorClone> RuntimeError<'heap, !, A> {
+impl<'heap, A: Allocator> RuntimeError<'heap, !, A> {
     /// Widens the suspension type from `!` to any `S`.
     ///
     /// Useful when composing interpreter operations (which cannot suspend) with
@@ -545,6 +605,160 @@ impl<'heap, A: AllocatorClone> RuntimeError<'heap, !, A> {
                 RuntimeError::UnexpectedValueType { expected, actual }
             }
             Self::InvalidConstructor { name } => RuntimeError::InvalidConstructor { name },
+        }
+    }
+}
+
+impl<E, A> Clone for RuntimeError<'_, E, A>
+where
+    E: Clone,
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        match self {
+            &Self::UninitializedLocal { local, decl } => Self::UninitializedLocal { local, decl },
+            Self::InvalidIndexType { base, index } => Self::InvalidIndexType {
+                base: base.clone(),
+                index: index.clone(),
+            },
+            Self::InvalidSubscriptType { base } => {
+                Self::InvalidSubscriptType { base: base.clone() }
+            }
+            Self::InvalidProjectionType { base } => {
+                Self::InvalidProjectionType { base: base.clone() }
+            }
+            Self::InvalidProjectionByNameType { base } => {
+                Self::InvalidProjectionByNameType { base: base.clone() }
+            }
+            Self::UnknownField { base, field } => Self::UnknownField {
+                base: base.clone(),
+                field: *field,
+            },
+            Self::UnknownFieldByName { base, field } => Self::UnknownFieldByName {
+                base: base.clone(),
+                field: *field,
+            },
+            Self::StructFieldLengthMismatch { values, fields } => Self::StructFieldLengthMismatch {
+                values: *values,
+                fields: *fields,
+            },
+            Self::InvalidDiscriminantType { r#type } => Self::InvalidDiscriminantType {
+                r#type: r#type.clone(),
+            },
+            Self::InvalidDiscriminant { value } => Self::InvalidDiscriminant { value: *value },
+            Self::UnreachableReached => Self::UnreachableReached,
+            Self::BinaryTypeMismatch(mismatch) => Self::BinaryTypeMismatch(mismatch.clone()),
+            Self::UnaryTypeMismatch(mismatch) => Self::UnaryTypeMismatch(mismatch.clone()),
+            Self::ApplyNonPointer { r#type } => Self::ApplyNonPointer {
+                r#type: r#type.clone(),
+            },
+            Self::CallstackEmpty => Self::CallstackEmpty,
+            Self::OutOfRange { length, index } => Self::OutOfRange {
+                length: *length,
+                index: *index,
+            },
+            Self::InputNotFound { name } => Self::InputNotFound { name: *name },
+            Self::RecursionLimitExceeded { limit } => {
+                Self::RecursionLimitExceeded { limit: *limit }
+            }
+            Self::IntegerOverflow { operation } => Self::IntegerOverflow { operation },
+            Self::UnexpectedValueType { expected, actual } => Self::UnexpectedValueType {
+                expected: expected.clone(),
+                actual: actual.clone(),
+            },
+            Self::InvalidConstructor { name } => Self::InvalidConstructor { name: *name },
+            Self::Suspension(suspension) => Self::Suspension(suspension.clone()),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        match (self, source) {
+            (
+                this @ Self::UninitializedLocal { local: _, decl: _ },
+                &Self::UninitializedLocal { local, decl },
+            ) => {
+                *this = Self::UninitializedLocal { local, decl };
+            }
+            (
+                Self::InvalidIndexType { base, index },
+                Self::InvalidIndexType {
+                    base: source_base,
+                    index: source_index,
+                },
+            ) => {
+                base.clone_from(source_base);
+                index.clone_from(source_index);
+            }
+            (
+                Self::InvalidSubscriptType { base },
+                Self::InvalidSubscriptType { base: source_base },
+            )
+            | (
+                Self::InvalidProjectionType { base },
+                Self::InvalidProjectionType { base: source_base },
+            )
+            | (
+                Self::InvalidProjectionByNameType { base },
+                Self::InvalidProjectionByNameType { base: source_base },
+            ) => {
+                base.clone_from(source_base);
+            }
+            (
+                Self::UnknownField { base, field },
+                Self::UnknownField {
+                    base: source_base,
+                    field: source_field,
+                },
+            ) => {
+                base.clone_from(source_base);
+                *field = *source_field;
+            }
+            (
+                Self::UnknownFieldByName { base, field },
+                Self::UnknownFieldByName {
+                    base: source_base,
+                    field: source_field,
+                },
+            ) => {
+                base.clone_from(source_base);
+                *field = *source_field;
+            }
+            (
+                Self::InvalidDiscriminantType { r#type },
+                Self::InvalidDiscriminantType {
+                    r#type: source_type,
+                },
+            )
+            | (
+                Self::ApplyNonPointer { r#type },
+                Self::ApplyNonPointer {
+                    r#type: source_type,
+                },
+            ) => {
+                r#type.clone_from(source_type);
+            }
+            (Self::BinaryTypeMismatch(mismatch), Self::BinaryTypeMismatch(source_mismatch)) => {
+                mismatch.clone_from(source_mismatch);
+            }
+            (Self::UnaryTypeMismatch(mismatch), Self::UnaryTypeMismatch(source_mismatch)) => {
+                mismatch.clone_from(source_mismatch);
+            }
+            (
+                Self::UnexpectedValueType { expected, actual },
+                Self::UnexpectedValueType {
+                    expected: source_expected,
+                    actual: source_actual,
+                },
+            ) => {
+                expected.clone_from(source_expected);
+                actual.clone_from(source_actual);
+            }
+            (Self::Suspension(suspension), Self::Suspension(source_suspension)) => {
+                suspension.clone_from(source_suspension);
+            }
+            (this, source) => *this = source.clone(),
         }
     }
 }
@@ -667,7 +881,7 @@ fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagno
     diagnostic
 }
 
-fn binary_type_mismatch<A: AllocatorClone>(
+fn binary_type_mismatch<A: Allocator>(
     span: SpanId,
     BinaryTypeMismatch {
         op,
@@ -699,7 +913,7 @@ fn binary_type_mismatch<A: AllocatorClone>(
     diagnostic
 }
 
-fn unary_type_mismatch<A: AllocatorClone>(
+fn unary_type_mismatch<A: Allocator>(
     span: SpanId,
     UnaryTypeMismatch {
         op,

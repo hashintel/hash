@@ -8,7 +8,7 @@
 //! - Operand evaluation (constants and places)
 //! - Aggregate construction (structs, tuples, lists, dicts)
 
-use alloc::{borrow::Cow, rc::Rc};
+use alloc::{alloc::Allocator, borrow::Cow, rc::Rc};
 use core::{
     alloc::AllocatorClone,
     mem::{self, MaybeUninit},
@@ -32,7 +32,7 @@ use crate::{
 ///
 /// Stores the values of local variables during interpretation of a function.
 /// Locals are indexed by [`Local`] and may be uninitialized.
-pub struct Locals<'ctx, 'heap, A: AllocatorClone> {
+pub struct Locals<'ctx, 'heap, A: Allocator> {
     /// Allocator for creating new values.
     alloc: A,
     /// Local variable declarations (for error reporting).
@@ -41,7 +41,7 @@ pub struct Locals<'ctx, 'heap, A: AllocatorClone> {
     inner: LocalVec<Value<'heap, A>, A>,
 }
 
-impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Creates a new locals storage with a custom allocator.
     ///
     /// Initializes the storage with the provided arguments as the first locals.
@@ -143,7 +143,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         scratch: &mut Scratch<'heap, A>,
     ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         place
             .projections
@@ -194,7 +194,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         operand: &Operand<'heap>,
     ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         match operand {
             Operand::Place(place) => self.place(place).map(Cow::Borrowed),
@@ -214,7 +214,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         operands: &[Operand<'heap>],
     ) -> Result<(), RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         struct Guard<'a, T> {
             slice: &'a mut [MaybeUninit<T>],
@@ -266,7 +266,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if operands.is_empty() {
             return Ok(Value::Unit);
@@ -301,7 +301,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if fields.len() != operands.len() {
             return Err(RuntimeError::StructFieldLengthMismatch {
@@ -340,7 +340,7 @@ impl<'ctx, 'heap, A: AllocatorClone> Locals<'ctx, 'heap, A> {
         Aggregate { kind, operands }: &Aggregate<'heap>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         match *kind {
             AggregateKind::Tuple => self.aggregate_tuple(operands),

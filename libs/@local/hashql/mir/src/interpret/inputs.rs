@@ -11,7 +11,7 @@
 //! [`Runtime`]: super::Runtime
 
 use alloc::alloc::Global;
-use core::alloc::AllocatorClone;
+use core::alloc::Allocator;
 
 use hashql_core::{
     collections::{
@@ -51,7 +51,7 @@ use super::value::Value;
 ///
 /// [`InputOp::Load`]: hashql_hir::node::operation::InputOp::Load
 /// [`InputOp::Exists`]: hashql_hir::node::operation::InputOp::Exists
-pub struct Inputs<'heap, A: AllocatorClone = Global> {
+pub struct Inputs<'heap, A: Allocator = Global> {
     inner: hashql_core::collections::FastHashMap<Symbol<'heap>, Value<'heap, A>, A>,
 }
 
@@ -100,14 +100,11 @@ impl Default for Inputs<'_> {
     }
 }
 
-impl<'heap, A: AllocatorClone> Inputs<'heap, A> {
+impl<'heap, A: Allocator> Inputs<'heap, A> {
     /// Creates an empty input set in the given allocator.
     #[inline]
     #[must_use]
-    pub fn new_in(alloc: A) -> Self
-    where
-        A: Clone,
-    {
+    pub fn new_in(alloc: A) -> Self {
         Self {
             inner: fast_hash_map_in(alloc),
         }
@@ -116,10 +113,7 @@ impl<'heap, A: AllocatorClone> Inputs<'heap, A> {
     /// Creates an empty input set with the given capacity in the given allocator.
     #[inline]
     #[must_use]
-    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self
-    where
-        A: Clone,
-    {
+    pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self {
             inner: fast_hash_map_with_capacity_in(capacity, alloc),
         }

@@ -208,10 +208,7 @@ struct DependencyVisitor<'body, 'heap, A: Allocator> {
 }
 
 impl<'body, 'heap, A: Allocator> DependencyVisitor<'body, 'heap, A> {
-    fn new_in(body: &'body Body<'heap>, alloc: A) -> Self
-    where
-        A: Clone,
-    {
+    fn new_in(body: &'body Body<'heap>, alloc: A) -> Self {
         Self {
             body,
             matrix: BitMatrix::new(body.local_decls.len(), body.local_decls.len()),

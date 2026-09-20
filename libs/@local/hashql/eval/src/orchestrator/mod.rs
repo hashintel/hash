@@ -41,8 +41,8 @@
 //! [`run_in`]: Orchestrator::run_in
 //! [`fulfill_in`]: Orchestrator::fulfill_in
 
-use alloc::alloc::Global;
-use core::{alloc::AllocatorClone, ops::Deref};
+use alloc::alloc::{AllocatorClone, Global};
+use core::{alloc::Allocator, ops::Deref};
 
 use hashql_mir::{
     def::DefId,
@@ -116,7 +116,7 @@ impl<T> Deref for Indexed<T> {
 /// individual [`Suspension`] when driving the interpreter manually.
 ///
 /// [`Suspension`]: hashql_mir::interpret::suspension::Suspension
-pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: AllocatorClone> {
+pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: Allocator> {
     client: C,
     queries: &'env PreparedQueries<'heap, A>,
     context: &'env CodeExecutionContext<'ctx, 'heap, A>,
@@ -124,7 +124,7 @@ pub struct Orchestrator<'env, 'ctx, 'heap, C, E, A: AllocatorClone> {
     pub event_log: E,
 }
 
-impl<'env, 'ctx, 'heap, C, A: AllocatorClone> Orchestrator<'env, 'ctx, 'heap, C, (), A> {
+impl<'env, 'ctx, 'heap, C, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, (), A> {
     pub const fn new(
         client: C,
         queries: &'env PreparedQueries<'heap, A>,
@@ -139,7 +139,7 @@ impl<'env, 'ctx, 'heap, C, A: AllocatorClone> Orchestrator<'env, 'ctx, 'heap, C,
     }
 }
 
-impl<'env, 'ctx, 'heap, C, E, A: AllocatorClone> Orchestrator<'env, 'ctx, 'heap, C, E, A> {
+impl<'env, 'ctx, 'heap, C, E, A: Allocator> Orchestrator<'env, 'ctx, 'heap, C, E, A> {
     /// Replaces the event log, returning a new orchestrator with the given
     /// sink.
     pub fn with_event_log<E2>(self, event_log: E2) -> Orchestrator<'env, 'ctx, 'heap, C, E2, A> {
@@ -153,7 +153,7 @@ impl<'env, 'ctx, 'heap, C, E, A: AllocatorClone> Orchestrator<'env, 'ctx, 'heap,
 }
 
 #[expect(clippy::future_not_send)]
-impl<'ctx, 'heap, C, E: EventLog, A: AllocatorClone> Orchestrator<'_, 'ctx, 'heap, C, E, A> {
+impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C, E, A> {
     /// Executes a complete query, resolving suspensions in a loop until the
     /// interpreter returns a final [`Value`].
     ///
@@ -171,7 +171,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: AllocatorClone> Orchestrator<'_, 'ctx, 'hea
     /// filter evaluation failures).
     ///
     /// [`Value`]: hashql_mir::interpret::value::Value
-    pub async fn run_in<L: AllocatorClone + Clone>(
+    pub async fn run_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
 
@@ -181,6 +181,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: AllocatorClone> Orchestrator<'_, 'ctx, 'hea
         alloc: L,
     ) -> Result<Value<'heap, L>, OrchestratorDiagnostic>
     where
+        L: AllocatorClone,
         C: AsRef<Client>,
     {
         let mut runtime = Runtime::new_in(
@@ -260,7 +261,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: AllocatorClone> Orchestrator<'_, 'ctx, 'hea
     /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
     /// [`Continuation`]: hashql_mir::interpret::suspension::Continuation
     /// [`apply`]: hashql_mir::interpret::suspension::Continuation::apply
-    pub async fn fulfill_in<L: AllocatorClone + Clone>(
+    pub async fn fulfill_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
@@ -268,6 +269,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: AllocatorClone> Orchestrator<'_, 'ctx, 'hea
         alloc: L,
     ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
+        L: AllocatorClone,
         C: AsRef<Client>,
     {
         match suspension {

@@ -1,6 +1,9 @@
 //! Dictionary collection for the MIR interpreter.
 
-use core::{alloc::AllocatorClone, cmp};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    cmp,
+};
 
 use super::Value;
 
@@ -30,12 +33,12 @@ use super::Value;
 /// // Missing keys return None
 /// assert_eq!(dict.get(&Value::Integer(99.into())), None);
 /// ```
-#[derive(Debug, Clone)]
-pub struct Dict<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct Dict<'heap, A: Allocator> {
     inner: rpds::RedBlackTreeMap<Value<'heap, A>, Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> Dict<'heap, A> {
+impl<'heap, A: Allocator> Dict<'heap, A> {
     /// Creates a new empty dictionary.
     ///
     /// # Examples
@@ -123,10 +126,7 @@ impl<'heap, A: AllocatorClone> Dict<'heap, A> {
     ///     Some(&Value::Integer(200.into())),
     /// );
     /// ```
-    pub fn insert(&mut self, key: Value<'heap, A>, value: Value<'heap, A>)
-    where
-        A: Clone,
-    {
+    pub fn insert(&mut self, key: Value<'heap, A>, value: Value<'heap, A>) {
         self.inner.insert_mut(key, value);
     }
 
@@ -175,7 +175,7 @@ impl<'heap, A: AllocatorClone> Dict<'heap, A> {
     /// ```
     pub fn get_mut(&mut self, key: &Value<'heap, A>) -> &mut Value<'heap, A>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if !self.inner.contains_key(key) {
             self.inner.insert_mut(key.clone(), Value::Unit);
@@ -215,37 +215,55 @@ impl<'heap, A: AllocatorClone> Dict<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> PartialEq for Dict<'_, A> {
+impl<A> Clone for Dict<'_, A>
+where
+    A: Allocator,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { inner } = self;
+        inner.clone_from(&source.inner);
+    }
+}
+
+impl<A: Allocator> PartialEq for Dict<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<A: AllocatorClone> Eq for Dict<'_, A> {}
+impl<A: Allocator> Eq for Dict<'_, A> {}
 
-impl<A: AllocatorClone> PartialOrd for Dict<'_, A> {
+impl<A: Allocator> PartialOrd for Dict<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: AllocatorClone> Ord for Dict<'_, A> {
+impl<A: Allocator> Ord for Dict<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.inner.cmp(&other.inner)
     }
 }
 
-impl<A: AllocatorClone> Default for Dict<'_, A> {
+impl<A: Allocator> Default for Dict<'_, A> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this Dict<'heap, A> {
+impl<'this, 'heap, A: Allocator> IntoIterator for &'this Dict<'heap, A> {
     type Item = (&'this Value<'heap, A>, &'this Value<'heap, A>);
 
     type IntoIter = impl ExactSizeIterator<Item = (&'this Value<'heap, A>, &'this Value<'heap, A>)>

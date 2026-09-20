@@ -23,8 +23,7 @@
 //! [`TraversalPath`]: hashql_mir::pass::execution::traversal::TraversalPath
 //! [`Value`]: hashql_mir::interpret::value::Value
 
-use alloc::rc::Rc;
-use core::alloc::AllocatorClone;
+use alloc::{alloc::Allocator, rc::Rc};
 
 use hashql_core::{
     symbol::{Symbol, sym},
@@ -179,7 +178,7 @@ impl<T: Default, N> Hydrated<T, N> {
     }
 }
 
-impl<'heap, A: AllocatorClone> Hydrated<Value<'heap, A>, !> {
+impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, !> {
     pub(crate) fn finish_in<const N: usize>(
         self,
         builder: &mut StructBuilder<'heap, A, N>,
@@ -194,7 +193,7 @@ impl<'heap, A: AllocatorClone> Hydrated<Value<'heap, A>, !> {
     }
 }
 
-impl<'heap, A: AllocatorClone> Hydrated<Value<'heap, A>, ()> {
+impl<'heap, A: Allocator> Hydrated<Value<'heap, A>, ()> {
     pub(crate) fn finish_in<const N: usize>(
         self,
         builder: &mut StructBuilder<'heap, A, N>,
@@ -230,11 +229,11 @@ pub(crate) type Required<T> = Hydrated<T, !>;
 pub(crate) type Optional<T> = Hydrated<T, ()>;
 
 /// Partial representation of `EntityEncodings`.
-pub(crate) struct PartialEncodings<'heap, A: AllocatorClone> {
+pub(crate) struct PartialEncodings<'heap, A: Allocator> {
     pub vectors: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialEncodings<'heap, A> {
+impl<'heap, A: Allocator> PartialEncodings<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -250,7 +249,7 @@ impl<'heap, A: AllocatorClone> PartialEncodings<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialEncodings<'_, A> {
+impl<A: Allocator> Default for PartialEncodings<'_, A> {
     fn default() -> Self {
         Self {
             vectors: Required::Skipped,
@@ -263,12 +262,12 @@ impl<A: AllocatorClone> Default for PartialEncodings<'_, A> {
 /// Unlike [`PartialEntityId`], this only has `web_id` and `entity_uuid`:
 /// link targets are not addressable by `draft_id` through
 /// [`EntityPath`].
-pub(crate) struct PartialLinkEntityId<'heap, A: AllocatorClone> {
+pub(crate) struct PartialLinkEntityId<'heap, A: Allocator> {
     pub web_id: Required<Value<'heap, A>>,
     pub entity_uuid: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialLinkEntityId<'heap, A> {
+impl<'heap, A: Allocator> PartialLinkEntityId<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -290,7 +289,7 @@ impl<'heap, A: AllocatorClone> PartialLinkEntityId<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialLinkEntityId<'_, A> {
+impl<A: Allocator> Default for PartialLinkEntityId<'_, A> {
     fn default() -> Self {
         Self {
             web_id: Required::Skipped,
@@ -300,7 +299,7 @@ impl<A: AllocatorClone> Default for PartialLinkEntityId<'_, A> {
 }
 
 /// Partial representation of `EntityProvenance`.
-pub(crate) struct PartialProvenance<'heap, A: AllocatorClone> {
+pub(crate) struct PartialProvenance<'heap, A: Allocator> {
     pub created_by_id: Required<Value<'heap, A>>,
     pub created_at_transaction_time: Required<Value<'heap, A>>,
     pub created_at_decision_time: Required<Value<'heap, A>>,
@@ -309,7 +308,7 @@ pub(crate) struct PartialProvenance<'heap, A: AllocatorClone> {
     pub edition: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialProvenance<'heap, A> {
+impl<'heap, A: Allocator> PartialProvenance<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -335,7 +334,7 @@ impl<'heap, A: AllocatorClone> PartialProvenance<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialProvenance<'_, A> {
+impl<A: Allocator> Default for PartialProvenance<'_, A> {
     fn default() -> Self {
         Self {
             created_by_id: Required::Skipped,
@@ -349,12 +348,12 @@ impl<A: AllocatorClone> Default for PartialProvenance<'_, A> {
 }
 
 /// Partial representation of `TemporalMetadata`.
-pub(crate) struct PartialTemporalVersioning<'heap, A: AllocatorClone> {
+pub(crate) struct PartialTemporalVersioning<'heap, A: Allocator> {
     pub decision_time: Required<Value<'heap, A>>,
     pub transaction_time: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialTemporalVersioning<'heap, A> {
+impl<'heap, A: Allocator> PartialTemporalVersioning<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -373,7 +372,7 @@ impl<'heap, A: AllocatorClone> PartialTemporalVersioning<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialTemporalVersioning<'_, A> {
+impl<A: Allocator> Default for PartialTemporalVersioning<'_, A> {
     fn default() -> Self {
         Self {
             decision_time: Required::Skipped,
@@ -388,13 +387,13 @@ impl<A: AllocatorClone> Default for PartialTemporalVersioning<'_, A> {
 ///
 /// This is distinct from [`PartialLinkEntityId`], which represents the
 /// identity of a *linked* entity and does not include `draft_id`.
-pub(crate) struct PartialEntityId<'heap, A: AllocatorClone> {
+pub(crate) struct PartialEntityId<'heap, A: Allocator> {
     pub web_id: Required<Value<'heap, A>>,
     pub entity_uuid: Required<Value<'heap, A>>,
     pub draft_id: Optional<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialEntityId<'heap, A> {
+impl<'heap, A: Allocator> PartialEntityId<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -410,7 +409,7 @@ impl<'heap, A: AllocatorClone> PartialEntityId<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialEntityId<'_, A> {
+impl<A: Allocator> Default for PartialEntityId<'_, A> {
     fn default() -> Self {
         Self {
             web_id: Required::Skipped,
@@ -423,12 +422,12 @@ impl<A: AllocatorClone> Default for PartialEntityId<'_, A> {
 /// Partial representation of `RecordId`.
 ///
 /// Contains `entity_id` (composite of web, uuid, draft) and `edition_id`.
-pub(crate) struct PartialRecordId<'heap, A: AllocatorClone> {
+pub(crate) struct PartialRecordId<'heap, A: Allocator> {
     pub entity_id: Required<PartialEntityId<'heap, A>>,
     pub edition_id: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialRecordId<'heap, A> {
+impl<'heap, A: Allocator> PartialRecordId<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -445,7 +444,7 @@ impl<'heap, A: AllocatorClone> PartialRecordId<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialRecordId<'_, A> {
+impl<A: Allocator> Default for PartialRecordId<'_, A> {
     fn default() -> Self {
         Self {
             entity_id: Required::Skipped,
@@ -461,7 +460,7 @@ impl<A: AllocatorClone> Default for PartialRecordId<'_, A> {
 ///
 /// The entity ID fields use [`PartialLinkEntityId`] (web + uuid only),
 /// not [`PartialEntityId`] (which includes `draft_id`).
-pub(crate) struct PartialLinkData<'heap, A: AllocatorClone> {
+pub(crate) struct PartialLinkData<'heap, A: Allocator> {
     pub left_entity_id: Required<PartialLinkEntityId<'heap, A>>,
     pub right_entity_id: Required<PartialLinkEntityId<'heap, A>>,
     pub left_entity_confidence: Optional<Value<'heap, A>>,
@@ -470,7 +469,7 @@ pub(crate) struct PartialLinkData<'heap, A: AllocatorClone> {
     pub right_entity_provenance: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialLinkData<'heap, A> {
+impl<'heap, A: Allocator> PartialLinkData<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -521,7 +520,7 @@ impl<'heap, A: AllocatorClone> PartialLinkData<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialLinkData<'_, A> {
+impl<A: Allocator> Default for PartialLinkData<'_, A> {
     fn default() -> Self {
         Self {
             left_entity_id: Required::Skipped,
@@ -542,7 +541,7 @@ impl<A: AllocatorClone> Default for PartialLinkData<'_, A> {
 /// confusion with the entity's top-level `properties`.
 ///
 /// [`EntityPath::PropertyMetadata`]: hashql_mir::pass::execution::traversal::EntityPath::PropertyMetadata
-pub(crate) struct PartialMetadata<'heap, A: AllocatorClone> {
+pub(crate) struct PartialMetadata<'heap, A: Allocator> {
     pub record_id: Required<PartialRecordId<'heap, A>>,
     pub temporal_versioning: Required<PartialTemporalVersioning<'heap, A>>,
     pub entity_type_ids: Required<Value<'heap, A>>,
@@ -553,7 +552,7 @@ pub(crate) struct PartialMetadata<'heap, A: AllocatorClone> {
     pub property_metadata: Required<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialMetadata<'heap, A> {
+impl<'heap, A: Allocator> PartialMetadata<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -586,7 +585,7 @@ impl<'heap, A: AllocatorClone> PartialMetadata<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialMetadata<'_, A> {
+impl<A: Allocator> Default for PartialMetadata<'_, A> {
     fn default() -> Self {
         Self {
             record_id: Required::Skipped,
@@ -611,14 +610,14 @@ impl<A: AllocatorClone> Default for PartialMetadata<'_, A> {
 ///
 /// [`EntityMetadata`]: hashql_core::module::std_lib::graph::types::knowledge::entity::types::entity_metadata
 /// [`EntityEncodings`]: hashql_core::module::std_lib::graph::types::knowledge::entity::types::entity_encodings
-pub(crate) struct PartialEntity<'heap, A: AllocatorClone> {
+pub(crate) struct PartialEntity<'heap, A: Allocator> {
     pub properties: Required<Value<'heap, A>>,
     pub metadata: Required<PartialMetadata<'heap, A>>,
     pub link_data: Optional<PartialLinkData<'heap, A>>,
     pub encodings: Required<PartialEncodings<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> PartialEntity<'heap, A> {
+impl<'heap, A: Allocator> PartialEntity<'heap, A> {
     pub(crate) fn finish_in(self, interner: &Interner<'heap>, alloc: A) -> Value<'heap, A>
     where
         A: Clone,
@@ -1125,7 +1124,7 @@ impl<'heap, A: AllocatorClone> PartialEntity<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> Default for PartialEntity<'_, A> {
+impl<A: Allocator> Default for PartialEntity<'_, A> {
     fn default() -> Self {
         Self {
             properties: Required::Skipped,
@@ -1136,11 +1135,11 @@ impl<A: AllocatorClone> Default for PartialEntity<'_, A> {
     }
 }
 
-pub(crate) enum Partial<'heap, A: AllocatorClone> {
+pub(crate) enum Partial<'heap, A: Allocator> {
     Entity(PartialEntity<'heap, A>),
 }
 
-impl<'heap, A: AllocatorClone> Partial<'heap, A> {
+impl<'heap, A: Allocator> Partial<'heap, A> {
     pub(crate) fn new(vertex_type: VertexType) -> Self {
         match vertex_type {
             VertexType::Entity => Self::Entity(PartialEntity::default()),
