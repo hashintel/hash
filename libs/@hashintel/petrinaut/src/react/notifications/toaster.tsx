@@ -4,6 +4,7 @@ import {
   Toaster as ArkToaster,
   createToaster,
 } from "@ark-ui/react/toast";
+import { useEffect, useState } from "react";
 
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -91,6 +92,87 @@ const toastActionStyle = css({
   },
 });
 
+const COPY_FEEDBACK_DURATION_MS = 2000;
+
+const copyTextWithDocument = (text: string) => {
+  if (typeof document.execCommand !== "function") {
+    return false;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.dataset.clipboardFallback = "";
+  textArea.value = text;
+  textArea.readOnly = true;
+  textArea.tabIndex = -1;
+  textArea.setAttribute("aria-hidden", "true");
+  textArea.style.position = "fixed";
+  textArea.style.inset = "0 auto auto -9999px";
+  textArea.style.opacity = "0";
+
+  document.body.append(textArea);
+  textArea.focus();
+  textArea.select();
+  textArea.setSelectionRange(0, text.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    textArea.remove();
+  }
+};
+
+const copyText = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return copyTextWithDocument(text);
+  }
+};
+
+const CopyDetailsButton = ({ detail }: { detail: string }) => {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  useEffect(() => {
+    if (status === "idle") {
+      return;
+    }
+
+    const timeoutId = setTimeout(
+      () => setStatus("idle"),
+      COPY_FEEDBACK_DURATION_MS,
+    );
+    return () => clearTimeout(timeoutId);
+  }, [status]);
+
+  const label =
+    status === "copied"
+      ? "Copied"
+      : status === "failed"
+        ? "Copy failed"
+        : "Copy details";
+  const iconName =
+    status === "copied" ? "check" : status === "failed" ? "warning" : "copy";
+
+  return (
+    <Button
+      aria-label={label}
+      className={toastActionStyle}
+      iconName={iconName}
+      onClick={() => {
+        void copyText(detail).then((copied) => {
+          setStatus(copied ? "copied" : "failed");
+        });
+      }}
+      size="xs"
+      tooltip={label}
+      variant="ghost"
+    />
+  );
+};
+
 export const NotificationsToaster = () => (
   <Portal container={usePortalContainerRef()}>
     <ArkToaster toaster={notificationsToaster}>
@@ -120,19 +202,7 @@ export const NotificationsToaster = () => (
             </div>
             {dismissible && (
               <div className={toastActionsStyle}>
-                {detail && (
-                  <Button
-                    aria-label="Copy details"
-                    className={toastActionStyle}
-                    iconName="copy"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(detail);
-                    }}
-                    size="xs"
-                    tooltip="Copy details"
-                    variant="ghost"
-                  />
-                )}
+                {detail && <CopyDetailsButton detail={detail} />}
                 <Toast.CloseTrigger asChild>
                   <Button
                     aria-label="Close notification"

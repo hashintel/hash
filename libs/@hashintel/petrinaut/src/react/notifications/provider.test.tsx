@@ -15,8 +15,30 @@ import { NotificationsContext } from "./context";
 import { NotificationsProvider } from "./provider";
 import { notificationsToaster } from "./toaster";
 
+const propertyRestorers: Array<() => void> = [];
+
+const stubProperty = (
+  target: object,
+  property: PropertyKey,
+  value: unknown,
+) => {
+  const original = Object.getOwnPropertyDescriptor(target, property);
+  Object.defineProperty(target, property, { configurable: true, value });
+  propertyRestorers.push(() => {
+    if (original) {
+      Object.defineProperty(target, property, original);
+    } else {
+      Reflect.deleteProperty(target, property);
+    }
+  });
+};
+
 afterEach(() => {
   cleanup();
+  notificationsToaster.remove();
+  for (const restore of propertyRestorers.splice(0).reverse()) {
+    restore();
+  }
   vi.restoreAllMocks();
 });
 
@@ -133,4 +155,92 @@ test("shows a way out only where a notification needs one", async () => {
     ).toBeTruthy(),
   );
   expect(failure?.querySelector("[aria-label='Copy details']")).toBeTruthy();
+});
+
+const stubCopyMethods = ({
+  clipboardSucceeds,
+  documentCopySucceeds,
+}: {
+  clipboardSucceeds: boolean;
+  documentCopySucceeds: boolean;
+}) => {
+  const writeText = clipboardSucceeds
+    ? vi.fn().mockResolvedValue(undefined)
+    : vi
+        .fn()
+        .mockRejectedValue(new DOMException("Clipboard permission denied"));
+  const execCommand = vi.fn().mockReturnValue(documentCopySucceeds);
+
+  stubProperty(navigator, "clipboard", { writeText });
+  stubProperty(document, "execCommand", execCommand);
+  return { execCommand, writeText };
+};
+
+const renderCopyNotification = async (title: string) => {
+  const detail = "The assistant failure details.";
+  const Trigger = () => {
+    const { addNotification } = use(NotificationsContext);
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          addNotification({ detail, message: title, tone: "error" })
+        }
+      >
+        Show notification
+      </button>
+    );
+  };
+
+  render(
+    <NotificationsProvider>
+      <Trigger />
+    </NotificationsProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Show notification" }));
+  await screen.findByText(title);
+
+  return {
+    copyButton: screen.getByRole("button", { name: "Copy details" }),
+    detail,
+  };
+};
+
+test("falls back to a document copy when the Clipboard API rejects", async () => {
+  const { execCommand, writeText } = stubCopyMethods({
+    clipboardSucceeds: false,
+    documentCopySucceeds: true,
+  });
+  const { copyButton, detail } = await renderCopyNotification("Copy fallback");
+
+  fireEvent.click(copyButton);
+
+  await waitFor(() => expect(execCommand).toHaveBeenCalledWith("copy"));
+  expect(writeText).toHaveBeenCalledWith(detail);
+});
+
+test("shows Copied after copying notification details", async () => {
+  stubCopyMethods({
+    clipboardSucceeds: true,
+    documentCopySucceeds: false,
+  });
+  const { copyButton } = await renderCopyNotification("Copy succeeded");
+
+  fireEvent.click(copyButton);
+
+  expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+});
+
+test("shows Copy failed when both copy methods fail", async () => {
+  stubCopyMethods({
+    clipboardSucceeds: false,
+    documentCopySucceeds: false,
+  });
+  const { copyButton } = await renderCopyNotification("Copy failed");
+
+  fireEvent.click(copyButton);
+
+  expect(
+    await screen.findByRole("button", { name: "Copy failed" }),
+  ).toBeTruthy();
 });
