@@ -26,6 +26,7 @@ import { createVoiceSessionStore } from "../../../../../react/voice-session/stor
 import { definePetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import { AiAssistantContents } from "./ai-assistant-contents";
 import { VoiceDock } from "./ai-assistant-contents/voice-dock";
+import { AudioSettings } from "./ai-assistant-contents/voice-dock/audio-popover/settings";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -753,6 +754,63 @@ test("keeps voice visible while toggling devices and refreshes devices when open
   expect(stopVoicePreview).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Audio options" }));
   expect(refreshDevices).toHaveBeenCalledTimes(2);
+});
+
+test("stops a voice preview only when audio settings unmount", () => {
+  const initialStopVoicePreview = vi.fn();
+  const latestStopVoicePreview = vi.fn();
+  const actions = {
+    refreshDevices: vi.fn(),
+    requestSpeaker: vi.fn(),
+    setMicrophoneDevice: vi.fn(),
+    setSpeakerDevice: vi.fn(),
+    setVoice: vi.fn(),
+  };
+  const settings = {
+    activeVoice: "alloy",
+    voice: "alloy",
+    voices: [{ value: "alloy", text: "Alloy" }],
+    devices: {
+      microphones: [],
+      speakers: [],
+      microphoneId: "",
+      speakerId: "",
+      canSelectSpeaker: false,
+      canRequestSpeaker: false,
+      busy: false,
+      message: null,
+    },
+  };
+  const { rerender, unmount } = render(
+    <AudioSettings
+      actions={{
+        ...actions,
+        stopVoicePreview: initialStopVoicePreview,
+      }}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={settings}
+    />,
+  );
+
+  rerender(
+    <AudioSettings
+      actions={{
+        ...actions,
+        stopVoicePreview: latestStopVoicePreview,
+      }}
+      disabled={false}
+      previewDisabledReason={null}
+      settings={settings}
+    />,
+  );
+
+  expect(initialStopVoicePreview).not.toHaveBeenCalled();
+  expect(latestStopVoicePreview).not.toHaveBeenCalled();
+
+  unmount();
+  expect(initialStopVoicePreview).not.toHaveBeenCalled();
+  expect(latestStopVoicePreview).toHaveBeenCalledOnce();
 });
 
 test("gates voice previews and hides only ordinary status text", async () => {
