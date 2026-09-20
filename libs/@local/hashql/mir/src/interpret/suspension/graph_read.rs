@@ -1,11 +1,11 @@
-use core::{alloc::AllocatorClone, ops::Bound};
+use core::{alloc::Allocator, ops::Bound};
 
 use hashql_core::symbol::sym;
 
 use super::temporal::{TemporalAxesInterval, TemporalInterval, Timestamp};
 use crate::interpret::{RuntimeError, TypeName, value::Value};
 
-fn extract_timestamp<'heap, E, A: AllocatorClone>(
+fn extract_timestamp<'heap, E, A: Allocator>(
     value: &Value<'heap, A>,
 ) -> Result<Timestamp, RuntimeError<'heap, E, A>> {
     let Value::Opaque(opaque) = value else {
@@ -26,7 +26,7 @@ fn extract_timestamp<'heap, E, A: AllocatorClone>(
     Ok(Timestamp::from(timestamp))
 }
 
-fn extract_bound<'heap, E, A: AllocatorClone>(
+fn extract_bound<'heap, E, A: Allocator>(
     value: &Value<'heap, A>,
 ) -> Result<Bound<Timestamp>, RuntimeError<'heap, E, A>> {
     let Value::Opaque(bound) = value else {
@@ -49,7 +49,7 @@ fn extract_bound<'heap, E, A: AllocatorClone>(
     Ok(make_bound(value))
 }
 
-fn extract_interval<'heap, E, A: AllocatorClone>(
+fn extract_interval<'heap, E, A: Allocator>(
     value: &Value<'heap, A>,
 ) -> Result<(Bound<Timestamp>, Bound<Timestamp>), RuntimeError<'heap, E, A>> {
     let Value::Opaque(opaque) = value else {
@@ -71,7 +71,7 @@ fn extract_interval<'heap, E, A: AllocatorClone>(
     Ok((start, end))
 }
 
-pub(crate) fn extract_axis<'heap, E, A: AllocatorClone>(
+pub(crate) fn extract_axis<'heap, E, A: Allocator>(
     value: &Value<'heap, A>,
 ) -> Result<TemporalAxesInterval, RuntimeError<'heap, E, A>> {
     let Value::Opaque(opaque) = value else {

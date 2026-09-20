@@ -343,7 +343,7 @@ impl Sum<Cost> for ApproxCost {
 #[derive(Debug)]
 pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BasicBlockVec<Option<Cost>, A>);
 
-impl<A: Allocator + Clone> TerminatorCostVec<A> {
+impl<A: Allocator> TerminatorCostVec<A> {
     /// Creates an empty cost vector with capacity reserved for one slot per block.
     pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self {
         Self(BasicBlockVec::with_capacity_in(blocks.len(), alloc))
@@ -358,9 +358,7 @@ impl<A: Allocator + Clone> TerminatorCostVec<A> {
         }
         Self(vec)
     }
-}
 
-impl<A: Allocator> TerminatorCostVec<A> {
     /// Returns `true` if no terminators have assigned costs.
     #[cfg(test)]
     pub(crate) fn all_unassigned(&self) -> bool {

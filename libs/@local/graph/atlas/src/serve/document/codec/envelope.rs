@@ -1,4 +1,4 @@
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 use error_stack::Report;
 use zerocopy::{IntoBytes as _, LE, U16, U32};

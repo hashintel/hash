@@ -2,8 +2,8 @@
 //!
 //! Hidden, unknown and draft identities produce absent keys.
 
-use alloc::{alloc::Allocator, borrow::Cow, collections::BTreeMap};
-use core::{error::Error, fmt};
+use alloc::{borrow::Cow, collections::BTreeMap};
+use core::{alloc::Allocator, error::Error, fmt};
 
 use error_stack::Report;
 use type_system::knowledge::entity::EntityId;

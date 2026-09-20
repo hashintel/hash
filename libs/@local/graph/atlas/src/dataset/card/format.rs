@@ -2,8 +2,8 @@
 //!
 //! Rendering runs a pass schedule, a measurement loop, and a final identifier lint.
 
-use alloc::{alloc::Allocator, borrow::Cow};
-use core::{error::Error, fmt, fmt::Write as _};
+use alloc::borrow::Cow;
+use core::{alloc::Allocator, error::Error, fmt, fmt::Write as _};
 
 #[cfg(test)]
 use super::token::HeuristicTokenizer;

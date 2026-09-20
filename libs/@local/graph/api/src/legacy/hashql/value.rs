@@ -60,7 +60,7 @@ pub(crate) enum OwnedValue {
     Dict(#[serde(serialize_with = "serialize_dict")] BTreeMap<Self, Self>),
 }
 
-impl<'heap, A: AllocatorClone + Clone> From<Value<'heap, A>> for OwnedValue {
+impl<'heap, A: AllocatorClone> From<Value<'heap, A>> for OwnedValue {
     fn from(value: Value<'heap, A>) -> Self {
         match value {
             Value::Unit => Self::Unit,

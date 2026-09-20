@@ -1,10 +1,7 @@
 //! The card's head block holds the relation name, description, aliases and inverse.
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
-};
-use core::{fmt, fmt::Display};
+use alloc::{alloc::Global, borrow::Cow};
+use core::{alloc::Allocator, fmt, fmt::Display};
 
 use super::phrase::Phrase;
 

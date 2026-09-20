@@ -5,7 +5,7 @@
 
 use alloc::borrow::Cow;
 use core::{
-    alloc::AllocatorClone,
+    alloc::Allocator,
     fmt::{self, Display},
 };
 
@@ -143,7 +143,7 @@ impl Display for TypeName {
     }
 }
 
-impl<A: AllocatorClone> From<ValueTypeName<'_, '_, A>> for TypeName {
+impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
     fn from(value: ValueTypeName<'_, '_, A>) -> Self {
         value.into_type_name()
     }
@@ -153,8 +153,8 @@ impl<A: AllocatorClone> From<ValueTypeName<'_, '_, A>> for TypeName {
 ///
 /// Contains the operator, expected types, and actual values for diagnostic
 /// reporting when a binary operation receives operands of incorrect types.
-#[derive(Debug, Clone)]
-pub struct BinaryTypeMismatch<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct BinaryTypeMismatch<'heap, A: Allocator> {
     /// The binary operator that was applied.
     pub op: BinOp,
     /// The expected type of the left-hand operand.
@@ -171,8 +171,8 @@ pub struct BinaryTypeMismatch<'heap, A: AllocatorClone> {
 ///
 /// Contains the operator, expected type, and actual value for diagnostic
 /// reporting when a unary operation receives an operand of incorrect type.
-#[derive(Debug, Clone)]
-pub struct UnaryTypeMismatch<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct UnaryTypeMismatch<'heap, A: Allocator> {
     /// The unary operator that was applied.
     pub op: UnOp,
     /// The expected type of the operand.
@@ -189,8 +189,8 @@ pub struct UnaryTypeMismatch<'heap, A: AllocatorClone> {
 ///
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
-#[derive(Debug, Clone)]
-pub enum RuntimeError<'heap, E, A: AllocatorClone> {
+#[derive(Debug)]
+pub enum RuntimeError<'heap, E, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///
     /// This is an ICE: MIR construction should ensure locals are initialized
@@ -361,7 +361,7 @@ pub enum RuntimeError<'heap, E, A: AllocatorClone> {
     Suspension(E),
 }
 
-impl<E, A: AllocatorClone> RuntimeError<'_, E, A> {
+impl<E, A: Allocator> RuntimeError<'_, E, A> {
     /// Converts this runtime error into an [`InterpretDiagnostic`] using the
     /// provided callstack.
     ///
@@ -498,7 +498,7 @@ impl<E, A: AllocatorClone> RuntimeError<'_, E, A> {
     }
 }
 
-impl<'heap, A: AllocatorClone> RuntimeError<'heap, !, A> {
+impl<'heap, A: Allocator> RuntimeError<'heap, !, A> {
     /// Widens the suspension type from `!` to any `S`.
     ///
     /// Useful when composing interpreter operations (which cannot suspend) with
@@ -667,7 +667,7 @@ fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagno
     diagnostic
 }
 
-fn binary_type_mismatch<A: AllocatorClone>(
+fn binary_type_mismatch<A: Allocator>(
     span: SpanId,
     BinaryTypeMismatch {
         op,
@@ -699,7 +699,7 @@ fn binary_type_mismatch<A: AllocatorClone>(
     diagnostic
 }
 
-fn unary_type_mismatch<A: AllocatorClone>(
+fn unary_type_mismatch<A: Allocator>(
     span: SpanId,
     UnaryTypeMismatch {
         op,

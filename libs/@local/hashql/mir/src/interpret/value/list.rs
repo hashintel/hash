@@ -1,6 +1,9 @@
 //! List collection for the MIR interpreter.
 
-use core::{alloc::AllocatorClone, cmp};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    cmp,
+};
 
 use super::{Int, Value};
 
@@ -40,12 +43,12 @@ use super::{Int, Value};
 /// assert_eq!(list.get(Int::from(3_i32)), None);
 /// assert_eq!(list.get(Int::from(-4_i32)), None);
 /// ```
-#[derive(Debug, Clone)]
-pub struct List<'heap, A: AllocatorClone> {
+#[derive(Debug)]
+pub struct List<'heap, A: Allocator> {
     inner: rpds::Vector<Value<'heap, A>>,
 }
 
-impl<'heap, A: AllocatorClone> List<'heap, A> {
+impl<'heap, A: Allocator> List<'heap, A> {
     /// Creates a new empty list.
     ///
     /// # Examples
@@ -128,10 +131,7 @@ impl<'heap, A: AllocatorClone> List<'heap, A> {
     /// assert_eq!(list.get(Int::from(0_i32)), Some(&Value::Integer(10.into())));
     /// assert_eq!(list.get(Int::from(1_i32)), Some(&Value::Integer(20.into())));
     /// ```
-    pub fn push_back(&mut self, value: Value<'heap, A>)
-    where
-        A: Clone,
-    {
+    pub fn push_back(&mut self, value: Value<'heap, A>) {
         self.inner.push_back_mut(value);
     }
 
@@ -197,7 +197,7 @@ impl<'heap, A: AllocatorClone> List<'heap, A> {
     /// ```
     pub fn get_mut(&mut self, index: Int) -> Option<&mut Value<'heap, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let index = isize::try_from(index.as_int()).ok()?;
 
@@ -235,37 +235,55 @@ impl<'heap, A: AllocatorClone> List<'heap, A> {
     }
 }
 
-impl<A: AllocatorClone> PartialEq for List<'_, A> {
+impl<A> Clone for List<'_, A>
+where
+    A: Allocator,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { inner } = self;
+        inner.clone_from(&source.inner);
+    }
+}
+
+impl<A: Allocator> PartialEq for List<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<A: AllocatorClone> Eq for List<'_, A> {}
+impl<A: Allocator> Eq for List<'_, A> {}
 
-impl<A: AllocatorClone> PartialOrd for List<'_, A> {
+impl<A: Allocator> PartialOrd for List<'_, A> {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<A: AllocatorClone> Ord for List<'_, A> {
+impl<A: Allocator> Ord for List<'_, A> {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.inner.cmp(&other.inner)
     }
 }
 
-impl<A: AllocatorClone> Default for List<'_, A> {
+impl<A: Allocator> Default for List<'_, A> {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'this, 'heap, A: AllocatorClone> IntoIterator for &'this List<'heap, A> {
+impl<'this, 'heap, A: Allocator> IntoIterator for &'this List<'heap, A> {
     type Item = &'this Value<'heap, A>;
 
     type IntoIter = impl ExactSizeIterator<Item = &'this Value<'heap, A>> + DoubleEndedIterator;

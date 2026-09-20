@@ -1,5 +1,5 @@
-use alloc::{rc::Rc, vec};
-use core::alloc::AllocatorClone;
+use alloc::rc::Rc;
+use core::{alloc::Allocator, mem::DropGuard};
 
 use hashql_core::{
     algorithms::co_sort,
@@ -47,7 +47,8 @@ pub struct Decoder<'env, 'heap, A> {
     alloc: A,
 }
 
-impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
+impl<'env, 'heap, A: Allocator> Decoder<'env, 'heap, A> {
+    /// Creates a decoder that allocates runtime values with `alloc`.
     pub const fn new(
         env: &'env Environment<'heap>,
         interner: &'env crate::intern::Interner<'heap>,
@@ -60,6 +61,11 @@ impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
         }
     }
 
+    /// Infers runtime values from JSON shape, using structs for objects whose keys are base URLs.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`DecodeError`] for an out-of-range number or an invalid aggregate construction.
     fn decode_unknown(&self, value: JsonValueRef<'_>) -> Result<Value<'heap, A>, DecodeError<'heap>>
     where
         A: Clone,
@@ -119,17 +125,47 @@ impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
                 }
 
                 let mut fields = Vec::with_capacity_in(map.len(), self.alloc.clone());
-                let mut values = Vec::with_capacity_in(map.len(), self.alloc.clone());
+
+                let mut values = Rc::new_uninit_slice_in(map.len(), self.alloc.clone());
+
+                // the guard drops the initialized prefix on error or unwind, before the Rc frees
+                // the allocation. `written` advances only after a value has been stored.
+                let mut guard = DropGuard::new(
+                    // SAFETY: This fresh Rc has no other strong or weak pointers. The guard holds
+                    // its only slice borrow, which ends before the Rc is accessed again.
+                    (0, unsafe { Rc::get_mut_unchecked(&mut values) }),
+                    |(written, values)| {
+                        // SAFETY: Each slot below `written` contains one initialized Value. No slot
+                        // has been moved or dropped, and the Rc still owns MaybeUninit elements.
+                        // Dropping this prefix releases each initialized value exactly once.
+                        unsafe {
+                            values[..written].assume_init_drop();
+                        }
+                    },
+                );
 
                 for (key, value) in map {
                     let key = self.env.heap.intern_symbol(key);
                     let value = self.decode_unknown(value.into())?;
 
                     fields.push(key);
-                    values.push(value);
+
+                    let index = guard.0;
+                    guard.1[index].write(value);
+                    guard.0 += 1;
                 }
 
-                co_sort(&mut fields, &mut values);
+                debug_assert_eq!(guard.0, map.len());
+                DropGuard::dismiss(guard);
+
+                // SAFETY: The loop wrote every map entry into a distinct slot. Dismissing the
+                // guard preserves all initialized values and ends its borrow. The Rc can now own
+                // the initialized slice, including its element destructors.
+                let mut values = unsafe { values.assume_init() };
+                // SAFETY: The Rc remains unshared, and the guard's borrow has ended.
+                let values_mut = unsafe { Rc::get_mut_unchecked(&mut values) };
+
+                co_sort(&mut fields, values_mut);
                 let fields = self.interner.symbols.intern_slice(&fields);
 
                 value::Struct::new(fields, values)
@@ -270,18 +306,30 @@ impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
                     .map(|field| field.name)
                     .collect_in(self.alloc.clone());
                 let names = self.interner.symbols.intern_slice(&names);
-                let mut values = vec::from_elem_in(Value::Unit, object.len(), self.alloc.clone());
 
-                // We assume the struct is closed. The length check and per-field
-                // check above guarantee a bijection between JSON keys and type
-                // fields, so the position lookup cannot fail.
+                // SAFETY: This Rc is fresh and unshared. The mutable borrow ends after `write_with`
+                // initializes every slot with Unit. Its closure cannot panic, permitting
+                // `assume_init` over the whole slice.
+                let mut values = unsafe {
+                    let mut values = Rc::new_uninit_slice_in(object.len(), self.alloc.clone());
+                    Rc::get_mut_unchecked(&mut values).write_with(|_| Value::Unit);
+                    values.assume_init()
+                };
+
+                // SAFETY: The Rc remains unshared. This is its only slice borrow, and the Rc is
+                // not accessed again until the field replacements end.
+                let values_mut = unsafe { Rc::get_mut_unchecked(&mut values) };
+
+                // We assume the struct is closed. The length check and per-field check above
+                // guarantee a bijection between JSON keys and type fields, so the
+                // position lookup cannot fail.
                 for (name, value) in object {
                     let field = fields
                         .iter()
                         .position(|field| field.name.as_str() == name)
                         .unwrap_or_else(|| unreachable!());
 
-                    values[field] = self.decode(fields[field].value, value.into())?;
+                    values_mut[field] = self.decode(fields[field].value, value.into())?;
                 }
 
                 value::Struct::new(names, values).map(Value::Struct).ok_or(
@@ -306,11 +354,36 @@ impl<'env, 'heap, A: AllocatorClone> Decoder<'env, 'heap, A> {
                     });
                 }
 
-                let mut values: Vec<_, A> = Vec::with_capacity_in(array.len(), self.alloc.clone());
+                let mut values = Rc::new_uninit_slice_in(array.len(), self.alloc.clone());
+                let mut guard = DropGuard::new(
+                    // SAFETY: This fresh Rc has no other strong or weak pointers. The guard holds
+                    // its only slice borrow, which ends before the Rc is accessed again.
+                    (0, unsafe { Rc::get_mut_unchecked(&mut values) }),
+                    |(written, values)| {
+                        // SAFETY: Each slot below `written` contains one initialized Value. No slot
+                        // has been moved or dropped, and the Rc still owns MaybeUninit elements.
+                        // Dropping this prefix releases each initialized value exactly once.
+                        unsafe {
+                            values[..written].assume_init_drop();
+                        }
+                    },
+                );
+
                 for (element, &field) in array.iter().zip(fields) {
-                    values.push(self.decode(field, element.into())?);
+                    let value = self.decode(field, element.into())?;
+
+                    let index = guard.0;
+                    guard.1[index].write(value);
+                    guard.0 += 1;
                 }
 
+                debug_assert_eq!(guard.0, array.len());
+                DropGuard::dismiss(guard);
+
+                // SAFETY: The checked equal lengths make the zip cover every slot. Each iteration
+                // initialized one slot, and dismissing the guard preserved those values while
+                // ending its borrow. The Rc can now own the initialized slice and its destructors.
+                let values = unsafe { values.assume_init() };
                 value::Tuple::new(values).map(Value::Tuple).ok_or(
                     DecodeError::MalformedConstruction {
                         expected: Some(type_id),
