@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -34,6 +35,7 @@ const stubProperty = (
 };
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   notificationsToaster.remove();
   for (const restore of propertyRestorers.splice(0).reverse()) {
@@ -212,11 +214,13 @@ test("falls back to a document copy when the Clipboard API rejects", async () =>
     documentCopySucceeds: true,
   });
   const { copyButton, detail } = await renderCopyNotification("Copy fallback");
+  copyButton.focus();
 
   fireEvent.click(copyButton);
 
   await waitFor(() => expect(execCommand).toHaveBeenCalledWith("copy"));
   expect(writeText).toHaveBeenCalledWith(detail);
+  expect(document.activeElement).toBe(copyButton);
 });
 
 test("shows Copied after copying notification details", async () => {
@@ -226,9 +230,50 @@ test("shows Copied after copying notification details", async () => {
   });
   const { copyButton } = await renderCopyNotification("Copy succeeded");
 
-  fireEvent.click(copyButton);
+  vi.useFakeTimers();
+  await act(async () => {
+    fireEvent.click(copyButton);
+    await Promise.resolve();
+    await Promise.resolve();
+  });
 
-  expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  await act(async () => {
+    vi.advanceTimersByTime(2000);
+  });
+  expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
+});
+
+test("restarts Copied feedback after another copy", async () => {
+  stubCopyMethods({
+    clipboardSucceeds: true,
+    documentCopySucceeds: false,
+  });
+  const { copyButton } = await renderCopyNotification("Copy repeated");
+
+  vi.useFakeTimers();
+  await act(async () => {
+    fireEvent.click(copyButton);
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    vi.advanceTimersByTime(1500);
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Copied" }));
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    vi.advanceTimersByTime(500);
+  });
+
+  expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  await act(async () => {
+    vi.advanceTimersByTime(1500);
+  });
+  expect(screen.getByRole("button", { name: "Copy details" })).toBeTruthy();
 });
 
 test("shows Copy failed when both copy methods fail", async () => {
@@ -237,6 +282,23 @@ test("shows Copy failed when both copy methods fail", async () => {
     documentCopySucceeds: false,
   });
   const { copyButton } = await renderCopyNotification("Copy failed");
+
+  fireEvent.click(copyButton);
+
+  expect(
+    await screen.findByRole("button", { name: "Copy failed" }),
+  ).toBeTruthy();
+});
+
+test("shows Copy failed when preparing the document fallback throws", async () => {
+  stubCopyMethods({
+    clipboardSucceeds: false,
+    documentCopySucceeds: true,
+  });
+  vi.spyOn(HTMLTextAreaElement.prototype, "select").mockImplementation(() => {
+    throw new Error("Selection failed");
+  });
+  const { copyButton } = await renderCopyNotification("Fallback threw");
 
   fireEvent.click(copyButton);
 
