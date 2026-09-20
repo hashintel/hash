@@ -62,6 +62,7 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
+import { assistantLabsSettings } from "./assistant-labs-setting";
 import {
   isBrunchSelected,
   stockChatEndpoint,
@@ -990,6 +991,12 @@ export const LocalStorageDemoApp = ({
               setTitle={setTitle}
               title={currentDocument.title}
               viewportActions={[sentryFeedbackAction]}
+              labsSettings={assistantLabsSettings({
+                brunchSelected,
+                canSelectAssistant: !remoteRouteSelected,
+                isBrunchConfigured: brunchPreviewConfig.isBrunchConfigured,
+                selectAssistant,
+              })}
             />
           </WalkthroughProvider>
           <DemoCommands

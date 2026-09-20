@@ -4,7 +4,13 @@ import { useCommand } from "../../../../react/commands/command-registry";
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { UserSettingsDialog } from "./user-settings/user-settings-dialog";
 
-export const UserSettings = () => {
+import type { PetrinautLabsSetting } from "../../../types/petrinaut-labs-setting";
+
+export const UserSettings = ({
+  labsSettings,
+}: {
+  labsSettings?: readonly PetrinautLabsSetting[];
+}) => {
   const navigation = usePetrinautNavigation();
   const overlay = navigation.state.overlay;
   const section =
@@ -55,6 +61,7 @@ export const UserSettings = () => {
   return section === null ? null : (
     <UserSettingsDialog
       section={section}
+      labsSettings={labsSettings}
       onSectionChange={(nextSection) =>
         navigation.navigate(
           { overlay: { type: "user-settings", section: nextSection } },

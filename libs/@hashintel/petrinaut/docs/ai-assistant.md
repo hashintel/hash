@@ -53,6 +53,10 @@ Hosts may provide canonical conversation rehydration. In that case, reopening th
 
 A host may also enable live history following, as the local Brunch panel does. Turns submitted elsewhere then appear in the open conversation without a reload. Your own in-progress response stays in place until the host confirms that its canonical history has caught up. In this mode, tools observed from another participant or restored after reopening are display-only: watching a pending tool does not execute it or resume that turn. Tools emitted in response to your own local submission still execute normally. A pending externally submitted tool needs its originating participant/operator to resolve it; reopening this following panel is not automatic recovery.
 
+### Choosing the assistant
+
+A host that offers more than one assistant lets you pick the one the panel talks to. On the Petrinaut website, **User settings → Labs → Assistant → Brunch assistant** switches between the stock Petrinaut assistant and Brunch; the command palette offers the same choice as **Use Brunch** or **Use the stock Petrinaut assistant**. The choice is kept in this browser and applies to every net you open here. It is offered only where a Brunch endpoint is configured, and not on a route that fixes the assistant, such as a shared worked model.
+
 ### Ledger in Brunch
 
 In Brunch construction conversations, the **Ledger** tab shows the saved account as a readable document while **Chat** contains the transcript. Ledger updates when Brunch saves a revision, without covering the canvas or opening another panel. Each unseen settled revision adds to Ledger's badge while Chat is selected or the panel is closed. You can read Ledger while continuing to type in the same composer, then switch to Chat to inspect the reply; if a response completes, errors, or is stopped while Ledger is visible, Chat receives an activity dot. Closing and reopening the assistant retains the selected tab for that mounted conversation.

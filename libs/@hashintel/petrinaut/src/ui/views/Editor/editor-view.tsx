@@ -77,6 +77,7 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
+import type { PetrinautLabsSetting } from "../../types/petrinaut-labs-setting";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
@@ -166,6 +167,7 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
 const EditorViewContent = ({
   aiAssistant,
   hideNetManagementControls,
+  labsSettings,
   slots,
   titleEditable,
   viewportActions,
@@ -175,6 +177,7 @@ const EditorViewContent = ({
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
+  labsSettings?: readonly PetrinautLabsSetting[];
   slots?: PetrinautSlots;
   titleEditable: boolean;
   viewportActions?: ViewportAction[];
@@ -571,7 +574,7 @@ const EditorViewContent = ({
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
-      <UserSettings />
+      <UserSettings labsSettings={labsSettings} />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}

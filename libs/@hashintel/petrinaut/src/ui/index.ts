@@ -249,6 +249,10 @@ export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
 export type { ViewportAction } from "./types/viewport-action";
 
+// Labs setting — shape consumers use to add their own settings to the Labs
+// section of the settings dialog.
+export type { PetrinautLabsSetting } from "./types/petrinaut-labs-setting";
+
 // Slots — named locations into which the host can inject arbitrary React components.
 export type { PetrinautSlots } from "./types/petrinaut-slots";
 
