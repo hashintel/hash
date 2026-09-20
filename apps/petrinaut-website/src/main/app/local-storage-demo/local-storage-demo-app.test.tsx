@@ -45,6 +45,7 @@ import {
   withLocalStorageDemoIdentity,
   type LocalStorageDemoSearch,
 } from "./local-storage-demo-search";
+import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
   DocumentRecord,
@@ -137,6 +138,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
+    slots?: { settingsLabs?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -1989,16 +1991,33 @@ describe("assistant selection", () => {
     fireEvent.keyDown(window, { key: "Escape" });
   });
 
-  test("removes Voice on the first stock-assistant render", async () => {
+  test("keeps Voice default-off and removes it on the first Stock render", async () => {
     seedStoredNet("voice-gating-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-      ),
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
+    vi.stubGlobal("fetch", fetch);
+    const defaultOffView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledOnce();
+      const settingsLabs = editorProps.current?.slots?.settingsLabs;
+      expect(isValidElement(settingsLabs)).toBe(true);
+      if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
+        throw new Error("Expected the website Labs settings to render.");
+      }
+      expect(settingsLabs.props.openAIVoiceConfig).toEqual({
+        available: true,
+        connectionTimeoutMs: 10_000,
+      });
+    });
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+
+    defaultOffView.unmount();
+    localStorage.setItem(voicePreferenceStorageKey, "true");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(currentAssistant().renderVoiceMode).toBeDefined(),

@@ -168,6 +168,11 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Labs
 
+Hosts can place application-specific controls after Petrinaut's built-in Labs
+groups. For example, a host may put assistant provider and Voice availability
+choices there. The host owns those controls, their availability, and how their
+preferences are saved.
+
 ### Net Components (experimental)
 
 Enable subnet definitions and component instances for hierarchical nets. This option appears when the net supports subnets. Off by default.

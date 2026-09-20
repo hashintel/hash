@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -24,6 +23,7 @@ import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { ReactNode } from "react";
 
 beforeEach(() => {
   localStorage.clear();
@@ -453,9 +453,7 @@ describe("Labs settings", () => {
     expect(
       screen.getByRole("region", { name: "Host AI settings" }),
     ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Use Brunch" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use Brunch" })).toBeTruthy();
   });
 });
 
