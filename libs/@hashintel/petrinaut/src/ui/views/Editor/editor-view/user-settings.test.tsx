@@ -455,6 +455,48 @@ describe("Labs settings", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Use Brunch" })).toBeTruthy();
   });
+
+  it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      <section aria-label="Host AI settings">
+        <button type="button" disabled>
+          Unavailable first
+        </button>
+        <button type="button">First host control</button>
+        <button type="button" aria-disabled="true">
+          Unavailable middle
+        </button>
+        <button type="button">Last host control</button>
+      </section>,
+    );
+    await screen.findByRole("heading", { name: "Labs" });
+    const labs = screen.getByRole("tab", { name: "Labs" });
+    const compilation = screen.getByRole("checkbox", {
+      name: "Compilation output",
+    });
+    const first = screen.getByRole("button", {
+      name: "First host control",
+    });
+    const last = screen.getByRole("button", { name: "Last host control" });
+
+    act(() => compilation.focus());
+    fireEvent.keyDown(compilation, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(last, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(compilation);
+
+    act(() => last.focus());
+    fireEvent.keyDown(last, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(labs);
+    fireEvent.keyDown(labs, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(last);
+  });
 });
 
 describe("WebGPU availability", () => {

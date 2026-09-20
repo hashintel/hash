@@ -2,13 +2,26 @@
 
 ## Status
 
-Live and implementation-authorized on `kostandin/fe-1650-brunch-voice-settings` for [FE-1650](https://linear.app/hash/issue/FE-1650/let-demo-users-select-brunch-and-opt-into-voice-from-settings).
+Implementation-complete and verified on
+`kostandin/fe-1650-brunch-voice-settings` for
+[FE-1650](https://linear.app/hash/issue/FE-1650/let-demo-users-select-brunch-and-opt-into-voice-from-settings);
+the branch is at the pre-PR review gate with no known implementation blocker.
 
-The existing demo already persists a Stock-or-Brunch choice, exposes it through the command palette, switches the complete assistant configuration, isolates provider histories, and gates Voice on server-reported capability. The missing product path is discoverability: users cannot make either choice from the visible settings surface.
+The demo now exposes the existing Stock-or-Brunch choice and a separate,
+default-off Voice preference in **Settings → Labs**. Both choices persist, the
+complete assistant configurations and provider histories remain isolated, and
+effective Voice remains gated on Brunch selection, the user preference, and
+server-reported capability.
 
-This cut adds exactly two website-owned controls under **Settings → Labs** through one optional host-content slot in Petrinaut. It does not redesign assistant switching, active-turn lifecycle, provider history, Voice transport, server policy, or Petrinaut's settings model. No paid Voice or model run is authorized.
+This cut adds exactly two website-owned controls through one optional
+host-content slot in Petrinaut. It does not redesign assistant switching,
+active-turn lifecycle, provider history, Voice transport, server policy, or
+Petrinaut's settings model. No paid Voice or model run was authorized or used.
 
-The next observation is the real demo route showing both controls, persisting their choices across reload, and exposing Voice only when Brunch, user preference, and server capability all permit it.
+The next authorized action is owner pre-PR review and PR preparation. The real
+demo route has already shown both controls, persistence across reload, and
+Voice exposure only when all three gates permit it; the retained capture is a
+local candidate, not deployed-environment acceptance.
 
 ### Owner decisions
 
@@ -41,12 +54,49 @@ The ordinary route uses both controls. A worked-model route still forces Brunch 
 
 ## Proof
 
-The narrow proof obligations are:
+The narrow proof obligations and their current dispositions are:
 
-- **Optional host surface:** a focused Petrinaut settings test shows supplied Labs content and confirms an unsupplied host remains unchanged.
-- **Website behavior:** focused website tests exercise the two new controls, assistant persistence, default-off Voice persistence, and the effective Voice gate.
-- **Visible path:** inspect the actual demo's Labs tab with Stock selected, Brunch selected, and Voice unavailable/available through deterministic local configuration; capture the changed UI.
-- **Package integrity:** run the affected Petrinaut and website type checks, lint, focused unit tests, builds, and Petrinaut architecture-doc validation.
+- **Optional host surface — PASS.** The focused Petrinaut settings suite shows
+  supplied Labs content, confirms an unsupplied host remains unchanged, and
+  exercises first/last enabled host-control entry, vertical traversal,
+  built-in/host boundary crossing, and ArrowLeft return:
+  `NODE_OPTIONS=--no-experimental-webstorage yarn workspace
+  @hashintel/petrinaut test:unit --run
+  src/ui/views/Editor/editor-view/user-settings.test.tsx` — 26/26 passed. The
+  Node option disables Node 26's experimental web-storage global so jsdom owns
+  `localStorage`; without it, the environment fails at `localStorage.clear()`
+  before test behavior runs.
+- **Website behavior — PASS.** `NODE_OPTIONS=--no-experimental-webstorage yarn
+  workspace @apps/petrinaut-website test:unit --run
+  src/main/app/local-storage-demo/assistant-labs-settings.test.tsx
+  src/main/app/local-storage-demo/local-storage-demo-app.test.tsx` — 47/47
+  passed. Coverage includes assistant-preference loading, missing Brunch
+  configuration, forced Brunch, Voice-preference loading, Voice-capability
+  loading, invalid Voice storage reading off, both rendered Labs controls
+  writing their own keys, remount restoration, default-off Voice, and the
+  three-part effective Voice gate.
+- **Visible path — LOCAL CANDIDATE COMPLETE.** The retained, ignored capture at
+  `.superpowers/sdd/task-2-ui-capture/` contains five inspected 1440×900 states:
+  `01-stock-selected.png` (Stock; Voice disabled),
+  `02-brunch-voice-unavailable.png` (Brunch; unavailable),
+  `03-brunch-voice-available.png` (available and off),
+  `04-voice-enabled.png` (enabled), and `05-reload-persisted.png` (both choices
+  restored). Every artifact named by `manifest.json` exists and its exact byte
+  count matches the manifest, including the five screenshots, final
+  screenshot, JSON/text logs, HAR, and video. `errors.json` is empty;
+  `audio-tap-status.json` reports zero input/output sources and chunks. The HAR
+  contains only `localhost`, blocked `127.0.0.1:9`, and null origins; media- or
+  provider-named matches are local Vite source-module GETs, not provider or
+  media-session requests. No paid provider was contacted and no media session
+  started. Limitation: the optional 262,144-byte VP8 video encoder fell behind;
+  the manifest recorded 3.56 seconds, but the prematurely ended file no longer
+  yields a format duration to `ffprobe`. The five screenshots are the visual
+  proof.
+- **Package integrity — PASS.** `npx turbo run build lint:tsc lint:eslint
+  --filter '@hashintel/petrinaut' --filter '@apps/petrinaut-website'` completed
+  18/18 tasks; `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`
+  passed with 84 layers, 440 edges, 924 files, 85 generated pages, and 44
+  authored pages; `yarn lint:format` passed across 6,108 files.
 
 Existing tests remain the owners for transport routing, history isolation, conversation identity, bundle-route behavior, Voice lifecycle, and server policy. This mission does not duplicate them merely because the same selection state gains another control.
 

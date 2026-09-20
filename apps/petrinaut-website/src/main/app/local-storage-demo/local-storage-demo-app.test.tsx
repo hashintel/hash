@@ -219,7 +219,10 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
     editorProps.current = props;
     renderedPetrinaut.aiAssistant = props.aiAssistant;
     renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
-    return null;
+    return (
+      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
+      null
+    );
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
@@ -1933,6 +1936,7 @@ describe("assistant selection", () => {
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
+    vi.unstubAllGlobals();
   });
 
   test("ordinary Stock is the default and never mounts Flue history", () => {
@@ -1954,6 +1958,58 @@ describe("assistant selection", () => {
     expect(flueClientOptions.current).toBeNull();
     expect(history).not.toHaveBeenCalled();
     expect(observe).not.toHaveBeenCalled();
+  });
+
+  test("persists and restores both rendered Labs choices", async () => {
+    const incarnationId = "labs-persistence-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(voicePreferenceStorageKey, "invalid");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+      ),
+    );
+
+    const firstView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    const firstBrunchToggle = await screen.findByRole("checkbox", {
+      name: "Use Brunch",
+    });
+    const firstVoiceToggle = screen.getByRole("checkbox", {
+      name: "Enable Voice",
+    });
+    await waitFor(() =>
+      expect(firstBrunchToggle).toHaveProperty("disabled", false),
+    );
+    expect(firstVoiceToggle).toHaveProperty("checked", false);
+
+    fireEvent.click(firstBrunchToggle);
+    await waitFor(() => {
+      expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
+      expect(firstVoiceToggle).toHaveProperty("disabled", false);
+    });
+    fireEvent.click(firstVoiceToggle);
+    await waitFor(() =>
+      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true"),
+    );
+
+    firstView.unmount();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const restoredBrunchToggle = await screen.findByRole("checkbox", {
+      name: "Use Brunch",
+    });
+    const restoredVoiceToggle = screen.getByRole("checkbox", {
+      name: "Enable Voice",
+    });
+    await waitFor(() => {
+      expect(restoredBrunchToggle).toHaveProperty("checked", true);
+      expect(restoredVoiceToggle).toHaveProperty("checked", true);
+      expect(restoredVoiceToggle).toHaveProperty("disabled", false);
+    });
   });
 
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {

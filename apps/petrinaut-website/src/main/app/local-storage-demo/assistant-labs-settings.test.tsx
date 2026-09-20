@@ -80,3 +80,52 @@ test("selects Brunch, enables Voice, and explains when Voice is unavailable", as
     screen.getByText("Voice is unavailable in this deployment."),
   ).toBeDefined();
 });
+
+test.each([
+  {
+    name: "assistant preference loading",
+    props: { assistantReady: false },
+    control: "Use Brunch",
+    checked: false,
+    description: "Loading your assistant preference…",
+  },
+  {
+    name: "missing Brunch configuration",
+    props: { brunchConfigured: false },
+    control: "Use Brunch",
+    checked: false,
+    description:
+      "Brunch is unavailable because this site has no Brunch endpoint configured.",
+  },
+  {
+    name: "forced Brunch",
+    props: { brunchSelected: true, forceBrunch: true },
+    control: "Use Brunch",
+    checked: true,
+    description: "This document requires Brunch.",
+  },
+  {
+    name: "Voice preference loading",
+    props: { brunchSelected: true, voicePreferenceReady: false },
+    control: "Enable Voice",
+    checked: false,
+    description: "Loading your Voice preference…",
+  },
+  {
+    name: "Voice capability loading",
+    props: { brunchSelected: true, openAIVoiceConfig: undefined },
+    control: "Enable Voice",
+    checked: false,
+    description: "Checking whether Voice is available…",
+  },
+])(
+  "disables controls during $name",
+  ({ props, control, checked, description }) => {
+    render(<AssistantLabsSettings {...defaultProps} {...props} />);
+
+    const toggle = screen.getByRole("checkbox", { name: control });
+    expect(toggle).toHaveProperty("checked", checked);
+    expect(toggle).toHaveProperty("disabled", true);
+    expect(screen.getByText(description)).toBeDefined();
+  },
+);
