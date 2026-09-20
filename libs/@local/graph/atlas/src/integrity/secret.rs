@@ -11,9 +11,14 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
-use alloc::{alloc::AllocatorClone, sync::Arc};
+use alloc::sync::Arc;
 use core::{
-    alloc::Allocator, error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr,
+    alloc::{Allocator, AllocatorClone},
+    error::Error,
+    fmt,
+    marker::PhantomData,
+    mem::MaybeUninit,
+    str::FromStr,
 };
 use std::alloc::Global;
 
@@ -96,10 +101,12 @@ impl<A> Clone for SecretString<A>
 where
     A: AllocatorClone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         Self(Arc::clone(&self.0))
     }
 
+    #[inline]
     fn clone_from(&mut self, source: &Self) {
         let Self(inner) = self;
 

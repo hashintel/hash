@@ -23,7 +23,8 @@
 //! [`TraversalPath`]: hashql_mir::pass::execution::traversal::TraversalPath
 //! [`Value`]: hashql_mir::interpret::value::Value
 
-use alloc::{alloc::Allocator, rc::Rc};
+use alloc::rc::Rc;
+use core::alloc::Allocator;
 
 use hashql_core::{
     symbol::{Symbol, sym},

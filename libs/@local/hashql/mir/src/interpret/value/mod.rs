@@ -515,7 +515,6 @@ where
             (Self::Tuple(this), Self::Tuple(source)) => this.clone_from(source),
             (Self::List(this), Self::List(source)) => this.clone_from(source),
             (Self::Dict(this), Self::Dict(source)) => this.clone_from(source),
-            // Variants differ, so there is nothing to reuse; fall back to a fresh clone.
             (this, source) => *this = source.clone(),
         }
     }

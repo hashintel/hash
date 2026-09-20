@@ -10,8 +10,7 @@
 //!
 //! [`CallStack`]: hashql_mir::interpret::CallStack
 
-use alloc::alloc::AllocatorClone;
-use core::alloc::Allocator;
+use core::alloc::{Allocator, AllocatorClone};
 
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, local::Local},

@@ -39,11 +39,13 @@
 //! [`GraphRead`]: crate::body::terminator::GraphRead
 //! [`Continuation`]: super::suspension::Continuation
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
+use alloc::{alloc::Global, borrow::Cow};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    debug_assert_matches,
+    hint::cold_path,
+    ops::ControlFlow,
 };
-use core::{alloc::AllocatorClone, debug_assert_matches, hint::cold_path, ops::ControlFlow};
 
 use hashql_core::span::SpanId;
 use hashql_hir::node::operation::InputOp;

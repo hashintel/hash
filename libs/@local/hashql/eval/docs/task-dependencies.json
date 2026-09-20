@@ -34,6 +34,12 @@
         "@rust/darwin-kperf-codegen"
       ]
     },
+    "test:miri": {
+      "dependsOn": [],
+      "affectedBy": [
+        "@rust/darwin-kperf-codegen"
+      ]
+    },
     "test:unit": {
       "dependsOn": [],
       "env": [

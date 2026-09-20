@@ -3,8 +3,7 @@
 //! Construction resolves either source identity into the captured scene and caps its incident edges
 //! before hydration.
 
-use alloc::alloc::Allocator;
-use core::{error::Error, fmt};
+use core::{alloc::Allocator, error::Error, fmt};
 
 use error_stack::Report;
 use hashql_core::id::IdVec;

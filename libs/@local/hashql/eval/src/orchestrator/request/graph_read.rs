@@ -17,8 +17,10 @@
 //! [`Continuation`]: hashql_mir::interpret::suspension::Continuation
 //! [`Tail`]: super::super::tail::Tail
 
-use alloc::alloc::Allocator;
-use core::{alloc::AllocatorClone, pin::pin};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    pin::pin,
+};
 
 use futures_lite::StreamExt as _;
 use hashql_mir::{

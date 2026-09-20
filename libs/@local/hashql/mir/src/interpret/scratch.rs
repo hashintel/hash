@@ -1,4 +1,4 @@
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 use super::value::Value;
 use crate::body::local::Local;

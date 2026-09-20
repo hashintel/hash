@@ -1,5 +1,4 @@
-use alloc::alloc::Allocator;
-use core::ops::Bound;
+use core::{alloc::Allocator, ops::Bound};
 
 use hashql_core::symbol::sym;
 

@@ -8,9 +8,9 @@
 //! - Operand evaluation (constants and places)
 //! - Aggregate construction (structs, tuples, lists, dicts)
 
-use alloc::{alloc::Allocator, borrow::Cow, rc::Rc};
+use alloc::{borrow::Cow, rc::Rc};
 use core::{
-    alloc::AllocatorClone,
+    alloc::{Allocator, AllocatorClone},
     mem::{self, MaybeUninit},
 };
 

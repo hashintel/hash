@@ -41,8 +41,11 @@
 //! [`run_in`]: Orchestrator::run_in
 //! [`fulfill_in`]: Orchestrator::fulfill_in
 
-use alloc::alloc::{AllocatorClone, Global};
-use core::{alloc::Allocator, ops::Deref};
+use alloc::alloc::Global;
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    ops::Deref,
+};
 
 use hashql_mir::{
     def::DefId,
