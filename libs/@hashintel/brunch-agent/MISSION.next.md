@@ -220,7 +220,7 @@ Ordinary website documents select an assistant through the implemented host-loca
 
 Switching inside a remote worked-model document is deferred. Re-enter only after accepting a stock-history continuity contract that determines whether stock history on remote documents is local-only, remote, or absent.
 
-**Settings-dialog escape hatch — design accepted, implementation held (Lu, 2026-09-16).** Stakeholders want the existing palette switch also exposed in Petrinaut's Labs settings tab. Accepted: a host-supplied generic toggle slot in Petrinaut, host-owned state, no storage migration, and every Brunch affordance hidden while Stock is selected; the toggle stays disabled on the remote route. The [escape-hatch draft](docs/mission-drafts/stock-assistant-escape-hatch.md) is the one planning home for the assessment, the open net-preservation check and the cut obligations.
+**Settings-dialog controls — promoted to FE-1650 (Kostandin, 2026-09-20).** The existing assistant switch and a separate default-off Voice preference are now a live mission under [FE-1650](MISSION.md). The cut keeps state in the website, adds one optional React-node Labs slot, preserves the command-palette and immediate switching lifecycle, and adds no storage migration, settings DSL, or busy-state API.
 
 Resolve:
 
@@ -288,7 +288,7 @@ Retain the thin architecture unless observed product strain earns more. Do not i
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) — reviewer authority, attributed revision, conflict, qualification, bounded patching and refusal.
 - [Mission 8](docs/mission-drafts/8-experiment-configuration-from-the-ledger.md) — configure-then-user-runs experiment assistance: Petrinaut terrain, Ledger-to-experiment correspondence, design assessment, upstream delta list and pending owner input; ends before anything Mission 11 owns.
 - [Mission 11](docs/mission-drafts/11-optimisation-handoff.md) — consumer-accepted complete-model handoff and optimization experiment.
-- [Stock-assistant escape hatch](docs/mission-drafts/stock-assistant-escape-hatch.md) — small host-and-Petrinaut change exposing the existing assistant switch in the Labs settings tab and hiding Brunch affordances under Stock; design accepted, cut held pending the net-preservation check and its own issue and branch.
+- [FE-1650 settings controls](MISSION.md) — live mission exposing the existing assistant switch and a separate Voice opt-in under Settings → Labs through a narrow host slot.
 - [Mission-draft lifecycle and template](docs/mission-drafts/README.md) — rules for converting a provisional cluster into live authority.
 
 Open a detailed draft only when cutting or evaluating that branch. Re-read actual predecessor evidence at cut time; draft promises are not inherited proof.
