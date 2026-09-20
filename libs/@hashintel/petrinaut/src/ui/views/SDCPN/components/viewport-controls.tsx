@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { cx, css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
@@ -12,8 +12,6 @@ import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
 import { PluginToolbarItems } from "../../../plugins/plugin-toolbar-items";
 import { usePetrinautPresentation } from "../../shared/presentation-context";
 import { useCanvasController } from "../canvas-renderer";
-
-import type { ViewportAction } from "../../../types/viewport-action";
 
 const containerStyle = css({
   position: "absolute",
@@ -36,9 +34,7 @@ const animatingStyle = cva({
 
 const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 
-export const ViewportControls: React.FC<{
-  viewportActions?: ViewportAction[];
-}> = ({ viewportActions }) => {
+export const ViewportControls: React.FC = () => {
   const presentation = usePetrinautPresentation();
   const navigation = usePetrinautNavigation();
   const { enableExperimentalIconPack } = use(UserSettingsContext);
@@ -147,20 +143,6 @@ export const ViewportControls: React.FC<{
           />
         </>
       )}
-      {viewportActions?.map((action) => (
-        <Button
-          key={action.key}
-          ref={action.ref}
-          size="xs"
-          variant="subtle"
-          aria-label={action.label}
-          tooltip={action.tooltip}
-          tooltipOptions={{ position: "left" }}
-          onClick={action.onClick}
-          className={cx(action.className, chromeBackground)}
-          prefix={action.icon}
-        />
-      ))}
       <PluginToolbarItems
         placement="viewport-controls"
         buttonClassName={chromeBackground}

@@ -148,7 +148,6 @@ export type PetrinautAiAssistant = {
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
-import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -171,13 +170,8 @@ export type PetrinautProps = {
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
   /**
-   * @deprecated Install a plugin with a `viewport-controls` button through
+   * @deprecated Install a plugin with a Labs `settingsGroups` entry through
    * `PetrinautPluginsProvider` instead.
-   */
-  viewportActions?: ViewportAction[];
-  /**
-   * @deprecated Install a plugin with top-bar buttons or items, or a Labs
-   * settings group, through `PetrinautPluginsProvider` instead.
    */
   slots?: PetrinautSlots;
   /**
@@ -233,7 +227,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
-  viewportActions,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -284,9 +277,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 <EditorView
                   aiAssistant={aiAssistant}
                   hideNetManagementControls={hideNetManagementControls}
-                  slots={slots}
+                  settingsLabs={slots?.settingsLabs}
                   titleEditable={titleEditable}
-                  viewportActions={viewportActions}
                 />
               </Stack>
             </MonacoProvider>

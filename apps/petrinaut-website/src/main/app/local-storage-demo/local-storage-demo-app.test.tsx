@@ -9,7 +9,12 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { isValidElement, useState, type ReactNode } from "react";
+import {
+  type ComponentType,
+  isValidElement,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   afterEach,
   describe,
@@ -209,24 +214,46 @@ vi.mock("./brunch-panel-transport", async (importOriginal) => {
   };
 });
 
-vi.mock("@hashintel/petrinaut/ui", () => ({
-  DefaultChatTransport: class {
-    public constructor(options: unknown) {
-      defaultTransportOptions.current = options;
-    }
-  },
-  Petrinaut: (props: Record<string, unknown>) => {
-    editorProps.current = props;
-    renderedPetrinaut.aiAssistant = props.aiAssistant;
-    renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
-    return (
-      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
-      null
-    );
-  },
-  WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
-  definePetrinautAiInteractiveTool: (definition: unknown) => definition,
-}));
+vi.mock("@hashintel/petrinaut/ui", async () => {
+  const { createContext, use } = await import("react");
+  type MockPlugin = { id: string; component?: ComponentType };
+  // The editor mounts the installed plugins' components; the mock does the
+  // same, so the palette plugin renders under the mocked editor.
+  const PluginsContext = createContext<readonly MockPlugin[]>([]);
+  return {
+    DefaultChatTransport: class {
+      public constructor(options: unknown) {
+        defaultTransportOptions.current = options;
+      }
+    },
+    Petrinaut: (props: Record<string, unknown>) => {
+      editorProps.current = props;
+      renderedPetrinaut.aiAssistant = props.aiAssistant;
+      renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
+      const plugins = use(PluginsContext);
+      return (
+        <>
+          {plugins.map((plugin) => {
+            const PluginComponent = plugin.component;
+            return PluginComponent ? <PluginComponent key={plugin.id} /> : null;
+          })}
+          {(props.slots as { settingsLabs?: ReactNode } | undefined)
+            ?.settingsLabs ?? null}
+        </>
+      );
+    },
+    WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
+    PetrinautPluginsProvider: ({
+      plugins,
+      children,
+    }: {
+      plugins: readonly MockPlugin[];
+      children: ReactNode;
+    }) => <PluginsContext value={plugins}>{children}</PluginsContext>,
+    definePetrinautAiInteractiveTool: (definition: unknown) => definition,
+    definePetrinautPlugin: (plugin: unknown) => plugin,
+  };
+});
 
 /**
  * Node supplies its own `localStorage` global that shadows the jsdom one and

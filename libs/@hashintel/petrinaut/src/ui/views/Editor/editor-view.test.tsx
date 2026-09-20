@@ -8,6 +8,7 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { petrinautBuiltInPlugins } from "../../plugins/built-in-plugins";
 import { InstalledPluginsProvider } from "../../plugins/installed-plugins";
 import { definePetrinautPlugin } from "../../plugins/plugin";
 import { EditorView } from "./editor-view";
@@ -124,7 +125,9 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView aiAssistant={aiAssistant} titleEditable />
+      <InstalledPluginsProvider plugins={petrinautBuiltInPlugins}>
+        <EditorView aiAssistant={aiAssistant} titleEditable />
+      </InstalledPluginsProvider>
     </EditorContext.Provider>
   );
 };
@@ -136,7 +139,9 @@ const EditableWorkspace = () => {
     <EditorContext.Provider
       value={{ ...editor, editViewMode, setEditViewMode }}
     >
-      <EditorView titleEditable />
+      <InstalledPluginsProvider plugins={petrinautBuiltInPlugins}>
+        <EditorView titleEditable />
+      </InstalledPluginsProvider>
     </EditorContext.Provider>
   );
 };

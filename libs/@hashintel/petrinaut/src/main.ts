@@ -25,7 +25,10 @@ export type {
 } from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 
-export { petrinautBuiltInPlugins } from "./ui/plugins/built-in-plugins";
+export {
+  definitionsViewPlugin,
+  petrinautBuiltInPlugins,
+} from "./ui/plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./ui/plugins/plugin";
 export type {
   PetrinautPlugin,
@@ -46,7 +49,6 @@ export type {
   SubViewResizeConfig,
 } from "./ui/components/sub-view/types";
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
-export type { ViewportAction } from "./ui/types/viewport-action";
 export type {
   PetrinautAiComposerControl,
   PetrinautAiComposerControlContext,

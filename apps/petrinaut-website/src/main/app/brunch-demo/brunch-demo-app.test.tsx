@@ -4,16 +4,18 @@ import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
+import type { ReactNode } from "react";
 
 const controllers: PetrinautNavigationController[] = [];
 
-vi.mock("../sentry-feedback-button", () => ({
-  useSentryFeedbackAction: () => ({
-    key: "sentry-feedback",
-    icon: null,
-    label: "Feedback",
-    tooltip: "Feedback",
-  }),
+vi.mock("../../../sentry/sentry-feedback-plugin", () => ({
+  sentryFeedbackPlugin: { id: "website.sentry-feedback" },
+}));
+
+// The real entry pulls the editor's styling into jsdom, which has no
+// `matchMedia`; the route under test only needs the provider to pass through.
+vi.mock("@hashintel/petrinaut/ui", () => ({
+  PetrinautPluginsProvider: ({ children }: { children: ReactNode }) => children,
 }));
 
 vi.mock("./brunch-actual-mode-route", () => ({

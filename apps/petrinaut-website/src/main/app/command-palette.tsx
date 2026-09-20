@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
+import { MdKeyboardCommandKey } from "react-icons/md";
 
-import { useCommandRegistry, useCommands } from "@hashintel/petrinaut/react";
-import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
+import {
+  useCommand,
+  useCommandRegistry,
+  useCommands,
+} from "@hashintel/petrinaut/react";
+import {
+  definePetrinautPlugin,
+  KeyboardShortcut,
+} from "@hashintel/petrinaut/ui";
 
 import type { CSSProperties } from "react";
 
@@ -70,10 +78,13 @@ const categoryStyle: CSSProperties = {
 const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
 
+const toggleCommandId = "website.command-palette.toggle";
+
 /**
  * The demo site's command palette: host code rendered over the ambient
  * registry (Petrinaut's commands plus the demo's). Owns the ⌘K / Ctrl+K
- * opener.
+ * opener, and registers the same toggle as a command so the plugin's top-bar
+ * button can run it.
  */
 export const CommandPalette = () => {
   const registry = useCommandRegistry();
@@ -81,6 +92,21 @@ export const CommandPalette = () => {
   const [isOpen, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const toggle = () => {
+    setOpen((open) => !open);
+    setQuery("");
+    setActiveIndex(0);
+  };
+
+  useCommand({
+    id: toggleCommandId,
+    label: "Toggle the command palette",
+    category: "Editor",
+    keywords: ["palette", "commands", "search"],
+    shortcut: "mod+k",
+    run: toggle,
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -105,14 +131,16 @@ export const CommandPalette = () => {
   }
 
   const trimmed = query.trim();
+  // The palette's own toggle is the one entry that makes no sense in its list.
+  const listed = commands.filter((command) => command.id !== toggleCommandId);
   const results = trimmed
-    ? commands.filter((command) =>
+    ? listed.filter((command) =>
         matchesQuery(
           `${command.label} ${command.category ?? ""} ${(command.keywords ?? []).join(" ")}`,
           trimmed,
         ),
       )
-    : commands;
+    : listed;
   const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
 
   const runCommand = (id: string) => {
@@ -196,3 +224,23 @@ export const CommandPalette = () => {
     </div>
   );
 };
+
+/**
+ * The palette as a Petrinaut plugin: the overlay and its ⌘K binding mount
+ * inside the editor, and a top-bar button runs the same toggle command.
+ */
+export const commandPalettePlugin = definePetrinautPlugin({
+  id: "website.command-palette",
+  name: "Command palette",
+  buttons: [
+    {
+      id: "website.command-palette.toggle-button",
+      placement: "top-bar-end",
+      label: "Command palette",
+      tooltip: "Command palette (⌘K / Ctrl+K)",
+      icon: <MdKeyboardCommandKey size={16} />,
+      command: toggleCommandId,
+    },
+  ],
+  component: CommandPalette,
+});
