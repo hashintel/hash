@@ -412,7 +412,6 @@ export class OpenAIRealtimeSession {
         replaceMicrophone: (stream) => {
           this.#mediaStream = stream;
           this.#microphoneTrack = stream.getAudioTracks()[0] ?? null;
-          this.#syncMicrophoneTrack();
           this.#releaseMeterResources();
           this.#initializeOptionalMeter();
           if (this.#audioContext) {
@@ -422,6 +421,7 @@ export class OpenAIRealtimeSession {
               this.#releaseMeterResources();
             }
           }
+          this.#syncMicrophoneTrack();
         },
       });
       this.#reportDiagnostic("connection", requestId, startedAt);

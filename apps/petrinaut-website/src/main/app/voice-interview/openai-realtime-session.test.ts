@@ -51,6 +51,8 @@ const createHarness = ({
   readonly connectionTimeoutMs?: number;
 } = {}) => {
   let requestNumber = 0;
+  let animationFrameNumber = 0;
+  const animationFrames = new Map<number, FrameRequestCallback>();
   const channels: FakeDataChannel[] = [];
   const localTracks: Array<{
     enabled: boolean;
@@ -99,7 +101,9 @@ const createHarness = ({
   );
   const reportDiagnostic = vi.fn();
   const session = new OpenAIRealtimeSession({
-    cancelAnimationFrame: vi.fn(),
+    cancelAnimationFrame: vi.fn((handle) => {
+      animationFrames.delete(handle);
+    }),
     connectionTimeoutMs,
     createAudioContext: () =>
       ({
@@ -153,7 +157,11 @@ const createHarness = ({
     getUserMedia,
     now: () => 100,
     reportDiagnostic,
-    requestAnimationFrame: vi.fn(() => 1),
+    requestAnimationFrame: vi.fn((callback) => {
+      const handle = ++animationFrameNumber;
+      animationFrames.set(handle, callback);
+      return handle;
+    }),
   });
   const events: OpenAIRealtimeSessionEvent[] = [];
   session.subscribe((event) => events.push(event));
@@ -167,6 +175,14 @@ const createHarness = ({
     peers,
     remoteAudios,
     reportDiagnostic,
+    runAnimationFrame: () => {
+      const nextFrame = animationFrames.entries().next().value;
+      if (!nextFrame) return false;
+      const [handle, callback] = nextFrame;
+      animationFrames.delete(handle);
+      callback(0);
+      return true;
+    },
     session,
   };
 };
@@ -207,6 +223,41 @@ describe("OpenAIRealtimeSession", () => {
     expect(stop).toHaveBeenCalledOnce();
     expect(harness.localTracks[0]?.enabled).toBe(true);
     stop.mockRestore();
+    await harness.session.disconnect();
+  });
+
+  test("continues metering after switching an enabled microphone", async () => {
+    const replacementTrack = {
+      addEventListener: vi.fn(),
+      enabled: false,
+      kind: "audio",
+      readyState: "live",
+      removeEventListener: vi.fn(),
+      stop: vi.fn(),
+    };
+    const replacementStream = {
+      getAudioTracks: () => [replacementTrack],
+      getTracks: () => [replacementTrack],
+    } as unknown as MediaStream;
+    const mediaDevices = Object.assign(new EventTarget(), {
+      enumerateDevices: vi.fn(async () => []),
+      getUserMedia: vi.fn(async () => replacementStream),
+    });
+    const audioSettings = new VoiceAudioSettings("realtime", mediaDevices);
+    const harness = createHarness({ audioSettings });
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    expect(harness.runAnimationFrame()).toBe(true);
+
+    await audioSettings.setMicrophone("usb-mic");
+
+    expect(replacementTrack.enabled).toBe(true);
+    expect(harness.runAnimationFrame()).toBe(true);
+    expect(
+      harness.events.some(
+        (event) => event.type === "microphone-level" && event.level > 0,
+      ),
+    ).toBe(true);
     await harness.session.disconnect();
   });
 
