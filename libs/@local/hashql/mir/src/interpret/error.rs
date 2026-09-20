@@ -5,7 +5,7 @@
 
 use alloc::borrow::Cow;
 use core::{
-    alloc::{Allocator, AllocatorClone},
+    alloc::Allocator,
     fmt::{self, Display},
 };
 
@@ -167,39 +167,6 @@ pub struct BinaryTypeMismatch<'heap, A: Allocator> {
     pub rhs: Value<'heap, A>,
 }
 
-impl<A> Clone for BinaryTypeMismatch<'_, A>
-where
-    A: AllocatorClone,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        Self {
-            op: self.op,
-            lhs_expected: self.lhs_expected.clone(),
-            rhs_expected: self.rhs_expected.clone(),
-            lhs: self.lhs.clone(),
-            rhs: self.rhs.clone(),
-        }
-    }
-
-    #[inline]
-    fn clone_from(&mut self, source: &Self) {
-        let Self {
-            op,
-            lhs_expected,
-            rhs_expected,
-            lhs,
-            rhs,
-        } = self;
-
-        *op = source.op;
-        lhs_expected.clone_from(&source.lhs_expected);
-        rhs_expected.clone_from(&source.rhs_expected);
-        lhs.clone_from(&source.lhs);
-        rhs.clone_from(&source.rhs);
-    }
-}
-
 /// Details of a unary operator type mismatch.
 ///
 /// Contains the operator, expected type, and actual value for diagnostic
@@ -212,33 +179,6 @@ pub struct UnaryTypeMismatch<'heap, A: Allocator> {
     pub expected: TypeName,
     /// The actual value.
     pub value: Value<'heap, A>,
-}
-
-impl<A> Clone for UnaryTypeMismatch<'_, A>
-where
-    A: AllocatorClone,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        Self {
-            op: self.op,
-            expected: self.expected.clone(),
-            value: self.value.clone(),
-        }
-    }
-
-    #[inline]
-    fn clone_from(&mut self, source: &Self) {
-        let Self {
-            op,
-            expected,
-            value,
-        } = self;
-
-        *op = source.op;
-        expected.clone_from(&source.expected);
-        value.clone_from(&source.value);
-    }
 }
 
 /// Errors that can occur during MIR interpretation.
@@ -605,160 +545,6 @@ impl<'heap, A: Allocator> RuntimeError<'heap, !, A> {
                 RuntimeError::UnexpectedValueType { expected, actual }
             }
             Self::InvalidConstructor { name } => RuntimeError::InvalidConstructor { name },
-        }
-    }
-}
-
-impl<E, A> Clone for RuntimeError<'_, E, A>
-where
-    E: Clone,
-    A: AllocatorClone,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        match self {
-            &Self::UninitializedLocal { local, decl } => Self::UninitializedLocal { local, decl },
-            Self::InvalidIndexType { base, index } => Self::InvalidIndexType {
-                base: base.clone(),
-                index: index.clone(),
-            },
-            Self::InvalidSubscriptType { base } => {
-                Self::InvalidSubscriptType { base: base.clone() }
-            }
-            Self::InvalidProjectionType { base } => {
-                Self::InvalidProjectionType { base: base.clone() }
-            }
-            Self::InvalidProjectionByNameType { base } => {
-                Self::InvalidProjectionByNameType { base: base.clone() }
-            }
-            Self::UnknownField { base, field } => Self::UnknownField {
-                base: base.clone(),
-                field: *field,
-            },
-            Self::UnknownFieldByName { base, field } => Self::UnknownFieldByName {
-                base: base.clone(),
-                field: *field,
-            },
-            Self::StructFieldLengthMismatch { values, fields } => Self::StructFieldLengthMismatch {
-                values: *values,
-                fields: *fields,
-            },
-            Self::InvalidDiscriminantType { r#type } => Self::InvalidDiscriminantType {
-                r#type: r#type.clone(),
-            },
-            Self::InvalidDiscriminant { value } => Self::InvalidDiscriminant { value: *value },
-            Self::UnreachableReached => Self::UnreachableReached,
-            Self::BinaryTypeMismatch(mismatch) => Self::BinaryTypeMismatch(mismatch.clone()),
-            Self::UnaryTypeMismatch(mismatch) => Self::UnaryTypeMismatch(mismatch.clone()),
-            Self::ApplyNonPointer { r#type } => Self::ApplyNonPointer {
-                r#type: r#type.clone(),
-            },
-            Self::CallstackEmpty => Self::CallstackEmpty,
-            Self::OutOfRange { length, index } => Self::OutOfRange {
-                length: *length,
-                index: *index,
-            },
-            Self::InputNotFound { name } => Self::InputNotFound { name: *name },
-            Self::RecursionLimitExceeded { limit } => {
-                Self::RecursionLimitExceeded { limit: *limit }
-            }
-            Self::IntegerOverflow { operation } => Self::IntegerOverflow { operation },
-            Self::UnexpectedValueType { expected, actual } => Self::UnexpectedValueType {
-                expected: expected.clone(),
-                actual: actual.clone(),
-            },
-            Self::InvalidConstructor { name } => Self::InvalidConstructor { name: *name },
-            Self::Suspension(suspension) => Self::Suspension(suspension.clone()),
-        }
-    }
-
-    #[inline]
-    fn clone_from(&mut self, source: &Self) {
-        match (self, source) {
-            (
-                this @ Self::UninitializedLocal { local: _, decl: _ },
-                &Self::UninitializedLocal { local, decl },
-            ) => {
-                *this = Self::UninitializedLocal { local, decl };
-            }
-            (
-                Self::InvalidIndexType { base, index },
-                Self::InvalidIndexType {
-                    base: source_base,
-                    index: source_index,
-                },
-            ) => {
-                base.clone_from(source_base);
-                index.clone_from(source_index);
-            }
-            (
-                Self::InvalidSubscriptType { base },
-                Self::InvalidSubscriptType { base: source_base },
-            )
-            | (
-                Self::InvalidProjectionType { base },
-                Self::InvalidProjectionType { base: source_base },
-            )
-            | (
-                Self::InvalidProjectionByNameType { base },
-                Self::InvalidProjectionByNameType { base: source_base },
-            ) => {
-                base.clone_from(source_base);
-            }
-            (
-                Self::UnknownField { base, field },
-                Self::UnknownField {
-                    base: source_base,
-                    field: source_field,
-                },
-            ) => {
-                base.clone_from(source_base);
-                *field = *source_field;
-            }
-            (
-                Self::UnknownFieldByName { base, field },
-                Self::UnknownFieldByName {
-                    base: source_base,
-                    field: source_field,
-                },
-            ) => {
-                base.clone_from(source_base);
-                *field = *source_field;
-            }
-            (
-                Self::InvalidDiscriminantType { r#type },
-                Self::InvalidDiscriminantType {
-                    r#type: source_type,
-                },
-            )
-            | (
-                Self::ApplyNonPointer { r#type },
-                Self::ApplyNonPointer {
-                    r#type: source_type,
-                },
-            ) => {
-                r#type.clone_from(source_type);
-            }
-            (Self::BinaryTypeMismatch(mismatch), Self::BinaryTypeMismatch(source_mismatch)) => {
-                mismatch.clone_from(source_mismatch);
-            }
-            (Self::UnaryTypeMismatch(mismatch), Self::UnaryTypeMismatch(source_mismatch)) => {
-                mismatch.clone_from(source_mismatch);
-            }
-            (
-                Self::UnexpectedValueType { expected, actual },
-                Self::UnexpectedValueType {
-                    expected: source_expected,
-                    actual: source_actual,
-                },
-            ) => {
-                expected.clone_from(source_expected);
-                actual.clone_from(source_actual);
-            }
-            (Self::Suspension(suspension), Self::Suspension(source_suspension)) => {
-                suspension.clone_from(source_suspension);
-            }
-            (this, source) => *this = source.clone(),
         }
     }
 }
