@@ -26,6 +26,13 @@ export const sharedModes = ["edit", "simulate", "actual"] as const;
 
 export const sharedEditViews = ["canvas", "definitions"] as const;
 
+/**
+ * Whether an editor edit view is one the URL contract carries. Plugins name
+ * their own edit views, so this is a runtime check rather than a type.
+ */
+export const isSharedEditView = (view: string): view is SharedEditView =>
+  (sharedEditViews as readonly string[]).includes(view);
+
 export const sharedSimulateViews = [
   "scenarios",
   "metrics",

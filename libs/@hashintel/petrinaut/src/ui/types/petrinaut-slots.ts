@@ -9,6 +9,9 @@
  * Slot content is rendered inside the editor's Panda CSS context. Hosts
  * using a different styling system (e.g. MUI, Emotion) should ensure their
  * styles are scoped — or just use `@hashintel/ds-components` directly.
+ *
+ * @deprecated Install a plugin with `buttons` or `topBarItems` through
+ * `PetrinautPluginsProvider` instead.
  */
 export type PetrinautSlots = {
   /**

@@ -47,6 +47,8 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { useInstalledPlugins } from "../../plugins/installed-plugins";
+import { selectPluginEditViews } from "../../plugins/plugin";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -221,6 +223,22 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+
+  // The Canvas and the Definitions view are built in; plugins contribute the
+  // other edit views. A view the location names but nothing provides falls
+  // back to the Canvas, so a stale URL still shows the net.
+  const pluginEditViews = selectPluginEditViews(useInstalledPlugins());
+  const activeEditView =
+    globalMode === "edit"
+      ? pluginEditViews.find((view) => view.id === editViewMode)
+      : undefined;
+  const isDefinitionsWorkspace =
+    globalMode === "edit" && editViewMode === "definitions";
+  const isCanvasWorkspace =
+    globalMode === "actual" ||
+    (globalMode === "edit" &&
+      !isDefinitionsWorkspace &&
+      activeEditView === undefined);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
@@ -617,14 +635,10 @@ const EditorViewContent = ({
               <SimulateView />
             ) : (
               <div className={workspaceStyle}>
-                {globalMode === "edit" && <EditViewSelector />}
-                <Activity
-                  mode={
-                    globalMode === "actual" || editViewMode === "canvas"
-                      ? "visible"
-                      : "hidden"
-                  }
-                >
+                {globalMode === "edit" && (
+                  <EditViewSelector editViews={pluginEditViews} />
+                )}
+                <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
                   <Box className={canvasContainerStyle}>
                     {/* Left Sidebar - Tools and content panels */}
                     <LeftSideBar />
@@ -663,13 +677,7 @@ const EditorViewContent = ({
                     <BottomPanel />
                   </Box>
                 </Activity>
-                <Activity
-                  mode={
-                    globalMode === "edit" && editViewMode === "definitions"
-                      ? "visible"
-                      : "hidden"
-                  }
-                >
+                <Activity mode={isDefinitionsWorkspace ? "visible" : "hidden"}>
                   <NotebookView
                     key={petriNetId ?? "no-net"}
                     toolbarStart={
@@ -677,16 +685,22 @@ const EditorViewContent = ({
                     }
                   />
                 </Activity>
+                {pluginEditViews.map((view) => {
+                  const EditView = view.component;
+                  return (
+                    <Activity
+                      key={view.id}
+                      mode={
+                        activeEditView?.id === view.id ? "visible" : "hidden"
+                      }
+                    >
+                      <EditView />
+                    </Activity>
+                  );
+                })}
               </div>
             )}
-            <Activity
-              mode={
-                globalMode === "actual" ||
-                (globalMode === "edit" && editViewMode === "canvas")
-                  ? "visible"
-                  : "hidden"
-              }
-            >
+            <Activity mode={isCanvasWorkspace ? "visible" : "hidden"}>
               <BottomBar
                 mode={globalMode}
                 editionMode={editionMode}
