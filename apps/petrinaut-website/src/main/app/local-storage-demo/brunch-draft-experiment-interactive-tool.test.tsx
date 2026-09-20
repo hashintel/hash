@@ -379,6 +379,31 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
   });
 
+  it("shows that a draft is being prepared while submission is pending", async () => {
+    const submission = Promise.withResolvers<void>();
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "pending-draft",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      submitOutput: () => submission.promise,
+    });
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(heading()).toEqual(["Preparing draft"]);
+    expect(screen.getByText(/being prepared/u)).toBeTruthy();
+    expect(screen.queryByText(/earlier session/u)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+
+    await act(async () => submission.resolve());
+    await waitFor(() =>
+      expect(heading()).toEqual([
+        "Drafted — not run · not saved with the document",
+      ]),
+    );
+  });
+
   it("blocks an unsupported hard restriction unless reporting-only exploration was explicitly accepted", async () => {
     const runExperiment = vi.fn();
     const input = draftPetrinautExperimentInputSchema.parse({

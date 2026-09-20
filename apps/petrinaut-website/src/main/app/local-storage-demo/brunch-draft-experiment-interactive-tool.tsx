@@ -227,6 +227,9 @@ export const BrunchDraftExperimentWidget = ({
   } | null>(null);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const [submissionPending, setSubmissionPending] = useState(
+    state === "awaiting" && submitAndWait !== undefined,
+  );
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
@@ -294,9 +297,11 @@ export const BrunchDraftExperimentWidget = ({
       try {
         await submitAndWait(output);
       } catch {
+        setSubmissionPending(false);
         return;
       }
       sessionDrafts.register(candidate);
+      setSubmissionPending(false);
     };
     void submitAndRegister();
   }, [
@@ -389,7 +394,9 @@ export const BrunchDraftExperimentWidget = ({
   };
 
   const heading = !draft
-    ? "Not retained in this session"
+    ? submissionPending
+      ? "Preparing draft"
+      : "Not retained in this session"
     : draft.invalid !== null
       ? "Could not be prepared"
       : draft.dismissed
@@ -447,7 +454,9 @@ export const BrunchDraftExperimentWidget = ({
       ) : (
         <p className={bodyStyle}>
           {draft?.invalid ??
-            "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it."}
+            (submissionPending
+              ? "This experiment proposal is being prepared."
+              : "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
