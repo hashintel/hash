@@ -5,7 +5,8 @@
 Implementation-complete and verified on
 `kostandin/fe-1650-brunch-voice-settings` for
 [FE-1650](https://linear.app/hash/issue/FE-1650/let-demo-users-select-brunch-and-opt-into-voice-from-settings);
-the branch is at the pre-PR review gate with no known implementation blocker.
+draft [PR #9793](https://github.com/hashintel/hash/pull/9793) is open for review
+with no known implementation blocker.
 
 The demo now exposes the existing Stock-or-Brunch choice and a separate,
 default-off Voice preference in **Settings → Labs**. Both choices persist, the
@@ -18,10 +19,10 @@ host-content slot in Petrinaut. It does not redesign assistant switching,
 active-turn lifecycle, provider history, Voice transport, server policy, or
 Petrinaut's settings model. No paid Voice or model run was authorized or used.
 
-The next authorized action is owner pre-PR review and PR preparation. The real
-demo route has already shown both controls, persistence across reload, and
-Voice exposure only when all three gates permit it; the retained capture is a
-local candidate, not deployed-environment acceptance.
+The next authorized action is draft-PR review. The real demo route has already
+shown both controls, persistence across reload, and Voice exposure only when
+all three gates permit it; the retained capture is a local candidate, not
+deployed-environment acceptance.
 
 ### Owner decisions
 
