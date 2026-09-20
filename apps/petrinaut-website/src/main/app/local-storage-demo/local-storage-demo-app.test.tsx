@@ -1920,6 +1920,13 @@ describe("assistant selection", () => {
   };
   const currentAssistant = () =>
     editorProps.current?.aiAssistant as PetrinautAiAssistant;
+  const currentVoiceCapability = () => {
+    const settingsLabs = editorProps.current?.slots?.settingsLabs;
+    if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
+      throw new Error("Expected the website Labs settings to render.");
+    }
+    return settingsLabs.props.openAIVoiceConfig;
+  };
 
   afterEach(() => {
     cleanup();
@@ -2004,12 +2011,7 @@ describe("assistant selection", () => {
     );
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledOnce();
-      const settingsLabs = editorProps.current?.slots?.settingsLabs;
-      expect(isValidElement(settingsLabs)).toBe(true);
-      if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
-        throw new Error("Expected the website Labs settings to render.");
-      }
-      expect(settingsLabs.props.openAIVoiceConfig).toEqual({
+      expect(currentVoiceCapability()).toEqual({
         available: true,
         connectionTimeoutMs: 10_000,
       });
@@ -2032,6 +2034,65 @@ describe("assistant selection", () => {
         (assistant) => assistant.renderVoiceMode === undefined,
       ),
     ).toBe(true);
+  });
+
+  test("clears cached Voice capability during each Stock to Brunch check", async () => {
+    const incarnationId = "delayed-voice-capability-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    localStorage.setItem(voicePreferenceStorageKey, "true");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    const firstCapability = Promise.withResolvers<Response>();
+    const secondCapability = Promise.withResolvers<Response>();
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockReturnValueOnce(firstCapability.promise)
+      .mockReturnValueOnce(secondCapability.promise);
+    vi.stubGlobal("fetch", fetch);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    renderedAssistants.length = 0;
+    switchAssistant(/Use Brunch/);
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    expect(currentVoiceCapability()).toBeUndefined();
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(renderedAssistants.length).toBeGreaterThan(0);
+    expect(
+      renderedAssistants.every(
+        (assistant) => assistant.renderVoiceMode === undefined,
+      ),
+    ).toBe(true);
+
+    firstCapability.resolve(
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    );
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeDefined(),
+    );
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeUndefined(),
+    );
+    renderedAssistants.length = 0;
+    switchAssistant(/Use Brunch/);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(currentVoiceCapability()).toBeUndefined();
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(renderedAssistants.length).toBeGreaterThan(0);
+    expect(
+      renderedAssistants.every(
+        (assistant) => assistant.renderVoiceMode === undefined,
+      ),
+    ).toBe(true);
+
+    secondCapability.resolve(
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    );
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeDefined(),
+    );
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {

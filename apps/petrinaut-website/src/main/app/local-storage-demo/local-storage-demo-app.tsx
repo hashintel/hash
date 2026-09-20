@@ -66,6 +66,7 @@ import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
   stockChatEndpoint,
+  type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
 import {
@@ -365,7 +366,7 @@ export const LocalStorageDemoApp = ({
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
-    setSelection: selectAssistant,
+    setSelection: setAssistantSelection,
   } = useAssistantSelection({ enabled: !remoteRouteSelected });
   const {
     enabled: voiceEnabled,
@@ -381,7 +382,11 @@ export const LocalStorageDemoApp = ({
       );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
-  >(() => (brunchSelected ? undefined : null));
+  >(undefined);
+  const selectAssistant = (selection: AssistantSelection) => {
+    setOpenAIVoiceConfig(selection === "brunch" ? undefined : null);
+    setAssistantSelection(selection);
+  };
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -444,6 +449,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
+    setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),
       abortController.signal,
