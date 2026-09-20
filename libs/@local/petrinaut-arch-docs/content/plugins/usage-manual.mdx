@@ -1,0 +1,178 @@
+---
+title: Usage manual
+description: Writing a Petrinaut plugin, installing it with the plugins provider, and the places in the editor that render its buttons, panel sections, edit views and commands.
+attachTo: ui.plugins
+sidebar_order: 10
+---
+
+A plugin is plain data: an id and the contributions it makes to named places
+in the editor. The host installs plugins by wrapping the editor in
+`PetrinautPluginsProvider`; the editor reads them back where each place
+renders. Nothing else adds buttons or views to the chrome. The types live in
+`petrinaut/src/ui/plugins/plugin.ts` and are exported from
+`@hashintel/petrinaut/ui` and the root entry.
+
+```text
+ host                              editor
+ ┌───────────────────────────┐     ┌──────────────────────────────────────┐
+ │ <PetrinautPluginsProvider │     │ top bar   [start ▸]  title  [◂ end]  │
+ │   plugins={[a, b]}>       │ ──▶ │ canvas          ┌─ viewport controls │
+ │   <Petrinaut />           │     │ left sidebar    │  bottom panel tabs │
+ │ </PetrinautPluginsProvider>     │ edit views      │  command registry  │
+ └───────────────────────────┘     └──────────────────────────────────────┘
+      built-ins first, then a, then b — each place renders in that order
+```
+
+## The places
+
+| Place               | Contribution             | Rendered by                                   |
+| ------------------- | ------------------------ | --------------------------------------------- |
+| `top-bar-start`     | `buttons`, `topBarItems` | the top bar, after the menu, before the title |
+| `top-bar-end`       | `buttons`, `topBarItems` | the top bar's trailing edge                   |
+| `viewport-controls` | `buttons`                | the column under the canvas zoom controls     |
+| `left-sidebar`      | `subViews`               | a collapsible section after the built-ins     |
+| `bottom-panel`      | `subViews`               | a tab after the built-ins                     |
+| edit views          | `editViews`              | the Canvas / … selector in Edit mode          |
+| command registry    | `commands`, `component`  | the ambient `CommandRegistryProvider`         |
+
+Buttons take the toolbar's size and variant, so a plugin button looks like the
+built-in one beside it. A `topBarItems` entry renders its own component
+inline for content that is not a button, such as a breadcrumb.
+
+## The model
+
+```ts
+type PetrinautPlugin = {
+  id: string; // stable and namespaced: "website.sentry-feedback"
+  name?: string;
+  buttons?: readonly PetrinautPluginButton[];
+  topBarItems?: readonly PetrinautPluginTopBarItem[];
+  commands?: readonly Command[];
+  subViews?: readonly PetrinautPluginSubView[]; // SubView + placement
+  editViews?: readonly PetrinautPluginEditView[]; // { id, label, component }
+  component?: ComponentType; // mounted once per editor while installed
+};
+
+type PetrinautPluginButton = {
+  id: string;
+  placement: "top-bar-start" | "top-bar-end" | "viewport-controls";
+  label: string; // accessible name; the tooltip unless one is given
+  icon: ReactNode;
+  tooltip?: string;
+  command?: string; // a registry command to execute on click
+  onClick?: () => void;
+  className?: string;
+  ref?: Ref<HTMLButtonElement>;
+};
+```
+
+- Every id is namespaced and stable. A plugin id installed twice throws at
+  render, rather than letting the later plugin replace the earlier one.
+- A `subViews` entry is the panels' own `SubView` contract plus a placement.
+  Its collapsed state and height persist under its id.
+- An `editViews` entry's id is what the navigation state and host URLs carry
+  as `editView`. A view the location names but no plugin provides falls back
+  to the Canvas.
+- `component` is where stateful work lives: overlays, `useCommand`
+  declarations, subscriptions. It mounts inside the editor's providers, so
+  every `@hashintel/petrinaut/react` hook is available. A thrown error
+  unmounts that plugin's component alone and reaches the host's
+  `ErrorTrackerContext` with `source: "plugin.component"`.
+- A `topBarItems` component that needs the host's own state reads it from a
+  context the host provides above `PetrinautPluginsProvider`. The plugin
+  object stays a module constant; only the context value changes.
+
+## Write a plugin
+
+A button that attaches a third-party widget to its element:
+
+```tsx
+export const sentryFeedbackPlugin = definePetrinautPlugin({
+  id: "website.sentry-feedback",
+  buttons: [
+    {
+      id: "website.sentry-feedback.give-feedback",
+      placement: "viewport-controls",
+      label: "Give feedback",
+      icon: <MdBugReport size={14} />,
+      ref: (node) => node && Sentry.getFeedback()?.attachTo(node),
+    },
+  ],
+});
+```
+
+A stateful overlay with a button that runs its command:
+
+```tsx
+const toggleCommandId = "website.command-palette.toggle";
+
+const CommandPalette = () => {
+  const [isOpen, setOpen] = useState(false);
+  useCommand({
+    id: toggleCommandId,
+    label: "Toggle the command palette",
+    shortcut: "mod+k",
+    run: () => setOpen((open) => !open),
+  });
+  return isOpen ? <PaletteOverlay onClose={() => setOpen(false)} /> : null;
+};
+
+export const commandPalettePlugin = definePetrinautPlugin({
+  id: "website.command-palette",
+  buttons: [
+    {
+      id: "website.command-palette.toggle-button",
+      placement: "top-bar-end",
+      label: "Command palette",
+      icon: <MdKeyboardCommandKey size={16} />,
+      command: toggleCommandId,
+    },
+  ],
+  component: CommandPalette,
+});
+```
+
+An edit view, which is how the built-in Definitions view is installed:
+
+```tsx
+export const definitionsViewPlugin = definePetrinautPlugin({
+  id: "petrinaut.definitions-view",
+  editViews: [
+    { id: "definitions", label: "Definitions", component: DefinitionsView },
+  ],
+});
+```
+
+## Install plugins
+
+```tsx
+<PetrinautPluginsProvider
+  plugins={[sentryFeedbackPlugin, commandPalettePlugin]}
+>
+  <Petrinaut handle={handle} />
+</PetrinautPluginsProvider>
+```
+
+- The editor installs `petrinautBuiltInPlugins` first, then the host's list.
+  `builtInPlugins` replaces that set: a subset drops a built-in, `[]` leaves
+  only the host's plugins.
+- Plugin commands need a command registry. The provider creates one when the
+  host has not mounted its own `CommandRegistryProvider` above it; the
+  [command registry manual](doc:commands/usage-manual) covers rendering a
+  palette over it.
+- `PetrinautPreview` runs the same host plugins without the built-ins. Its
+  only toolbar is the viewport controls, so other placements render nothing
+  there.
+- Keep the plugin objects at module scope or otherwise stable. The provider
+  re-renders its consumers when the list changes identity.
+
+## What is not here yet
+
+- No availability predicate on a contribution: a subview or button shows
+  whenever its plugin is installed. A plugin's `component` can still declare
+  commands conditionally with `useCommand`'s `when`.
+- No runtime registration hook for host components; the provider's list is
+  the only install path.
+- No plugin-owned document data, renderers, simulators or analyzers. The
+  places above are the editor chrome; the compute contracts stay where they
+  are.
