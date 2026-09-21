@@ -2,7 +2,7 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
+    alloc::{Allocator, AllocatorClone},
     cmp,
     fmt::{self, Display},
     mem::MaybeUninit,
@@ -57,7 +57,7 @@ use crate::body::place::FieldIndex;
 ///     Some(&Value::Integer(1.into())),
 /// );
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Struct<'heap, A: Allocator> {
     fields: Interned<'heap, [Symbol<'heap>]>,
     values: Rc<[Value<'heap, A>], A>,
@@ -272,7 +272,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     #[must_use]
     pub fn get_by_name_mut(&mut self, field: Symbol<'heap>) -> Option<&mut Value<'heap, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let values = Rc::make_mut(&mut self.values);
         self.fields
@@ -351,7 +351,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     /// ```
     pub fn get_by_index_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let values = Rc::make_mut(&mut self.values);
         values.get_mut(index.as_usize())
@@ -403,6 +403,27 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
 
             Ok(())
         })
+    }
+}
+
+impl<A> Clone for Struct<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Struct {
+            fields: self.fields,
+            values: Rc::clone(&self.values),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { fields, values } = self;
+
+        *fields = source.fields;
+        values.clone_from(&source.values);
     }
 }
 
@@ -855,8 +876,8 @@ mod tests {
         let mut builder = StructBuilder::<'_, Global, 3>::new();
         assert!(builder.is_empty());
         assert_eq!(builder.len(), 0);
-        assert!(builder.fields().is_empty());
-        assert!(builder.values().is_empty());
+        assert_eq!(builder.fields(), []);
+        assert_eq!(builder.values(), []);
 
         builder.push(sym_a, int(1));
         assert_eq!(builder.len(), 1);

@@ -463,7 +463,7 @@ fn clustered_embeddings() -> Vec<BoxedVecN<PROJECTOR_DIMENSIONS>> {
             // Unit vectors tilted slightly per member keep members of
             // one cluster nearer to each other than to other clusters.
             let tilt = if member == 0 { 0.0_f32 } else { 0.1 };
-            let norm = (1.0 + tilt * tilt).sqrt();
+            let norm = f32::mul_add(tilt, tilt, 1.0).sqrt();
             array[main] = 1.0 / norm;
             array[side] = tilt / norm;
             rows.push(boxed);

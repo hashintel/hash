@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exactness assertions are the point: inverse negation is a bit-precise contract"
-)]
-
 use proptest::{prop_assert, property_test, strategy::Strategy};
 
 use crate::math::{

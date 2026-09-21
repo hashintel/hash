@@ -592,7 +592,7 @@ mod tests {
         assert_eq!(params.filter.webs, EntityTableWebScope::default());
         assert_eq!(params.filter.entity_type_ids, None);
         assert!(!params.filter.include_archived);
-        assert!(params.filter.excluded_type_base_urls.is_empty());
+        assert_eq!(params.filter.excluded_type_base_urls, [] as [BaseUrl; 0]);
     }
 
     #[test]

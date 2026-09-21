@@ -128,11 +128,7 @@ impl<'heap> Path<'heap> {
             unreachable!();
         };
 
-        if !segment.arguments.is_empty() {
-            return false;
-        }
-
-        true
+        segment.arguments.is_empty()
     }
 
     pub(crate) fn has_generic_arguments(&self) -> bool {

@@ -146,13 +146,7 @@ fn semantic_total_weight_sums_both_edge_directions() {
     let graph = semantic_graph(4, &[(0, 1, 0.5), (1, 2, 0.25), (2, 3, 1.0)]);
     let sampler = SemanticEdgeSampler::new(graph.view()).expect("the graph has weight");
 
-    #[expect(
-        clippy::float_cmp,
-        reason = "dyadic weights sum exactly in double precision and narrow exactly"
-    )]
-    {
-        assert_eq!(sampler.total_weight(), 3.5);
-    }
+    assert_eq!(sampler.total_weight(), 3.5);
 }
 
 #[test]

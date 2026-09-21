@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are contracts on exactly representable values"
-)]
-
 use super::{Applicability, Classifier, PredictError, Standardization};
 use crate::{
     dataset::CANONICAL_DIMENSIONS,

@@ -354,10 +354,6 @@ pub fn env_filter(level: Option<Level>) -> EnvFilter {
 //     F: for<'write> FormatFields<'write> + 'static,
 // = impl Layer<S>;
 
-#[expect(
-    clippy::min_ident_chars,
-    reason = "False positive lint on generic bounds"
-)]
 fn layer<S, W, F>(
     format: LogFormat,
     level: Option<Level>,
@@ -434,10 +430,6 @@ where
 //     S: Subscriber + for<'a> LookupSpan<'a>,
 // = impl Layer<S>;
 
-#[expect(
-    clippy::min_ident_chars,
-    reason = "False positive lint on generic bounds"
-)]
 #[must_use]
 pub fn console_layer<S>(config: &ConsoleConfig) -> impl Layer<S> + use<S>
 where

@@ -704,7 +704,7 @@ unsafe fn accumulate_clusters(
     assert!(inv_norms.is_none_or(|norms| norms.len() == labels.len()));
     assert_eq!(order.len(), labels.len());
     assert_eq!(bounds.len(), counts.len() + 1);
-    assert!(!bounds.is_empty());
+    assert_ne!(*bounds, [] as [usize; 0]);
     assert_eq!(sums.len(), counts.len() * d);
 
     // 1. Histogram: the counts double as the bucket sizes, and the checked indexing doubles as
@@ -1177,7 +1177,6 @@ pub fn cluster(x: &[f32], dimension: Dimension, config: &Config) -> Clustering {
 #[cfg(test)]
 mod tests {
     #![expect(
-        clippy::float_cmp,
         clippy::integer_division_remainder_used,
         reason = "test module: float comparisons are intentional for exact-zero and distance \
                   checks; modulo is used in test data construction"

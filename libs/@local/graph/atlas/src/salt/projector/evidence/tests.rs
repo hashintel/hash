@@ -5,12 +5,6 @@
 //! clip-then-read certificate exercises the one place production arithmetic rounds, a clipped
 //! row's landing coordinate, and asserts the boolean the saturation floor was sized for.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "the exact fixtures produce exactly representable readings, and the asserted \
-              constants are exact contracts"
-)]
-
 use hashql_core::id::IdSlice;
 
 use super::{EvaluationEvidence, EvidenceReferences, EvidenceRefusal, StratumId};

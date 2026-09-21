@@ -42,13 +42,10 @@
 //! tests do not establish a worst-case error bound over all f64 inputs. [`math::kernel`](super)'s
 //! tests assert special points separately.
 
-use core::{
-    f32, f64, f128,
-    simd::{
-        Select as _, Simd,
-        cmp::{SimdPartialEq as _, SimdPartialOrd as _},
-        num::{SimdFloat as _, SimdInt as _, SimdUint as _},
-    },
+use core::simd::{
+    Select as _, Simd,
+    cmp::{SimdPartialEq as _, SimdPartialOrd as _},
+    num::{SimdFloat as _, SimdInt as _, SimdUint as _},
 };
 use std::simd::StdFloat as _;
 
@@ -60,21 +57,21 @@ use std::simd::StdFloat as _;
 /// The low `f32` mantissa bits zeroed in the coarse part of `ln 2`: nine bits.
 const F32_MASK: u32 = 0x1FF;
 /// The coarse part of `ln 2` in `f32`, exact under multiplication by integers below `2⁹`.
-const LN2_HI_F32: f32 = f32::from_bits(f32::consts::LN_2.to_bits() & !F32_MASK);
+const LN2_HI_F32: f32 = f32::from_bits(core::f32::consts::LN_2.to_bits() & !F32_MASK);
 /// The correctly rounded `f32` remainder `ln 2 - LN2_HI_F32`, computed in `f64`.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the cast is the derivation's rounding step: the remainder is correctly rounded into \
               the narrower type"
 )]
-const LN2_LO_F32: f32 = (f64::consts::LN_2 - (LN2_HI_F32 as f64)) as f32;
+const LN2_LO_F32: f32 = (core::f64::consts::LN_2 - (LN2_HI_F32 as f64)) as f32;
 
 /// The low `f64` mantissa bits zeroed in the coarse part of `ln 2`: twelve bits.
 const F64_MASK: u64 = 0xFFF;
 /// The coarse part of `ln 2` in `f64`, exact under multiplication by integers below `2¹²`.
-const LN2_HI_F64: f64 = f64::from_bits(f64::consts::LN_2.to_bits() & !F64_MASK);
+const LN2_HI_F64: f64 = f64::from_bits(core::f64::consts::LN_2.to_bits() & !F64_MASK);
 /// The correctly rounded `f64` remainder `ln 2 - LN2_HI_F64`, computed in `f128`.
-const LN2_LO_F64: f64 = (f128::consts::LN_2 - (LN2_HI_F64 as f128)) as f64;
+const LN2_LO_F64: f64 = (core::f128::consts::LN_2 - (LN2_HI_F64 as f128)) as f64;
 
 /// Constructs single-precision power-of-two exponent fields.
 ///

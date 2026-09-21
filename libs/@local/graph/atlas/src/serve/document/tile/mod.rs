@@ -6,8 +6,7 @@ mod codec;
 #[cfg(test)]
 mod tests;
 
-use alloc::alloc::Allocator;
-use core::{error::Error, fmt};
+use core::{alloc::Allocator, error::Error, fmt};
 
 use error_stack::Report;
 use hashql_core::id::{Id as _, IdVec};

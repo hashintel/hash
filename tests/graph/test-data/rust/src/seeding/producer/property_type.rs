@@ -278,7 +278,10 @@ pub(crate) mod tests {
     use core::fmt::Debug;
 
     use rand::Rng;
-    use type_system::provenance::{OriginProvenance, OriginType};
+    use type_system::{
+        ontology::property_type::schema::PropertyValues,
+        provenance::{OriginProvenance, OriginType},
+    };
 
     use super::*;
     use crate::seeding::{
@@ -426,8 +429,8 @@ pub(crate) mod tests {
         let property_type = producer
             .generate(context)
             .expect("should generate property type");
-        assert!(!property_type.schema.title.is_empty());
-        assert!(!property_type.schema.description.is_empty());
-        assert!(!property_type.schema.one_of.is_empty());
+        assert_ne!(property_type.schema.title, "");
+        assert_ne!(property_type.schema.description, "");
+        assert_ne!(property_type.schema.one_of, [] as [PropertyValues; 0]);
     }
 }

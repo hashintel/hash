@@ -405,11 +405,6 @@ fn lone_simple_pair_hoists_into_the_independent_sections() {
     );
 }
 
-#[expect(
-    clippy::float_cmp,
-    reason = "the expected targets and weights are the exact expressions the assembly computes, \
-              not measured values"
-)]
 #[tokio::test]
 async fn assembly_smooths_groups_and_counts_the_fixture_corpus() {
     let corpus = fixture_corpus();

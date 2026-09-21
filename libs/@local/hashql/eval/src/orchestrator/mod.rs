@@ -42,7 +42,10 @@
 //! [`fulfill_in`]: Orchestrator::fulfill_in
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, ops::Deref};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    ops::Deref,
+};
 
 use hashql_mir::{
     def::DefId,
@@ -171,7 +174,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
     /// filter evaluation failures).
     ///
     /// [`Value`]: hashql_mir::interpret::value::Value
-    pub async fn run_in<L: Allocator + Clone>(
+    pub async fn run_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
 
@@ -181,6 +184,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
         alloc: L,
     ) -> Result<Value<'heap, L>, OrchestratorDiagnostic>
     where
+        L: AllocatorClone,
         C: AsRef<Client>,
     {
         let mut runtime = Runtime::new_in(
@@ -260,7 +264,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
     /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
     /// [`Continuation`]: hashql_mir::interpret::suspension::Continuation
     /// [`apply`]: hashql_mir::interpret::suspension::Continuation::apply
-    pub async fn fulfill_in<L: Allocator + Clone>(
+    pub async fn fulfill_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
@@ -268,6 +272,7 @@ impl<'ctx, 'heap, C, E: EventLog, A: Allocator> Orchestrator<'_, 'ctx, 'heap, C,
         alloc: L,
     ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
     where
+        L: AllocatorClone,
         C: AsRef<Client>,
     {
         match suspension {

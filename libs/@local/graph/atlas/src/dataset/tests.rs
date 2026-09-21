@@ -133,10 +133,6 @@ async fn memory_dataset_streams_rows_in_construction_order() {
 ///
 /// The components come back exactly as stored.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture's exactly representable 1.0 must round-trip bit-identically"
-)]
 async fn memory_dataset_serves_canonical_embeddings() {
     let dataset = fixture();
 

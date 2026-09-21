@@ -712,10 +712,6 @@ fn the_step_axis_spans_exactly_the_curve_it_draws() {
     assert_eq!(points.last().map(|&(step, _)| step), Some(last));
 }
 
-#[expect(
-    clippy::float_cmp,
-    reason = "the bounds are exactly the fixture's own values and the unit fallback"
-)]
 #[test]
 fn the_value_axis_spans_zero_to_the_highest_loss_observed() {
     assert_eq!(value_bounds([3.0, 1.0, 2.0]), [0.0, 3.0]);

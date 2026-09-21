@@ -17,7 +17,10 @@
 //! [`Continuation`]: hashql_mir::interpret::suspension::Continuation
 //! [`Tail`]: super::super::tail::Tail
 
-use core::{alloc::Allocator, pin::pin};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    pin::pin,
+};
 
 use futures_lite::StreamExt as _;
 use hashql_mir::{
@@ -127,7 +130,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok((partial, partial_states))
     }
 
-    fn finish_in<L: Allocator + Clone>(
+    fn finish_in<L>(
         &self,
 
         decoder: &Decoder<'env, 'heap, L>,
@@ -136,7 +139,10 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         partial_states: Vec<PartialPostgresState<L>, L>,
 
         alloc: L,
-    ) -> Result<State<'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<State<'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        L: Allocator + Clone,
+    {
         let mut states = Vec::with_capacity_in(partial_states.len(), alloc.clone());
 
         for state in partial_states {
@@ -157,7 +163,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
     }
 
     #[expect(clippy::too_many_arguments)]
-    async fn process_row_filter_in<L: Allocator + Clone>(
+    async fn process_row_filter_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
 
@@ -170,7 +176,10 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         env: &Value<'heap, L>,
 
         alloc: L,
-    ) -> Result<bool, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<bool, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        L: AllocatorClone,
+    {
         let residual = self.inner.context.execution.lookup(body).ok_or_else(|| {
             RuntimeError::Suspension(BridgeError::MissingExecutionResidual { body })
         })?;
@@ -277,7 +286,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok(eval)
     }
 
-    async fn process_row_transform_in<L: Allocator + Clone>(
+    async fn process_row_transform_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
@@ -289,7 +298,10 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         read: &GraphRead<'heap>,
 
         alloc: L,
-    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        L: AllocatorClone,
+    {
         let mut runtime = Runtime::new_in(
             RuntimeConfig::default(),
             self.inner.context.bodies,
@@ -330,7 +342,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         Ok(Some(entity))
     }
 
-    async fn process_row_in<L: Allocator + Clone>(
+    async fn process_row_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
         parent: &CallStack<'ctx, 'heap, L>,
@@ -341,7 +353,10 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
         row: Row,
 
         alloc: L,
-    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Option<Value<'heap, L>>, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        L: AllocatorClone,
+    {
         let decoder = Decoder::new(
             self.inner.context.env,
             self.inner.context.interner,
@@ -364,7 +379,7 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
 
     // The entrypoint for graph read operations. The entrypoint is *always* postgres, because that's
     // the primary data store.
-    pub(crate) async fn fulfill_in<L: Allocator + Clone>(
+    pub(crate) async fn fulfill_in<L>(
         &self,
         inputs: &Inputs<'heap, L>,
         callstack: &CallStack<'ctx, 'heap, L>,
@@ -375,7 +390,10 @@ impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
             axis: _,
         }: GraphReadSuspension<'ctx, 'heap>,
         alloc: L,
-    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>>
+    where
+        L: AllocatorClone,
+    {
         // Because postgres is our source of truth, it means that any graph read suspension must be
         // resolved by querying postgres first.
         let query =

@@ -626,7 +626,7 @@ mod tests {
     }
 
     #[test]
-    #[expect(clippy::float_cmp, clippy::decimal_literal_representation)]
+    #[expect(clippy::decimal_literal_representation)]
     fn lossy_vs_exact_conversion() {
         let inside_f32 = Real::from_natural(123_456, 0); // 123456 - needs ~17 bits
         let inside_f64 = Real::from_natural(16_777_217, 0); // 2^24 + 1 - needs 25 bits
@@ -645,7 +645,6 @@ mod tests {
     }
 
     #[test]
-    #[expect(clippy::float_cmp)]
     fn regression() {
         let value = Real::try_from(0.0254).expect("valid value");
         assert_eq!(value.to_f64_lossy(), 0.0254);

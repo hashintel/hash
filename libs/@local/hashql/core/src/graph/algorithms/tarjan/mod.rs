@@ -162,7 +162,6 @@ where
     S: Id,
 {
     #[inline]
-    #[must_use]
     pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator + 'alloc {
         // Offsets is 1 longer than the number of SCCs
         self.offsets.ids().take(self.offsets.len() - 1)
