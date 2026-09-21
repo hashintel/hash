@@ -214,6 +214,7 @@ struct HttpDeliverer {
 
 impl Executor<RelayDomain> for HttpDeliverer {
     type Effect = DeliveryAttempt;
+    type Error = std::io::Error;
 
     fn plan(&self, projection: &RelayQueue) -> Vec<DeliveryAttempt> {
         projection
@@ -227,7 +228,10 @@ impl Executor<RelayDomain> for HttpDeliverer {
             .collect()
     }
 
-    async fn execute(&self, effect: &DeliveryAttempt) -> Result<Vec<RelayEvent>, Retry> {
+    async fn execute(
+        &self,
+        effect: &DeliveryAttempt,
+    ) -> Result<Vec<RelayEvent>, Retry<Self::Error>> {
         let key = effect_id(effect)
             .expect("effect should serialize")
             .to_string();
@@ -272,7 +276,7 @@ impl Executor<RelayDomain> for HttpDeliverer {
                 }])
             }
             Err(error) => Err(Retry {
-                reason: format!("endpoint unreachable: {error}"),
+                reason: error_stack::Report::new(error).attach(format!("endpoint: {ENDPOINT}")),
                 after: Some(Duration::from_millis(250)),
             }),
         }

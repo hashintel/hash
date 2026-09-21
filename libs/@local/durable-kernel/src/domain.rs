@@ -95,6 +95,7 @@ pub trait SimpleDomain: Send + Sync + 'static {
 /// result and returns it for repeated requests.
 pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     type Effect: Serialize + Clone + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     fn plan(&self, projection: &S::Projection) -> Vec<Self::Effect>;
 
@@ -102,17 +103,21 @@ pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     ///
     /// Completion events are saved individually. They must pass validation against state that
     /// may have changed during execution. Retries can repeat the external operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Retry`] with the failure report and an optional delay before another attempt.
     fn execute(
         &self,
         effect: &Self::Effect,
-    ) -> impl core::future::Future<Output = Result<Vec<S::Event>, Retry>> + Send;
+    ) -> impl core::future::Future<Output = Result<Vec<S::Event>, Retry<Self::Error>>> + Send;
 }
 
 /// Delays another attempt at this effect while the driver processes other work.
 /// The delay is held in memory, so a restart can retry the effect immediately.
-#[derive(Debug, Clone)]
-pub struct Retry {
-    pub reason: String,
+#[derive(Debug)]
+pub struct Retry<E> {
+    pub reason: Report<E>,
     /// Uses the runtime polling interval when `None`.
     pub after: Option<core::time::Duration>,
 }

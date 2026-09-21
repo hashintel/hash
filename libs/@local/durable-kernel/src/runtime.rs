@@ -471,22 +471,34 @@ fn settle_driver_error(
     }
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+enum EffectError {
+    #[display("effect execution failed")]
+    Execution,
+    #[display("effect execution panicked")]
+    Panicked,
+}
+
 async fn execute_effect<S, X>(
     executor: Arc<X>,
     effect: X::Effect,
     id: &EffectId,
-) -> Result<Result<Vec<S::Event>, domain::Retry>, Report<KernelError>>
+) -> Result<Result<Vec<S::Event>, domain::Retry<EffectError>>, Report<KernelError>>
 where
     S: SimpleDomain,
     X: Executor<S>,
 {
     match AbortOnDropHandle::new(tokio::spawn(async move { executor.execute(&effect).await })).await
     {
-        Ok(outcome) => Ok(outcome),
+        Ok(Ok(events)) => Ok(Ok(events)),
+        Ok(Err(retry)) => Ok(Err(domain::Retry {
+            reason: retry.reason.change_context(EffectError::Execution),
+            after: retry.after,
+        })),
         Err(error) if error.is_panic() => {
             tracing::warn!(%error, effect_id = %id, "effect panicked; retrying later");
             Ok(Err(domain::Retry {
-                reason: "effect execution panicked".to_owned(),
+                reason: Report::new(error).change_context(EffectError::Panicked),
                 after: None,
             }))
         }
@@ -578,7 +590,7 @@ where
                     progressed = true;
                 }
                 Err(retry) => {
-                    tracing::debug!(reason = %retry.reason, "effect execution retries later");
+                    tracing::debug!(reason = ?retry.reason, effect_id = %id, "effect execution retries later");
                     let deadline = tokio::time::Instant::now()
                         .checked_add(retry.after.unwrap_or(settings.poll_interval))
                         .ok_or_else(|| {
@@ -641,7 +653,10 @@ mod tests {
     use tokio::task::JoinHandle;
     use tokio_util::sync::CancellationToken;
 
-    use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted};
+    use super::{
+        EffectError, Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted,
+        execute_effect,
+    };
     use crate::{
         domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
         keyspace::Namespace,
@@ -882,6 +897,7 @@ mod tests {
 
     impl Executor<RtDomain> for ArchiveExecutor {
         type Effect = ArchiveEffect;
+        type Error = Infallible;
 
         fn plan(&self, projection: &RtCounters) -> Vec<ArchiveEffect> {
             projection
@@ -899,7 +915,10 @@ mod tests {
             clippy::unused_async_trait_impl,
             reason = "executor side effects run when the future is polled"
         )]
-        async fn execute(&self, effect: &ArchiveEffect) -> Result<Vec<RtEvent>, Retry> {
+        async fn execute(
+            &self,
+            effect: &ArchiveEffect,
+        ) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
             self.external
                 .lock()
                 .expect("test mutex should not be poisoned")
@@ -1230,6 +1249,96 @@ mod tests {
         check_retry_order(false).await;
     }
 
+    #[derive(Debug, derive_more::Display, derive_more::Error)]
+    #[display("destination unavailable")]
+    struct DestinationUnavailable;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct RetryAttempt(u32);
+
+    struct FailedExecutor {
+        panic: bool,
+    }
+
+    impl Executor<RtDomain> for FailedExecutor {
+        type Effect = u8;
+        type Error = DestinationUnavailable;
+
+        fn plan(&self, _: &RtCounters) -> Vec<u8> {
+            vec![1]
+        }
+
+        #[expect(
+            clippy::unused_async_trait_impl,
+            reason = "the panic must occur when the executor future is polled"
+        )]
+        async fn execute(&self, _: &u8) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
+            assert!(!self.panic, "injected effect panic");
+            Err(Retry {
+                reason: Report::new(std::io::Error::from(std::io::ErrorKind::ConnectionRefused))
+                    .change_context(DestinationUnavailable)
+                    .attach("upsert customer 42")
+                    .attach_opaque(RetryAttempt(3)),
+                after: Some(Duration::from_millis(200)),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn effect_retry_source() {
+        let id = domain::effect_id(&1_u8).expect("effect should serialize");
+        let retry =
+            execute_effect::<RtDomain, _>(Arc::new(FailedExecutor { panic: false }), 1, &id)
+                .await
+                .expect("executor failure should permit a retry")
+                .expect_err("executor should request a retry");
+
+        assert_eq!(retry.after, Some(Duration::from_millis(200)));
+        assert!(matches!(
+            retry.reason.current_context(),
+            EffectError::Execution
+        ));
+        assert!(retry.reason.contains::<DestinationUnavailable>());
+        assert_eq!(
+            retry
+                .reason
+                .downcast_ref::<std::io::Error>()
+                .expect("retry should retain the connection error")
+                .kind(),
+            std::io::ErrorKind::ConnectionRefused
+        );
+        assert_eq!(
+            retry.reason.downcast_ref::<RetryAttempt>(),
+            Some(&RetryAttempt(3))
+        );
+        assert!(
+            format!("{:?}", retry.reason).contains("upsert customer 42"),
+            "retry should retain printable attachments"
+        );
+    }
+
+    #[tokio::test]
+    async fn effect_panic_source() {
+        let id = domain::effect_id(&1_u8).expect("effect should serialize");
+        let retry = execute_effect::<RtDomain, _>(Arc::new(FailedExecutor { panic: true }), 1, &id)
+            .await
+            .expect("executor panic should permit a retry")
+            .expect_err("executor panic should request a retry");
+
+        assert_eq!(retry.after, None);
+        assert!(matches!(
+            retry.reason.current_context(),
+            EffectError::Panicked
+        ));
+        assert!(
+            retry
+                .reason
+                .downcast_ref::<tokio::task::JoinError>()
+                .expect("retry should retain the task failure")
+                .is_panic()
+        );
+    }
+
     #[tokio::test]
     async fn effect_panic_retry_order() {
         check_retry_order(true).await;
@@ -1243,6 +1352,7 @@ mod tests {
 
         impl Executor<RtDomain> for RetryingExecutor {
             type Effect = u8;
+            type Error = DestinationUnavailable;
 
             fn plan(&self, projection: &RtCounters) -> Vec<u8> {
                 match projection.totals.get("ready") {
@@ -1256,7 +1366,7 @@ mod tests {
                 clippy::unused_async_trait_impl,
                 reason = "executor side effects run when the future is polled"
             )]
-            async fn execute(&self, effect: &u8) -> Result<Vec<RtEvent>, Retry> {
+            async fn execute(&self, effect: &u8) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
                 let mut attempts = self
                     .attempts
                     .lock()
@@ -1267,7 +1377,7 @@ mod tests {
                 if first {
                     assert!(!self.panic_first, "injected effect panic");
                     Err(Retry {
-                        reason: "destination unavailable".to_owned(),
+                        reason: Report::new(DestinationUnavailable),
                         after: Some(Duration::from_millis(200)),
                     })
                 } else {
@@ -1326,6 +1436,7 @@ mod tests {
 
         impl Executor<RtDomain> for RejectingExecutor {
             type Effect = ();
+            type Error = Infallible;
 
             fn plan(&self, projection: &RtCounters) -> Vec<()> {
                 if projection.totals.contains_key("ready") {
@@ -1335,7 +1446,10 @@ mod tests {
                 }
             }
 
-            fn execute(&self, (): &()) -> impl Future<Output = Result<Vec<RtEvent>, Retry>> + Send {
+            fn execute(
+                &self,
+                (): &(),
+            ) -> impl Future<Output = Result<Vec<RtEvent>, Retry<Self::Error>>> + Send {
                 core::future::ready(Ok(vec![increment("ready", 2, 0)]))
             }
         }
@@ -1399,13 +1513,14 @@ mod tests {
 
         impl Executor<RtDomain> for CountingPlanner {
             type Effect = ();
+            type Error = Infallible;
 
             fn plan(&self, _: &RtCounters) -> Vec<()> {
                 self.0.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
                 Vec::new()
             }
 
-            async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry> {
+            async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
                 unreachable!("empty plans should never execute");
             }
         }
@@ -1448,12 +1563,13 @@ mod tests {
 
         impl Executor<RtDomain> for WaitingExecutor {
             type Effect = ();
+            type Error = Infallible;
 
             fn plan(&self, _: &RtCounters) -> Vec<()> {
                 vec![()]
             }
 
-            async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry> {
+            async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
                 self.0.notify_one();
                 core::future::pending().await
             }

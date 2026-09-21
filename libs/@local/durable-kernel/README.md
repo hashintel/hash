@@ -48,9 +48,10 @@ support serialization. Planning must produce the same effects for the same
 state and have no side effects. Executing an effect performs the external
 operation and returns events that update state.
 
-Failed effects can retry after a delay while other effects continue. Retry
-delays reset on restart. An unwinding panic during execution also schedules a
-retry. An effect is finished once all its completion events are saved.
+Failed effects can retry after a delay while other effects continue. A retry
+carries the executor's error report. Retry delays reset on restart. An unwinding
+panic during execution also schedules a retry. An effect is finished once all
+its completion events are saved.
 
 A rejected completion event or an unrecoverable driver error stops the affected
 shard. The runtime logs the failure and returns it from `shutdown()`.

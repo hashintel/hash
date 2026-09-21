@@ -62,12 +62,16 @@ struct NoEffects;
 
 impl Executor<PayloadDomain> for NoEffects {
     type Effect = ();
+    type Error = Infallible;
 
     fn plan(&self, _: &PayloadCount) -> Vec<()> {
         Vec::new()
     }
 
-    fn execute(&self, (): &()) -> impl Future<Output = Result<Vec<Payload>, Retry>> + Send {
+    fn execute(
+        &self,
+        (): &(),
+    ) -> impl Future<Output = Result<Vec<Payload>, Retry<Self::Error>>> + Send {
         ready(Ok(Vec::new()))
     }
 }

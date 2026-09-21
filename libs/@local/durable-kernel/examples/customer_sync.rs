@@ -167,6 +167,12 @@ struct UpsertCustomer {
     name: String,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("CRM rejected {customer_id} before creating a record")]
+struct CrmRejected {
+    customer_id: String,
+}
+
 struct CrmSync {
     reject_customer_three: bool,
     crash_after_customer: Option<&'static str>,
@@ -174,6 +180,7 @@ struct CrmSync {
 
 impl Executor<CustomerDomain> for CrmSync {
     type Effect = UpsertCustomer;
+    type Error = CrmRejected;
 
     fn plan(&self, projection: &CustomerSync) -> Vec<UpsertCustomer> {
         if projection.pending.len() + projection.synced.len() < CUSTOMERS.len() {
@@ -195,11 +202,13 @@ impl Executor<CustomerDomain> for CrmSync {
         clippy::unused_async_trait_impl,
         reason = "CRM side effects run when the executor future is polled"
     )]
-    async fn execute(&self, effect: &UpsertCustomer) -> Result<Vec<SyncEvent>, Retry> {
+    async fn execute(&self, effect: &UpsertCustomer) -> Result<Vec<SyncEvent>, Retry<Self::Error>> {
         if effect.customer_id == "customer-3" && self.reject_customer_three {
             println!("CRM rejected customer-3 before creating a record. It will retry later.");
             return Err(Retry {
-                reason: "CRM rejected customer-3 before creating a record".to_owned(),
+                reason: error_stack::Report::new(CrmRejected {
+                    customer_id: effect.customer_id.clone(),
+                }),
                 after: Some(Duration::from_secs(5)),
             });
         }
