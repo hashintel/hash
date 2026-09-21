@@ -6,6 +6,7 @@ import {
   type ClientToolResult,
 } from "./client-tool-result";
 import { serializeErrorText } from "./error-text";
+import { clientToolResultIdempotencyKey } from "./identity";
 import {
   readLiveToolStream,
   type LiveToolStreamOptions,
@@ -513,10 +514,10 @@ export const createFlueChatTransport = <
     const idempotencyKey =
       messageId === undefined
         ? `ai-sdk:user:${userMessage!.id}`
-        : `ai-sdk:client-tools:${messageId}:${toolResults
-            .map(({ toolCallId }) => toolCallId)
-            .sort()
-            .join(",")}`;
+        : await clientToolResultIdempotencyKey(
+            messageId,
+            toolResults.map(({ toolCallId }) => toolCallId),
+          );
     if (Array.from(idempotencyKey).length > 256) {
       throw new Error("The submitted message identity is too long.");
     }
