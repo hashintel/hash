@@ -7,7 +7,7 @@
 //! [`ShardCommandHandle`] serializes submissions and applies each record after it is durable.
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
-use core::{fmt, num::NonZeroU64, ops::Bound, time::Duration};
+use core::{num::NonZeroU64, ops::Bound, time::Duration};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
@@ -48,39 +48,26 @@ const DURABILITY_TIMEOUT: Duration = Duration::from_secs(60);
 const DURABILITY_WAIT_ATTEMPTS: u32 = 3;
 const PINNED_FENCE_MESSAGE: &str = "detected newer db client";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 /// Determines whether an append can be retried or its writer must be replaced.
 pub enum AppendFailureKind {
     /// Storage was not changed. Retrying the append is safe.
+    #[display("record was not committed")]
     DefinitelyNotCommitted,
     /// The record may be stored. Recover before deciding whether to retry it.
+    #[display("record commit status is unknown")]
     CommitUnknown,
     /// A replacement writer owns the journal. This writer must stop.
+    #[display("writer no longer owns the journal")]
     Fenced,
 }
 
-#[derive(Debug)]
-/// An append failure with its retry classification and underlying error report.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("shard append failed: {kind}")]
+/// Classifies an append failure returned in an [`error_stack::Report`].
 pub struct ShardAppendError {
     pub kind: AppendFailureKind,
-    pub source: Report<DurableError>,
 }
-
-#[expect(
-    clippy::use_debug,
-    reason = "the append error includes the report attachment chain and kind"
-)]
-impl fmt::Display for ShardAppendError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "shard append failed with {:?}: {:?}",
-            self.kind, self.source
-        )
-    }
-}
-
-impl core::error::Error for ShardAppendError {}
 
 #[derive(Debug, Clone)]
 pub struct ShardLogLocation {
@@ -404,7 +391,7 @@ impl ShardLogWriter {
     async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         self.append_with_fault(value, AppendFault::None).await
     }
 
@@ -462,7 +449,7 @@ impl ShardLogWriter {
         &self,
         value: &T,
         fault: AppendFault,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         self.append_registered(EVENTS_KEY, value, fault).await
     }
 
@@ -471,7 +458,7 @@ impl ShardLogWriter {
         key: &'static [u8],
         value: &T,
         fault: AppendFault,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         require_interned::<T>().map_err(|error| {
             definitely_not_committed("validate durable-record registration", error)
         })?;
@@ -486,7 +473,7 @@ impl ShardLogWriter {
         key: &'static [u8],
         bytes: Bytes,
         fault: AppendFault,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         match &self.backend {
             WriterBackend::Real(log) => {
                 let record = Record {
@@ -567,10 +554,10 @@ impl ShardLogWriter {
                         "append shard record",
                         "simulated append with unknown commit status",
                     )),
-                    crate::sim::SimAppendResult::Fenced => Err(ShardAppendError {
+                    crate::sim::SimAppendResult::Fenced => Err(Report::new(ShardAppendError {
                         kind: AppendFailureKind::Fenced,
-                        source: Report::new(DurableError).attach("simulated newer writer epoch"),
-                    }),
+                    })
+                    .attach("simulated newer writer epoch")),
                 }
             }
         }
@@ -691,7 +678,7 @@ fn recovery_range(
 async fn flush_with_timeout(
     flush: impl core::future::Future<Output = opendata_log::Result<()>>,
     timeout: Duration,
-) -> Result<(), ShardAppendError> {
+) -> Result<(), Report<ShardAppendError>> {
     tokio::time::timeout(timeout, flush)
         .await
         .map_err(|error| post_invocation_source("flush shard record", error))?
@@ -793,63 +780,62 @@ where
     Ok(records)
 }
 
-fn definitely_not_committed<E>(operation: &'static str, error: E) -> ShardAppendError
+fn definitely_not_committed<E>(operation: &'static str, error: E) -> Report<ShardAppendError>
 where
     E: core::error::Error + Send + Sync + 'static,
 {
-    ShardAppendError {
-        kind: AppendFailureKind::DefinitelyNotCommitted,
-        source: Report::new(error)
-            .change_context(DurableError)
-            .attach(operation),
-    }
+    Report::new(error)
+        .change_context(ShardAppendError {
+            kind: AppendFailureKind::DefinitelyNotCommitted,
+        })
+        .attach(operation)
 }
 
 #[cfg(any(test, feature = "test-util"))]
 pub(crate) fn definitely_not_committed_message(
     operation: &'static str,
     message: &'static str,
-) -> ShardAppendError {
-    ShardAppendError {
+) -> Report<ShardAppendError> {
+    Report::new(ShardAppendError {
         kind: AppendFailureKind::DefinitelyNotCommitted,
-        source: Report::new(DurableError).attach(operation).attach(message),
-    }
+    })
+    .attach(operation)
+    .attach(message)
 }
 
-fn post_invocation_source<E>(operation: &'static str, error: E) -> ShardAppendError
+fn post_invocation_source<E>(operation: &'static str, error: E) -> Report<ShardAppendError>
 where
     E: core::error::Error + Send + Sync + 'static,
 {
     let message = error.to_string();
     let kind = post_invocation_failure_kind(&message);
-    ShardAppendError {
-        kind,
-        source: Report::new(error)
-            .change_context(DurableError)
-            .attach(operation),
-    }
+    Report::new(error)
+        .change_context(ShardAppendError { kind })
+        .attach(operation)
 }
 
 #[cfg(any(test, feature = "test-util"))]
 pub(crate) fn post_invocation_message(
     operation: &'static str,
     message: &'static str,
-) -> ShardAppendError {
-    ShardAppendError {
+) -> Report<ShardAppendError> {
+    Report::new(ShardAppendError {
         kind: post_invocation_failure_kind(message),
-        source: Report::new(DurableError).attach(operation).attach(message),
-    }
+    })
+    .attach(operation)
+    .attach(message)
 }
 
 fn post_invocation_report(
     operation: &'static str,
     report: Report<DurableError>,
-) -> ShardAppendError {
+) -> Report<ShardAppendError> {
     let message = format!("{report:?}");
-    ShardAppendError {
-        kind: post_invocation_failure_kind(&message),
-        source: report.attach(operation),
-    }
+    report
+        .change_context(ShardAppendError {
+            kind: post_invocation_failure_kind(&message),
+        })
+        .attach(operation)
 }
 
 fn post_invocation_failure_kind(message: &str) -> AppendFailureKind {
@@ -921,7 +907,7 @@ impl RawShardLog {
     pub async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         crate::registry::intern_declaration(*T::declaration())
             .map_err(|error| definitely_not_committed("intern raw-append declaration", error))?;
         self.0.append(value).await
@@ -933,7 +919,7 @@ impl RawShardLog {
     pub async fn append_projection_snapshot<T: DurableRecord + Sync>(
         &self,
         value: &T,
-    ) -> Result<u64, ShardAppendError> {
+    ) -> Result<u64, Report<ShardAppendError>> {
         crate::registry::intern_declaration(*T::declaration())
             .map_err(|error| definitely_not_committed("intern raw-append declaration", error))?;
         self.0
@@ -956,15 +942,19 @@ impl RawShardLog {
 #[cfg(test)]
 mod tests {
     use core::time::Duration;
+    use std::io;
 
+    use error_stack::Report;
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
 
     use super::{
         AppendFailureKind, AppendFault, ShardLogLocation, ShardLogRecovery, ShardLogWriter,
-        post_invocation_message, wait_until_durable_with,
+        definitely_not_committed, post_invocation_message, post_invocation_report,
+        post_invocation_source, wait_until_durable_with,
     };
     use crate::{
+        DurableError,
         registry::{
             CompatError, DurableRecord, MigrationPolicy, RecordDeclaration, UntrimmedJournalRecord,
             VersionedRecord, intern_declaration,
@@ -980,7 +970,33 @@ mod tests {
         )
         .await
         .expect_err("stalled flush should time out");
-        assert_eq!(error.kind, AppendFailureKind::CommitUnknown);
+        assert_eq!(
+            error.current_context().kind,
+            AppendFailureKind::CommitUnknown
+        );
+        assert!(
+            error.contains::<tokio::time::error::Elapsed>(),
+            "flush timeout should retain the elapsed error"
+        );
+    }
+
+    #[test]
+    fn append_failure_sources() {
+        for error in [
+            definitely_not_committed("encode record", io::Error::from(io::ErrorKind::InvalidData)),
+            post_invocation_source("append record", io::Error::from(io::ErrorKind::InvalidData)),
+            post_invocation_report(
+                "wait for durability",
+                Report::new(io::Error::from(io::ErrorKind::InvalidData))
+                    .change_context(DurableError)
+                    .attach("storage diagnostic"),
+            ),
+        ] {
+            let source = error
+                .downcast_ref::<io::Error>()
+                .expect("append report should retain the storage error");
+            assert_eq!(source.kind(), io::ErrorKind::InvalidData);
+        }
     }
 
     static TEST_RECORD_DECLARATION: RecordDeclaration = RecordDeclaration {
@@ -1150,7 +1166,10 @@ mod tests {
             .append(&invalid)
             .await
             .expect_err("invalid record should fail encoding");
-        assert_eq!(error.kind, AppendFailureKind::DefinitelyNotCommitted);
+        assert_eq!(
+            error.current_context().kind,
+            AppendFailureKind::DefinitelyNotCommitted
+        );
         writer.close().await.expect("writer should close");
     }
 
@@ -1200,7 +1219,10 @@ mod tests {
             .append(&UnregisteredRecord)
             .await
             .expect_err("unregistered record should be rejected");
-        assert_eq!(error.kind, AppendFailureKind::DefinitelyNotCommitted);
+        assert_eq!(
+            error.current_context().kind,
+            AppendFailureKind::DefinitelyNotCommitted
+        );
         writer.close().await.expect("writer should close");
     }
 
@@ -1221,7 +1243,10 @@ mod tests {
                 .append_with_fault(&record("fault-probe"), fault)
                 .await
                 .expect_err("injected append fault should fail");
-            assert_eq!(error.kind, AppendFailureKind::CommitUnknown);
+            assert_eq!(
+                error.current_context().kind,
+                AppendFailureKind::CommitUnknown
+            );
             let _: Result<_, _> = writer.close().await;
         }
     }
@@ -1277,11 +1302,14 @@ mod tests {
                 "flush",
                 "storage error: Closed error: detected newer DB client"
             )
+            .current_context()
             .kind,
             AppendFailureKind::Fenced
         );
         assert_eq!(
-            post_invocation_message("flush", "unrelated fencing proxy timeout").kind,
+            post_invocation_message("flush", "unrelated fencing proxy timeout")
+                .current_context()
+                .kind,
             AppendFailureKind::CommitUnknown
         );
     }
@@ -1310,7 +1338,7 @@ mod tests {
             .append(&record("stale"))
             .await
             .expect_err("stale writer should be fenced");
-        assert_eq!(error.kind, AppendFailureKind::Fenced);
+        assert_eq!(error.current_context().kind, AppendFailureKind::Fenced);
 
         let _: Result<_, _> = first.close().await;
         second.close().await.expect("writer should close");

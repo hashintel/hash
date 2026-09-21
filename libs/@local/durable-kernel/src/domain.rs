@@ -11,7 +11,7 @@ use alloc::collections::BTreeMap;
 use core::{any::Any, error::Error, fmt, marker::PhantomData};
 
 use chrono::{DateTime, Utc};
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
@@ -265,15 +265,15 @@ fn record_malformed<E: DomainEvent>(message: impl Into<String>) -> CompatError {
 fn derive_event_id<E: DomainEvent>(
     partition: &PartitionKey,
     event: &E,
-) -> Result<EventId, CompatError> {
+) -> Result<EventId, Report<CompatError>> {
     let event = serde_json::to_value(event)
-        .map_err(|error| record_malformed::<E>(format!("serialize event for identity: {error}")))?;
+        .change_context_lazy(|| record_malformed::<E>("event identity serialization failed"))?;
     content_digest_bytes(
         "domain-event:v1",
         &json!({ "partition": partition, "event": event }),
     )
     .map(EventId::from_bytes)
-    .map_err(|error| record_malformed::<E>(error.to_string()))
+    .change_context_lazy(|| record_malformed::<E>("event identity serialization failed"))
 }
 
 impl<E: DomainEvent> EventRecordV1<E> {
@@ -298,7 +298,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
     /// # Errors
     ///
     /// Returns an error if the event cannot be serialized to derive its identity.
-    pub fn new(event: E) -> Result<Self, CompatError> {
+    pub fn new(event: E) -> Result<Self, Report<CompatError>> {
         let partition = event.partition();
         let event_id = derive_event_id(&partition, &event)?;
         Ok(Self {
@@ -318,24 +318,24 @@ impl<E: DomainEvent> EventRecordV1<E> {
         event_id: EventId,
         partition: PartitionKey,
         event: E,
-    ) -> Result<Self, CompatError> {
+    ) -> Result<Self, Report<CompatError>> {
         let record = Self::new(event)?;
         if partition != record.partition {
-            return Err(CompatError::Conflict {
+            return Err(Report::new(CompatError::Conflict {
                 name: E::name(),
                 message: format!(
                     "record partition {partition} does not match the event's partition"
                 ),
-            });
+            }));
         }
         if event_id != record.event_id {
-            return Err(CompatError::Conflict {
+            return Err(Report::new(CompatError::Conflict {
                 name: E::name(),
                 message: format!(
                     "event ID mismatch: expected {}, found {event_id}",
                     record.event_id
                 ),
-            });
+            }));
         }
         Ok(Self {
             event_id,
@@ -1465,7 +1465,10 @@ mod tests {
             let error =
                 EventRecordV1::from_parts(event_id, partition.clone(), record.event().clone())
                     .expect_err("mismatched fields should be rejected");
-            assert!(matches!(error, CompatError::Conflict { .. }), "{error}");
+            assert!(
+                matches!(error.current_context(), CompatError::Conflict { .. }),
+                "{error}"
+            );
         }
     }
 
