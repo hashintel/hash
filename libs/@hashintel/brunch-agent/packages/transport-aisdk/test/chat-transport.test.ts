@@ -355,6 +355,95 @@ test("keeps reordered cumulative tool results byte-identical for idempotent retr
   expect(send.mock.calls[0]?.[0]).toEqual(send.mock.calls[1]?.[0]);
 });
 
+test.each([1, 19, 100])(
+  "bounds the deterministic client-tool identity for %i correlated calls",
+  async (callCount) => {
+    const { client, send } = clientWith(completedEvents);
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set(["canonicalTool"]),
+    });
+    const parts: UIMessage["parts"] = Array.from(
+      { length: callCount },
+      (_, index) => ({
+        type: "dynamic-tool",
+        toolName: "canonicalTool",
+        toolCallId: `call-${index.toString().padStart(3, "0")}`,
+        state: "output-available",
+        input: {},
+        output: { index },
+      }),
+    );
+
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [{ id: "assistant-batch", role: "assistant", parts }],
+          "assistant-batch",
+        ),
+      ),
+    );
+
+    const request = send.mock.calls[0]?.[0];
+    expect(request?.idempotencyKey).toMatch(
+      /^ai-sdk:client-tools:sha256:[\da-f]{64}$/u,
+    );
+    expect(Array.from(request?.idempotencyKey ?? "")).toHaveLength(91);
+    expect(request?.message).toMatchObject({
+      body: JSON.stringify(
+        parts.map((part, index) => ({
+          toolCallId:
+            part.type === "dynamic-tool" ? part.toolCallId : "unreachable",
+          toolName: "canonicalTool",
+          output: { index },
+        })),
+      ),
+    });
+  },
+);
+
+test("distinguishes assistant messages but leaves changed outputs to Flue conflict detection", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["canonicalTool"]),
+  });
+  const submit = async (assistantMessageId: string, output: unknown) => {
+    await readChunks(
+      await transport.sendMessages(
+        sendOptions(
+          [
+            {
+              id: assistantMessageId,
+              role: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  toolName: "canonicalTool",
+                  toolCallId: "same-call",
+                  state: "output-available",
+                  input: {},
+                  output,
+                },
+              ],
+            },
+          ],
+          assistantMessageId,
+        ),
+      ),
+    );
+  };
+
+  await submit("assistant-a", { version: 1 });
+  await submit("assistant-b", { version: 1 });
+  await submit("assistant-a", { version: 2 });
+
+  const requests = send.mock.calls.map(([request]) => request);
+  expect(requests[0]?.idempotencyKey).not.toBe(requests[1]?.idempotencyKey);
+  expect(requests[0]?.idempotencyKey).toBe(requests[2]?.idempotencyKey);
+  expect(requests[0]?.message).not.toEqual(requests[2]?.message);
+});
+
 test("admits one user message and projects a finite per-turn stream", async () => {
   const { client, send } = clientWith(completedEvents);
   const transport = createFlueChatTransport({
@@ -419,7 +508,8 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   );
 
   expect(send).toHaveBeenCalledWith({
-    idempotencyKey: "ai-sdk:client-tools:assistant-original:tool-1",
+    idempotencyKey:
+      "ai-sdk:client-tools:sha256:0860928a8f1b0b5b23d2a15015ef91170ec614052e4ea98e45e480d3e01490be",
     message: {
       kind: "signal",
       type: "client-tool-result",
@@ -438,6 +528,57 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   expect((await readChunks(stream))[0]).toEqual({
     type: "start",
     messageId: "assistant-original",
+  });
+});
+
+test("retains Voice provenance in a digested client-tool continuation", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["canonicalTool"]),
+  });
+
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "assistant-voice",
+            role: "assistant",
+            metadata: { voiceToolCallIds: ["voice-call"] },
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "canonicalTool",
+                toolCallId: "voice-call",
+                state: "output-available",
+                input: {},
+                output: { applied: true },
+              },
+            ],
+          },
+        ],
+        "assistant-voice",
+      ),
+    ),
+  );
+
+  expect(send.mock.calls[0]?.[0].message).toEqual({
+    kind: "signal",
+    type: "client-tool-result",
+    tagName: "client-tool-result",
+    body: JSON.stringify([
+      {
+        toolCallId: "voice-call",
+        toolName: "canonicalTool",
+        output: { applied: true },
+        source: "voice",
+      },
+    ]),
+    attributes: {
+      toolCallIds: "voice-call",
+      voiceToolCallIds: "voice-call",
+    },
   });
 });
 

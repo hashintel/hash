@@ -431,7 +431,8 @@ test("returns a fixture-scoped mutation result through the same Flue client", as
   await stream.pipeTo(new WritableStream());
 
   expect(send).toHaveBeenCalledWith({
-    idempotencyKey: "ai-sdk:client-tools:assistant-1:add-arc-1",
+    idempotencyKey:
+      "ai-sdk:client-tools:sha256:c6353c208ba43ad6bc08bcba783c99e99a9723ce2e63cd20b8cf9d6467cd769e",
     message: {
       kind: "signal",
       type: "client-tool-result",
@@ -499,7 +500,7 @@ test("returns multiple canonical stock-tool results in one correlated continuati
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
     idempotencyKey:
-      "ai-sdk:client-tools:assistant-canonical:diagnostics-1,docs-1",
+      "ai-sdk:client-tools:sha256:16d2fafab11e4453397cb5757a2ba3998c4627bdd1ecedad0b8da6140d9697cf",
     message: {
       kind: "signal",
       type: "client-tool-result",

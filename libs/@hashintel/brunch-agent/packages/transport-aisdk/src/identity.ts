@@ -26,15 +26,34 @@ const hexFromDigest = (digest: ArrayBuffer): string =>
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 
+const sha256Hex = async (payload: Uint8Array): Promise<string> => {
+  const bytes = new ArrayBuffer(payload.byteLength);
+  new Uint8Array(bytes).set(payload);
+  return hexFromDigest(await globalThis.crypto.subtle.digest("SHA-256", bytes));
+};
+
+/**
+ * Bound one browser continuation identity independently of batch size. Outputs
+ * stay out of this digest so Flue can reject changed content under the same
+ * logical submission key.
+ */
+export const clientToolResultIdempotencyKey = async (
+  assistantMessageId: string,
+  toolCallIds: readonly string[],
+): Promise<string> => {
+  const logicalIdentity = JSON.stringify([
+    assistantMessageId,
+    [...toolCallIds].sort(),
+  ]);
+  const digest = await sha256Hex(new TextEncoder().encode(logicalIdentity));
+  return `ai-sdk:client-tools:sha256:${digest}`;
+};
+
 /** Browser-safe counterpart to the server's synchronous instance-id hash. */
 export const flueConversationIdWeb = async (
   identity: ConversationIdentity,
 ): Promise<string> => {
-  const payload = identityPayload(identity);
-  const bytes = new ArrayBuffer(payload.byteLength);
-  new Uint8Array(bytes).set(payload);
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
-  return hexFromDigest(digest);
+  return sha256Hex(identityPayload(identity));
 };
 
 export const agentOwnershipHeaders = (
