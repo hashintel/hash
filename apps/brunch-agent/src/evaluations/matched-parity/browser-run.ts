@@ -128,7 +128,8 @@ const parseStoredMessages = (raw: string | null): readonly unknown[] => {
 const openPanel = async (page: Page, origin: string) => {
   await page.goto(origin);
   const skipTour = page.getByRole("button", { name: "Skip tour" });
-  if (await skipTour.isVisible()) await skipTour.click();
+  await skipTour.waitFor();
+  await skipTour.click();
   await page
     .getByRole("button", { name: "Show AI assistant", exact: true })
     .click();
