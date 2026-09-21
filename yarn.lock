@@ -15053,6 +15053,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/durable-kernel@workspace:libs/@local/durable-kernel":
+  version: 0.0.0-use.local
+  resolution: "@rust/durable-kernel@workspace:libs/@local/durable-kernel"
+  dependencies:
+    "@rust/error-stack": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
 "@rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust":
   version: 0.0.0-use.local
   resolution: "@rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust"

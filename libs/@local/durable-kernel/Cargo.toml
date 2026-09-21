@@ -1,0 +1,37 @@
+[package]
+name              = "durable-kernel"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[features]
+# Exposes the fault-injection harness and unleased test constructors
+test-util = []
+
+[dependencies]
+bytes       = { workspace = true, public = true }
+chrono      = { workspace = true, public = true, default-features = false, features = ["clock", "serde", "std"] }
+derive_more = { workspace = true, features = ["display", "error"] }
+error-stack = { workspace = true, public = true, features = ["std"] }
+serde       = { workspace = true, public = true, features = ["derive", "std"] }
+serde_core  = { workspace = true, public = true }
+serde_json  = { workspace = true, public = true, features = ["preserve_order"] }
+sha2        = { workspace = true }
+tokio       = { workspace = true, public = true, features = ["macros", "rt", "sync", "time"] }
+tokio-util  = { workspace = true, features = ["rt"] }
+tracing     = { workspace = true, features = ["attributes", "std"] }
+
+hex = { workspace = true, features = ["std"] }
+# Aliases distinguish the upstream opendata libraries named `common` and `log`.
+opendata_common = { workspace = true, public = true }
+opendata_log    = { workspace = true }
+slatedb         = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true, features = ["fork", "timeout", "bit-set"] }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

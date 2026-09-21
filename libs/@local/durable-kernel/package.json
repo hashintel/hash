@@ -1,0 +1,14 @@
+{
+  "name": "@rust/durable-kernel",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "mise run test:unit @rust/durable-kernel"
+  },
+  "dependencies": {
+    "@rust/error-stack": "workspace:*"
+  }
+}
