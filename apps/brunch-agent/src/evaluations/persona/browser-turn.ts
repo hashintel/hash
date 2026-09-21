@@ -153,6 +153,10 @@ export const submitPersonaBrowserTurn = async (
         );
     }
     admissionSession = session;
+    const client = createFlueClient({
+      url: session.url,
+      headers: agentOwnershipHeaders(session),
+    });
     await options.onAdmission?.(session, admission);
     if (signal?.aborted) cancel();
     // The product's busy status spans client-tool continuations, unlike one Flue settlement.
@@ -168,11 +172,27 @@ export const submitPersonaBrowserTurn = async (
     let quietIntervals = 0;
     while (quietIntervals < 5) {
       await Promise.race([delay(100), aborted.promise]);
-      if (await stop.isVisible()) {
-        await Promise.race([
-          stop.waitFor({ state: "hidden", timeout: 0 }),
-          aborted.promise,
-        ]);
+      const snapshot = await client.history();
+      const results = clientToolHistoryFrom(snapshot.messages).results;
+      const unanswered = snapshot.messages
+        .flatMap((message) => message.parts)
+        .filter(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.state === "output-available" &&
+            isAwaitingClient(part.output) &&
+            !results.some(
+              (result) =>
+                result.toolCallId === part.toolCallId &&
+                result.toolName === part.toolName,
+            ),
+        );
+      if (unanswered.length > 0 || (await stop.isVisible())) {
+        if (await stop.isVisible())
+          await Promise.race([
+            stop.waitFor({ state: "hidden", timeout: 0 }),
+            aborted.promise,
+          ]);
         quietIntervals = 0;
         observedAdmissions = responses.length;
       } else if (responses.length !== observedAdmissions) {
@@ -201,10 +221,6 @@ export const submitPersonaBrowserTurn = async (
     );
     const last = admissions.at(-1);
     assert(last);
-    const client = createFlueClient({
-      url: session.url,
-      headers: agentOwnershipHeaders(session),
-    });
     // Local Stop hides the busy state before the native abort can settle.
     // read() waits for that settlement; a history snapshot alone can race it.
     const reply = await client
