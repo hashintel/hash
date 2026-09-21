@@ -11,6 +11,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
+  CANONICAL_PETRINAUT_TOOL_NAMES,
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
@@ -149,6 +150,7 @@ if (accounting) {
 // tool parameters to `{ type, properties, required }` unless we override
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
+  ...CANONICAL_PETRINAUT_TOOL_NAMES,
   ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   readPetrinautNetToolName,
   readPetrinautDiagnosticsToolName,

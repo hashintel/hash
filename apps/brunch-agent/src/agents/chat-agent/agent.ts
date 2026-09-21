@@ -13,6 +13,7 @@ import {
   useDelivery,
   useInitialData,
   useInstruction,
+  useModel,
   useTool,
   type AgentProps,
 } from "@flue/runtime";
@@ -25,6 +26,7 @@ import {
   readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
+  CANONICAL_PETRINAUT_TOOLS_MODE,
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
@@ -36,6 +38,7 @@ import {
   createWorkpieceReadTool,
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
+import { petrinautAiPrompt } from "@hashintel/petrinaut-core";
 
 import {
   selectChatModel,
@@ -87,9 +90,18 @@ const chatModelOptions =
           : { thinkingLevel: chatThinkingLevel }),
       };
 
+const useCanonicalPetrinautAgent = (): string => {
+  useModel(CHAT_MODEL_SPECIFIER, chatModelOptions);
+  useSdcpnPlugin();
+  return petrinautAiPrompt;
+};
+
 export function ChatAgent({ id }: AgentProps) {
-  useContextProjection(projectBrunchContext);
   const initialData = useInitialData<SdcpnInitialData>();
+  if (initialData?.mode === CANONICAL_PETRINAUT_TOOLS_MODE)
+    return useCanonicalPetrinautAgent();
+
+  useContextProjection(projectBrunchContext);
   const delivery = useDelivery();
   const browserContext: BrowserContext | undefined = initialData?.construction
     ? { binding: initialData.construction.binding }
@@ -225,9 +237,14 @@ export function ChatAgent({ id }: AgentProps) {
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
-Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
-A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, make ${readPetrinautNetToolName} the entire proposal: do not call activate_skill, read_skill_resource, or any other tool in the same proposal. Wait for its browser result before activating required skills, explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${readPetrinautNetToolName} result in this conversation is the current net.
+Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
+A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation.
+`.replace(/^\s+|\s+$/gu, ""),
+  );
+  useInstruction(
+    `
+For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${readPetrinautNetToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${readPetrinautNetToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   if (browserContext)

@@ -84,6 +84,30 @@ export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
 export type PetrinautConstructionToolName =
   (typeof PETRINAUT_CONSTRUCTION_TOOL_NAMES)[number];
 
+export const CANONICAL_PETRINAUT_TOOL_NAMES = Object.keys(
+  petrinautAiTools,
+) as (keyof typeof petrinautAiTools)[];
+
+const defineCanonicalPetrinautTool = (
+  toolName: keyof typeof petrinautAiTools,
+) => {
+  const canonicalTool = petrinautAiTools[toolName];
+  return defineTool({
+    name: toolName,
+    description: canonicalTool.description,
+    input: canonicalTool.inputSchema,
+    output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+    run() {
+      return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+    },
+  });
+};
+
+/** The stock Petrinaut catalogue, mounted unchanged and executed by the browser. */
+export const canonicalPetrinautTools = CANONICAL_PETRINAUT_TOOL_NAMES.map(
+  defineCanonicalPetrinautTool,
+);
+
 const issuePathFrom = (
   input: Record<string, unknown>,
   path: readonly PropertyKey[],

@@ -1,7 +1,9 @@
-import { useInstruction } from "@flue/runtime";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
+
+const useInstruction = vi.hoisted(() => vi.fn<(instruction: string) => void>());
+const initialData = vi.hoisted(() => ({ value: undefined as unknown }));
 
 vi.mock("@hashintel/brunch-agent/flue", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@hashintel/brunch-agent/flue")>()),
@@ -20,9 +22,10 @@ vi.mock(
 );
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
-  useInstruction: vi.fn<typeof useInstruction>(),
+  useInstruction,
+  useModel: () => undefined,
   useContextProjection: () => undefined,
-  useInitialData: () => undefined,
+  useInitialData: () => initialData.value,
   useDelivery: () => ({ kind: "user", body: "test" }),
   useAgentStart: () => undefined,
   useTool: () => undefined,
@@ -31,6 +34,7 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  initialData.value = undefined;
   vi.stubEnv("BRUNCH_CHAT_MODEL", "claude-sonnet-4-6");
   vi.stubEnv("BRUNCH_TEST_KEEP_RECENT_TOKENS", undefined);
   vi.stubEnv("NODE_ENV", "test");
@@ -61,15 +65,60 @@ test("the production ChatAgent supplies no compaction override when unset", asyn
   );
 });
 
-test("a stale-net turn reserves the proposal for the browser read", async () => {
+test("browser calls stay separate from server tools without a one-call limit", async () => {
   const { ChatAgent: renderChatAgent } =
     await import("../src/agents/chat-agent/agent.ts");
   renderChatAgent({ id: "test-instance" });
-  expect(useInstruction).toHaveBeenCalledWith(
-    expect.stringContaining(
-      "do not call activate_skill, read_skill_resource, or any other tool in the same proposal",
-    ),
+
+  const transportInstruction = useInstruction.mock.calls
+    .map(([instruction]) => instruction as string)
+    .find((instruction) => instruction.includes("Invalid proposals fail"));
+  expect(transportInstruction).toContain(
+    "Submit browser tool calls separately from server tools",
   );
+  expect(transportInstruction).toContain(
+    "wait for their correlated client results",
+  );
+  expect(transportInstruction).not.toContain(
+    "at most one browser tool call per proposal",
+  );
+});
+
+test("canonical mode omits the old freshness and why instructions while batched mode retains them", async () => {
+  initialData.value = { mode: "canonical-petrinaut-tools" };
+  const { ChatAgent: renderCanonicalAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderCanonicalAgent({ id: "canonical-instance" });
+
+  const canonicalInstructions = useInstruction.mock.calls
+    .map(([instruction]) => instruction)
+    .join("\n");
+  expect(canonicalInstructions).not.toContain("read_petrinaut_net");
+  expect(canonicalInstructions).not.toContain("brunch.net-stale");
+  expect(canonicalInstructions).not.toContain("query_workpiece");
+
+  vi.resetModules();
+  vi.clearAllMocks();
+  initialData.value = {
+    mode: "batched-construction",
+    construction: {
+      binding: {
+        conversationId: "conversation",
+        documentId: "document",
+        incarnationId: "incarnation",
+      },
+    },
+  };
+  const { ChatAgent: renderBatchedAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderBatchedAgent({ id: "batched-instance" });
+
+  const batchedInstructions = useInstruction.mock.calls
+    .map(([instruction]) => instruction)
+    .join("\n");
+  expect(batchedInstructions).toContain("read_petrinaut_net");
+  expect(batchedInstructions).toContain("brunch.net-stale");
+  expect(batchedInstructions).toContain("query_workpiece");
 });
 
 test("the production ChatAgent forwards an independent OpenAI specifier and thinking level", async () => {

@@ -309,12 +309,14 @@ class AdmittedStream extends EventStream<
       const streamedBrowserCalls = streamedCalls.filter((call) =>
         browserToolNames.has(call.name),
       );
-      const browserCallIds = new Set(
-        [...browserCalls, ...streamedBrowserCalls].map((call) => call.id),
-      );
-      if (browserCalls.length > 1 || browserCallIds.size > 1) {
+      const hasDuplicateIds = (calls: readonly { id: string }[]) =>
+        new Set(calls.map((call) => call.id)).size !== calls.length;
+      if (
+        hasDuplicateIds(browserCalls) ||
+        hasDuplicateIds(streamedBrowserCalls)
+      ) {
         throw new Error(
-          "Multiple browser calls refused before admission. Submit one browser call per proposal and wait for its correlated result.",
+          "Duplicate browser tool-call IDs refused before admission. Each call in a proposal representation must have a unique ID.",
         );
       }
       if (

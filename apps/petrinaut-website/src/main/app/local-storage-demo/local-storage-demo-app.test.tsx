@@ -19,7 +19,7 @@ import {
   type MockInstance,
 } from "vitest";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CANONICAL_PETRINAUT_TOOLS_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
@@ -32,7 +32,10 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import { brunchClientToolNames } from "./brunch-client-tools";
+import {
+  brunchClientToolNames,
+  canonicalParityClientToolNames,
+} from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
@@ -45,7 +48,6 @@ import {
   withLocalStorageDemoIdentity,
   type LocalStorageDemoSearch,
 } from "./local-storage-demo-search";
-import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
   DocumentRecord,
@@ -138,7 +140,6 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
-    slots?: { settingsLabs?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -219,10 +220,7 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
     editorProps.current = props;
     renderedPetrinaut.aiAssistant = props.aiAssistant;
     renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
-    return (
-      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
-      null
-    );
+    return null;
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
@@ -519,15 +517,8 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
-    expect(aiAssistant.executeMutation).toBeTypeOf("function");
-    // The only interactive tool is the session experiment draft card; the
-    // voice-only brunch_ask widget is never mounted here.
-    expect(
-      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual(["draft_petrinaut_experiment"]);
-    expect(editorProps.current?.slots).not.toHaveProperty(
-      "simulateModeIndicator",
-    );
+    expect(aiAssistant.executeMutation).toBeUndefined();
+    expect(aiAssistant.interactiveTools).toEqual([]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1323,7 +1314,7 @@ describe("local storage demo Brunch controls", () => {
     },
   );
 
-  test("mounts the batched construction catalogue on ordinary configured Brunch", async () => {
+  test("mounts the canonical stock catalogue on ordinary configured Brunch", async () => {
     const incarnationId = "ordinary-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -1360,7 +1351,9 @@ describe("local storage demo Brunch controls", () => {
     expect(aiAssistant.conversationId).toBe(
       ordinaryConstructionConversationIdFrom(incarnationId),
     );
-    expect(aiAssistant.executeMutation).toBeTypeOf("function");
+    // Canonical static mutations must use Petrinaut's stock direct path. The
+    // legacy recorder only recognizes Brunch's custom issued requests.
+    expect(aiAssistant.executeMutation).toBeUndefined();
     expect(
       aiAssistant.automaticTools?.some(
         ({ toolName }) => toolName === "mutate_petrinaut_net",
@@ -1377,27 +1370,23 @@ describe("local storage demo Brunch controls", () => {
         error: undefined,
       }),
     ).toBeUndefined();
-    expect(transportOptions.initialData?.mode).toBe(batchedConstructionMode);
+    expect(transportOptions.initialData?.mode).toBe(
+      CANONICAL_PETRINAUT_TOOLS_MODE,
+    );
     expect(transportOptions.initialData?.construction?.binding).toEqual({
       conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
       documentId: "net-1",
       incarnationId,
     });
-    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
-      "draft_petrinaut_experiment",
-      "layout_petrinaut_net",
-      "mutate_petrinaut_net",
-      "read_petrinaut_diagnostics",
-      "read_petrinaut_docs",
-      "read_petrinaut_net",
-    ]);
+    expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
+      [...canonicalParityClientToolNames].toSorted(),
+    );
     expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
       "read_petrinaut_docs",
       "read_petrinaut_net",
       "read_petrinaut_diagnostics",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
-      "draft_petrinaut_experiment",
     ]);
   });
 });
@@ -1453,7 +1442,7 @@ describe("worked-model net-projection selection", () => {
       | PetrinautAiAssistant
       | undefined;
     expect(assistant?.conversationId).toBe("bundle-conversation");
-    expect(assistant?.executeMutation).toBeDefined();
+    expect(assistant?.executeMutation).toBeUndefined();
     const handle = editorProps.current?.handle as PetrinautDocHandle;
     expect(handle.revisionId.get()).toBe("bundle-revision");
     expect(editorProps.current?.existingNets).toEqual(
@@ -1932,41 +1921,12 @@ describe("assistant selection", () => {
   };
   const currentAssistant = () =>
     editorProps.current?.aiAssistant as PetrinautAiAssistant;
-  const currentVoiceCapability = () => {
-    const settingsLabs = editorProps.current?.slots?.settingsLabs;
-    if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
-      throw new Error("Expected the website Labs settings to render.");
-    }
-    return settingsLabs.props.openAIVoiceConfig;
-  };
-  const currentVoiceProvider = () => {
-    const control = currentAssistant().renderVoiceMode?.({
-      canAcceptVoiceInput: true,
-      conversationId: "labs-test",
-      inputMode: "text",
-      isAiAssistantOpen: true,
-      messages: [],
-      registerVoiceModeControls: vi.fn(() => () => {}),
-      reportVoiceSessionState: vi.fn(),
-      setInputMode: vi.fn(),
-      setVoiceActive: vi.fn(),
-      status: "ready",
-      stop: vi.fn(async () => {}),
-      submitText: vi.fn(),
-      submitVoiceInput: vi.fn(),
-    });
-    if (!isValidElement<{ config: { provider?: string } }>(control)) {
-      throw new Error("Expected a configured Voice control.");
-    }
-    return control.props.config.provider;
-  };
 
   afterEach(() => {
     cleanup();
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
-    vi.unstubAllGlobals();
   });
 
   test("ordinary Stock is the default and never mounts Flue history", () => {
@@ -1990,109 +1950,22 @@ describe("assistant selection", () => {
     expect(observe).not.toHaveBeenCalled();
   });
 
-  test("selecting Brunch enables Voice and persists the opt-in Realtime choice", async () => {
-    const incarnationId = "labs-persistence-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(voicePreferenceStorageKey, "false");
-    flueClientMock.current = flueHistoryClient(incarnationId);
-    vi.stubGlobal("PointerEvent", MouseEvent);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({
-          available: true,
-          connectionTimeoutMs: 10_000,
-          provider: "realtime",
-        }),
-      ),
-    );
-
-    const firstView = render(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
-    );
-    const firstBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const firstVoiceToggle = screen.getByRole("checkbox", {
-      name: "Enable Voice",
-    });
-    await waitFor(() =>
-      expect(firstBrunchToggle).toHaveProperty("disabled", false),
-    );
-    expect(firstVoiceToggle).toHaveProperty("checked", false);
-    expect(
-      screen.queryByRole("checkbox", { name: "Realtime mode" }),
-    ).toBeNull();
-
-    fireEvent.click(firstBrunchToggle);
-    await waitFor(() => {
-      expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
-      expect(firstVoiceToggle).toHaveProperty("disabled", false);
-      expect(firstVoiceToggle).toHaveProperty("checked", true);
-      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true");
-    });
-    const realtimeToggle = screen.getByRole("checkbox", {
-      name: "Realtime mode",
-    });
-    expect(realtimeToggle).toHaveProperty("checked", false);
-    expect(currentVoiceProvider()).toBe("live");
-    fireEvent.click(realtimeToggle);
-    expect(realtimeToggle).toHaveProperty("checked", true);
-    await waitFor(() => expect(currentVoiceProvider()).toBe("realtime"));
-
-    firstView.unmount();
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    const restoredBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const restoredVoiceToggle = screen.getByRole("checkbox", {
-      name: "Enable Voice",
-    });
-    await waitFor(() => {
-      expect(restoredBrunchToggle).toHaveProperty("checked", true);
-      expect(restoredVoiceToggle).toHaveProperty("checked", true);
-      expect(restoredVoiceToggle).toHaveProperty("disabled", false);
-      expect(
-        screen.getByRole("checkbox", { name: "Realtime mode" }),
-      ).toHaveProperty("checked", true);
-      expect(currentVoiceProvider()).toBe("realtime");
-    });
-    fireEvent.click(restoredVoiceToggle);
-    await waitFor(() =>
-      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("false"),
-    );
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
-    expect(
-      screen.queryByRole("checkbox", { name: "Realtime mode" }),
-    ).toBeNull();
-    fireEvent.click(restoredVoiceToggle);
-    fireEvent.click(
-      await screen.findByRole("checkbox", { name: "Realtime mode" }),
-    );
-    expect(
-      screen.getByRole("checkbox", { name: "Realtime mode" }),
-    ).toHaveProperty("checked", false);
-    await waitFor(() => expect(currentVoiceProvider()).toBe("live"));
-  });
-
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
     const incarnationId = "selection-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient(incarnationId);
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() =>
-      expect(currentAssistant().executeMutation).toBeDefined(),
-    );
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
+    expect(currentAssistant().executeMutation).toBeUndefined();
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
     const brunchTransport = currentAssistant().transport;
 
     switchAssistant(/Use the stock Petrinaut assistant/);
 
-    await waitFor(() =>
-      expect(currentAssistant().executeMutation).toBeUndefined(),
-    );
+    await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
     const stock = currentAssistant();
+    expect(stock.executeMutation).toBeUndefined();
     // The stock assistant's own transport and endpoint, not Brunch's.
     expect(stock.transport).not.toBe(brunchTransport);
     expect((defaultTransportOptions.current as { api: string }).api).toBe(
@@ -2117,35 +1990,16 @@ describe("assistant selection", () => {
     fireEvent.keyDown(window, { key: "Escape" });
   });
 
-  test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
+  test("removes Voice on the first stock-assistant render", async () => {
     seedStoredNet("voice-gating-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
-    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
-      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+      ),
     );
-    vi.stubGlobal("fetch", fetch);
-    const defaultView = render(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
-    );
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledOnce();
-      expect(currentVoiceCapability()).toEqual({
-        available: true,
-        connectionTimeoutMs: 10_000,
-      });
-    });
-    expect(currentAssistant().renderVoiceMode).toBeDefined();
-
-    defaultView.unmount();
-    localStorage.setItem(voicePreferenceStorageKey, "false");
-    const disabledView = render(
-      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
-    );
-    await waitFor(() => expect(currentVoiceCapability()).toBeDefined());
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
-    disabledView.unmount();
-    localStorage.setItem(voicePreferenceStorageKey, "true");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(currentAssistant().renderVoiceMode).toBeDefined(),
@@ -2160,65 +2014,6 @@ describe("assistant selection", () => {
         (assistant) => assistant.renderVoiceMode === undefined,
       ),
     ).toBe(true);
-  });
-
-  test("clears cached Voice capability during each Stock to Brunch check", async () => {
-    const incarnationId = "delayed-voice-capability-incarnation";
-    seedStoredNet(incarnationId);
-    localStorage.setItem(assistantSelectionStorageKey, "stock");
-    localStorage.setItem(voicePreferenceStorageKey, "true");
-    flueClientMock.current = flueHistoryClient(incarnationId);
-    const firstCapability = Promise.withResolvers<Response>();
-    const secondCapability = Promise.withResolvers<Response>();
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockReturnValueOnce(firstCapability.promise)
-      .mockReturnValueOnce(secondCapability.promise);
-    vi.stubGlobal("fetch", fetch);
-    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
-
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
-    renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
-    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
-    expect(currentVoiceCapability()).toBeUndefined();
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
-    expect(renderedAssistants.length).toBeGreaterThan(0);
-    expect(
-      renderedAssistants.every(
-        (assistant) => assistant.renderVoiceMode === undefined,
-      ),
-    ).toBe(true);
-
-    firstCapability.resolve(
-      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-    );
-    await waitFor(() =>
-      expect(currentAssistant().renderVoiceMode).toBeDefined(),
-    );
-
-    switchAssistant(/Use the stock Petrinaut assistant/);
-    await waitFor(() =>
-      expect(currentAssistant().renderVoiceMode).toBeUndefined(),
-    );
-    renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    expect(currentVoiceCapability()).toBeUndefined();
-    expect(currentAssistant().renderVoiceMode).toBeUndefined();
-    expect(renderedAssistants.length).toBeGreaterThan(0);
-    expect(
-      renderedAssistants.every(
-        (assistant) => assistant.renderVoiceMode === undefined,
-      ),
-    ).toBe(true);
-
-    secondCapability.resolve(
-      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-    );
-    await waitFor(() =>
-      expect(currentAssistant().renderVoiceMode).toBeDefined(),
-    );
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {
@@ -2247,10 +2042,9 @@ describe("assistant selection", () => {
     });
 
     switchAssistant(/Use Brunch/);
-    await waitFor(() =>
-      expect(currentAssistant().executeMutation).toBeDefined(),
-    );
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     const brunch = currentAssistant();
+    expect(brunch.executeMutation).toBeUndefined();
     // Brunch reads Flue history, which holds none of the stock turn; and a
     // Brunch-side message write never reaches the local store.
     expect(brunch.messages ?? []).not.toContainEqual(stockMessage);
@@ -2266,9 +2060,8 @@ describe("assistant selection", () => {
     });
 
     switchAssistant(/Use the stock Petrinaut assistant/);
-    await waitFor(() =>
-      expect(currentAssistant().executeMutation).toBeUndefined(),
-    );
+    await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
+    expect(currentAssistant().executeMutation).toBeUndefined();
     // The stock history is exactly as it was left.
     expect(currentAssistant().messages).toEqual([stockMessage]);
   });
