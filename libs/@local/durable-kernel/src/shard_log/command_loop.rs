@@ -408,6 +408,43 @@ enum Command<D: Domain> {
     },
 }
 
+struct CommandFailure {
+    error: Report<ShardCommandError>,
+    reply: Option<Box<dyn FnOnce(Report<ShardCommandError>) + Send>>,
+}
+
+impl From<Report<ShardCommandError>> for CommandFailure {
+    fn from(error: Report<ShardCommandError>) -> Self {
+        Self { error, reply: None }
+    }
+}
+
+impl CommandFailure {
+    fn reply(self) {
+        if let Some(reply) = self.reply {
+            reply(self.error);
+        }
+    }
+}
+
+fn send_reply<T: Send + 'static>(
+    reply: oneshot::Sender<Result<T, Report<ShardCommandError>>>,
+    result: Result<T, Report<ShardCommandError>>,
+) -> Result<(), CommandFailure> {
+    match result {
+        Ok(value) => {
+            let _: Result<_, _> = reply.send(Ok(value));
+            Ok(())
+        }
+        Err(error) => Err(CommandFailure {
+            error,
+            reply: Some(Box::new(|error| {
+                let _: Result<_, _> = reply.send(Err(error));
+            })),
+        }),
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ShardCommandConfig {
     channel_capacity: NonZeroUsize,
@@ -740,68 +777,66 @@ struct CommandLoop<D: Domain> {
 }
 
 impl<D: Domain> CommandLoop<D> {
+    async fn run(mut self) -> Result<(), ShardCommandError> {
+        let Err(failure) = self.run_commands().await else {
+            return Ok(());
+        };
+        let error = &failure.error;
+        tracing::error!(
+            shard = %crate::routing::shard_path(self.location.shard),
+            kind = ?error.current_context().kind,
+            ?error,
+            "stopping shard command loop after terminal failure"
+        );
+        let context = error.current_context().clone();
+        failure.reply();
+        if context.kind == ShardCommandErrorKind::Fenced
+            && let Some(snapshot_context) = &self.snapshot_context
+        {
+            D::note_fenced(snapshot_context);
+        }
+        self.accepting.store(false, Ordering::Release);
+        self.receiver.close();
+        self.reject_queued(&context);
+        if let Err(error) = self.close_writer().await {
+            tracing::error!(
+                shard = %crate::routing::shard_path(self.location.shard),
+                ?error,
+                "failed to close shard writer after terminal failure"
+            );
+        }
+        Err(context)
+    }
+
     #[expect(
         clippy::integer_division_remainder_used,
         reason = "tokio select uses modulo to choose its polling order"
     )]
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one loop processes commands in order and stops the writer on failure"
-    )]
-    async fn run(mut self) -> Result<(), ShardCommandError> {
+    async fn run_commands(&mut self) -> Result<(), CommandFailure> {
         loop {
             let command = tokio::select! {
                 biased;
                 () = self.ownership_lost.cancelled() => {
-                    let error = ShardCommandError {
+                    return Err(CommandFailure::from(Report::new(ShardCommandError {
                         kind: ShardCommandErrorKind::Fenced,
                         message: "shard ownership was lost".to_owned(),
-                    };
-                    return self.stop_after_terminal(Some(error)).await;
+                    })));
                 }
                 command = self.receiver.recv() => command,
             };
             let Some(command) = command else {
                 break;
             };
-            match command {
+            let committing_snapshot = matches!(&command, Command::CommitSnapshot { .. });
+            let shutting_down = matches!(&command, Command::Shutdown { .. });
+            let result = match command {
                 Command::Propose { record, reply } => {
                     let result = self.process(record).await;
-                    let terminal = result
-                        .as_ref()
-                        .err()
-                        .is_some_and(|error| error.current_context().kind.is_terminal());
-                    let terminal_error = result
-                        .as_ref()
-                        .err()
-                        .map(|error| error.current_context().clone());
-                    let _: Result<_, _> = reply.send(result);
-                    if terminal {
-                        self.accepting.store(false, Ordering::Release);
-                        self.receiver.close();
-                        let error = terminal_error.unwrap_or_else(|| {
-                            ShardCommandError::recovery("terminal command-loop failure")
-                        });
-                        self.observe_terminal(&error);
-                        self.reject_queued(&error);
-                        let _: Result<_, _> = self.close_writer().await;
-                        return Err(error);
-                    }
+                    send_reply(reply, result)
                 }
                 Command::InspectControl { request, reply } => {
                     let result = self.inspect_control_request(&request);
-                    let terminal = result
-                        .as_ref()
-                        .err()
-                        .is_some_and(|error| error.current_context().kind.is_terminal());
-                    let terminal_error = result
-                        .as_ref()
-                        .err()
-                        .map(|error| error.current_context().clone());
-                    let _: Result<_, _> = reply.send(result);
-                    if terminal {
-                        return self.stop_after_terminal(terminal_error).await;
-                    }
+                    send_reply(reply, result)
                 }
                 Command::ResolveControl {
                     request,
@@ -810,18 +845,7 @@ impl<D: Domain> CommandLoop<D> {
                 } => {
                     let result =
                         Box::pin(self.process_control_request(request, preflight_rejection)).await;
-                    let terminal = result
-                        .as_ref()
-                        .err()
-                        .is_some_and(|error| error.current_context().kind.is_terminal());
-                    let terminal_error = result
-                        .as_ref()
-                        .err()
-                        .map(|error| error.current_context().clone());
-                    let _: Result<_, _> = reply.send(result);
-                    if terminal {
-                        return self.stop_after_terminal(terminal_error).await;
-                    }
+                    send_reply(reply, result)
                 }
                 Command::CaptureSnapshot {
                     minimum_sequence_span,
@@ -839,25 +863,14 @@ impl<D: Domain> CommandLoop<D> {
                             self.last_snapshot_attempt_through_log_sequence = Some(through);
                             D::capture_snapshot(self.location.shard, &self.projection)
                         });
-                    let _: Result<_, _> = reply.send(Ok(capture));
+                    send_reply(reply, Ok(capture))
                 }
                 Command::CommitSnapshot { snapshot, reply } => {
                     let result = self.process_snapshot(snapshot).await;
-                    let terminal = result.as_ref().err().is_some_and(|error| {
-                        error.current_context().kind != ShardCommandErrorKind::CommitUnknown
-                            && error.current_context().kind.is_terminal()
-                    });
-                    let terminal_error = result
-                        .as_ref()
-                        .err()
-                        .map(|error| error.current_context().clone());
-                    let _: Result<_, _> = reply.send(result);
-                    if terminal {
-                        return self.stop_after_terminal(terminal_error).await;
-                    }
+                    send_reply(reply, result)
                 }
                 Command::Query { query, reply } => {
-                    let _: Result<_, _> = reply.send(Ok(D::answer(&self.projection, query)));
+                    send_reply(reply, Ok(D::answer(&self.projection, query)))
                 }
                 Command::Shutdown { reply } => {
                     self.accepting.store(false, Ordering::Release);
@@ -866,41 +879,26 @@ impl<D: Domain> CommandLoop<D> {
                         "shard command loop is shutting down",
                     ));
                     let result = self.close_writer().await;
-                    let failure = result
-                        .as_ref()
-                        .err()
-                        .map(|error| error.current_context().clone());
-                    let _: Result<_, _> = reply.send(result);
-                    return failure.map_or(Ok(()), Err);
+                    send_reply(reply, result)
                 }
+            };
+            if let Err(failure) = result {
+                let kind = failure.error.current_context().kind;
+                if shutting_down
+                    || (kind.is_terminal()
+                        && !(committing_snapshot && kind == ShardCommandErrorKind::CommitUnknown))
+                {
+                    return Err(failure);
+                }
+                failure.reply();
+            }
+            if shutting_down {
+                return Ok(());
             }
         }
         self.accepting.store(false, Ordering::Release);
-        self.close_writer()
-            .await
-            .map_err(|error| error.current_context().clone())
-    }
-
-    async fn stop_after_terminal(
-        &mut self,
-        terminal_error: Option<ShardCommandError>,
-    ) -> Result<(), ShardCommandError> {
-        self.accepting.store(false, Ordering::Release);
-        self.receiver.close();
-        let error = terminal_error
-            .unwrap_or_else(|| ShardCommandError::recovery("terminal command-loop failure"));
-        self.observe_terminal(&error);
-        self.reject_queued(&error);
-        let _: Result<_, _> = self.close_writer().await;
-        Err(error)
-    }
-
-    fn observe_terminal(&self, error: &ShardCommandError) {
-        if error.kind == ShardCommandErrorKind::Fenced
-            && let Some(context) = &self.snapshot_context
-        {
-            D::note_fenced(context);
-        }
+        self.close_writer().await?;
+        Ok(())
     }
 
     fn inspect_control_request(

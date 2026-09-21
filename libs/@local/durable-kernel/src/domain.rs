@@ -1835,6 +1835,58 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn terminal_failure_dropped_caller() {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let journal = SimLogHandle::new(42, Vec::new());
+            let record = incremented("orders", 5);
+            let location =
+                ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+                .await
+                .expect("shard should open")
+                .recover()
+                .await
+                .expect("shard should recover");
+            let hold = TestHold::armed();
+            let started = recovered.enable_with_harness(
+                ShardCommandConfig::new(NonZeroUsize::MIN, 0),
+                TestHarness {
+                    before_append: Some(Arc::clone(&hold)),
+                    ..TestHarness::default()
+                },
+            );
+            journal.force_outcomes([SimAppendOutcome::Fenced]);
+            let handle = started.handle.clone();
+            let active = tokio::spawn(async move { handle.propose(record).await });
+            hold.entered().notified().await;
+            active.abort();
+            assert!(
+                active
+                    .await
+                    .expect_err("proposal task should be aborted")
+                    .is_cancelled(),
+                "caller should disconnect before the append fails"
+            );
+            hold.release().notify_one();
+
+            let terminal = started
+                .task
+                .await
+                .expect("loop task should join")
+                .expect_err("fencing should stop the loop after its caller disconnects");
+            assert_eq!(terminal.kind, ShardCommandErrorKind::Fenced);
+            let error = started
+                .handle
+                .propose(incremented("orders", 7))
+                .await
+                .expect_err("stopped loop should reject new proposals");
+            assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+        })
+        .await
+        .expect("terminal failure should stop the loop without a waiting caller");
+    }
+
+    #[tokio::test]
     async fn prepared_change_append_failure() {
         register::<ToyDomain>().expect("toy name should register");
         let journal = SimLogHandle::new(42, Vec::new());
