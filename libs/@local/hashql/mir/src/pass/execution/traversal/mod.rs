@@ -148,7 +148,6 @@ impl TraversalPathBitSet {
     }
 
     /// Iterates over the paths in this bitset.
-    #[must_use]
     #[inline]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = TraversalPath> {
         self.into_iter()

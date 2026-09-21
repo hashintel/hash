@@ -1,0 +1,63 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<FlattenedEnumPair>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlattenedEnumPair",
+  "type": "object",
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "capacity": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "memory"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "directory": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "disk"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "socket": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

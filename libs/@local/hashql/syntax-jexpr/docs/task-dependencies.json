@@ -1,18 +1,20 @@
 {
-  "package": "@rust/hashql-syntax-jexpr",
+  "package": "hashql-syntax-jexpr",
   "dependencies": [
-    "@rust/hashql-ast",
-    "@rust/hashql-core",
-    "@rust/hashql-diagnostics"
+    "hashql-ast",
+    "hashql-core",
+    "hashql-diagnostics"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -24,7 +26,8 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:unit": {
@@ -33,7 +36,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     }
   }

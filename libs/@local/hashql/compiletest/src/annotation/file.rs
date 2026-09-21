@@ -173,6 +173,7 @@ mod tests {
     use core::{assert_matches, io::Cursor};
 
     use crate::annotation::{
+        diagnostic::DiagnosticAnnotation,
         directive::Directive,
         file::{FileAnnotationError, FileAnnotations},
     };
@@ -183,7 +184,7 @@ mod tests {
         let result = annotations.parse_file(Cursor::new(""), true);
 
         assert!(result.is_ok(), "should successfully parse an empty file");
-        assert!(annotations.diagnostics.is_empty());
+        assert_eq!(annotations.diagnostics, [] as [DiagnosticAnnotation; 0]);
     }
 
     #[test]

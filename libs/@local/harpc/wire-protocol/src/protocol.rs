@@ -1,5 +1,3 @@
-#![cfg_attr(test, expect(clippy::min_ident_chars, reason = "Generated code"))]
-
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};

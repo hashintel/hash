@@ -34,7 +34,7 @@ use crate::{
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
-            annotations::SupplyError as AnnotationSupplyError,
+            VacuousProjectorPlacement, annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
@@ -88,12 +88,11 @@ pub enum Placement {
         /// `floor(steps / 2)`. This is [`None`] by default, retaining the reference 20,000-step
         /// schedule with its boundary at step 5,000.
         steps: Option<NonZero<usize>>,
-        /// Disable relation attraction in the trained placement.
+        /// Select when training omits relation attraction.
         ///
-        /// This is `false` by default. Enabling it supplies an empty attraction index while
-        /// retaining semantic, protection and landmark-support inputs. It permits trained
-        /// placement without reviewed Proximal pairs.
-        vacuous: bool,
+        /// [`None`] by default, retaining ordinary training admission. See
+        /// [`VacuousProjectorPlacement`] for unconditional and coverage-dependent selection.
+        vacuous: Option<VacuousProjectorPlacement>,
     },
 }
 
@@ -110,9 +109,9 @@ pub struct Options<P> {
     ///
     /// This is `false` by default.
     pub fresh: bool = false,
-    /// Sampled anchor rows of the admission probe, `1,024` by default.
+    /// Upper bound on sampled anchor rows of the admission probe, `1,024` by default.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows of the admission probe, `4,096` by default.
+    /// Upper bound on sampled comparison rows of the admission probe, `4,096` by default.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Path of a reviewed-verdicts document to supply to the run.
     ///
@@ -127,7 +126,7 @@ pub struct Options<P> {
     /// Placement strategy, [`Placement::Projector`] with no overrides by default.
     pub placement: Placement = Placement::Projector {
         steps: None,
-        vacuous: false,
+        vacuous: None,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
@@ -155,8 +154,6 @@ pub(crate) struct Summary {
     pub reused: usize,
     /// Unique card texts supplied to the embedder rather than copied from the prior.
     pub embedded: usize,
-    /// Whether every admission control had evidence within its bound.
-    pub passes: bool,
     /// Whether the run activated the generation.
     pub activated: bool,
     /// The full structured admission report.
@@ -486,7 +483,6 @@ impl From<Outcome> for Summary {
             recall: metadata.evidence.recall,
             reused: metadata.evidence.cards.reused,
             embedded: metadata.evidence.cards.embedded,
-            passes: outcome.report.passes(),
             activated: outcome.admission == Admission::Active,
             report: outcome.report,
         }

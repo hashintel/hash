@@ -486,3 +486,178 @@ fn unknown_type_url_object_becomes_struct() {
     assert_eq!(fields.len(), 1);
     assert_eq!(fields.values()[0], str_value("Alice"));
 }
+
+mod miri {
+    use alloc::alloc::Global;
+    use core::{
+        alloc::{AllocError, Allocator, Layout},
+        assert_matches,
+        cell::Cell,
+        panic::AssertUnwindSafe,
+        ptr::NonNull,
+    };
+    use std::panic::catch_unwind;
+
+    use hashql_core::{
+        heap::Heap,
+        r#type::{builder::TypeBuilder, environment::Environment},
+    };
+    use hashql_mir::interpret::value::Value;
+    use serde_json::json;
+
+    use crate::{
+        intern::Interner,
+        orchestrator::{
+            codec::{Decoder, JsonValueKind, JsonValueRef},
+            error::DecodeError,
+        },
+    };
+
+    /// A [`Global`] allocator that panics after the permitted number of clones.
+    #[derive(Debug)]
+    struct PanicAllocator<'budget>(&'budget Cell<usize>);
+
+    impl Clone for PanicAllocator<'_> {
+        fn clone(&self) -> Self {
+            let remaining = self.0.get();
+            assert!(remaining > 0, "allocator clone");
+            self.0.set(remaining - 1);
+            Self(self.0)
+        }
+    }
+
+    // SAFETY: Global owns every allocation. Moving or dropping PanicAllocator leaves its storage
+    // valid, and every allocation operation delegates to Global with an unchanged layout. This
+    // preserves the Allocator contract.
+    unsafe impl Allocator for PanicAllocator<'_> {
+        fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+            Global.allocate(layout)
+        }
+
+        unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+            // SAFETY: The caller supplies a live allocation and a fitting layout. Every allocation
+            // from this allocator comes from Global with its layout unchanged, permitting this
+            // release.
+            unsafe {
+                Global.deallocate(ptr, layout);
+            }
+        }
+    }
+
+    #[test]
+    fn tuple_nested_error() {
+        let heap = Heap::new();
+        let env = Environment::new(&heap);
+        let interner = Interner::testing(&heap);
+        let types = TypeBuilder::synthetic(&env);
+        let decoder = Decoder::new(&env, &interner, Global);
+        let string = types.string();
+        let tuple = types.tuple([string, types.tuple([string; 2]), string]);
+        // both tuples own an initialized string when the inner decode fails.
+        let input = json!(["outer", ["inner", null], "unwritten"]);
+
+        let result = decoder.decode(tuple, JsonValueRef::from(&input));
+        assert_matches!(
+            result,
+            Err(DecodeError::TypeMismatch { expected, received: JsonValueKind::Null })
+                if expected == string
+        );
+    }
+
+    #[test]
+    fn struct_nested_error() {
+        let heap = Heap::new();
+        let env = Environment::new(&heap);
+        let interner = Interner::testing(&heap);
+        let types = TypeBuilder::synthetic(&env);
+        let decoder = Decoder::new(&env, &interner, Global);
+        let string = types.string();
+        let structure = types.r#struct([
+            ("a", string),
+            ("b", types.tuple([string; 2])),
+            ("c", string),
+        ]);
+        // with serde_json/preserve_order, slot 2 is initialized before slot 1 fails; slot 0 still
+        // holds Unit.
+        let input = json!({"c": "outer", "b": ["inner", null], "a": "unwritten"});
+
+        let result = decoder.decode(structure, JsonValueRef::from(&input));
+        assert_matches!(
+            result,
+            Err(DecodeError::TypeMismatch { expected, received: JsonValueKind::Null })
+                if expected == string
+        );
+    }
+
+    #[test]
+    fn unknown_struct_complete() {
+        let heap = Heap::new();
+        let env = Environment::new(&heap);
+        let interner = Interner::testing(&heap);
+        let types = TypeBuilder::synthetic(&env);
+        let decoder = Decoder::new(&env, &interner, Global);
+        let input = json!({
+            "https://example.com/c/": "three",
+            "https://example.com/a/": "one",
+            "https://example.com/b/": "two",
+        });
+
+        let result = decoder
+            .decode(types.unknown(), JsonValueRef::from(&input))
+            .expect("should decode the unknown struct");
+        let Value::Struct(structure) = &result else {
+            panic!("should produce a struct");
+        };
+        assert_eq!(structure.len(), 3);
+        assert!(structure.fields().is_sorted(), "should sort field names");
+        for (name, expected) in [
+            ("https://example.com/a/", "one"),
+            ("https://example.com/b/", "two"),
+            ("https://example.com/c/", "three"),
+        ] {
+            assert_matches!(
+                structure.get_by_name(heap.intern_symbol(name)),
+                Some(Value::String(string)) if string.as_str() == expected
+            );
+        }
+    }
+
+    #[test]
+    fn aggregate_clone_panic() {
+        let heap = Heap::new();
+        let env = Environment::new(&heap);
+        let interner = Interner::testing(&heap);
+        let types = TypeBuilder::synthetic(&env);
+        let string = types.string();
+        let structure = types.r#struct([("a", string), ("b", string), ("c", string)]);
+
+        // permit the aggregate buffer and first string to be allocated before the next clone
+        // panics. Structs also allocate a field-name buffer.
+        for (type_id, input, permitted_clones) in [
+            (types.tuple([string; 3]), json!(["one", "two", "three"]), 2),
+            (structure, json!({"c": "three", "a": "one", "b": "two"}), 3),
+            (
+                types.unknown(),
+                json!({
+                    "https://example.com/c/": "three",
+                    "https://example.com/a/": "one",
+                    "https://example.com/b/": "two",
+                }),
+                3,
+            ),
+        ] {
+            let remaining = Cell::new(permitted_clones);
+            let decoder = Decoder::new(&env, &interner, PanicAllocator(&remaining));
+            // the decoder is dropped after unwinding rather than used for another decode.
+            let result = catch_unwind(AssertUnwindSafe(|| {
+                decoder.decode(type_id, JsonValueRef::from(&input))
+            }));
+            let panic = result.expect_err("should panic while decoding the second string");
+            assert_eq!(
+                panic.downcast_ref::<&str>(),
+                Some(&"allocator clone"),
+                "should catch the injected panic"
+            );
+        }
+    }
+}

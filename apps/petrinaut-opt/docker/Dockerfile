@@ -14,16 +14,22 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
-ENV PATH="/mise/shims:$PATH"
+ENV MISE_CARGO_HOME="/usr/local/cargo"
+ENV PATH="/mise/shims:/usr/local/cargo/bin:$PATH"
 
 COPY .config/mise /etc/mise
 
-RUN apt-get update && \
+# turbo reads the Cargo workspace through `cargo metadata`, in the prune as well as in the build.
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked npm:turbo yq
+    mise install --locked node npm:turbo yq && \
+    mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' /tmp/rust-toolchain.toml) && \
+    rm /tmp/rust-toolchain.toml
 
 
 FROM bindings-tools AS bindings-pruner
@@ -33,7 +39,7 @@ WORKDIR /repo
 COPY . .
 
 RUN mise trust && \
-    turbo prune $(.github/scripts/prune-scopes.sh '@local/petrinaut-python') --docker
+    turbo prune '@local/petrinaut-python' --docker
 
 
 FROM bindings-tools AS bindings-builder

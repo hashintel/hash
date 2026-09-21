@@ -136,6 +136,20 @@ services:
       LOG_FORMAT: text
       LOG_LEAK_SENSITIVE_VALUES: true
     command: serve --dev --watch-courier
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/usr/bin/kratos",
+          "remote",
+          "status",
+          "--endpoint",
+          "http://localhost:4434",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     read_only: true
     security_opt:
       - no-new-privileges:true

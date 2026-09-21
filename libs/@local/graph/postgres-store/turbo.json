@@ -1,13 +1,54 @@
 {
   "extends": ["//"],
   "tasks": {
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["@apps/hash-graph#start:test:migrate"]
-    },
     "test:integration": {
-      "dependsOn": ["^manifest", "@rust/hash-graph-migrations#start:migrate:up"]
+      "command": [
+        "cargo",
+        "hack",
+        "nextest",
+        "run",
+        "--feature-powerset",
+        "--tests"
+      ],
+      "dependsOn": ["^manifest", "hash-graph-migrations#start:migrate:up"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph-postgres-store",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:unit": {
+      "command": [
+        "mise",
+        "run",
+        "test:unit",
+        "hash-graph-postgres-store",
+        "--test-strategy=powerset",
+        "--",
+        "--lib"
+      ]
     }
   }
 }

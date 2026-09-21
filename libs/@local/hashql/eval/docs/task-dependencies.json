@@ -1,25 +1,26 @@
 {
-  "package": "@rust/hashql-eval",
+  "package": "hashql-eval",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-postgres-store",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-test-data",
-    "@rust/hashql-core",
-    "@rust/hashql-diagnostics",
-    "@rust/hashql-hir",
-    "@rust/hashql-mir"
+    "error-stack",
+    "hash-graph-authorization",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-test-data",
+    "hashql-core",
+    "hashql-diagnostics",
+    "hashql-hir",
+    "hashql-mir",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores"
       ]
     },
     "fix:clippy": {
@@ -31,7 +32,15 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
+    "test:miri": {
+      "dependsOn": [],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:unit": {
@@ -40,7 +49,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     }
   }

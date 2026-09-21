@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.8.10"
+min_version = "2026.9.1"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -17,7 +17,7 @@ minimum_release_age                 = "7d"
 [tools]
 # Basic tools
 node        = { version = "22.21.1", postinstall = "corepack enable" }
-"npm:turbo" = "2.10.12"
+"npm:turbo" = "2.11.2"
 
 # Helper to install tools
 cargo-binstall = "1.19.1"

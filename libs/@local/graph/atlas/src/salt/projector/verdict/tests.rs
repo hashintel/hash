@@ -4,7 +4,10 @@ use hashql_core::id::{Id as _, IdSlice};
 use uuid::Uuid;
 
 use super::{InvalidReviewedVerdicts, PlacementClass, ReviewedVerdicts};
-use crate::postgres::id::ArchivedOntologyTypeUuid;
+use crate::{
+    postgres::id::ArchivedOntologyTypeUuid,
+    salt::projector::verdict::{PairVerdict, TypeVerdict},
+};
 
 /// Composes a wire document with the canonical exporter's key order.
 fn document(type_verdicts: &str, pair_verdicts: &str) -> String {
@@ -76,7 +79,7 @@ fn shipped_shape_parses() {
     assert_eq!(types[1].placement, PlacementClass::Proximal);
     assert_eq!(types[2].placement, PlacementClass::Coincident);
 
-    assert!(verdicts.pair_verdicts().is_empty());
+    assert_eq!(verdicts.pair_verdicts(), [] as [PairVerdict; 0]);
     assert_eq!(
         verdicts
             .sources
@@ -322,7 +325,7 @@ fn resolved_verdicts_ascend_by_row() {
     ];
 
     let outcome = verdicts.resolve(IdSlice::from_raw(&ontology));
-    assert!(outcome.unresolved().is_empty());
+    assert_eq!(outcome.unresolved(), [] as [&TypeVerdict; 0]);
 
     let rows: Vec<u64> = outcome
         .resolved()
@@ -384,6 +387,6 @@ fn empty_document_resolves_to_nothing() {
         ReviewedVerdicts::from_slice(json.as_bytes()).expect("an empty document conforms");
 
     let outcome = verdicts.resolve(IdSlice::from_raw(&[table_entry(LINK, 1)]));
-    assert!(outcome.resolved().is_empty());
-    assert!(outcome.unresolved().is_empty());
+    assert_eq!(outcome.resolved(), []);
+    assert_eq!(outcome.unresolved(), [] as [&TypeVerdict; 0]);
 }

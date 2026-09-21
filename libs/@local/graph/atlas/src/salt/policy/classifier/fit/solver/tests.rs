@@ -19,7 +19,7 @@ use super::{
     newton::{NewtonOutcome, NewtonTag, factor_block, newton_step},
     prepare::{PreparationError, PreparationSettings, prepare},
     problem::ScaledProblem,
-    receipt::{CandidateOutcome, CurvatureDiagnostic, ReceiptDetail, vector_digest},
+    receipt::{CandidateOutcome, CurvatureDiagnostic, OuterReceipt, ReceiptDetail, vector_digest},
     resolution::objective_resolution,
     scale::Scaling,
     solve::{
@@ -1608,7 +1608,7 @@ fn solve_certifies_immediately_when_the_initial_gradient_passes() {
     // No outer iteration started: the receipt list stays empty and the inner counters stay at
     // zero.
     assert_eq!(run.control.outer_iterations_started, 0);
-    assert!(run.receipts.is_empty());
+    assert_eq!(run.receipts, [] as [OuterReceipt; 0]);
     let counters = run.control.counters;
     assert_eq!(counters.hvp_requests, 0);
     assert_eq!(counters.factorizations, 0);
@@ -1779,7 +1779,7 @@ fn solve_certificate_tie_returns_at_equality() {
 
     tie.outcome.expect("equality with the threshold certifies");
     assert_eq!(tie.control.outer_iterations_started, 0);
-    assert!(tie.receipts.is_empty());
+    assert_eq!(tie.receipts, [] as [OuterReceipt; 0]);
 }
 
 /// Exhausts the outer budget on an unmeetable certificate, one receipt per iteration.
@@ -1966,7 +1966,7 @@ fn solve_fails_final_certification_on_a_non_finite_admitted_objective() {
     let evidence = run.certificate.expect("the threshold was derived");
     assert!(evidence.initial_gradient_norm <= evidence.gradient_threshold);
     assert_eq!(run.control.outer_iterations_started, 0);
-    assert!(run.receipts.is_empty());
+    assert_eq!(run.receipts, [] as [OuterReceipt; 0]);
     assert_eq!(run.control.counters.joint_passes, 2);
 }
 

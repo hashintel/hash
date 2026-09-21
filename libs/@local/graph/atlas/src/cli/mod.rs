@@ -16,8 +16,8 @@
 //!
 //! The store flags mirror the graph's `HASH_GRAPH_PG_*` environment. One deployment configuration
 //! drives every entry point. [`S3Args`] attaches the optional S3 backend over the SDK's own `AWS_*`
-//! environment plus `HASH_GRAPH_ATLAS_S3_*` overrides. The report commands belong to the standalone
-//! binary alone.
+//! environment plus `HASH_GRAPH_ATLAS_FITTING_S3_*` overrides for both fitting and serving. The
+//! report commands belong to the standalone binary alone.
 //!
 //! The fit command returns [`FitVerdict`] for its host to render. The standalone shell's `--tui`
 //! dashboard owns the terminal until the run ends. The shell prints the verdict after the dashboard

@@ -961,13 +961,13 @@ fn collect_constraints_concrete_intrinsics() {
     integer_list.collect_constraints(number_list, &mut inference_env);
 
     // No constraints should be generated for concrete types
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(inference_env.take_constraints(), [] as [Constraint<'_>; 0]);
 
     // Collect constraints for concrete dicts
     dict_a.collect_constraints(dict_b, &mut inference_env);
 
     // No constraints should be generated for concrete types
-    assert!(inference_env.take_constraints().is_empty());
+    assert_eq!(inference_env.take_constraints(), [] as [Constraint<'_>; 0]);
 }
 
 // Tests for ListType.collect_structural_edges

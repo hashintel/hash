@@ -41,12 +41,12 @@ use crate::{
 
 /// Returns the current-pointer path under the source root.
 fn current_path(source: &Utf8Path) -> Utf8PathBuf {
-    source.join("generations/current")
+    source.join("current")
 }
 
 /// Locates a generation artifact under the source's active prefix.
 fn active_path(source: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
-    source.join(format!("generations/active/{id}/{name}"))
+    source.join(format!("active/{id}/{name}"))
 }
 
 /// Writes a source object, creating its prefix.
@@ -155,7 +155,7 @@ impl Fixture {
         }
     }
 
-    /// Returns the source containing the `generations/` namespace.
+    /// Returns the source generations root.
     fn source(&self) -> &FilePath {
         &self.source
     }

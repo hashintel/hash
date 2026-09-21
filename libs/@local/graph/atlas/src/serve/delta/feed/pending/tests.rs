@@ -499,7 +499,7 @@ fn receive_wire_coordinates() {
     });
     let mut scratch = Vec::new();
     pending.normalize(fixture.delta.world.bounds(), &mut scratch);
-    assert!(scratch.is_empty());
+    assert_eq!(scratch, [] as [Vec2; 0]);
 
     let entity = ArchivedEntityId::from(request.entity);
     let edition = pending.updates[&entity].event.edition;
@@ -801,7 +801,7 @@ fn normalize_batch() {
     let expected = bounds.normalize_into(WIRE_FRAME, &raw);
     let mut scratch = vec![Vec2::splat(99.0)];
     pending.normalize(bounds, &mut scratch);
-    assert!(scratch.is_empty());
+    assert_eq!(scratch, [] as [Vec2; 0]);
     assert_eq!(pending.classifications().count(), 10);
     assert_eq!(pending.editions().count(), 5);
     for (entity, expected) in entities.into_iter().zip(expected) {
@@ -811,7 +811,7 @@ fn normalize_batch() {
         assert!(actual.distance_squared_wide(expected) < 1e-10);
     }
     pending.normalize(bounds, &mut scratch);
-    assert!(scratch.is_empty());
+    assert_eq!(scratch, [] as [Vec2; 0]);
     assert_eq!(pending.editions().count(), 5);
 }
 
@@ -842,7 +842,7 @@ fn normalize_superseded() {
         .expect("should have ordered finite bounds");
     let mut scratch = Vec::new();
     pending.normalize(bounds, &mut scratch);
-    assert!(scratch.is_empty());
+    assert_eq!(scratch, [] as [Vec2; 0]);
     assert_ne!(pending.updates[&key].id, request.event);
     assert_matches!(pending.updates[&key].stage, Stage::Classify);
     assert_eq!(pending.editions().count(), 0);

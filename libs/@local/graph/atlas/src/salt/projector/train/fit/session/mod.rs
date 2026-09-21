@@ -120,6 +120,7 @@ where
             )?),
             None => None,
         };
+
         let mut plan = options.plan;
         if vacuous {
             // No group exerts force, and relation draws would be dead
@@ -220,12 +221,8 @@ where
                 };
             }
 
-            #[expect(
-                clippy::integer_division_remainder_used,
-                reason = "the refresh cadence is a step-count modulus"
-            )]
-            let tick = step_index == schedule.boundary()
-                || step_index % schedule.refresh_interval().get() == 0;
+            let tick =
+                step_index == schedule.boundary() || step_index % schedule.refresh_interval() == 0;
             if tick {
                 let outcome = self.refresh.tick(
                     &model.valid(),

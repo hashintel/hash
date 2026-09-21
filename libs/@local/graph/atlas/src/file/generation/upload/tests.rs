@@ -38,17 +38,17 @@ use crate::{
 
 /// Returns the current-pointer path under the destination root.
 fn current_path(root: &Utf8Path) -> Utf8PathBuf {
-    root.join("generations/current")
+    root.join("current")
 }
 
 /// Returns the advisory previous-pointer path under the destination root.
 fn previous_path(root: &Utf8Path) -> Utf8PathBuf {
-    root.join("generations/previous")
+    root.join("previous")
 }
 
 /// Locates a generation artifact under the destination's repository prefix.
 fn repository_path(root: &Utf8Path, id: GenerationId, name: &str) -> Utf8PathBuf {
-    root.join(format!("generations/repository/{id}/{name}"))
+    root.join(format!("repository/{id}/{name}"))
 }
 
 /// Locates the metadata that completes the destination's repository prefix.
@@ -58,7 +58,7 @@ fn repository_metadata_path(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
 
 /// Locates the destination's active prefix for one generation.
 fn active_directory(root: &Utf8Path, id: GenerationId) -> Utf8PathBuf {
-    root.join(format!("generations/active/{id}"))
+    root.join(format!("active/{id}"))
 }
 
 /// Locates a generation artifact under the destination's active prefix.
@@ -286,7 +286,7 @@ impl Fixture {
         }
     }
 
-    /// Returns the destination containing the `generations/` namespace.
+    /// Returns the destination generations root.
     fn destination(&self) -> &FilePath {
         &self.destination
     }

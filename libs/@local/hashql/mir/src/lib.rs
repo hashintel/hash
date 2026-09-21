@@ -9,7 +9,6 @@
     exhaustive_patterns,
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
-    never_type,
     const_trait_impl,
 
     // Library Features

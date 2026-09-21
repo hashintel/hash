@@ -6,11 +6,6 @@
     // Language Features
     impl_trait_in_assoc_type
 )]
-#![cfg_attr(test, feature(
-    // Language Features
-    never_type
-))]
-
 extern crate alloc;
 
 pub mod account;

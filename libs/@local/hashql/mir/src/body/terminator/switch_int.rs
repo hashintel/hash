@@ -473,7 +473,6 @@ impl<'heap> SwitchTargets<'heap> {
     /// assert_eq!(pairs[0].0, 10);
     /// assert_eq!(pairs[1].0, 20);
     /// ```
-    #[must_use]
     pub fn iter(
         &self,
     ) -> impl DoubleEndedIterator<Item = (u128, Target<'heap>)> + ExactSizeIterator {

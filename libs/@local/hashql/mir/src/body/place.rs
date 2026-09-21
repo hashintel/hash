@@ -359,7 +359,6 @@ impl<'heap> Place<'heap> {
     /// - Yields `(PlaceRef, Projection)` tuples for each projection step
     /// - Is double-ended (can iterate forwards or backwards)
     /// - Has an exact known length
-    #[must_use]
     pub fn iter_projections(
         self,
     ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap, 'heap>, Projection<'heap>)> + ExactSizeIterator
@@ -375,7 +374,6 @@ impl<'heap> Place<'heap> {
     /// without first constructing a full [`Place`].
     ///
     /// [`iter_projections`]: Place::iter_projections
-    #[must_use]
     pub fn iter_projections_from_parts(
         local: Local,
         projections: &'heap [Projection<'heap>],

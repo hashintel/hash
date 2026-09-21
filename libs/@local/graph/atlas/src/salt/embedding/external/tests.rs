@@ -1,7 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "ordering and conversion must preserve the fixture's exactly representable components"
-)]
 use alloc::sync::Arc;
 use core::{assert_matches, future::ready};
 use std::sync::Mutex;
@@ -405,7 +401,7 @@ async fn rejects_reserved_tokens_before_any_request() {
         result,
         Err(ExternalEmbeddingError::ReservedToken { index: 0, .. })
     );
-    assert!(provider.generator.requests().is_empty());
+    assert_eq!(provider.generator.requests(), [] as [Vec<String>; 0]);
 }
 
 #[tokio::test]

@@ -1102,7 +1102,7 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
     }
 }
 
-impl<R: Id, C: Id, A: Allocator + Clone> fmt::Debug for SparseBitMatrix<R, C, A> {
+impl<R: Id, C: Id, A: Allocator> fmt::Debug for SparseBitMatrix<R, C, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         struct Pair<R, C>(R, C);
         impl<R: fmt::Debug, C: fmt::Debug> fmt::Debug for Pair<R, C> {

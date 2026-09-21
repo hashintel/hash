@@ -1,7 +1,7 @@
 mod miri {
     use core::simd::f32x8;
 
-    use crate::math::{matrixn::MatrixN, test_alloc::CountingAllocator};
+    use crate::math::{AlignedVecN, matrixn::MatrixN, test_alloc::CountingAllocator};
 
     #[test]
     fn zeroed_matrix_reads_zero_everywhere() {
@@ -29,10 +29,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn writes_through_rows_land_at_the_row_major_offsets() {
         let mut matrix = MatrixN::<8>::zeroed(3);
 
@@ -45,10 +41,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn clone_is_equal_and_independent() {
         let mut matrix = MatrixN::<8>::zeroed(2);
         matrix.rows_mut()[0].as_array_mut()[3] = 4.0;
@@ -65,8 +57,8 @@ mod miri {
     fn empty_matrix_is_well_formed() {
         let matrix = MatrixN::<8>::zeroed(0);
 
-        assert!(matrix.rows().is_empty());
-        assert!(matrix.as_components().is_empty());
+        assert_eq!(matrix.rows(), [] as [AlignedVecN<8>; 0]);
+        assert_eq!(matrix.as_components(), [] as [f32; 0]);
         assert_eq!(matrix, matrix.clone());
     }
 

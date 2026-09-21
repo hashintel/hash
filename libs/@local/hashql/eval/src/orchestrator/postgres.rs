@@ -10,7 +10,7 @@
 //!
 //! [`CallStack`]: hashql_mir::interpret::CallStack
 
-use core::alloc::Allocator;
+use core::alloc::{Allocator, AllocatorClone};
 
 use hashql_mir::{
     body::{Body, basic_block::BasicBlockId, local::Local},
@@ -229,7 +229,7 @@ impl<'heap, A: Allocator> PostgresState<'heap, A> {
         callstack: &mut CallStack<'ctx, 'heap, A>,
     ) -> Result<(), RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         callstack.set_current_block_unchecked(self.target)?;
 
@@ -241,7 +241,7 @@ impl<'heap, A: Allocator> PostgresState<'heap, A> {
             .unwrap_or_else(|_err: RuntimeError<'heap, !, A>| unreachable!());
 
         for (local, value) in &self.locals {
-            *frame_locals.local_mut(*local) = value.clone();
+            frame_locals.local_mut(*local).clone_from(value);
         }
 
         Ok(())

@@ -9,7 +9,7 @@
 //! owned observer for reporting work that cannot borrow the original observer.
 
 use crate::{
-    math::Vec2,
+    math::{DFinite, Vec2},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
         projector::train::LossBreakdown, quality::QualityMetric,
@@ -205,7 +205,11 @@ pub trait Progress {
     fn classifier_regularization_selected(&self, regularization: f64) {}
 
     /// Reports an admission metric's aggregate reading across the probe steps.
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {}
+    #[expect(
+        private_interfaces,
+        reason = "public command bounds require Progress, but its callbacks remain crate-internal"
+    )]
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {}
 
     /// Reports completion of a pipeline stage.
     fn stage_completed(&self, stage: Stage) {}
@@ -281,7 +285,11 @@ where
         T::classifier_regularization_selected(self, regularization);
     }
 
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+    #[expect(
+        private_interfaces,
+        reason = "public command bounds require Progress, but its callbacks remain crate-internal"
+    )]
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         T::quality_probe(self, metric, value);
     }
 

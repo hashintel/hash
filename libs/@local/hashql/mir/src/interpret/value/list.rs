@@ -1,6 +1,9 @@
 //! List collection for the MIR interpreter.
 
-use core::{alloc::Allocator, cmp};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    cmp,
+};
 
 use super::{Int, Value};
 
@@ -40,7 +43,7 @@ use super::{Int, Value};
 /// assert_eq!(list.get(Int::from(3_i32)), None);
 /// assert_eq!(list.get(Int::from(-4_i32)), None);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct List<'heap, A: Allocator> {
     inner: rpds::Vector<Value<'heap, A>>,
 }
@@ -128,10 +131,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// assert_eq!(list.get(Int::from(0_i32)), Some(&Value::Integer(10.into())));
     /// assert_eq!(list.get(Int::from(1_i32)), Some(&Value::Integer(20.into())));
     /// ```
-    pub fn push_back(&mut self, value: Value<'heap, A>)
-    where
-        A: Clone,
-    {
+    pub fn push_back(&mut self, value: Value<'heap, A>) {
         self.inner.push_back_mut(value);
     }
 
@@ -197,7 +197,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// ```
     pub fn get_mut(&mut self, index: Int) -> Option<&mut Value<'heap, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let index = isize::try_from(index.as_int()).ok()?;
 
@@ -230,9 +230,26 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// let values: Vec<_> = list.iter().collect();
     /// assert_eq!(values.len(), 2);
     /// ```
-    #[must_use]
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator {
         self.inner.iter()
+    }
+}
+
+impl<A> Clone for List<'_, A>
+where
+    A: Allocator,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { inner } = self;
+        inner.clone_from(&source.inner);
     }
 }
 

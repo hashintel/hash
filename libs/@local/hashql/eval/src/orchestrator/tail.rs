@@ -32,10 +32,7 @@ impl<'heap, A: Allocator> Tail<'heap, A> {
         }
     }
 
-    pub(crate) fn push(&mut self, value: value::Value<'heap, A>)
-    where
-        A: Clone,
-    {
+    pub(crate) fn push(&mut self, value: value::Value<'heap, A>) {
         match self {
             Self::Collect(list) => list.push_back(value),
         }

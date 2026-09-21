@@ -1,5 +1,5 @@
 {
-  "package": "@rust/darwin-kperf-events",
+  "package": "darwin-kperf-events",
   "dependencies": [],
   "tasks": {
     "lint:clippy": {

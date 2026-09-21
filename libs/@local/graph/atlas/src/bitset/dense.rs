@@ -1,7 +1,8 @@
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
-use alloc::{alloc::Allocator, boxed::Box};
+use alloc::boxed::Box;
 use core::{
+    alloc::Allocator,
     clone::CloneToUninit,
     fmt, iter,
     marker::PhantomData,

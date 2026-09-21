@@ -1,13 +1,13 @@
 [package]
-name              = "problematic"
-version           = "0.0.0"
 authors.workspace = true
-edition.workspace = true
 description       = "HTTP Problem Details with typed extensions and JSON Schema support"
-license           = "MIT OR Apache-2.0"
 documentation     = "https://docs.rs/problematic"
+edition.workspace = true
+exclude           = ["turbo.json", "docs/task-dependencies.json"]
+license           = "MIT OR Apache-2.0"
+name              = "problematic"
 repository        = "https://github.com/hashintel/hash/tree/main/libs/problematic/rust"
-exclude           = ["package.json", "turbo.json", "docs/task-dependencies.json"]
+version           = "0.0.0"
 
 [dependencies]
 # Public workspace dependencies
