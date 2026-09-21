@@ -426,7 +426,8 @@ impl ShardLogWriter {
     async fn scan_projection_snapshots<T: DurableRecord>(
         &self,
         durable_end_exclusive: u64,
-    ) -> Result<Vec<(u64, Result<T, crate::registry::CompatError>)>, Report<DurableError>> {
+    ) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
+    {
         match &self.backend {
             WriterBackend::Real(log) => {
                 scan_snapshot_records(
@@ -459,12 +460,17 @@ impl ShardLogWriter {
         value: &T,
         fault: AppendFault,
     ) -> Result<u64, Report<ShardAppendError>> {
-        require_interned::<T>().map_err(|error| {
-            definitely_not_committed("validate durable-record registration", error)
-        })?;
+        require_interned::<T>()
+            .change_context(ShardAppendError {
+                kind: AppendFailureKind::DefinitelyNotCommitted,
+            })
+            .attach("validate durable-record registration")?;
         let bytes = value
             .encode()
-            .map_err(|error| definitely_not_committed("encode durable shard record", error))?;
+            .change_context(ShardAppendError {
+                kind: AppendFailureKind::DefinitelyNotCommitted,
+            })
+            .attach("encode durable shard record")?;
         self.append_encoded(key, Bytes::from(bytes), fault).await
     }
 
@@ -743,7 +749,7 @@ async fn scan_snapshot_records<T, R>(
     reader: &R,
     range: (Bound<Sequence>, Bound<Sequence>),
     expected_end: u64,
-) -> Result<Vec<(u64, Result<T, crate::registry::CompatError>)>, Report<DurableError>>
+) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
 where
     T: DurableRecord,
     R: LogRead + Sync,
@@ -778,17 +784,6 @@ where
         )));
     }
     Ok(records)
-}
-
-fn definitely_not_committed<E>(operation: &'static str, error: E) -> Report<ShardAppendError>
-where
-    E: core::error::Error + Send + Sync + 'static,
-{
-    Report::new(error)
-        .change_context(ShardAppendError {
-            kind: AppendFailureKind::DefinitelyNotCommitted,
-        })
-        .attach(operation)
 }
 
 #[cfg(any(test, feature = "test-util"))]
@@ -909,7 +904,10 @@ impl RawShardLog {
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
         crate::registry::intern_declaration(*T::declaration())
-            .map_err(|error| definitely_not_committed("intern raw-append declaration", error))?;
+            .change_context(ShardAppendError {
+                kind: AppendFailureKind::DefinitelyNotCommitted,
+            })
+            .attach("intern raw-append declaration")?;
         self.0.append(value).await
     }
 
@@ -921,7 +919,10 @@ impl RawShardLog {
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
         crate::registry::intern_declaration(*T::declaration())
-            .map_err(|error| definitely_not_committed("intern raw-append declaration", error))?;
+            .change_context(ShardAppendError {
+                kind: AppendFailureKind::DefinitelyNotCommitted,
+            })
+            .attach("intern raw-append declaration")?;
         self.0
             .append_registered(PROJECTION_SNAPSHOTS_KEY, value, AppendFault::None)
             .await
@@ -944,14 +945,14 @@ mod tests {
     use core::time::Duration;
     use std::io;
 
-    use error_stack::Report;
+    use error_stack::{Report, ResultExt as _};
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
 
     use super::{
         AppendFailureKind, AppendFault, ShardLogLocation, ShardLogRecovery, ShardLogWriter,
-        definitely_not_committed, post_invocation_message, post_invocation_report,
-        post_invocation_source, wait_until_durable_with,
+        post_invocation_message, post_invocation_report, post_invocation_source,
+        wait_until_durable_with,
     };
     use crate::{
         DurableError,
@@ -983,7 +984,6 @@ mod tests {
     #[test]
     fn append_failure_sources() {
         for error in [
-            definitely_not_committed("encode record", io::Error::from(io::ErrorKind::InvalidData)),
             post_invocation_source("append record", io::Error::from(io::ErrorKind::InvalidData)),
             post_invocation_report(
                 "wait for durability",
@@ -1024,23 +1024,21 @@ mod tests {
             &TEST_RECORD_DECLARATION
         }
 
-        fn encode(&self) -> Result<Vec<u8>, CompatError> {
+        fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
             if self.fail_encode {
-                return Err(CompatError::Malformed {
+                return Err(Report::new(CompatError::Encode {
                     name: Self::declaration().name,
-                    message: "injected encode failure".to_owned(),
-                });
+                })
+                .attach("injected encode failure"));
             }
-            serde_json::to_vec(self).map_err(|error| CompatError::Malformed {
+            serde_json::to_vec(self).change_context(CompatError::Encode {
                 name: Self::declaration().name,
-                message: error.to_string(),
             })
         }
 
-        fn decode(bytes: &[u8]) -> Result<Self, CompatError> {
-            serde_json::from_slice(bytes).map_err(|error| CompatError::Malformed {
+        fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
+            serde_json::from_slice(bytes).change_context(CompatError::Decode {
                 name: Self::declaration().name,
-                message: error.to_string(),
             })
         }
     }
@@ -1048,7 +1046,7 @@ mod tests {
     impl VersionedRecord for TestRecord {
         type Current = Self;
 
-        fn normalize(self) -> Result<Self, CompatError> {
+        fn normalize(self) -> Result<Self, Report<CompatError>> {
             Ok(self)
         }
     }
@@ -1170,6 +1168,12 @@ mod tests {
             error.current_context().kind,
             AppendFailureKind::DefinitelyNotCommitted
         );
+        assert_eq!(
+            error.downcast_ref::<CompatError>(),
+            Some(&CompatError::Encode {
+                name: TestRecord::declaration().name
+            })
+        );
         writer.close().await.expect("writer should close");
     }
 
@@ -1190,11 +1194,11 @@ mod tests {
                 &UNREGISTERED_DECLARATION
             }
 
-            fn encode(&self) -> Result<Vec<u8>, CompatError> {
+            fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
                 Ok(Vec::new())
             }
 
-            fn decode(_bytes: &[u8]) -> Result<Self, CompatError> {
+            fn decode(_bytes: &[u8]) -> Result<Self, Report<CompatError>> {
                 Ok(Self)
             }
         }
@@ -1202,7 +1206,7 @@ mod tests {
         impl VersionedRecord for UnregisteredRecord {
             type Current = Self;
 
-            fn normalize(self) -> Result<Self, CompatError> {
+            fn normalize(self) -> Result<Self, Report<CompatError>> {
                 Ok(self)
             }
         }

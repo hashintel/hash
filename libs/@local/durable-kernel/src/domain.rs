@@ -251,14 +251,8 @@ impl<'de, E: DomainEvent> Deserialize<'de> for EventRecordV1<E> {
             partition,
             event,
         } = Fields::deserialize(deserializer)?;
-        Self::from_parts(event_id, partition, event).map_err(serde::de::Error::custom)
-    }
-}
-
-fn record_malformed<E: DomainEvent>(message: impl Into<String>) -> CompatError {
-    CompatError::Malformed {
-        name: E::name(),
-        message: message.into(),
+        Self::from_parts(event_id, partition, event)
+            .map_err(|error| serde::de::Error::custom(format!("{error:#}")))
     }
 }
 
@@ -266,14 +260,14 @@ fn derive_event_id<E: DomainEvent>(
     partition: &PartitionKey,
     event: &E,
 ) -> Result<EventId, Report<CompatError>> {
-    let event = serde_json::to_value(event)
-        .change_context_lazy(|| record_malformed::<E>("event identity serialization failed"))?;
+    let event =
+        serde_json::to_value(event).change_context(CompatError::Encode { name: E::name() })?;
     content_digest_bytes(
         "domain-event:v1",
         &json!({ "partition": partition, "event": event }),
     )
     .map(EventId::from_bytes)
-    .change_context_lazy(|| record_malformed::<E>("event identity serialization failed"))
+    .change_context(CompatError::Encode { name: E::name() })
 }
 
 impl<E: DomainEvent> EventRecordV1<E> {
@@ -321,20 +315,17 @@ impl<E: DomainEvent> EventRecordV1<E> {
     ) -> Result<Self, Report<CompatError>> {
         let record = Self::new(event)?;
         if partition != record.partition {
-            return Err(Report::new(CompatError::Conflict {
+            return Err(Report::new(CompatError::PartitionMismatch {
                 name: E::name(),
-                message: format!(
-                    "record partition {partition} does not match the event's partition"
-                ),
+                expected: record.partition,
+                actual: partition,
             }));
         }
         if event_id != record.event_id {
-            return Err(Report::new(CompatError::Conflict {
+            return Err(Report::new(CompatError::EventIdMismatch {
                 name: E::name(),
-                message: format!(
-                    "event ID mismatch: expected {}, found {event_id}",
-                    record.event_id
-                ),
+                expected: record.event_id,
+                actual: event_id,
             }));
         }
         Ok(Self {
@@ -344,10 +335,9 @@ impl<E: DomainEvent> EventRecordV1<E> {
         })
     }
 
-    fn digest(&self) -> Result<JournalRecordDigest, CompatError> {
-        let event = serde_json::to_value(&self.event).map_err(|error| {
-            record_malformed::<E>(format!("serialize event for digest: {error}"))
-        })?;
+    fn digest(&self) -> Result<JournalRecordDigest, Report<CompatError>> {
+        let event = serde_json::to_value(&self.event)
+            .change_context(CompatError::Encode { name: E::name() })?;
         content_digest_bytes(
             "domain-record:v1",
             &json!({
@@ -357,7 +347,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
             }),
         )
         .map(JournalRecordDigest::from_bytes)
-        .map_err(|error| record_malformed::<E>(error.to_string()))
+        .change_context(CompatError::Encode { name: E::name() })
     }
 }
 
@@ -386,46 +376,49 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
             .unwrap_or_else(|error| panic!("hosted event name should be usable: {error}"))
     }
 
-    fn encode(&self) -> Result<Vec<u8>, CompatError> {
+    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
         let bytes =
-            serde_json::to_vec(self).map_err(|error| record_malformed::<E>(error.to_string()))?;
+            serde_json::to_vec(self).change_context(CompatError::Encode { name: E::name() })?;
         if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(record_malformed::<E>(format!(
-                "record is {} bytes; maximum is {MAX_EVENT_RECORD_BYTES}",
-                bytes.len()
-            )));
+            return Err(Report::new(CompatError::TooLarge {
+                name: E::name(),
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_EVENT_RECORD_BYTES,
+            }));
         }
         Ok(bytes)
     }
 
-    fn decode(bytes: &[u8]) -> Result<Self, CompatError> {
+    fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
         if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(record_malformed::<E>(format!(
-                "record is {} bytes; maximum is {MAX_EVENT_RECORD_BYTES}",
-                bytes.len()
-            )));
+            return Err(Report::new(CompatError::TooLarge {
+                name: E::name(),
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_EVENT_RECORD_BYTES,
+            }));
         }
         let value: serde_json::Value = serde_json::from_slice(bytes)
-            .map_err(|error| record_malformed::<E>(error.to_string()))?;
+            .change_context(CompatError::Decode { name: E::name() })?;
         reject_unknown_fields(E::name(), "", &value, &["version", "data"])?;
         let version = value
             .get("version")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| record_malformed::<E>("version must be a string"))?;
+            .ok_or_else(|| CompatError::MissingVersion { name: E::name() })?
+            .as_str()
+            .ok_or_else(|| CompatError::InvalidVersionType { name: E::name() })?;
         if version != "v1" {
-            return Err(CompatError::UnsupportedVersion {
+            return Err(Report::new(CompatError::UnsupportedVersion {
                 name: E::name(),
                 version: version.to_owned(),
-            });
+            }));
         }
-        serde_json::from_value(value).map_err(|error| record_malformed::<E>(error.to_string()))
+        serde_json::from_value(value).change_context(CompatError::Decode { name: E::name() })
     }
 }
 
 impl<E: DomainEvent> VersionedRecord for EventRecord<E> {
     type Current = EventRecordV1<E>;
 
-    fn normalize(self) -> Result<Self::Current, CompatError> {
+    fn normalize(self) -> Result<Self::Current, Report<CompatError>> {
         let Self::V1(record) = self;
         Ok(record)
     }
@@ -505,6 +498,14 @@ impl<R: fmt::Display> fmt::Display for FoldError<R> {
 }
 
 impl<R: Error> Error for FoldError<R> {}
+
+impl<R> From<Report<CompatError>> for FoldError<R> {
+    fn from(error: Report<CompatError>) -> Self {
+        Self::Invalid {
+            message: format!("{error:#}"),
+        }
+    }
+}
 
 /// A read-only closure executed against the projection inside the command loop.
 pub struct ReadQuery<P>(BoxedRead<P>);
@@ -588,13 +589,6 @@ impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
     }
 }
 
-fn snapshot_malformed(message: impl Into<String>) -> CompatError {
-    CompatError::Malformed {
-        name: DOMAIN_SNAPSHOT_DECLARATION.name,
-        message: message.into(),
-    }
-}
-
 impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
@@ -603,27 +597,32 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
             .unwrap_or_else(|error| panic!("hosted snapshot name should be usable: {error}"))
     }
 
-    fn encode(&self) -> Result<Vec<u8>, CompatError> {
-        let bytes =
-            serde_json::to_vec(self).map_err(|error| snapshot_malformed(error.to_string()))?;
+    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+        let bytes = serde_json::to_vec(self).change_context(CompatError::Encode {
+            name: DOMAIN_SNAPSHOT_DECLARATION.name,
+        })?;
         if bytes.len() > MAX_SNAPSHOT_BYTES {
-            return Err(snapshot_malformed(format!(
-                "snapshot is {} bytes; maximum is {MAX_SNAPSHOT_BYTES}",
-                bytes.len()
-            )));
+            return Err(Report::new(CompatError::TooLarge {
+                name: DOMAIN_SNAPSHOT_DECLARATION.name,
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_SNAPSHOT_BYTES,
+            }));
         }
         Ok(bytes)
     }
 
-    fn decode(bytes: &[u8]) -> Result<Self, CompatError> {
+    fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
         if bytes.len() > MAX_SNAPSHOT_BYTES {
-            return Err(snapshot_malformed(format!(
-                "snapshot is {} bytes; maximum is {MAX_SNAPSHOT_BYTES}",
-                bytes.len()
-            )));
+            return Err(Report::new(CompatError::TooLarge {
+                name: DOMAIN_SNAPSHOT_DECLARATION.name,
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_SNAPSHOT_BYTES,
+            }));
         }
         let value: serde_json::Value =
-            serde_json::from_slice(bytes).map_err(|error| snapshot_malformed(error.to_string()))?;
+            serde_json::from_slice(bytes).change_context(CompatError::Decode {
+                name: DOMAIN_SNAPSHOT_DECLARATION.name,
+            })?;
         reject_unknown_fields(
             DOMAIN_SNAPSHOT_DECLARATION.name,
             "",
@@ -632,17 +631,22 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
         )?;
         let version = value
             .get("version")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| snapshot_malformed("version must be a string"))?;
+            .ok_or(CompatError::MissingVersion {
+                name: DOMAIN_SNAPSHOT_DECLARATION.name,
+            })?
+            .as_str()
+            .ok_or(CompatError::InvalidVersionType {
+                name: DOMAIN_SNAPSHOT_DECLARATION.name,
+            })?;
         if version != "v1" {
-            return Err(CompatError::UnsupportedVersion {
+            return Err(Report::new(CompatError::UnsupportedVersion {
                 name: DOMAIN_SNAPSHOT_DECLARATION.name,
                 version: version.to_owned(),
-            });
+            }));
         }
-        let record: Self =
-            serde_json::from_value(value).map_err(|error| snapshot_malformed(error.to_string()))?;
-        Ok(record)
+        serde_json::from_value(value).change_context(CompatError::Decode {
+            name: DOMAIN_SNAPSHOT_DECLARATION.name,
+        })
     }
 }
 
@@ -669,7 +673,7 @@ impl<S> Copy for Hosted<S> {}
 ///
 /// Returns an error if a record name conflicts with an existing declaration or a declaration is
 /// invalid.
-pub fn register<S: SimpleDomain>() -> Result<(), DeclarationError> {
+pub fn register<S: SimpleDomain>() -> Result<(), Report<DeclarationError>> {
     registry::intern_declaration(event_declaration::<S::Event>())?;
     registry::intern_declaration(snapshot_declaration::<S>())?;
     Ok(())
@@ -728,9 +732,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         projection: &Self::Projection,
         record: &Self::RecordCurrent,
     ) -> Result<Prepared<Self::Delta>, Self::FoldError> {
-        let digest = record.digest().map_err(|error| FoldError::Invalid {
-            message: error.to_string(),
-        })?;
+        let digest = record.digest()?;
         if let Some(seen) = projection.seen.get(&record.event_id) {
             return if *seen == digest {
                 Ok(Prepared::Noop)
@@ -910,7 +912,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         }
         let digest = record
             .digest()
-            .map_err(|error| format!("digest domain record at sequence {sequence}: {error}"))?;
+            .map_err(|error| format!("digest domain record at sequence {sequence}: {error:#}"))?;
         match projection.seen.get(&record.event_id) {
             // A lost acknowledgement can leave duplicate records in the journal.
             Some(seen) if *seen == digest => {
@@ -1219,6 +1221,63 @@ mod tests {
     }
 
     #[test]
+    fn record_decode_envelope() {
+        let name = CounterEvent::name();
+        for (value, expected) in [
+            (
+                json!([]),
+                CompatError::ExpectedObject {
+                    name,
+                    path: String::new(),
+                },
+            ),
+            (json!({}), CompatError::MissingVersion { name }),
+            (
+                json!({"version": 1}),
+                CompatError::InvalidVersionType { name },
+            ),
+            (
+                json!({"version": "v2"}),
+                CompatError::UnsupportedVersion {
+                    name,
+                    version: "v2".to_owned(),
+                },
+            ),
+            (
+                json!({"version": "v1", "extra": true}),
+                CompatError::ExtraField {
+                    name,
+                    path: "extra".to_owned(),
+                },
+            ),
+        ] {
+            let bytes = serde_json::to_vec(&value).expect("fixture should encode");
+            let error = EventRecord::<CounterEvent>::decode(&bytes)
+                .expect_err("invalid record envelope should be rejected");
+            assert_eq!(error.current_context(), &expected);
+        }
+    }
+
+    #[test]
+    fn record_decode_json() {
+        let error = EventRecord::<CounterEvent>::decode(b"{")
+            .expect_err("incomplete JSON should fail decoding");
+        assert_eq!(
+            error.current_context(),
+            &CompatError::Decode {
+                name: CounterEvent::name(),
+            }
+        );
+        let source = error
+            .downcast_ref::<serde_json::Error>()
+            .expect("decode report should retain the JSON error");
+        assert!(
+            source.is_eof(),
+            "incomplete JSON should report the end of input"
+        );
+    }
+
+    #[test]
     fn event_records_decode_at_the_size_boundary() {
         assert_eq!(MAX_EVENT_RECORD_BYTES, 0x0040_0000);
         let encoded = EventRecord::V1(incremented("orders", 5))
@@ -1236,7 +1295,14 @@ mod tests {
         over_limit.resize(MAX_EVENT_RECORD_BYTES + 1, b' ');
         let error = EventRecord::<CounterEvent>::decode(&over_limit)
             .expect_err("an oversized record should be refused");
-        assert!(format!("{error:?}").contains("maximum"));
+        assert_eq!(
+            error.current_context(),
+            &CompatError::TooLarge {
+                name: CounterEvent::name(),
+                actual_bytes: MAX_EVENT_RECORD_BYTES + 1,
+                max_bytes: MAX_EVENT_RECORD_BYTES,
+            }
+        );
     }
 
     fn toy_snapshot(shard: &str, padding: usize) -> ProjectionSnapshot<ToyDomain> {
@@ -1270,7 +1336,14 @@ mod tests {
         let error = toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base + 1)
             .encode()
             .expect_err("an oversized snapshot should be refused at encode");
-        assert!(format!("{error:?}").contains("maximum"));
+        assert_eq!(
+            error.current_context(),
+            &CompatError::TooLarge {
+                name: super::DOMAIN_SNAPSHOT_DECLARATION.name,
+                actual_bytes: MAX_SNAPSHOT_BYTES + 1,
+                max_bytes: MAX_SNAPSHOT_BYTES,
+            }
+        );
 
         let mut padded = encoded;
         padded.push(b' ');
@@ -1313,7 +1386,7 @@ mod tests {
                 .err()
                 .expect("an invalid shard should fail snapshot decoding");
             assert!(
-                matches!(error, CompatError::Malformed { .. }),
+                matches!(error.current_context(), CompatError::Decode { .. }),
                 "shard {invalid:?} should make the snapshot malformed: {error}"
             );
         }
@@ -1351,7 +1424,7 @@ mod tests {
                 .err()
                 .expect("an invalid timestamp should fail snapshot decoding");
             assert!(
-                matches!(error, CompatError::Malformed { .. }),
+                matches!(error.current_context(), CompatError::Decode { .. }),
                 "timestamp {invalid:?} should make the snapshot malformed: {error}"
             );
         }
@@ -1458,17 +1531,30 @@ mod tests {
     fn record_from_parts_mismatched_fields() {
         let record = incremented("orders", 5);
         let other = incremented("payments", 6);
-        for (event_id, partition) in [
-            (other.event_id(), record.partition()),
-            (record.event_id(), other.partition()),
+        for (event_id, partition, expected) in [
+            (
+                other.event_id(),
+                record.partition(),
+                CompatError::EventIdMismatch {
+                    name: CounterEvent::name(),
+                    expected: record.event_id(),
+                    actual: other.event_id(),
+                },
+            ),
+            (
+                record.event_id(),
+                other.partition(),
+                CompatError::PartitionMismatch {
+                    name: CounterEvent::name(),
+                    expected: record.partition().clone(),
+                    actual: other.partition().clone(),
+                },
+            ),
         ] {
             let error =
                 EventRecordV1::from_parts(event_id, partition.clone(), record.event().clone())
                     .expect_err("mismatched fields should be rejected");
-            assert!(
-                matches!(error.current_context(), CompatError::Conflict { .. }),
-                "{error}"
-            );
+            assert_eq!(error.current_context(), &expected);
         }
     }
 
@@ -1497,9 +1583,12 @@ mod tests {
                 .expect("wire record should serialize");
             let error = EventRecord::<CounterEvent>::decode(&bytes)
                 .expect_err("invalid record should fail decoding");
+            let source = error
+                .downcast_ref::<serde_json::Error>()
+                .expect("decode report should retain the JSON error");
             assert!(
-                error.to_string().contains(expected_error),
-                "error should contain {expected_error:?}: {error}"
+                source.to_string().contains(expected_error),
+                "error should contain {expected_error:?}: {source}"
             );
         }
     }
@@ -1951,7 +2040,10 @@ mod tests {
         register::<ToyDomain>().expect("toy domain should register");
         let error = registry::intern_declaration(super::event_declaration::<OtherCounterEvent>())
             .expect_err("another event type with the same name should be rejected");
-        assert!(matches!(error, registry::DeclarationError::Invalid { .. }));
+        assert!(matches!(
+            error.current_context(),
+            registry::DeclarationError::ConflictingDeclaration { .. }
+        ));
     }
 
     async fn snapshot_failure(
@@ -2135,7 +2227,11 @@ mod tests {
             supported_versions: &[1, 2],
             ..*EventRecord::<CounterEvent>::declaration()
         };
-        registry::intern_declaration(conflicting)
+        let error = registry::intern_declaration(conflicting)
             .expect_err("conflicting declaration should be rejected");
+        assert!(matches!(
+            error.current_context(),
+            registry::DeclarationError::ConflictingDeclaration { .. }
+        ));
     }
 }

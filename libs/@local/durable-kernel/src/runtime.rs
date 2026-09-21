@@ -32,7 +32,6 @@ use crate::{
     domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain, effect_id},
     ids::EffectId,
     keyspace::{Keyspace, Namespace},
-    registry::CompatError,
     routing::Shard,
     shard_log::{
         LogStorageOptions, OpenedShard, ShardCommandConfig, ShardCommandError, ShardCommandHandle,
@@ -56,6 +55,12 @@ pub enum KernelError {
     NotOwned { shard: u16 },
     #[display("kernel internal failure: {_0}")]
     Internal(String),
+}
+
+impl From<ShardCommandError> for Report<KernelError> {
+    fn from(error: ShardCommandError) -> Self {
+        Report::new(error).change_context(KernelError::Internal("shard command failed".to_owned()))
+    }
 }
 
 /// Controls when a shard saves snapshots.
@@ -208,12 +213,10 @@ impl Kernel {
                         .change_context_lazy(|| {
                             KernelError::Storage("invalid storage configuration".to_owned())
                         })?;
-                OpenedShard::open(location)
-                    .await
-                    .map_err(command_failure)?
+                Ok(OpenedShard::open(location)
+                    .await?
                     .recover_with_snapshots::<Hosted<S>>(&())
-                    .await
-                    .map_err(command_failure)
+                    .await?)
             }
             .await;
             let recovered = match recovered {
@@ -259,7 +262,7 @@ impl Kernel {
                             "effect driver task failed".to_owned(),
                         )))
                     })
-                    .map_err(|error| error.attach(format!("shard: {}", handle.shard().get())));
+                    .attach_with(|| format!("shard: {}", handle.shard().get()));
                 if let Err(error) = &result {
                     handle.stop_admission();
                     handle.cancel_owned_writer();
@@ -321,19 +324,20 @@ impl<S: SimpleDomain> RunningKernel<S> {
         event: S::Event,
     ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Rejection>, Report<KernelError>>
     {
-        let record = EventRecordV1::new(event).map_err(invalid_event)?;
+        let record = EventRecordV1::new(event).change_context_lazy(|| {
+            KernelError::InvalidEvent("event record construction failed".to_owned())
+        })?;
         let handle = self.handle_for(record.partition())?;
-        match handle.propose(record).await {
-            Ok(ShardCommandOutcome::Applied { .. }) => Ok(Submitted::Applied),
-            Ok(ShardCommandOutcome::AlreadyDurable { .. }) => Ok(Submitted::AlreadyDurable),
-            Ok(ShardCommandOutcome::Rejected {
+        match handle.propose(record).await? {
+            ShardCommandOutcome::Applied { .. } => Ok(Submitted::Applied),
+            ShardCommandOutcome::AlreadyDurable { .. } => Ok(Submitted::AlreadyDurable),
+            ShardCommandOutcome::Rejected {
                 rejection: domain::FoldError::Rejected { rejection, .. },
-            }) => Ok(Submitted::Rejected(rejection)),
-            Ok(ShardCommandOutcome::Rejected { rejection }) => Err(Report::new(
+            } => Ok(Submitted::Rejected(rejection)),
+            ShardCommandOutcome::Rejected { rejection } => Err(Report::new(
                 KernelError::InvalidEvent(rejection.to_string()),
             )
             .attach_opaque(rejection)),
-            Err(error) => Err(command_failure(error)),
         }
     }
 
@@ -351,10 +355,9 @@ impl<S: SimpleDomain> RunningKernel<S> {
         F: FnOnce(&S::Projection) -> R + Send + 'static,
     {
         let handle = self.handle_for(key)?;
-        handle
+        Ok(handle
             .read(move |projection| read(projection.domain()))
-            .await
-            .map_err(command_failure)
+            .await?)
     }
 
     /// Snapshot sequence restored during recovery for each shard. A value of
@@ -394,7 +397,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
             match task.await {
                 Ok(Ok(())) => {}
                 Ok(Err(error)) => {
-                    first_error.get_or_insert_with(|| command_failure(error));
+                    first_error.get_or_insert_with(|| error.into());
                 }
                 Err(join_error) => {
                     first_error.get_or_insert_with(|| {
@@ -426,16 +429,6 @@ struct DriverSettings {
     snapshot_policy: SnapshotPolicy,
 }
 
-fn command_failure(error: ShardCommandError) -> Report<KernelError> {
-    Report::new(error).change_context(KernelError::Internal("shard command failed".to_owned()))
-}
-
-fn invalid_event(error: Report<CompatError>) -> Report<KernelError> {
-    error.change_context(KernelError::InvalidEvent(
-        "event record construction failed".to_owned(),
-    ))
-}
-
 fn settle_driver_error(
     error: ShardCommandError,
     shutdown: &CancellationToken,
@@ -443,7 +436,7 @@ fn settle_driver_error(
     if shutdown.is_cancelled() {
         Ok(())
     } else {
-        Err(command_failure(error))
+        Err(error.into())
     }
 }
 
@@ -523,19 +516,19 @@ where
             if shutdown.is_cancelled() {
                 return Ok(());
             }
-            if executed.contains(&id) {
-                continue;
-            }
-            if retries
-                .get(&id)
-                .is_some_and(|deadline| *deadline > tokio::time::Instant::now())
+            if executed.contains(&id)
+                || retries
+                    .get(&id)
+                    .is_some_and(|deadline| *deadline > tokio::time::Instant::now())
             {
                 continue;
             }
             match execute_effect::<S, X>(Arc::clone(&executor), effect, &id).await? {
                 Ok(events) => {
                     for event in events {
-                        let record = EventRecordV1::new(event).map_err(invalid_event)?;
+                        let record = EventRecordV1::new(event).change_context_lazy(|| {
+                            KernelError::InvalidEvent("event record construction failed".to_owned())
+                        })?;
                         match handle.propose(record).await {
                             Ok(
                                 ShardCommandOutcome::Applied { .. }
@@ -620,20 +613,17 @@ async fn maybe_snapshot<S: SimpleDomain>(
 #[cfg(test)]
 mod tests {
     use alloc::{collections::BTreeMap, sync::Arc};
-    use core::{num::NonZeroU64, time::Duration};
+    use core::{convert::Infallible, num::NonZeroU64, time::Duration};
     use std::sync::Mutex;
 
+    use error_stack::Report;
     use serde::{Deserialize, Serialize};
     use tokio::task::JoinHandle;
+    use tokio_util::sync::CancellationToken;
 
-    use super::{
-        Kernel, KernelConfig, KernelError, SnapshotPolicy, Submitted, command_failure,
-        invalid_event,
-    };
+    use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted};
     use crate::{
-        domain::{
-            self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
-        },
+        domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
         keyspace::Namespace,
         registry::CompatError,
         routing::Shard,
@@ -653,12 +643,41 @@ mod tests {
         }
     }
 
-    #[test]
-    fn invalid_event_source() {
+    #[derive(Default, Clone, Serialize, Deserialize)]
+    struct InvalidJsonDomain;
+
+    impl SimpleDomain for InvalidJsonDomain {
+        type Event = InvalidJsonEvent;
+        type Projection = Self;
+    }
+
+    impl Fold<InvalidJsonEvent> for InvalidJsonDomain {
+        type Rejection = Infallible;
+        type Validated = ();
+
+        fn validate(&self, _: &InvalidJsonEvent) -> Result<(), Report<Infallible>> {
+            Ok(())
+        }
+
+        fn apply(&mut self, (): ()) {}
+
+        fn replay(&mut self, _: &InvalidJsonEvent) {}
+    }
+
+    #[tokio::test]
+    async fn invalid_event_source() {
+        let running = RunningKernel::<InvalidJsonDomain> {
+            shards: BTreeMap::new(),
+            recovered_snapshots: BTreeMap::new(),
+            drivers: Vec::new(),
+            loops: Vec::new(),
+            shutdown: CancellationToken::new(),
+        };
         let event = InvalidJsonEvent(BTreeMap::from([((1, 2), 3)]));
-        let error =
-            EventRecordV1::new(event).expect_err("JSON should reject a map with tuple keys");
-        let error = invalid_event(error);
+        let error = running
+            .submit(event)
+            .await
+            .expect_err("JSON should reject a map with tuple keys");
 
         assert!(matches!(
             error.current_context(),
@@ -666,9 +685,8 @@ mod tests {
         ));
         assert!(matches!(
             error.downcast_ref::<CompatError>(),
-            Some(CompatError::Malformed {
+            Some(CompatError::Encode {
                 name: "invalid_json_event",
-                ..
             })
         ));
         let source = error
@@ -686,7 +704,7 @@ mod tests {
             kind: ShardCommandErrorKind::Closed,
             message: "command queue is closed".to_owned(),
         };
-        let error = command_failure(source.clone());
+        let error: Report<KernelError> = source.clone().into();
 
         assert_eq!(error.downcast_ref::<ShardCommandError>(), Some(&source));
         assert_eq!(

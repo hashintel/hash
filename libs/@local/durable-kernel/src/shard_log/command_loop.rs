@@ -16,6 +16,7 @@ use core::{
 };
 
 use chrono::{DateTime, Utc};
+use error_stack::Report;
 #[cfg(any(test, feature = "test-util"))]
 use tokio::sync::Notify;
 use tokio::sync::{mpsc, oneshot};
@@ -25,7 +26,7 @@ use super::{AppendFailureKind, ShardAppendError, ShardLogLocation, ShardLogWrite
 use crate::{
     ids::EventId,
     port::{Domain, Prepared, SnapshotRecoveryStats},
-    registry::DurableRecord,
+    registry::{CompatError, DurableRecord},
 };
 
 const DEFAULT_CHANNEL_CAPACITY: usize = 64;
@@ -67,6 +68,15 @@ pub enum ShardCommandErrorKind {
 pub struct ShardCommandError {
     pub kind: ShardCommandErrorKind,
     pub message: String,
+}
+
+impl From<Report<CompatError>> for ShardCommandError {
+    fn from(error: Report<CompatError>) -> Self {
+        Self {
+            kind: ShardCommandErrorKind::InvalidCandidate,
+            message: format!("{error:#}"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -957,10 +967,7 @@ impl<D: Domain> CommandLoop<D> {
 
         crate::registry::require_interned::<D::Snapshot>()
             .map_err(|error| recovery(error.to_string()))?;
-        let bytes = bytes::Bytes::from(snapshot.encode().map_err(|error| ShardCommandError {
-            kind: ShardCommandErrorKind::InvalidCandidate,
-            message: error.to_string(),
-        })?);
+        let bytes = bytes::Bytes::from(snapshot.encode()?);
         let mut safe_failures = 0_u32;
         loop {
             #[cfg(any(test, feature = "test-util"))]
@@ -1160,7 +1167,7 @@ async fn replay_with_snapshots<D: Domain>(
                             tracing::warn!(
                                 shard = %crate::routing::shard_path(shard),
                                 reference_sequence,
-                                error = %error,
+                                error = ?error,
                                 "ignored malformed projection-snapshot reference"
                             );
                             continue;
@@ -1300,7 +1307,6 @@ async fn replay_durable_suffix<D: Domain>(
     Ok((recovered, replayed_events))
 }
 
-/// Returns pending work that is ready to run.
 fn invalid_candidate<E: fmt::Display>(error: E) -> ShardCommandError {
     ShardCommandError {
         kind: ShardCommandErrorKind::InvalidCandidate,
