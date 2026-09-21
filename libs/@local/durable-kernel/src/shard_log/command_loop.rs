@@ -6,13 +6,10 @@
 //! events may arrive after another command has changed the state.
 
 #[cfg(any(test, feature = "test-util"))]
-use alloc::collections::VecDeque;
-use alloc::sync::Arc;
-use core::{
-    convert::Infallible,
-    num::NonZeroUsize,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use alloc::{collections::VecDeque, sync::Arc};
+#[cfg(any(test, feature = "test-util"))]
+use core::sync::atomic::{AtomicBool, Ordering};
+use core::{convert::Infallible, num::NonZeroUsize};
 
 use chrono::{DateTime, Utc};
 use error_stack::{Report, ResultExt as _};
@@ -142,8 +139,7 @@ pub struct StateChangeFeed<K> {
 /// Submits commands to one shard. Clones share the same writer and command queue.
 pub struct ShardCommandHandle<D: Domain> {
     sender: mpsc::Sender<Command<D>>,
-    accepting: Arc<AtomicBool>,
-    ownership_lost: CancellationToken,
+    admission_closed: CancellationToken,
     shard: crate::routing::Shard,
 }
 
@@ -158,19 +154,9 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         record: D::RecordCurrent,
     ) -> Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting proposals",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::Propose { record, reply })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed("shard command loop closed before accepting proposal")
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::Propose { record, reply }).await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed("shard command loop stopped before replying to proposal")
         })?
     }
@@ -184,19 +170,10 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         request: D::ControlRequest,
     ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting control reads",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::InspectControl { request, reply })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed("shard command loop closed before accepting control read")
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::InspectControl { request, reply })
+            .await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed("shard command loop stopped before replying to control read")
         })?
     }
@@ -213,25 +190,14 @@ impl<D: Domain> ShardCommandHandle<D> {
         request: D::ControlRequest,
         preflight_rejection: Option<D::ControlRejection>,
     ) -> Result<ControlResolution<D>, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting control requests",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::ResolveControl {
-                request,
-                preflight_rejection,
-                reply,
-            })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed(
-                    "shard command loop closed before accepting control request",
-                )
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::ResolveControl {
+            request,
+            preflight_rejection,
+            reply,
+        })
+        .await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed(
                 "shard command loop stopped before replying to control request",
             )
@@ -250,31 +216,20 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         minimum_sequence_span: u64,
     ) -> Result<Option<D::SnapshotCapture>, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting snapshot captures",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::CaptureSnapshot {
-                minimum_sequence_span,
-                reply,
-            })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed(
-                    "shard command loop closed before accepting snapshot capture",
-                )
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::CaptureSnapshot {
+            minimum_sequence_span,
+            reply,
+        })
+        .await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed(
                 "shard command loop stopped before replying to snapshot capture",
             )
         })?
     }
 
-    /// Appends a committed snapshot record through the sole fenced writer.
+    /// Appends a snapshot through the shard writer.
     ///
     /// # Errors
     ///
@@ -283,21 +238,10 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         snapshot: D::Snapshot,
     ) -> Result<u64, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting snapshot commits",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::CommitSnapshot { snapshot, reply })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed(
-                    "shard command loop closed before accepting snapshot commit",
-                )
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::CommitSnapshot { snapshot, reply })
+            .await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed(
                 "shard command loop stopped before replying to snapshot commit",
             )
@@ -311,56 +255,31 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         query: D::Query,
     ) -> Result<D::QueryResult, Report<ShardCommandError>> {
-        if !self.accepting.load(Ordering::Acquire) {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is not accepting queries",
-            )));
-        }
         let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::Query { query, reply })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed("shard command loop closed before accepting query")
-            })?;
-        response.await.map_err(|_receive_error| {
+        self.send(Command::Query { query, reply }).await?;
+        response.await.change_context_lazy(|| {
             ShardCommandError::closed("shard command loop stopped before replying to query")
         })?
     }
 
-    /// # Errors
-    ///
-    /// Returns an error when the loop is already stopping, closes before replying, or cannot close
-    /// its writer.
-    pub async fn shutdown(&self) -> Result<(), Report<ShardCommandError>> {
-        if self
-            .accepting
-            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
-            .is_err()
-        {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is already stopping",
-            )));
-        }
-        let (reply, response) = oneshot::channel();
-        self.sender
-            .send(Command::Shutdown { reply })
-            .await
-            .map_err(|_send_error| {
-                ShardCommandError::closed("shard command loop closed before accepting shutdown")
-            })?;
-        response.await.map_err(|_receive_error| {
-            ShardCommandError::closed("shard command loop stopped before acknowledging shutdown")
-        })?
-    }
-
-    /// Rejects new commands. Use `cancel_owned_writer` to wake and stop the loop.
-    pub fn stop_admission(&self) {
-        self.accepting.store(false, Ordering::Release);
-    }
-
-    pub fn cancel_owned_writer(&self) {
-        self.ownership_lost.cancel();
+    #[expect(
+        clippy::integer_division_remainder_used,
+        reason = "tokio select uses modulo to choose its polling order"
+    )]
+    async fn send(&self, command: Command<D>) -> Result<(), Report<ShardCommandError>> {
+        let permit = tokio::select! {
+            biased;
+            () = self.admission_closed.cancelled() => {
+                return Err(Report::new(ShardCommandError::closed(
+                    "shard command loop is not accepting commands",
+                )));
+            }
+            permit = self.sender.reserve() => permit.change_context_lazy(|| ShardCommandError::closed(
+                "shard command loop closed before accepting command",
+            ))?,
+        };
+        permit.send(command);
+        Ok(())
     }
 
     #[must_use]
@@ -373,6 +292,52 @@ impl<D: Domain> ShardCommandHandle<D> {
     #[must_use]
     pub fn queue_capacity(&self) -> usize {
         self.sender.capacity()
+    }
+}
+
+/// Owns the right to stop a shard. Submission handles can be cloned independently.
+///
+/// Dropping the owner rejects new commands and asks the loop to close its writer. An append
+/// already in progress may finish. Use [`shutdown`](Self::shutdown) to finish queued commands
+/// before closing.
+#[derive(Debug)]
+pub struct ShardOwner<D: Domain> {
+    sender: mpsc::Sender<Command<D>>,
+    admission_closed: CancellationToken,
+    ownership_lost: CancellationToken,
+}
+
+impl<D: Domain> ShardOwner<D> {
+    /// Stops admission, finishes queued commands, and closes the writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the loop is already stopping, closes before replying, or cannot close
+    /// its writer.
+    pub async fn shutdown(self) -> Result<(), Report<ShardCommandError>> {
+        if self.admission_closed.is_cancelled() {
+            return Err(Report::new(ShardCommandError::closed(
+                "shard command loop is already stopping",
+            )));
+        }
+        self.admission_closed.cancel();
+        let (reply, response) = oneshot::channel();
+        self.sender
+            .reserve()
+            .await
+            .change_context_lazy(|| {
+                ShardCommandError::closed("shard command loop closed before accepting shutdown")
+            })?
+            .send(Command::Shutdown { reply });
+        response.await.change_context_lazy(|| {
+            ShardCommandError::closed("shard command loop stopped before acknowledging shutdown")
+        })?
+    }
+}
+
+impl<D: Domain> Drop for ShardOwner<D> {
+    fn drop(&mut self) {
+        self.ownership_lost.cancel();
     }
 }
 
@@ -502,6 +467,7 @@ impl ShardCommandConfig {
 
 #[derive(Debug)]
 pub struct StartedShard<D: Domain> {
+    pub owner: ShardOwner<D>,
     pub handle: ShardCommandHandle<D>,
     pub recovery: StartupRecovery<D::WorkIntent>,
     pub state_changes: StateChangeFeed<D::StateKey>,
@@ -687,12 +653,16 @@ impl<D: Domain> RecoveredShard<D> {
         let (sender, receiver) = mpsc::channel(config.channel_capacity.get());
         let (state_change_sender, state_change_receiver) =
             mpsc::channel(config.channel_capacity.get());
-        let accepting = Arc::new(AtomicBool::new(true));
         let ownership_lost = CancellationToken::new();
+        let admission_closed = ownership_lost.child_token();
+        let owner = ShardOwner {
+            sender: sender.clone(),
+            admission_closed: admission_closed.clone(),
+            ownership_lost: ownership_lost.clone(),
+        };
         let handle = ShardCommandHandle {
             sender,
-            accepting: Arc::clone(&accepting),
-            ownership_lost: ownership_lost.clone(),
+            admission_closed: admission_closed.clone(),
             shard: self.location.shard,
         };
         let command_loop = CommandLoop {
@@ -705,7 +675,7 @@ impl<D: Domain> RecoveredShard<D> {
             recovery_mode: config.recovery_mode,
             receiver,
             state_change_sender,
-            accepting,
+            admission_closed,
             ownership_lost,
             #[cfg(any(test, feature = "test-util"))]
             faults: harness.faults,
@@ -716,6 +686,7 @@ impl<D: Domain> RecoveredShard<D> {
         };
         let task = tokio::spawn(command_loop.run());
         StartedShard {
+            owner,
             handle,
             recovery: self.recovery,
             state_changes: StateChangeFeed {
@@ -770,7 +741,7 @@ struct CommandLoop<D: Domain> {
     recovery_mode: RecoveryMode,
     receiver: mpsc::Receiver<Command<D>>,
     state_change_sender: mpsc::Sender<D::StateKey>,
-    accepting: Arc<AtomicBool>,
+    admission_closed: CancellationToken,
     ownership_lost: CancellationToken,
     #[cfg(any(test, feature = "test-util"))]
     faults: VecDeque<super::AppendFault>,
@@ -799,7 +770,7 @@ impl<D: Domain> CommandLoop<D> {
         {
             D::note_fenced(snapshot_context);
         }
-        self.accepting.store(false, Ordering::Release);
+        self.admission_closed.cancel();
         self.receiver.close();
         self.reject_queued(&context);
         if let Err(error) = self.close_writer().await {
@@ -877,7 +848,7 @@ impl<D: Domain> CommandLoop<D> {
                     send_reply(reply, Ok(D::answer(&self.projection, query)))
                 }
                 Command::Shutdown { reply } => {
-                    self.accepting.store(false, Ordering::Release);
+                    self.admission_closed.cancel();
                     self.receiver.close();
                     self.reject_queued(&ShardCommandError::closed(
                         "shard command loop is shutting down",
@@ -900,7 +871,7 @@ impl<D: Domain> CommandLoop<D> {
                 return Ok(());
             }
         }
-        self.accepting.store(false, Ordering::Release);
+        self.admission_closed.cancel();
         self.close_writer().await?;
         Ok(())
     }
