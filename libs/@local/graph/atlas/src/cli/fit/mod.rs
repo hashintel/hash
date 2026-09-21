@@ -55,13 +55,13 @@ pub struct FitArgs {
     #[arg(long)]
     fresh: bool,
 
-    /// Sampled anchor rows of the admission probe.
+    /// Upper bound on sampled anchor rows of the admission probe.
     ///
     /// Defaults to `1024`.
     #[arg(long, default_value = "1024")]
     anchors: NonZero<usize>,
 
-    /// Sampled comparison rows of the admission probe.
+    /// Upper bound on sampled comparison rows of the admission probe.
     ///
     /// Defaults to `4096`.
     #[arg(long, default_value = "4096")]
@@ -184,7 +184,7 @@ impl fmt::Display for FitVerdict {
             "cards       {} reused, {} embedded",
             self.summary.reused, self.summary.embedded
         )?;
-        writeln!(fmt, "passes      {}", self.summary.passes)?;
+        write!(fmt, "{}", self.summary.report)?;
         writeln!(fmt, "activated   {}", self.summary.activated)?;
         writeln!(fmt, "report      {}", self.report)?;
         write!(fmt, "wall        {:.1}s", self.elapsed.as_secs_f64())

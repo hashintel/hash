@@ -1,8 +1,9 @@
 //! One production run from snapshot to active generation.
 //!
 //! [`run`] resolves the prior from the root's active generation by default, publishes a generation
-//! through [`fit`], then probes its artifacts against the same dataset snapshot. A passing quality
-//! verdict activates the generation by atomically replacing the current pointer. A failing verdict
+//! through [`fit`], then probes its artifacts against the same dataset snapshot. An admitting
+//! quality verdict activates the generation by atomically replacing the current pointer, including
+//! when the population cannot support some metrics. A failing verdict
 //! returns [`Admission::Candidate`] without activating it. The published artifacts remain available
 //! for diagnosis, and [`Outcome`] returns the report in memory.
 //!
@@ -21,11 +22,10 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use tracing::Instrument as _;
 
-pub(crate) use self::error::RunnerError;
 use crate::{
     dataset::Dataset,
     device::PhysicalDevice,
-    file::generation::{Generation, GenerationRoot},
+    file::generation::{ActivateError, Generation, GenerationId, GenerationRoot},
     integrity::{Sha256, Update as _},
     progress::{Progress, Stage},
     salt::{
@@ -43,6 +43,8 @@ pub(crate) mod operator;
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) use self::error::RunnerError;
 
 /// Prior-generation selection for embedding reuse and landmark retention.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -77,7 +79,7 @@ pub(crate) struct RunnerOptions {
 /// The runner's activation decision for a published generation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Admission {
-    /// The report passed and this run successfully activated the generation.
+    /// The report permitted admission and this run successfully activated the generation.
     Active,
     /// The report refused admission, and this run did not activate the generation.
     Candidate,
@@ -165,17 +167,39 @@ where
     .map_err(|source| RunnerError::Quality { id, source })?;
 
     // controls reduce the probe's steps to the extrema that decide admission. Reporting that same
-    // reduction keeps the observer's readings consistent with the verdict. Missing evidence emits
-    // no reading and still causes the corresponding control to refuse admission.
+    // reduction keeps the observer's readings consistent with the verdict. Unevaluated controls
+    // emit no reading.
     for control in report.controls() {
-        if let Some(reading) = control.reading {
+        if let Some(reading) = control.reading() {
             progress.quality_probe(control.metric, reading);
         }
     }
 
     progress.stage_completed(Stage::Admission);
 
-    if !report.passes() {
+    let admission =
+        admit(root, id, &report).map_err(|source| RunnerError::Activate { id, source })?;
+    Ok(Outcome {
+        generation,
+        report,
+        admission,
+    })
+}
+
+/// Activates `id` when the quality report permits admission.
+///
+/// Population-insufficient metrics permit activation. A refusing control leaves the current pointer
+/// unchanged.
+///
+/// # Errors
+///
+/// Returns [`ActivateError`] when the root cannot activate an admitted generation.
+pub(super) fn admit(
+    root: &GenerationRoot,
+    id: GenerationId,
+    report: &QualityReport,
+) -> Result<Admission, ActivateError> {
+    if !report.admits() {
         tracing::warn!(
             generation = %id,
             unresolved_flags = report.flags.len(),
@@ -184,22 +208,13 @@ where
              again"
         );
 
-        return Ok(Outcome {
-            generation,
-            report,
-            admission: Admission::Candidate,
-        });
+        return Ok(Admission::Candidate);
     }
 
-    root.activate(id)
-        .map_err(|source| RunnerError::Activate { id, source })?;
+    root.activate(id)?;
     tracing::info!(generation = %id, "generation admitted and activated");
 
-    Ok(Outcome {
-        generation,
-        report,
-        admission: Admission::Active,
-    })
+    Ok(Admission::Active)
 }
 
 /// Derives the admission probe's generator from the fit seed.

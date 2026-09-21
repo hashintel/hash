@@ -78,6 +78,8 @@ impl Display for ReportVerdict {
 pub(crate) enum ReportError {
     /// Writing the report bundle failed.
     Io(io::Error),
+    /// Serializing the report failed.
+    Serialize(serde_json::Error),
     /// Dialing the store connection failed.
     Connect(super::ConnectError),
     /// The live assessment failed.
@@ -96,6 +98,7 @@ impl Display for ReportError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(_) => fmt.write_str("the report bundle could not be written"),
+            Self::Serialize(_) => fmt.write_str("report serialization failed"),
             Self::Connect(_) => fmt.write_str("the store connection could not be dialed"),
             // Each analysis's own chain names the step that failed. This level adds no step of its
             // own.
@@ -112,6 +115,7 @@ impl Error for ReportError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Io(error) => Some(error),
+            Self::Serialize(error) => Some(error),
             Self::Connect(error) => Some(error),
             Self::Assess(error) => error.source(),
             Self::Clumps(error) => error.source(),
@@ -119,6 +123,12 @@ impl Error for ReportError {
             Self::KnnDescent(error) => error.source(),
             Self::Realization(error) => error.source(),
         }
+    }
+}
+
+impl From<serde_json::Error> for ReportError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Serialize(error)
     }
 }
 

@@ -19,7 +19,7 @@ use crate::{
     file::generation::GenerationRoot,
     identity::{CardRow, NodeRowId, OntologyRowId},
     integrity::{Sha256, Update as _},
-    math::{AffinityCurve, AlignedVecN, BoxedVecN, UnitFraction, VecN, nz, positive},
+    math::{AffinityCurve, AlignedVecN, BoxedVecN, DFinite, UnitFraction, VecN, nz, positive},
     progress::{NoProgress, Progress},
     salt::{
         embedding::{CardEmbedder, EmbedderFingerprint},
@@ -269,7 +269,7 @@ fn options(seed: u64, thresholds: QualityThresholds) -> RunnerOptions {
 ///
 /// Detached observers append to the same log. Reading or appending panics if its mutex is poisoned.
 #[derive(Debug, Clone, Default)]
-struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, f64)>>>);
+struct RecordingBattery(Arc<Mutex<Vec<(QualityMetric, DFinite)>>>);
 
 impl RecordingBattery {
     /// Copies the recorded readings in reporting order.
@@ -277,7 +277,7 @@ impl RecordingBattery {
     /// # Panics
     ///
     /// This panics if the log's mutex is poisoned.
-    fn readings(&self) -> Vec<(QualityMetric, f64)> {
+    fn readings(&self) -> Vec<(QualityMetric, DFinite)> {
         self.0
             .lock()
             .expect("no reporter panicked holding the log")
@@ -292,7 +292,7 @@ impl Progress for RecordingBattery {
         self.clone()
     }
 
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         self.0
             .lock()
             .expect("no reporter panicked holding the log")
@@ -326,7 +326,7 @@ async fn passing_run_activates_the_generation() {
             .report
             .controls()
             .into_iter()
-            .filter_map(|control| control.reading.map(|reading| (control.metric, reading)))
+            .filter_map(|control| control.reading().map(|reading| (control.metric, reading)))
             .collect::<Vec<_>>(),
         battery.readings(),
     );
