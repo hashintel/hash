@@ -152,7 +152,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         actualModeAvailable={actualModeAvailable}
         mode={mode}
         onChange={onModeChange}
-        simulateModeIndicator={slots?.simulateModeIndicator}
       />
 
       <div className={rightSectionStyle}>

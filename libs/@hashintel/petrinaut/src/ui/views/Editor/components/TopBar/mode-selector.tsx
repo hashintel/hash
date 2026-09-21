@@ -7,12 +7,10 @@ export interface ModeSelectorProps {
   actualModeAvailable: boolean;
   mode: EditorGlobalMode;
   onChange: (mode: EditorGlobalMode) => void;
-  simulateModeIndicator?: React.ReactNode;
 }
 
 const getOptions = (
   actualModeAvailable: boolean,
-  simulateModeIndicator: React.ReactNode,
 ): SegmentedControlItem<EditorGlobalMode>[] => [
   {
     label: "Edit",
@@ -20,12 +18,7 @@ const getOptions = (
     iconName: "shapes",
   },
   {
-    label: (
-      <>
-        Simulate
-        {simulateModeIndicator}
-      </>
-    ),
+    label: "Simulate",
     value: "simulate",
     iconName: "play",
   },
@@ -44,13 +37,12 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
   actualModeAvailable,
   mode,
   onChange,
-  simulateModeIndicator,
 }) => {
   return (
     <SegmentedControl
       size="sm"
       value={mode}
-      items={getOptions(actualModeAvailable, simulateModeIndicator)}
+      items={getOptions(actualModeAvailable)}
       onChange={onChange}
     />
   );
