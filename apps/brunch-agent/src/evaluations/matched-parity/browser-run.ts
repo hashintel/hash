@@ -201,6 +201,14 @@ export const runBrowserArm = async (input: {
     { key: assistantStorageKey, value: arm },
   );
   const page = await context.newPage();
+  const browserFailures: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" || message.type() === "warning")
+      browserFailures.push(`console.${message.type()}: ${message.text()}`);
+  });
+  page.on("pageerror", (error) =>
+    browserFailures.push(`pageerror: ${error.message}`),
+  );
   const timeout = AbortSignal.timeout(configuration.maxTurnMs);
   const started = performance.now();
   let flueSnapshot: FlueConversationSnapshot | undefined;
@@ -208,25 +216,41 @@ export const runBrowserArm = async (input: {
   let rawTranscript: unknown;
   let modelStepCount: number;
 
-  if (arm === "brunch") {
-    const result = await openPersonaConversation(
-      page,
-      origin,
-      scenario.prompt,
-      {
-        signal: timeout,
-      },
+  try {
+    if (arm === "brunch") {
+      const result = await openPersonaConversation(
+        page,
+        origin,
+        scenario.prompt,
+        {
+          signal: timeout,
+        },
+      );
+      flueSnapshot = result.snapshot;
+      modelStepCount = result.submissionIds.length;
+      rawTranscript = result.snapshot;
+      transcriptText = formatFlueTranscript(result.snapshot);
+    } else {
+      await openPanel(page, origin);
+      modelStepCount = await submitStockTurn(page, scenario.prompt, timeout);
+      const state = await readBrowserState(page);
+      rawTranscript = parseStoredMessages(state.messages);
+      transcriptText = await visibleTranscript(page);
+    }
+  } catch (error) {
+    const visibleState = await page
+      .locator("body")
+      .innerText()
+      .catch(() => "Browser body unavailable");
+    throw new Error(
+      [
+        `${arm} browser arm failed.`,
+        ...browserFailures,
+        "Visible browser state:",
+        visibleState.slice(-4_000),
+      ].join("\n"),
+      { cause: error },
     );
-    flueSnapshot = result.snapshot;
-    modelStepCount = result.submissionIds.length;
-    rawTranscript = result.snapshot;
-    transcriptText = formatFlueTranscript(result.snapshot);
-  } else {
-    await openPanel(page, origin);
-    modelStepCount = await submitStockTurn(page, scenario.prompt, timeout);
-    const state = await readBrowserState(page);
-    rawTranscript = parseStoredMessages(state.messages);
-    transcriptText = await visibleTranscript(page);
   }
   const elapsedMs = Math.round(performance.now() - started);
   const state = await readBrowserState(page);
