@@ -1,0 +1,15 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "exported::<Aliased>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Aliased",
+  "type": "object",
+  "properties": {
+    "host": {
+      "type": "string"
+    }
+  },
+  "unevaluatedProperties": false
+}

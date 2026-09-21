@@ -79,7 +79,7 @@ A test that only calls `try_parse_from` on a `#[derive(clap::Parser)]` type and 
 A test name is a short label with the shape `<subject>_<case>[_<variant>]`:
 
 - `<subject>` is the operation, type or function under test. It does not repeat the name of the enclosing module, because the test path already carries that.
-- `<case>` is what distinguishes this test from its siblings under the same subject: an operand shape, an input class or a code path.
+- `<case>` is what distinguishes this test from its siblings under the same subject: an operand shape, an input class, a code path, or an active verb and its object where the behaviour is the distinguishing part (`load_redacts_mistyped_values`). An active verb is not narration; `should`, `works` and `correctly` are.
 - `<variant>` narrows the case further when two tests share one, and is otherwise absent.
 
 Tests of one subject share a prefix, so a module's test list reads as a table of subject × case and `cargo nextest run -E 'test(<subject>_)'` selects the family. The name identifies the case and the assertions establish its result. A comment adds setup, reasoning or a contract that those do not explain. A self-explanatory test needs no comment.
