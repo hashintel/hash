@@ -8,6 +8,7 @@
 //! Keep the [`ShardOwner`] until shutdown. Dropping it stops the shard.
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
+//! Implement [`JournalStorage`] to use another backend with the same command and recovery checks.
 use alloc::sync::Arc;
 use core::{num::NonZeroU64, ops::Bound, time::Duration};
 use std::path::PathBuf;
@@ -21,9 +22,7 @@ use opendata_common::{
         ObjectStoreConfig, SlateDbStorageConfig,
     },
 };
-use opendata_log::{
-    Config, LogDb, LogDbReader, LogRead, ReadVisibility, ReaderConfig, Record, Sequence,
-};
+use opendata_log::{LogDb, Sequence};
 
 use crate::{
     DurableError,
@@ -31,8 +30,13 @@ use crate::{
     routing::Shard,
 };
 
+mod backend;
 mod command_loop;
 
+pub use backend::{
+    JournalIterator, JournalReader, JournalStorage, JournalWriter, StorageIterator, StorageReader,
+    StorageWriter,
+};
 #[cfg(any(test, feature = "test-util"))]
 pub use command_loop::start_recovered;
 pub use command_loop::{
@@ -40,8 +44,6 @@ pub use command_loop::{
     ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, ShardOwner, StartedShard,
     StartupRecovery, StateChangeFeed,
 };
-#[cfg(any(test, feature = "test-util"))]
-pub use command_loop::{TestHarness, TestHold};
 
 const EVENTS_KEY: &[u8] = b"events";
 const PROJECTION_SNAPSHOTS_KEY: &[u8] = b"projection-snapshots";
@@ -103,50 +105,15 @@ pub enum ShardLogOpenError {
 /// A journal's storage configuration and shared record registry.
 ///
 /// Share one registry across locations that must agree on record names and codecs.
-pub struct ShardLogLocation {
+pub struct ShardLogLocation<S: JournalStorage = StorageConfig> {
     shard: crate::routing::Shard,
-    source: LogSource,
+    storage: S,
     read_timeout: Duration,
     durability_timeout: Duration,
     registry: Arc<RecordRegistry>,
 }
 
-/// Selects object storage or an in-memory test journal.
-#[derive(Debug, Clone)]
-#[cfg_attr(
-    any(test, feature = "test-util"),
-    expect(
-        clippy::large_enum_variant,
-        reason = "the production storage variant is inline; the simulation handle exists only for \
-                  tests"
-    )
-)]
-enum LogSource {
-    Storage(StorageConfig),
-    #[cfg(any(test, feature = "test-util"))]
-    Sim(crate::sim::SimLogHandle),
-}
-
-impl LogSource {
-    #[cfg_attr(
-        not(any(test, feature = "test-util")),
-        expect(
-            clippy::missing_const_for_fn,
-            clippy::unnecessary_wraps,
-            reason = "simulation storage access constructs an error through this shared interface"
-        )
-    )]
-    fn storage(&self) -> Result<&StorageConfig, Report<DurableError>> {
-        match self {
-            Self::Storage(storage) => Ok(storage),
-            #[cfg(any(test, feature = "test-util"))]
-            Self::Sim(_handle) => Err(Report::new(DurableError)
-                .attach("a simulated shard log has no storage configuration")),
-        }
-    }
-}
-
-impl ShardLogLocation {
+impl<S: JournalStorage> ShardLogLocation<S> {
     /// A shard log at an explicit storage configuration.
     ///
     /// `read_timeout` bounds read-only opens. `durability_timeout` bounds writer opens, closes, and
@@ -154,38 +121,22 @@ impl ShardLogLocation {
     #[must_use]
     pub const fn new(
         shard: crate::routing::Shard,
-        storage: StorageConfig,
+        storage: S,
         read_timeout: Duration,
         durability_timeout: Duration,
         registry: Arc<RecordRegistry>,
     ) -> Self {
         Self {
             shard,
-            source: LogSource::Storage(storage),
+            storage,
             read_timeout,
             durability_timeout,
             registry,
         }
     }
+}
 
-    /// A shard log served by the deterministic-simulation journal. Reads,
-    /// appends, and recovery use the scheduled append outcomes.
-    #[cfg(any(test, feature = "test-util"))]
-    #[must_use]
-    pub const fn simulated(
-        shard: crate::routing::Shard,
-        journal: crate::sim::SimLogHandle,
-        registry: Arc<RecordRegistry>,
-    ) -> Self {
-        Self {
-            shard,
-            source: LogSource::Sim(journal),
-            registry,
-            read_timeout: DURABILITY_TIMEOUT,
-            durability_timeout: DURABILITY_TIMEOUT,
-        }
-    }
-
+impl ShardLogLocation {
     /// Builds a shard location from explicit storage options.
     ///
     /// # Errors
@@ -201,7 +152,7 @@ impl ShardLogLocation {
             shard,
             read_timeout: DURABILITY_TIMEOUT,
             durability_timeout: DURABILITY_TIMEOUT,
-            source: LogSource::Storage(storage_for_path(options, log_path)?),
+            storage: storage_for_path(options, log_path)?,
             registry,
         })
     }
@@ -223,7 +174,7 @@ impl ShardLogLocation {
             registry,
             read_timeout: DURABILITY_TIMEOUT,
             durability_timeout: DURABILITY_TIMEOUT,
-            source: LogSource::Storage(StorageConfig::SlateDb(SlateDbStorageConfig {
+            storage: StorageConfig::SlateDb(SlateDbStorageConfig {
                 path: log_path.to_owned(),
                 object_store: ObjectStoreConfig::Local(LocalObjectStoreConfig {
                     path: object_store_root.display().to_string(),
@@ -231,7 +182,7 @@ impl ShardLogLocation {
                 settings_path: None,
                 block_cache: None,
                 meta_cache: None,
-            })),
+            }),
         }
     }
 }
@@ -322,125 +273,60 @@ pub fn storage_for_path(
 ///
 /// # Errors
 ///
-/// Returns an error if opening, scanning, decoding, or sequence validation fails.
+/// Returns an error if opening, scanning, decoding, sequence validation, or closing fails.
 pub async fn read_journal<T: UntrimmedJournalRecord>(
-    location: &ShardLogLocation,
+    location: &ShardLogLocation<impl JournalStorage>,
 ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
     location
         .registry
         .register(T::declaration())
         .change_context(DurableError)
         .attach("register journal record declaration")?;
-    #[cfg(any(test, feature = "test-util"))]
-    if let LogSource::Sim(journal) = &location.source {
-        return decode_sim_entries(journal.durable_entries(crate::sim::SimKey::Events));
-    }
     let reader = location.open_reader().await.change_context(DurableError)?;
     let result = scan_records(&reader, (Bound::Unbounded, Bound::Unbounded), None).await;
-    reader.close().await;
-    result
+    match (result, reader.close().await) {
+        (result, Ok(())) => result,
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Err(close_error)) => {
+            let mut failures = error.expand();
+            failures.push(close_error);
+            Err(failures.change_context(DurableError))
+        }
+    }
 }
 
-impl ShardLogLocation {
+impl<S: JournalStorage> ShardLogLocation<S> {
     #[must_use]
     pub const fn shard(&self) -> crate::routing::Shard {
         self.shard
     }
 
-    async fn open_reader(&self) -> Result<LogDbReader, Report<ShardLogOpenError>> {
-        let storage = self
-            .source
-            .storage()
-            .change_context(ShardLogOpenError::Reader { shard: self.shard })?;
-        tokio::time::timeout(
-            self.read_timeout,
-            LogDbReader::open(ReaderConfig {
-                storage: storage.clone(),
-                ..ReaderConfig::default()
-            }),
-        )
-        .await
-        .change_context(ShardLogOpenError::ReaderTimeout {
-            shard: self.shard,
-            timeout: self.read_timeout,
-        })?
-        .change_context(ShardLogOpenError::Reader { shard: self.shard })
+    async fn open_reader(&self) -> Result<S::Reader, Report<ShardLogOpenError>> {
+        tokio::time::timeout(self.read_timeout, self.storage.open_reader())
+            .await
+            .change_context(ShardLogOpenError::ReaderTimeout {
+                shard: self.shard,
+                timeout: self.read_timeout,
+            })?
+            .change_context(ShardLogOpenError::Reader { shard: self.shard })
     }
 }
 
 /// Owns the writer for one shard.
-struct ShardLogWriter {
-    backend: WriterBackend,
+struct ShardLogWriter<W: JournalWriter = StorageWriter> {
+    backend: W,
     durability_timeout: Duration,
     registry: Arc<RecordRegistry>,
 }
 
-enum WriterBackend {
-    Real(LogDb),
-    #[cfg(any(test, feature = "test-util"))]
-    Sim(crate::sim::SimWriter),
-}
-
-/// Decodes simulated journal entries with the record type’s codec.
-#[cfg(any(test, feature = "test-util"))]
-fn decode_sim_entries<T: DurableRecord>(
-    entries: Vec<(u64, Bytes)>,
-) -> Result<Vec<(u64, T)>, Report<DurableError>> {
-    entries
-        .into_iter()
-        .map(|(sequence, bytes)| {
-            T::decode(&bytes)
-                .map(|record| (sequence, record))
-                .change_context(DurableError)
-                .attach(format!(
-                    "decode simulated shard sequence {sequence} as {}",
-                    T::declaration().name
-                ))
-        })
-        .collect()
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppendFault {
-    None,
-    #[cfg(any(test, feature = "test-util"))]
-    DefinitelyNotCommitted,
-    #[cfg(any(test, feature = "test-util"))]
-    AfterInvocation,
-    #[cfg(any(test, feature = "test-util"))]
-    AfterAppend,
-    #[cfg(any(test, feature = "test-util"))]
-    AfterFlush,
-    #[cfg(any(test, feature = "test-util"))]
-    WrongSequence,
-}
-
-impl ShardLogWriter {
-    async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
+impl<W: JournalWriter> ShardLogWriter<W> {
+    async fn open(
+        location: &ShardLogLocation<impl JournalStorage<Writer = W>>,
+    ) -> Result<Self, Report<ShardLogOpenError>> {
         let durability_timeout = location.durability_timeout;
-        #[cfg(any(test, feature = "test-util"))]
-        if let LogSource::Sim(journal) = &location.source {
-            return Ok(Self {
-                backend: WriterBackend::Sim(journal.open_writer()),
-                durability_timeout,
-                registry: Arc::clone(&location.registry),
-            });
-        }
-        let storage = location
-            .source
-            .storage()
-            .change_context(ShardLogOpenError::Writer {
-                shard: location.shard,
-            })?;
-        let log = tokio::time::timeout(
+        let backend = tokio::time::timeout(
             durability_timeout,
-            LogDb::open(Config {
-                storage: storage.clone(),
-                read_visibility: ReadVisibility::Remote,
-                // Larger blocks reduce S3 range requests during sequential replay.
-                sst_block_size: Some(slatedb::SstBlockSize::Block64Kib),
-                ..Config::default()
-            }),
+            location.storage.open_writer(durability_timeout),
         )
         .await
         .change_context(ShardLogOpenError::WriterTimeout {
@@ -451,7 +337,7 @@ impl ShardLogWriter {
             shard: location.shard,
         })?;
         Ok(Self {
-            backend: WriterBackend::Real(log),
+            backend,
             durability_timeout,
             registry: Arc::clone(&location.registry),
         })
@@ -461,18 +347,11 @@ impl ShardLogWriter {
         &self,
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
-        self.append_with_fault(value, AppendFault::None).await
+        self.append_registered(EVENTS_KEY, value).await
     }
 
-    /// Exclusive end of durable records captured from the writer opened with
-    /// `ReadVisibility::Remote`. Records below this exclusive end are the
-    /// complete startup-recovery window.
     fn durable_end_exclusive(&self) -> u64 {
-        match &self.backend {
-            WriterBackend::Real(log) => log.durable_sequence(),
-            #[cfg(any(test, feature = "test-util"))]
-            WriterBackend::Sim(writer) => writer.durable_end_exclusive(),
-        }
+        self.backend.durable_end_exclusive()
     }
 
     async fn scan_suffix<T: UntrimmedJournalRecord>(
@@ -485,15 +364,7 @@ impl ShardLogWriter {
             .change_context(DurableError)
             .attach("register journal record declaration")?;
         let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
-        match &self.backend {
-            WriterBackend::Real(log) => scan_records(log, range.bounds, Some(range.window)).await,
-            #[cfg(any(test, feature = "test-util"))]
-            WriterBackend::Sim(writer) => decode_sim_entries(writer.scan(
-                crate::sim::SimKey::Events,
-                range.window.0,
-                range.window.1,
-            )),
-        }
+        scan_records(&self.backend, range.bounds, Some(range.window)).await
     }
 
     async fn scan_projection_snapshots<T: DurableRecord>(
@@ -505,37 +376,18 @@ impl ShardLogWriter {
             .register(T::declaration())
             .change_context(DurableError)
             .attach("register snapshot record declaration")?;
-        match &self.backend {
-            WriterBackend::Real(log) => {
-                scan_snapshot_records(
-                    log,
-                    (Bound::Unbounded, Bound::Excluded(durable_end_exclusive)),
-                    durable_end_exclusive,
-                )
-                .await
-            }
-            #[cfg(any(test, feature = "test-util"))]
-            WriterBackend::Sim(writer) => Ok(writer
-                .scan(crate::sim::SimKey::Snapshots, 0, durable_end_exclusive)
-                .into_iter()
-                .map(|(sequence, bytes)| (sequence, T::decode(&bytes)))
-                .collect()),
-        }
-    }
-
-    async fn append_with_fault<T: UntrimmedJournalRecord + Sync>(
-        &self,
-        value: &T,
-        fault: AppendFault,
-    ) -> Result<u64, Report<ShardAppendError>> {
-        self.append_registered(EVENTS_KEY, value, fault).await
+        scan_snapshot_records(
+            &self.backend,
+            (Bound::Unbounded, Bound::Excluded(durable_end_exclusive)),
+            durable_end_exclusive,
+        )
+        .await
     }
 
     async fn append_registered<T: DurableRecord + Sync>(
         &self,
         key: &'static [u8],
         value: &T,
-        fault: AppendFault,
     ) -> Result<u64, Report<ShardAppendError>> {
         self.registry
             .require::<T>()
@@ -549,143 +401,52 @@ impl ShardLogWriter {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
             .attach("encode durable shard record")?;
-        self.append_encoded(key, Bytes::from(bytes), fault).await
+        self.append_encoded(key, Bytes::from(bytes)).await
     }
 
     async fn append_encoded(
         &self,
         key: &'static [u8],
         bytes: Bytes,
-        fault: AppendFault,
     ) -> Result<u64, Report<ShardAppendError>> {
-        match &self.backend {
-            WriterBackend::Real(log) => {
-                let record = Record {
-                    key: Bytes::from_static(key),
-                    value: bytes,
-                };
-                let _: AppendFault = fault;
-
-                #[cfg(any(test, feature = "test-util"))]
-                if fault == AppendFault::DefinitelyNotCommitted {
-                    return Err(definitely_not_committed_message(
-                        "append shard record",
-                        "injected pre-invocation failure",
-                    ));
-                }
-
-                // After invoking append, an error can leave the commit status unknown. A
-                // writer-fenced response is terminal. Other errors require recovery.
-                #[cfg(any(test, feature = "test-util"))]
-                if fault == AppendFault::AfterInvocation {
-                    return Err(post_invocation_message(
-                        "append shard record",
-                        "injected append-return failure",
-                    ));
-                }
-                let output = log
-                    .append_timeout(vec![record], APPEND_TIMEOUT)
-                    .await
-                    .map_err(|error| post_invocation_source("append shard record", error))?;
-                #[cfg(any(test, feature = "test-util"))]
-                if fault == AppendFault::AfterAppend {
-                    return Err(post_invocation_message(
-                        "append shard record",
-                        "injected post-append failure",
-                    ));
-                }
-                flush_with_timeout(log.flush(), self.durability_timeout).await?;
-                #[cfg(any(test, feature = "test-util"))]
-                if fault == AppendFault::AfterFlush {
-                    let report = Report::new(DurableError).attach("injected post-flush failure");
-                    return Err(post_invocation_report(
-                        "wait for durable shard record",
-                        report,
-                    ));
-                }
-                wait_until_durable_with(
-                    log,
-                    output.start_sequence + 1,
-                    self.durability_timeout,
-                    DURABILITY_WAIT_ATTEMPTS,
-                )
-                .await
-                .map_err(|report| {
-                    post_invocation_report("wait for durable shard record", report)
-                })?;
-                #[cfg(any(test, feature = "test-util"))]
-                if fault == AppendFault::WrongSequence {
-                    return Ok(output.start_sequence.saturating_sub(1));
-                }
-                Ok(output.start_sequence)
-            }
-            #[cfg(any(test, feature = "test-util"))]
-            WriterBackend::Sim(writer) => {
-                let sim_key = if key == EVENTS_KEY {
-                    crate::sim::SimKey::Events
-                } else {
-                    crate::sim::SimKey::Snapshots
-                };
-                match writer.append(sim_key, bytes.to_vec()) {
-                    crate::sim::SimAppendResult::Acked(sequence) => Ok(sequence),
-                    crate::sim::SimAppendResult::DefinitelyNotCommitted => {
-                        Err(definitely_not_committed_message(
-                            "append shard record",
-                            "simulated pre-invocation failure",
-                        ))
-                    }
-                    crate::sim::SimAppendResult::CommitUnknown => Err(post_invocation_message(
-                        "append shard record",
-                        "simulated append with unknown commit status",
-                    )),
-                    crate::sim::SimAppendResult::Fenced => Err(Report::new(ShardAppendError {
-                        kind: AppendFailureKind::Fenced,
-                    })
-                    .attach("simulated newer writer epoch")),
-                }
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn raw_log(&self) -> &LogDb {
-        match &self.backend {
-            WriterBackend::Real(log) => log,
-            WriterBackend::Sim(_writer) => panic!("a real log should be configured for this test"),
-        }
+        self.backend.append(Bytes::from_static(key), bytes).await
     }
 
     async fn close(self) -> Result<(), Report<DurableError>> {
         let durability_timeout = self.durability_timeout;
-        match self.backend {
-            WriterBackend::Real(log) => tokio::time::timeout(durability_timeout, log.close())
-                .await
-                .change_context(DurableError)
-                .attach(format!(
-                    "close shard log timed out after {durability_timeout:?}"
-                ))?
-                .change_context(DurableError)
-                .attach("close shard log"),
-            #[cfg(any(test, feature = "test-util"))]
-            WriterBackend::Sim(_writer) => Ok(()),
-        }
+        tokio::time::timeout(durability_timeout, self.backend.close())
+            .await
+            .change_context(DurableError)
+            .attach(format!(
+                "close shard log timed out after {durability_timeout:?}"
+            ))?
+            .attach("close shard log")
+    }
+}
+
+#[cfg(test)]
+impl ShardLogWriter<StorageWriter> {
+    const fn raw_log(&self) -> &LogDb {
+        self.backend.raw_log()
     }
 }
 
 /// Reads journal records without acquiring a writer. Production recovery uses the active
 /// writer’s view of the log.
 #[cfg(any(test, feature = "test-util"))]
-pub struct ShardLogRecovery {
-    reader: LogDbReader,
+pub struct ShardLogRecovery<R: JournalReader = StorageReader> {
+    reader: R,
     registry: Arc<RecordRegistry>,
 }
 
 #[cfg(any(test, feature = "test-util"))]
-impl ShardLogRecovery {
+impl<R: JournalReader> ShardLogRecovery<R> {
     /// # Errors
     ///
     /// Returns an error when the shard storage cannot be opened before its timeout.
-    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
+    pub async fn open(
+        location: &ShardLogLocation<impl JournalStorage<Reader = R>>,
+    ) -> Result<Self, Report<ShardLogOpenError>> {
         Ok(Self {
             reader: location.open_reader().await?,
             registry: Arc::clone(&location.registry),
@@ -775,42 +536,34 @@ async fn scan_records<T, R>(
 ) -> Result<Vec<(u64, T)>, Report<DurableError>>
 where
     T: UntrimmedJournalRecord,
-    R: LogRead + Sync,
+    R: JournalReader,
 {
     let mut iterator = reader
         .scan(Bytes::from_static(EVENTS_KEY), range)
         .await
-        .change_context(DurableError)
         .attach("scan shard log")?;
     let mut records = Vec::new();
-    while let Some(entry) = iterator
-        .next()
-        .await
-        .change_context(DurableError)
-        .attach("read shard log")?
-    {
+    while let Some((sequence, bytes)) = iterator.next().await.attach("read shard log")? {
         if let Some((start, end)) = expected_window
-            && (entry.sequence < start || entry.sequence >= end)
+            && (sequence < start || sequence >= end)
         {
             return Err(Report::new(DurableError).attach(format!(
-                "scan returned sequence {} outside recovery window [{start}, {end})",
-                entry.sequence
+                "scan returned sequence {sequence} outside recovery window [{start}, {end})"
             )));
         }
-        let record = T::decode(&entry.value)
+        let record = T::decode(&bytes)
             .change_context(DurableError)
             .attach(format!(
-                "decode shard sequence {} as {}",
-                entry.sequence,
+                "decode shard sequence {sequence} as {}",
                 T::declaration().name
             ))?;
-        records.push((entry.sequence, record));
+        records.push((sequence, record));
     }
     if let Some((_start, expected_end)) = expected_window {
         let observed_end = iterator.next_sequence();
         if observed_end != expected_end {
             return Err(Report::new(DurableError).attach(format!(
-                "remote recovery scan covered only through {observed_end}, expected exclusive end \
+                "recovery scan covered only through {observed_end}, expected exclusive end \
                  {expected_end}"
             )));
         }
@@ -825,27 +578,25 @@ async fn scan_snapshot_records<T, R>(
 ) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
 where
     T: DurableRecord,
-    R: LogRead + Sync,
+    R: JournalReader,
 {
     let mut iterator = reader
         .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
         .await
-        .change_context(DurableError)
         .attach("scan projection-snapshot references")?;
     let mut records = Vec::new();
-    while let Some(entry) = iterator
+    while let Some((sequence, bytes)) = iterator
         .next()
         .await
-        .change_context(DurableError)
         .attach("read projection-snapshot reference")?
     {
-        if entry.sequence >= expected_end {
+        if sequence >= expected_end {
             return Err(Report::new(DurableError).attach(format!(
-                "snapshot scan returned sequence {} at or beyond durable end {expected_end}",
-                entry.sequence
+                "snapshot scan returned sequence {sequence} at or beyond durable end \
+                 {expected_end}"
             )));
         }
-        records.push((entry.sequence, T::decode(&entry.value)));
+        records.push((sequence, T::decode(&bytes)));
     }
     if iterator.next_sequence() != expected_end {
         return Err(Report::new(DurableError).attach(format!(
@@ -854,18 +605,6 @@ where
         )));
     }
     Ok(records)
-}
-
-#[cfg(any(test, feature = "test-util"))]
-pub(crate) fn definitely_not_committed_message(
-    operation: &'static str,
-    message: &'static str,
-) -> Report<ShardAppendError> {
-    Report::new(ShardAppendError {
-        kind: AppendFailureKind::DefinitelyNotCommitted,
-    })
-    .attach(operation)
-    .attach(message)
 }
 
 fn post_invocation_source<E>(operation: &'static str, error: E) -> Report<ShardAppendError>
@@ -877,18 +616,6 @@ where
     Report::new(error)
         .change_context(ShardAppendError { kind })
         .attach(operation)
-}
-
-#[cfg(any(test, feature = "test-util"))]
-pub(crate) fn post_invocation_message(
-    operation: &'static str,
-    message: &'static str,
-) -> Report<ShardAppendError> {
-    Report::new(ShardAppendError {
-        kind: post_invocation_failure_kind(message),
-    })
-    .attach(operation)
-    .attach(message)
 }
 
 fn post_invocation_report(
@@ -955,14 +682,16 @@ async fn wait_until_durable_with(
 
 /// Provides direct append access for tests that seed journals or open competing writers.
 #[cfg(any(test, feature = "test-util"))]
-pub struct RawShardLog(ShardLogWriter);
+pub struct RawShardLog<W: JournalWriter = StorageWriter>(ShardLogWriter<W>);
 
 #[cfg(any(test, feature = "test-util"))]
-impl RawShardLog {
+impl<W: JournalWriter> RawShardLog<W> {
     /// # Errors
     ///
     /// Returns an error when the shard storage cannot be opened before its timeout.
-    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
+    pub async fn open(
+        location: &ShardLogLocation<impl JournalStorage<Writer = W>>,
+    ) -> Result<Self, Report<ShardLogOpenError>> {
         ShardLogWriter::open(location).await.map(Self)
     }
 
@@ -998,7 +727,7 @@ impl RawShardLog {
             })
             .attach("register raw-append declaration")?;
         self.0
-            .append_registered(PROJECTION_SNAPSHOTS_KEY, value, AppendFault::None)
+            .append_registered(PROJECTION_SNAPSHOTS_KEY, value)
             .await
     }
 
@@ -1024,8 +753,9 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        AppendFailureKind, OpenedShard, ShardLogLocation, ShardLogOpenError, ShardLogRecovery,
-        ShardLogWriter, post_invocation_message, read_journal, wait_until_durable_with,
+        AppendFailureKind, JournalIterator as _, JournalReader as _, JournalStorage, OpenedShard,
+        ShardLogLocation, ShardLogOpenError, ShardLogRecovery, ShardLogWriter,
+        post_invocation_source, read_journal, wait_until_durable_with,
     };
     use crate::{
         registry::{
@@ -1249,6 +979,105 @@ mod tests {
         );
     }
 
+    async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
+        let writer = ShardLogWriter::open(&location)
+            .await
+            .expect("writer should open");
+        let first = writer
+            .append(&record("first"))
+            .await
+            .expect("event should append");
+        let snapshot = writer
+            .append_registered(super::PROJECTION_SNAPSHOTS_KEY, &record("snapshot"))
+            .await
+            .expect("snapshot should append");
+        let last = writer
+            .append(&record("last"))
+            .await
+            .expect("event should append");
+        let end = writer.durable_end_exclusive();
+        let mut beyond_end = writer
+            .backend
+            .scan(
+                bytes::Bytes::from_static(super::EVENTS_KEY),
+                (
+                    core::ops::Bound::Included(end + 5),
+                    core::ops::Bound::Excluded(end + 10),
+                ),
+            )
+            .await
+            .expect("a range beyond the durable end should scan");
+        assert!(
+            beyond_end
+                .next()
+                .await
+                .expect("empty scan should finish")
+                .is_none()
+        );
+        assert_eq!(
+            beyond_end.next_sequence(),
+            end + 5,
+            "an empty scan should keep its cursor at the requested start"
+        );
+        assert_eq!(
+            writer
+                .scan_suffix::<TestRecord>(None, first + 1)
+                .await
+                .expect("bounded scan should succeed"),
+            vec![(first, record("first"))],
+            "recovery should exclude records beyond the captured end"
+        );
+        assert_eq!(
+            writer
+                .scan_suffix::<TestRecord>(Some(first), end)
+                .await
+                .expect("suffix should scan"),
+            vec![(last, record("last"))],
+            "event replay should skip snapshots and sequence gaps"
+        );
+        let snapshots = writer
+            .scan_projection_snapshots::<TestRecord>(end)
+            .await
+            .expect("snapshots should scan");
+        assert_eq!(
+            snapshots
+                .into_iter()
+                .map(|(sequence, value)| (sequence, value.expect("snapshot should decode")))
+                .collect::<Vec<_>>(),
+            vec![(snapshot, record("snapshot"))]
+        );
+        let error = writer
+            .scan_suffix::<TestRecord>(Some(last), end + 1)
+            .await
+            .expect_err("recovery should reject a scan that stops before its expected end");
+        assert!(
+            format!("{error:?}").contains("expected exclusive end"),
+            "recovery should report the incomplete range"
+        );
+        let error = writer
+            .scan_projection_snapshots::<TestRecord>(end + 1)
+            .await
+            .expect_err("snapshot scan should reject an incomplete range");
+        assert!(
+            format!("{error:?}").contains("expected exclusive end"),
+            "snapshot recovery should report the incomplete range"
+        );
+        writer.close().await.expect("writer should close");
+    }
+
+    #[tokio::test]
+    async fn recovery_scan_bounds() {
+        let capability = TestPrefixCapability::new();
+        let shard = Shard::from_u8(9);
+        check_recovery_scans(capability.location(shard)).await;
+        check_recovery_scans(ShardLogLocation::simulated(
+            shard,
+            crate::sim::SimLogHandle::new(42, Vec::new()),
+            Arc::clone(&capability.registry),
+        ))
+        .await;
+    }
+
     #[tokio::test]
     async fn pre_invocation_encoding_failure_is_definitely_not_committed() {
         let capability = TestPrefixCapability::new();
@@ -1391,18 +1220,21 @@ mod tests {
     #[test]
     fn only_the_pinned_slate_fence_message_is_classified_as_fenced() {
         assert_eq!(
-            post_invocation_message(
+            post_invocation_source(
                 "flush",
-                "storage error: Closed error: detected newer DB client"
+                std::io::Error::other("storage error: Closed error: detected newer DB client")
             )
             .current_context()
             .kind,
             AppendFailureKind::Fenced
         );
         assert_eq!(
-            post_invocation_message("flush", "unrelated fencing proxy timeout")
-                .current_context()
-                .kind,
+            post_invocation_source(
+                "flush",
+                std::io::Error::other("unrelated fencing proxy timeout")
+            )
+            .current_context()
+            .kind,
             AppendFailureKind::CommitUnknown
         );
     }

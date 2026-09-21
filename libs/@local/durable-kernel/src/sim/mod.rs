@@ -15,11 +15,13 @@ use std::sync::Mutex;
 use bytes::Bytes;
 
 mod harness;
+mod storage;
 
 pub use harness::{
     DstCounters, DstDomain, DstEffect, DstEvent, PlannedAction, ScheduleCoverage, SchedulePlan,
     ScheduleReport, derive_plan, run_plan,
 };
+pub use storage::{SimIterator, SimPause};
 
 /// A deterministic generator for test schedules. Unsuitable for cryptographic use.
 #[derive(Debug, Clone)]
@@ -154,6 +156,8 @@ struct SimLogState {
     pending: VecDeque<SimAppendOutcome>,
     /// Records append outcomes in order so tests can inspect those used by one command.
     outcome_log: Vec<SimAppendOutcome>,
+    before_append: Option<Arc<SimPause>>,
+    after_append: Option<Arc<SimPause>>,
 }
 
 /// Shares journal state between writers and the test driver.
@@ -174,6 +178,8 @@ impl SimLogHandle {
                 gap_rng: SplitMix64::new(gap_seed),
                 pending: outcomes.into(),
                 outcome_log: Vec::new(),
+                before_append: None,
+                after_append: None,
             })),
         }
     }
@@ -185,7 +191,7 @@ impl SimLogHandle {
     }
 
     /// Opens a writer with a new epoch, invalidating all older writers.
-    pub(crate) fn open_writer(&self) -> SimWriter {
+    pub(crate) fn acquire_writer(&self) -> SimWriter {
         let mut state = self.lock();
         state.writer_epoch += 1;
         SimWriter {
@@ -267,22 +273,11 @@ impl SimLogHandle {
             .unwrap_or_default()
             .to_vec()
     }
-
-    fn scan(&self, key: SimKey, start: u64, end_exclusive: u64) -> Vec<(u64, Bytes)> {
-        self.lock()
-            .entries
-            .iter()
-            .filter(|entry| {
-                entry.key == key && entry.sequence >= start && entry.sequence < end_exclusive
-            })
-            .map(|entry| (entry.sequence, entry.bytes.clone()))
-            .collect()
-    }
 }
 
 /// One writer epoch over a [`SimLogHandle`].
 #[derive(Debug)]
-pub(crate) struct SimWriter {
+pub struct SimWriter {
     handle: SimLogHandle,
     epoch: u64,
 }
@@ -295,12 +290,7 @@ pub(crate) enum SimAppendResult {
 }
 
 impl SimWriter {
-    /// The recovery window captured at open time.
-    pub(crate) fn durable_end_exclusive(&self) -> u64 {
-        self.handle.lock().durable_end_exclusive
-    }
-
-    pub(crate) fn append(&self, key: SimKey, bytes: Vec<u8>) -> SimAppendResult {
+    pub(crate) fn append_record(&self, key: SimKey, bytes: Vec<u8>) -> SimAppendResult {
         let mut state = self.handle.lock();
         if state.writer_epoch != self.epoch {
             return SimAppendResult::Fenced;
@@ -327,10 +317,6 @@ impl SimWriter {
                 SimAppendResult::Fenced
             }
         }
-    }
-
-    pub(crate) fn scan(&self, key: SimKey, start: u64, end_exclusive: u64) -> Vec<(u64, Bytes)> {
-        self.handle.scan(key, start, end_exclusive)
     }
 }
 
@@ -372,15 +358,15 @@ mod tests {
     #[test]
     fn fenced_writer_stays_fenced_and_new_epoch_appends() {
         let handle = SimLogHandle::new(1, Vec::new());
-        let stale = handle.open_writer();
-        let current = handle.open_writer();
+        let stale = handle.acquire_writer();
+        let current = handle.acquire_writer();
         handle.force_outcomes([SimAppendOutcome::AckDurable]);
         assert!(matches!(
-            stale.append(SimKey::Events, vec![1]),
+            stale.append_record(SimKey::Events, vec![1]),
             SimAppendResult::Fenced
         ));
         assert!(matches!(
-            current.append(SimKey::Events, vec![2]),
+            current.append_record(SimKey::Events, vec![2]),
             SimAppendResult::Acked(_)
         ));
         assert_eq!(handle.durable_entries(SimKey::Events).len(), 1);
@@ -389,17 +375,17 @@ mod tests {
     #[test]
     fn commit_unknown_durable_stores_without_acking() {
         let handle = SimLogHandle::new(1, Vec::new());
-        let writer = handle.open_writer();
+        let writer = handle.acquire_writer();
         handle.force_outcomes([
             SimAppendOutcome::CommitUnknownDurable,
             SimAppendOutcome::CommitUnknownLost,
         ]);
         assert!(matches!(
-            writer.append(SimKey::Events, vec![1]),
+            writer.append_record(SimKey::Events, vec![1]),
             SimAppendResult::CommitUnknown
         ));
         assert!(matches!(
-            writer.append(SimKey::Events, vec![2]),
+            writer.append_record(SimKey::Events, vec![2]),
             SimAppendResult::CommitUnknown
         ));
         let stored = handle.durable_entries(SimKey::Events);

@@ -226,7 +226,7 @@ pub enum PlannedAction {
     SnapshotCommit,
     CorruptLatestSnapshot,
     CrashAndRecover,
-    CrashBeforeAppendRecovery { counter: u8, amount: u64 },
+    CrashBeforeAppendReply { counter: u8, amount: u64 },
     FinishEffectsAndCheck,
 }
 
@@ -264,7 +264,7 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
             69..=76 => PlannedAction::SnapshotCommit,
             77..=80 => PlannedAction::CorruptLatestSnapshot,
             81..=88 => PlannedAction::CrashAndRecover,
-            89..=92 => PlannedAction::CrashBeforeAppendRecovery {
+            89..=92 => PlannedAction::CrashBeforeAppendReply {
                 counter: u8::try_from(rng.below(3)).expect("counter index should fit in u8"),
                 amount: rng.between(1, 9),
             },
@@ -353,21 +353,6 @@ impl Driver<'_> {
         shard: crate::routing::Shard,
         registry: Arc<RecordRegistry>,
     ) -> DstStarted {
-        Self::open_loop_with_harness(
-            journal,
-            shard,
-            registry,
-            crate::shard_log::TestHarness::default(),
-        )
-        .await
-    }
-
-    async fn open_loop_with_harness(
-        journal: &SimLogHandle,
-        shard: crate::routing::Shard,
-        registry: Arc<RecordRegistry>,
-        harness: crate::shard_log::TestHarness,
-    ) -> DstStarted {
         let location = ShardLogLocation::simulated(shard, journal.clone(), registry);
         let opened = OpenedShard::open(location)
             .await
@@ -376,7 +361,7 @@ impl Driver<'_> {
             .recover_with_snapshots::<Hosted<DstDomain>>(&())
             .await
             .expect("simulated shard should recover");
-        recovered.enable_with_harness(ShardCommandConfig::default().allow_local_reopen(), harness)
+        recovered.enable(ShardCommandConfig::default().allow_local_reopen())
     }
 
     fn handle(&self) -> DstHandle {
@@ -624,27 +609,17 @@ impl Driver<'_> {
     /// Crashes after an event becomes durable but before the caller receives an
     /// acknowledgement.
     ///
-    /// The test pauses recovery of the uncertain append, then kills the loop. On restart, the
+    /// The test pauses the storage reply after the append, then kills the loop. On restart, the
     /// stored event must contribute to state exactly once.
-    async fn crash_before_append_recovery(
+    async fn crash_before_append_reply(
         &mut self,
         counter: u8,
         amount: u64,
         coverage: &mut ScheduleCoverage,
     ) {
         self.started.task.abort();
-        let hold = crate::shard_log::TestHold::armed();
-        let harness = crate::shard_log::TestHarness {
-            before_recovery: Some(Arc::clone(&hold)),
-            ..crate::shard_log::TestHarness::default()
-        };
-        self.started = Self::open_loop_with_harness(
-            &self.journal,
-            self.shard,
-            Arc::clone(&self.registry),
-            harness,
-        )
-        .await;
+        self.started = Self::open_loop(&self.journal, self.shard, Arc::clone(&self.registry)).await;
+        let hold = self.journal.pause_after_append();
         self.journal
             .force_outcomes([SimAppendOutcome::CommitUnknownDurable]);
 
@@ -660,7 +635,7 @@ impl Driver<'_> {
         let ack = in_flight.await;
         assert!(
             !matches!(ack, Ok(Ok(ShardCommandOutcome::Applied { .. }))),
-            "a command killed before recovery cannot have been acknowledged Applied"
+            "a command killed before the storage reply cannot have been acknowledged Applied"
         );
 
         let durable_ids = self.reference_fold().event_ids;
@@ -892,12 +867,12 @@ pub async fn run_plan(
                 driver.trace.push(format!("{step}: crash and recover"));
                 driver.crash_and_recover(coverage).await;
             }
-            PlannedAction::CrashBeforeAppendRecovery { counter, amount } => {
+            PlannedAction::CrashBeforeAppendReply { counter, amount } => {
                 driver
                     .trace
-                    .push(format!("{step}: crash before append recovery"));
+                    .push(format!("{step}: crash before append reply"));
                 driver
-                    .crash_before_append_recovery(*counter, *amount, coverage)
+                    .crash_before_append_reply(*counter, *amount, coverage)
                     .await;
             }
             PlannedAction::FinishEffectsAndCheck => {
@@ -967,7 +942,7 @@ mod tests {
             1 => Just(PlannedAction::CorruptLatestSnapshot),
             1 => Just(PlannedAction::CrashAndRecover),
             1 => (0_u8..3, 1_u64..=9).prop_map(|(counter, amount)| {
-                PlannedAction::CrashBeforeAppendRecovery { counter, amount }
+                PlannedAction::CrashBeforeAppendReply { counter, amount }
             }),
             2 => Just(PlannedAction::FinishEffectsAndCheck),
         ]

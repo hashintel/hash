@@ -1081,9 +1081,9 @@ mod tests {
         },
         routing::Shard,
         shard_log::{
-            AppendFailureKind, OpenedShard, RecoveredShard, ShardAppendError, ShardCommandConfig,
-            ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation, StartedShard,
-            TestHarness, TestHold,
+            AppendFailureKind, JournalStorage, OpenedShard, RecoveredShard, ShardAppendError,
+            ShardCommandConfig, ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation,
+            StartedShard,
         },
         sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
     };
@@ -1219,12 +1219,13 @@ mod tests {
     }
 
     async fn start(
-        location: ShardLogLocation,
+        location: ShardLogLocation<impl JournalStorage>,
     ) -> (crate::shard_log::ShardCommandHandle<Toy>, StartedShard<Toy>) {
         let opened = OpenedShard::open(location)
             .await
             .expect("shard should open");
-        let recovered: RecoveredShard<Toy> = opened.recover().await.expect("shard should recover");
+        let recovered: RecoveredShard<Toy, _> =
+            opened.recover().await.expect("shard should recover");
         let started = recovered.enable(ShardCommandConfig::default());
         (started.handle.clone(), started)
     }
@@ -1492,13 +1493,15 @@ mod tests {
         let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
         assert!(
             matches!(
-                journal.open_writer().append(SimKey::Snapshots, bytes),
+                journal
+                    .acquire_writer()
+                    .append_record(SimKey::Snapshots, bytes),
                 SimAppendResult::Acked(_)
             ),
             "snapshot with an invalid timestamp should be stored for recovery"
         );
 
-        let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+        let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
             .await
             .expect("shard should reopen")
             .recover_with_snapshots(&())
@@ -1627,7 +1630,9 @@ mod tests {
                 .expect("wire record should serialize");
             let journal = SimLogHandle::new(42, Vec::new());
             assert!(matches!(
-                journal.open_writer().append(SimKey::Events, bytes),
+                journal
+                    .acquire_writer()
+                    .append_record(SimKey::Events, bytes),
                 SimAppendResult::Acked(_)
             ));
             let opened = OpenedShard::open(ShardLogLocation::simulated(
@@ -1669,7 +1674,9 @@ mod tests {
         let bytes = EventRecord::V1(record)
             .encode()
             .expect("record should encode");
-        let SimAppendResult::Acked(sequence) = journal.open_writer().append(SimKey::Events, bytes)
+        let SimAppendResult::Acked(sequence) = journal
+            .acquire_writer()
+            .append_record(SimKey::Events, bytes)
         else {
             panic!("record should be durable before recovery");
         };
@@ -1905,20 +1912,14 @@ mod tests {
                     journal.clone(),
                     Arc::default(),
                 );
-                let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+                let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
                     .await
                     .expect("shard should open")
                     .recover()
                     .await
                     .expect("shard should recover");
-                let hold = TestHold::armed();
-                let started = recovered.enable_with_harness(
-                    ShardCommandConfig::new(NonZeroUsize::MIN, 0),
-                    TestHarness {
-                        before_append: Some(Arc::clone(&hold)),
-                        ..TestHarness::default()
-                    },
-                );
+                let hold = journal.pause_before_append();
+                let started = recovered.enable(ShardCommandConfig::new(NonZeroUsize::MIN, 0));
                 let handle = started.handle.clone();
                 let active = tokio::spawn(async move { handle.propose(record).await });
                 hold.entered().notified().await;
@@ -1957,9 +1958,9 @@ mod tests {
                     Some(shutdown)
                 };
                 hold.release().notify_one();
-                for proposal in [active, queued] {
+                for (index, proposal) in [active, queued].into_iter().enumerate() {
                     let result = proposal.await.expect("proposal task should join");
-                    if cancel_shutdown {
+                    if cancel_shutdown && index == 1 {
                         let error = result.expect_err("losing the owner should stop accepted work");
                         assert_eq!(error.current_context().kind, ShardCommandErrorKind::Fenced);
                     } else {
@@ -1978,9 +1979,10 @@ mod tests {
                         result.expect_err("owner drop should stop the loop").kind,
                         ShardCommandErrorKind::Fenced
                     );
-                    assert!(
-                        journal.durable_entries(SimKey::Events).is_empty(),
-                        "owner drop before append should prevent writes"
+                    assert_eq!(
+                        journal.durable_entries(SimKey::Events).len(),
+                        1,
+                        "owner drop should let the active append finish and reject queued writes"
                     );
                 } else {
                     result.expect("loop should shut down cleanly");
@@ -2042,20 +2044,14 @@ mod tests {
                 journal.clone(),
                 Arc::default(),
             );
-            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+            let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
                 .await
                 .expect("shard should open")
                 .recover()
                 .await
                 .expect("shard should recover");
-            let hold = TestHold::armed();
-            let started = recovered.enable_with_harness(
-                ShardCommandConfig::new(NonZeroUsize::MIN, 0),
-                TestHarness {
-                    before_append: Some(Arc::clone(&hold)),
-                    ..TestHarness::default()
-                },
-            );
+            let hold = journal.pause_before_append();
+            let started = recovered.enable(ShardCommandConfig::new(NonZeroUsize::MIN, 0));
             journal.force_outcomes([SimAppendOutcome::Fenced]);
             let handle = started.handle.clone();
             let active = tokio::spawn(async move { handle.propose(record).await });
@@ -2121,20 +2117,14 @@ mod tests {
                 journal.clone(),
                 Arc::default(),
             );
-            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+            let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
                 .await
                 .expect("shard should open")
                 .recover()
                 .await
                 .expect("shard should recover");
-            let hold = TestHold::armed();
-            let started = recovered.enable_with_harness(
-                ShardCommandConfig::new(NonZeroUsize::MIN, 0),
-                TestHarness {
-                    before_append: Some(Arc::clone(&hold)),
-                    ..TestHarness::default()
-                },
-            );
+            let hold = journal.pause_before_append();
+            let started = recovered.enable(ShardCommandConfig::new(NonZeroUsize::MIN, 0));
             journal.force_outcomes([SimAppendOutcome::Fenced]);
             let handle = started.handle.clone();
             let active = tokio::spawn(async move { handle.propose(record).await });
@@ -2169,7 +2159,7 @@ mod tests {
             journal.clone(),
             Arc::default(),
         );
-        let recovered: RecoveredShard<Toy> = OpenedShard::open(location.clone())
+        let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location.clone())
             .await
             .expect("shard should open")
             .recover()
@@ -2436,7 +2426,7 @@ mod tests {
         let opened = OpenedShard::open(location)
             .await
             .expect("shard should reopen");
-        let recovered: RecoveredShard<Toy> = opened
+        let recovered: RecoveredShard<Toy, _> = opened
             .recover_with_snapshots(&())
             .await
             .expect("recovery with snapshots should succeed");
@@ -2533,7 +2523,7 @@ mod tests {
             journal.clone(),
             Arc::default(),
         );
-        let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+        let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
             .await
             .expect("shard should open")
             .recover_with_snapshots(&())
@@ -2619,7 +2609,7 @@ mod tests {
                 .expect_err("uncertain event should be terminal");
 
             let location = ShardLogLocation::simulated(shard, journal, Arc::default());
-            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+            let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
                 .await
                 .expect("shard should reopen")
                 .recover_with_snapshots(&())
