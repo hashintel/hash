@@ -353,6 +353,22 @@ describe("voice interview control", () => {
     ).not.toThrow();
   });
 
+  test.each([
+    ["log", "live", { ...config, provider: "live", utteranceJudgment: "log" }],
+    ["enforce", "live", { ...config, provider: "live" }],
+    ["off", "live", { ...config, provider: "live" }],
+    ["unknown", "live", { ...config, provider: "live" }],
+    ["log", "realtime", { ...config, provider: "realtime" }],
+  ])(
+    "loads judgment %s only for Live (%s)",
+    async (utteranceJudgment, provider, expected) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ ...config, provider, utteranceJudgment }),
+      );
+      await expect(loadOpenAIVoiceConfig(fetch)).resolves.toEqual(expected);
+    },
+  );
+
   test("loads only a schema-valid available server configuration", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),

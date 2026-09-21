@@ -134,6 +134,7 @@ export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
   readonly provider?: "realtime" | "live";
+  readonly utteranceJudgment?: "log";
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
@@ -271,6 +272,9 @@ export const loadOpenAIVoiceConfig = async (
       ...(body.provider === undefined
         ? {}
         : { provider: body.provider as "realtime" | "live" }),
+      ...(body.provider === "live" && body.utteranceJudgment === "log"
+        ? { utteranceJudgment: body.utteranceJudgment }
+        : {}),
     };
   } catch {
     return null;
@@ -662,6 +666,7 @@ const PinnedVoiceInterviewControl = ({
         {...context}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
         connectionTimeoutMs={sessionConfig.connectionTimeoutMs}
+        utteranceJudgment={sessionConfig.utteranceJudgment}
         isDisclosureAcknowledged={isLiveVoiceInterviewDisclosureAcknowledged}
         registerVoiceModeSessionControls={
           context.registerVoiceModeSessionControls

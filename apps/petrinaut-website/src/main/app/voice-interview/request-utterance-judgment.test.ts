@@ -24,7 +24,7 @@ test("posts only the state to the same-origin route and returns normalized metad
   expect(new Headers(init?.headers).get("content-type")).toBe(
     "application/json",
   );
-  expect(JSON.parse(String(init?.body))).toEqual(state);
+  expect(init?.body).toBe(JSON.stringify(state));
 });
 
 test.each([
