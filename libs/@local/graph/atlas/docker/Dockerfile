@@ -112,12 +112,15 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     rm -rf /var/lib/apt/lists/* && \
     ldconfig && \
     groupadd --gid 60000 hash && \
-    useradd --uid 61000 --gid 60000 --no-create-home --home-dir / --shell /usr/sbin/nologin atlas && \
-    install -d -m 0775 -o 61000 -g 60000 /atlas-generations
+    useradd --uid 61000 --gid 60000 --no-create-home --home-dir /home/atlas --shell /usr/sbin/nologin atlas && \
+    install -d -m 0775 -o 61000 -g 60000 /home/atlas /app /atlas-generations
 
 COPY --from=builder /out/ /
 
+ENV HOME="/home/atlas"
 ENV HASH_GRAPH_ATLAS_ROOT="/atlas-generations"
+
+WORKDIR /app
 
 USER atlas:hash
 
