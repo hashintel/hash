@@ -8,7 +8,7 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 export type ExperimentExecutionCardProps = {
-  /** The approved canonical request, absent only when a tool failed before supplying it. */
+  /** The approved canonical request, absent while a tool has yet to supply it or failed without one. */
   request?: PetrinautExperimentRequest;
   active: boolean;
   progress?: PetrinautExperimentProgress;
@@ -20,6 +20,7 @@ export type ExperimentExecutionCardProps = {
 };
 
 const cardStyle = css({
+  position: "relative",
   display: "flex",
   flexDirection: "column",
   gap: "2.5",
@@ -44,7 +45,14 @@ const cardStyle = css({
       "[linear-gradient(135deg, var(--colors-purple-a10), transparent 70%)]",
     boxShadow: "[0 2px 12px var(--colors-purple-a10)]",
   },
-  "&[data-tone=optimization][data-pending=true]": {
+  "&[data-tone=optimization][data-pending=true]::after": {
+    content: '""',
+    position: "absolute",
+    inset: "[0]",
+    borderRadius: "[inherit]",
+    pointerEvents: "none",
+    boxShadow:
+      "[0 0 0 1px var(--colors-purple-a30), 0 0 14px var(--colors-purple-a20)]",
     animationName: "[petrinautOptimizingGlow]",
     animationDuration: "[2.8s]",
     animationTimingFunction: "ease-in-out",
@@ -52,7 +60,7 @@ const cardStyle = css({
   },
   "@media (prefers-reduced-motion: reduce)": {
     transition: "[none]",
-    "&[data-tone=optimization][data-pending=true]": {
+    "&[data-tone=optimization][data-pending=true]::after": {
       animationName: "[none]",
       boxShadow:
         "[0 0 0 1px var(--colors-purple-a15), 0 0 14px var(--colors-purple-a20)]",
@@ -412,7 +420,7 @@ export const ExperimentExecutionCard = ({
               )}
               {result?.experimentId && !available && (
                 <span className={detailStyle}>
-                  Results saved in chat; experiment is no longer open.
+                  Results shown in chat; experiment is no longer open.
                 </span>
               )}
             </div>

@@ -324,6 +324,14 @@ active indicator. Choosing **Run** starts execution and uses the normal
 **1 active** indicator; when it completes, that indicator
 disappears and the result remains under **Simulate → Experiments**.
 
+After **Run**, the chat card shows the same blue simulation or purple
+optimization progress, **Cancel** action, final metrics and errors as the
+built-in assistant. Optimization reports search steps and refinement. Drafting
+and starting a run keep your current tab selected; choose **View experiment**
+to open its results while the experiment is still available. The proposal's
+disclosures remain visible. Run results are shown to you, not sent back to
+Brunch for interpretation, and are not retained after reloading the session.
+
 ## Read-only behaviour
 
 Whether the assistant can change the net depends on the editor state:

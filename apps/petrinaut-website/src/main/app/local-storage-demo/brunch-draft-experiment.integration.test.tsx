@@ -77,13 +77,25 @@ vi.hoisted(() => {
     configurable: true,
     value: () => false,
   });
+  class ClipboardItem {
+    constructor(readonly items: Record<string, Blob | Promise<Blob>>) {}
+  }
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
-    value: { write: () => Promise.resolve() },
+    value: {
+      // Adopt deferred contents as a real clipboard write would, so Monaco
+      // handles their cancellation when another user gesture replaces them.
+      write: (items: ClipboardItem[]) =>
+        Promise.all(
+          items.flatMap((item) =>
+            Object.values(item.items).map((value) => Promise.resolve(value)),
+          ),
+        ).then(() => undefined),
+    },
   });
   Object.defineProperty(window, "ClipboardItem", {
     configurable: true,
-    value: class {},
+    value: ClipboardItem,
   });
   Object.defineProperty(window, "CSS", {
     configurable: true,
@@ -570,7 +582,12 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   await screen.findByRole("button", {
     name: "Show 1 active Monte Carlo simulations",
   });
-  await screen.findByText("optimizing: 5/5 runs, step 2/3");
+  await screen.findByText("Step 2 of 3");
+  expect(
+    screen
+      .getByRole("progressbar", { name: "Experiment runs" })
+      .getAttribute("aria-valuenow"),
+  ).toBe("5");
   await act(async () => {
     continueTrials.resolve();
   });
@@ -582,5 +599,8 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   ).toBeNull();
   expect(screen.getByRole("radio", { name: "Simulate" })).toBe(simulate);
   expect(simulate.checked).toBe(false);
+  expect(send).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: /View experiment/u }));
+  await waitFor(() => expect(simulate.checked).toBe(true));
   expect(send).toHaveBeenCalledTimes(2);
 }, 30_000);

@@ -1,7 +1,13 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { use, type ReactNode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
+import {
+  ExperimentsContext,
+  type ExperimentRecord,
+} from "../../../../../../react/experiments/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
@@ -149,4 +155,76 @@ it("only offers cancellation while this panel owns a running request", () => {
   );
   expect(card.getAttribute("aria-busy")).toBe("false");
   expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+});
+
+it("opens only the matching record on explicit request, preferring the tool result to stale progress", () => {
+  const navigateTo = vi.fn();
+  const record: ExperimentRecord = {
+    id: "experiment",
+    name: "Population",
+    createdAt: 0,
+    scenarioId: "scenario",
+    scenarioName: "Scenario",
+    runCount: 8,
+    seed: 1,
+    dt: 1,
+    maxTime: 10,
+    status: "complete",
+    error: null,
+    metricSpecs: [],
+    computeBackend: "cpu",
+    computeBackendFallbackReason: null,
+    startedAt: 0,
+    finishedAt: 1,
+    progress: null,
+    metricFrames: [],
+    latestMetricFramesById: {},
+    parameterAxes: [],
+    sweep: null,
+    sweepBatches: [],
+    scenarioParameterValues: {},
+    constraints: [],
+    constraintPolicy: null,
+    scenario: null,
+  };
+  const Providers = ({
+    children,
+    available,
+  }: {
+    children: ReactNode;
+    available: boolean;
+  }) => {
+    const experiments = use(ExperimentsContext);
+    const editor = use(EditorContext);
+    return (
+      <ExperimentsContext
+        value={{ ...experiments, experiments: available ? [record] : [] }}
+      >
+        <EditorContext value={{ ...editor, navigateTo }}>
+          {children}
+        </EditorContext>
+      </ExperimentsContext>
+    );
+  };
+  const card = (
+    <ExperimentCard
+      part={{ ...part, state: "output-available", output: result }}
+      state={{
+        active: true,
+        result: { ...result, experimentId: "stale", status: "error" },
+      }}
+    />
+  );
+  const view = render(<Providers available>{card}</Providers>);
+  expect(screen.getByRole("status").textContent).toBe("Finished");
+  expect(navigateTo).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /View experiment/u }));
+  expect(navigateTo).toHaveBeenCalledExactlyOnceWith({
+    globalMode: "simulate",
+    simulateViewMode: "experiments",
+    simulateDrawer: { type: "view-experiment", experimentId: "experiment" },
+  });
+  view.rerender(<Providers available={false}>{card}</Providers>);
+  expect(screen.queryByRole("button", { name: /View experiment/u })).toBeNull();
+  expect(screen.getByText("12")).toBeTruthy();
 });
