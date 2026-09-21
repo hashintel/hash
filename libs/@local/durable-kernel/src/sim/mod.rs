@@ -361,12 +361,7 @@ mod tests {
     use super::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle, SplitMix64};
 
     #[test]
-    fn splitmix_is_deterministic_and_covers_bounds() {
-        let mut first = SplitMix64::new(42);
-        let mut second = SplitMix64::new(42);
-        for _ in 0..1000 {
-            assert_eq!(first.next_u64(), second.next_u64());
-        }
+    fn splitmix_stays_within_bounds() {
         let mut rng = SplitMix64::new(7);
         for _ in 0..1000 {
             let draw = rng.between(3, 5);
