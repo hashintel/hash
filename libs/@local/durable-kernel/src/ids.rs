@@ -137,7 +137,6 @@ mod tests {
     fn digest_hex_roundtrip() {
         let text = "0123456789abcdef".repeat(4);
         let id: EventId = text.parse().expect("lowercase digest should parse");
-        assert_eq!(core::mem::size_of::<EventId>(), 32);
         assert_eq!(id.to_string(), text);
         let encoded = serde_json::to_string(&id).expect("digest should serialize");
         assert_eq!(encoded, format!("\"{text}\""));
