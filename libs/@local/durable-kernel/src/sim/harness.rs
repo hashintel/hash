@@ -24,7 +24,7 @@ use crate::{
     },
     ids::{EffectId, EventId},
     properties::{self, CoverageSink, Property, PropertyClass},
-    registry::{DurableRecord as _, VersionedRecord as _},
+    registry::{DurableRecord as _, RecordRegistry, VersionedRecord as _},
     shard_log::{
         OpenedShard, ShardCommandConfig, ShardCommandErrorKind, ShardCommandHandle,
         ShardCommandOutcome, ShardLogLocation, StartedShard,
@@ -325,6 +325,7 @@ struct ReferenceState {
 
 struct Driver<'a> {
     journal: SimLogHandle,
+    registry: Arc<RecordRegistry>,
     shard: crate::routing::Shard,
     /// All counters must route to `shard`.
     counters: Vec<String>,
@@ -347,16 +348,27 @@ struct Driver<'a> {
 }
 
 impl Driver<'_> {
-    async fn open_loop(journal: &SimLogHandle, shard: crate::routing::Shard) -> DstStarted {
-        Self::open_loop_with_harness(journal, shard, crate::shard_log::TestHarness::default()).await
+    async fn open_loop(
+        journal: &SimLogHandle,
+        shard: crate::routing::Shard,
+        registry: Arc<RecordRegistry>,
+    ) -> DstStarted {
+        Self::open_loop_with_harness(
+            journal,
+            shard,
+            registry,
+            crate::shard_log::TestHarness::default(),
+        )
+        .await
     }
 
     async fn open_loop_with_harness(
         journal: &SimLogHandle,
         shard: crate::routing::Shard,
+        registry: Arc<RecordRegistry>,
         harness: crate::shard_log::TestHarness,
     ) -> DstStarted {
-        let location = ShardLogLocation::simulated(shard, journal.clone());
+        let location = ShardLogLocation::simulated(shard, journal.clone(), registry);
         let opened = OpenedShard::open(location)
             .await
             .expect("simulated shard should open");
@@ -626,7 +638,13 @@ impl Driver<'_> {
             before_recovery: Some(Arc::clone(&hold)),
             ..crate::shard_log::TestHarness::default()
         };
-        self.started = Self::open_loop_with_harness(&self.journal, self.shard, harness).await;
+        self.started = Self::open_loop_with_harness(
+            &self.journal,
+            self.shard,
+            Arc::clone(&self.registry),
+            harness,
+        )
+        .await;
         self.journal
             .force_outcomes([SimAppendOutcome::CommitUnknownDurable]);
 
@@ -651,7 +669,7 @@ impl Driver<'_> {
             &properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT,
             durable_ids.contains(&record.event_id()),
         );
-        self.started = Self::open_loop(&self.journal, self.shard).await;
+        self.started = Self::open_loop(&self.journal, self.shard, Arc::clone(&self.registry)).await;
         self.observe_recovery(coverage);
     }
 
@@ -669,7 +687,7 @@ impl Driver<'_> {
             &properties::CRASH_WITH_UNACKNOWLEDGED_DURABLE_EVENT,
             unacknowledged_durable,
         );
-        self.started = Self::open_loop(&self.journal, self.shard).await;
+        self.started = Self::open_loop(&self.journal, self.shard, Arc::clone(&self.registry)).await;
         self.observe_recovery(coverage);
         properties::covered(
             coverage,
@@ -802,13 +820,14 @@ pub async fn run_plan(
     coverage: &mut ScheduleCoverage,
     trace: &mut Vec<String>,
 ) -> ScheduleReport {
-    domain::register::<DstDomain>().expect("simulation domain should register");
+    let registry = Arc::new(RecordRegistry::default());
     let journal = SimLogHandle::new(plan.gap_seed, plan.outcomes.clone());
     let (shard, counters) = shared_shard_counters();
 
     let mut driver = Driver {
-        started: Driver::open_loop(&journal, shard).await,
+        started: Driver::open_loop(&journal, shard, Arc::clone(&registry)).await,
         journal,
+        registry,
         shard,
         counters,
         acknowledged: Vec::new(),

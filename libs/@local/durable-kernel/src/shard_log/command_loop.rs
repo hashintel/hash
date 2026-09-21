@@ -25,7 +25,7 @@ use super::{AppendFailureKind, ShardAppendError, ShardLogLocation, ShardLogWrite
 use crate::{
     ids::EventId,
     port::{Domain, Prepared, SnapshotRecoveryStats},
-    registry::DurableRecord,
+    registry::DurableRecord as _,
 };
 
 const DEFAULT_CHANNEL_CAPACITY: usize = 64;
@@ -562,12 +562,16 @@ impl OpenedShard {
         mut self,
         context: Option<&D::SnapshotContext>,
     ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
-        crate::registry::intern_declaration(*<D::Record as DurableRecord>::declaration())
-            .change_context(ShardCommandError::recovery(
-                "intern journal-record declaration",
-            ))?;
-        crate::registry::intern_declaration(*<D::Snapshot as DurableRecord>::declaration())
-            .change_context(ShardCommandError::recovery("intern snapshot declaration"))?;
+        self.location
+            .registry
+            .register(D::Record::declaration())
+            .change_context_lazy(|| {
+                ShardCommandError::recovery("register journal-record declaration")
+            })?;
+        self.location
+            .registry
+            .register(D::Snapshot::declaration())
+            .change_context_lazy(|| ShardCommandError::recovery("register snapshot declaration"))?;
         let writer = self
             .writer
             .take()
@@ -1075,8 +1079,10 @@ impl<D: Domain> CommandLoop<D> {
             }));
         }
 
-        crate::registry::require_interned::<D::Snapshot>()
-            .change_context(ShardCommandError::recovery("validate snapshot declaration"))?;
+        self.location
+            .registry
+            .require::<D::Snapshot>()
+            .change_context_lazy(|| ShardCommandError::recovery("validate snapshot declaration"))?;
         let bytes = bytes::Bytes::from(snapshot.encode().change_context(
             ShardCommandError::invalid_candidate("encode projection snapshot"),
         )?);
