@@ -659,7 +659,7 @@ mod tests {
         keyspace::Namespace,
         registry::CompatError,
         routing::Shard,
-        shard_log::StorageConfigError,
+        shard_log::{ShardLogOpenError, StorageConfigError},
     };
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1465,11 +1465,18 @@ mod tests {
         std::fs::write(blocked, b"not a directory").expect("second shard path should be blocked");
 
         let calls = Arc::new(core::sync::atomic::AtomicUsize::new(0));
+        let error = kernel
+            .start(CountingPlanner(Arc::clone(&calls)))
+            .await
+            .err()
+            .expect("blocked shard storage should prevent startup");
+        assert!(matches!(
+            error.downcast_ref::<ShardLogOpenError>(),
+            Some(ShardLogOpenError::WriterTimeout { shard, .. }) if *shard == Shard::from_u8(1)
+        ));
         assert!(
-            kernel
-                .start(CountingPlanner(Arc::clone(&calls)))
-                .await
-                .is_err()
+            error.contains::<tokio::time::error::Elapsed>(),
+            "startup should retain the writer timeout cause"
         );
         assert_eq!(
             calls.load(core::sync::atomic::Ordering::SeqCst),
