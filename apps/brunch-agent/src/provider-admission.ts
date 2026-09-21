@@ -70,6 +70,21 @@ export type ModelStreamIdleRetryScope = {
   idleRetryAvailable: boolean;
 };
 
+/**
+ * Reasoning streams can legitimately pause after opening a thinking part and
+ * between thinking deltas. A production trace crossed the former 15-second
+ * reasoning-start limit, then crossed the former 10-second active-reasoning
+ * limit on its sole retry, without completing a tool call. Keep dispatch
+ * tighter, but give supported reasoning models two minutes between progress
+ * events before bounded cancellation and the existing safe single retry.
+ */
+export const modelStreamIdleTimeoutDefaults = {
+  cancellationTimeoutMs: 2_000,
+  firstEventTimeoutMs: 60_000,
+  idleTimeoutMs: 120_000,
+  reasoningStartTimeoutMs: 120_000,
+} as const;
+
 export const claimModelStreamIdleRetry = (
   scope: ModelStreamIdleRetryScope | false | undefined,
 ): boolean => {

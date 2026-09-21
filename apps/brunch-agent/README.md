@@ -25,6 +25,8 @@ By default outside production, conversations persist in SQLite at `apps/brunch-a
 
 The mounted Flue URL `/agents/chat/:instanceId` requires the principal and logical conversation identity in `x-brunch-principal` and `x-brunch-conversation`. The path id is the hash of those values, not a bearer token or trusted authentication.
 
+Provider admission bounds a dispatch with no model event at 60 seconds and bounds both newly opened and active reasoning silence at 120 seconds. These phase-specific limits tolerate supported reasoning models that legitimately pause for tens of seconds: an observed valid continuation exceeded the former 15-second first-reasoning-delta limit, then its sole retry exceeded the former 10-second between-delta limit. On expiry Brunch cancels the invocation, requires cancellation acknowledgement within two seconds, and permits at most one retry only before any tool call completed; completed tool work is never replayed. Tests may shorten these bounds with `BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS`, `BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS`, and `BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS`; non-test deployments always use the production policy.
+
 Print a human-readable transcript of one conversation from that same Flue history (server already running):
 
 ```sh

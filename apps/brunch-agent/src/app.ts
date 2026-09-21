@@ -41,6 +41,7 @@ import { logger } from "./logger.ts";
 import { createStepARequestAccounting } from "./provider-accounting.ts";
 import {
   claimModelStreamIdleRetry,
+  modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
   type ModelStreamIdleRetryScope,
 } from "./provider-admission.ts";
@@ -102,19 +103,19 @@ const modelStreamTimeout = (environmentName: string, productionMs: number) => {
 };
 const modelStreamIdleTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_IDLE_TIMEOUT_MS",
-  10_000,
+  modelStreamIdleTimeoutDefaults.idleTimeoutMs,
 );
 const modelStreamFirstEventTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_FIRST_EVENT_TIMEOUT_MS",
-  10_000,
+  modelStreamIdleTimeoutDefaults.firstEventTimeoutMs,
 );
 const modelStreamReasoningStartTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_REASONING_START_TIMEOUT_MS",
-  15_000,
+  modelStreamIdleTimeoutDefaults.reasoningStartTimeoutMs,
 );
 const modelStreamCancellationTimeoutMs = modelStreamTimeout(
   "BRUNCH_MODEL_STREAM_CANCELLATION_TIMEOUT_MS",
-  2_000,
+  modelStreamIdleTimeoutDefaults.cancellationTimeoutMs,
 );
 instrument({
   key: Symbol.for("brunch.buffered-tool-admission"),
