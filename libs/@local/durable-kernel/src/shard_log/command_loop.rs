@@ -5,20 +5,18 @@
 //! is durable. External effects run outside the loop, so their completion
 //! events may arrive after another command has changed the state.
 
-#[cfg(any(test, feature = "test-util"))]
-use alloc::{collections::VecDeque, sync::Arc};
-#[cfg(any(test, feature = "test-util"))]
-use core::sync::atomic::{AtomicBool, Ordering};
 use core::{convert::Infallible, num::NonZeroUsize};
 
 use chrono::{DateTime, Utc};
 use error_stack::{Report, ResultExt as _};
-#[cfg(any(test, feature = "test-util"))]
-use tokio::sync::Notify;
+use opendata_common::StorageConfig;
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 
-use super::{AppendFailureKind, ShardAppendError, ShardLogLocation, ShardLogWriter};
+use super::{
+    AppendFailureKind, JournalStorage, JournalWriter, ShardAppendError, ShardLogLocation,
+    ShardLogWriter,
+};
 use crate::{
     ids::EventId,
     port::{Domain, Prepared, SnapshotRecoveryStats},
@@ -476,18 +474,18 @@ pub struct StartedShard<D: Domain> {
 }
 
 /// A writer awaiting recovery. Recover it and check the lease before enabling commands.
-pub struct OpenedShard {
-    location: ShardLogLocation,
-    writer: Option<ShardLogWriter>,
+pub struct OpenedShard<S: JournalStorage = StorageConfig> {
+    location: ShardLogLocation<S>,
+    writer: Option<ShardLogWriter<S::Writer>>,
 }
 
-impl OpenedShard {
+impl<S: JournalStorage> OpenedShard<S> {
     /// Opens a shard writer and captures its durable journal position.
     ///
     /// # Errors
     ///
     /// Returns an error when the shard writer cannot be opened.
-    pub async fn open(location: ShardLogLocation) -> Result<Self, Report<ShardCommandError>> {
+    pub async fn open(location: ShardLogLocation<S>) -> Result<Self, Report<ShardCommandError>> {
         let started = std::time::Instant::now();
         let writer = ShardLogWriter::open(&location)
             .await
@@ -510,7 +508,9 @@ impl OpenedShard {
     /// # Errors
     ///
     /// Returns an error when the durable journal cannot be read, decoded, or replayed.
-    pub async fn recover<D: Domain>(self) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
+    pub async fn recover<D: Domain>(
+        self,
+    ) -> Result<RecoveredShard<D, S>, Report<ShardCommandError>> {
         self.recover_inner(None).await
     }
 
@@ -520,14 +520,14 @@ impl OpenedShard {
     pub async fn recover_with_snapshots<D: Domain>(
         self,
         context: &D::SnapshotContext,
-    ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
+    ) -> Result<RecoveredShard<D, S>, Report<ShardCommandError>> {
         self.recover_inner(Some(context)).await
     }
 
     async fn recover_inner<D: Domain>(
         mut self,
         context: Option<&D::SnapshotContext>,
-    ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
+    ) -> Result<RecoveredShard<D, S>, Report<ShardCommandError>> {
         let writer = self
             .writer
             .take()
@@ -612,9 +612,9 @@ impl OpenedShard {
 
 /// Recovered state awaiting a lease check. Callers must complete that check before
 /// enabling commands.
-pub struct RecoveredShard<D: Domain> {
-    location: ShardLogLocation,
-    writer: Option<ShardLogWriter>,
+pub struct RecoveredShard<D: Domain, S: JournalStorage = StorageConfig> {
+    location: ShardLogLocation<S>,
+    writer: Option<ShardLogWriter<S::Writer>>,
     projection: D::Projection,
     last_snapshot_through_log_sequence: Option<u64>,
     snapshot_context: Option<D::SnapshotContext>,
@@ -622,34 +622,13 @@ pub struct RecoveredShard<D: Domain> {
     initial_state_changes: Vec<D::StateKey>,
 }
 
-impl<D: Domain> RecoveredShard<D> {
+impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
     /// Reports recovery results before the shard starts accepting commands.
     pub const fn startup_recovery(&self) -> &StartupRecovery<D::WorkIntent> {
         &self.recovery
     }
 
-    pub fn enable(self, config: ShardCommandConfig) -> StartedShard<D> {
-        self.enable_inner(
-            config,
-            #[cfg(any(test, feature = "test-util"))]
-            TestHarness::default(),
-        )
-    }
-
-    #[cfg(any(test, feature = "test-util"))]
-    pub fn enable_with_harness(
-        self,
-        config: ShardCommandConfig,
-        harness: TestHarness,
-    ) -> StartedShard<D> {
-        self.enable_inner(config, harness)
-    }
-
-    fn enable_inner(
-        mut self,
-        config: ShardCommandConfig,
-        #[cfg(any(test, feature = "test-util"))] harness: TestHarness,
-    ) -> StartedShard<D> {
+    pub fn enable(mut self, config: ShardCommandConfig) -> StartedShard<D> {
         let (sender, receiver) = mpsc::channel(config.channel_capacity.get());
         let (state_change_sender, state_change_receiver) =
             mpsc::channel(config.channel_capacity.get());
@@ -677,12 +656,6 @@ impl<D: Domain> RecoveredShard<D> {
             state_change_sender,
             admission_closed,
             ownership_lost,
-            #[cfg(any(test, feature = "test-util"))]
-            faults: harness.faults,
-            #[cfg(any(test, feature = "test-util"))]
-            before_append: harness.before_append,
-            #[cfg(any(test, feature = "test-util"))]
-            before_recovery: harness.before_recovery,
         };
         let task = tokio::spawn(command_loop.run());
         StartedShard {
@@ -723,7 +696,7 @@ impl<D: Domain> RecoveredShard<D> {
 ///
 /// Returns an error when opening or recovering the shard fails.
 pub async fn start_recovered<D: Domain>(
-    location: ShardLogLocation,
+    location: ShardLogLocation<impl JournalStorage>,
     config: ShardCommandConfig,
 ) -> Result<StartedShard<D>, Report<ShardCommandError>> {
     let opened = OpenedShard::open(location).await?;
@@ -731,9 +704,9 @@ pub async fn start_recovered<D: Domain>(
     Ok(recovered.enable(config))
 }
 
-struct CommandLoop<D: Domain> {
-    location: ShardLogLocation,
-    writer: Option<ShardLogWriter>,
+struct CommandLoop<D: Domain, S: JournalStorage> {
+    location: ShardLogLocation<S>,
+    writer: Option<ShardLogWriter<S::Writer>>,
     projection: D::Projection,
     last_snapshot_attempt_through_log_sequence: Option<u64>,
     snapshot_context: Option<D::SnapshotContext>,
@@ -743,15 +716,9 @@ struct CommandLoop<D: Domain> {
     state_change_sender: mpsc::Sender<D::StateKey>,
     admission_closed: CancellationToken,
     ownership_lost: CancellationToken,
-    #[cfg(any(test, feature = "test-util"))]
-    faults: VecDeque<super::AppendFault>,
-    #[cfg(any(test, feature = "test-util"))]
-    before_append: Option<Arc<TestHold>>,
-    #[cfg(any(test, feature = "test-util"))]
-    before_recovery: Option<Arc<TestHold>>,
 }
 
-impl<D: Domain> CommandLoop<D> {
+impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     async fn run(mut self) -> Result<(), ShardCommandError> {
         let Err(failure) = self.run_commands().await else {
             return Ok(());
@@ -950,8 +917,6 @@ impl<D: Domain> CommandLoop<D> {
                 return Ok(ShardCommandOutcome::AlreadyDurable { event_id });
             };
 
-            #[cfg(any(test, feature = "test-util"))]
-            self.wait_before_append().await;
             if self.ownership_lost.is_cancelled() {
                 return Err(Report::new(ShardCommandError {
                     kind: ShardCommandErrorKind::Fenced,
@@ -1005,8 +970,6 @@ impl<D: Domain> CommandLoop<D> {
                     safe_failures = safe_failures.saturating_add(1);
                 }
                 Err(error) if error.current_context().kind == AppendFailureKind::CommitUnknown => {
-                    #[cfg(any(test, feature = "test-util"))]
-                    self.wait_before_recovery().await;
                     self.recover_after_failure(ShardCommandError::from_append(error))
                         .await?;
                     // After recovery, `prepare` detects the stored event or a conflicting ID.
@@ -1059,8 +1022,6 @@ impl<D: Domain> CommandLoop<D> {
         )?);
         let mut safe_failures = 0_u32;
         loop {
-            #[cfg(any(test, feature = "test-util"))]
-            self.wait_before_append().await;
             if self.ownership_lost.is_cancelled() {
                 return Err(Report::new(ShardCommandError {
                     kind: ShardCommandErrorKind::Fenced,
@@ -1072,11 +1033,7 @@ impl<D: Domain> CommandLoop<D> {
                 .as_ref()
                 .ok_or_else(|| ShardCommandError::recovery("shard writer is unavailable"))?;
             match writer
-                .append_encoded(
-                    super::PROJECTION_SNAPSHOTS_KEY,
-                    bytes.clone(),
-                    super::AppendFault::None,
-                )
+                .append_encoded(super::PROJECTION_SNAPSHOTS_KEY, bytes.clone())
                 .await
             {
                 Ok(sequence) => {
@@ -1111,15 +1068,8 @@ impl<D: Domain> CommandLoop<D> {
         }
     }
 
-    #[cfg_attr(
-        not(any(test, feature = "test-util")),
-        expect(
-            clippy::needless_pass_by_ref_mut,
-            reason = "test builds consume the fault schedule through the same append method"
-        )
-    )]
     async fn append(
-        &mut self,
+        &self,
         record: &D::Record,
     ) -> Result<u64, error_stack::Report<ShardAppendError>> {
         let writer = self.writer.as_ref().ok_or_else(|| {
@@ -1128,10 +1078,6 @@ impl<D: Domain> CommandLoop<D> {
             })
             .attach("shard writer is unavailable")
         })?;
-        #[cfg(any(test, feature = "test-util"))]
-        if let Some(fault) = self.faults.pop_front() {
-            return writer.append_with_fault(record, fault).await;
-        }
         writer.append(record).await
     }
 
@@ -1227,20 +1173,6 @@ impl<D: Domain> CommandLoop<D> {
         }
         Ok(())
     }
-
-    #[cfg(any(test, feature = "test-util"))]
-    async fn wait_before_append(&self) {
-        if let Some(hold) = &self.before_append {
-            hold.wait_once().await;
-        }
-    }
-
-    #[cfg(any(test, feature = "test-util"))]
-    async fn wait_before_recovery(&self) {
-        if let Some(hold) = &self.before_recovery {
-            hold.wait_once().await;
-        }
-    }
 }
 
 struct RecoveredProjection<D: Domain> {
@@ -1256,7 +1188,7 @@ struct RecoveredProjection<D: Domain> {
     reason = "recovery checks each snapshot before replaying the events after it"
 )]
 async fn replay_with_snapshots<D: Domain>(
-    writer: &ShardLogWriter,
+    writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
     context: Option<&D::SnapshotContext>,
@@ -1371,7 +1303,7 @@ async fn replay_with_snapshots<D: Domain>(
 }
 
 async fn replay_durable_prefix<D: Domain>(
-    writer: &ShardLogWriter,
+    writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
 ) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
@@ -1385,7 +1317,7 @@ async fn replay_durable_prefix<D: Domain>(
 }
 
 async fn replay_durable_suffix<D: Domain>(
-    writer: &ShardLogWriter,
+    writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
     mut recovered: D::Projection,
@@ -1415,49 +1347,4 @@ async fn replay_durable_suffix<D: Domain>(
             .change_context_lazy(|| ShardCommandError::recovery("replay stored journal event"))?;
     }
     Ok((recovered, replayed_events))
-}
-
-#[cfg(any(test, feature = "test-util"))]
-#[derive(Default)]
-pub struct TestHarness {
-    pub faults: VecDeque<super::AppendFault>,
-    pub before_append: Option<Arc<TestHold>>,
-    pub before_recovery: Option<Arc<TestHold>>,
-}
-
-#[cfg(any(test, feature = "test-util"))]
-#[derive(Default)]
-pub struct TestHold {
-    armed: AtomicBool,
-    entered: Notify,
-    release: Notify,
-}
-
-#[cfg(any(test, feature = "test-util"))]
-impl TestHold {
-    #[must_use]
-    pub fn armed() -> Arc<Self> {
-        Arc::new(Self {
-            armed: AtomicBool::new(true),
-            entered: Notify::new(),
-            release: Notify::new(),
-        })
-    }
-
-    /// Signalled once when the held code path first arrives at the hold point.
-    pub const fn entered(&self) -> &Notify {
-        &self.entered
-    }
-
-    /// Releases the held code path to continue.
-    pub const fn release(&self) -> &Notify {
-        &self.release
-    }
-
-    async fn wait_once(&self) {
-        if self.armed.swap(false, Ordering::AcqRel) {
-            self.entered.notify_one();
-            self.release.notified().await;
-        }
-    }
 }
