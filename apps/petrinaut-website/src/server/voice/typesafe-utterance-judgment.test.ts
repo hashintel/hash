@@ -136,7 +136,8 @@ describe("utterance judgment handler", () => {
     expect(new Headers(init?.headers).get("authorization")).toBe(
       "Bearer judge-secret",
     );
-    const body = JSON.parse(String(init?.body)) as {
+    expect(init?.body).toBeTypeOf("string");
+    const body = JSON.parse(init?.body as string) as {
       model: string;
       state: unknown;
       questions: {
