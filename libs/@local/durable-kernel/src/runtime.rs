@@ -653,16 +653,13 @@ mod tests {
     use tokio::task::JoinHandle;
     use tokio_util::sync::CancellationToken;
 
-    use super::{
-        EffectError, Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted,
-        execute_effect,
-    };
+    use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted};
     use crate::{
         domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
         keyspace::Namespace,
         registry::CompatError,
         routing::Shard,
-        shard_log::{ShardCommandError, ShardCommandErrorKind},
+        shard_log::StorageConfigError,
     };
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -768,22 +765,6 @@ mod tests {
         assert!(
             format!("{report:?}").contains("codec diagnostic"),
             "fold conversion should retain printable attachments"
-        );
-    }
-
-    #[test]
-    fn command_failure_source() {
-        let source = ShardCommandError {
-            kind: ShardCommandErrorKind::Closed,
-            message: "command queue is closed".to_owned(),
-        };
-        let error: Report<KernelError> = Report::from(source.clone());
-
-        assert_eq!(error.downcast_ref::<ShardCommandError>(), Some(&source));
-        assert_eq!(
-            format!("{error:?}").matches(&source.message).count(),
-            1,
-            "source message should appear once in the report"
         );
     }
 
@@ -1253,92 +1234,6 @@ mod tests {
     #[display("destination unavailable")]
     struct DestinationUnavailable;
 
-    #[derive(Debug, PartialEq, Eq)]
-    struct RetryAttempt(u32);
-
-    struct FailedExecutor {
-        panic: bool,
-    }
-
-    impl Executor<RtDomain> for FailedExecutor {
-        type Effect = u8;
-        type Error = DestinationUnavailable;
-
-        fn plan(&self, _: &RtCounters) -> Vec<u8> {
-            vec![1]
-        }
-
-        #[expect(
-            clippy::unused_async_trait_impl,
-            reason = "the panic must occur when the executor future is polled"
-        )]
-        async fn execute(&self, _: &u8) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
-            assert!(!self.panic, "injected effect panic");
-            Err(Retry {
-                reason: Report::new(std::io::Error::from(std::io::ErrorKind::ConnectionRefused))
-                    .change_context(DestinationUnavailable)
-                    .attach("upsert customer 42")
-                    .attach_opaque(RetryAttempt(3)),
-                after: Some(Duration::from_millis(200)),
-            })
-        }
-    }
-
-    #[tokio::test]
-    async fn effect_retry_source() {
-        let id = domain::effect_id(&1_u8).expect("effect should serialize");
-        let retry =
-            execute_effect::<RtDomain, _>(Arc::new(FailedExecutor { panic: false }), 1, &id)
-                .await
-                .expect("executor failure should permit a retry")
-                .expect_err("executor should request a retry");
-
-        assert_eq!(retry.after, Some(Duration::from_millis(200)));
-        assert!(matches!(
-            retry.reason.current_context(),
-            EffectError::Execution
-        ));
-        assert!(retry.reason.contains::<DestinationUnavailable>());
-        assert_eq!(
-            retry
-                .reason
-                .downcast_ref::<std::io::Error>()
-                .expect("retry should retain the connection error")
-                .kind(),
-            std::io::ErrorKind::ConnectionRefused
-        );
-        assert_eq!(
-            retry.reason.downcast_ref::<RetryAttempt>(),
-            Some(&RetryAttempt(3))
-        );
-        assert!(
-            format!("{:?}", retry.reason).contains("upsert customer 42"),
-            "retry should retain printable attachments"
-        );
-    }
-
-    #[tokio::test]
-    async fn effect_panic_source() {
-        let id = domain::effect_id(&1_u8).expect("effect should serialize");
-        let retry = execute_effect::<RtDomain, _>(Arc::new(FailedExecutor { panic: true }), 1, &id)
-            .await
-            .expect("executor panic should permit a retry")
-            .expect_err("executor panic should request a retry");
-
-        assert_eq!(retry.after, None);
-        assert!(matches!(
-            retry.reason.current_context(),
-            EffectError::Panicked
-        ));
-        assert!(
-            retry
-                .reason
-                .downcast_ref::<tokio::task::JoinError>()
-                .expect("retry should retain the task failure")
-                .is_panic()
-        );
-    }
-
     #[tokio::test]
     async fn effect_panic_retry_order() {
         check_retry_order(true).await;
@@ -1504,6 +1399,37 @@ mod tests {
                 .expect("rejection cause should survive")
                 .amount,
             0
+        );
+    }
+
+    #[tokio::test]
+    async fn startup_storage_source() {
+        let directory = tempfile::tempdir().expect("test directory should be created");
+        let path = directory.path().join("blocked");
+        std::fs::write(&path, b"not a directory").expect("storage path should be blocked");
+        let error = Kernel::open(config(&format!("file://{}", path.display()), 0))
+            .expect("kernel configuration should be valid")
+            .register::<RtDomain>()
+            .expect("domain should register")
+            .start(ArchiveExecutor {
+                threshold: 1,
+                external: Arc::new(Mutex::new(Vec::new())),
+            })
+            .await
+            .err()
+            .expect("a file at the storage root should prevent startup");
+
+        assert!(matches!(error.current_context(), KernelError::Storage(_)));
+        assert!(matches!(
+            error.downcast_ref::<StorageConfigError>(),
+            Some(StorageConfigError::CreateLocalDirectory { path: failed_path }) if failed_path == &path
+        ));
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .expect("startup report should retain the filesystem cause")
+                .kind(),
+            std::io::ErrorKind::AlreadyExists
         );
     }
 

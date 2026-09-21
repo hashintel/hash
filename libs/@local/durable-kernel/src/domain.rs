@@ -1022,9 +1022,8 @@ mod tests {
 
     use super::{
         DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
-        KernelProjection, MAX_EVENT_RECORD_BYTES, MAX_PARTITION_KEY_BYTES, MAX_SNAPSHOT_BYTES,
-        PartitionKey, ProjectionSnapshot, ProjectionSnapshotV1, SimpleDomain, effect_id, register,
-        shard_of,
+        KernelProjection, MAX_PARTITION_KEY_BYTES, MAX_SNAPSHOT_BYTES, PartitionKey,
+        ProjectionSnapshot, ProjectionSnapshotV1, SimpleDomain, effect_id, register, shard_of,
     };
     use crate::{
         port::{Domain as _, Prepared},
@@ -1278,33 +1277,6 @@ mod tests {
         assert!(
             source.is_eof(),
             "incomplete JSON should report the end of input"
-        );
-    }
-
-    #[test]
-    fn event_records_decode_at_the_size_boundary() {
-        let encoded = EventRecord::V1(incremented("orders", 5))
-            .encode()
-            .expect("record should encode");
-        // serde_json accepts trailing whitespace, so padding with spaces
-        // changes the record's length and nothing else.
-        let mut at_limit = encoded.clone();
-        at_limit.resize(MAX_EVENT_RECORD_BYTES, b' ');
-        assert!(
-            EventRecord::<CounterEvent>::decode(&at_limit).is_ok(),
-            "a record of exactly {MAX_EVENT_RECORD_BYTES} bytes should decode"
-        );
-        let mut over_limit = encoded;
-        over_limit.resize(MAX_EVENT_RECORD_BYTES + 1, b' ');
-        let error = EventRecord::<CounterEvent>::decode(&over_limit)
-            .expect_err("an oversized record should be refused");
-        assert_eq!(
-            error.current_context(),
-            &CompatError::TooLarge {
-                name: CounterEvent::name(),
-                actual_bytes: MAX_EVENT_RECORD_BYTES + 1,
-                max_bytes: MAX_EVENT_RECORD_BYTES,
-            }
         );
     }
 

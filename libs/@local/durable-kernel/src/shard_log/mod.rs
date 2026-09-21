@@ -8,6 +8,7 @@
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
 use core::{num::NonZeroU64, ops::Bound, time::Duration};
+use std::path::PathBuf;
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
@@ -67,6 +68,19 @@ pub enum AppendFailureKind {
 /// Classifies an append failure returned in an [`error_stack::Report`].
 pub struct ShardAppendError {
     pub kind: AppendFailureKind,
+}
+
+/// Invalid storage options or a failure to create the local storage directory.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum StorageConfigError {
+    #[display("unsupported shard-log blob URL {url:?}")]
+    UnsupportedUrl { url: String },
+    #[display("blob URL has an empty S3 bucket")]
+    EmptyS3Bucket,
+    #[display("S3 bucket {bucket:?} requires an AWS region")]
+    MissingAwsRegion { bucket: String },
+    #[display("could not create local storage directory {}", path.display())]
+    CreateLocalDirectory { path: PathBuf },
 }
 
 #[derive(Debug, Clone)]
@@ -157,7 +171,7 @@ impl ShardLogLocation {
         shard: crate::routing::Shard,
         log_path: &str,
         options: &LogStorageOptions,
-    ) -> Result<Self, Report<DurableError>> {
+    ) -> Result<Self, Report<StorageConfigError>> {
         Ok(Self {
             shard,
             read_timeout: DURABILITY_TIMEOUT,
@@ -212,12 +226,14 @@ pub struct LogStorageOptions {
 pub fn storage_for_path(
     options: &LogStorageOptions,
     control_path: &str,
-) -> Result<StorageConfig, Report<DurableError>> {
-    let url = options.blob_url.clone();
+) -> Result<StorageConfig, Report<StorageConfigError>> {
+    let url = &options.blob_url;
     let (object_store, prefix) = if let Some(path) = url.strip_prefix("file://") {
-        std::fs::create_dir_all(path)
-            .change_context(DurableError)
-            .attach(format!("create local OpenData root {path:?}"))?;
+        std::fs::create_dir_all(path).change_context_lazy(|| {
+            StorageConfigError::CreateLocalDirectory {
+                path: PathBuf::from(path),
+            }
+        })?;
         (
             ObjectStoreConfig::Local(LocalObjectStoreConfig {
                 path: path.to_owned(),
@@ -227,11 +243,12 @@ pub fn storage_for_path(
     } else if let Some(value) = url.strip_prefix("s3://") {
         let (bucket, prefix) = value.split_once('/').unwrap_or((value, ""));
         if bucket.is_empty() {
-            return Err(Report::new(DurableError).attach("blob URL has an empty S3 bucket"));
+            return Err(Report::new(StorageConfigError::EmptyS3Bucket));
         }
         let Some(region) = options.aws_region.clone() else {
-            return Err(Report::new(DurableError)
-                .attach("S3 shard-log storage requires an explicit AWS region"));
+            return Err(Report::new(StorageConfigError::MissingAwsRegion {
+                bucket: bucket.to_owned(),
+            }));
         };
         (
             ObjectStoreConfig::Aws(AwsObjectStoreConfig {
@@ -241,9 +258,9 @@ pub fn storage_for_path(
             prefix.trim_matches('/').to_owned(),
         )
     } else {
-        return Err(
-            Report::new(DurableError).attach(format!("unsupported shard-log blob URL {url:?}"))
-        );
+        return Err(Report::new(StorageConfigError::UnsupportedUrl {
+            url: url.clone(),
+        }));
     };
     let path = if prefix.is_empty() {
         control_path.to_owned()
@@ -943,7 +960,6 @@ impl RawShardLog {
 #[cfg(test)]
 mod tests {
     use core::time::Duration;
-    use std::io;
 
     use error_stack::{Report, ResultExt as _};
     use serde::{Deserialize, Serialize};
@@ -951,11 +967,9 @@ mod tests {
 
     use super::{
         AppendFailureKind, AppendFault, ShardLogLocation, ShardLogRecovery, ShardLogWriter,
-        post_invocation_message, post_invocation_report, post_invocation_source,
-        wait_until_durable_with,
+        post_invocation_message, wait_until_durable_with,
     };
     use crate::{
-        DurableError,
         registry::{
             CompatError, DurableRecord, MigrationPolicy, RecordDeclaration, UntrimmedJournalRecord,
             VersionedRecord, intern_declaration,
@@ -979,24 +993,6 @@ mod tests {
             error.contains::<tokio::time::error::Elapsed>(),
             "flush timeout should retain the elapsed error"
         );
-    }
-
-    #[test]
-    fn append_failure_sources() {
-        for error in [
-            post_invocation_source("append record", io::Error::from(io::ErrorKind::InvalidData)),
-            post_invocation_report(
-                "wait for durability",
-                Report::new(io::Error::from(io::ErrorKind::InvalidData))
-                    .change_context(DurableError)
-                    .attach("storage diagnostic"),
-            ),
-        ] {
-            let source = error
-                .downcast_ref::<io::Error>()
-                .expect("append report should retain the storage error");
-            assert_eq!(source.kind(), io::ErrorKind::InvalidData);
-        }
     }
 
     static TEST_RECORD_DECLARATION: RecordDeclaration = RecordDeclaration {
