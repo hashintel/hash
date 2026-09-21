@@ -34,6 +34,22 @@ node --experimental-strip-types apps/brunch-agent/src/evaluations/matched-parity
 
 Use unused `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` values if the defaults are occupied. `MATCHED_PARITY_MAX_TURN_MS` may lower the per-turn bound but must be a positive integer.
 
+## Resume completed arms
+
+Default execution is always fresh. After correcting the external timeout issue, resume the retained r3 output with this exact command. A retained arm is reused only when its complete artifact, raw document, diagnostics, raw transcript, readable transcript, exact scenario, and provider/model/reasoning settings all match. A partial or mismatched arm is refused; a genuinely missing arm runs normally.
+
+```bash
+OPENAI_API_KEY='<operator-owned-key>' \
+PETRINAUT_AI_MODEL=gpt-5.5 \
+BRUNCH_CHAT_MODEL=openai/gpt-5.5 \
+BRUNCH_CHAT_THINKING=medium \
+MATCHED_PARITY_PAID_AUTHORIZATION=I_AUTHORIZE_MATCHED_PAID_INFERENCE \
+MATCHED_PARITY_OUTPUT_ROOT=/tmp/petrinaut-matched-parity-441799f-r3 \
+node --experimental-strip-types apps/brunch-agent/src/evaluations/matched-parity/run.ts --execute-paid --resume-completed
+```
+
+The console, `run.json`, and each completed scenario comparison identify every arm as `reused` or `executed`.
+
 ## Artifacts
 
 The command above writes `/tmp/petrinaut-matched-parity-441799f/`:

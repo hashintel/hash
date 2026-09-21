@@ -20,6 +20,13 @@ const atomicWrite = async (path: string, content: string) => {
 
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 
+export type ArmExecutionAction = "executed" | "reused";
+export interface ArmExecutionRecord {
+  readonly action: ArmExecutionAction;
+  readonly arm: "stock" | "brunch";
+  readonly scenarioId: string;
+}
+
 export const writeArmArtifacts = async (
   directory: string,
   result: BrowserArmResult,
@@ -52,8 +59,15 @@ export const writeScenarioComparison = async (
   directory: string,
   stock: BrowserArmResult,
   brunch: BrowserArmResult,
+  execution: {
+    readonly stock: ArmExecutionAction;
+    readonly brunch: ArmExecutionAction;
+  },
 ) => {
-  const comparison = deriveComparison(stock.artifact, brunch.artifact);
+  const comparison = {
+    ...deriveComparison(stock.artifact, brunch.artifact),
+    execution,
+  };
   await atomicWrite(join(directory, "comparison.json"), json(comparison));
   await atomicWrite(
     join(directory, "comparison.md"),
@@ -61,6 +75,8 @@ export const writeScenarioComparison = async (
       `# ${comparison.scenario.label}`,
       "",
       "Mechanical checks only; inspect both raw transcripts and documents for quality.",
+      "",
+      `Execution: Stock ${execution.stock}; Brunch ${execution.brunch}.`,
       "",
       "| Arm | Elapsed ms | Model steps | Tool calls | Places | Transitions | Scenarios | Metrics | Complete |",
       "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
@@ -77,11 +93,20 @@ export const writeRunRecord = async (
   outputRoot: string,
   configuration: MatchedParityConfiguration,
   scenarios: readonly MatchedParityScenario[],
+  metadata: {
+    readonly arms: readonly ArmExecutionRecord[];
+    readonly startedAt: string;
+  },
 ) => {
   await mkdir(outputRoot, { recursive: true });
   await atomicWrite(
     join(outputRoot, "run.json"),
-    json({ configuration, scenarios, createdAt: new Date().toISOString() }),
+    json({
+      configuration,
+      scenarios,
+      startedAt: metadata.startedAt,
+      arms: metadata.arms,
+    }),
   );
 };
 

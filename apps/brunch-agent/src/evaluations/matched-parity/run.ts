@@ -17,6 +17,7 @@ import {
   writeManifest,
   writeRunRecord,
   writeScenarioComparison,
+  type ArmExecutionRecord,
 } from "./artifacts.ts";
 import { runBrowserArm } from "./browser-run.ts";
 import {
@@ -24,7 +25,10 @@ import {
   resolveMatchedParityConfiguration,
   type MatchedParityConfiguration,
 } from "./configuration.ts";
+import { loadCompletedArm } from "./resume.ts";
 import { matchedParityScenarios } from "./scenarios.ts";
+
+import type { BrowserArmResult } from "./browser-run.ts";
 
 const execute = promisify(execFile);
 const appRoot = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
@@ -42,16 +46,22 @@ export const matchedParityPlan = (
   configuration: MatchedParityConfiguration,
 ) => ({
   execution: configuration.executePaid ? "paid-authorized" : "dry-run",
-  order: matchedParityScenarios.flatMap(({ id }) => [
-    `${id}/stock`,
-    `${id}/brunch`,
-  ]),
+  order: matchedParityScenarios.flatMap(({ id }) =>
+    (["stock", "brunch"] as const).map((arm) => ({
+      arm,
+      scenarioId: id,
+      action: configuration.resumeCompleted
+        ? "reuse-complete-or-execute-missing"
+        : "execute-fresh",
+    })),
+  ),
   outputRoot: configuration.outputRoot,
   provider: configuration.provider,
   stock: configuration.stock,
   brunch: configuration.brunch,
   maxTurnMs: configuration.maxTurnMs,
-  freshBrowserContextPerArm: true,
+  resumeCompleted: configuration.resumeCompleted,
+  freshBrowserContextPerExecutedArm: true,
 });
 
 /** Dry-run is the default and cannot call the injected paid executor. */
@@ -149,12 +159,16 @@ const executePaidEvaluation = async (
 ) => {
   const environment = evaluationEnvironment(configuration);
   const started: ChildProcess[] = [];
+  const startedAt = new Date().toISOString();
+  const armRecords: ArmExecutionRecord[] = [];
   await mkdir(configuration.outputRoot, { recursive: true });
-  await writeRunRecord(
-    configuration.outputRoot,
-    configuration,
-    matchedParityScenarios,
-  );
+  if (!configuration.resumeCompleted)
+    await writeRunRecord(
+      configuration.outputRoot,
+      configuration,
+      matchedParityScenarios,
+      { arms: armRecords, startedAt },
+    );
   if ((await responds(defaultChatOrigin)) || (await responds(panelOrigin)))
     throw new Error(
       "Matched parity evaluation requires its own Brunch and panel ports; stop existing services or choose unused BRUNCH_CHAT_PORT and BRUNCH_PANEL_PORT values.",
@@ -195,26 +209,59 @@ const executePaidEvaluation = async (
 
     for (const scenario of matchedParityScenarios) {
       const scenarioDirectory = join(configuration.outputRoot, scenario.id);
-      const results = [];
+      const results: BrowserArmResult[] = [];
+      const execution: Partial<
+        Record<"stock" | "brunch", "executed" | "reused">
+      > = {};
       for (const arm of ["stock", "brunch"] as const) {
-        const context = await browser.newContext();
-        try {
-          const result = await runBrowserArm({
-            arm,
-            configuration,
-            context,
-            origin: panelOrigin,
-            scenario,
-          });
-          results.push(result);
-          await writeArmArtifacts(join(scenarioDirectory, arm), result);
-        } finally {
-          await context.close();
+        const armDirectory = join(scenarioDirectory, arm);
+        const retained = await loadCompletedArm({
+          arm,
+          configuration,
+          directory: armDirectory,
+          resumeCompleted: configuration.resumeCompleted,
+          scenario,
+        });
+        let result: BrowserArmResult;
+        let action: "executed" | "reused";
+        if (retained !== undefined) {
+          result = retained;
+          action = "reused";
+        } else {
+          const context = await browser.newContext();
+          try {
+            result = await runBrowserArm({
+              arm,
+              configuration,
+              context,
+              origin: panelOrigin,
+              scenario,
+            });
+            await writeArmArtifacts(armDirectory, result);
+            action = "executed";
+          } finally {
+            await context.close();
+          }
         }
+        results.push(result);
+        execution[arm] = action;
+        armRecords.push({ action, arm, scenarioId: scenario.id });
+        process.stdout.write(`${scenario.id}/${arm}: ${action}\n`);
+        await writeRunRecord(
+          configuration.outputRoot,
+          configuration,
+          matchedParityScenarios,
+          { arms: armRecords, startedAt },
+        );
       }
       const [stock, brunch] = results;
       if (!stock || !brunch) throw new Error("Both serial arms must complete.");
-      await writeScenarioComparison(scenarioDirectory, stock, brunch);
+      if (execution.stock === undefined || execution.brunch === undefined)
+        throw new Error("Both serial arm actions must be recorded.");
+      await writeScenarioComparison(scenarioDirectory, stock, brunch, {
+        stock: execution.stock,
+        brunch: execution.brunch,
+      });
     }
   } finally {
     await browser?.close();
@@ -227,6 +274,7 @@ const main = async () => {
   const parsed = parseArgs({
     options: {
       "execute-paid": { type: "boolean", default: false },
+      "resume-completed": { type: "boolean", default: false },
       output: { type: "string" },
     },
     strict: true,
@@ -239,6 +287,7 @@ const main = async () => {
   };
   const configuration = resolveMatchedParityConfiguration(environment, {
     executePaid: parsed.values["execute-paid"],
+    resumeCompleted: parsed.values["resume-completed"],
   });
   await runMatchedParityEvaluation(configuration, {
     execute: executePaidEvaluation,
