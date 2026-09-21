@@ -1,4 +1,6 @@
+/* eslint-disable no-await-in-loop -- Browser continuation quiescence is causal and serial. */
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   createFlueClient,
@@ -158,6 +160,28 @@ export const submitPersonaBrowserTurn = async (
       stop.waitFor({ state: "hidden", timeout: 0 }),
       aborted.promise,
     ]);
+    // React can briefly hide Stop between the provider response and the effect
+    // that starts browser tools or their continuation. Require a short quiet
+    // interval with no new admission and no reappearing busy state before
+    // treating the complete product turn as settled.
+    let observedAdmissions = responses.length;
+    let quietIntervals = 0;
+    while (quietIntervals < 5) {
+      await Promise.race([delay(100), aborted.promise]);
+      if (await stop.isVisible()) {
+        await Promise.race([
+          stop.waitFor({ state: "hidden", timeout: 0 }),
+          aborted.promise,
+        ]);
+        quietIntervals = 0;
+        observedAdmissions = responses.length;
+      } else if (responses.length !== observedAdmissions) {
+        quietIntervals = 0;
+        observedAdmissions = responses.length;
+      } else {
+        quietIntervals += 1;
+      }
+    }
     await stopTask;
     await Promise.all(continuationAdmissionTasks);
     const admissions = await Promise.all(
