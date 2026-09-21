@@ -427,13 +427,13 @@ struct DriverSettings {
 }
 
 fn command_failure(error: ShardCommandError) -> Report<KernelError> {
-    let context = KernelError::Internal(error.to_string());
-    Report::new(error).change_context(context)
+    Report::new(error).change_context(KernelError::Internal("shard command failed".to_owned()))
 }
 
-fn invalid_event(error: CompatError) -> Report<KernelError> {
-    let context = KernelError::InvalidEvent(error.to_string());
-    Report::new(error).change_context(context)
+fn invalid_event(error: Report<CompatError>) -> Report<KernelError> {
+    error.change_context(KernelError::InvalidEvent(
+        "event record construction failed".to_owned(),
+    ))
 }
 
 fn settle_driver_error(
@@ -626,12 +626,75 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use tokio::task::JoinHandle;
 
-    use super::{Kernel, KernelConfig, KernelError, SnapshotPolicy, Submitted};
-    use crate::{
-        domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
-        keyspace::Namespace,
-        routing::Shard,
+    use super::{
+        Kernel, KernelConfig, KernelError, SnapshotPolicy, Submitted, command_failure,
+        invalid_event,
     };
+    use crate::{
+        domain::{
+            self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
+        },
+        keyspace::Namespace,
+        registry::CompatError,
+        routing::Shard,
+        shard_log::{ShardCommandError, ShardCommandErrorKind},
+    };
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    struct InvalidJsonEvent(BTreeMap<(u8, u8), u8>);
+
+    impl DomainEvent for InvalidJsonEvent {
+        fn name() -> &'static str {
+            "invalid_json_event"
+        }
+
+        fn partition(&self) -> PartitionKey {
+            PartitionKey::parse("orders").expect("partition should be valid")
+        }
+    }
+
+    #[test]
+    fn invalid_event_source() {
+        let event = InvalidJsonEvent(BTreeMap::from([((1, 2), 3)]));
+        let error =
+            EventRecordV1::new(event).expect_err("JSON should reject a map with tuple keys");
+        let error = invalid_event(error);
+
+        assert!(matches!(
+            error.current_context(),
+            KernelError::InvalidEvent(_)
+        ));
+        assert!(matches!(
+            error.downcast_ref::<CompatError>(),
+            Some(CompatError::Malformed {
+                name: "invalid_json_event",
+                ..
+            })
+        ));
+        let source = error
+            .downcast_ref::<serde_json::Error>()
+            .expect("serialization error should remain available through the runtime context");
+        assert!(
+            source.is_syntax(),
+            "tuple keys should retain the JSON syntax error"
+        );
+    }
+
+    #[test]
+    fn command_failure_source() {
+        let source = ShardCommandError {
+            kind: ShardCommandErrorKind::Closed,
+            message: "command queue is closed".to_owned(),
+        };
+        let error = command_failure(source.clone());
+
+        assert_eq!(error.downcast_ref::<ShardCommandError>(), Some(&source));
+        assert_eq!(
+            format!("{error:?}").matches(&source.message).count(),
+            1,
+            "source message should appear once in the report"
+        );
+    }
 
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     #[serde(tag = "kind", rename_all = "snake_case")]

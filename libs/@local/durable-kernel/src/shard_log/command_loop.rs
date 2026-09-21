@@ -905,13 +905,16 @@ impl<D: Domain> CommandLoop<D> {
                         shard_sequence: sequence,
                     });
                 }
-                Err(error) if error.kind == AppendFailureKind::DefinitelyNotCommitted => {
+                Err(error)
+                    if error.current_context().kind
+                        == AppendFailureKind::DefinitelyNotCommitted =>
+                {
                     if safe_failures >= self.safe_append_retries {
                         return Err(append_error(&error));
                     }
                     safe_failures = safe_failures.saturating_add(1);
                 }
-                Err(error) if error.kind == AppendFailureKind::CommitUnknown => {
+                Err(error) if error.current_context().kind == AppendFailureKind::CommitUnknown => {
                     #[cfg(any(test, feature = "test-util"))]
                     self.wait_before_recovery().await;
                     self.recover_durable_prefix().await?;
@@ -986,7 +989,10 @@ impl<D: Domain> CommandLoop<D> {
                         .max(Some(snapshot_through));
                     return Ok(sequence);
                 }
-                Err(error) if error.kind == AppendFailureKind::DefinitelyNotCommitted => {
+                Err(error)
+                    if error.current_context().kind
+                        == AppendFailureKind::DefinitelyNotCommitted =>
+                {
                     if safe_failures >= self.safe_append_retries {
                         return Err(append_error(&error));
                     }
@@ -1016,11 +1022,15 @@ impl<D: Domain> CommandLoop<D> {
             reason = "test builds consume the fault schedule through the same append method"
         )
     )]
-    async fn append(&mut self, record: &D::Record) -> Result<u64, ShardAppendError> {
-        let writer = self.writer.as_ref().ok_or_else(|| ShardAppendError {
-            kind: AppendFailureKind::CommitUnknown,
-            source: error_stack::Report::new(crate::DurableError)
-                .attach("shard writer is unavailable"),
+    async fn append(
+        &mut self,
+        record: &D::Record,
+    ) -> Result<u64, error_stack::Report<ShardAppendError>> {
+        let writer = self.writer.as_ref().ok_or_else(|| {
+            error_stack::Report::new(ShardAppendError {
+                kind: AppendFailureKind::CommitUnknown,
+            })
+            .attach("shard writer is unavailable")
         })?;
         #[cfg(any(test, feature = "test-util"))]
         if let Some(fault) = self.faults.pop_front() {
@@ -1298,15 +1308,15 @@ fn invalid_candidate<E: fmt::Display>(error: E) -> ShardCommandError {
     }
 }
 
-fn append_error(error: &ShardAppendError) -> ShardCommandError {
-    let kind = match error.kind {
+fn append_error(error: &error_stack::Report<ShardAppendError>) -> ShardCommandError {
+    let kind = match error.current_context().kind {
         AppendFailureKind::DefinitelyNotCommitted => ShardCommandErrorKind::DefinitelyNotCommitted,
         AppendFailureKind::CommitUnknown => ShardCommandErrorKind::CommitUnknown,
         AppendFailureKind::Fenced => ShardCommandErrorKind::Fenced,
     };
     ShardCommandError {
         kind,
-        message: error.to_string(),
+        message: format!("{error:?}"),
     }
 }
 
