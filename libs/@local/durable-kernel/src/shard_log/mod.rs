@@ -26,6 +26,7 @@ use opendata_log::{
 use crate::{
     DurableError,
     registry::{DurableRecord, UntrimmedJournalRecord, require_interned},
+    routing::Shard,
 };
 
 mod command_loop;
@@ -81,6 +82,19 @@ pub enum StorageConfigError {
     MissingAwsRegion { bucket: String },
     #[display("could not create local storage directory {}", path.display())]
     CreateLocalDirectory { path: PathBuf },
+}
+
+/// A journal open failure. The report retains the storage or timeout error.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+pub enum ShardLogOpenError {
+    #[display("could not open writer for shard {}", shard.get())]
+    Writer { shard: Shard },
+    #[display("opening writer for shard {} timed out after {timeout:?}", shard.get())]
+    WriterTimeout { shard: Shard, timeout: Duration },
+    #[display("could not open reader for shard {}", shard.get())]
+    Reader { shard: Shard },
+    #[display("opening reader for shard {} timed out after {timeout:?}", shard.get())]
+    ReaderTimeout { shard: Shard, timeout: Duration },
 }
 
 #[derive(Debug, Clone)]
@@ -302,18 +316,7 @@ pub async fn read_journal<T: UntrimmedJournalRecord>(
     if let LogSource::Sim(journal) = &location.source {
         return decode_sim_entries(journal.durable_entries(crate::sim::SimKey::Events));
     }
-    let reader = tokio::time::timeout(
-        location.read_timeout,
-        LogDbReader::open(ReaderConfig {
-            storage: location.source.storage()?.clone(),
-            ..ReaderConfig::default()
-        }),
-    )
-    .await
-    .change_context(DurableError)
-    .attach("open read-only shard journal timed out")?
-    .change_context(DurableError)
-    .attach("open read-only shard journal")?;
+    let reader = location.open_reader().await.change_context(DurableError)?;
     let result = scan_records(&reader, (Bound::Unbounded, Bound::Unbounded), None).await;
     reader.close().await;
     result
@@ -323,6 +326,26 @@ impl ShardLogLocation {
     #[must_use]
     pub const fn shard(&self) -> crate::routing::Shard {
         self.shard
+    }
+
+    async fn open_reader(&self) -> Result<LogDbReader, Report<ShardLogOpenError>> {
+        let storage = self
+            .source
+            .storage()
+            .change_context(ShardLogOpenError::Reader { shard: self.shard })?;
+        tokio::time::timeout(
+            self.read_timeout,
+            LogDbReader::open(ReaderConfig {
+                storage: storage.clone(),
+                ..ReaderConfig::default()
+            }),
+        )
+        .await
+        .change_context(ShardLogOpenError::ReaderTimeout {
+            shard: self.shard,
+            timeout: self.read_timeout,
+        })?
+        .change_context(ShardLogOpenError::Reader { shard: self.shard })
     }
 }
 
@@ -373,7 +396,7 @@ pub enum AppendFault {
 }
 
 impl ShardLogWriter {
-    async fn open(location: &ShardLogLocation) -> Result<Self, Report<DurableError>> {
+    async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
         let durability_timeout = location.durability_timeout;
         #[cfg(any(test, feature = "test-util"))]
         if let LogSource::Sim(journal) = &location.source {
@@ -382,10 +405,16 @@ impl ShardLogWriter {
                 durability_timeout,
             });
         }
+        let storage = location
+            .source
+            .storage()
+            .change_context(ShardLogOpenError::Writer {
+                shard: location.shard,
+            })?;
         let log = tokio::time::timeout(
             durability_timeout,
             LogDb::open(Config {
-                storage: location.source.storage()?.clone(),
+                storage: storage.clone(),
                 read_visibility: ReadVisibility::Remote,
                 // Larger blocks reduce S3 range requests during sequential replay.
                 sst_block_size: Some(slatedb::SstBlockSize::Block64Kib),
@@ -393,12 +422,13 @@ impl ShardLogWriter {
             }),
         )
         .await
-        .change_context(DurableError)
-        .attach(format!(
-            "open shard log timed out after {durability_timeout:?}"
-        ))?
-        .change_context(DurableError)
-        .attach("open shard log")?;
+        .change_context(ShardLogOpenError::WriterTimeout {
+            shard: location.shard,
+            timeout: durability_timeout,
+        })?
+        .change_context(ShardLogOpenError::Writer {
+            shard: location.shard,
+        })?;
         Ok(Self {
             backend: WriterBackend::Real(log),
             durability_timeout,
@@ -623,22 +653,10 @@ impl ShardLogRecovery {
     /// # Errors
     ///
     /// Returns an error when the shard storage cannot be opened before its timeout.
-    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<DurableError>> {
-        let reader = tokio::time::timeout(
-            DURABILITY_TIMEOUT,
-            LogDbReader::open(ReaderConfig {
-                storage: location.source.storage()?.clone(),
-                ..ReaderConfig::default()
-            }),
-        )
-        .await
-        .change_context(DurableError)
-        .attach(format!(
-            "open shard recovery reader timed out after {DURABILITY_TIMEOUT:?}"
-        ))?
-        .change_context(DurableError)
-        .attach("open shard recovery reader")?;
-        Ok(Self { reader })
+    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
+        Ok(Self {
+            reader: location.open_reader().await?,
+        })
     }
 
     /// # Errors
@@ -909,7 +927,7 @@ impl RawShardLog {
     /// # Errors
     ///
     /// Returns an error when the shard storage cannot be opened before its timeout.
-    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<DurableError>> {
+    pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
         ShardLogWriter::open(location).await.map(Self)
     }
 
@@ -966,8 +984,9 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        AppendFailureKind, AppendFault, ShardLogLocation, ShardLogRecovery, ShardLogWriter,
-        post_invocation_message, wait_until_durable_with,
+        AppendFailureKind, AppendFault, OpenedShard, ShardLogLocation, ShardLogOpenError,
+        ShardLogRecovery, ShardLogWriter, post_invocation_message, read_journal,
+        wait_until_durable_with,
     };
     use crate::{
         registry::{
@@ -1086,6 +1105,44 @@ mod tests {
         fn root(&self) -> &std::path::Path {
             self.root.path()
         }
+    }
+
+    #[tokio::test]
+    async fn open_invalid_storage() {
+        let capability = TestPrefixCapability::new();
+        let shard = Shard::from_u8(7);
+        let blocked = capability.root().join("blocked");
+        std::fs::write(&blocked, b"not a directory").expect("storage root should be blocked");
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &TestPrefixCapability::log_path(shard),
+            &blocked,
+        );
+
+        let writer_error = OpenedShard::open(location.clone())
+            .await
+            .err()
+            .expect("a file at the storage root should prevent opening a writer");
+        assert!(matches!(
+            writer_error.downcast_ref::<ShardLogOpenError>(),
+            Some(ShardLogOpenError::Writer { shard: failed_shard }) if *failed_shard == shard
+        ));
+        assert!(
+            writer_error.contains::<opendata_log::Error>(),
+            "writer open should retain the storage error through the command context"
+        );
+
+        let reader_error = read_journal::<TestRecord>(&location)
+            .await
+            .expect_err("a file at the storage root should prevent reading the journal");
+        assert!(matches!(
+            reader_error.downcast_ref::<ShardLogOpenError>(),
+            Some(ShardLogOpenError::Reader { shard: failed_shard }) if *failed_shard == shard
+        ));
+        assert!(
+            reader_error.contains::<opendata_log::Error>(),
+            "journal read should retain the storage error"
+        );
     }
 
     #[tokio::test]
