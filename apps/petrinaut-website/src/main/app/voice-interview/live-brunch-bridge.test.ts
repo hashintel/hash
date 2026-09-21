@@ -6,9 +6,12 @@ import { VoiceMediationHistory } from "./voice-mediation-history";
 
 import type { UtteranceJudgment } from "../../../shared/live-utterance-judgment";
 import type { FlueConversationState } from "@flue/sdk";
+import type { MockInstance } from "vitest";
+
+let diagnosticSpy: MockInstance<(...args: unknown[]) => void>;
 
 beforeEach(() => {
-  vi.spyOn(console, "debug").mockImplementation(() => {});
+  diagnosticSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -119,9 +122,8 @@ const started = {
 };
 
 const judgmentRecords = () =>
-  vi
-    .mocked(console.debug)
-    .mock.calls.map(
+  diagnosticSpy.mock.calls
+    .map(
       ([line]) =>
         JSON.parse(
           String(line).replace("[Petrinaut Live trace] ", ""),
@@ -148,7 +150,6 @@ test("log mode does not wait for judgments or introduce new admission drops", as
       delegationId: null,
       contribution: "social_or_backchannel",
       confidence: 0.93,
-      latencyMs: expect.any(Number),
       decision: "withhold",
       applied: "submit",
       mode: "log",
@@ -160,9 +161,8 @@ test("log mode does not wait for judgments or introduce new admission drops", as
       applied: "submit",
     }),
   ]);
-  expect(JSON.stringify(vi.mocked(console.debug).mock.calls)).not.toContain(
-    "PRIVATE",
-  );
+  expect(judgmentRecords()[0]?.latencyMs).toEqual(expect.any(Number));
+  expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
   expect(fixture.submit).toHaveBeenNthCalledWith(
     1,
     expect.objectContaining({ id: "one", text: "PRIVATE ONE" }),
@@ -211,9 +211,7 @@ test.each(["null", "throw"])(
         applied: "submit",
       }),
     ]);
-    expect(JSON.stringify(vi.mocked(console.debug).mock.calls)).not.toContain(
-      "PRIVATE",
-    );
+    expect(JSON.stringify(diagnosticSpy.mock.calls)).not.toContain("PRIVATE");
   },
 );
 
