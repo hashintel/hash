@@ -6,6 +6,10 @@ import {
 } from "./live-brunch-bridge/utterance-pipeline";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
+import type {
+  UtteranceJudgment,
+  UtteranceJudgmentState,
+} from "../../../shared/live-utterance-judgment";
 import type { VoiceBriefFields } from "../../../shared/voice-mediation";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { SkipReason } from "./live-brunch-bridge/utterance-pipeline";
@@ -88,6 +92,11 @@ interface Dependencies {
   readonly notice: (message: string | null) => void;
   /** Transcription speech has started and its transcript isn't finalized yet. */
   readonly speechPending: () => boolean;
+  /** Optional log-only observation. Never controls submission or admission. */
+  readonly judge?: (
+    state: UtteranceJudgmentState,
+    signal: AbortSignal,
+  ) => Promise<UtteranceJudgment | null>;
 }
 
 /** GPT-Live accepts at most 500 tokens per append; stay well inside it. */
@@ -130,6 +139,7 @@ export class LiveBrunchBridge {
     >
   >();
   #waitingForComposer: Turn | undefined;
+  #lastOfferedText: string | null = null;
   #chat: Chat = {
     canAcceptVoiceInput: false,
     segments: [],
@@ -427,6 +437,8 @@ export class LiveBrunchBridge {
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
     this.#preparations.add(turn.preparation);
+    // No await: a slow judge must not change the composer's admission window.
+    if (this.#dependencies.judge) void this.#observeJudgment(turn, input.text);
     try {
       let text = input.text;
       const mediation = this.#dependencies.mediation;
@@ -500,6 +512,38 @@ export class LiveBrunchBridge {
       if (this.#waitingForComposer === turn)
         this.#waitingForComposer = undefined;
     }
+  }
+
+  async #observeJudgment(turn: Turn, transcript: string): Promise<void> {
+    const startedAt = performance.now();
+    let judgment: UtteranceJudgment | null = null;
+    try {
+      judgment = await this.#dependencies.judge!(
+        { transcript, relayedBrunchText: this.#lastOfferedText },
+        this.#abort.signal,
+      );
+    } catch {
+      // Provider errors can contain source text. Record only an absent judgment.
+    }
+    const decision =
+      turn.delegationId !== null ||
+      judgment === null ||
+      judgment.confidence < 0.8 ||
+      judgment.contribution === "interview_content"
+        ? "submit"
+        : "withhold";
+    logLiveDiagnostic("judgment.result", {
+      inputId: turn.inputId,
+      delegationId: turn.delegationId,
+      judgment: judgment !== null,
+      contribution: judgment?.contribution ?? null,
+      confidence: judgment?.confidence ?? null,
+      latencyMs: Math.round(performance.now() - startedAt),
+      decision,
+      applied: "submit",
+      mode: "log",
+      afterStop: this.#abort.signal.aborted,
+    });
   }
 
   public responseStarted(event: FlueChatResponseMessageStartedEvent): void {
@@ -949,7 +993,9 @@ export class LiveBrunchBridge {
       if (turn.preparation.signal.aborted || this.#abort.signal.aborted) return;
       // Only provider output transcripts prove that these words were spoken.
       mediation.offered(turn.inputId);
-      this.#dependencies.appendCommentary(summary, turn.delegationId);
+      if (this.#dependencies.appendCommentary(summary, turn.delegationId)) {
+        this.#lastOfferedText = summary;
+      }
     } catch {
       if (!turn.preparation.signal.aborted && !this.#abort.signal.aborted) {
         this.#dependencies.notice(
