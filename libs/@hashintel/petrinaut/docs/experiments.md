@@ -235,9 +235,8 @@ When any experiment is **initializing** or **running**, the top bar shows an **A
 The popover hides itself again once nothing is in flight.
 
 On the Petrinaut website, a prepared Brunch draft is not active work: it shows
-**1** beside the **Simulate** mode label instead of appearing in this popover.
-That draft badge disappears as soon as you choose **Run**, when the ordinary
-active indicator takes over.
+only in chat, without a **Simulate** badge or an entry in this popover.
+Choose **Run** to start execution; the ordinary active indicator then appears.
 
 ## Experiments and single-run Play
 

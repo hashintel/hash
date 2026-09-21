@@ -273,11 +273,9 @@ model sections for review and requires confirmation before running.
 
 A later proposal replaces the earlier draft in that editor. Drafts are not
 saved with the document and must be drafted again after a reload or reopening
-the editor. While the current prepared draft waits, the **Simulate** mode
-button shows a small **1** badge; hover or focus it to read **1 draft
-experiment**. Selecting the badge is the same as selecting **Simulate**.
-Dismiss or run the draft and the badge disappears. A started run uses the
-normal **1 active** indicator instead; when it completes, that indicator
+the editor. A prepared draft stays in chat without a **Simulate** badge or
+active indicator. Choosing **Run** starts execution and uses the normal
+**1 active** indicator; when it completes, that indicator
 disappears and the result remains under **Simulate → Experiments**.
 
 ## Read-only behaviour

@@ -40,7 +40,6 @@ import {
   brunchPetrinautDynamicToolNames,
 } from "./brunch-client-tools";
 import {
-  BrunchDraftExperimentIndicator,
   BrunchDraftExperimentWidget,
   resetBrunchDraftExperimentSession,
 } from "./brunch-draft-experiment-interactive-tool";
@@ -478,9 +477,6 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
               },
             ),
           }}
-          slots={{
-            simulateModeIndicator: <BrunchDraftExperimentIndicator />,
-          }}
         />
       </PetrinautOptimizationContext>
     </UserSettingsProvider>,
@@ -524,15 +520,13 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
       "Drafted — not run · not saved with the document",
     ),
   );
-  const simulateWithDraft = await screen.findByRole<HTMLInputElement>("radio", {
-    name: /Simulate.*1/u,
+  const simulate = screen.getByRole<HTMLInputElement>("radio", {
+    name: "Simulate",
   });
-  const draftBadge = simulateWithDraft
-    .closest("label")
-    ?.querySelector<HTMLElement>("[data-draft-experiment-indicator]");
-  expect(draftBadge).not.toBeNull();
-  fireEvent.click(draftBadge!);
-  await waitFor(() => expect(simulateWithDraft.checked).toBe(true));
+  expect(simulate.checked).toBe(false);
+  expect(
+    document.querySelector("[data-draft-experiment-indicator]"),
+  ).toBeNull();
   expect(card.textContent).toContain("Vary agents 2–8 under Peak demand");
   expect(card.textContent).toContain("minimize Average waiting time");
   expect(card.textContent).toContain("No caller waits more than ten minutes.");
@@ -572,13 +566,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   await act(async () => {
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
   });
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("radio", {
-        name: /Simulate.*1/u,
-      }),
-    ).toBeNull(),
-  );
+  expect(simulate.checked).toBe(false);
   await screen.findByRole("button", {
     name: "Show 1 active Monte Carlo simulations",
   });
@@ -592,9 +580,7 @@ test("a streamed experiment draft stays idle until Run, then uses the stock host
   expect(
     screen.queryByRole("button", { name: /active Monte Carlo simulation/u }),
   ).toBeNull();
-  expect(
-    screen.queryByRole("radio", {
-      name: /Simulate.*1/u,
-    }),
-  ).toBeNull();
+  expect(screen.getByRole("radio", { name: "Simulate" })).toBe(simulate);
+  expect(simulate.checked).toBe(false);
+  expect(send).toHaveBeenCalledTimes(2);
 }, 30_000);

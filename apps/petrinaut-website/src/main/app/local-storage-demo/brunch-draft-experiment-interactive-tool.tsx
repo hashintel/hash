@@ -39,8 +39,6 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
-export { BrunchDraftExperimentIndicator } from "./brunch-draft-experiment-interactive-tool/simulate-mode-indicator";
-
 const containerStyle = css({
   display: "flex",
   flexDirection: "column",
