@@ -3,10 +3,7 @@
 use hashql_core::id::Id;
 
 use super::super::{TrainError, TrainOptions, TrainerInputs};
-use crate::salt::{
-    projector::verdict::{PlacementClass, ResolvedVerdict},
-    relation::attraction::{AttractionGroup, AttractionIndex},
-};
+use crate::salt::relation::attraction::AttractionIndex;
 
 /// Validates the corpus row domain and the boundary's structural admissibility.
 ///
@@ -57,7 +54,11 @@ where
         return Err(TrainError::UnbaselinedRadius);
     }
 
-    if force.proximal && !reviewed_proximal_force(inputs.attraction, inputs.verdicts) {
+    if force.proximal
+        && !inputs
+            .attraction
+            .has_resolved_proximal_verdict(inputs.verdicts)
+    {
         return Err(TrainError::MissingProximalReviews);
     }
 
@@ -83,7 +84,7 @@ impl ForceClasses {
             coincident: false,
         };
 
-        for group in index.groups().iter().filter(|group| exerts_force(group)) {
+        for group in index.groups().iter().filter(|group| group.exerts_force()) {
             let weights = group.weights();
             classes.proximal |= !weights.proximal.is_zero();
             classes.coincident |= !weights.coincident.is_zero();
@@ -91,36 +92,4 @@ impl ForceClasses {
 
         classes
     }
-}
-
-/// Returns whether any reviewed-Proximal verdict covers a group that exerts Proximal force.
-///
-/// This is the coordinate-free core of the boundary measurement: the calibration's pair weights are
-/// positive exactly on these groups' instances, and a positive measured mass exists if and only if
-/// this holds.
-fn reviewed_proximal_force<N, E>(
-    index: &AttractionIndex<N, E>,
-    verdicts: &[ResolvedVerdict],
-) -> bool {
-    verdicts
-        .iter()
-        .filter(|verdict| verdict.placement == PlacementClass::Proximal)
-        .any(|verdict| {
-            let groups = index.groups();
-            groups
-                .binary_search_by_key(&verdict.relation.as_u64(), |group| {
-                    group.relation().as_u64()
-                })
-                .is_ok_and(|position| {
-                    let group = &groups[position];
-                    exerts_force(group) && !group.weights().proximal.is_zero()
-                })
-        })
-}
-
-/// Returns whether a group can exert any force.
-///
-/// Instances exist and the strength multiplier passes them through.
-const fn exerts_force<N, E>(group: &AttractionGroup<N, E>) -> bool {
-    !group.edges().is_empty() && !group.weights().strength.is_zero()
 }

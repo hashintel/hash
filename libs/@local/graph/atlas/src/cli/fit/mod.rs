@@ -18,6 +18,7 @@ use crate::{
     },
     progress::{NoProgress, Progress},
     salt::{
+        fit::VacuousProjectorPlacement,
         knn::recall::RecallAdmission,
         runner::operator::{ClassifierSource, Options, Placement, Summary, live, offline},
     },
@@ -112,10 +113,28 @@ pub struct FitArgs {
 
     /// Train the full placement with the relation evidence withheld.
     ///
-    /// No reviewed verdicts or radius needed, every other objective term trains. The unblocking
-    /// flag for corpora without reviewed-Proximal coverage.
-    #[arg(long, conflicts_with = "baseline")]
+    /// Off by default. Every other objective term trains, without requiring reviewed verdicts or a
+    /// relation radius. Published relation artifacts retain the corpus's evidence.
+    #[arg(
+        long,
+        conflicts_with = "baseline",
+        conflicts_with = "vacuous_placement_fallback"
+    )]
     vacuous_placement: bool,
+
+    /// Disable relation attraction only when reviewed Proximal coverage is absent.
+    ///
+    /// Off by default. Coverage requires a resolved Proximal verdict for an attraction group with
+    /// retained edges, positive strength and positive Proximal weight. Selects the objective
+    /// before training and propagates failures from that objective.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_VACUOUS_PLACEMENT_FALLBACK",
+        conflicts_with = "baseline",
+        conflicts_with = "vacuous_placement",
+        default_value_t = false
+    )]
+    vacuous_placement_fallback: bool,
 
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
@@ -443,7 +462,13 @@ impl FitCommand<NoProgress> {
         } else {
             Placement::Projector {
                 steps: args.projector_steps,
-                vacuous: args.vacuous_placement,
+                vacuous: if args.vacuous_placement {
+                    Some(VacuousProjectorPlacement::Force)
+                } else if args.vacuous_placement_fallback {
+                    Some(VacuousProjectorPlacement::Fallback)
+                } else {
+                    None
+                },
             }
         };
 
