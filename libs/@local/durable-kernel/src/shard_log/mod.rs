@@ -7,6 +7,7 @@
 //! [`ShardCommandHandle`] serializes submissions and applies each record after it is durable.
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
+use alloc::sync::Arc;
 use core::{num::NonZeroU64, ops::Bound, time::Duration};
 use std::path::PathBuf;
 
@@ -25,7 +26,7 @@ use opendata_log::{
 
 use crate::{
     DurableError,
-    registry::{DurableRecord, UntrimmedJournalRecord, require_interned},
+    registry::{DurableRecord, RecordRegistry, UntrimmedJournalRecord},
     routing::Shard,
 };
 
@@ -98,11 +99,15 @@ pub enum ShardLogOpenError {
 }
 
 #[derive(Debug, Clone)]
+/// A journal's storage configuration and shared record registry.
+///
+/// Share one registry across locations that must agree on record names and codecs.
 pub struct ShardLogLocation {
     shard: crate::routing::Shard,
     source: LogSource,
     read_timeout: Duration,
     durability_timeout: Duration,
+    registry: Arc<RecordRegistry>,
 }
 
 /// Selects object storage or an in-memory test journal.
@@ -151,12 +156,14 @@ impl ShardLogLocation {
         storage: StorageConfig,
         read_timeout: Duration,
         durability_timeout: Duration,
+        registry: Arc<RecordRegistry>,
     ) -> Self {
         Self {
             shard,
             source: LogSource::Storage(storage),
             read_timeout,
             durability_timeout,
+            registry,
         }
     }
 
@@ -167,10 +174,12 @@ impl ShardLogLocation {
     pub const fn simulated(
         shard: crate::routing::Shard,
         journal: crate::sim::SimLogHandle,
+        registry: Arc<RecordRegistry>,
     ) -> Self {
         Self {
             shard,
             source: LogSource::Sim(journal),
+            registry,
             read_timeout: DURABILITY_TIMEOUT,
             durability_timeout: DURABILITY_TIMEOUT,
         }
@@ -185,12 +194,14 @@ impl ShardLogLocation {
         shard: crate::routing::Shard,
         log_path: &str,
         options: &LogStorageOptions,
+        registry: Arc<RecordRegistry>,
     ) -> Result<Self, Report<StorageConfigError>> {
         Ok(Self {
             shard,
             read_timeout: DURABILITY_TIMEOUT,
             durability_timeout: DURABILITY_TIMEOUT,
             source: LogSource::Storage(storage_for_path(options, log_path)?),
+            registry,
         })
     }
 
@@ -200,6 +211,7 @@ impl ShardLogLocation {
         shard: crate::routing::Shard,
         log_path: &str,
         object_store_root: &std::path::Path,
+        registry: Arc<RecordRegistry>,
     ) -> Self {
         use opendata_common::storage::config::{
             LocalObjectStoreConfig, ObjectStoreConfig, SlateDbStorageConfig,
@@ -207,6 +219,7 @@ impl ShardLogLocation {
 
         Self {
             shard,
+            registry,
             read_timeout: DURABILITY_TIMEOUT,
             durability_timeout: DURABILITY_TIMEOUT,
             source: LogSource::Storage(StorageConfig::SlateDb(SlateDbStorageConfig {
@@ -312,6 +325,11 @@ pub fn storage_for_path(
 pub async fn read_journal<T: UntrimmedJournalRecord>(
     location: &ShardLogLocation,
 ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+    location
+        .registry
+        .register(T::declaration())
+        .change_context(DurableError)
+        .attach("register journal record declaration")?;
     #[cfg(any(test, feature = "test-util"))]
     if let LogSource::Sim(journal) = &location.source {
         return decode_sim_entries(journal.durable_entries(crate::sim::SimKey::Events));
@@ -353,6 +371,7 @@ impl ShardLogLocation {
 struct ShardLogWriter {
     backend: WriterBackend,
     durability_timeout: Duration,
+    registry: Arc<RecordRegistry>,
 }
 
 enum WriterBackend {
@@ -403,6 +422,7 @@ impl ShardLogWriter {
             return Ok(Self {
                 backend: WriterBackend::Sim(journal.open_writer()),
                 durability_timeout,
+                registry: Arc::clone(&location.registry),
             });
         }
         let storage = location
@@ -432,6 +452,7 @@ impl ShardLogWriter {
         Ok(Self {
             backend: WriterBackend::Real(log),
             durability_timeout,
+            registry: Arc::clone(&location.registry),
         })
     }
 
@@ -458,6 +479,10 @@ impl ShardLogWriter {
         through_log_sequence: Option<u64>,
         durable_end_exclusive: u64,
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+        self.registry
+            .register(T::declaration())
+            .change_context(DurableError)
+            .attach("register journal record declaration")?;
         let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
         match &self.backend {
             WriterBackend::Real(log) => scan_records(log, range.bounds, Some(range.window)).await,
@@ -475,6 +500,10 @@ impl ShardLogWriter {
         durable_end_exclusive: u64,
     ) -> Result<Vec<(u64, Result<T, Report<crate::registry::CompatError>>)>, Report<DurableError>>
     {
+        self.registry
+            .register(T::declaration())
+            .change_context(DurableError)
+            .attach("register snapshot record declaration")?;
         match &self.backend {
             WriterBackend::Real(log) => {
                 scan_snapshot_records(
@@ -507,7 +536,8 @@ impl ShardLogWriter {
         value: &T,
         fault: AppendFault,
     ) -> Result<u64, Report<ShardAppendError>> {
-        require_interned::<T>()
+        self.registry
+            .require::<T>()
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
@@ -646,6 +676,7 @@ impl ShardLogWriter {
 #[cfg(any(test, feature = "test-util"))]
 pub struct ShardLogRecovery {
     reader: LogDbReader,
+    registry: Arc<RecordRegistry>,
 }
 
 #[cfg(any(test, feature = "test-util"))]
@@ -656,6 +687,7 @@ impl ShardLogRecovery {
     pub async fn open(location: &ShardLogLocation) -> Result<Self, Report<ShardLogOpenError>> {
         Ok(Self {
             reader: location.open_reader().await?,
+            registry: Arc::clone(&location.registry),
         })
     }
 
@@ -665,6 +697,10 @@ impl ShardLogRecovery {
     pub async fn scan<T: UntrimmedJournalRecord>(
         &self,
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+        self.registry
+            .register(T::declaration())
+            .change_context(DurableError)
+            .attach("register journal record declaration")?;
         scan_records(&self.reader, (Bound::Unbounded, Bound::Unbounded), None).await
     }
 
@@ -676,6 +712,10 @@ impl ShardLogRecovery {
         through_log_sequence: Option<u64>,
         durable_end_exclusive: u64,
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
+        self.registry
+            .register(T::declaration())
+            .change_context(DurableError)
+            .attach("register journal record declaration")?;
         let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
         scan_records(&self.reader, range.bounds, Some(range.window)).await
     }
@@ -736,9 +776,6 @@ where
     T: UntrimmedJournalRecord,
     R: LogRead + Sync,
 {
-    crate::registry::intern_declaration(*T::declaration())
-        .change_context(DurableError)
-        .attach("intern shard recovery record declaration")?;
     let mut iterator = reader
         .scan(Bytes::from_static(EVENTS_KEY), range)
         .await
@@ -789,9 +826,6 @@ where
     T: DurableRecord,
     R: LogRead + Sync,
 {
-    crate::registry::intern_declaration(*T::declaration())
-        .change_context(DurableError)
-        .attach("intern projection-snapshot record declaration")?;
     let mut iterator = reader
         .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
         .await
@@ -938,11 +972,13 @@ impl RawShardLog {
         &self,
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
-        crate::registry::intern_declaration(*T::declaration())
+        self.0
+            .registry
+            .register(T::declaration())
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
-            .attach("intern raw-append declaration")?;
+            .attach("register raw-append declaration")?;
         self.0.append(value).await
     }
 
@@ -953,11 +989,13 @@ impl RawShardLog {
         &self,
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
-        crate::registry::intern_declaration(*T::declaration())
+        self.0
+            .registry
+            .register(T::declaration())
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
-            .attach("intern raw-append declaration")?;
+            .attach("register raw-append declaration")?;
         self.0
             .append_registered(PROJECTION_SNAPSHOTS_KEY, value, AppendFault::None)
             .await
@@ -977,6 +1015,7 @@ impl RawShardLog {
 }
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
     use core::time::Duration;
 
     use error_stack::{Report, ResultExt as _};
@@ -990,8 +1029,8 @@ mod tests {
     };
     use crate::{
         registry::{
-            CompatError, DurableRecord, MigrationPolicy, RecordDeclaration, UntrimmedJournalRecord,
-            VersionedRecord, intern_declaration,
+            CompatError, DurableRecord, MigrationPolicy, RecordDeclaration, RecordRegistry,
+            UntrimmedJournalRecord, VersionedRecord,
         },
         routing::{Shard, shard_path},
     };
@@ -1035,8 +1074,8 @@ mod tests {
     impl DurableRecord for TestRecord {
         const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
-        fn declaration() -> &'static RecordDeclaration {
-            &TEST_RECORD_DECLARATION
+        fn declaration() -> RecordDeclaration {
+            TEST_RECORD_DECLARATION
         }
 
         fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
@@ -1078,15 +1117,20 @@ mod tests {
     struct TestPrefixCapability {
         root: TempDir,
         object_store_root: std::path::PathBuf,
+        registry: Arc<RecordRegistry>,
     }
 
     impl TestPrefixCapability {
         fn new() -> Self {
-            intern_declaration(TEST_RECORD_DECLARATION).expect("test declaration should intern");
+            let registry = Arc::new(RecordRegistry::default());
+            registry
+                .register(TEST_RECORD_DECLARATION)
+                .expect("test declaration should register");
             let root = tempfile::tempdir().expect("test object-store root should be created");
             Self {
                 object_store_root: root.path().to_path_buf(),
                 root,
+                registry,
             }
         }
 
@@ -1099,6 +1143,7 @@ mod tests {
                 shard,
                 &Self::log_path(shard),
                 &self.object_store_root,
+                Arc::clone(&self.registry),
             )
         }
 
@@ -1117,6 +1162,7 @@ mod tests {
             shard,
             &TestPrefixCapability::log_path(shard),
             &blocked,
+            Arc::clone(&capability.registry),
         );
 
         let writer_error = OpenedShard::open(location.clone())
@@ -1243,8 +1289,8 @@ mod tests {
         impl DurableRecord for UnregisteredRecord {
             const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
-            fn declaration() -> &'static RecordDeclaration {
-                &UNREGISTERED_DECLARATION
+            fn declaration() -> RecordDeclaration {
+                UNREGISTERED_DECLARATION
             }
 
             fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
@@ -1266,6 +1312,10 @@ mod tests {
 
         impl UntrimmedJournalRecord for UnregisteredRecord {}
 
+        let other_registry = RecordRegistry::default();
+        other_registry
+            .register(UnregisteredRecord::declaration())
+            .expect("the record should register in an unrelated registry");
         let capability = TestPrefixCapability::new();
         let location =
             capability.location(Shard::try_from(10).expect("test shard should be in range"));
@@ -1280,7 +1330,18 @@ mod tests {
             error.current_context().kind,
             AppendFailureKind::DefinitelyNotCommitted
         );
+        assert!(matches!(
+            error.downcast_ref::<crate::registry::DeclarationError>(),
+            Some(crate::registry::DeclarationError::Unregistered { .. })
+        ));
         writer.close().await.expect("writer should close");
+        assert!(
+            read_journal::<TestRecord>(&location)
+                .await
+                .expect("journal should be readable after rejection")
+                .is_empty(),
+            "rejected append should leave the journal empty"
+        );
     }
 
     #[tokio::test]

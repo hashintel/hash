@@ -32,6 +32,7 @@ use crate::{
     domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain, effect_id},
     ids::EffectId,
     keyspace::{Keyspace, Namespace},
+    registry::RecordRegistry,
     routing::Shard,
     shard_log::{
         LogStorageOptions, OpenedShard, ShardCommandConfig, ShardCommandError,
@@ -158,6 +159,7 @@ pub struct Kernel {
     keyspace: Keyspace,
     shards: Vec<Shard>,
     shard_capacity: NonZeroU64,
+    registry: Arc<RecordRegistry>,
 }
 
 impl Kernel {
@@ -184,6 +186,7 @@ impl Kernel {
             config,
             shards,
             shard_capacity,
+            registry: Arc::new(RecordRegistry::default()),
         })
     }
 
@@ -193,7 +196,7 @@ impl Kernel {
     ///
     /// Returns an error when the domain’s record declarations conflict with registered codecs.
     pub fn register<S: SimpleDomain>(self) -> Result<Self, Report<KernelError>> {
-        domain::register::<S>().change_context_lazy(|| {
+        domain::register::<S>(&self.registry).change_context_lazy(|| {
             KernelError::Registration("conflicting record declarations".to_owned())
         })?;
         Ok(self)
@@ -209,7 +212,7 @@ impl Kernel {
         S: SimpleDomain,
         X: Executor<S>,
     {
-        domain::register::<S>().change_context_lazy(|| {
+        domain::register::<S>(&self.registry).change_context_lazy(|| {
             KernelError::Registration("conflicting record declarations".to_owned())
         })?;
         let executor = Arc::new(executor);
@@ -231,11 +234,15 @@ impl Kernel {
         let mut feeds = Vec::new();
         for &shard in &self.shards {
             let recovered = async {
-                let location =
-                    ShardLogLocation::for_kernel(shard, &self.keyspace.shard_log(shard), &storage)
-                        .change_context_lazy(|| {
-                            KernelError::Storage("invalid storage configuration".to_owned())
-                        })?;
+                let location = ShardLogLocation::for_kernel(
+                    shard,
+                    &self.keyspace.shard_log(shard),
+                    &storage,
+                    Arc::clone(&self.registry),
+                )
+                .change_context_lazy(|| {
+                    KernelError::Storage("invalid storage configuration".to_owned())
+                })?;
                 OpenedShard::open(location)
                     .await
                     .change_context(KernelError::Command)?
@@ -954,6 +961,38 @@ mod tests {
     async fn kernel_end_to_end_executes_effects_once_and_recovers() {
         let blob = tempfile::tempdir().expect("blob root tempdir should be created");
         exercise_end_to_end(&format!("file://{}", blob.path().display())).await;
+    }
+
+    #[tokio::test]
+    async fn registry_lives_until_running_kernel_shuts_down() {
+        let blob = tempfile::tempdir().expect("blob root should be created");
+        let partition = PartitionKey::parse("orders").expect("partition should parse");
+        let kernel = Kernel::open(config(
+            &format!("file://{}", blob.path().display()),
+            domain::shard_of(&partition).get(),
+        ))
+        .expect("kernel should open");
+        let registry = Arc::downgrade(&kernel.registry);
+        let running = kernel
+            .start(ArchiveExecutor {
+                threshold: 10,
+                external: Arc::new(Mutex::new(Vec::new())),
+            })
+            .await
+            .expect("kernel should start");
+        drop(kernel);
+
+        running
+            .submit(increment("orders", 1, 1))
+            .await
+            .expect("running kernel should retain its registered codec");
+        assert!(registry.upgrade().is_some());
+
+        running.shutdown().await.expect("shutdown should succeed");
+        assert!(
+            registry.upgrade().is_none(),
+            "shutdown should release the registry after its last owner is dropped"
+        );
     }
 
     #[tokio::test]

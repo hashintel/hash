@@ -20,9 +20,9 @@ use crate::{
     ids::{EffectId, EventId, JournalRecordDigest, content_digest_bytes},
     port::{Domain, Prepared},
     registry::{
-        self, AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
-        MigrationPolicy, RecordDeclaration, UntrimmedJournalRecord, VersionedRecord,
-        reject_unknown_fields,
+        AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
+        MigrationPolicy, RecordDeclaration, RecordRegistry, UntrimmedJournalRecord,
+        VersionedRecord, reject_unknown_fields,
     },
     routing::{SHARD_COUNT, Shard},
     shard_log::{ShardCommandError, ShardCommandErrorKind, ShardCommandHandle},
@@ -378,9 +378,8 @@ fn event_declaration<E: DomainEvent>() -> RecordDeclaration {
 impl<E: DomainEvent> DurableRecord for EventRecord<E> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
-    fn declaration() -> &'static RecordDeclaration {
-        registry::intern_declaration(event_declaration::<E>())
-            .unwrap_or_else(|error| panic!("hosted event name should be usable: {error}"))
+    fn declaration() -> RecordDeclaration {
+        event_declaration::<E>()
     }
 
     fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
@@ -617,9 +616,8 @@ impl<S: SimpleDomain> ProjectionSnapshotPayload<S> {
 impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
-    fn declaration() -> &'static RecordDeclaration {
-        registry::intern_declaration(snapshot_declaration::<S>())
-            .unwrap_or_else(|error| panic!("hosted snapshot name should be usable: {error}"))
+    fn declaration() -> RecordDeclaration {
+        snapshot_declaration::<S>()
     }
 
     fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
@@ -698,9 +696,11 @@ impl<S> Copy for Hosted<S> {}
 ///
 /// Returns an error if a record name conflicts with an existing declaration or a declaration is
 /// invalid.
-pub fn register<S: SimpleDomain>() -> Result<(), Report<DeclarationError>> {
-    registry::intern_declaration(event_declaration::<S::Event>())?;
-    registry::intern_declaration(snapshot_declaration::<S>())?;
+pub fn register<S: SimpleDomain>(
+    registry: &RecordRegistry,
+) -> Result<(), Report<DeclarationError>> {
+    registry.register(EventRecord::<S::Event>::declaration())?;
+    registry.register(ProjectionSnapshot::<S>::declaration())?;
     Ok(())
 }
 
@@ -1076,7 +1076,8 @@ mod tests {
     use crate::{
         port::{Domain as _, Prepared},
         registry::{
-            self, CompatError, DurableRecord as _, RecordDeclaration, VersionedRecord as _,
+            self, CompatError, DurableRecord as _, RecordDeclaration, RecordRegistry,
+            VersionedRecord as _,
         },
         routing::Shard,
         shard_log::{
@@ -1462,7 +1463,11 @@ mod tests {
     async fn snapshot_timestamp_recovery() {
         let journal = SimLogHandle::new(42, Vec::new());
         let record = incremented("orders", 5);
-        let location = ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+        let location = ShardLogLocation::simulated(
+            shard_of(record.partition()),
+            journal.clone(),
+            Arc::default(),
+        );
         let (handle, started) = start(location.clone()).await;
         handle.propose(record).await.expect("event should apply");
         let snapshot = handle
@@ -1573,7 +1578,6 @@ mod tests {
 
     #[tokio::test]
     async fn record_decode_invalid_fields() {
-        register::<ToyDomain>().expect("toy name should register");
         let record = incremented("orders", 5);
         let other = incremented("payments", 6);
         for (field, value, expected_error, expected) in [
@@ -1625,6 +1629,7 @@ mod tests {
             let opened = OpenedShard::open(ShardLogLocation::simulated(
                 shard_of(record.partition()),
                 journal,
+                Arc::default(),
             ))
             .await
             .expect("shard should open");
@@ -1653,7 +1658,6 @@ mod tests {
 
     #[tokio::test]
     async fn recovery_foreign_shard() {
-        register::<ToyDomain>().expect("toy name should register");
         let record = incremented("orders", 5);
         let actual = shard_of(record.partition());
         let expected = Shard::from_u8(actual.get().wrapping_add(1));
@@ -1665,9 +1669,13 @@ mod tests {
         else {
             panic!("record should be durable before recovery");
         };
-        let opened = OpenedShard::open(ShardLogLocation::simulated(expected, journal))
-            .await
-            .expect("shard should open");
+        let opened = OpenedShard::open(ShardLogLocation::simulated(
+            expected,
+            journal,
+            Arc::default(),
+        ))
+        .await
+        .expect("shard should open");
         let error = opened
             .recover::<Toy>()
             .await
@@ -1824,11 +1832,15 @@ mod tests {
 
     #[tokio::test]
     async fn propose_read_dedupe_and_reject_through_the_real_loop() {
-        register::<ToyDomain>().expect("toy name should register");
         let root = tempfile::tempdir().expect("object store root tempdir should be created");
         let record = incremented("orders", 5);
         let shard = shard_of(&record.partition);
-        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &toy_log_path(shard),
+            root.path(),
+            Arc::default(),
+        );
 
         let (handle, started) = start(location).await;
         assert!(matches!(
@@ -1879,8 +1891,11 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(5), async {
             let journal = SimLogHandle::new(42, Vec::new());
             let record = incremented("orders", 5);
-            let location =
-                ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+            let location = ShardLogLocation::simulated(
+                shard_of(record.partition()),
+                journal.clone(),
+                Arc::default(),
+            );
             let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
                 .await
                 .expect("shard should open")
@@ -1955,8 +1970,11 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(5), async {
             let journal = SimLogHandle::new(42, Vec::new());
             let record = incremented("orders", 5);
-            let location =
-                ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+            let location = ShardLogLocation::simulated(
+                shard_of(record.partition()),
+                journal.clone(),
+                Arc::default(),
+            );
             let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
                 .await
                 .expect("shard should open")
@@ -2004,10 +2022,13 @@ mod tests {
 
     #[tokio::test]
     async fn prepared_change_append_failure() {
-        register::<ToyDomain>().expect("toy name should register");
         let journal = SimLogHandle::new(42, Vec::new());
         let first = incremented("orders", 5);
-        let location = ShardLogLocation::simulated(shard_of(first.partition()), journal.clone());
+        let location = ShardLogLocation::simulated(
+            shard_of(first.partition()),
+            journal.clone(),
+            Arc::default(),
+        );
         let recovered: RecoveredShard<Toy> = OpenedShard::open(location.clone())
             .await
             .expect("shard should open")
@@ -2089,7 +2110,6 @@ mod tests {
 
     #[tokio::test]
     async fn crash_replay_rebuilds_state_and_still_dedupes() {
-        register::<ToyDomain>().expect("toy name should register");
         let root = tempfile::tempdir().expect("object store root tempdir should be created");
         let first = incremented("orders", 5);
         let shard = shard_of(&first.partition);
@@ -2101,7 +2121,12 @@ mod tests {
 
         let after_reset = incremented("orders", 3);
 
-        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &toy_log_path(shard),
+            root.path(),
+            Arc::default(),
+        );
         let (handle, started) = start(location.clone()).await;
         for record in [
             first.clone(),
@@ -2175,7 +2200,6 @@ mod tests {
 
     #[tokio::test]
     async fn foreign_partition_is_rejected() {
-        register::<ToyDomain>().expect("toy name should register");
         let root = tempfile::tempdir().expect("object store root tempdir should be created");
         let record = incremented("orders", 5);
         let shard = shard_of(&record.partition);
@@ -2184,7 +2208,12 @@ mod tests {
             .find(|candidate| shard_of(&candidate.partition) != shard)
             .expect("some key should route elsewhere");
 
-        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &toy_log_path(shard),
+            root.path(),
+            Arc::default(),
+        );
         let (handle, started) = start(location).await;
         let error = handle
             .propose(foreign)
@@ -2206,11 +2235,15 @@ mod tests {
 
     #[tokio::test]
     async fn snapshots_bound_recovery_and_roundtrip_state() {
-        register::<ToyDomain>().expect("toy name should register");
         let root = tempfile::tempdir().expect("object store root tempdir should be created");
         let record = incremented("orders", 5);
         let shard = shard_of(&record.partition);
-        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &toy_log_path(shard),
+            root.path(),
+            Arc::default(),
+        );
 
         let (handle, started) = start(location.clone()).await;
         for event in [record.clone(), incremented("orders", 7)] {
@@ -2304,13 +2337,23 @@ mod tests {
 
     #[test]
     fn registration_conflicting_event_type() {
-        register::<ToyDomain>().expect("toy domain should register");
-        let error = registry::intern_declaration(super::event_declaration::<OtherCounterEvent>())
+        let registry = RecordRegistry::default();
+        register::<ToyDomain>(&registry).expect("toy domain should register");
+        let error = registry
+            .register(EventRecord::<OtherCounterEvent>::declaration())
             .expect_err("another event type with the same name should be rejected");
         assert!(matches!(
             error.current_context(),
             registry::DeclarationError::ConflictingDeclaration { .. }
         ));
+
+        let independent_registry = RecordRegistry::default();
+        independent_registry
+            .register(EventRecord::<OtherCounterEvent>::declaration())
+            .expect("another registry should allow its own codec for the name");
+        registry
+            .require::<EventRecord<CounterEvent>>()
+            .expect("the original registry should retain its codec");
     }
 
     async fn snapshot_failure(
@@ -2322,7 +2365,11 @@ mod tests {
     ) {
         let journal = crate::sim::SimLogHandle::new(42, Vec::new());
         let record = incremented("orders", 5);
-        let location = ShardLogLocation::simulated(shard_of(&record.partition), journal.clone());
+        let location = ShardLogLocation::simulated(
+            shard_of(&record.partition),
+            journal.clone(),
+            Arc::default(),
+        );
         let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
             .await
             .expect("shard should open")
@@ -2408,7 +2455,7 @@ mod tests {
                 .expect("task should join")
                 .expect_err("uncertain event should be terminal");
 
-            let location = ShardLogLocation::simulated(shard, journal);
+            let location = ShardLogLocation::simulated(shard, journal, Arc::default());
             let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
                 .await
                 .expect("shard should reopen")
@@ -2456,11 +2503,15 @@ mod tests {
 
     #[tokio::test]
     async fn snapshot_failed_attempt_interval() {
-        register::<ToyDomain>().expect("toy domain should register");
         let root = tempfile::tempdir().expect("object store root should be created");
         let record = incremented("orders", 5);
         let shard = shard_of(&record.partition);
-        let location = ShardLogLocation::disposable_local(shard, &toy_log_path(shard), root.path());
+        let location = ShardLogLocation::disposable_local(
+            shard,
+            &toy_log_path(shard),
+            root.path(),
+            Arc::default(),
+        );
         let (handle, started) = start(location).await;
         handle
             .propose(record)
@@ -2524,14 +2575,16 @@ mod tests {
 
     #[test]
     fn dynamic_registration_is_idempotent_and_collision_safe() {
-        register::<ToyDomain>().expect("first registration should succeed");
-        register::<ToyDomain>().expect("repeat registration should be idempotent");
+        let registry = RecordRegistry::default();
+        register::<ToyDomain>(&registry).expect("first registration should succeed");
+        register::<ToyDomain>(&registry).expect("repeat registration should be idempotent");
         let conflicting = RecordDeclaration {
             emitted_version: 2,
             supported_versions: &[1, 2],
-            ..*EventRecord::<CounterEvent>::declaration()
+            ..EventRecord::<CounterEvent>::declaration()
         };
-        let error = registry::intern_declaration(conflicting)
+        let error = registry
+            .register(conflicting)
             .expect_err("conflicting declaration should be rejected");
         assert!(matches!(
             error.current_context(),
