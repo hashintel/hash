@@ -1,0 +1,53 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph-authentication",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:integration": {
+      "command": [
+        "cargo",
+        "nextest",
+        "run",
+        "--all-features",
+        "--filterset",
+        "kind(test)"
+      ]
+    },
+    "test:unit": {
+      "command": [
+        "mise",
+        "run",
+        "test:unit",
+        "@rust/hash-graph-authentication",
+        "--",
+        "--filterset",
+        "not kind(test)"
+      ]
+    }
+  }
+}

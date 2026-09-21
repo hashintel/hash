@@ -32,10 +32,15 @@
       ]
     },
     "test:unit": {
-      "dependsOn": [],
+      "dependsOn": [
+        "test:unit:doc"
+      ],
       "env": [
         "TEST_COVERAGE"
       ]
+    },
+    "test:unit:doc": {
+      "dependsOn": []
     }
   }
 }
