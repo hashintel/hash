@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 
+import type { UtteranceJudgment } from "../../../shared/live-utterance-judgment";
 import type { FlueConversationState } from "@flue/sdk";
 
 beforeEach(() => {
@@ -13,7 +14,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const setup = () => {
+const setup = (
+  judge?: ConstructorParameters<typeof LiveBrunchBridge>[0]["judge"],
+) => {
   const appendCommentary = vi.fn<
     ConstructorParameters<typeof LiveBrunchBridge>[0]["appendCommentary"]
   >(() => true);
@@ -34,6 +37,7 @@ const setup = () => {
     appendInstructions,
     notice,
     submit,
+    judge,
   });
   const update = (
     overrides: Partial<Parameters<typeof bridge.update>[0]> = {},
@@ -73,6 +77,167 @@ const started = {
   submissionId: "root",
   position: { batch: 1, index: 0 },
 };
+
+const judgmentRecords = () =>
+  vi
+    .mocked(console.debug)
+    .mock.calls.map(
+      ([line]) =>
+        JSON.parse(
+          String(line).replace("[Petrinaut Live trace] ", ""),
+        ) as Record<string, unknown>,
+    )
+    .filter((record) => record.event === "judgment.result");
+
+test("log mode does not wait for judgments or introduce new admission drops", async () => {
+  vi.stubEnv("DEV", true);
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi.fn(() => pending.promise);
+  const fixture = setup(judge);
+  await fixture.bridge.accept({ id: "one", text: "PRIVATE ONE" });
+  await fixture.bridge.accept({ id: "two", text: "PRIVATE TWO" });
+  expect(fixture.submit).toHaveBeenCalledTimes(2);
+  expect(judge).toHaveBeenCalledTimes(2);
+  expect(judgmentRecords()).toEqual([]);
+  fixture.bridge.acceptDelegation("later");
+  pending.resolve({ contribution: "social_or_backchannel", confidence: 0.93 });
+  await vi.waitFor(() => expect(judgmentRecords()).toHaveLength(2));
+  expect(judgmentRecords()).toEqual([
+    expect.objectContaining({
+      inputId: "one",
+      delegationId: null,
+      contribution: "social_or_backchannel",
+      confidence: 0.93,
+      latencyMs: expect.any(Number),
+      decision: "withhold",
+      applied: "submit",
+      mode: "log",
+    }),
+    expect.objectContaining({
+      inputId: "two",
+      delegationId: "later",
+      decision: "submit",
+      applied: "submit",
+    }),
+  ]);
+  expect(JSON.stringify(vi.mocked(console.debug).mock.calls)).not.toContain(
+    "PRIVATE",
+  );
+  expect(fixture.submit).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ id: "one", text: "PRIVATE ONE" }),
+  );
+  expect(fixture.notice).not.toHaveBeenCalledWith(
+    expect.stringContaining("not retained"),
+  );
+});
+
+test.each([
+  ["interview_content", 0.99, "submit"],
+  ["relay_request", 0.79, "submit"],
+  ["relay_request", 0.8, "withhold"],
+] as const)(
+  "logs the provisional %s decision at %s but always submits",
+  async (contribution, confidence, decision) => {
+    vi.stubEnv("DEV", true);
+    const fixture = setup(vi.fn(async () => ({ contribution, confidence })));
+    await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(judgmentRecords()).toEqual([
+      expect.objectContaining({ decision, applied: "submit" }),
+    ]);
+  },
+);
+
+test.each(["null", "throw"])(
+  "judge %s cannot affect submission or leak error text",
+  async (failure) => {
+    vi.stubEnv("DEV", true);
+    const fixture = setup(
+      vi.fn(async () => {
+        if (failure === "throw") throw new Error("PRIVATE ERROR");
+        return null;
+      }),
+    );
+    await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+    expect(fixture.submit).toHaveBeenCalledOnce();
+    expect(judgmentRecords()).toEqual([
+      expect.objectContaining({
+        judgment: false,
+        contribution: null,
+        confidence: null,
+        decision: "submit",
+        applied: "submit",
+      }),
+    ]);
+    expect(JSON.stringify(vi.mocked(console.debug).mock.calls)).not.toContain(
+      "PRIVATE",
+    );
+  },
+);
+
+test("judges only eligible inputs, once per input id", async () => {
+  const judge = vi.fn(async () => null);
+  const fixture = setup(judge);
+  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+  await fixture.bridge.accept({ id: "empty", text: " " });
+  await fixture.bridge.accept({ id: "oversize", text: "x".repeat(32_001) });
+  fixture.update({ canAcceptVoiceInput: false });
+  await fixture.bridge.accept({ id: "unavailable", text: "PRIVATE" });
+  expect(judge).toHaveBeenCalledOnce();
+});
+
+test.each([true, false])(
+  "uses only successfully offered Brunch context (accepted=%s)",
+  async (accepted) => {
+    const judge = vi.fn(async () => null);
+    const fixture = setup(judge);
+    fixture.appendCommentary.mockReturnValue(accepted);
+    await fixture.bridge.accept({ id: "one", text: "PRIVATE FIRST" });
+    fixture.bridge.responseStarted(started);
+    fixture.bridge.responseCompleted({
+      ...started,
+      position: { batch: 2, index: 0 },
+    });
+    fixture.update({
+      segments: [segment("PRIVATE RELAY")],
+      settlements: completed,
+    });
+    expect(fixture.appendCommentary).toHaveBeenCalledWith(
+      "PRIVATE RELAY",
+      null,
+    );
+    await fixture.bridge.accept({ id: "two", text: "PRIVATE SECOND" });
+    expect(judge).toHaveBeenLastCalledWith(
+      {
+        transcript: "PRIVATE SECOND",
+        relayedBrunchText: accepted ? "PRIVATE RELAY" : null,
+      },
+      expect.any(AbortSignal),
+    );
+  },
+);
+
+test("stop aborts an outstanding judgment without resubmission", async () => {
+  vi.stubEnv("DEV", true);
+  const pending = Promise.withResolvers<UtteranceJudgment | null>();
+  const judge = vi.fn(() => pending.promise);
+  const fixture = setup(judge);
+  await fixture.bridge.accept({ id: "one", text: "PRIVATE" });
+  fixture.bridge.stop();
+  expect(judge).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ aborted: true }),
+  );
+  pending.resolve(null);
+  await vi.waitFor(() => expect(judgmentRecords()).toHaveLength(1));
+  expect(judgmentRecords()[0]).toMatchObject({
+    afterStop: true,
+    judgment: false,
+  });
+  expect(fixture.submit).toHaveBeenCalledOnce();
+});
 
 test("trace distinguishes ungated admission, later delegation matching, settlement and dropped speech", async () => {
   vi.stubEnv("DEV", true);
