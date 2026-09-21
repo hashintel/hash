@@ -6,6 +6,7 @@ import {
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
 /**
  * The one catalog of tools the browser answers on Brunch's behalf. The panel
@@ -25,6 +26,21 @@ export const batchedConstructionClientToolNames: ReadonlySet<string> = new Set([
   mutatePetrinautNetToolName,
   layoutPetrinautNetToolName,
   draftPetrinautExperimentToolName,
+]);
+
+/** Literal stock catalogue handled by Petrinaut's existing static panel tools. */
+export const canonicalPetrinautClientToolNames: ReadonlySet<string> = new Set(
+  Object.keys(petrinautAiTools),
+);
+
+/**
+ * Compatibility catalogue for the canonical tracer. Existing conversations
+ * can still contain Brunch's custom construction tools, while new canonical
+ * calls remain static and execute through Petrinaut's stock handlers.
+ */
+export const canonicalParityClientToolNames: ReadonlySet<string> = new Set([
+  ...batchedConstructionClientToolNames,
+  ...canonicalPetrinautClientToolNames,
 ]);
 
 /**

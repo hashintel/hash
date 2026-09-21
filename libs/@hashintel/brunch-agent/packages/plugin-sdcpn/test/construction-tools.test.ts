@@ -3,12 +3,15 @@ import { describe, expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
+import { CANONICAL_PETRINAUT_TOOLS_MODE } from "../src";
 import {
   batchedConstructionMode,
   sdcpnInitialDataSchema,
   VALIDATED_CONSTRUCTION_MODE,
 } from "../src/flue";
 import {
+  CANONICAL_PETRINAUT_TOOL_NAMES,
+  canonicalPetrinautTools,
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautConstructionTools,
 } from "../src/tools/petrinaut-construction";
@@ -23,7 +26,7 @@ const toolByName = (toolName: string) => {
 };
 
 describe("Petrinaut construction tools", () => {
-  test("accepts only the headless runbook and bound batched construction modes", () => {
+  test("requires bindings only for browser construction modes", () => {
     expect(v.parse(sdcpnInitialDataSchema, undefined)).toBeUndefined();
     expect(
       v.parse(sdcpnInitialDataSchema, {
@@ -37,6 +40,17 @@ describe("Petrinaut construction tools", () => {
         incarnationId: "incarnation",
       },
     };
+    expect(
+      v.parse(sdcpnInitialDataSchema, {
+        mode: CANONICAL_PETRINAUT_TOOLS_MODE,
+        construction,
+      }),
+    ).toEqual({ mode: CANONICAL_PETRINAUT_TOOLS_MODE, construction });
+    expect(() =>
+      v.parse(sdcpnInitialDataSchema, {
+        mode: CANONICAL_PETRINAUT_TOOLS_MODE,
+      }),
+    ).toThrow(/distinct immutable binding/u);
     expect(
       v.parse(sdcpnInitialDataSchema, {
         mode: batchedConstructionMode,
@@ -57,6 +71,27 @@ describe("Petrinaut construction tools", () => {
     expect(() =>
       v.parse(sdcpnInitialDataSchema, { mode: "unrestricted-construction" }),
     ).toThrow(/Invalid type/u);
+  });
+
+  test("mounts the terminating stock catalogue with its canonical schemas", () => {
+    expect(CANONICAL_PETRINAUT_TOOL_NAMES).toEqual(
+      Object.keys(petrinautAiTools),
+    );
+    expect(canonicalPetrinautTools.map(({ name }) => name)).toEqual(
+      Object.keys(petrinautAiTools),
+    );
+    for (const toolName of CANONICAL_PETRINAUT_TOOL_NAMES) {
+      const canonicalTool = canonicalPetrinautTools.find(
+        (candidate) => candidate.name === toolName,
+      );
+      expect(canonicalTool?.description).toBe(
+        petrinautAiTools[toolName].description,
+      );
+      expect(canonicalTool?.input).toBe(petrinautAiTools[toolName].inputSchema);
+      expect(canonicalTool?.run({} as never)).toMatchObject({
+        terminate: true,
+      });
+    }
   });
 
   test("mechanically carries the canonical input contract", () => {

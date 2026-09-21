@@ -1,6 +1,7 @@
 import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -443,6 +444,79 @@ test("returns a fixture-scoped mutation result through the same Flue client", as
         },
       ]),
       attributes: { toolCallIds: "add-arc-1" },
+    },
+    signal: undefined,
+  });
+});
+
+test("returns multiple canonical stock-tool results in one correlated continuation", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-canonical",
+    submissionId: "submission-canonical",
+    uid: "uid-canonical",
+  };
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {});
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send, wait } as Pick<
+      FlueClient,
+      "send" | "wait"
+    > as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { clientToolNames: canonicalPetrinautClientToolNames },
+  );
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: "assistant-canonical",
+    messages: [
+      {
+        id: "assistant-canonical",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-getNetCompilationErrors",
+            toolCallId: "diagnostics-1",
+            state: "output-available",
+            input: {},
+            output: "No current TypeScript diagnostics.",
+          },
+          {
+            type: "tool-readPetrinautDoc",
+            toolCallId: "docs-1",
+            state: "output-available",
+            input: { doc: "drawing-a-net" },
+            output: "Drawing a net documentation.",
+          },
+        ],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  await stream.pipeTo(new WritableStream());
+
+  expect(send).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey:
+      "ai-sdk:client-tools:assistant-canonical:diagnostics-1,docs-1",
+    message: {
+      kind: "signal",
+      type: "client-tool-result",
+      tagName: "client-tool-result",
+      body: JSON.stringify([
+        {
+          toolCallId: "diagnostics-1",
+          toolName: "getNetCompilationErrors",
+          output: "No current TypeScript diagnostics.",
+        },
+        {
+          toolCallId: "docs-1",
+          toolName: "readPetrinautDoc",
+          output: "Drawing a net documentation.",
+        },
+      ]),
+      attributes: { toolCallIds: "diagnostics-1,docs-1" },
     },
     signal: undefined,
   });

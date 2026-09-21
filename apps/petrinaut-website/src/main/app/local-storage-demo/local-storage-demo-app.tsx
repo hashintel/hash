@@ -20,7 +20,7 @@ import {
   type RefObject,
 } from "react";
 
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { CANONICAL_PETRINAUT_TOOLS_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -75,8 +75,8 @@ import {
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
 import {
-  batchedConstructionClientToolNames,
   brunchPetrinautDynamicToolNames,
+  canonicalParityClientToolNames,
 } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { createBrunchDraftExperimentInteractiveTool } from "./brunch-draft-experiment-interactive-tool";
@@ -424,7 +424,7 @@ export const LocalStorageDemoApp = ({
     { enabled: !remoteRouteSelected },
   );
   const productConstructionSelected = brunchSelected;
-  const batchedConstructionSelected = productConstructionSelected;
+  const canonicalConstructionSelected = productConstructionSelected;
   const selectLocalRoute = useCallback(
     () =>
       onSearchChange(
@@ -676,8 +676,8 @@ export const LocalStorageDemoApp = ({
         : undefined,
     [constructionBrowser, activeHandle, reportBrunchFailure],
   );
-  const constructionClientTools = batchedConstructionSelected
-    ? batchedConstructionClientToolNames
+  const constructionClientTools = canonicalConstructionSelected
+    ? canonicalParityClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
@@ -732,7 +732,7 @@ export const LocalStorageDemoApp = ({
           ...(productConstructionSelected && constructionBrowser
             ? {
                 initialData: {
-                  mode: batchedConstructionMode,
+                  mode: CANONICAL_PETRINAUT_TOOLS_MODE,
                   construction: { binding: constructionBrowser.binding },
                 },
               }
@@ -827,7 +827,7 @@ export const LocalStorageDemoApp = ({
           ? []
           : createBrunchPetrinautTools({
               readTitle: () => currentNetTitle,
-              ...(batchedConstructionSelected && constructionBrowser
+              ...(canonicalConstructionSelected && constructionBrowser
                 ? {
                     mutation: {
                       binding: constructionBrowser.binding,
@@ -864,7 +864,7 @@ export const LocalStorageDemoApp = ({
               }),
             ],
       transport: petrinautAiChatTransport,
-      ...(mutationRecorder === undefined
+      ...(mutationRecorder === undefined || canonicalConstructionSelected
         ? {}
         : { executeMutation: mutationRecorder.executeMutation }),
       ...(flueClientPromise === null
@@ -916,7 +916,7 @@ export const LocalStorageDemoApp = ({
     aiMessagesByNetId,
     brunchSelected,
     brunchVoiceMode,
-    batchedConstructionSelected,
+    canonicalConstructionSelected,
     observedLiveHash,
     constructionBrowser,
     conversationTracker,

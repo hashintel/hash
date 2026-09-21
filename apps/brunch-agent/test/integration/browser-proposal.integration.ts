@@ -1,5 +1,4 @@
-/** Scoped built-mount admission: mixed-validity browser calls cannot continue before client results. */
-/* eslint-disable no-await-in-loop -- One synthetic queue; proposal/result order is the boundary under test. */
+/** Built-mount proof: a multi-call browser proposal continues once after one correlated result signal. */
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,7 +12,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { createFlueClient } from "@flue/sdk";
 
-import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { CANONICAL_PETRINAUT_TOOLS_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../../src/conversation/client-tools.ts";
 import {
@@ -24,7 +23,7 @@ import { installFauxProvider } from "../../src/evaluations/install-faux-provider
 import { createHeadlessPetrinautClient } from "../../src/evaluations/runbook/headless-petrinaut-client.ts";
 import { loadBuiltBrunchApplication } from "../../src/evaluations/runbook/load-built-application.ts";
 
-const directory = mkdtempSync(join(tmpdir(), "single-browser-proposal-"));
+const directory = mkdtempSync(join(tmpdir(), "multi-browser-proposal-"));
 process.env.NODE_ENV = "test";
 process.env.HASH_OTLP_ENDPOINT = "";
 process.env.OTEL_SDK_DISABLED = "true";
@@ -44,132 +43,113 @@ const clientFor = (name: string) => {
     principalKey: "TEST-browser-proposal",
     conversationId: `${name}-${crypto.randomUUID()}`,
   };
-  return createFlueClient({
-    url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
-    headers: agentOwnershipHeaders(identity),
-    fetch: async (input, init) =>
-      application.fetch(
-        input instanceof Request ? input : new Request(input, init),
-      ),
-  });
+  return {
+    client: createFlueClient({
+      url: `http://brunch.local/agents/chat/${flueConversationIdFrom(identity)}`,
+      headers: agentOwnershipHeaders(identity),
+      fetch: async (input, init) =>
+        application.fetch(
+          input instanceof Request ? input : new Request(input, init),
+        ),
+    }),
+    identity,
+  };
 };
 const observations: unknown[] = [];
 try {
-  for (const reverse of [false, true]) {
-    const client = clientFor(`mixed-validity-${reverse}`);
-    const calls = [
-      fauxToolCall("getLatestNetDefinition", {}, { id: "pending-read" }),
-      fauxToolCall(
-        "addType",
-        { id: "invalid-type" },
-        { id: "invalid-mutation" },
-      ),
-    ];
-    if (reverse) calls.reverse();
-    faux.setResponses([
-      fauxAssistantMessage(calls, { stopReason: "toolUse" }),
-      fauxAssistantMessage([
-        fauxText("MUST_NOT_CONTINUE_WITHOUT_CLIENT_RESULT"),
-      ]),
-    ]);
-    const start = faux.state.callCount;
-    let failure: unknown;
-    try {
-      await client.wait(
-        await client.send({
-          initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
-          message: {
-            kind: "user",
-            body: "TEST mixed-validity browser-only proposal; no client result will be sent.",
-          },
-        }),
-      );
-    } catch (error) {
-      failure = error;
-    }
-    const history = await client.history();
-    observations.push({
-      reverse,
-      failure: String(failure),
-      providerCalls: faux.state.callCount - start,
-      history,
-    });
-    writeFileSync(
-      join(directory, "observations.json"),
-      JSON.stringify(observations, null, 2),
-    );
-    assert.match(String(failure), /Multiple browser calls/);
-    assert.equal(faux.state.callCount - start, 1);
-    assert(
-      !history.messages.some((message) =>
-        message.parts.some((part) => part.type === "dynamic-tool"),
-      ),
-    );
-    assert(
-      !JSON.stringify(history).includes(
-        "MUST_NOT_CONTINUE_WITHOUT_CLIENT_RESULT",
-      ),
-    );
-    assert(
-      !history.messages.some(
-        (message) => message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
-      ),
-    );
-  }
-  const client = clientFor("single-browser");
-  const start = faux.state.callCount;
+  const { client, identity } = clientFor("multi-browser");
+  const toolCallIds = ["first-read", "second-read"] as const;
   faux.setResponses([
     fauxAssistantMessage(
-      [fauxToolCall("getLatestNetDefinition", {}, { id: "single-read" })],
+      toolCallIds.map((id) =>
+        fauxToolCall("getLatestNetDefinition", {}, { id }),
+      ),
       { stopReason: "toolUse" },
     ),
+    fauxAssistantMessage([fauxText("BOTH_CORRELATED_RESULTS_RECEIVED")]),
   ]);
+  const start = faux.state.callCount;
   await client.wait(
     await client.send({
-      initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+      initialData: {
+        mode: CANONICAL_PETRINAUT_TOOLS_MODE,
+        construction: {
+          binding: {
+            conversationId: identity.conversationId,
+            documentId: "multi-browser-document",
+            incarnationId: "multi-browser-incarnation",
+          },
+        },
+      },
       message: {
         kind: "user",
-        body: "TEST one browser read, then its correlated result.",
+        body: "TEST two browser reads, then one signal carrying both correlated results.",
       },
     }),
   );
+
   assert.equal(faux.state.callCount - start, 1);
-  const history = await client.history();
-  const pending = history.messages
+  const pendingHistory = await client.history();
+  const pending = pendingHistory.messages
     .flatMap((message) => message.parts)
-    .find(
+    .filter(
       (part) =>
-        part.type === "dynamic-tool" && part.toolCallId === "single-read",
+        part.type === "dynamic-tool" &&
+        toolCallIds.includes(part.toolCallId as (typeof toolCallIds)[number]),
     );
-  assert(pending?.type === "dynamic-tool");
-  assert.deepEqual(pending.output, { awaiting: "client" });
-  const host = createHeadlessPetrinautClient("single-browser-control");
+  assert.equal(pending.length, 2);
+  for (const part of pending) {
+    assert(part.type === "dynamic-tool");
+    assert.deepEqual(part.output, { awaiting: "client" });
+  }
+  assert(
+    !JSON.stringify(pendingHistory).includes(
+      "BOTH_CORRELATED_RESULTS_RECEIVED",
+    ),
+  );
+
+  const host = createHeadlessPetrinautClient("multi-browser-control");
   try {
-    const result = await host.execute({
-      toolName: "getLatestNetDefinition",
-      toolCallId: "single-read",
-      input: {},
-    });
-    faux.setResponses([
-      fauxAssistantMessage([fauxText("CORRELATED_RESULT_RECEIVED")]),
-    ]);
+    const results = await Promise.all(
+      toolCallIds.map((toolCallId) =>
+        host.execute({
+          toolName: "getLatestNetDefinition",
+          toolCallId,
+          input: {},
+        }),
+      ),
+    );
     await client.wait(
       await client.send({
         message: {
           kind: "signal",
           type: CLIENT_TOOL_RESULT_SIGNAL,
           tagName: CLIENT_TOOL_RESULT_SIGNAL,
-          body: JSON.stringify([result]),
+          body: JSON.stringify(results),
         },
       }),
     );
     assert.equal(faux.state.callCount - start, 2);
+    const continuedHistory = await client.history();
     assert(
-      JSON.stringify(await client.history()).includes(
-        "CORRELATED_RESULT_RECEIVED",
+      JSON.stringify(continuedHistory).includes(
+        "BOTH_CORRELATED_RESULTS_RECEIVED",
       ),
     );
-    observations.push({ singleBrowserContinuation: true });
+    assert.equal(
+      continuedHistory.messages.filter(
+        (message) => message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
+      ).length,
+      1,
+    );
+    observations.push({
+      pendingToolCallIds: pending.map((part) =>
+        part.type === "dynamic-tool" ? part.toolCallId : undefined,
+      ),
+      resultToolCallIds: results.map((result) => result.toolCallId),
+      providerCalls: faux.state.callCount - start,
+      clientResultSignals: 1,
+    });
   } finally {
     host.dispose();
   }
@@ -177,7 +157,7 @@ try {
     join(directory, "observations.json"),
     JSON.stringify(observations, null, 2),
   );
-  process.stdout.write(`SINGLE_BROWSER_PROPOSAL_PASS ${directory}\n`);
+  process.stdout.write(`MULTI_BROWSER_PROPOSAL_PASS ${directory}\n`);
 } finally {
   await application.stop();
 }

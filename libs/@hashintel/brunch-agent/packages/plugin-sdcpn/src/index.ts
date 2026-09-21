@@ -48,6 +48,7 @@ export {
   type ObservedArcMutationName,
   type RootArcWhyInput,
 } from "./root-arc";
+export { CANONICAL_PETRINAUT_TOOLS_MODE } from "./construction-mode";
 export {
   isLayoutPetrinautNetToolName,
   isReadPetrinautDocsToolName,
