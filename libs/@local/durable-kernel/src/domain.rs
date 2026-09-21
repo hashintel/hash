@@ -467,18 +467,17 @@ pub enum FoldError<R> {
     ConflictingReuse {
         event_id: EventId,
     },
-    Invalid {
-        message: String,
+    InvalidRecord(Report<CompatError>),
+    NonIncreasingSequence {
+        previous: u64,
+        proposed: u64,
     },
 }
 
 impl<R: fmt::Display> fmt::Display for FoldError<R> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Rejected {
-                event_id,
-                rejection,
-            } => write!(formatter, "event {event_id} was rejected: {rejection}"),
+            Self::Rejected { event_id, .. } => write!(formatter, "event {event_id} was rejected"),
             Self::ForeignShard {
                 event_id,
                 partition,
@@ -492,18 +491,30 @@ impl<R: fmt::Display> fmt::Display for FoldError<R> {
                     "event ID {event_id} was reused with different content"
                 )
             }
-            Self::Invalid { message } => formatter.write_str(message),
+            Self::InvalidRecord(_) => formatter.write_str("event record is invalid"),
+            Self::NonIncreasingSequence { previous, proposed } => write!(
+                formatter,
+                "shard sequence {proposed} does not advance {previous}"
+            ),
         }
     }
 }
 
-impl<R: Error> Error for FoldError<R> {}
+impl<R: Error + 'static> Error for FoldError<R> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Rejected { rejection, .. } => Some(rejection.as_error()),
+            Self::InvalidRecord(error) => Some(error.as_error()),
+            Self::ForeignShard { .. }
+            | Self::ConflictingReuse { .. }
+            | Self::NonIncreasingSequence { .. } => None,
+        }
+    }
+}
 
 impl<R> From<Report<CompatError>> for FoldError<R> {
     fn from(error: Report<CompatError>) -> Self {
-        Self::Invalid {
-            message: format!("{error:#}"),
-        }
+        Self::InvalidRecord(error)
     }
 }
 
@@ -768,15 +779,12 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
             digest,
             change,
         } = delta;
-        if projection
-            .through_log_sequence
-            .is_some_and(|through| shard_sequence <= through)
+        if let Some(previous) = projection.through_log_sequence
+            && shard_sequence <= previous
         {
-            return Err(FoldError::Invalid {
-                message: format!(
-                    "shard sequence {shard_sequence} does not advance {:?}",
-                    projection.through_log_sequence
-                ),
+            return Err(FoldError::NonIncreasingSequence {
+                previous,
+                proposed: shard_sequence,
             });
         }
         projection.seen.insert(event_id, digest);
@@ -805,7 +813,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     fn inspect_control(
         _projection: &Self::Projection,
         _request: &Never,
-    ) -> Result<Never, ShardCommandError> {
+    ) -> Result<Never, Report<ShardCommandError>> {
         unreachable!("hosted domains have no control requests")
     }
 
@@ -975,7 +983,7 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
     /// # Errors
     ///
     /// Returns an error if the loop closes or the read result has an unexpected type.
-    pub async fn read<R, F>(&self, read: F) -> Result<R, ShardCommandError>
+    pub async fn read<R, F>(&self, read: F) -> Result<R, Report<ShardCommandError>>
     where
         R: Send + 'static,
         F: for<'a> FnOnce(&'a KernelProjection<S::Projection>) -> R + Send + 'static,
@@ -988,17 +996,19 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
         result
             .downcast::<R>()
             .map(|value| *value)
-            .map_err(|_value| ShardCommandError {
-                kind: ShardCommandErrorKind::Recovery,
-                message: "read closure returned an unexpected type".to_owned(),
+            .map_err(|_value| {
+                Report::new(ShardCommandError {
+                    kind: ShardCommandErrorKind::Recovery,
+                    message: "read closure returned an unexpected type".to_owned(),
+                })
             })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use alloc::collections::BTreeMap;
-    use core::num::NonZeroUsize;
+    use alloc::{collections::BTreeMap, sync::Arc};
+    use core::{num::NonZeroUsize, time::Duration};
 
     use chrono::{DateTime, Utc};
     use error_stack::Report;
@@ -1018,8 +1028,9 @@ mod tests {
         },
         routing::Shard,
         shard_log::{
-            OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandErrorKind,
-            ShardCommandOutcome, ShardLogLocation, StartedShard,
+            AppendFailureKind, OpenedShard, RecoveredShard, ShardAppendError, ShardCommandConfig,
+            ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation, StartedShard,
+            TestHarness, TestHold,
         },
         sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
     };
@@ -1628,7 +1639,9 @@ mod tests {
         let error = Toy::prepare(&projection, &rejected)
             .err()
             .expect("validation should reject");
-        assert!(error.to_string().contains("increment must be nonzero"));
+        assert!(
+            matches!(error, FoldError::Rejected { rejection, .. } if matches!(rejection.current_context(), CounterRejection::ZeroIncrement))
+        );
     }
 
     #[test]
@@ -1741,6 +1754,82 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn terminal_failure_reports() {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let journal = SimLogHandle::new(42, Vec::new());
+            let record = incremented("orders", 5);
+            let location =
+                ShardLogLocation::simulated(shard_of(record.partition()), journal.clone());
+            let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+                .await
+                .expect("shard should open")
+                .recover()
+                .await
+                .expect("shard should recover");
+            let hold = TestHold::armed();
+            let started = recovered.enable_with_harness(
+                ShardCommandConfig::new(NonZeroUsize::MIN, 0),
+                TestHarness {
+                    before_append: Some(Arc::clone(&hold)),
+                    ..TestHarness::default()
+                },
+            );
+            journal.force_outcomes([SimAppendOutcome::Fenced]);
+            let handle = started.handle.clone();
+            let active = tokio::spawn(async move { handle.propose(record).await });
+            hold.entered().notified().await;
+            let handle = started.handle.clone();
+            let queued =
+                tokio::spawn(async move { handle.propose(incremented("orders", 7)).await });
+            while started.handle.queue_capacity() != 0 {
+                tokio::task::yield_now().await;
+            }
+            hold.release().notify_one();
+
+            let failure = active
+                .await
+                .expect("active proposal should join")
+                .expect_err("injected append should fail");
+            assert_eq!(
+                failure.current_context().kind,
+                ShardCommandErrorKind::Fenced
+            );
+            assert_eq!(
+                failure
+                    .downcast_ref::<ShardAppendError>()
+                    .expect("active proposal should retain its append failure")
+                    .kind,
+                AppendFailureKind::Fenced
+            );
+            assert!(
+                format!("{failure:?}").contains("simulated newer writer epoch"),
+                "active proposal should retain the storage attachment"
+            );
+
+            let stopped = queued
+                .await
+                .expect("queued proposal should join")
+                .expect_err("queued proposal should stop");
+            assert_eq!(
+                stopped.current_context().kind,
+                ShardCommandErrorKind::Fenced
+            );
+            assert!(
+                format!("{stopped:?}").contains("command was queued"),
+                "queued proposal should report that it was not executed"
+            );
+            let terminal = started
+                .task
+                .await
+                .expect("loop task should join")
+                .expect_err("fencing should stop the loop");
+            assert_eq!(terminal.kind, ShardCommandErrorKind::Fenced);
+        })
+        .await
+        .expect("terminal failure should release active and queued callers");
+    }
+
+    #[tokio::test]
     async fn prepared_change_append_failure() {
         register::<ToyDomain>().expect("toy name should register");
         let journal = SimLogHandle::new(42, Vec::new());
@@ -1765,7 +1854,10 @@ mod tests {
             .propose(retry.clone())
             .await
             .expect_err("the injected append failure should be returned");
-        assert_eq!(error.kind, ShardCommandErrorKind::DefinitelyNotCommitted);
+        assert_eq!(
+            error.current_context().kind,
+            ShardCommandErrorKind::DefinitelyNotCommitted
+        );
         let after_failure = handle
             .read(|projection| projection.domain().clone())
             .await
@@ -2051,7 +2143,7 @@ mod tests {
     ) -> (
         crate::sim::SimLogHandle,
         StartedShard<Toy>,
-        crate::shard_log::ShardCommandError,
+        Report<crate::shard_log::ShardCommandError>,
     ) {
         let journal = crate::sim::SimLogHandle::new(42, Vec::new());
         let record = incremented("orders", 5);
@@ -2094,7 +2186,10 @@ mod tests {
             SimAppendOutcome::CommitUnknownLost,
         ] {
             let (journal, started, error) = snapshot_failure(outcome).await;
-            assert_eq!(error.kind, ShardCommandErrorKind::CommitUnknown);
+            assert_eq!(
+                error.current_context().kind,
+                ShardCommandErrorKind::CommitUnknown
+            );
             let next = incremented("orders", 7);
             let shard = shard_of(&next.partition);
             assert!(matches!(
@@ -2117,7 +2212,21 @@ mod tests {
                 .propose(incremented("orders", 9))
                 .await
                 .expect_err("uncertain event commit should still stop the shard");
-            assert_eq!(error.kind, ShardCommandErrorKind::CommitUnknown);
+            assert_eq!(
+                error.current_context().kind,
+                ShardCommandErrorKind::CommitUnknown
+            );
+            assert_eq!(
+                error
+                    .downcast_ref::<ShardAppendError>()
+                    .expect("recovery failure should retain the uncertain append")
+                    .kind,
+                AppendFailureKind::CommitUnknown
+            );
+            assert!(
+                format!("{error:?}").contains("acquiring a new lease"),
+                "report should retain the recovery condition"
+            );
             started
                 .task
                 .await
@@ -2155,13 +2264,19 @@ mod tests {
     #[tokio::test]
     async fn snapshot_fenced_stops_shard() {
         let (_, started, error) = snapshot_failure(crate::sim::SimAppendOutcome::Fenced).await;
-        assert_eq!(error.kind, crate::shard_log::ShardCommandErrorKind::Fenced);
-        let error = started
+        assert_eq!(
+            error.current_context().kind,
+            crate::shard_log::ShardCommandErrorKind::Fenced
+        );
+        let terminal = started
             .task
             .await
             .expect("task should join")
             .expect_err("fencing should stop the shard");
-        assert_eq!(error.kind, crate::shard_log::ShardCommandErrorKind::Fenced);
+        assert_eq!(
+            terminal.kind,
+            crate::shard_log::ShardCommandErrorKind::Fenced
+        );
     }
 
     #[tokio::test]
@@ -2186,10 +2301,24 @@ mod tests {
             .totals
             .insert("x".repeat(MAX_SNAPSHOT_BYTES), 0);
         let snapshot = payload.into_record(Utc::now());
-        handle
+        let error = handle
             .commit_snapshot(snapshot)
             .await
             .expect_err("oversized snapshot should fail");
+        assert_eq!(
+            error.current_context().kind,
+            ShardCommandErrorKind::InvalidCandidate
+        );
+        assert!(
+            matches!(
+                error.downcast_ref::<CompatError>(),
+                Some(CompatError::TooLarge {
+                    max_bytes: MAX_SNAPSHOT_BYTES,
+                    ..
+                })
+            ),
+            "snapshot failure should retain the size error"
+        );
         assert!(
             handle
                 .capture_snapshot(1)
