@@ -3,6 +3,7 @@
 //! Every fixture is a set of adapter input rows. Assertions inspect the assembled contents or, for
 //! the rendering test, the fully rendered card text byte-for-byte.
 
+use alloc::borrow::Cow;
 use std::collections::HashSet;
 
 use super::{EndpointAssociation, ExampleRow, TypeFacts, TypePhrase, build_contents};
@@ -630,6 +631,6 @@ fn assembled_contents_render_the_canonical_card() {
             "Slug: owns\n",
         )
     );
-    assert!(card.truncations().is_empty());
+    assert_eq!(card.truncations(), [] as [Cow<'static, str>; 0]);
     assert!(!card.severely_truncated());
 }

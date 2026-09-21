@@ -76,17 +76,17 @@ where
 /// ([`probe_rng`]), the same draw the admission probe makes. A probe over the same rows with the
 /// same seed and counts asks for the same nodes. All-nodes coverage requests every row.
 ///
-/// # Panics
-///
-/// With overflow checking enabled, panics if the sum of the anchor and comparison counts exceeds
-/// `usize::MAX`, including when `all_canonicals` is true. Without checking, the sum wraps. Coverage
-/// selection computes this sum before testing `all_canonicals`.
+/// Budgets covering the corpus request every canonical embedding, including when their sum exceeds
+/// usize.
 fn canonical_request(
     options: &DumpOptions<'_>,
     node_ids: IdVec<NodeRowId, ArchivedEntityId>,
 ) -> (CanonicalCoverage, Vec<ArchivedEntityId>) {
     let rows = node_ids.len();
-    let sample = options.anchors.get() + options.comparisons.get();
+    let sample = options
+        .anchors
+        .get()
+        .saturating_add(options.comparisons.get());
 
     if options.all_canonicals || sample >= rows {
         return (CanonicalCoverage::All, node_ids.into_raw());

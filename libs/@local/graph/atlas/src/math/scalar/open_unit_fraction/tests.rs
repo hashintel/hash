@@ -1,9 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are the point: single-element identities, asymptotes over \
-              exactly-representable values, and round-trip narrowing are exact contracts"
-)]
-
 use crate::math::{OpenUnitFraction, UnitFraction};
 
 /// The open complement widens to the closed type at both ends of its range.

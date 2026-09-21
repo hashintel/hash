@@ -10,12 +10,25 @@
 )]
 
 pub(crate) mod epoch;
+mod feed;
 mod history;
 mod id;
 mod importance;
 pub(crate) mod layout;
 pub(crate) mod overlay;
+pub(crate) mod placement;
+mod projector;
+mod task;
 pub(crate) mod topology;
+
+pub(crate) use self::{
+    feed::DeltaFeedTaskOptions,
+    placement::{DeltaPlacementTaskOptions, EmbeddingWorkflow},
+    task::{DeltaReader, DeltaTask, DeltaTaskError, DeltaTaskOptions},
+};
+
+#[cfg(test)]
+mod tests;
 
 use alloc::sync::Arc;
 
@@ -208,6 +221,7 @@ impl Delta {
             self.revision,
             entity,
         );
+
         changed |= self.edge.withdraw(
             NaiveIdentityProvider::from_ref(&self.world.topology.identity),
             self.revision,

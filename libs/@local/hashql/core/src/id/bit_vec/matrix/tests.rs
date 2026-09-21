@@ -837,7 +837,6 @@ mod sparse {
 // =============================================================================
 
 mod prop {
-    #![expect(clippy::min_ident_chars)]
     use test_strategy::proptest;
 
     use super::*;

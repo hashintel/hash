@@ -5,7 +5,6 @@
 #![feature(
     // Language Features
     marker_trait_attr,
-    never_type,
 )]
 
 use harpc_types::{

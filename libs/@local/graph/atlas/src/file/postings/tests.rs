@@ -284,11 +284,11 @@ fn empty_domain_reopens() {
     assert_eq!(file.points(), 0);
     assert_eq!(file.flags().count(), 0);
     assert_eq!(file.list_posts().len(), 1);
-    assert!(file.list_entries().is_empty());
+    assert_eq!(file.list_entries(), []);
     assert_eq!(file.parent_posts().len(), 1);
-    assert!(file.parent_ids().is_empty());
+    assert_eq!(file.parent_ids(), []);
     assert_eq!(file.direct_posts().len(), 1);
-    assert!(file.direct_ids().is_empty());
+    assert_eq!(file.direct_ids(), []);
 }
 
 #[test]

@@ -9,6 +9,7 @@ use super::EffectiveConfidence;
 use crate::{
     identity::OntologyRowId,
     math::{NonNegative, PositiveUnitFraction},
+    salt::projector::verdict::{PlacementClass, ResolvedVerdict},
 };
 
 /// Shared class scaling and attraction-pruning settings of one generation.
@@ -39,6 +40,7 @@ impl AttractionOptions {
     ///
     /// Both values must be finite and non-negative. The defaults are `κ_C = 0` and `η_F = 0`,
     /// disabling Coincident weighting and attraction pruning.
+    #[cfg(any(test, feature = "bench"))]
     #[must_use]
     pub(crate) const fn new(
         coincident_coefficient: NonNegative,
@@ -158,6 +160,18 @@ impl<N, E> AttractionGroup<N, E> {
     pub(crate) const fn edges(&self) -> &[AttractionEdge<N, E>] {
         self.edges.as_slice()
     }
+
+    /// Returns whether the group has retained edges and positive strength.
+    ///
+    /// Individual class weights and edge confidences may still be zero.
+    pub(crate) const fn exerts_force(&self) -> bool {
+        !self.edges().is_empty() && !self.weights().strength.is_zero()
+    }
+
+    /// Returns whether retained edges have positive strength and Proximal weight.
+    const fn exerts_proximal_force(&self) -> bool {
+        self.exerts_force() && !self.weights().proximal.is_zero()
+    }
 }
 
 /// Retained link instances of one generation, grouped by relation type.
@@ -199,5 +213,21 @@ impl<N, E> AttractionIndex<N, E> {
     #[must_use]
     pub(crate) fn edge_count(&self) -> usize {
         self.groups.iter().map(|group| group.edges.len()).sum()
+    }
+
+    /// Returns whether a reviewed Proximal verdict covers a group with Proximal force.
+    ///
+    /// The verdict's relation must have retained edges, positive strength and positive Proximal
+    /// weight. Edge confidence does not affect this structural check. Calibration measures the
+    /// radius separately and may fail even when this check returns true.
+    pub(crate) fn has_resolved_proximal_verdict(&self, verdicts: &[ResolvedVerdict]) -> bool {
+        verdicts
+            .iter()
+            .filter(|verdict| verdict.placement == PlacementClass::Proximal)
+            .any(|verdict| {
+                self.groups
+                    .binary_search_by_key(&verdict.relation, AttractionGroup::relation)
+                    .is_ok_and(|position| self.groups[position].exerts_proximal_force())
+            })
     }
 }

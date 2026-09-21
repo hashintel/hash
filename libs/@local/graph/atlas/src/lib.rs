@@ -4,7 +4,7 @@
 //! connect). Each fit distills the map into a small encoder that places new entities on the
 //! existing map without refitting.
 //!
-//! For the HTTP request and response contracts, start with `api`. The graph binary serves the
+//! For the HTTP request and response contracts, start with [`api`]. The graph binary serves the
 //! interactive API reference at `/v1/atlas/openapi`.
 //!
 //! This HTTP sketch requires a running deployment with a published generation and valid actor
@@ -48,12 +48,12 @@
 //! - [`salt`] - the pipeline that runs graph construction, landmark layout, projector training,
 //!   evaluation, and materialization. `salt::runner::operator` holds the entry points the `cli`
 //!   commands drive, over the live store and over a dump directory.
-//! - `serve` - the serving read surface: opened generations answering tile reads as wire bytes.
+//! - [`serve`] - the serving read surface: opened generations answering tile reads as wire bytes.
 //!
 //! # Using the crate
 //!
 //! Use [`cli`] for the operator commands that fit a generation over the live store and serve the
-//! active one through the graph binary. The Rust items behind the `api` router are crate-internal
+//! active one through the graph binary. The Rust items behind the [`api`] router are crate-internal
 //! by design.
 //!
 //! # Crate features
@@ -69,6 +69,9 @@
 //!   commands and the read-API routes build unconditionally. The `hash-graph` binary consumes them
 //!   feature-free.
 //!
+//! - `test-utils` exposes integration-test scenarios over private transfer machinery. It is off by
+//!   default. Enable it to build the `generation_transfer` integration target.
+//!
 //! # Performance
 //!
 //! Generation maintenance maps and validates serving artifacts before publication. Requests reuse
@@ -79,11 +82,12 @@
 //!
 //! Serving and fitting never combine implicitly.
 //!
-//! `cli::ServeCommand` never fits a generation. Its maintenance task opens published artifacts
+//! [`cli::ServeCommand`] never fits a generation. Its maintenance task opens published artifacts
 //! and retries failures. The current-generation endpoint answers 503 before initial publication.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![recursion_limit = "256"]
 #![feature(
     // Language Features
     async_fn_traits,
@@ -93,11 +97,11 @@
     f128,
     impl_restriction,
     macro_metavar_expr_concat,
-    never_type,
     macro_metavar_expr,
 
     // Library Features
     allocator_api,
+    alloc_io,
     arc_is_unique,
     clone_from_ref,
     clone_to_uninit,
@@ -112,6 +116,7 @@
     const_option_ops,
     const_result_trait_fn,
     const_try,
+    core_io,
     exact_size_is_empty,
     file_buffered,
     generic_atomic,
@@ -128,6 +133,7 @@
     ptr_metadata,
     slice_shift,
     step_trait,
+    str_copy_from_str,
     sync_nonpoison,
     time_saturating_systemtime,
     unboxed_closures,
@@ -136,29 +142,20 @@
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]
+#![cfg_attr(feature = "test-utils", feature(async_fn_track_caller))]
 #![expect(
     unsafe_code,
     clippy::float_arithmetic,
     clippy::future_not_send,
     clippy::indexing_slicing
 )]
-// TODO(BE-850): remove once all changes have landed
-#![allow(
-    unused_crate_dependencies,
-    unused_features,
-    unused_macros,
-    dead_code,
-    unreachable_pub,
-    unused_imports,
-    rustdoc::broken_intra_doc_links
+#![cfg_attr(
+    not(feature = "cli"),
+    allow(
+        dead_code,
+        reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
+    )
 )]
-// #![cfg_attr(
-//     not(feature = "cli"),
-//     allow(
-//         dead_code,
-//         reason = "TODO(BE-804): the CLI is consolidated into one cohesive module"
-//     )
-// )]
 #![allow(
     rustdoc::private_intra_doc_links,
     reason = "the crate is largely internal, for a user it makes more sense to read the full \
@@ -168,6 +165,7 @@
 extern crate alloc;
 
 mod allocator;
+pub(crate) mod api;
 #[cfg(feature = "bench")]
 pub mod bench;
 pub(crate) mod bitset;
@@ -185,8 +183,6 @@ pub(crate) mod progress;
 pub(crate) mod random;
 pub(crate) mod runs;
 pub(crate) mod salt;
-#[expect(
-    dead_code,
-    reason = "the read API that consumes the serving layer lands above this PR in the stack"
-)]
 pub(crate) mod serve;
+#[cfg(feature = "test-utils")]
+pub mod test_utils;

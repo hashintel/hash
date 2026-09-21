@@ -1,3 +1,8 @@
+#![expect(
+    unreachable_code,
+    reason = "the libp2p derive emits unreachable conversions for infallible sub-behaviours"
+)]
+
 use libp2p::{Swarm, identify, ping, swarm::NetworkBehaviour};
 use libp2p_stream as stream;
 

@@ -1,9 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "fixtures pin representable arithmetic, copied factors, and equal results from the \
-              same ordered floating-point operations"
-)]
-
 use core::assert_matches;
 
 use hashql_core::id::Id as _;

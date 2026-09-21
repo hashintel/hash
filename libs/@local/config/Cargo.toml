@@ -11,19 +11,23 @@ version.workspace = true
 error-stack = { workspace = true, public = true, features = ["std"] }
 
 # Public third-party dependencies
+schemars   = { workspace = true, public = true }
 serde_core = { workspace = true, public = true }
+
+# Private workspace dependencies
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display"] }
 figment        = { workspace = true }
+serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 toml           = { workspace = true, features = ["parse", "serde", "std"] }
 
 [dev-dependencies]
 figment    = { workspace = true, features = ["test"] }
-insta      = { workspace = true, features = ["filters"] }
+insta      = { workspace = true, features = ["filters", "json"] }
+jsonschema = { workspace = true }
 serde      = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 
 [[example]]
 doc-scrape-examples = true

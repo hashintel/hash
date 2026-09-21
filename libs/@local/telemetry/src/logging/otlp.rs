@@ -70,10 +70,6 @@ pub(crate) fn provider(
 }
 
 #[must_use]
-#[expect(
-    clippy::min_ident_chars,
-    reason = "False positive for a generic argument"
-)]
 pub(crate) fn layer<S>(provider: &SdkLoggerProvider) -> impl Layer<S> + use<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,

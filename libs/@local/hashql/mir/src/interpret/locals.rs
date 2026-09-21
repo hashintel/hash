@@ -10,7 +10,7 @@
 
 use alloc::{borrow::Cow, rc::Rc};
 use core::{
-    alloc::Allocator,
+    alloc::{Allocator, AllocatorClone},
     mem::{self, MaybeUninit},
 };
 
@@ -143,7 +143,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         scratch: &mut Scratch<'heap, A>,
     ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         place
             .projections
@@ -194,7 +194,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         operand: &Operand<'heap>,
     ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         match operand {
             Operand::Place(place) => self.place(place).map(Cow::Borrowed),
@@ -214,7 +214,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         operands: &[Operand<'heap>],
     ) -> Result<(), RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         struct Guard<'a, T> {
             slice: &'a mut [MaybeUninit<T>],
@@ -266,7 +266,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if operands.is_empty() {
             return Ok(Value::Unit);
@@ -301,7 +301,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if fields.len() != operands.len() {
             return Err(RuntimeError::StructFieldLengthMismatch {
@@ -340,7 +340,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Aggregate { kind, operands }: &Aggregate<'heap>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         match *kind {
             AggregateKind::Tuple => self.aggregate_tuple(operands),

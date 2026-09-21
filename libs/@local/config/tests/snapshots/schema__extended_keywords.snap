@@ -1,0 +1,47 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<ExtendedKeywords>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ExtendedKeywords",
+  "type": "object",
+  "properties": {
+    "other": {
+      "type": "integer",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0
+    },
+    "trigger": {
+      "type": "integer",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0
+    }
+  },
+  "dependentSchemas": {
+    "trigger": {
+      "properties": {
+        "dependent": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "description": "Database hostname.",
+              "type": "string"
+            },
+            "port": {
+              "description": "Database port.",
+              "type": "integer",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0
+            }
+          },
+          "unevaluatedProperties": false
+        }
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

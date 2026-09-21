@@ -9,6 +9,28 @@ mod key;
 
 struct ExtensionKey<'a, T: ?Sized>(&'a T);
 
+/// Serializes an HTTP status code between 100 and 599.
+///
+/// # Errors
+///
+/// Returns the serializer's error for an out-of-range status code or serialization failure.
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "Serde passes fields to serialize_with by reference."
+)]
+pub(crate) fn serialize_status<S: Serializer>(
+    status: &u16,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    if !(100..=599).contains(status) {
+        return Err(S::Error::custom(format_args!(
+            "problem status code {status} is outside 100..=599"
+        )));
+    }
+
+    serializer.serialize_u16(*status)
+}
+
 /// Checks extension member names while serializing an object.
 ///
 /// # Errors

@@ -1,25 +1,110 @@
 {
-  "package": "@rust/hash-repo-chores",
+  "package": "hash-repo-chores",
   "dependencies": [
-    "@rust/error-stack",
-    "@rust/hash-telemetry"
+    "error-stack",
+    "hash-telemetry"
   ],
   "tasks": {
     "analyze-benchmarks": {
       "dependsOn": [
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "build": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "env": [
+        "AR",
+        "ARFLAGS",
+        "ARFLAGS_*",
+        "AR_*",
+        "CARGO_BUILD_BUILD_DIR",
+        "CARGO_BUILD_INCREMENTAL",
+        "CARGO_BUILD_RUSTC",
+        "CARGO_BUILD_RUSTC_WORKSPACE_WRAPPER",
+        "CARGO_BUILD_RUSTC_WRAPPER",
+        "CARGO_BUILD_RUSTDOC",
+        "CARGO_BUILD_RUSTDOCFLAGS",
+        "CARGO_BUILD_RUSTFLAGS",
+        "CARGO_BUILD_TARGET",
+        "CARGO_ENCODED_RUSTDOCFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+        "CARGO_INCREMENTAL",
+        "CARGO_PROFILE_*",
+        "CARGO_PROFILE_*_DIR_NAME",
+        "CARGO_TARGET_*_*",
+        "CC",
+        "CC_*",
+        "CFLAGS",
+        "CFLAGS_*",
+        "CRATE_CC_NO_DEFAULTS",
+        "CROSS_COMPILE",
+        "CXX",
+        "CXXFLAGS",
+        "CXXFLAGS_*",
+        "CXXSTDLIB",
+        "CXXSTDLIB_*",
+        "CXX_*",
+        "HOST_AR",
+        "HOST_ARFLAGS",
+        "HOST_CC",
+        "HOST_CFLAGS",
+        "HOST_CXX",
+        "HOST_CXXFLAGS",
+        "HOST_CXXSTDLIB",
+        "HOST_NVCC",
+        "HOST_RANLIB",
+        "HOST_RANLIBFLAGS",
+        "IPHONEOS_DEPLOYMENT_TARGET",
+        "MACOSX_DEPLOYMENT_TARGET",
+        "NVCC",
+        "NVCC_*",
+        "RANLIB",
+        "RANLIBFLAGS",
+        "RANLIBFLAGS_*",
+        "RANLIB_*",
+        "RUSTC",
+        "RUSTC_BOOTSTRAP",
+        "RUSTC_WORKSPACE_WRAPPER",
+        "RUSTC_WRAPPER",
+        "RUSTDOC",
+        "RUSTDOCFLAGS",
+        "RUSTFLAGS",
+        "RUSTUP_TOOLCHAIN",
+        "SDKROOT",
+        "TARGET_AR",
+        "TARGET_ARFLAGS",
+        "TARGET_CC",
+        "TARGET_CFLAGS",
+        "TARGET_CXX",
+        "TARGET_CXXFLAGS",
+        "TARGET_CXXSTDLIB",
+        "TARGET_NVCC",
+        "TARGET_RANLIB",
+        "TARGET_RANLIBFLAGS",
+        "TVOS_DEPLOYMENT_TARGET",
+        "WASI_SDK_PATH",
+        "WASI_SYSROOT",
+        "WASM_MUSL_SYSROOT",
+        "WATCHOS_DEPLOYMENT_TARGET",
+        "XROS_DEPLOYMENT_TARGET"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "doc:dependency-diagram": {
       "dependsOn": [
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "fix:clippy": {
       "dependsOn": []
@@ -28,13 +113,19 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "upload-benchmarks": {
       "dependsOn": [
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     }
   }
 }

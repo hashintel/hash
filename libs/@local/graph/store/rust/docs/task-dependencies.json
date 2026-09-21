@@ -1,26 +1,31 @@
 {
-  "package": "@rust/hash-graph-store",
+  "package": "hash-graph-store",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-codec",
-    "@rust/hash-codegen",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-types",
-    "@rust/hash-temporal-client"
+    "error-stack",
+    "hash-codec",
+    "hash-codegen",
+    "hash-graph-authorization",
+    "hash-graph-temporal-versioning",
+    "hash-graph-types",
+    "hash-temporal-client",
+    "type-system"
   ],
   "tasks": {
     "build:types": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -30,12 +35,18 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

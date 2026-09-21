@@ -12,30 +12,30 @@
         "codegen"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "codegen": {
       "dependsOn": [
-        "@blockprotocol/type-system-rs#build:types",
-        "@blockprotocol/type-system-rs#build:wasm"
+        "type-system#build:types",
+        "type-system#build:wasm"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "fix:eslint": {
@@ -45,14 +45,14 @@
         "codegen"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "lint:eslint": {
@@ -65,14 +65,14 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "lint:tsc": {
@@ -82,14 +82,14 @@
         "codegen"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     },
     "test:unit": {
@@ -101,14 +101,14 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@blockprotocol/type-system-rs",
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen",
-        "@rust/hash-graph-temporal-versioning"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hash-graph-temporal-versioning",
+        "type-system"
       ]
     }
   }

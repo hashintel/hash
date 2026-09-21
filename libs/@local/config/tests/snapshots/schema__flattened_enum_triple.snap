@@ -1,0 +1,93 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<FlattenedEnumTriple>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlattenedEnumTriple",
+  "type": "object",
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "capacity": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "memory"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "directory": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "disk"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "Read"
+            },
+            "path": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "buffer": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "mode": {
+              "type": "string",
+              "const": "Write"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "socket": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

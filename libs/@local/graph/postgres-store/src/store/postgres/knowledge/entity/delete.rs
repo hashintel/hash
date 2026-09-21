@@ -975,22 +975,17 @@ where
                             transaction_time,
                         )
                         .await?;
-                    if entity_ids_affected != expected {
-                        return Err(Report::new(DeletionError::InconsistentEntityIds {
-                            expected,
-                            actual: entity_ids_affected,
-                        }));
-                    }
                 }
                 DeletionScope::Erase => {
                     entity_ids_affected = self.delete_entity_ids(&full_target).await?;
-                    if entity_ids_affected != expected {
-                        return Err(Report::new(DeletionError::InconsistentEntityIds {
-                            expected,
-                            actual: entity_ids_affected,
-                        }));
-                    }
                 }
+            }
+
+            if entity_ids_affected != expected {
+                return Err(Report::new(DeletionError::InconsistentEntityIds {
+                    expected,
+                    actual: entity_ids_affected,
+                }));
             }
         }
 

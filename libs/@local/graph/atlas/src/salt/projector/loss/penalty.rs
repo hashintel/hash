@@ -78,11 +78,6 @@ impl Penalty {
 
 #[cfg(test)]
 mod tests {
-    #![expect(
-        clippy::float_cmp,
-        reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
-    )]
-
     use super::Penalty;
 
     /// Both penalty variants, for tests that must apply to every variant in the family.

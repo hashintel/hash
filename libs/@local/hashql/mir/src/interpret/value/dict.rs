@@ -1,6 +1,9 @@
 //! Dictionary collection for the MIR interpreter.
 
-use core::{alloc::Allocator, cmp};
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    cmp,
+};
 
 use super::Value;
 
@@ -30,7 +33,7 @@ use super::Value;
 /// // Missing keys return None
 /// assert_eq!(dict.get(&Value::Integer(99.into())), None);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Dict<'heap, A: Allocator> {
     inner: rpds::RedBlackTreeMap<Value<'heap, A>, Value<'heap, A>>,
 }
@@ -123,10 +126,7 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     ///     Some(&Value::Integer(200.into())),
     /// );
     /// ```
-    pub fn insert(&mut self, key: Value<'heap, A>, value: Value<'heap, A>)
-    where
-        A: Clone,
-    {
+    pub fn insert(&mut self, key: Value<'heap, A>, value: Value<'heap, A>) {
         self.inner.insert_mut(key, value);
     }
 
@@ -175,7 +175,7 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     /// ```
     pub fn get_mut(&mut self, key: &Value<'heap, A>) -> &mut Value<'heap, A>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         if !self.inner.contains_key(key) {
             self.inner.insert_mut(key.clone(), Value::Unit);
@@ -207,12 +207,29 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
     ///     vec![Value::Integer(1.into()), Value::Integer(2.into())]
     /// );
     /// ```
-    #[must_use]
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = (&Value<'heap, A>, &Value<'heap, A>)> + DoubleEndedIterator
     {
         self.inner.iter()
+    }
+}
+
+impl<A> Clone for Dict<'_, A>
+where
+    A: Allocator,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { inner } = self;
+        inner.clone_from(&source.inner);
     }
 }
 

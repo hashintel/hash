@@ -14,8 +14,7 @@
         "@hashintel/petrinaut-core#build",
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
-      ],
-      "cache": false
+      ]
     },
     "dev": {
       "dependsOn": [

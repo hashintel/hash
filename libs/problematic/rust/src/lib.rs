@@ -6,9 +6,11 @@
 //!
 //! The optional `serde` feature enables serialization and deserialization. The `schemars` feature
 //! independently adds JSON Schema support to [`ProblemDetails`] and [`NoExtensions`].
-//! The `error-stack` feature enables attaching problems to reports and includes `serde`.
+//! The `error-stack` feature retrieves problems from error contexts and attachments and includes
+//! `serde`.
 
 #![feature(const_convert, const_destruct, const_trait_impl)]
+#![cfg_attr(feature = "error-stack", feature(error_generic_member_access))]
 #![cfg_attr(doc, feature(doc_cfg))]
 
 extern crate alloc;

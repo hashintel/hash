@@ -4,12 +4,6 @@
 //! assert exact contracts. The finite-difference certificates compare the gradient fields against
 //! central differences of an `f64` mirror of the estimand on scattered fixtures.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "the dyadic fixtures produce exactly representable readings, and the asserted \
-              constants are exact contracts"
-)]
-
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{

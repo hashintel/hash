@@ -9,7 +9,9 @@ use core::{
 #[cfg(test)]
 use proptest::{arbitrary::Arbitrary, num, strategy::Strategy as _};
 
-use super::{DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes};
+use super::{
+    DFinite, DPositive, Finite, Negative, NonNegative, raw_interop, unsafe_impl_try_from_bytes,
+};
 use crate::math::Derivation;
 
 #[cfg(test)]
@@ -233,6 +235,15 @@ impl Positive {
         );
 
         Self(reciprocal)
+    }
+
+    /// Computes the natural logarithm in double precision.
+    ///
+    /// Positive finite `f32` values lie in [2⁻¹⁴⁹, 2¹²⁸). Their logarithms lie in [−149 ln 2, 128
+    /// ln 2), within the finite `f64` range. Widening before taking the logarithm preserves every
+    /// input exactly. Therefore the result is finite, including for subnormal inputs.
+    pub(crate) fn ln_wide(self) -> DFinite {
+        DFinite::new_unchecked(f64::from(self.0).ln())
     }
 }
 

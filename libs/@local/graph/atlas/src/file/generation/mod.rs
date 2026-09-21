@@ -21,18 +21,29 @@ use uuid::Uuid;
 
 use crate::integrity::{ParseHexError, Sha256Digest};
 
+mod document;
+mod download;
 mod error;
+#[cfg(any(test, feature = "test-utils"))]
+mod fixture;
 mod open;
+mod remote;
 mod scratch;
 mod staging;
+#[cfg(any(test, feature = "test-utils"))]
+pub(crate) mod test_utils;
 #[cfg(test)]
 mod tests;
+mod upload;
 
 pub(crate) use self::{
+    document::GenerationDocument,
+    download::{Download, DownloadError, DownloadOptions, DownloadTask},
     error::{ActivateError, CurrentError, OpenError, RemoveError, SealError},
     open::Generation,
     scratch::ScratchDirectory,
     staging::{PublishedGeneration, StagedGeneration},
+    upload::{Promotion, PromotionOptions, Upload, UploadError},
 };
 
 /// The metadata document's file name within a generation directory.
@@ -73,7 +84,8 @@ pub(crate) struct GenerationId(Sha256Digest);
 impl GenerationId {
     /// Adopts a digest without reading a metadata document.
     #[inline]
-    #[cfg(test)] // serve's wire tests construct synthetic identities.
+    // serve's wire tests and the test-utils fixture construct synthetic identities.
+    #[cfg(any(test, feature = "test-utils"))]
     pub(crate) const fn from_digest(digest: Sha256Digest) -> Self {
         Self(digest)
     }
@@ -166,8 +178,8 @@ impl GenerationRoot {
     ///
     /// Returns an error when reading the pointer fails or its content does not name a generation.
     pub(crate) fn current(&self) -> Result<Option<GenerationId>, CurrentError> {
-        // Parsed, never mapped: the pointer is one hex line, rewritten
-        // on every activation, and hand-editable for rollback.
+        // current is a hand-editable hexadecimal pointer for rollback. It is rewritten on every
+        // activation and never mapped.
         let content = match fs::read_to_string(self.path.join(CURRENT_FILE)) {
             Ok(content) => content,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -191,13 +203,61 @@ impl GenerationRoot {
     ///
     /// Returns an error when locking the root fails, this root has not published the generation, or
     /// replacing the pointer fails.
-    #[tracing::instrument(skip_all, err, fields(generation = %id))]
+    #[tracing::instrument(skip_all, fields(generation = %id))]
     pub(crate) fn activate(&self, id: GenerationId) -> Result<(), ActivateError> {
         let _lock = self.lock()?;
         if !self.generation_path(id).is_dir() {
             return Err(ActivateError::Unpublished(id));
         }
 
+        self.activate_locked(id)?;
+        Ok(())
+    }
+
+    /// Verifies a local publication before selecting it under the root lock.
+    ///
+    /// The lock excludes cooperating removal through metadata verification, artifact hashing and
+    /// pointer replacement. An existing directory with an incomplete or corrupt publication fails
+    /// verification. Only an absent directory returns [`ActivateError::Unpublished`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ActivateError`] for a missing publication, verification failure or filesystem
+    /// failure. An error after pointer rename can leave the new generation selected.
+    ///
+    /// # Complexity
+    ///
+    /// Reads every artifact in full while excluding other root mutations.
+    #[tracing::instrument(skip_all, fields(generation = %id))]
+    pub(crate) fn activate_verified(&self, id: GenerationId) -> Result<(), ActivateError> {
+        let _lock = self.lock()?;
+        match fs::metadata(self.generation_path(id)) {
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Err(ActivateError::Unpublished(id));
+            }
+            Err(error) => return Err(error.into()),
+        }
+
+        let generation = self.open(id)?;
+        for file in generation.repository().files.files() {
+            file.verify(&generation)?;
+        }
+
+        self.activate_locked(id)?;
+        Ok(())
+    }
+
+    /// Replaces the current pointer while the caller holds the root lock.
+    ///
+    /// The caller must hold the root's exclusive mutation lock. Owns the temporary pointer file and
+    /// attempts to remove it when the replacement fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns the [`io::Error`] from [`Self::replace_pointer`]. Logs temporary-file removal
+    /// failures without replacing that error.
+    fn activate_locked(&self, id: GenerationId) -> io::Result<()> {
         let temporary = self.path.join(format!(".current-{}", Uuid::now_v7()));
 
         let result = self.replace_pointer(&temporary, id);
@@ -210,8 +270,7 @@ impl GenerationRoot {
             }
         }
 
-        result?;
-        Ok(())
+        result
     }
 
     /// Atomically replaces the current pointer and syncs it to disk.
@@ -222,7 +281,9 @@ impl GenerationRoot {
     ///
     /// # Errors
     ///
-    /// Returns the [`io::Error`] of creating, writing, syncing or renaming the pointer.
+    /// Returns the [`io::Error`] of creating, writing, syncing or renaming the pointer, or opening
+    /// and syncing the root. An error after pointer rename can leave the requested generation
+    /// selected.
     fn replace_pointer(&self, temporary: impl AsRef<Utf8Path>, id: GenerationId) -> io::Result<()> {
         let temporary = temporary.as_ref();
 
@@ -241,11 +302,11 @@ impl GenerationRoot {
     /// Activation and removal serialize through it. A removal cannot delete the generation an
     /// activation is about to name. Readers hold no lock: [`current`](Self::current) reads the
     /// pointer file and sees whichever of the two pointer versions the rename has published. The
-    /// lock releases when the returned file drops.
+    /// lock releases when the returned [`File`] drops. Retain it until the mutation finishes.
     ///
     /// # Errors
     ///
-    /// Returns the [`io::Error`] of opening or locking the lock file.
+    /// Returns the [`io::Error`] of opening or locking the persistent lock file.
     fn lock(&self) -> io::Result<File> {
         // The lock file must retain its inode across acquisitions. Removing it would let concurrent
         // opens lock different files for the same root.
@@ -255,6 +316,7 @@ impl GenerationRoot {
             .create(true)
             .truncate(false)
             .open(self.path().join(LOCK_FILE))?;
+
         file.lock()?;
         Ok(file)
     }

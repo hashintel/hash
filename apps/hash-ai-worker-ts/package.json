@@ -45,7 +45,6 @@
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "0.26.3",
     "@anthropic-ai/sdk": "0.74.0",
-    "@apps/hash-graph": "workspace:*",
     "@aws-sdk/credential-providers": "3.1055.0",
     "@blockprotocol/core": "0.1.5",
     "@blockprotocol/graph": "workspace:*",

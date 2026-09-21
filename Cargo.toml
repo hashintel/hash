@@ -54,6 +54,9 @@ members = [
 ]
 resolver = "3"
 
+[workspace.metadata]
+name = "hash"
+
 [workspace.package]
 authors = ["HASH"]
 edition = "2024"
@@ -121,9 +124,12 @@ anstyle-lossy                      = { version = "1.1.4", default-features = fal
 anstyle-svg                        = { version = "1.0.0", default-features = false }
 arc-swap                           = { version = "1.9.1", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
-aws-config                         = { version = "1.8.10" }
-aws-sdk-s3                         = { version = "1.110.0", default-features = false }
-aws-types                          = { version = "1.3.10", default-features = false }
+aws-config                         = { version = "1.12.0" }
+aws-credential-types               = { version = "1.3.0", default-features = false }
+aws-sdk-s3                         = { version = "1.146.0", default-features = false }
+aws-smithy-runtime-api             = { version = "1.16.0", default-features = false }
+aws-smithy-types                   = { version = "1.6.3", default-features = false }
+aws-types                          = { version = "1.6.0", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
 base16ct                           = { version = "1.0.0", default-features = false }
@@ -154,7 +160,6 @@ criterion-macro                    = { version = "0.4.0", default-features = fal
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
 deadpool                           = { version = "0.12.3", default-features = false }
-deadpool-postgres                  = { version = "0.14.1", default-features = false }
 derive-where                       = { version = "1.6.0", default-features = false, features = ["nightly"] }
 derive_more                        = { version = "2.0.1", default-features = false }
 dotenv-flow                        = { version = "0.16.2", default-features = false }
@@ -200,6 +205,7 @@ insta                              = { version = "1.47.2", default-features = fa
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
+jsonschema                         = { version = "0.51.0", default-features = false }
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
 kiddo                              = { version = "6.0.0" }
 lcov                               = { version = "0.8.1" }
@@ -381,9 +387,8 @@ nonstandard_style   = { level = "warn", priority = -1 }
 unreachable_pub = "warn"
 unsafe_code     = "deny"
 
-# TODO(BE-850): remove once the BE-815 stack has landed
-[workspace.lints.cargo]
-unused_dependencies = "allow"
+# TODO: Enable `cargo` lints when supported
+# [workspace.lints.cargo]
 
 [workspace.lints.clippy]
 all         = { level = "warn", priority = -1 }
@@ -427,6 +432,7 @@ unreachable                   = "allow"
 
 # Does not apply to us:
 blanket_clippy_restriction_lints = "allow"
+definition_in_module_root        = "allow"
 exhaustive_enums                 = "allow"
 exhaustive_structs               = "allow"
 implicit_return                  = "allow"
@@ -440,6 +446,7 @@ pub_with_shorthand               = "allow" # Opposite of `clippy::pub_without_sh
 question_mark_used               = "allow"
 redundant_pub_crate              = "allow" # Opposite of `unreachable_pub`
 ref_patterns                     = "allow"
+rest_pattern_accessible_field    = "allow"
 semicolon_outside_block          = "allow" # Opposite of `clippy::semicolon_inside_block`
 separated_literal_suffix         = "allow" # Opposite of `clippy::unseparated_literal_suffix`
 shadow_reuse                     = "allow"
@@ -447,8 +454,8 @@ shadow_same                      = "allow"
 unneeded_field_pattern           = "allow" # Actually, the opposite would be a great lint
 
 [patch.crates-io]
-specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
+specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 
 libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
 libp2p-allow-block-list  = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }

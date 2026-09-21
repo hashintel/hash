@@ -2419,9 +2419,9 @@ impl Relation {
                 ],
                 join_type: JoinType::LeftOuter,
             }),
-            Self::Reference {
-                table, direction, ..
-            } => ForeignKeyJoin::from_reference_table(table, direction),
+            Self::Reference { table, direction } => {
+                ForeignKeyJoin::from_reference_table(table, direction)
+            }
         }
     }
 

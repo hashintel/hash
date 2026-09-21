@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exactness assertions on power-of-two coefficients are bit-precise contracts"
-)]
-
 use hashql_core::id::IdSlice;
 use proptest::{prop_assert, prop_assume, property_test, strategy::Strategy};
 

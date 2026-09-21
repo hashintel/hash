@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
-)]
-
 use super::{StabilityBound, Support, evaluate};
 use crate::{
     math::{DNonNegative, NonNegative, OpenUnitFraction, d_non_negative, d_positive, non_negative},

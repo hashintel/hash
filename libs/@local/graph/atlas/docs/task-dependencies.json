@@ -1,35 +1,37 @@
 {
-  "package": "@rust/hash-graph-atlas",
+  "package": "hash-graph-atlas",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/darwin-kperf-criterion",
-    "@rust/darwin-kperf-events",
-    "@rust/error-stack",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-embeddings",
-    "@rust/hash-graph-postgres-store",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-types",
-    "@rust/hash-middleware",
-    "@rust/hash-temporal-client",
-    "@rust/hashql-core"
+    "darwin-kperf-criterion",
+    "darwin-kperf-events",
+    "error-stack",
+    "hash-graph-authorization",
+    "hash-graph-embeddings",
+    "hash-graph-postgres-store",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-types",
+    "hash-middleware",
+    "hash-temporal-client",
+    "hashql-core",
+    "type-system"
   ],
   "tasks": {
     "build:docker": {
       "dependsOn": [],
       "cache": false,
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores"
       ]
     },
     "fix:clippy": {
@@ -41,13 +43,25 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:miri": {
       "dependsOn": [],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:unit": {
@@ -56,7 +70,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     }
   }

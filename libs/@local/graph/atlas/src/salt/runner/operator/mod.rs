@@ -27,19 +27,22 @@ use crate::{
         postgres::PostgresDatasetError,
     },
     device::PinnedDevice,
+    file::generation::GenerationId,
     math::{AffinityCurve, positive},
     salt::{
         embedding::external::ExternalEmbeddingError,
         fit::{
             ClassifierInput, ClassifierSupplyError, FitConfig, KnnConstructionChoice,
             PlacementOptions, ProjectorOptions, SuppliedAnnotations, SuppliedVerdicts,
-            annotations::SupplyError as AnnotationSupplyError,
+            VacuousProjectorPlacement, annotations::SupplyError as AnnotationSupplyError,
             verdicts::SupplyError as VerdictSupplyError,
         },
         knn::{descent::NnDescentOptions, recall::RecallSpotCheck},
         landmark::select::SelectionOptions,
         projector::train::TrainingSchedule,
-        quality::report::{QualityThresholds, ThresholdDomainError, ThresholdOverrides},
+        quality::report::{
+            QualityReport, QualityThresholds, ThresholdDomainError, ThresholdOverrides,
+        },
     },
 };
 
@@ -85,12 +88,11 @@ pub enum Placement {
         /// `floor(steps / 2)`. This is [`None`] by default, retaining the reference 20,000-step
         /// schedule with its boundary at step 5,000.
         steps: Option<NonZero<usize>>,
-        /// Disable relation attraction in the trained placement.
+        /// Select when training omits relation attraction.
         ///
-        /// This is `false` by default. Enabling it supplies an empty attraction index while
-        /// retaining semantic, protection and landmark-support inputs. It permits trained
-        /// placement without reviewed Proximal pairs.
-        vacuous: bool,
+        /// [`None`] by default, retaining ordinary training admission. See
+        /// [`VacuousProjectorPlacement`] for unconditional and coverage-dependent selection.
+        vacuous: Option<VacuousProjectorPlacement>,
     },
 }
 
@@ -107,9 +109,9 @@ pub struct Options<P> {
     ///
     /// This is `false` by default.
     pub fresh: bool = false,
-    /// Sampled anchor rows of the admission probe, `1,024` by default.
+    /// Upper bound on sampled anchor rows of the admission probe, `1,024` by default.
     pub anchors: NonZero<usize> = DEFAULT_ANCHORS,
-    /// Sampled comparison rows of the admission probe, `4,096` by default.
+    /// Upper bound on sampled comparison rows of the admission probe, `4,096` by default.
     pub comparisons: NonZero<usize> = DEFAULT_COMPARISONS,
     /// Path of a reviewed-verdicts document to supply to the run.
     ///
@@ -124,7 +126,7 @@ pub struct Options<P> {
     /// Placement strategy, [`Placement::Projector`] with no overrides by default.
     pub placement: Placement = Placement::Projector {
         steps: None,
-        vacuous: false,
+        vacuous: None,
     },
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
@@ -136,9 +138,9 @@ pub struct Options<P> {
 
 /// Generation identity, fit statistics and admission evidence from one run.
 #[derive(Debug, Clone)]
-pub struct Summary {
+pub(crate) struct Summary {
     /// The published generation's identity, in directory-name form.
-    pub generation: String,
+    pub generation: GenerationId,
     /// Nodes the dataset streamed.
     pub nodes: u64,
     /// Edges the dataset streamed.
@@ -152,12 +154,10 @@ pub struct Summary {
     pub reused: usize,
     /// Unique card texts supplied to the embedder rather than copied from the prior.
     pub embedded: usize,
-    /// Whether every admission control had evidence within its bound.
-    pub passes: bool,
     /// Whether the run activated the generation.
     pub activated: bool,
-    /// The full admission report as pretty-printed JSON.
-    pub report: String,
+    /// The full structured admission report.
+    pub report: QualityReport,
 }
 
 /// Failure to read or validate a quality-thresholds override document.
@@ -219,12 +219,12 @@ enum RunErrorKind {
 /// the underlying failure, including runner errors whose concrete type is crate-private.
 #[derive(Debug)]
 pub struct RunError {
-    kind: RunErrorKind,
+    kind: Box<RunErrorKind>,
 }
 
 impl core::fmt::Display for RunError {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match &self.kind {
+        match &*self.kind {
             RunErrorKind::Snapshot(_) => {
                 fmt.write_str("the store could not open a snapshot transaction")
             }
@@ -253,7 +253,7 @@ impl core::fmt::Display for RunError {
 
 impl core::error::Error for RunError {
     fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
-        match &self.kind {
+        match &*self.kind {
             RunErrorKind::Snapshot(error) => Some(error),
             RunErrorKind::Dump(error) => Some(error),
             RunErrorKind::DumpEmbedder(error) => Some(error),
@@ -267,74 +267,74 @@ impl core::error::Error for RunError {
     }
 }
 
-const impl From<PostgresDatasetError> for RunError {
+impl From<PostgresDatasetError> for RunError {
     fn from(error: PostgresDatasetError) -> Self {
         Self {
-            kind: RunErrorKind::Snapshot(error),
+            kind: Box::new(RunErrorKind::Snapshot(error)),
         }
     }
 }
 
-const impl From<OpenDumpError> for RunError {
+impl From<OpenDumpError> for RunError {
     fn from(error: OpenDumpError) -> Self {
         Self {
-            kind: RunErrorKind::Dump(error),
+            kind: Box::new(RunErrorKind::Dump(error)),
         }
     }
 }
 
-const impl From<OfflineDatasetError> for RunError {
+impl From<OfflineDatasetError> for RunError {
     fn from(error: OfflineDatasetError) -> Self {
         Self {
-            kind: RunErrorKind::DumpEmbedder(error),
+            kind: Box::new(RunErrorKind::DumpEmbedder(error)),
         }
     }
 }
 
-const impl From<VerdictSupplyError> for RunError {
+impl From<VerdictSupplyError> for RunError {
     fn from(error: VerdictSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Verdicts(error),
+            kind: Box::new(RunErrorKind::Verdicts(error)),
         }
     }
 }
 
-const impl From<ThresholdSupplyError> for RunError {
+impl From<ThresholdSupplyError> for RunError {
     fn from(error: ThresholdSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Thresholds(error),
+            kind: Box::new(RunErrorKind::Thresholds(error)),
         }
     }
 }
 
-const impl From<AnnotationSupplyError> for RunError {
+impl From<AnnotationSupplyError> for RunError {
     fn from(error: AnnotationSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Annotations(error),
+            kind: Box::new(RunErrorKind::Annotations(error)),
         }
     }
 }
 
-const impl From<ClassifierSupplyError> for RunError {
+impl From<ClassifierSupplyError> for RunError {
     fn from(error: ClassifierSupplyError) -> Self {
         Self {
-            kind: RunErrorKind::Classifier(error),
+            kind: Box::new(RunErrorKind::Classifier(error)),
         }
     }
 }
 
-const impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
+impl From<RunnerError<PostgresDatasetError, ExternalEmbeddingError>> for RunError {
     fn from(error: RunnerError<PostgresDatasetError, ExternalEmbeddingError>) -> Self {
         Self {
-            kind: RunErrorKind::Run(error),
+            kind: Box::new(RunErrorKind::Run(error)),
         }
     }
 }
 
-const impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
+impl From<RunnerError<OfflineDatasetError, MissingCardText>> for RunError {
     fn from(error: RunnerError<OfflineDatasetError, MissingCardText>) -> Self {
         Self {
-            kind: RunErrorKind::OfflineRun(error),
+            kind: Box::new(RunErrorKind::OfflineRun(error)),
         }
     }
 }
@@ -472,18 +472,19 @@ fn resolve<P>(options: &Options<P>, device: PinnedDevice) -> Result<ResolvedRun,
     })
 }
 
-/// Reads one finished run's outcome into the plain-number summary.
-fn summary(outcome: &Outcome) -> Summary {
-    let metadata = &outcome.generation.repository().metadata;
-    Summary {
-        generation: outcome.generation.id().to_string(),
-        nodes: metadata.snapshot.nodes,
-        edges: metadata.snapshot.edges,
-        recall: metadata.evidence.recall,
-        reused: metadata.evidence.cards.reused,
-        embedded: metadata.evidence.cards.embedded,
-        passes: outcome.report.passes(),
-        activated: outcome.admission == Admission::Active,
-        report: serde_json::to_string_pretty(&outcome.report).expect("the report serializes"),
+impl From<Outcome> for Summary {
+    fn from(outcome: Outcome) -> Self {
+        let metadata = &outcome.generation.repository().metadata;
+
+        Self {
+            generation: outcome.generation.id(),
+            nodes: metadata.snapshot.nodes,
+            edges: metadata.snapshot.edges,
+            recall: metadata.evidence.recall,
+            reused: metadata.evidence.cards.reused,
+            embedded: metadata.evidence.cards.embedded,
+            activated: outcome.admission == Admission::Active,
+            report: outcome.report,
+        }
     }
 }

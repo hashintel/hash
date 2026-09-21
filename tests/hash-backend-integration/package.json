@@ -30,7 +30,6 @@
   },
   "devDependencies": {
     "@apps/hash-ai-worker-ts": "workspace:*",
-    "@apps/hash-graph": "workspace:*",
     "@apps/hash-integration-worker": "workspace:*",
     "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^6.2.1",

@@ -15,7 +15,7 @@ use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    rest::{
+    legacy::{
         ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
         auth::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
         entity::ClusteringContext,
@@ -696,7 +696,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             },
         },
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");

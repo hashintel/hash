@@ -1,7 +1,7 @@
 //! Offline fitting and artifact construction for atlas generations.
 //!
 //! [`fit`] builds a 2D map and its spatial indexes from a [`Dataset`](crate::dataset::Dataset),
-//! publishing artifacts in [`crate::file`]'s formats for `crate::serve`. The input must provide
+//! publishing artifacts in [`crate::file`]'s formats for [`crate::serve`]. The input must provide
 //! the consistent view required by the dataset contract. [`runner`] connects datasets and embedding
 //! providers to fitting and report generation.
 

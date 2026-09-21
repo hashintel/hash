@@ -55,7 +55,7 @@ use crate::{
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::prepare::IdentityProvider as _,
+        fit::{VacuousProjectorPlacement, prepare::IdentityProvider as _},
         knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
         ladder::{
             CanonicalError,
@@ -982,7 +982,7 @@ async fn supplied_verdicts_publish_verbatim() {
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","#,
         r#""sources":{"cards.jsonl":"2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b"},"#,
         r#""type_verdicts":[{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"}]}"#,
         "\n",
     );
     let supplied = SuppliedVerdicts::from_bytes(document.as_bytes())
@@ -1573,7 +1573,7 @@ fn proximal_link_verdicts() -> SuppliedVerdicts {
     let document = concat!(
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
         r#""type_verdicts":[{"class":"proximal","relation":"memory:employment-link","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"memory://2/v/1"}]}"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"memory://2/v/1"}]}"#,
         "\n",
     );
     SuppliedVerdicts::from_bytes(document.as_bytes()).expect("the fixture document admits")
@@ -2169,7 +2169,8 @@ async fn vacuous_placement_trains_without_reviews() {
 
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
     let mut options = projector_options();
-    options.vacuous = true;
+    options.vacuous = Some(VacuousProjectorPlacement::Force);
+
     // The vacuous flag hands the trainer an empty attraction index, and
     // admission finds no force regardless of the schedule: one step
     // certifies the same orchestration a longer run would.
@@ -2675,11 +2676,11 @@ fn store_identity_verdicts_resolve_by_reviewed_version() {
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
         r#""type_verdicts":["#,
         r#"{"class":"overlay","relation":"hash:http://localhost:3000/@linktest/types/entity-type/acquaintance/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"http://localhost:3000/@linktest/types/entity-type/acquaintance/v/1"},"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"http://localhost:3000/@linktest/types/entity-type/acquaintance/v/1"},"#,
         r#"{"class":"coincident","relation":"hash:https://hash.ai/@h/types/entity-type/arrives-at/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/arrives-at/v/1"},"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"https://hash.ai/@h/types/entity-type/arrives-at/v/1"},"#,
         r#"{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/located-at/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/located-at/v/1"}"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"https://hash.ai/@h/types/entity-type/located-at/v/1"}"#,
         r#"]}"#,
         "\n",
     );
@@ -2713,9 +2714,9 @@ fn plain_number_corpus_resolves_the_memory_scheme() {
         r#"{"pair_verdicts":[],"schema":"atlas-reviewed-verdicts/1","sources":{},"#,
         r#""type_verdicts":["#,
         r#"{"class":"proximal","relation":"hash:https://hash.ai/@h/types/entity-type/delivers/","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"},"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"https://hash.ai/@h/types/entity-type/delivers/v/3"},"#,
         r#"{"class":"proximal","relation":"memory:employment-link","#,
-        r#""reviewer":"Bilal Mahmoud","versioned_url":"memory://2/v/1"}"#,
+        r#""reviewer":"Max Mustermann","versioned_url":"memory://2/v/1"}"#,
         r#"]}"#,
         "\n",
     );

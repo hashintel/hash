@@ -1,19 +1,86 @@
-//! Public problem details attached to [`Report`] values.
+//! Public problem details from [`Report`] contexts and attachments.
 
 use alloc::boxed::Box;
+use core::error::Request;
 
-use error_stack::{IntoReport, Report};
+use error_stack::{AttachmentKind, FrameKind, IntoReport, Report};
 use serde_core::Serialize;
 
 use crate::{Problem, ProblemDetails};
+
+/// Provides a problem by reference from an [`Error::provide`] implementation.
+///
+/// The report borrows the problem from the error when [`ReportExt::problem_details`] is iterated.
+/// Its extensions are serialized when the returned [`ProblemDetails`] is serialized.
+///
+/// # Examples
+///
+/// ```
+/// #![feature(error_generic_member_access)]
+/// use core::{
+///     error::{Error, Request},
+///     fmt,
+/// };
+/// use std::borrow::Cow;
+///
+/// use error_stack::Report;
+/// use problematic::{
+///     NoExtensions, Problem, ProblemDetails, ProblemType, StatusCode,
+///     error_stack::{ReportExt as _, provide_problem},
+/// };
+///
+/// const INVALID_LIMIT: ProblemType = ProblemType {
+///     type_uri: Cow::Borrowed("https://example.com/problems/invalid-limit"),
+///     title: Cow::Borrowed("Invalid limit"),
+///     status: StatusCode::BAD_REQUEST,
+/// };
+///
+/// #[derive(Debug)]
+/// struct InvalidLimit;
+///
+/// impl fmt::Display for InvalidLimit {
+///     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+///         formatter.write_str("the limit must be positive")
+///     }
+/// }
+///
+/// impl Problem for InvalidLimit {
+///     type Extensions<'a> = NoExtensions;
+///
+///     fn details(&self) -> ProblemDetails<'_> {
+///         INVALID_LIMIT.detail("The limit must be positive.")
+///     }
+/// }
+///
+/// impl Error for InvalidLimit {
+///     fn provide<'a>(&'a self, request: &mut Request<'a>) {
+///         provide_problem(self, request);
+///     }
+/// }
+///
+/// let report = Report::new(InvalidLimit).change_context(std::io::Error::other("request failed"));
+/// let details = report
+///     .problem_details()
+///     .next()
+///     .expect("the error should provide a problem");
+/// assert_eq!(details.status, 400);
+/// ```
+///
+/// [`Error::provide`]: core::error::Error::provide
+pub fn provide_problem<'p, P>(problem: &'p P, request: &mut Request<'p>)
+where
+    P: Problem + Send + Sync + 'static,
+    for<'ext> P::Extensions<'ext>: Serialize,
+{
+    request.provide_ref::<dyn ErasedProblem + Send + Sync>(problem);
+}
 
 /// Attaches and retrieves public problems independently of a report's current context.
 pub trait ReportExt: Sized {
     /// Attaches the problem to expose to the client.
     ///
-    /// The attachment survives [`Report::change_context`]. Attaching another problem replaces the
-    /// complete public representation returned by [`Self::problem_details`]; earlier problems
-    /// remain in the report's frames.
+    /// The attachment survives [`Report::change_context`]. [`Self::problem_details`] yields it in
+    /// frame order alongside problems provided by contexts and other attachments.
     ///
     /// The report owns the problem. Its details can borrow from it and are serialized only when the
     /// returned [`ProblemDetails`] is serialized.
@@ -37,6 +104,7 @@ pub trait ReportExt: Sized {
     ///     .change_context(io::Error::other("request failed"));
     /// let details = report
     ///     .problem_details()
+    ///     .next()
     ///     .expect("the problem should be attached");
     ///
     /// assert_eq!(details.status, 400);
@@ -49,18 +117,19 @@ pub trait ReportExt: Sized {
     fn attach_problem<P>(self, problem: P) -> Self
     where
         P: Problem + Send + Sync + 'static,
-        for<'a> P::Extensions<'a>: Serialize;
+        for<'ext> P::Extensions<'ext>: Serialize;
 
-    /// Returns the attached problem's details, or [`None`] if no problem was attached.
+    /// Iterates over public problems in [`Report::frames`] order.
     ///
-    /// Selects the first problem in [`Report::frames`] order. For a single chain of contexts, this
-    /// is the most recently attached problem. For reports combined with [`Report::append`], the
-    /// frame traversal order determines which branch supplies the problem.
+    /// Includes problems attached with [`Self::attach_problem`] and offered by contexts through
+    /// [`provide_problem`]. A single chain yields the newest problem first. Combined reports
+    /// follow the frame traversal order across their branches.
     ///
-    /// The details borrow from the report. Extension validation runs when they are serialized and
-    /// returns a serializer error for invalid extensions.
-    #[must_use]
-    fn problem_details(&self) -> Option<ProblemDetails<'_, impl Serialize + '_>>;
+    /// Each problem's details are created as the iterator advances and can borrow from the report.
+    /// Extension validation runs during serialization and returns a serializer error for invalid
+    /// extensions.
+    fn problem_details(&self)
+    -> impl Iterator<Item = ProblemDetails<'_, impl Serialize + '_>> + '_;
 }
 
 impl<C: ?Sized> ReportExt for Report<C> {
@@ -68,14 +137,29 @@ impl<C: ?Sized> ReportExt for Report<C> {
     fn attach_problem<P>(self, problem: P) -> Self
     where
         P: Problem + Send + Sync + 'static,
-        for<'a> P::Extensions<'a>: Serialize,
+        for<'ext> P::Extensions<'ext>: Serialize,
     {
         self.attach_opaque(AttachedProblem(Box::new(problem)))
     }
 
-    fn problem_details(&self) -> Option<ProblemDetails<'_, impl Serialize + '_>> {
-        self.downcast_ref::<AttachedProblem>()
-            .map(|problem| problem.0.details())
+    fn problem_details(
+        &self,
+    ) -> impl Iterator<Item = ProblemDetails<'_, impl Serialize + '_>> + '_ {
+        self.frames().filter_map(|frame| match frame.kind() {
+            FrameKind::Context(_) => Some(
+                frame
+                    .request_ref::<dyn ErasedProblem + Send + Sync>()?
+                    .details(),
+            ),
+            FrameKind::Attachment(AttachmentKind::Opaque(_)) => Some(
+                frame
+                    .downcast_ref::<AttachedProblem>()?
+                    .0
+                    .as_ref()
+                    .details(),
+            ),
+            FrameKind::Attachment(_) => None,
+        })
     }
 }
 
@@ -98,7 +182,7 @@ pub trait ResultExt: Sized {
     fn attach_problem<P>(self, problem: P) -> Result<Self::Ok, Report<Self::Context>>
     where
         P: Problem + Send + Sync + 'static,
-        for<'a> P::Extensions<'a>: Serialize,
+        for<'ext> P::Extensions<'ext>: Serialize,
     {
         self.attach_problem_with(|| problem)
     }
@@ -135,6 +219,7 @@ pub trait ResultExt: Sized {
     /// let report = result.expect_err("the input should fail to parse");
     /// let details = report
     ///     .problem_details()
+    ///     .next()
     ///     .expect("the problem should be attached");
     ///
     /// assert_eq!(
@@ -146,7 +231,7 @@ pub trait ResultExt: Sized {
     fn attach_problem_with<P, F>(self, problem: F) -> Result<Self::Ok, Report<Self::Context>>
     where
         P: Problem + Send + Sync + 'static,
-        for<'a> P::Extensions<'a>: Serialize,
+        for<'ext> P::Extensions<'ext>: Serialize,
         F: FnOnce() -> P;
 }
 
@@ -157,7 +242,7 @@ impl<T, E: IntoReport> ResultExt for Result<T, E> {
     fn attach_problem_with<P, F>(self, problem: F) -> Result<T, Report<E::Context>>
     where
         P: Problem + Send + Sync + 'static,
-        for<'a> P::Extensions<'a>: Serialize,
+        for<'ext> P::Extensions<'ext>: Serialize,
         F: FnOnce() -> P,
     {
         match self {
@@ -176,7 +261,7 @@ trait ErasedProblem {
 impl<P> ErasedProblem for P
 where
     P: Problem + 'static,
-    for<'a> P::Extensions<'a>: Serialize,
+    for<'ext> P::Extensions<'ext>: Serialize,
 {
     fn details(&self) -> ProblemDetails<'_, Box<dyn erased_serde::Serialize + '_>> {
         let ProblemDetails {

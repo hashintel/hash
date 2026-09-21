@@ -5,7 +5,6 @@
 #![feature(
     // Language Features
     macro_metavar_expr,
-    never_type,
 )]
 
 pub mod error_code;

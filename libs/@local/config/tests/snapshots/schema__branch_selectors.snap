@@ -1,0 +1,44 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "exported::<BranchSelectors>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BranchSelectors",
+  "type": "object",
+  "properties": {
+    "legacy": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "port": {
+      "type": "integer",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0
+    },
+    "tls": {
+      "type": "boolean"
+    }
+  },
+  "if": {
+    "required": [
+      "tls"
+    ]
+  },
+  "not": {
+    "required": [
+      "legacy"
+    ]
+  },
+  "then": {
+    "properties": {
+      "port": {
+        "const": 443
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}
