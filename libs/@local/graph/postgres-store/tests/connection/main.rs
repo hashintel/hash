@@ -27,9 +27,9 @@ use hash_graph_postgres_store::store::{
     postgres::connection::{ConnectionError, SERVER_TARGET},
 };
 use hash_graph_store::pool::StorePool as _;
-use tokio_postgres::NoTls;
+use tokio_postgres::{NoTls, error::SqlState};
 use tracing::{Event, Level, Subscriber, subscriber};
-use tracing_subscriber::{layer::Context, prelude::*};
+use tracing_subscriber::{filter::LevelFilter, layer::Context, prelude::*};
 
 use crate::common::{DatabaseTestWrapper, connection_info};
 
@@ -113,6 +113,52 @@ async fn connection_records_server_warnings() {
     assert!(
         event.contains("connection"),
         "the connection should be on the event, got {event}"
+    );
+}
+
+#[tokio::test]
+async fn connection_records_warning_at_warn() {
+    let recorder = Recorder::default();
+    let _guard = subscriber::set_default(
+        tracing_subscriber::registry()
+            .with(LevelFilter::WARN)
+            .with(recorder.clone()),
+    );
+    let span = tracing::info_span!("postgres_connection", connection = 42_u64);
+    assert!(
+        span.is_disabled(),
+        "INFO spans should be disabled by the filter"
+    );
+
+    let database = DatabaseTestWrapper::new().await;
+    database
+        .connection
+        .as_client()
+        .batch_execute("DO $$ BEGIN RAISE NOTICE 'filtered notice'; END $$")
+        .await
+        .expect("the notice statement should run");
+    database
+        .connection
+        .as_client()
+        .execute("SET LOCAL statement_timeout = '1s'", &[])
+        .await
+        .expect("the warning statement should run");
+
+    let events = recorder.recorded();
+    assert_eq!(
+        events.len(),
+        1,
+        "only the warning should pass the filter: {events:?}"
+    );
+    let (level, event) = events.first().expect("the warning should be recorded");
+    assert_eq!(*level, Level::WARN, "the warning should retain its level");
+    assert!(
+        event.contains("25P01"),
+        "the warning should retain its SQLSTATE: {event}"
+    );
+    assert!(
+        event.contains("connection: 0"),
+        "the event should retain its numeric connection ID without an INFO span: {event}"
     );
 }
 
@@ -335,8 +381,12 @@ async fn pool_reports_unreachable_database() {
         ConnectionError::Connect,
         "the failure should be a failed connect"
     );
-    assert!(
-        report.downcast_ref::<tokio_postgres::Error>().is_some(),
-        "the driver's error should stay in the report"
+    let error = report
+        .downcast_ref::<tokio_postgres::Error>()
+        .expect("the driver's error should stay directly accessible in the report");
+    assert_eq!(
+        error.code(),
+        Some(&SqlState::INVALID_CATALOG_NAME),
+        "the backend error should retain the database's SQLSTATE"
     );
 }

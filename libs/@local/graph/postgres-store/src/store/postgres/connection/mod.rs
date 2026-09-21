@@ -12,22 +12,36 @@
 //!
 //! [`Connection::poll_message`]: tokio_postgres::Connection::poll_message
 
+mod message;
+#[cfg(test)]
+mod tests;
+
 use core::{
     error::Error,
     fmt,
     future::{Future, ready},
+    pin::pin,
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use deadpool::managed::{HookError, Metrics, PoolError, RecycleError, RecycleResult, TimeoutType};
-use error_stack::{Report, ResultExt as _};
-use futures::{Stream, StreamExt as _, future::BoxFuture, stream};
+use deadpool::managed::{HookError, Metrics, PoolError, RecycleError, RecycleResult};
+use error_stack::Report;
+use futures::{
+    StreamExt as _,
+    stream::{self, FusedStream},
+};
 use tokio::task::JoinHandle;
 use tokio_postgres::{
     AsyncMessage, Client, Config, Socket,
     error::{DbError, Severity},
     tls::{MakeTlsConnect, TlsConnect},
 };
+
+use self::message::MessageStream;
+
+/// Identifies a connection within its pool.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct ConnectionId(u64);
 
 /// The TLS setup a connection is established with.
 pub trait PostgresTls = Clone
@@ -52,59 +66,39 @@ pub const SERVER_TARGET: &str = "hash_graph_postgres_store::server";
 #[display("Could not provide a connection to Postgres: {_variant}")]
 pub enum ConnectionError {
     /// The connection could not be established.
-    ///
-    /// The cause covers both the permanently fatal — a rejected password, a missing database — and
-    /// the transient, such as a refused connection or a server still starting up. The
-    /// [`tokio_postgres::Error`] the report was raised from tells them apart: it carries a SQLSTATE
-    /// where the server answered and an I/O error where it did not.
     #[display("the connection could not be established")]
     Connect,
-    /// The pool is closed and hands out no further connections.
-    #[display("the pool is closed")]
-    Closed,
-    /// The pool had no connection to hand out.
-    ///
-    /// A configured timeout elapsed, or the pool has no runtime to time one out with.
-    #[display("no connection could be handed out")]
-    Unavailable,
+    /// A connection could not be acquired from the pool.
+    #[display("a connection could not be acquired from the pool")]
+    Acquire,
 }
 
 impl Error for ConnectionError {}
 
 impl ConnectionError {
-    /// Reads what a pool says about failing to hand out a connection.
-    ///
-    /// A failure to establish one carries its own report, which is kept. The pool's own failures
-    /// become [`ConnectionError::Unavailable`] or [`ConnectionError::Closed`].
-    pub(crate) fn from_pool(error: PoolError<Report<Self>>) -> Report<Self> {
+    #[track_caller]
+    pub(crate) fn from_pool(error: PoolError<tokio_postgres::Error>) -> Report<Self> {
         match error {
-            PoolError::Backend(report) | PoolError::PostCreateHook(HookError::Backend(report)) => {
-                report
+            PoolError::Backend(error) | PoolError::PostCreateHook(HookError::Backend(error)) => {
+                Report::new(error).change_context(Self::Connect)
             }
-            PoolError::Timeout(TimeoutType::Wait) => Report::new(Self::Unavailable)
-                .attach("the pool timed out waiting for a connection to become available"),
-            PoolError::Timeout(TimeoutType::Create) => Report::new(Self::Unavailable)
-                .attach("the pool timed out establishing a connection"),
-            PoolError::Timeout(TimeoutType::Recycle) => {
-                Report::new(Self::Unavailable).attach("the pool timed out recycling a connection")
-            }
-            PoolError::Closed => Report::new(Self::Closed),
-            PoolError::NoRuntimeSpecified => Report::new(Self::Unavailable)
-                .attach("the pool needs a runtime to time an operation out"),
-            PoolError::PostCreateHook(HookError::Message(message)) => {
-                Report::new(Self::Unavailable).attach(message)
+            error @ (PoolError::Timeout(_)
+            | PoolError::Closed
+            | PoolError::NoRuntimeSpecified
+            | PoolError::PostCreateHook(HookError::Message(_))) => {
+                Report::new(error).change_context(Self::Acquire)
             }
         }
     }
 }
 
 /// Records a message the server sent outside of a statement's results on connection `id`.
-fn record(id: u64, message: AsyncMessage) {
+fn record(id: ConnectionId, message: AsyncMessage) {
     match message {
         AsyncMessage::Notice(notice) => report(id, &notice),
         AsyncMessage::Notification(notification) => tracing::info!(
             target: SERVER_TARGET,
-            connection = id,
+            connection = id.0,
             channel = notification.channel(),
             process_id = notification.process_id(),
             payload = notification.payload(),
@@ -114,7 +108,7 @@ fn record(id: u64, message: AsyncMessage) {
         // message neither variant covers.
         unrecognized => tracing::warn!(
             target: SERVER_TARGET,
-            connection = id,
+            connection = id.0,
             ?unrecognized,
             "Postgres sent a message of an unknown kind",
         ),
@@ -122,7 +116,7 @@ fn record(id: u64, message: AsyncMessage) {
 }
 
 /// Records what the server reported on connection `id`, at the level of its severity.
-fn report(id: u64, notice: &DbError) {
+fn report(id: ConnectionId, notice: &DbError) {
     // The tracing level does not carry the severity: PANIC, FATAL and ERROR share one, NOTICE and
     // INFO another, LOG and DEBUG a third. Naming it keeps the server's own word on the event.
     // Where Postgres named none, its text is all there is, translated or not.
@@ -140,7 +134,7 @@ fn report(id: u64, notice: &DbError) {
         ($level:ident) => {
             tracing::$level!(
                 target: SERVER_TARGET,
-                connection = id,
+                connection = id.0,
                 severity = %severity_name,
                 code,
                 detail = notice.detail(),
@@ -165,14 +159,13 @@ fn report(id: u64, notice: &DbError) {
 /// its messages carry `id` rather than a request's trace, and `id` is what joins them to the
 /// acquisition that created the connection.
 async fn drive(
-    id: u64,
-    mut messages: impl Stream<Item = Result<AsyncMessage, tokio_postgres::Error>> + Unpin,
+    id: ConnectionId,
+    messages: impl FusedStream<Item = Result<AsyncMessage, tokio_postgres::Error>>,
 ) {
+    let mut messages = pin!(messages);
     while let Some(message) = messages.next().await {
         match message {
             Ok(message) => record(id, message),
-            // `Connection::poll_message` documents an error as terminal and closes its request
-            // receiver on the way out, so the stream must not be polled again.
             Err(error) => {
                 // A termination the server initiates — `pg_terminate_backend`, an idle-session
                 // timeout, a shutdown — arrives as an error response rather than a notice.
@@ -180,7 +173,7 @@ async fn drive(
                     report(id, notice);
                 } else {
                     tracing::warn!(
-                        connection = id,
+                        connection = id.0,
                         error = ?Report::new(error),
                         "Lost the connection carrying Postgres' messages",
                     );
@@ -198,7 +191,7 @@ async fn drive(
 /// recording task then sees the message stream end and finishes on its own.
 #[derive(Debug)]
 pub struct ManagedConnection {
-    id: u64,
+    id: ConnectionId,
     client: Client,
     driver: JoinHandle<()>,
 }
@@ -228,82 +221,47 @@ impl ManagedConnection {
     }
 }
 
-/// Establishes a connection with the TLS setup erased.
-///
-/// A [`tokio_postgres::Connection`] names the TLS stream type it was built from, so it cannot cross
-/// an erased boundary. Driving it starts here, where that type is still known, and only the
-/// [`ManagedConnection`] comes back.
-trait Connect: Send + Sync {
-    fn connect(
-        &self,
-        id: u64,
-    ) -> BoxFuture<'static, Result<ManagedConnection, Report<ConnectionError>>>;
-}
-
-/// Connects with a concrete TLS setup.
-struct Connector<Tls> {
+/// Creates and recycles [`ManagedConnection`]s for a pool.
+pub(crate) struct ConnectionManager<Tls> {
     config: Config,
     tls: Tls,
-}
-
-impl<Tls> Connect for Connector<Tls>
-where
-    Tls: PostgresTls,
-{
-    fn connect(
-        &self,
-        id: u64,
-    ) -> BoxFuture<'static, Result<ManagedConnection, Report<ConnectionError>>> {
-        let config = self.config.clone();
-        let tls = self.tls.clone();
-
-        Box::pin(async move {
-            let (client, mut connection) = config
-                .connect(tls)
-                .await
-                .change_context(ConnectionError::Connect)?;
-            let messages = stream::poll_fn(move |context| connection.poll_message(context));
-
-            Ok(ManagedConnection {
-                id,
-                client,
-                driver: tokio::spawn(drive(id, messages)),
-            })
-        })
-    }
-}
-
-/// Creates and recycles [`ManagedConnection`]s for a pool.
-pub(crate) struct ConnectionManager {
-    connect: Box<dyn Connect>,
     next_id: AtomicU64,
 }
 
-impl fmt::Debug for ConnectionManager {
+impl<Tls> fmt::Debug for ConnectionManager<Tls> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("ConnectionManager")
             .finish_non_exhaustive()
     }
 }
 
-impl ConnectionManager {
+impl<Tls: PostgresTls> ConnectionManager<Tls> {
     /// Creates a manager handing out connections built from `config`.
-    pub(crate) fn new(config: Config, tls: impl PostgresTls) -> Self {
+    pub(crate) const fn new(config: Config, tls: Tls) -> Self {
         Self {
-            connect: Box::new(Connector { config, tls }),
+            config,
+            tls,
             next_id: AtomicU64::new(0),
         }
     }
 }
 
-impl deadpool::managed::Manager for ConnectionManager {
-    type Error = Report<ConnectionError>;
+impl<Tls: PostgresTls> deadpool::managed::Manager for ConnectionManager<Tls> {
+    type Error = tokio_postgres::Error;
     type Type = ManagedConnection;
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {
-        let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-        let connection = self.connect.connect(id).await?;
-        tracing::info!(connection = id, "Created a connection to Postgres");
+        let id = ConnectionId(self.next_id.fetch_add(1, Ordering::Relaxed));
+        let (client, mut connection) = self.config.connect(self.tls.clone()).await?;
+        let messages = MessageStream::new(stream::poll_fn(move |context| {
+            connection.poll_message(context)
+        }));
+        let connection = ManagedConnection {
+            id,
+            client,
+            driver: tokio::spawn(drive(id, messages)),
+        };
+        tracing::info!(connection = id.0, "Created a connection to Postgres");
 
         Ok(connection)
     }
@@ -317,7 +275,7 @@ impl deadpool::managed::Manager for ConnectionManager {
         let driver_finished = obj.driver.is_finished();
         ready(if client_closed || driver_finished {
             tracing::warn!(
-                connection = obj.id,
+                connection = obj.id.0,
                 client_closed,
                 driver_finished,
                 age = ?metrics.created.elapsed(),
