@@ -9,8 +9,8 @@ The first scenario is the exact empty-net **Surprise me** prompt. The second is 
 A dry run resolves and compares model settings, prints the serial plan and output location, and starts no browser, service, provider, or inference process:
 
 ```bash
-PETRINAUT_AI_MODEL=gpt-5.5-2026-04-23 \
-BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 \
+PETRINAUT_AI_MODEL=gpt-5.5 \
+BRUNCH_CHAT_MODEL=openai/gpt-5.5 \
 BRUNCH_CHAT_THINKING=medium \
 MATCHED_PARITY_OUTPUT_ROOT=/tmp/petrinaut-matched-parity-441799f \
 node --experimental-strip-types apps/brunch-agent/src/evaluations/matched-parity/run.ts
@@ -24,8 +24,8 @@ Only run this with an operator-owned OpenAI credential and explicit authorizatio
 
 ```bash
 OPENAI_API_KEY='<operator-owned-key>' \
-PETRINAUT_AI_MODEL=gpt-5.5-2026-04-23 \
-BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 \
+PETRINAUT_AI_MODEL=gpt-5.5 \
+BRUNCH_CHAT_MODEL=openai/gpt-5.5 \
 BRUNCH_CHAT_THINKING=medium \
 MATCHED_PARITY_PAID_AUTHORIZATION=I_AUTHORIZE_MATCHED_PAID_INFERENCE \
 MATCHED_PARITY_OUTPUT_ROOT=/tmp/petrinaut-matched-parity-441799f \

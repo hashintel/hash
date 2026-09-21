@@ -17,8 +17,8 @@ import {
 } from "../src/evaluations/matched-parity/summary.ts";
 
 const environment = {
-  PETRINAUT_AI_MODEL: "gpt-test",
-  BRUNCH_CHAT_MODEL: "openai/gpt-test",
+  PETRINAUT_AI_MODEL: "gpt-5.5",
+  BRUNCH_CHAT_MODEL: "openai/gpt-5.5",
   BRUNCH_CHAT_THINKING: "medium",
 };
 
@@ -73,9 +73,14 @@ describe("matched parity evaluation configuration", () => {
       ...environment,
       BRUNCH_CHAT_THINKING: "low",
     },
+    {
+      ...environment,
+      PETRINAUT_AI_MODEL: "unknown-model",
+      BRUNCH_CHAT_MODEL: "openai/unknown-model",
+    },
   ])("refuses model or reasoning mismatch before inference", (mismatch) => {
     expect(() => resolveMatchedParityConfiguration(mismatch)).toThrow(
-      /refused .* mismatch/u,
+      /refused (?:.* mismatch|unavailable)/u,
     );
   });
 

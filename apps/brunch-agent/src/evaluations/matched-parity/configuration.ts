@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 
+import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
+
 export const matchedParityReasoning = "medium" as const;
 export const paidAuthorizationValue = "I_AUTHORIZE_MATCHED_PAID_INFERENCE";
 
@@ -48,6 +50,14 @@ export const resolveMatchedParityConfiguration = (
   if (brunchThinking !== matchedParityReasoning)
     throw new Error(
       `Matched parity evaluation refused reasoning mismatch: Stock ${matchedParityReasoning}; Brunch ${brunchThinking}.`,
+    );
+  if (
+    !openaiProvider()
+      .getModels()
+      .some(({ id }) => id === stockModel)
+  )
+    throw new Error(
+      `Matched parity evaluation refused unavailable Brunch OpenAI model ${stockModel}.`,
     );
 
   const executePaid = options.executePaid === true;
