@@ -153,8 +153,6 @@
         "hash-graph-authentication",
         "hash-graph-authorization",
         "hash-graph-embeddings",
-        "hash-graph-migrations",
-        "hash-graph-migrations-macros",
         "hash-graph-postgres-store",
         "hash-graph-store",
         "hash-graph-temporal-versioning",

@@ -71,7 +71,7 @@ fn options() -> DeltaPlacementTaskOptions {
 /// # Panics
 ///
 /// Panics if store-pool construction or placement-option validation fails.
-async fn task() -> DeltaPlacementTask {
+fn task() -> DeltaPlacementTask {
     // Pool construction opens no connection. These cases stop before store acquisition.
     let pool = PostgresStorePool::new(
         &DatabaseConnectionInfo::new(
@@ -88,7 +88,6 @@ async fn task() -> DeltaPlacementTask {
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .expect("should construct an unconnected pool");
     DeltaPlacementTask::new(Arc::new(pool), options(), None)
         .expect("should accept a non-zero interval")
@@ -97,7 +96,7 @@ async fn task() -> DeltaPlacementTask {
 /// Rejects a zero tick rate as an invalid interval.
 #[tokio::test]
 async fn interval_zero() {
-    let task = task().await;
+    let task = task();
     let mut options = options();
     options.tick_rate = Duration::ZERO;
     let error = DeltaPlacementTask::new(task.pool, options, None)
@@ -115,7 +114,7 @@ async fn interval_zero() {
 /// since it has elapsed. It is never due with an empty queue.
 #[tokio::test]
 async fn projection_cadence() {
-    let mut task = task().await;
+    let mut task = task();
     assert!(!task.projection_due());
     task.pending.project.push(request(1).transition(Project {
         embedding: BoxedVecN::zero(),
@@ -138,7 +137,7 @@ async fn projection_cadence() {
 /// leaves the tick counter unchanged and delivers every queued result in order.
 #[tokio::test]
 async fn delivery_preserves_cadence() {
-    let mut task = task().await;
+    let mut task = task();
     task.pending
         .completed
         .extend([completion(1), completion(2)]);
@@ -177,7 +176,7 @@ async fn delivery_preserves_cadence() {
 /// a later tick, and each admitted entry starts with its full database-try budget.
 #[tokio::test]
 async fn admission_capacity() {
-    let mut task = task().await;
+    let mut task = task();
     let (requests, mut rx) = mpsc::channel(3);
     for event in 1..=3 {
         requests
@@ -203,7 +202,7 @@ async fn admission_capacity() {
 /// Drains every queued result before treating closed placement input as terminal.
 #[tokio::test]
 async fn input_closed_drain() {
-    let mut task = task().await;
+    let mut task = task();
     task.pending
         .completed
         .extend([completion(1), completion(2)]);
@@ -240,7 +239,7 @@ async fn input_closed_drain() {
 /// Stops on completion-channel closure even while placement input remains open.
 #[tokio::test]
 async fn output_closed() {
-    let mut task = task().await;
+    let mut task = task();
     task.pending.completed.push_back(completion(1));
     let (_requests, mut rx) = mpsc::channel(1);
     let (tx, completed) = mpsc::channel(1);
@@ -258,7 +257,7 @@ async fn output_closed() {
 /// Queues an undeliverable completion and continues when the output channel is full.
 #[tokio::test]
 async fn ready_tick_full_output() {
-    let mut task = task().await;
+    let mut task = task();
     task.pending.completed.push_back(completion(2));
     let (_requests, mut rx) = mpsc::channel(1);
     let (tx, _completed) = mpsc::channel(1);

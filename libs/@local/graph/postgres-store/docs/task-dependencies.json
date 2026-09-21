@@ -5,7 +5,6 @@
     "hash-codec",
     "hash-graph-authorization",
     "hash-graph-embeddings",
-    "hash-graph-migrations",
     "hash-graph-store",
     "hash-graph-temporal-versioning",
     "hash-graph-test-data",
@@ -49,7 +48,8 @@
       ],
       "affectedBy": [
         "darwin-kperf-codegen",
-        "error-stack-macros"
+        "error-stack-macros",
+        "hash-graph-migrations"
       ]
     },
     "test:unit": {

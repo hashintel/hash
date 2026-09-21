@@ -171,7 +171,6 @@ async fn run_atlas(
                 ..PostgresStoreSettings::default()
             },
         )
-        .await
         .change_context(GraphError)?,
     );
 

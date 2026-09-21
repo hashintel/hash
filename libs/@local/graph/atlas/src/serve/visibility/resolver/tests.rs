@@ -178,7 +178,7 @@ fn variant_of(files: &TamperFixture, marker: &[u8]) -> Generation {
 /// # Panics
 ///
 /// Panics when the pool cannot be constructed.
-async fn pool() -> Arc<PostgresStorePool> {
+fn pool() -> Arc<PostgresStorePool> {
     Arc::new(
         PostgresStorePool::new(
             &DatabaseConnectionInfo::new(
@@ -195,7 +195,6 @@ async fn pool() -> Arc<PostgresStorePool> {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("an unconnected pool should construct"),
     )
 }
@@ -207,7 +206,7 @@ async fn pool() -> Arc<PostgresStorePool> {
 /// # Panics
 ///
 /// Panics when the generation cannot be activated or the manager refuses its options.
-async fn boot(
+fn boot(
     name: &str,
     retention: Duration,
 ) -> (TamperFixture, Arc<PostgresStorePool>, GenerationManager) {
@@ -215,7 +214,7 @@ async fn boot(
     root_of(&files)
         .activate(files.generation().id())
         .expect("the fixture generation should activate");
-    let pool = pool().await;
+    let pool = pool();
     let source = RuntimeSource {
         root: root_of(&files),
         secret: secret(),
@@ -348,7 +347,7 @@ async fn seed_filtered(
 /// The unconnectable pool proves that the hit performs no store query.
 #[tokio::test]
 async fn resolve_fresh_unfiltered_hit() {
-    let (_files, pool, mut manager) = boot("resolver-fresh-unfiltered-hit", RETENTION).await;
+    let (_files, pool, mut manager) = boot("resolver-fresh-unfiltered-hit", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
 
@@ -394,7 +393,7 @@ async fn resolve_fresh_unfiltered_hit() {
 /// the resolver's context opens it, with the pool's connection failure retained inside.
 #[tokio::test]
 async fn resolve_refresh_diagnostic() {
-    let (_files, pool, mut manager) = boot("resolver-refresh-diagnostic", RETENTION).await;
+    let (_files, pool, mut manager) = boot("resolver-refresh-diagnostic", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
 
@@ -444,7 +443,7 @@ async fn resolve_refresh_diagnostic() {
     // production logs the full report through `?error`, including every context. The store driver's
     // wording is outside the resolver contract. This case obtains a control connection failure from
     // an identically configured pool and verifies the text that the diagnostic must retain.
-    let control = self::pool().await;
+    let control = self::pool();
     let refused = timeout(BUDGET, control.acquire(None))
         .await
         .expect("the unconnectable pool should refuse within the budget");
@@ -488,7 +487,7 @@ async fn resolve_refresh_diagnostic() {
 /// Reuses a cached filter document and publication when the caller supplies only its digest.
 #[tokio::test]
 async fn resolve_filtered_cached_document() {
-    let (_files, pool, mut manager) = boot("resolver-filtered-cached-document", RETENTION).await;
+    let (_files, pool, mut manager) = boot("resolver-filtered-cached-document", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
 
@@ -541,7 +540,7 @@ async fn resolve_filtered_cached_document() {
 /// to an unfiltered scope, and does not reach the store for it.
 #[tokio::test]
 async fn resolve_filtered_missing_document() {
-    let (_files, pool, mut manager) = boot("resolver-filtered-missing-document", RETENTION).await;
+    let (_files, pool, mut manager) = boot("resolver-filtered-missing-document", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
 
@@ -575,7 +574,7 @@ async fn resolve_filtered_missing_document() {
 /// Keeps cache publications separate for two actors in the same observation.
 #[tokio::test]
 async fn resolve_actor_separation() {
-    let (_files, pool, mut manager) = boot("resolver-actor-separation", RETENTION).await;
+    let (_files, pool, mut manager) = boot("resolver-actor-separation", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
 
@@ -633,7 +632,7 @@ async fn resolve_actor_separation() {
 /// publication seeded under it.
 #[tokio::test]
 async fn resolve_retained_hit() {
-    let (files, pool, mut manager) = boot("resolver-retained-hit", RETENTION).await;
+    let (files, pool, mut manager) = boot("resolver-retained-hit", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
     let root = root_of(&files);
@@ -692,7 +691,7 @@ async fn resolve_retained_hit() {
 /// Returns `None` for a retained miss without querying the store.
 #[tokio::test]
 async fn resolve_retained_missing() {
-    let (files, pool, mut manager) = boot("resolver-retained-missing", RETENTION).await;
+    let (files, pool, mut manager) = boot("resolver-retained-missing", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
     let root = root_of(&files);
@@ -740,7 +739,7 @@ async fn resolve_retained_missing() {
 /// cache miss reaches the store and fails on the absent test socket.
 #[tokio::test]
 async fn resolve_reopened_missing() {
-    let (files, pool, mut manager) = boot("resolver-reopened-missing", SHORT_RETENTION).await;
+    let (files, pool, mut manager) = boot("resolver-reopened-missing", SHORT_RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
     let root = root_of(&files);

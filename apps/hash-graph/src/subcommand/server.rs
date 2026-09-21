@@ -696,7 +696,6 @@ pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), R
             },
         },
     )
-    .await
     .change_context(GraphError)
     .map_err(|report| {
         tracing::error!(error = ?report, "Failed to connect to database");

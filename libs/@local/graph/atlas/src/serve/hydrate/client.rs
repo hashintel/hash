@@ -490,7 +490,6 @@ mod tests {
                 NoTls,
                 PostgresStoreSettings::default(),
             )
-            .await
             .expect("should construct an unconnected pool"),
         );
         let client = GraphDatabaseClient::new(pool, Handle::current());

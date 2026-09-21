@@ -259,7 +259,7 @@ fn captured_warnings(pass: impl FnOnce()) -> String {
 /// # Panics
 ///
 /// Panics if store-pool construction fails.
-async fn pool() -> Arc<PostgresStorePool> {
+fn pool() -> Arc<PostgresStorePool> {
     Arc::new(
         PostgresStorePool::new(
             &DatabaseConnectionInfo::new(
@@ -276,7 +276,6 @@ async fn pool() -> Arc<PostgresStorePool> {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("should construct an unconnected pool"),
     )
 }
@@ -309,14 +308,14 @@ fn settled<T>(result: Result<T, Report<ManagerError>>) -> RuntimeSourceHandle<T>
 ///
 /// Panics on fixture root opening or store pool construction failure, or if the manager rejects
 /// `options`.
-async fn maintainer(
+fn maintainer(
     fixture: &Fixture,
     options: ManagerOptions,
 ) -> (GenerationManager, SourceReply<Option<GenerationId>>) {
     let source = RuntimeSource {
         root: fixture.root(),
         secret: secret(),
-        pool: pool().await,
+        pool: pool(),
         feed: None,
     };
     let mut manager = GenerationManager::new(source, options, HARD)
@@ -604,8 +603,7 @@ fn run_poll_interval() {
                 poll_interval: interval,
                 ..
             },
-        )
-        .await;
+        );
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
         let (current, pointer) = pending();
@@ -696,7 +694,7 @@ async fn new_zero_interval() {
     let source = RuntimeSource {
         root: fixture.root(),
         secret: secret(),
-        pool: pool().await,
+        pool: pool(),
         feed: None,
     };
 
@@ -722,7 +720,7 @@ async fn new_zero_interval() {
 #[tokio::test]
 async fn open_promotes_selection() {
     let fixture = Fixture::new("manager-open-promotes-selection");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -763,7 +761,7 @@ async fn open_promotes_without_warning() {
 
     let fixture = Fixture::new("manager-open-promotes-without-warning");
     let replacement = fixture.variant("pending opening");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -809,7 +807,7 @@ fn promote_pending_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-promote-pending-opening");
         let replacement = fixture.variant("pending opening");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let active = fixture.world.generation().id();
@@ -850,7 +848,7 @@ fn promote_pending_opening() {
 async fn promote_failed_opening() {
     let fixture = Fixture::new("manager-promote-failed-opening");
     let replacement = fixture.variant("failed opening");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let active = fixture.world.generation().id();
@@ -901,7 +899,7 @@ fn promote_reselected_before_expiry() {
     controlled(async {
         let fixture = Fixture::new("manager-promote-reselected-before-expiry");
         let replacement = fixture.variant("reselected before expiry");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -951,7 +949,7 @@ fn promote_reselected_before_expiry() {
 async fn promote_reactivated_after_expiry() {
     let fixture = Fixture::new("manager-promote-reactivated-after-expiry");
     let replacement = fixture.variant("reactivated after expiry");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1030,7 +1028,7 @@ fn expire_stops_retained_feed() {
     controlled(async {
         let fixture = Fixture::new("manager-expire-stops-retained-feed");
         let replacement = fixture.variant("expire stops retained feed");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -1089,7 +1087,7 @@ fn expire_stalled_join() {
         let fixture = Fixture::new("manager-expire-stalled-join");
         let second_world = fixture.variant("stalled join second");
         let third_world = fixture.variant("stalled join third");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let base = Instant::now();
         let first = fixture.world.generation().id();
         let second = second_world.generation().id();
@@ -1154,7 +1152,7 @@ fn expire_stalled_join() {
 #[tokio::test]
 async fn recovery_after_present_feed_end() {
     let fixture = Fixture::new("manager-recovery-after-present-feed-end");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -1203,7 +1201,7 @@ async fn recovery_after_present_feed_end() {
 async fn recovery_deferred_while_retained() {
     let fixture = Fixture::new("manager-recovery-deferred-while-retained");
     let replacement = fixture.variant("deferred recovery");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1332,7 +1330,7 @@ fn joining_pending_feed() {
 fn recovery_absent_without_feed() {
     controlled(async {
         let fixture = Fixture::new("manager-recovery-absent-without-feed");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let generation = fixture.world.generation().id();
@@ -1376,7 +1374,7 @@ fn recovery_absent_without_feed() {
 fn shutdown_join_wakeup() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-join-wakeup");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         manager.current = None;
         let (feed, handshake) = stalled_feed();
         manager.slots.insert(
@@ -1409,7 +1407,7 @@ fn shutdown_join_wakeup() {
 #[tokio::test]
 async fn shutdown_pointer_wakeup() {
     let fixture = Fixture::new("manager-shutdown-pointer-wakeup");
-    let (mut manager, reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, reply) = maintainer(&fixture, ManagerOptions::default());
     assert_wakeup(manager.shutdown(), || {
         assert!(
             reply.send(Ok(Ok(None))).is_ok(),
@@ -1422,7 +1420,7 @@ async fn shutdown_pointer_wakeup() {
 #[tokio::test]
 async fn shutdown_opening_wakeup() {
     let fixture = Fixture::new("manager-shutdown-opening-wakeup");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     manager.current = None;
     let (task, reply) = pending();
     manager
@@ -1442,7 +1440,7 @@ async fn shutdown_opening_wakeup() {
 #[tokio::test]
 async fn shutdown_removal_wakeup() {
     let fixture = Fixture::new("manager-shutdown-removal-wakeup");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     manager.current = None;
     let (task, reply) = pending();
     manager.slots.insert(
@@ -1464,7 +1462,7 @@ fn shutdown_signals_before_join() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-signals-before-join");
         let replacement = fixture.variant("shutdown signals");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let first = fixture.world.generation().id();
@@ -1527,7 +1525,7 @@ fn shutdown_signals_before_join() {
 fn shutdown_cancelled_wait() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-cancelled-wait");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let base = Instant::now();
         let generation = fixture.world.generation().id();
 
@@ -1570,7 +1568,7 @@ fn shutdown_cancelled_wait() {
 fn reconcile_superseded_candidate() {
     controlled(async {
         let fixture = Fixture::new("manager-reconcile-superseded-candidate");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let base = Instant::now();
         let generation = fixture.world.generation().id();
@@ -1609,7 +1607,7 @@ fn reconcile_superseded_candidate() {
 fn shutdown_superseded_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-superseded-opening");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
 
@@ -1633,8 +1631,7 @@ fn shutdown_superseded_opening() {
 async fn expire_precedes_unlink() {
     let fixture = Fixture::new("manager-expire-precedes-unlink");
     let replacement = fixture.variant("expiry precedes unlink");
-    let (mut manager, _pointer_reply) =
-        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions { unlink: true, .. });
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1696,8 +1693,7 @@ async fn expire_precedes_unlink() {
 async fn open_after_started_removal() {
     let fixture = Fixture::new("manager-open-after-started-removal");
     let replacement = fixture.variant("open after started removal");
-    let (mut manager, _pointer_reply) =
-        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions { unlink: true, .. });
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1763,8 +1759,7 @@ async fn open_after_started_removal() {
 async fn remove_expired_directory() {
     let fixture = Fixture::new("manager-remove-expired-directory");
     let replacement = fixture.variant("remove expired directory");
-    let (mut manager, _pointer_reply) =
-        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions { unlink: true, .. });
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1826,8 +1821,7 @@ async fn remove_expired_directory() {
 async fn remove_failure_reopens_from_disk() {
     let fixture = Fixture::new("manager-remove-failure-reopens-from-disk");
     let replacement = fixture.variant("remove failure reopens");
-    let (mut manager, _pointer_reply) =
-        maintainer(&fixture, ManagerOptions { unlink: true, .. }).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions { unlink: true, .. });
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let first = fixture.world.generation().id();
@@ -1901,7 +1895,7 @@ async fn fail_started_opening(manager: &mut GenerationManager, generation: Gener
 #[tokio::test]
 async fn recovery_failed_attempt() {
     let fixture = Fixture::new("manager-recovery-failed-attempt");
-    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+    let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
     let registry = Arc::clone(manager.registry());
     let base = Instant::now();
     let generation = fixture.world.generation().id();
@@ -1952,7 +1946,7 @@ async fn recovery_failed_attempt() {
 fn shutdown_pending_opening() {
     controlled(async {
         let fixture = Fixture::new("manager-shutdown-pending-opening");
-        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default()).await;
+        let (mut manager, _pointer_reply) = maintainer(&fixture, ManagerOptions::default());
         let registry = Arc::clone(manager.registry());
         let generation = fixture.world.generation().id();
 

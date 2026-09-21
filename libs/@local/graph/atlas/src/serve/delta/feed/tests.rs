@@ -52,7 +52,7 @@ struct Fixture {
 ///
 /// Panics on failure during generation publication, world opening, store pool construction, or
 /// feed initialization.
-async fn fixture(name: &str) -> Fixture {
+fn fixture(name: &str) -> Fixture {
     let generation = TamperFixture::publish(name);
     let world = World::open(generation.generation().clone(), &secret())
         .expect("should open the synthetic world");
@@ -74,7 +74,6 @@ async fn fixture(name: &str) -> Fixture {
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .expect("should construct an unconnected pool");
     let (tx, requests) = mpsc::channel(1);
     let (completed, rx) = mpsc::channel(4);
@@ -104,7 +103,7 @@ async fn fixture(name: &str) -> Fixture {
 /// Rejects a zero tick rate regardless of the safety lag.
 #[tokio::test]
 async fn new_interval_zero() {
-    let fixture = fixture("feed-new-interval-zero").await;
+    let fixture = fixture("feed-new-interval-zero");
     let result = DeltaFeedTask::new(
         fixture.task.delta,
         fixture.task.pool,
@@ -128,7 +127,7 @@ async fn new_interval_zero() {
 /// admitted and sets the watermark exactly there.
 #[tokio::test]
 async fn new_replay_window() {
-    let fixture = fixture("feed-new-replay-window").await;
+    let fixture = fixture("feed-new-replay-window");
     let earliest =
         Timestamp::from_unix_timestamp(time::Date::MIN.midnight().assume_utc().unix_timestamp());
     for (watermark, lag) in [
@@ -167,7 +166,7 @@ async fn new_replay_window() {
 /// Keeps a publication captured before startup independent of subsequent writes.
 #[tokio::test]
 async fn new_captured_revision() {
-    let fixture = fixture("feed-new-captured-revision").await;
+    let fixture = fixture("feed-new-captured-revision");
     let captured = Epoch::from(Guard::from_inner(Arc::new(fixture.task.delta.clone())));
     let world = Arc::clone(&fixture.task.delta.world);
     let base = NodeRowId::MIN;
@@ -194,7 +193,7 @@ async fn new_captured_revision() {
 /// Exchanges a queued publication without waiting for a database tick.
 #[tokio::test]
 async fn publication_exchange() {
-    let mut fixture = fixture("feed-publication-exchange").await;
+    let mut fixture = fixture("feed-publication-exchange");
     let revision = fixture.task.delta.revision;
     let mut publication = pin!(
         fixture
@@ -223,7 +222,7 @@ async fn publication_exchange() {
 /// Swaps complete deltas while preserving an earlier capture.
 #[tokio::test]
 async fn publication_captured() {
-    let fixture = fixture("feed-publication-captured").await;
+    let fixture = fixture("feed-publication-captured");
     let current = Arc::new(ArcSwap::from_pointee(fixture.task.delta.clone()));
     let previous = current.load_full();
     let captured = Epoch::from(current.load());
@@ -280,7 +279,7 @@ async fn publication_captured() {
 /// Closes exchange on shutdown and both placement directions on feed exit.
 #[tokio::test]
 async fn publication_shutdown() {
-    let mut fixture = fixture("feed-publication-shutdown").await;
+    let mut fixture = fixture("feed-publication-shutdown");
     let current = Arc::new(ArcSwap::from_pointee(fixture.task.delta.clone()));
     let previous = current.load_full();
     let (stop, shutdown) = oneshot::channel();
@@ -314,7 +313,7 @@ async fn publication_shutdown() {
 /// Reports the feed as closed when a requester asks for publication after task drop.
 #[tokio::test]
 async fn publication_closed() {
-    let fixture = fixture("feed-publication-closed").await;
+    let fixture = fixture("feed-publication-closed");
     let previous = Arc::new(fixture.task.delta.clone());
     drop(fixture.task);
     let error = fixture
@@ -331,7 +330,7 @@ async fn publication_closed() {
 /// Publication shutdown still completes.
 #[tokio::test]
 async fn placement_disabled() {
-    let fixture = fixture("feed-placement-disabled").await;
+    let fixture = fixture("feed-placement-disabled");
     let (mut task, publication) = DeltaFeedTask::new(
         fixture.task.delta,
         fixture.task.pool,
@@ -387,7 +386,7 @@ fn queue_node(task: &mut DeltaFeedTask, seed: u128, seconds: i64) {
 /// Publishes once after quiet replay and never decreases the watermark during overlap.
 #[tokio::test]
 async fn replay_watermark() {
-    let mut fixture = fixture("feed-replay-watermark").await;
+    let mut fixture = fixture("feed-replay-watermark");
     let task = &mut fixture.task;
     assert!(task.apply_events());
     assert!(!task.apply_events());
@@ -406,7 +405,7 @@ async fn replay_watermark() {
 /// Preserves allocation and revision when the requester drops an exchange reply.
 #[tokio::test]
 async fn exchange_cancelled_reply() {
-    let mut fixture = fixture("feed-exchange-cancelled-reply").await;
+    let mut fixture = fixture("feed-exchange-cancelled-reply");
     let task = &mut fixture.task;
     let previous = task.delta.clone();
     let revision = task.delta.revision;
@@ -424,7 +423,7 @@ async fn exchange_cancelled_reply() {
 /// Resumes admission when capacity opens without waiting for a database tick.
 #[tokio::test]
 async fn step_capacity_ready() {
-    let mut fixture = fixture("feed-step-capacity-ready").await;
+    let mut fixture = fixture("feed-step-capacity-ready");
     queue_node(&mut fixture.task, 100, 1);
     queue_node(&mut fixture.task, 101, 1);
     let placement = fixture
@@ -459,7 +458,7 @@ async fn step_capacity_ready() {
 /// Reports task failure on result-channel closure without waiting for a database tick.
 #[tokio::test]
 async fn step_result_closed() {
-    let mut fixture = fixture("feed-step-result-closed").await;
+    let mut fixture = fixture("feed-step-result-closed");
     fixture
         .task
         .placement
@@ -481,7 +480,7 @@ async fn step_result_closed() {
 /// Ends on publication closure without advancing the database watermark.
 #[tokio::test]
 async fn step_publication_closed() {
-    let mut fixture = fixture("feed-step-publication-closed").await;
+    let mut fixture = fixture("feed-step-publication-closed");
     fixture.task.update.close();
     let period = Duration::from_hours(24);
     let mut interval = tokio::time::interval_at(Instant::now() + period, period);
@@ -502,7 +501,7 @@ async fn step_publication_closed() {
 /// Replay hides the node's position but leaves its row resolvable.
 #[tokio::test]
 async fn replay_withdrawal() {
-    let mut fixture = fixture("feed-replay-withdrawal").await;
+    let mut fixture = fixture("feed-replay-withdrawal");
     let task = &mut fixture.task;
     let key = ArchivedEntityId::from(entity(100));
     task.delta
