@@ -543,7 +543,7 @@ pub type ReadResult = Box<dyn Any + Send>;
 pub enum Never {}
 
 /// Metadata shared by application snapshot declarations.
-static DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
+const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     name: "domain_projection_snapshot",
     codec: core::any::TypeId::of::<()>(),
     owning_module: "kernel::domain",
