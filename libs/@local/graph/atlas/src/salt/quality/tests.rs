@@ -1511,7 +1511,7 @@ async fn probe_population_domains() {
             }
         }
         if rows == 2 {
-            assert!(report.map_representation.is_empty());
+            assert_eq!(report.map_representation, [] as [_; 0]);
             assert_eq!(report.density[0].neighbourhood, nz!(1));
             assert_eq!(report.density[0].spread, Some(DFinite::ZERO));
         }
