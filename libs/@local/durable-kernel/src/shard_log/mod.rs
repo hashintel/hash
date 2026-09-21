@@ -1053,7 +1053,7 @@ mod tests {
         );
     }
 
-    static TEST_RECORD_DECLARATION: RecordDeclaration = RecordDeclaration {
+    const TEST_RECORD_DECLARATION: RecordDeclaration = RecordDeclaration {
         name: "kernel_shard_log_test_record",
         codec: core::any::TypeId::of::<TestRecord>(),
         owning_module: "durable_kernel::shard_log::tests",
@@ -1281,7 +1281,7 @@ mod tests {
         #[derive(Debug, Clone, Serialize, Deserialize)]
         struct UnregisteredRecord;
 
-        static UNREGISTERED_DECLARATION: RecordDeclaration = RecordDeclaration {
+        const UNREGISTERED_DECLARATION: RecordDeclaration = RecordDeclaration {
             name: "kernel_shard_log_unregistered_record",
             ..TEST_RECORD_DECLARATION
         };
