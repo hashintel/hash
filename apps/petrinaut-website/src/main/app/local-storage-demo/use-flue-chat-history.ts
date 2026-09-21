@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { brunchClientToolNames } from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
 import type {
   AgentConversationObservation,
@@ -27,36 +27,17 @@ export type FlueHistorySnapshot = FlueConversationState & {
 const projectPetrinautMessages = (
   conversation: FlueConversationState,
   clientToolNames: ReadonlySet<string>,
-  mapClientToolInput:
-    | ((input: {
-        readonly input: unknown;
-        readonly toolName: string;
-        readonly toolCallId: string;
-      }) => unknown)
-    | undefined,
-  validatedClientToolNames?: ReadonlySet<string>,
-  dynamicClientToolNames?: ReadonlySet<string>,
 ): PetrinautAiMessage[] =>
   // The host owns this narrowing: its configured client-tool catalog is the
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
     clientToolNames,
-    dynamicClientToolNames,
-    validatedClientToolNames,
-    ...(mapClientToolInput === undefined ? {} : { mapClientToolInput }),
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
-  clientToolNames: ReadonlySet<string> = brunchClientToolNames,
-  mapClientToolInput?: (input: {
-    readonly input: unknown;
-    readonly toolName: string;
-    readonly toolCallId: string;
-  }) => unknown,
-  validatedClientToolNames?: ReadonlySet<string>,
-  dynamicClientToolNames?: ReadonlySet<string>,
+  clientToolNames: ReadonlySet<string> = canonicalPetrinautClientToolNames,
 ): {
   readonly error: Error | undefined;
   readonly latestSettlement: FlueConversationSettlement | undefined;
@@ -149,13 +130,7 @@ export const useFlueChatHistory = (
         ? absent
           ? []
           : undefined
-        : projectPetrinautMessages(
-            conversation,
-            clientToolNames,
-            mapClientToolInput,
-            validatedClientToolNames,
-            dynamicClientToolNames,
-          ),
+        : projectPetrinautMessages(conversation, clientToolNames),
     phase: observation?.phase,
     ready,
     refresh,

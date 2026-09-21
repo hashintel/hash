@@ -14,7 +14,6 @@ import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
-  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   READ_PETRINAUT_DOCS_TOOL_NAME,
   readPetrinautDiagnosticsToolName,
   readPetrinautNetToolName,
@@ -152,7 +151,6 @@ if (accounting) {
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
   ...CANONICAL_PETRINAUT_TOOL_NAMES,
-  ...PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   readPetrinautNetToolName,
   readPetrinautDiagnosticsToolName,
   layoutPetrinautNetToolName,

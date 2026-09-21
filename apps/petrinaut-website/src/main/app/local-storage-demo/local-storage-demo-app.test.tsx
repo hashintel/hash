@@ -32,10 +32,7 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
-import {
-  brunchClientToolNames,
-  canonicalParityClientToolNames,
-} from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
@@ -61,7 +58,6 @@ import type {
 import type {
   MinimalNetMetadata,
   PetrinautDocHandle,
-  PetrinautMutations,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type {
@@ -516,7 +512,6 @@ describe("local storage demo Brunch voice integration", () => {
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
     expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeUndefined();
     expect(aiAssistant.interactiveTools).toEqual([]);
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
@@ -535,17 +530,8 @@ describe("local storage demo Brunch voice integration", () => {
         ({ toolName }) => toolName === "brunch_ask",
       ),
     ).toBe(false);
-    // The Brunch-named reads are host wrappers in every Brunch mode; the
-    // batch mutation is mounted only where construction is selected.
-    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
-      [
-        "read_petrinaut_docs",
-        "read_petrinaut_net",
-        "read_petrinaut_diagnostics",
-        "layout_petrinaut_net",
-        "mutate_petrinaut_net",
-      ],
-    );
+    // Petrinaut's canonical static registry owns browser tool execution.
+    expect(aiAssistant.automaticTools).toEqual([]);
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -1345,20 +1331,14 @@ describe("local storage demo Brunch controls", () => {
         readonly construction?: { readonly binding?: unknown };
       };
       readonly clientToolNames?: ReadonlySet<string>;
-      readonly dynamicClientToolNames?: ReadonlySet<string>;
     };
 
     expect(aiAssistant.conversationId).toBe(
       ordinaryConstructionConversationIdFrom(incarnationId),
     );
-    // Canonical static mutations must use Petrinaut's stock direct path. The
-    // legacy recorder only recognizes Brunch's custom issued requests.
+    // Canonical static mutations use Petrinaut's stock direct path.
     expect(aiAssistant.executeMutation).toBeUndefined();
-    expect(
-      aiAssistant.automaticTools?.some(
-        ({ toolName }) => toolName === "mutate_petrinaut_net",
-      ),
-    ).toBe(true);
+    expect(aiAssistant.automaticTools).toEqual([]);
     expect(aiAssistant.primaryLabel).toBe("Chat");
     expect(aiAssistant.additionalTab?.label).toBe("Ledger");
     expect(
@@ -1379,15 +1359,8 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
-      [...canonicalParityClientToolNames].toSorted(),
+      [...canonicalPetrinautClientToolNames].toSorted(),
     );
-    expect([...(transportOptions.dynamicClientToolNames ?? [])]).toEqual([
-      "read_petrinaut_docs",
-      "read_petrinaut_net",
-      "read_petrinaut_diagnostics",
-      "layout_petrinaut_net",
-      "mutate_petrinaut_net",
-    ]);
   });
 });
 
@@ -1474,59 +1447,6 @@ describe("worked-model net-projection selection", () => {
     ]);
     expect(persistedChange?.previousRevisionId).toBe("bundle-revision");
     expect(persistedChange?.revisionId).toBe(handle.revisionId.get());
-
-    // A Brunch tool that changes the net projection waits for the host to
-    // settle the revision it produced before its result is returned.
-    const layoutTool = assistant?.automaticTools?.find(
-      ({ toolName }) => toolName === "layout_petrinaut_net",
-    );
-    expect(layoutTool).toBeDefined();
-    const revisionBeforeLayout = handle.revisionId.get();
-    const settled = Promise.withResolvers<void>();
-    remoteRepositoryOperations.settleRevision.mockReturnValueOnce(
-      settled.promise,
-    );
-    let layoutOutput: unknown;
-    const layoutRun = Promise.resolve(
-      layoutTool!.execute({
-        input: { askUserFirst: false },
-        mutations: {} as PetrinautMutations,
-        commands: {
-          applyClipboardPaste: () => ({ newItemIds: [] }),
-          applyAutoLayout: async () => {
-            act(() => {
-              handle.change((draft) => {
-                draft.places[0]!.x = 100;
-              });
-            });
-            return { commitCount: 1 };
-          },
-        },
-        handle,
-        readDiagnosticsContext: async () => "",
-        viewport: {
-          frameSceneAfterRender: async () => "framed",
-        },
-        toolCallId: "layout-1",
-        signal: new AbortController().signal,
-      }),
-    ).then((output) => {
-      layoutOutput = output;
-    });
-    await waitFor(() =>
-      expect(remoteRepositoryOperations.settleRevision).toHaveBeenCalledWith({
-        documentId: "bundle-document",
-        revisionId: handle.revisionId.get(),
-      }),
-    );
-    expect(handle.revisionId.get()).not.toBe(revisionBeforeLayout);
-    await act(async () => Promise.resolve());
-    expect(layoutOutput).toBeUndefined();
-    settled.resolve();
-    await layoutRun;
-    expect(layoutOutput).toEqual(
-      expect.objectContaining({ applied: true, commitCount: 1 }),
-    );
 
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     fireEvent.click(

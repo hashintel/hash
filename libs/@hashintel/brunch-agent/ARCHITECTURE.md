@@ -4,11 +4,9 @@ This document describes the implementation as it exists. Detailed application op
 
 ## Runtime composition
 
-`apps/brunch-agent` is the Flue server and composition point. Its `ChatAgent` combines:
+`apps/brunch-agent` is the Flue server and composition point. The product panel initializes `ChatAgent` in canonical Petrinaut mode, which returns Petrinaut's stock prompt and mounts the complete stock tool catalogue without Brunch workpiece, Ledger, elicitation, context-projection, or explanation contributions.
 
-- `@hashintel/brunch-agent/flue`: the model, core system prompt, elicitation skill, and durable workpiece tools;
-- `@hashintel/brunch-agent-plugin-sdcpn/flue`: the SDCPN prompt append, modelling skill, Petrinaut documentation access, and conditional construction tools;
-- app-owned routing, diagnostics, context projection, evidence lookup, and explanation tools.
+Two non-product composition boundaries remain. Batched construction combines `@hashintel/brunch-agent/flue`, `@hashintel/brunch-agent-plugin-sdcpn/flue`, and app-owned provenance and explanation tools for retained Ledger behavior. Validated construction mounts a smaller construct-only surface for the headless runbook evaluator.
 
 `@hashintel/brunch-agent-transport-aisdk` projects a caller-provided Flue conversation into AI SDK streams and transcripts; it does not own server state. `apps/petrinaut-website` owns browser-local document state, document/conversation binding, and execution of browser tools.
 
@@ -20,7 +18,7 @@ Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted expe
 
 Flue’s persisted conversation is the canonical conversation record. Browser-tool results return through the canonical Flue delivery path and correlate by tool-call ID. The ephemeral live-tool stream exists only to show pending work; it does not validate or execute tools and is not durable history.
 
-The current workpiece is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
+In the retained batched-construction boundary, the current workpiece is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
 
 Workpiece settlement enforces these invariants:
 
@@ -39,14 +37,9 @@ Workpiece settlement enforces these invariants:
 
 ## Tool boundary
 
-The checked catalogue at `apps/brunch-agent/src/agents/chat-agent/tool-catalogue.ts` records mounted names and their definition and execution owners.
+In the active product path, the plugin derives its mounted names, descriptions, and schemas directly from `petrinautAiTools`; Petrinaut's static panel handlers execute those tools against the open document. There is no parallel Brunch catalogue or browser wrapper.
 
-- Flue owns task and skill activation/resource tools.
-- Core defines `mutate_workpiece` and `read_workpiece`, which execute on the server.
-- Petrinaut read, diagnostics, layout, and net-mutation tools execute in the browser against the open document.
-- `ping` and `query_workpiece` are app-owned server tools.
-
-A net mutation must cite a settled workpiece basis and a verified browser observation whose hash matches the submitted base. Browser mutations return only after the editor host settles any resulting document revision.
+The retained batched boundary additionally mounts Flue task and skill tools, core workpiece tools, custom observed net reads and mutations, and app-owned `ping` and `query_workpiece` server tools. In that boundary, a net mutation must cite a settled workpiece basis and a verified browser observation whose hash matches the submitted base.
 
 ## Persistence
 

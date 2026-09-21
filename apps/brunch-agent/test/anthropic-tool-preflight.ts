@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { ordinaryBrunchToolCatalogue } from "../src/agents/chat-agent/tool-catalogue.ts";
 import { STEP_A_MODEL_ID } from "../src/chat-model.ts";
 import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
 
@@ -138,16 +137,6 @@ try {
       `Canonical capture flattened nested schema for ${toolName}`,
     );
   }
-  const brunchOnlyNames = new Set(
-    ordinaryBrunchToolCatalogue
-      .map(({ name }) => name)
-      .filter((name) => name !== "task" && !canonicalNameSet.has(name)),
-  );
-  assert(
-    canonicalTools.every((tool) => !brunchOnlyNames.has(tool.name)),
-    "Canonical capture contains Brunch or Ledger tools",
-  );
-
   stage = "provider acceptance";
   const probes = [
     {

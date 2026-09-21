@@ -6,15 +6,11 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
-import {
-  batchedConstructionClientToolNames,
-  brunchPetrinautDynamicToolNames,
-} from "../local-storage-demo/brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "../local-storage-demo/brunch-client-tools";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../local-storage-demo/brunch-panel-transport";
-import { createBrunchPetrinautTools } from "../local-storage-demo/brunch-petrinaut-tools";
 import { selectCanonicalSpeech } from "./canonical-speech";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
@@ -170,7 +166,7 @@ test.each([
         conversationId: "test",
         messageId,
         toolCallId: "read-guide",
-        toolName: "read_petrinaut_docs",
+        toolName: "readPetrinautDoc",
         input: {
           doc: outcome === "invalid-input" ? "missing-page" : "ai-assistant",
         },
@@ -255,9 +251,7 @@ test.each([
         handle={handle}
         lspWorkerFactory={cleanDiagnosticsWorker}
         aiAssistant={{
-          automaticTools: createBrunchPetrinautTools({
-            readTitle: () => "Voice browser test",
-          }),
+          automaticTools: [],
           conversationId: "test",
           requestStop: async () => {
             tracker.recordStopRequested();
@@ -269,10 +263,7 @@ test.each([
           transport: createBrunchPanelTransport(
             Promise.resolve(client),
             tracker,
-            {
-              clientToolNames: batchedConstructionClientToolNames,
-              dynamicClientToolNames: brunchPetrinautDynamicToolNames,
-            },
+            { clientToolNames: canonicalPetrinautClientToolNames },
           ),
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
