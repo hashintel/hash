@@ -1,11 +1,14 @@
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy.js";
 
+import type { UtteranceJudgmentMode } from "../../shared/live-utterance-judgment.js";
 import type { VoiceProvider } from "../../shared/voice-settings.js";
 
 interface VoiceEnvironment {
   readonly OPENAI_VOICE_API_KEY?: string;
   readonly PETRINAUT_OPENAI_VOICE_ENABLED?: string;
   readonly PETRINAUT_VOICE_PROVIDER?: string;
+  readonly PETRINAUT_LIVE_UTTERANCE_JUDGMENT?: string;
+  readonly TYPESAFE_API_KEY?: string;
   readonly VERCEL_ENV?: string;
 }
 
@@ -20,6 +23,17 @@ export const getVoiceProvider = (
   const provider = environment.PETRINAUT_VOICE_PROVIDER ?? "live";
   return provider === "realtime" || provider === "live" ? provider : null;
 };
+
+/** Only the log-only experiment is authorized; unknown modes remain off. */
+export const getUtteranceJudgmentMode = (
+  environment: VoiceEnvironment,
+): UtteranceJudgmentMode =>
+  getOpenAIVoiceAvailability(environment).available &&
+  getVoiceProvider(environment) === "live" &&
+  environment.TYPESAFE_API_KEY?.trim() &&
+  environment.PETRINAUT_LIVE_UTTERANCE_JUDGMENT === "log"
+    ? "log"
+    : "off";
 
 export const createOpenAIVoiceConfigHandler =
   (environment: VoiceEnvironment) =>
@@ -38,6 +52,7 @@ export const createOpenAIVoiceConfigHandler =
         ...availability,
         provider,
         available: availability.available && provider !== null,
+        utteranceJudgment: getUtteranceJudgmentMode(environment),
       },
       {
         headers: { "cache-control": "no-store" },
