@@ -11,6 +11,7 @@ export type {
   DocChangeEvent,
   DocHandleState,
   DocumentId,
+  DocumentRevisionId,
   HistoryEntry,
   PetrinautDocHandle,
   PetrinautHistory,

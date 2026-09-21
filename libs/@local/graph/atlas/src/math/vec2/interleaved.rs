@@ -1,8 +1,8 @@
 //! The natural (array-of-structures) batch of four 2D vectors.
 //!
-//! This layout exists for work that treats vectors as whole units. It matches the memory order
-//! of `[Vec2; 4]`, so packing from a borrowed point slice needs no shuffle and an individual
-//! vector reads out directly.
+//! Matching the memory order of `[Vec2; 4]` permits packing borrowed points without a shuffle and
+//! direct access to individual vectors. Use this layout for work that treats vectors as whole
+//! units.
 
 use core::{
     ops::{Add, Index, Mul, Neg, Sub},
@@ -15,14 +15,21 @@ use super::{Vec2, Vec2x4T};
 /// Four 2D vectors packed in natural (array-of-structures) order.
 ///
 /// This layout keeps each vector whole and interleaves the components as `x0 y0 x1 y1 x2 y2 x3 y3`,
-/// the memory order of a four-element `Vec2` array. Packing from `[Vec2; 4]` therefore needs no
+/// the memory order of a four-element [`Vec2`] array. Packing from `[Vec2; 4]` therefore needs no
 /// shuffle, [`get`](Self::get) reads an individual vector directly, and the type's alignment
 /// satisfies [`Simd<f32, 8>`](Simd). Use this layout when operations treat vectors as whole
 /// units. For axis-independent arithmetic, convert to [`Vec2x4T`].
 ///
-/// # Examples
+/// Arithmetic acts component-wise, with scalar multiplication scaling every component. Indexing
+/// selects one of the four vectors and panics at indices of four or more.
+///
+/// # Example
+///
+/// This in-crate example is ignored because the module is private.
 ///
 /// ```ignore
+/// use crate::math::{Vec2, vec2::Vec2x4};
+///
 /// let batch = Vec2x4::from([
 ///     Vec2::new(1.0, 5.0),
 ///     Vec2::new(2.0, 6.0),
@@ -58,15 +65,19 @@ impl Vec2x4 {
     ///
     /// The middle is a run of whole batches placed where the slice meets this type's alignment. The
     /// prefix and suffix hold the points before and after it. Concatenating the three parts in
-    /// order yields the input exactly, so a bulk pass processes the middle four vectors at a time
-    /// and the edges one by one.
+    /// order yields the input exactly. Process the middle four vectors at a time and the edges one
+    /// by one.
     ///
     /// The slice's address and length decide where the split falls. Any part may be empty. The
     /// middle's size affects performance only, never correctness.
     ///
-    /// # Examples
+    /// # Example
+    ///
+    /// This in-crate example is ignored because the module is private.
     ///
     /// ```ignore
+    /// use crate::math::{Vec2, vec2::Vec2x4};
+    ///
     /// let points: Vec<Vec2> = (0..11_u8).map(|i| Vec2::splat(f32::from(i))).collect();
     /// let (prefix, batches, suffix) = Vec2x4::from_slice(&points);
     ///
@@ -85,9 +96,11 @@ impl Vec2x4 {
     /// ```
     #[must_use]
     pub fn from_slice(slice: &[Vec2]) -> (&[Vec2], &[Self], &[Vec2]) {
-        // SAFETY: `Self` is `repr(C)` over `[Vec2; 4]` with no padding (const-asserted below to
-        // match `Simd<f32, 8>` in size), every bit pattern of four vectors is a valid batch, and
-        // `align_to` places the middle only at addresses meeting the raised 32-byte alignment.
+        // SAFETY: `align_to` requires the middle's bytes to be valid instances of its target type.
+        // `Self` is repr(C, align(32)) over four transparent two-f32 arrays, filling 32 bytes
+        // without padding or additional validity constraints. `align_to` supplies the aligned
+        // partition and retains the input borrow. Therefore every complete middle batch is valid
+        // for the shared view.
         unsafe { slice.align_to::<Self>() }
     }
 
@@ -100,9 +113,10 @@ impl Vec2x4 {
     pub fn from_lanes(xs: Simd<f32, 4>, ys: Simd<f32, 4>) -> Self {
         // `[x0, x1, x2, x3]` + `[y0, y1, y2, y3]` -> `[x0, y0, x1, y1, x2, y2, x3, y3]`
         let this = simd_swizzle!(xs, ys, [0, 4, 1, 5, 2, 6, 3, 7]);
-        // SAFETY: `Simd<f32, 8>` is layout-compatible with `[f32; 8]`, and `Self` is `repr(C)`
-        // over `[Vec2; 4]`, eight `f32`s in the same memory order; the sizes match and every
-        // bit pattern is a valid `f32`.
+        // SAFETY: the cast relies on Simd's contiguous array element layout. `Self` is repr(C) over
+        // four transparent two-f32 arrays with the same interleaved order and no invalid component
+        // bit patterns. The transmute checks equal sizes. Under that SIMD layout contract, the
+        // initialized lanes are valid as a batch.
         unsafe { core::mem::transmute::<Simd<f32, 8>, Self>(this) }
     }
 
@@ -126,22 +140,21 @@ impl Vec2x4 {
 
     /// Returns all eight components as a single SIMD vector.
     ///
-    /// The lane order is the memory order: `x0 y0 x1 y1 x2 y2 x3 y3`. This compiles to a single
-    /// full-width vector load.
+    /// The lane order is the memory order: `x0 y0 x1 y1 x2 y2 x3 y3`.
     #[inline]
     #[must_use]
     pub const fn to_simd(self) -> Simd<f32, 8> {
-        // SAFETY: `Simd<f32, 8>` is layout-compatible with `[f32; 8]`, and `Self` is `repr(C)`
-        // over `[Vec2; 4]`, eight `f32`s in the same memory order; the sizes match and `Self`
-        // meets the SIMD alignment (both const-asserted below). Every bit pattern is a valid
-        // `f32`, so the reinterpretation is total in both directions.
+        // SAFETY: the cast relies on Simd's contiguous array element layout. `Self` contains eight
+        // initialized f32 components in lane order, without padding or additional validity
+        // constraints. Equal sizes are checked below. Under that SIMD layout contract, these bytes
+        // are valid as the returned SIMD value.
         unsafe { core::mem::transmute::<Self, Simd<f32, 8>>(self) }
     }
 
     /// Returns the component-wise minimum of the two batches.
     ///
-    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
-    /// other operand's component, following [`f32::min`].
+    /// When exactly one operand is NaN in a component, the result takes the other operand's
+    /// component, following [`SimdFloat::simd_min`](core::simd::num::SimdFloat::simd_min).
     #[inline]
     #[must_use]
     pub fn min(self, other: Self) -> Self {
@@ -150,8 +163,8 @@ impl Vec2x4 {
 
     /// Returns the component-wise maximum of the two batches.
     ///
-    /// NaN components lose. When exactly one operand is NaN in a component, the result takes the
-    /// other operand's component, following [`f32::max`].
+    /// When exactly one operand is NaN in a component, the result takes the other operand's
+    /// component, following [`SimdFloat::simd_max`](core::simd::num::SimdFloat::simd_max).
     #[inline]
     #[must_use]
     pub fn max(self, other: Self) -> Self {
@@ -174,7 +187,7 @@ impl Vec2x4 {
 
     /// Folds the batch into the component-wise minimum of its four vectors.
     ///
-    /// NaN components lose, following [`f32::min`].
+    /// An axis ignores NaNs if any of its components are non-NaN, following [`Self::min`].
     #[inline]
     #[must_use]
     pub fn reduce_min(self) -> Vec2 {
@@ -193,7 +206,7 @@ impl Vec2x4 {
 
     /// Folds the batch into the component-wise maximum of its four vectors.
     ///
-    /// NaN components lose, following [`f32::max`].
+    /// An axis ignores NaNs if any of its components are non-NaN, following [`Self::max`].
     #[inline]
     #[must_use]
     pub fn reduce_max(self) -> Vec2 {
@@ -212,8 +225,7 @@ impl Vec2x4 {
 
     /// Deinterleaves the batch into transposed (structure-of-arrays) order.
     ///
-    /// One shuffle pays the layout boundary cost. The result exposes the axis lane groups for
-    /// per-axis arithmetic.
+    /// The result exposes one lane group per axis for per-axis arithmetic.
     #[inline]
     #[must_use]
     pub fn transpose(self) -> Vec2x4T {
@@ -225,7 +237,6 @@ impl Vec2x4 {
     }
 }
 
-/// Adds the batches vector-wise: entry `i` of the result is `self[i] + other[i]`.
 impl Add for Vec2x4 {
     type Output = Self;
 
@@ -235,7 +246,6 @@ impl Add for Vec2x4 {
     }
 }
 
-/// Subtracts the batches vector-wise: entry `i` of the result is `self[i] - other[i]`.
 impl Sub for Vec2x4 {
     type Output = Self;
 
@@ -245,7 +255,6 @@ impl Sub for Vec2x4 {
     }
 }
 
-/// Negates every vector in the batch.
 impl Neg for Vec2x4 {
     type Output = Self;
 
@@ -255,7 +264,6 @@ impl Neg for Vec2x4 {
     }
 }
 
-/// Scales every vector in the batch uniformly.
 impl Mul<f32> for Vec2x4 {
     type Output = Self;
 
@@ -266,7 +274,6 @@ impl Mul<f32> for Vec2x4 {
 }
 
 const impl From<[Vec2; 4]> for Vec2x4 {
-    /// Packs four vectors in their natural interleaved order.
     #[inline]
     fn from(vecs: [Vec2; 4]) -> Self {
         Self(vecs)
@@ -281,13 +288,12 @@ const impl From<Vec2x4> for [Vec2; 4] {
 }
 
 const impl From<Simd<f32, 8>> for Vec2x4 {
-    /// Reinterprets eight lanes in `x0 y0 x1 y1 x2 y2 x3 y3` order.
     #[inline]
     fn from(lanes: Simd<f32, 8>) -> Self {
-        // SAFETY: `Simd<f32, 8>` is layout-compatible with `[f32; 8]`, and `Self` is `repr(C)`
-        // over `[Vec2; 4]`, eight `f32`s in the same memory order; the sizes match and `Self`
-        // meets the SIMD alignment (both const-asserted below). Every bit pattern is a valid
-        // `f32`, so the reinterpretation is total in both directions.
+        // SAFETY: the cast relies on Simd's contiguous array element layout. `Self` contains eight
+        // f32 components in the same lane order, with no additional validity constraints. Equal
+        // sizes are checked below. Under that SIMD layout contract, the initialized lanes are valid
+        // as a batch.
         unsafe { core::mem::transmute::<Simd<f32, 8>, Self>(lanes) }
     }
 }
@@ -300,7 +306,6 @@ const impl From<Vec2x4> for Simd<f32, 8> {
 }
 
 impl From<Vec2x4T> for Vec2x4 {
-    /// Interleaves a structure-of-arrays batch back into whole vectors.
     #[inline]
     fn from(batch: Vec2x4T) -> Self {
         batch.transpose()
@@ -310,11 +315,6 @@ impl From<Vec2x4T> for Vec2x4 {
 impl Index<usize> for Vec2x4 {
     type Output = Vec2;
 
-    /// Returns a reference to the vector at `index`.
-    ///
-    /// # Panics
-    ///
-    /// This panics when `index ≥ 4`.
     #[inline]
     fn index(&self, index: usize) -> &Vec2 {
         &self.0[index]

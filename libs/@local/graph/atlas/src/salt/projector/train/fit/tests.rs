@@ -3,14 +3,9 @@
 //! End-to-end convergence, the phase boundary's radius policy, the lens schedule, and the refresh
 //! telemetry.
 //!
-//! The corpus is two four-node semantic clusters whose representations share a cluster pattern, so
-//! the model can learn the separation the semantic edges describe. Landmarks on one row per
+//! The corpus is two four-node semantic clusters whose representations share a cluster pattern,
+//! and the model can learn the separation the semantic edges describe. Landmarks on one row per
 //! cluster keep the frame from collapsing or drifting.
-
-#![expect(
-    clippy::float_cmp,
-    reason = "structurally-zero displacements and frozen radii are bit-exact contracts"
-)]
 
 use core::assert_matches;
 use std::sync::{LazyLock, Mutex};
@@ -25,9 +20,9 @@ use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
 use super::{
-    BoundaryState, FitOutcome, FrozenRadius, Model, ResumePoint, ResumeRecord, TargetRefusalCause,
-    TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit, fit_from_boundary,
-    fit_to_boundary,
+    BoundaryState, FitOutcome, FrozenRadius, Model, RefreshFraction, ResumePoint, ResumeRecord,
+    TargetRefusalCause, TrainError, TrainOptions, TrainerInputs, TrainingSchedule, fit,
+    fit_from_boundary, fit_to_boundary,
     fixture::{
         Corpus, HALF, RELATION, ROWS, TargetDraws, corpus_with, instance, options, proximal_policy,
         proximal_verdict, rng, schedule, split_digest, target_corpus, target_draws, target_inputs,
@@ -53,7 +48,12 @@ use crate::{
             loss::{Penalty, UnitLaw},
             model::{Architecture, Projector},
             scale::frozen::{FrozenRuler, RulerParameters},
-            train::{Coefficients, refresh, step::LossBreakdown},
+            train::{
+                Coefficients,
+                fit::{TrainingScheduleError, TrainingScheduleOptions},
+                refresh,
+                step::LossBreakdown,
+            },
             verdict::{
                 ResolvedVerdict,
                 calibrate::{
@@ -66,6 +66,7 @@ use crate::{
     },
 };
 
+/// The CPU device every training fixture in this file runs on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
 impl<N: Id> FitOutcome<N, Training> {
@@ -98,6 +99,9 @@ fn proximal_corpus(verdicts: Vec<ResolvedVerdict>) -> Corpus {
     )
 }
 
+/// A small projector architecture that trains in test time.
+///
+/// Width 8, one residual block, four role dimensions, one condition dimension.
 fn architecture() -> Architecture {
     Architecture {
         width: nz!(8),
@@ -108,6 +112,7 @@ fn architecture() -> Architecture {
     }
 }
 
+/// A fresh training projector of the fixture architecture initialized from seed 7.
 fn model() -> Projector<Training> {
     Projector::new(architecture(), &*DEVICE, rng(7))
 }
@@ -148,10 +153,15 @@ where
     total / count
 }
 
-/// Probed at N=25 and N=300, seeds 11 and 23, with the landmark coefficient zeroed (the corpus's
-/// only nonzero pinning force here - `anchor` is already zero in `options()` and this fixture
-/// supplies no anchors): separation survives at every point (within ~0.0003-0.012, between ~29-96,
-/// both seeds), so the semantic gradient itself drives the separation this test names and measures.
+/// Keeps the semantic clusters separated at every probe point with the landmark force zeroed.
+///
+/// Probed at 25 and 300 steps, seeds 11 and 23, with the landmark coefficient zeroed (the corpus's
+/// only nonzero pinning force here: `anchor` is already zero in `options()` and this fixture
+/// supplies no anchors), separation survives at every point (within ~0.0003-0.012, between ~29-96,
+/// both seeds). The separation this test measures therefore does not depend on the landmark pinning
+/// force. Both repulsion terms stay active in that probe. Isolating the semantic attraction
+/// gradient alone is the work of the few-step certificate
+/// `few_steps_semantic_gradient_pulls_cluster_mates_together`, which zeros every other coefficient.
 #[test]
 fn training_separates_the_semantic_clusters() {
     let corpus = semantic_corpus();
@@ -188,19 +198,23 @@ fn training_separates_the_semantic_clusters() {
     );
 }
 
+/// Keeps every anchored row within its anchor radius under a dominant landmark coefficient.
+///
+/// Under a dominant landmark coefficient, every anchored row of the trained frame lies within its
+/// anchor radius of its target at the zero step.
 #[test]
 fn landmark_support_keeps_the_frame() {
     let corpus = semantic_corpus();
     let mut options = options(schedule(nz!(25), 25, nz!(10)));
     // A dominant landmark coefficient pins the anchored rows.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        non_negative!(0.5),
-        non_negative!(0.5),
-        NonNegative::ONE,
-        NonNegative::ZERO,
-        non_negative!(8.0),
-    );
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: non_negative!(0.5),
+        hard: non_negative!(0.5),
+        relation: NonNegative::ONE,
+        anchor: NonNegative::ZERO,
+        landmark: non_negative!(8.0),
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -223,12 +237,14 @@ fn landmark_support_keeps_the_frame() {
     }
 }
 
+/// Pulls cluster mates closer within ten steps of semantic gradient alone.
+///
 /// A ten-step run certifies the mechanism `training_separates_the_semantic_clusters` measures at
 /// convergence: the semantic gradient already pulls cluster mates closer well short of the full
 /// schedule that compounds the effect into a separated layout. (One optimizer step is not enough
 /// for a stable direction: Adam's first update is close to the coordinatewise sign of the gradient,
-/// so a single step can move an individual row either way even though the mean cluster displacement
-/// already improves. Across ten steps the true gradient direction dominates.)
+/// and a single step can therefore move an individual row either way even though the mean cluster
+/// displacement already improves. Across ten steps the true gradient direction dominates.)
 #[test]
 fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     let corpus = semantic_corpus();
@@ -237,16 +253,16 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     // The default fixture carries other non-zero coefficients (both repulsion terms, the landmark
     // term, and the evidence-less relation term). Zeroing every force but the semantic one isolates
     // the mechanism the certificate names. Rows in one cluster share almost the same input
-    // representation, so the shared network weights let any other active force move cluster mates
-    // in a correlated way, and that confound must be off for the certificate to test what it names.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-    );
+    // representation: the shared network weights let any other active force move cluster mates in
+    // a correlated way, and that confound must be off for the certificate to test what it names.
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: NonNegative::ZERO,
+        hard: NonNegative::ZERO,
+        relation: NonNegative::ZERO,
+        anchor: NonNegative::ZERO,
+        landmark: NonNegative::ZERO,
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -273,30 +289,32 @@ fn few_steps_semantic_gradient_pulls_cluster_mates_together() {
     );
 }
 
+/// Points each anchored row toward its target within ten steps under a dominant landmark force.
+///
 /// A ten-step run under a dominant landmark coefficient certifies the mechanism
 /// `landmark_support_keeps_the_frame` measures at convergence: the force already points each
 /// anchored row toward its target well short of the full run. (One optimizer step is not enough:
 /// Adam's first update is close to the coordinatewise sign of the gradient rather than its true
-/// direction, so a single step can send an anchored row away from its target even under a dominant
-/// coefficient. Across ten steps the true gradient direction dominates.)
+/// direction, and a single step can therefore send an anchored row away from its target even under
+/// a dominant coefficient. Across ten steps the true gradient direction dominates.)
 #[test]
 fn few_steps_landmark_force_points_anchors_at_their_targets() {
     let corpus = semantic_corpus();
     let before = project(&model(), &corpus, non_negative!(0.0));
     let mut options = options(schedule(nz!(10), 10, nz!(2)));
     // A dominant landmark coefficient pins the anchored rows. Neither repulsion term aims at a
-    // fixed target point, so zeroing them keeps their sampling noise from swinging the one row this
+    // fixed target point: zeroing them keeps their sampling noise from swinging the one row this
     // certificate reads. The relation term has no evidence in this corpus and goes to zero with
-    // them. The semantic term's type admits no zero, so the 8:1 landmark dominance carries the
+    // them. The semantic term's type admits no zero: the 8:1 landmark dominance carries the
     // isolation.
-    options.coefficients = Coefficients::new(
-        Positive::ONE,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        NonNegative::ZERO,
-        non_negative!(8.0),
-    );
+    options.coefficients = Coefficients {
+        semantic: Positive::ONE,
+        ordinary: NonNegative::ZERO,
+        hard: NonNegative::ZERO,
+        relation: NonNegative::ZERO,
+        anchor: NonNegative::ZERO,
+        landmark: non_negative!(8.0),
+    };
     let fitted = fit(
         model(),
         &corpus.inputs(),
@@ -363,6 +381,12 @@ fn equal_seeds_train_equal_frames() {
     );
 }
 
+/// Freezes a positive measured radius for a proximal corpus with one review.
+///
+/// A proximal corpus with one review freezes a positive measured radius at the boundary step with a
+/// one-type calibration and evaluated stability certificate. Phase A and the ladder's zero step
+/// exert no relation force while positive steps do. Telemetry ticks fall at `[0, 4, 6, 8]`, and
+/// drift fractions read at `[6, 8]` as mass shares.
 #[test]
 fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
@@ -396,9 +420,8 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     assert!(entry.mass > d_non_negative!(0.0));
     assert!(entry.quantiles.is_some());
 
-    // Phase A is semantic-only; the ladder's zero step stays so; and
-    // every positive step exerts relation force (the Proximal energy
-    // is strictly positive).
+    // Phase A is semantic-only, the ladder's zero step stays so, and every positive step exerts
+    // relation force (the Proximal energy is strictly positive).
     let losses = &fitted.evidence.losses;
     assert!(losses[..6].iter().all(|loss| loss.relation == 0.0));
     assert_eq!(losses[6].relation, 0.0, "the ladder opens at the zero step");
@@ -417,7 +440,7 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
         .collect();
     assert_eq!(ticks, [0, 4, 6, 8]);
 
-    // The certificate rides the calibration as an evaluation of the same freeze population.
+    // The certificate accompanies the calibration as an evaluation of the same freeze population.
     let certificate = boundary
         .calibration
         .stability()
@@ -432,8 +455,8 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     );
 
     // The drift report reads at every scale-bearing tick: the boundary tick and the ones
-    // after it. The first entry is the freeze-time reading of the freeze frame itself, so it
-    // sits at or above the radius fraction, and every reading is a mass share.
+    // after it. The first entry is the freeze-time reading of the freeze frame itself and
+    // therefore lies at or above the radius fraction, and every reading is a mass share.
     let fraction_steps: Vec<usize> = fitted
         .evidence
         .fractions
@@ -451,6 +474,10 @@ fn boundary_freezes_a_measured_radius_and_opens_the_ladder() {
     assert!(fitted.evidence.fractions[0].fraction >= d_non_negative!(0.25));
 }
 
+/// A proximal corpus without reviews fails with `MissingProximalReviews`.
+///
+/// A proximal corpus without reviews fails with `MissingProximalReviews`, whose message tells the
+/// operator to confirm Proximal types.
 #[test]
 fn missing_reviewed_radius_names_the_fix() {
     let corpus = proximal_corpus(Vec::new());
@@ -492,7 +519,7 @@ fn forceless_corpus_trains_vacuously() {
         .expect("the boundary ran within the schedule");
     assert_eq!(boundary.radius, FrozenRadius::Vacuous);
     assert_eq!(boundary.calibration.radius(), None);
-    assert!(boundary.calibration.types().is_empty());
+    assert_eq!(boundary.calibration.types(), []);
     assert_eq!(boundary.calibration.stability(), None);
     assert!(
         fitted.evidence.fractions.is_empty(),
@@ -508,12 +535,16 @@ fn forceless_corpus_trains_vacuously() {
     );
 }
 
+/// Projects bit-identical maps and a zero displacement field for a forceless corpus.
+///
+/// A forceless corpus projects bit-identical maps at lens steps 0, 0.5 and 1 and measures a zero
+/// displacement field at every tick, because the condition weights never receive gradient.
 #[test]
 fn vacuous_run_trains_a_flat_ladder() {
     let corpus = semantic_corpus();
-    // The ladder opens at step 3, but a forceless corpus pins the
-    // zero step through it: the condition weights never receive
-    // gradient, so every step projects the identical map.
+    // The ladder opens at step 3, but a forceless corpus pins the zero step through it: the
+    // condition weights never receive gradient, and every step therefore projects the identical
+    // map.
     let options = options(schedule(nz!(9), 3, nz!(4)));
     let fitted = fit(
         model(),
@@ -563,6 +594,10 @@ fn measured_radius_requires_an_opening_segment() {
     assert_eq!(error, TrainError::UnbaselinedRadius);
 }
 
+/// A purely coincident relation policy fails with `CoincidentWithoutProximal`.
+///
+/// A corpus whose only relation policy is purely coincident fails with `CoincidentWithoutProximal`,
+/// since coincident force alone cannot set the proximal radius.
 #[test]
 fn coincident_without_proximal_force_refuses() {
     let coincident_policy = RelationPolicy {
@@ -597,13 +632,16 @@ fn coincident_without_proximal_force_refuses() {
     assert_eq!(error, TrainError::CoincidentWithoutProximal);
 }
 
+/// Measures exactly zero maximum displacement at every opening-segment tick.
+///
+/// Through the opening segment every telemetry tick covers all rows and measures a maximum
+/// displacement of exactly zero, because the zero-initialized condition weight never moves.
 #[test]
 fn phase_a_ticks_measure_a_frozen_lens() {
-    // Through the opening segment the FiLM condition weight is
-    // zero-initialized and receives an exactly-zero gradient at the
-    // zero step, so Adam never moves it and the two lens extremes
-    // produce bit-identical frames: the measured displacement is
-    // exactly zero, not approximately.
+    // Through the opening segment the FiLM condition weight is zero-initialized and receives an
+    // exactly-zero gradient at the zero step. Adam therefore never moves it, and the two lens
+    // extremes produce bit-identical frames: the measured displacement is exactly zero, not
+    // approximately.
     let corpus = semantic_corpus();
     let options = options(schedule(nz!(4), 4, nz!(2)));
     let fitted = fit(
@@ -629,6 +667,10 @@ fn phase_a_ticks_measure_a_frozen_lens() {
     }
 }
 
+/// An infinite component fails the fit with `RefreshError::Diverged` naming its row.
+///
+/// An infinite component in corpus row 3 fails the fit with `RefreshError::Diverged` naming that
+/// row.
 #[test]
 fn non_finite_representation_fails_the_first_tick() {
     let mut corpus = semantic_corpus();
@@ -650,6 +692,10 @@ fn non_finite_representation_fails_the_first_tick() {
     assert_eq!(row.as_u64(), 3, "the error names the diverged corpus row");
 }
 
+/// Equates a chunked forward pass with the whole-corpus pass.
+///
+/// A forward pass in chunks of three rows equals the whole-corpus pass, since rows project
+/// independently.
 #[test]
 fn chunked_forwards_match_the_whole_corpus_pass() {
     let corpus = semantic_corpus();
@@ -673,54 +719,95 @@ fn chunked_forwards_match_the_whole_corpus_pass() {
     .expect("the fixture model is finite");
     assert_eq!(
         chunked, whole,
-        "rows project independently, so slicing cannot change the frame"
+        "slicing cannot change the frame because rows project independently"
     );
 }
 
+/// Admits and rejects `TrainingSchedule::new` inputs at the boundary and rate bounds.
+///
+/// `TrainingSchedule::new` accepts a boundary inside the run and a minimum rate at or below the
+/// initial rate (zero included) and rejects a boundary beyond the run or a minimum above the
+/// initial rate.
 #[test]
 fn schedule_validates_its_domain() {
     // Out-of-range rates are unconstructible: the initial rate as a `PositiveUnitFraction`, the
     // minimum as a `UnitFraction`. The residual domain here is the boundary and the rate ordering.
-    let valid = TrainingSchedule::new(
-        nz!(10),
-        5,
-        nz!(2),
-        positive_unit_fraction!(0.05),
-        unit_fraction!(0.001),
+    TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.001),
+    })
+    .expect("should be a valid schedule");
+
+    assert_matches!(
+        TrainingSchedule::new(TrainingScheduleOptions {
+            steps: nz!(10),
+            boundary: 11,
+            refresh_interval: nz!(2),
+            initial_learning_rate: positive_unit_fraction!(0.05),
+            minimum_learning_rate: unit_fraction!(0.001),
+        }),
+        Err(TrainingScheduleError::BoundaryGreaterThanSteps { .. }),
     );
-    assert!(valid.is_some());
-    assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            11,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.001)
-        )
-        .is_none(),
-        "the boundary lies within the run"
+
+    TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.0),
+    })
+    .expect("a zero minimum decays the rate to nothing and is lawful");
+
+    assert_matches!(
+        TrainingSchedule::new(TrainingScheduleOptions {
+            steps: nz!(10),
+            boundary: 5,
+            refresh_interval: nz!(2),
+            initial_learning_rate: positive_unit_fraction!(0.05),
+            minimum_learning_rate: unit_fraction!(0.1)
+        }),
+        Err(TrainingScheduleError::InitialLearningRateSmallerThanMinimum { .. })
     );
-    assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            5,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.0)
-        )
-        .is_some(),
-        "a zero minimum decays the rate to nothing and is lawful"
+}
+
+#[test]
+fn schedule_deserialization_cross_field_constraints() {
+    let schedule = TrainingSchedule::new(TrainingScheduleOptions {
+        steps: nz!(10),
+        boundary: 5,
+        refresh_interval: nz!(2),
+        initial_learning_rate: positive_unit_fraction!(0.05),
+        minimum_learning_rate: unit_fraction!(0.001),
+    })
+    .expect("the fixture schedule is valid");
+    let document = serde_json::to_value(schedule).expect("the schedule serializes");
+    assert_eq!(
+        serde_json::from_value::<TrainingSchedule>(document.clone())
+            .expect("the unchanged schedule should deserialize"),
+        schedule,
     );
+
+    let mut boundary = document.clone();
+    boundary["boundary"] = serde_json::json!(11);
+    let error = serde_json::from_value::<TrainingSchedule>(boundary)
+        .expect_err("a boundary beyond the run refuses to parse");
     assert!(
-        TrainingSchedule::new(
-            nz!(10),
-            5,
-            nz!(2),
-            positive_unit_fraction!(0.05),
-            unit_fraction!(0.1)
-        )
-        .is_none(),
-        "the minimum does not exceed the initial rate"
+        error
+            .to_string()
+            .contains("boundary must be less than or equal")
+    );
+
+    let mut rates = document;
+    rates["minimum_learning_rate"] = serde_json::json!(0.1);
+    let error = serde_json::from_value::<TrainingSchedule>(rates)
+        .expect_err("a minimum above the initial rate refuses to parse");
+    assert!(
+        error
+            .to_string()
+            .contains("minimum learning rate must be less than or equal"),
     );
 }
 
@@ -827,14 +914,14 @@ fn forked_ladders_share_the_frozen_radius() {
         )
         .expect("the resume checkpoint opens");
         let mut cell = opening;
-        cell.coefficients = Coefficients::new(
-            Positive::ONE,
-            non_negative!(0.5),
-            non_negative!(0.5),
+        cell.coefficients = Coefficients {
+            semantic: Positive::ONE,
+            ordinary: non_negative!(0.5),
+            hard: non_negative!(0.5),
             relation,
-            NonNegative::ZERO,
-            NonNegative::ONE,
-        );
+            anchor: NonNegative::ZERO,
+            landmark: NonNegative::ONE,
+        };
         fit_from_boundary(
             state,
             &corpus.inputs(),
@@ -861,6 +948,7 @@ fn forked_ladders_share_the_frozen_radius() {
     );
 }
 
+/// Resuming with a different step count fails with `ScheduleChanged` carrying both schedules.
 #[test]
 fn resumed_ladder_rejects_a_changed_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
@@ -911,6 +999,7 @@ impl RecordingProgress {
         }
     }
 
+    /// The `(step, steps, loss)` observations recorded so far, in report order.
     fn steps(&self) -> Vec<(usize, usize, LossBreakdown)> {
         self.steps
             .lock()
@@ -918,6 +1007,7 @@ impl RecordingProgress {
             .clone()
     }
 
+    /// The snapshots recorded so far, each as its sampled coordinates and landmark count.
     fn snapshots(&self) -> Vec<(Vec<Vec2>, usize)> {
         self.snapshots
             .lock()
@@ -927,7 +1017,6 @@ impl RecordingProgress {
 }
 
 impl Progress for RecordingProgress {
-    /// The fixture watches training steps, so nothing crosses into owning machinery.
     type Detached = NoProgress;
 
     fn detach(&self) -> NoProgress {
@@ -953,6 +1042,10 @@ impl Progress for RecordingProgress {
     }
 }
 
+/// Reports steps `0..12` against the whole schedule with the evidence records' losses.
+///
+/// The progress stream reports steps `0..12`, each against the whole twelve-step schedule, with the
+/// same loss values in the same order as the evidence records.
 #[test]
 fn every_training_step_reports_the_loss_it_records() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
@@ -988,6 +1081,10 @@ fn every_training_step_reports_the_loss_it_records() {
     );
 }
 
+/// Reports one concatenated `0..12` step stream across the opening segment and the resumed ladder.
+///
+/// The opening segment and the resumed ladder report one concatenated `0..12` step stream against
+/// the whole schedule rather than restarting the count at the boundary.
 #[test]
 fn phases_report_against_the_whole_schedule() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
@@ -1028,6 +1125,11 @@ fn phases_report_against_the_whole_schedule() {
     assert!(reported.iter().all(|&(_, steps, _)| steps == 12));
 }
 
+/// Delivers one four-row snapshot per tick, landmarks first, without changing the losses.
+///
+/// An observer with appetite four receives one four-row snapshot per telemetry tick with the two
+/// landmark rows first, the first and last snapshots differ, and the watched run's losses are
+/// bit-equal to an unwatched run's.
 #[test]
 fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     let corpus = proximal_corpus(vec![proximal_verdict()]);
@@ -1055,20 +1157,21 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
     .expect("the boundary fixture trains")
     .trained();
 
-    // Each snapshot comes from the refresh's own frame, so exactly one exists per tick and the
+    // Each snapshot comes from the refresh's own frame: exactly one exists per tick, and the
     // telemetry counts the same ticks. Each snapshot reports the sample the observer requested,
     // with the corpus's two landmark rows first.
     let snapshots = observer.snapshots();
     assert_eq!(snapshots.len(), watched.evidence.telemetry.len());
-    assert!(!snapshots.is_empty());
+    assert_ne!(snapshots, [] as [(Vec<Vec2>, usize); 0]);
     assert!(
         snapshots
             .iter()
             .all(|&(ref positions, landmarks)| positions.len() == 4 && landmarks == 2)
     );
 
-    // The sample consumes no randomness, so watching cannot move the
-    // run: the two runs' losses are bit-equal, step for step.
+    // The sample consumes no randomness and this observer's callbacks only record, which leaves
+    // the two runs' draws the same. On the test backend their losses come out bit-equal, step for
+    // step.
     assert_eq!(watched.evidence.losses, unwatched.evidence.losses);
 
     // The placement moves under the observer's eye rather than
@@ -1080,6 +1183,7 @@ fn a_watching_observer_sees_the_placement_move_and_changes_nothing() {
 
 /// Runs a closure under a warn-level subscriber and returns everything it logged.
 fn captured_warnings(run: impl FnOnce()) -> String {
+    /// A shared byte buffer the subscriber writes its formatted events into.
     #[derive(Clone, Default)]
     struct Capture(alloc::sync::Arc<Mutex<Vec<u8>>>);
 
@@ -1121,7 +1225,7 @@ fn captured_warnings(run: impl FnOnce()) -> String {
     String::from_utf8(bytes).expect("formatted log output is UTF-8")
 }
 
-/// A certificate literal whose decision is the given `pass`, dyadic throughout.
+/// Builds a stability certificate with decision `pass`.
 fn certificate(pass: bool) -> StabilityCertificate {
     StabilityCertificate {
         quantile: open_unit_fraction!(0.25),
@@ -1158,6 +1262,10 @@ fn spread_calibration(spread: f32, pass: bool) -> ProximalCalibration {
     )
 }
 
+/// Warns on a failing stability certificate naming `reviewed_mass_stability_bound`.
+///
+/// A failing stability certificate with a tight spread warns naming `reviewed_mass_stability_bound`
+/// and reports `leave_one_out_spread` beside it, without the spread warning.
 #[test]
 fn a_failing_certificate_warns_with_its_check_name() {
     let calibration = spread_calibration(0.25, false);
@@ -1169,12 +1277,16 @@ fn a_failing_certificate_warns_with_its_check_name() {
         output.contains("fails its evaluated stability bound"),
         "{output}"
     );
-    // The leave-one-type-out spread rides beside the warning.
+    // The leave-one-type-out spread is reported beside the warning.
     assert!(output.contains("leave_one_out_spread"), "{output}");
     // The tight spread crossed no spread warning.
     assert!(!output.contains("leave_one_out_radius_spread"), "{output}");
 }
 
+/// Warns on a wide leave-one-out spread naming `leave_one_out_radius_spread` alone.
+///
+/// A passing certificate whose leave-one-out spread exceeds one transition width warns naming
+/// `leave_one_out_radius_spread` and not the stability bound.
 #[test]
 fn a_spread_beyond_one_temperature_warns_with_its_check_name() {
     let calibration = spread_calibration(4.0, true);
@@ -1192,6 +1304,7 @@ fn a_spread_beyond_one_temperature_warns_with_its_check_name() {
     );
 }
 
+/// A passing certificate with a tight spread produces no warning output.
 #[test]
 fn a_passing_certificate_with_a_tight_spread_warns_nothing() {
     let calibration = spread_calibration(0.25, true);
@@ -1201,10 +1314,11 @@ fn a_passing_certificate_with_a_tight_spread_warns_nothing() {
     assert_eq!(output, "");
 }
 
-/// The field-derived constants the identity declares re-derive from the recorded boundary
-/// field, and the enforcement record covers exactly the ladder's interval. The
-/// neighbour-dependent constants ride the ruler tables, whose re-freeze carries its own
-/// certificate below.
+/// Re-derives the identity's field-derived constants from the recorded boundary field.
+///
+/// The field-derived constants the identity declares re-derive from the recorded boundary field,
+/// and the enforcement record covers exactly the ladder's interval. The neighbour-dependent
+/// constants are carried by the ruler tables, whose re-freeze has its own certificate below.
 #[test]
 fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     let corpus = target_corpus();
@@ -1236,7 +1350,7 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     assert_eq!(field.len(), ROWS);
 
     // Every field-derived constant re-derives from the recorded field, bit for bit. The
-    // recorded field is finite by construction, so the reading needs no scan.
+    // recorded field is finite by construction: the reading needs no scan.
     let spread = target.boundary_field.rms_spread();
     #[expect(
         clippy::cast_possible_truncation,
@@ -1280,8 +1394,8 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     assert_eq!(target.enforcement.last_application, Some(12));
     assert_eq!(target.row_maxima.len(), ROWS);
 
-    // At the boundary step the zero field is the snapshot itself, so the common-mode fit
-    // reads the exact identity scale and neither displacement nor saturation reads anything.
+    // At the boundary step the zero field is the snapshot itself: the common-mode fit reads the
+    // exact identity scale, and neither displacement nor saturation reads anything.
     let boundary = &target.evaluations[0];
     assert_eq!(boundary.zero_similarity.scale().get(), 1.0);
     let mut anchor_rows = 0;
@@ -1310,18 +1424,19 @@ fn the_identity_constants_re_derive_from_the_recorded_boundary_field() {
     assert_eq!(fitted.evidence.losses[6].target, target.estimands[0]);
 }
 
-/// A live gauge fit refusal ends the run as the refused outcome: no activation candidate, no
-/// target claim, and the whole run record - boundary and target records sealed in - rides the
-/// refusal, cut at the last completed reading before the failed one.
+/// Ends the run as the refused outcome on a live gauge fit refusal, run record attached.
+///
+/// A live gauge fit refusal ends the run as the refused outcome. The run publishes no activation
+/// candidate and makes no target claim, and the whole run record (boundary and target records
+/// sealed in) accompanies the refusal, cut at the last completed reading before the failed one.
 #[test]
 fn gauge_fit_refusal_keeps_the_recorded_evidence() {
     let corpus = target_corpus();
     let draws = target_draws();
     let options = options(schedule(nz!(12), 6, nz!(4)));
     let mut declared = target_options(1.0);
-    // At the boundary step no relation gradient has flowed, the steps read bit-identical
-    // coordinates, and the residual is exactly zero, so a bar below any real deformation
-    // refuses the first fit after a post-boundary update.
+    // the 10⁻¹² limit accepts the zero-residual boundary fit and rejects the deformation from the
+    // first post-boundary update.
     declared.residual_bar = Some(positive!(1e-12));
 
     let outcome = fit(
@@ -1343,7 +1458,7 @@ fn gauge_fit_refusal_keeps_the_recorded_evidence() {
         TargetRefusalCause::Gauge(GaugeRefusal::ResidualAboveBar { .. })
     );
 
-    // The run record rides the refusal whole. The boundary record entered it when the radius
+    // The refusal carries the run record whole. The boundary record entered it when the radius
     // freeze completed at step 6, the run's standing self-measurement is cut at the last
     // completed reading (losses through step 6, ticks at steps 0, 4, and 6 - the refusing
     // step ran none), and the refusing step's loss never computed.
@@ -1379,8 +1494,8 @@ fn gauge_fit_refusal_keeps_the_recorded_evidence() {
 
 /// A refusal at a post-boundary tick step cuts between the tick's two readings.
 ///
-/// The refresh telemetry precedes the target pass, so the refusing step's tick enters the
-/// record, while the per-evaluation evidence follows the refusing fit and never records. The
+/// The refresh telemetry precedes the target pass: the refusing step's tick enters the record,
+/// while the per-evaluation evidence follows the refusing fit and never records. The
 /// schedule places the first fit after an optimizer update on a tick step - boundary 7,
 /// interval 4, step 8 - and that one step therefore witnesses both sides of the cut.
 #[test]
@@ -1413,7 +1528,7 @@ fn tick_step_refusal_records_telemetry_and_no_evaluation() {
     );
 
     // The refusing step is a tick step (8 % 4 == 0), and its telemetry entered the record
-    // before the target pass refused. The loop records a step's loss after the pass, so the
+    // before the target pass refused. The loop records a step's loss after the pass: the
     // refusing step's loss never pushed.
     let record = refusal.evidence;
     let ticks: Vec<usize> = record.telemetry.iter().map(|tick| tick.step).collect();
@@ -1434,17 +1549,18 @@ fn tick_step_refusal_records_telemetry_and_no_evaluation() {
 }
 
 /// A boundary freeze refusal ends the run as the refused outcome before any target step runs.
-/// The boundary record enters the run record the moment the radius freeze completes, before
-/// the target freeze is attempted. The refusal therefore carries it beside the opening
-/// segment's accumulated readings, and no target record exists because the phase never froze.
+///
+/// The boundary record enters the run record the moment the radius freeze completes, before the
+/// target freeze is attempted. The refusal therefore carries it beside the opening segment's
+/// accumulated readings, and no target record exists because the phase never froze.
 #[test]
 fn boundary_freeze_refusal_carries_the_boundary_evidence() {
     let corpus = target_corpus();
     let draws = target_draws();
     let options = options(schedule(nz!(12), 6, nz!(4)));
     let mut declared = target_options(1.0);
-    // A spread floor no healthy constellation reaches, so the gauge freeze refuses at the
-    // boundary - a data-dependent refusal admission cannot see.
+    // A spread floor no healthy constellation reaches: the gauge freeze refuses at the
+    // boundary, a data-dependent refusal admission cannot see.
     declared.gauge_spread_factor = Some(positive!(1e6));
 
     let outcome = fit(
@@ -1473,21 +1589,22 @@ fn boundary_freeze_refusal_carries_the_boundary_evidence() {
         .expect("the radius freeze completed before the refusal");
     assert_eq!(boundary.step, 6);
     assert_matches!(boundary.radius, FrozenRadius::Measured { .. });
-    // The phase never froze, so no target record exists - absent structurally, never
-    // dropped.
+    // the failed freeze prevents creation of the target record.
     assert!(record.target.is_none());
     // The opening segment's record as accumulated. Losses reach through step 5 and ticks
     // ran at steps 0 and 4 (the boundary step's own tick follows the boundary and never
     // ran); no drift reading exists, because the first belongs to that unrun tick.
     assert_eq!(record.losses.len(), 6);
     assert_eq!(record.telemetry.len(), 2);
-    assert!(record.fractions.is_empty());
+    assert_eq!(record.fractions, [] as [RefreshFraction; 0]);
 }
 
-/// The frozen ruler re-freezes bit-identically from the recorded boundary field, and the
-/// recorded tables equal the re-freeze's own - the reading no field alone determines, since
-/// one `Z_K` admits many neighbour tables. The freeze is bit-deterministic from its inputs,
-/// so the recorded trio suffices to reconstruct the exact ruler every reading divided by.
+/// Re-freezes the ruler bit-identically from the recorded boundary field and tables.
+///
+/// The frozen ruler re-freezes bit-identically from the recorded boundary field, and the recorded
+/// tables equal the re-freeze's own - the reading no field alone determines, since one `Z_K` admits
+/// many neighbour tables. The freeze is bit-deterministic from its inputs, and the recorded trio
+/// therefore suffices to reconstruct the exact ruler every reading divided by.
 #[test]
 fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
     let corpus = target_corpus();
@@ -1547,10 +1664,11 @@ fn the_ruler_re_freezes_from_the_recorded_boundary_field() {
     );
 }
 
-/// The activation is a value, not structure. A zero-activation run reads a live estimand
-/// stream while contributing exactly zero force: the recorded per-step target loss - the term
-/// the composite loss descends - is 0.0 at every step under either penalty, and only a live
-/// activation descends it.
+/// The activation is a value, not structure.
+///
+/// A zero-activation run reads a live estimand stream while contributing exactly zero force: the
+/// recorded per-step target loss - the term the composite loss descends - is 0.0 at every step
+/// under either penalty, and only a live activation descends it.
 #[test]
 fn zero_activation_zero_force() {
     let corpus = target_corpus();
@@ -1742,10 +1860,12 @@ fn every_split_population_overlap_refuses_at_admission() {
     );
 }
 
-/// A reopened resume checkpoint carries the written parameters, the scheduler at the boundary,
-/// the identical schedule, and the caller's generator stream. Identity is asserted on the
-/// decoded state, per the writer's own contract - the bytes are not canonical (the optimizer
-/// record is a map), the decoded state is.
+/// Reopens a resume checkpoint with parameters, scheduler, schedule and generator intact.
+///
+/// A reopened resume checkpoint carries the written parameters, the scheduler at the boundary, the
+/// identical schedule, and the caller's generator stream. Identity is asserted on the decoded
+/// state, per the writer's own contract - the bytes are not canonical (the optimizer record is a
+/// map), the decoded state is.
 #[test]
 fn resume_checkpoint_round_trip() {
     let corpus = target_corpus();
@@ -1794,8 +1914,8 @@ fn resume_checkpoint_round_trip() {
         state.training.scheduler.to_record::<Training>()
     );
 
-    // The model record is a named-struct tree, so its serialization is deterministic - the
-    // writer's non-canonical clause covers the optimizer map alone.
+    // The model record is a named-struct tree and its serialization is therefore deterministic:
+    // the writer's non-canonical clause covers the optimizer map alone.
     let recorder = NamedMpkBytesRecorder::<FullPrecisionSettings>::new();
     let written = recorder
         .record(state.training.model.into_record(), ())
@@ -1809,11 +1929,11 @@ fn resume_checkpoint_round_trip() {
     );
 }
 
-/// A structurally valid resume record around the given overrides.
+/// A structurally valid resume record, which the tests override one field at a time.
 fn resume_record() -> ResumeRecord<Training> {
     ResumeRecord {
         model: model().into_record(),
-        // A fresh optimizer carries no moments until its first step, so the empty map is the
+        // A fresh optimizer carries no moments until its first step: the empty map is the
         // boundary state of a zero-length opening segment.
         optimizer: <_>::default(),
         scheduler: 5,
@@ -1826,12 +1946,19 @@ fn resume_record() -> ResumeRecord<Training> {
     }
 }
 
+/// Encodes a resume record with the checkpoint's recorder.
+///
+/// The recorder is the full-precision named-`MessagePack` one the checkpoint uses.
 fn record_bytes(record: ResumeRecord<Training>) -> Vec<u8> {
     NamedMpkBytesRecorder::<FullPrecisionSettings>::new()
         .record(record, ())
         .expect("the test record encodes")
 }
 
+/// Restores the generator state and the schedule exactly from an encoded resume record.
+///
+/// Opening an encoded resume record restores the generator state exactly and the schedule's steps,
+/// boundary and refresh interval.
 #[test]
 fn open_checkpoint_schedule_round_trip() {
     let bytes = record_bytes(resume_record());
@@ -1852,6 +1979,10 @@ fn open_checkpoint_schedule_round_trip() {
     assert_eq!(state.schedule.refresh_interval().get(), 4);
 }
 
+/// A record whose minimum rate exceeds the initial rate fails with `InvalidSchedule`.
+///
+/// A record whose minimum learning rate exceeds the initial rate fails to open with
+/// `CheckpointError::InvalidSchedule`.
 #[test]
 fn open_checkpoint_invalid_schedule() {
     let mut record = resume_record();
@@ -1865,12 +1996,14 @@ fn open_checkpoint_invalid_schedule() {
     ) else {
         panic!("a minimum above the initial rate should be rejected");
     };
-    assert!(
-        matches!(error, CheckpointError::InvalidSchedule),
-        "the rejection should name the schedule: {error}"
-    );
+
+    assert_matches!(error, CheckpointError::InvalidSchedule(_));
 }
 
+/// A record whose scheduler position is off the boundary fails with `SchedulerPosition`.
+///
+/// A record whose scheduler position is not the boundary fails to open with
+/// `CheckpointError::SchedulerPosition` naming the position and the boundary.
 #[test]
 fn open_checkpoint_scheduler_off_boundary() {
     let mut record = resume_record();

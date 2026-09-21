@@ -74,3 +74,63 @@ test("keeps error notifications open while preserving the default for other tone
     type: "success",
   });
 });
+
+test("shows a way out only where a notification needs one", async () => {
+  const Trigger = () => {
+    const { addNotification } = use(NotificationsContext);
+
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => addNotification({ message: "Simulation complete" })}
+        >
+          Complete
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            addNotification({
+              detail: "The complete elicitor failure.",
+              message: "Assistant run failed",
+              tone: "error",
+            })
+          }
+        >
+          Error
+        </button>
+      </>
+    );
+  };
+
+  render(
+    <NotificationsProvider>
+      <Trigger />
+    </NotificationsProvider>,
+  );
+
+  // The toaster is a module singleton whose toasts outlive a test, so each
+  // notification is read from its own toast rather than from the document,
+  // under a title no other test uses.
+  const toastFor = async (title: string) =>
+    (await screen.findByText(title)).closest("[data-part='root']");
+
+  fireEvent.click(screen.getByRole("button", { name: "Complete" }));
+  fireEvent.click(screen.getByRole("button", { name: "Error" }));
+
+  const complete = await toastFor("Simulation complete");
+  expect(complete?.hasAttribute("data-detail")).toBe(false);
+  expect(
+    complete?.querySelector("[aria-label='Close notification']"),
+  ).toBeNull();
+  expect(complete?.querySelector("[aria-label='Copy details']")).toBeNull();
+
+  const failure = await toastFor("Assistant run failed");
+  expect(failure?.hasAttribute("data-detail")).toBe(true);
+  await waitFor(() =>
+    expect(
+      failure?.querySelector("[aria-label='Close notification']"),
+    ).toBeTruthy(),
+  );
+  expect(failure?.querySelector("[aria-label='Copy details']")).toBeTruthy();
+});

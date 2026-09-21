@@ -1,20 +1,30 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStoreWithSelector } from "use-sync-external-store/with-selector";
 
 import type { ReadableStore } from "@hashintel/petrinaut-core";
 
 export function useStore<T>(store: ReadableStore<T>): T {
-  return useSyncExternalStore(
-    (onStoreChange) => store.subscribe(() => onStoreChange()),
-    () => store.get(),
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribe(onStoreChange),
+    [store],
   );
+  const getSnapshot = useCallback(() => store.get(), [store]);
+  return useSyncExternalStore(subscribe, getSnapshot);
 }
 
 export function useStoreSelector<T, U>(
   store: ReadableStore<T>,
   selector: (value: T) => U,
 ): U {
-  return useSyncExternalStore(
-    (onStoreChange) => store.subscribe(() => onStoreChange()),
-    () => selector(store.get()),
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribe(onStoreChange),
+    [store],
+  );
+  const getSnapshot = useCallback(() => store.get(), [store]);
+  return useSyncExternalStoreWithSelector(
+    subscribe,
+    getSnapshot,
+    undefined,
+    selector,
   );
 }

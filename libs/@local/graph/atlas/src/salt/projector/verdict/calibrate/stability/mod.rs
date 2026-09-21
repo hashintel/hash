@@ -11,7 +11,7 @@
 //! materiality tolerance, and `δ` the false-pass budget. The bound holds conditional on the
 //! independence licence: pair draws independent with fixed weights. The sentence is not
 //! `Pr(correct | pass) ≥ 1 − δ`, because the conditional claim needs a marginal over the latent
-//! distribution that nothing here supplies. It also makes no claim about the latent band's
+//! distribution, and the certificate carries none. It also makes no claim about the latent band's
 //! width: an atom inside the band boundary collapses the empirical gap while the latent gap
 //! stays arbitrary. For a consumer, a pass certifies the recorded radius lies within one
 //! temperature of the latent weighted-population quantile except on a δ-probability event -
@@ -30,7 +30,7 @@
 //! `ε = q` boundary (which is what makes the floor inclusive) and the upper event through the
 //! fixed strict-threshold variables at `u−`. A pass therefore needs
 //! `n_eff ≥ ln(2/δ)/(2q²)` - the legibility floor - before the gap is even consulted. A
-//! hundred low-weight pairs therefore never outrank ten balanced ones by count alone.
+//! hundred low-weight pairs never outrank ten balanced ones by count alone.
 //!
 //! `ε*`, `n*`, and the attained bit are derived after the decision and persist as evidence for
 //! readers: `ε* = sup{ε ∈ (0, q] : G(ε) ≤ τ}`, `n* = ln(2/δ)/(2·ε*²)`, and
@@ -66,8 +66,10 @@ const FALSE_PASS_BUDGET: OpenUnitFraction =
 
 /// The materiality multiplier `κ` in `τ = κ·T`.
 ///
-/// A radius error inside the sigmoid transition's own width does not change what the Proximal
-/// energy does to a pair, so one temperature is the materiality unit.
+/// One temperature is the chosen tolerance. A radius error of one `T` shifts the Proximal pull
+/// `sigmoid((z − radius) / T)` by the transition's own blur (at `z = radius` it moves from `1/2`
+/// to `1/(1+e)`), and the certificate declares an error of that size immaterial rather than
+/// without effect.
 const MATERIALITY_MULTIPLIER: DPositive =
     DPositive::new(1.0).expect("the materiality unit is positive");
 
@@ -96,8 +98,8 @@ pub(crate) enum StabilityBound {
 
 /// The reviews arm's evaluated certificate, persisted beside the boundary calibration.
 ///
-/// Every constant the decision consumed rides in the record, so the artifact names its own
-/// regime and a future compatible arm evaluates fresh rather than copying a scalar.
+/// Every constant the decision consumed is in the record: the artifact names its own regime, and
+/// a future compatible arm evaluates fresh rather than copying a scalar.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct StabilityCertificate {
     /// The quantile level `q` the estimator freezes at.
@@ -110,8 +112,9 @@ pub(crate) struct StabilityCertificate {
     pub temperature: DPositive,
     /// The materiality tolerance `τ = κ·T`.
     pub tau: DPositive,
-    /// The effective support `(Σw)² / Σw²` of the positive-mass population - the derivation's
-    /// `n_eff`.
+    /// The effective support `(Σw)² / Σw²` of the positive-mass population.
+    ///
+    /// The derivation's `n_eff`.
     pub effective_support: DPositive,
     /// The raw pair count, reader context only: the decision never consults it.
     pub pairs: usize,
@@ -121,8 +124,8 @@ pub(crate) struct StabilityCertificate {
     pub epsilon_zero: DPositive,
     /// The empirical interval width `G(ε₀) = Q̂(q+ε₀) − Q̂(q−ε₀)`, clamped-endpoint semantics.
     ///
-    /// Past the floor (`ε₀ > q`) the lower level clamps at the positive-mass minimum, so the
-    /// reading degrades toward the population's full width rather than vanishing; the decision
+    /// Past the floor (`ε₀ > q`) the lower level clamps at the positive-mass minimum, and the
+    /// reading degrades toward the population's full width rather than vanishing. The decision
     /// has already failed on the floor conjunct there.
     pub gap: DNonNegative,
     /// The evaluated bound, or the record that none exists.
@@ -167,16 +170,16 @@ impl Support {
         Self { values, cumulative }
     }
 
-    /// The total positive mass `W`.
+    /// Returns the total positive mass `W`.
     const fn mass(&self) -> f64 {
         self.cumulative.last().copied().unwrap_or(0.0)
     }
 
-    /// The quantile at `level`, with the clamped-endpoint convention.
+    /// Returns the quantile at `level`, with the clamped-endpoint convention.
     ///
     /// Levels at or below zero read the positive-mass minimum and levels at or above one the
-    /// positive-mass maximum; between them the production walk's first crossing of
-    /// `level · W` decides.
+    /// positive-mass maximum. Between them the production walk's first crossing of `level · W`
+    /// decides.
     fn quantile(&self, level: f64) -> NonNegative {
         if level <= 0.0 {
             return self.values[0];
@@ -189,20 +192,20 @@ impl Support {
         let position = self
             .cumulative
             .partition_point(|&cumulative| cumulative < threshold);
-        // Cumulative rounding can shave the last prefix below `level · W` for levels near one;
-        // the walk's answer is the maximum either way.
+        // Cumulative rounding can shave the last prefix below `level · W` for levels near one.
+        // The walk's answer is the maximum either way.
         self.values[position.min(self.values.len() - 1)]
     }
 
-    /// The empirical interval width `G(ε) = Q̂(q+ε) − Q̂(q−ε)`.
+    /// Returns the empirical interval width `G(ε) = Q̂(q+ε) − Q̂(q−ε)`.
     fn gap(&self, level: f64, epsilon: f64) -> DNonNegative {
-        // The first-crossing quantile is nondecreasing in its level - the threshold is monotone
-        // in the level, `partition_point` is monotone in the threshold, and the values ascend,
-        // therefore the width is non-negative and the absolute value is exact on it.
+        // The first-crossing quantile is nondecreasing in its level: the threshold is monotone
+        // in the level, `partition_point` is monotone in the threshold, and the values ascend.
+        // Therefore the width is non-negative, and the absolute value is exact on it.
         (self.quantile(level + epsilon).widen() - self.quantile(level - epsilon).widen()).abs()
     }
 
-    /// The effective support `(Σw)² / Σw²`, computed on normalized weights.
+    /// Returns the effective support `(Σw)² / Σw²`, computed on normalized weights.
     ///
     /// Normalizing by `W` first keeps the squares away from underflow: `Σp²` is at least the
     /// reciprocal of the row count.
@@ -231,12 +234,12 @@ impl Support {
 /// `sorted` is the calibration's pooled `(z, weight)` population, ascending by `z` in the same
 /// order the frozen radius walked, `type_masses` the per-type total masses, `pairs` the raw pair
 /// count, and `temperature` the generation's frozen `T`. Zero-weight rows and zero-mass types
-/// are excluded here, so callers pass their populations unfiltered.
+/// are excluded here, and callers pass their populations unfiltered.
 ///
 /// # Panics
 ///
 /// This panics when no row carries positive mass. The caller evaluates the certificate exactly
-/// when the boundary froze a measured radius, which requires positive mass, so an empty support
+/// when the boundary froze a measured radius, which requires positive mass, and an empty support
 /// is a wiring defect.
 pub(crate) fn evaluate(
     sorted: impl IntoIterator<Item = (NonNegative, DNonNegative)>,
@@ -259,8 +262,8 @@ pub(crate) fn evaluate(
 
     let effective_support = support.effective();
     // In domain with no check: the confidence is a positive constant and the effective support
-    // a validated positive, so the quotient stays positive - a reciprocal of a finite value
-    // never rounds to zero - and the square root of a positive value is positive.
+    // a validated positive. The quotient stays positive - a reciprocal of a finite value never
+    // rounds to zero - and the square root of a positive value is positive.
     let epsilon_zero = DPositive::new_unchecked((confidence / (2.0 * effective_support)).sqrt());
     let gap = support.gap(quantile.get(), epsilon_zero.get());
     let pass = epsilon_zero <= quantile && gap <= tau;
@@ -313,7 +316,7 @@ pub(crate) fn evaluate(
 /// Returns [`None`] when the safe set is empty.
 ///
 /// `G` is a nondecreasing step function of `ε` whose value can change only where `q − ε` or
-/// `q + ε` crosses a prefix-mass fraction, so the candidates are those crossings plus the domain
+/// `q + ε` crosses a prefix-mass fraction, and the candidates are those crossings plus the domain
 /// endpoint `q`. Between consecutive candidates `G` is constant, and each candidate is evaluated
 /// exactly by the same walk that evaluates `G(ε₀)` - the sup and its membership bit come from
 /// evaluation, never from continuity reasoning.

@@ -1,5 +1,6 @@
-/** Which side of a Voice session currently holds the turn. */
+/** Session connectivity or, when known, which side holds the turn. */
 export type PetrinautAiVoiceSessionPhase =
+  | "connected"
   | "connecting"
   | "error"
   | "listening"
@@ -20,14 +21,24 @@ export type PetrinautAiVoiceSessionState = {
   canReadFullResponse?: boolean;
   /** Whether the final segment of the canonical response is safe to repeat. */
   canRepeatQuestion?: boolean;
+  /** Whether browser-blocked session audio can be retried by the user. */
+  canRetryPlayback?: boolean;
   /** Whether the user can cancel Voice output and start their turn. */
   canTakeTurn?: boolean;
+  /** Whether speaking can interrupt assistant audio. */
+  interruptionBySpeaking?: boolean;
   errorMessage: string | null;
   /** Whether microphone capture is muted independently of whose turn it is. */
   microphoneMuted: boolean;
   /** Normalized 0–1 input level driving the listening indicator. */
   microphoneLevel: number;
-  /** Recoverable feedback about an utterance which was not submitted. */
+  /** Temporary operational status shown in place of the current phase. */
   notice?: string | null;
   phase: PetrinautAiVoiceSessionPhase;
+  /** Whether assistant audio is muted independently of its retained volume. */
+  speakerMuted?: boolean;
+  /** Normalized 0–1 assistant audio volume. */
+  speakerVolume?: number;
+  /** Recoverable issue retained behind the Voice warning indicator. */
+  warningMessage?: string | null;
 };

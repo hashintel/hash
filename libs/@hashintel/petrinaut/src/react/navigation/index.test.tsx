@@ -9,6 +9,7 @@ import {
   openPetrinautSimulationResource,
   openPetrinautSubnet,
   PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
   simulateDrawerToNavigationOverlay,
   simulateDrawerToNavigationResource,
   usePetrinautNavigation,
@@ -20,6 +21,79 @@ import type {
 } from ".";
 
 describe("Petrinaut navigation", () => {
+  test("clears an expanded SubView when its item or subnet changes", () => {
+    const initialState: PetrinautNavigationState = {
+      ...defaultPetrinautNavigationState,
+      selection: [{ type: "transition", id: "collision" }],
+      expandedSubView: {
+        container: "transition-properties",
+        id: "transition-results",
+      },
+    };
+    const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
+    const Probe = () => {
+      const { navigate } = usePetrinautNavigation();
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                { selection: [{ type: "transition", id: "crash" }] },
+                { cause: "user", action: "selection" },
+              )
+            }
+          >
+            Select another transition
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(openPetrinautSubnet("subnet"), {
+                cause: "user",
+                action: "subnet",
+              })
+            }
+          >
+            Open subnet
+          </button>
+        </>
+      );
+    };
+    render(
+      <PetrinautNavigationProvider
+        controller={{ state: initialState, onNavigate }}
+      >
+        <Probe />
+      </PetrinautNavigationProvider>,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select another transition" }),
+    );
+    expect(
+      onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open subnet" }));
+    expect(
+      onNavigate.mock.calls.at(-1)?.[0](initialState).expandedSubView,
+    ).toBeNull();
+  });
+
+  test("distinguishes settings sections and normalizes the default section", () => {
+    const state = (
+      section?: "general" | "viewport",
+    ): PetrinautNavigationState => ({
+      ...defaultPetrinautNavigationState,
+      overlay: { type: "user-settings", section },
+    });
+    expect(petrinautNavigationStatesMatch(state(), state("general"))).toBe(
+      true,
+    );
+    expect(
+      petrinautNavigationStatesMatch(state("general"), state("viewport")),
+    ).toBe(false);
+  });
+
   test("passes an updater and app-history intent to a controlled host", () => {
     const onNavigate = vi.fn<PetrinautNavigationController["onNavigate"]>();
     const controller: PetrinautNavigationController = {
@@ -503,7 +577,6 @@ describe("Petrinaut navigation", () => {
       "create-scenario",
       "create-metric",
       "create-experiment",
-      "create-optimization",
     ] as const) {
       const drawer = { type };
       // A create drawer layers over the open record rather than replacing it.
@@ -542,11 +615,52 @@ describe("Petrinaut navigation", () => {
         id: "experiment-a",
       }),
     ).toEqual({ type: "view-experiment", experimentId: "experiment-a" });
-    expect(
-      navigationResourceToSimulateDrawer({
-        type: "optimization",
-        id: "optimization-a",
-      }),
-    ).toEqual({ type: "closed" });
+    expect(navigationResourceToSimulateDrawer(null)).toEqual({
+      type: "closed",
+    });
   });
 });
+
+test.each([null, { type: "metric", id: "metric-a" }] as const)(
+  "clears fullscreen when leaving a panel for %j",
+  (resource) => {
+    const Probe = () => {
+      const { state, navigate } = usePetrinautNavigation();
+      return (
+        <>
+          <output aria-label="Presentation">
+            {state.simulatePresentation ?? "panel"}
+          </output>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                { simulateResource: resource },
+                { cause: "user", action: "simulation-resource" },
+              )
+            }
+          >
+            Leave panel
+          </button>
+        </>
+      );
+    };
+    const view = render(
+      <PetrinautNavigationProvider
+        initialState={{
+          mode: "simulate",
+          simulateResource: { type: "experiment", id: "experiment-a" },
+          simulatePresentation: "fullscreen",
+        }}
+      >
+        <Probe />
+      </PetrinautNavigationProvider>,
+    );
+    expect(screen.getByLabelText("Presentation").textContent).toBe(
+      "fullscreen",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Leave panel" }));
+    expect(screen.getByLabelText("Presentation").textContent).toBe("panel");
+    view.unmount();
+  },
+);

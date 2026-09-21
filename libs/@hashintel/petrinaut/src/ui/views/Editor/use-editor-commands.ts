@@ -1,19 +1,28 @@
-import { use } from "react";
+import { use, useEffect, useEffectEvent } from "react";
 
 import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
-import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
+
+export const autoLayoutShortcut = "mod+shift+l";
 
 /**
  * The editor's palette commands. A no-op unless the host mounted a
  * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
  * the keyboard handler still binds the keys.
  */
-function useEditorCommands(): void {
+const useEditorCommands = ({
+  applyAutoLayoutAndFrame,
+  onToggleAiAssistant,
+}: {
+  applyAutoLayoutAndFrame?: () => Promise<unknown>;
+  onToggleAiAssistant?: () => void;
+}): void => {
   const {
+    globalMode,
+    editViewMode,
     setCursorMode,
     setEditionMode,
     setSearchOpen,
@@ -23,9 +32,69 @@ function useEditorCommands(): void {
   } = use(EditorContext);
   const undoRedo = use(UndoRedoContext);
   const { applyAutoLayout } = usePetrinautCommands();
-  const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
-  const canEditNet = mode === "edit" && !isReadOnly;
+  const canEditNet =
+    globalMode === "edit" && editViewMode === "canvas" && !isReadOnly;
+  const runAutoLayout = () =>
+    void (applyAutoLayoutAndFrame?.() ?? applyAutoLayout());
+
+  useCommand(
+    {
+      id: "petrinaut.ai-assistant.toggle",
+      label: "Toggle AI assistant",
+      category: "Editor",
+      keywords: ["chat", "focus", "panel", "open", "close"],
+      shortcut: "mod+shift+k",
+      run: () => onToggleAiAssistant?.(),
+    },
+    { when: onToggleAiAssistant !== undefined },
+  );
+
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      onToggleAiAssistant &&
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      !event.repeat &&
+      !event.altKey &&
+      (event.metaKey || event.ctrlKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "k"
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      onToggleAiAssistant();
+      return;
+    }
+
+    const target = event.target;
+    const isEditingText =
+      target instanceof HTMLElement &&
+      (target.isContentEditable ||
+        target.closest(
+          'input, textarea, [contenteditable]:not([contenteditable="false"]), .monaco-editor, #sentry-feedback, [role="dialog"]',
+        ) !== null);
+    if (
+      canEditNet &&
+      !isEditingText &&
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      !event.repeat &&
+      (event.metaKey || event.ctrlKey) &&
+      event.shiftKey &&
+      !event.altKey &&
+      event.key.toLowerCase() === "l"
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      runAutoLayout();
+    }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, []);
 
   // Listed whenever the document handle provides history; like the
   // shortcut, they no-op on empty history.
@@ -100,7 +169,8 @@ function useEditorCommands(): void {
       label: "Auto-layout the net",
       category: "Net",
       keywords: ["arrange", "tidy", "layout"],
-      run: () => void applyAutoLayout(),
+      shortcut: autoLayoutShortcut,
+      run: runAutoLayout,
     },
     { when: canEditNet },
   );
@@ -127,14 +197,17 @@ function useEditorCommands(): void {
     keywords: ["timeline", "settings"],
     run: () => toggleBottomPanel(),
   });
-}
+};
 
 /**
  * Declares the editor's commands from a null-rendering leaf, so the context
  * subscriptions behind them (undo/redo changes on every document mutation)
  * re-render this leaf and not the `EditorView` tree.
  */
-export const EditorCommands: React.FC = () => {
-  useEditorCommands();
+export const EditorCommands: React.FC<{
+  applyAutoLayoutAndFrame?: () => Promise<unknown>;
+  onToggleAiAssistant?: () => void;
+}> = ({ applyAutoLayoutAndFrame, onToggleAiAssistant }) => {
+  useEditorCommands({ applyAutoLayoutAndFrame, onToggleAiAssistant });
   return null;
 };

@@ -2,6 +2,7 @@ import { lazy, Suspense, type FunctionComponent } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
+import { canonicalSearchString } from "./example-search";
 import { previewSearchToNavigationState } from "./navigation-search";
 
 import type { GeneratedExampleRuntime, LoadedExample } from "./catalog";
@@ -61,6 +62,14 @@ export const EmbeddedExamplePage: FunctionComponent<
     parameterBounds: example.catalog.parameterBounds,
   };
 
+  // Root-relative, so it resolves against this site inside a host's iframe,
+  // and carrying the reader's location so the full page opens on the scenario
+  // and the item they were looking at.
+  const query = canonicalSearchString(search);
+  const fullViewUrl = `/examples/${example.catalog.slug}${
+    query ? `?${query}` : ""
+  }`;
+
   return (
     <main className={pageStyle}>
       <Suspense
@@ -69,6 +78,7 @@ export const EmbeddedExamplePage: FunctionComponent<
         <LazyPetrinautPreview
           definition={example.definition}
           documentId={`example:${example.catalog.slug}`}
+          fullViewUrl={fullViewUrl}
           navigation={navigation}
           quickSimulation={quickSimulation}
           title={example.catalog.title}

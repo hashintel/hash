@@ -1,0 +1,2974 @@
+{
+  "title": "Inventory purchasing SDCPN v9 \u2014 v8 with dynamic make-to-forecast production: batch size tracks the live OU demand rate (forecast_weight 1, the default), blendable back to the static recorded plan (forecast_weight 0 = v8 exactly)",
+  "places": [
+    {
+      "id": "place__demand",
+      "name": "DemandOutlook",
+      "colorId": "type__market",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__demand",
+      "showAsInitialState": true,
+      "x": 1080,
+      "y": -510
+    },
+    {
+      "id": "place__backlog",
+      "name": "Backlog",
+      "colorId": "type__customer_order",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__waiting",
+      "showAsInitialState": false,
+      "x": 1575,
+      "y": -510
+    },
+    {
+      "id": "place__lost",
+      "name": "LostSales",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2100,
+      "y": -600
+    },
+    {
+      "id": "place__supplier_1",
+      "name": "ChineseSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -2025,
+      "y": -360
+    },
+    {
+      "id": "place__supplier_2",
+      "name": "IndianSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -2025,
+      "y": -135
+    },
+    {
+      "id": "place__supplier_3",
+      "name": "GermanSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -2025,
+      "y": 210
+    },
+    {
+      "id": "place__up_1",
+      "name": "InStock_ChineseSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -1455,
+      "y": -1110
+    },
+    {
+      "id": "place__down_1",
+      "name": "OutOfStock_ChineseSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -990,
+      "y": -1260
+    },
+    {
+      "id": "place__up_2",
+      "name": "InStock_IndianSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -1455,
+      "y": -630
+    },
+    {
+      "id": "place__down_2",
+      "name": "OutOfStock_IndianSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -990,
+      "y": -735
+    },
+    {
+      "id": "place__up_3",
+      "name": "InStock_GermanSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -1455,
+      "y": -885
+    },
+    {
+      "id": "place__down_3",
+      "name": "OutOfStock_GermanSupplier",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -990,
+      "y": -1005
+    },
+    {
+      "id": "place__switch_fees",
+      "name": "SwitchFees",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -1425,
+      "y": 360
+    },
+    {
+      "id": "place__lost_shipments",
+      "name": "LostShipments",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -420,
+      "y": -390
+    },
+    {
+      "id": "place__orders_placed",
+      "name": "OrdersPlaced",
+      "colorId": "type__crate",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -1425,
+      "y": 150
+    },
+    {
+      "id": "place__raw_1",
+      "name": "SonaflozinStock",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stored",
+      "showAsInitialState": true,
+      "x": 540,
+      "y": -285
+    },
+    {
+      "id": "place__raw_2",
+      "name": "FlowbindMaterialStock",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stored",
+      "showAsInitialState": true,
+      "x": 540,
+      "y": 315
+    },
+    {
+      "id": "place__line",
+      "name": "ProductionLineFree",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1470,
+      "y": 75
+    },
+    {
+      "id": "place__wip",
+      "name": "InProduction",
+      "colorId": "type__job",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__production",
+      "showAsInitialState": false,
+      "x": 825,
+      "y": 0
+    },
+    {
+      "id": "place__fg",
+      "name": "FinishedGoods",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stored",
+      "showAsInitialState": true,
+      "x": 1455,
+      "y": -90
+    },
+    {
+      "id": "place__sales",
+      "name": "FulfilledOrders",
+      "colorId": "type__sale",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2100,
+      "y": -420
+    },
+    {
+      "id": "place__expired",
+      "name": "ExpiredStock",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 30
+    },
+    {
+      "id": "place__scrap",
+      "name": "ScrappedBatches",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1470,
+      "y": 255
+    },
+    {
+      "id": "place__delayed",
+      "name": "DelayedShipments",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__shelf",
+      "showAsInitialState": false,
+      "x": -450,
+      "y": 375
+    },
+    {
+      "id": "place__delay_log",
+      "name": "DelayLog",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": -450,
+      "y": 195
+    },
+    {
+      "id": "place__holding",
+      "name": "HoldingCosts",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 240
+    },
+    {
+      "id": "place__at_vendor",
+      "name": "AtVendor",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__at_vendor",
+      "showAsInitialState": false,
+      "x": -1425,
+      "y": -240
+    },
+    {
+      "id": "place__in_transit",
+      "name": "InTransit",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__in_transit",
+      "showAsInitialState": false,
+      "x": -945,
+      "y": -240
+    },
+    {
+      "id": "place__price",
+      "name": "RawPriceIndex",
+      "colorId": "type__price",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__price",
+      "showAsInitialState": true,
+      "x": -1725,
+      "y": 630
+    },
+    {
+      "id": "place__schedule",
+      "name": "ProductionOrdersWaiting",
+      "colorId": "type__prod_order",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__plan_wait",
+      "showAsInitialState": false,
+      "x": 330,
+      "y": 0
+    },
+    {
+      "id": "place__pos_1",
+      "name": "InventoryPosition_Sonaflozin",
+      "colorId": "type__position",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 30,
+      "y": -1080
+    },
+    {
+      "id": "place__pos_2",
+      "name": "InventoryPosition_FlowbindMaterial",
+      "colorId": "type__position",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": -480,
+      "y": 960
+    },
+    {
+      "id": "place__quarantine",
+      "name": "Quarantine",
+      "colorId": "type__crate",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stored",
+      "showAsInitialState": false,
+      "x": -390,
+      "y": -60
+    },
+    {
+      "id": "place__rejected",
+      "name": "RejectedStock",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 180,
+      "y": -510
+    },
+    {
+      "id": "place__recalled",
+      "name": "RecalledStock",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 630
+    },
+    {
+      "id": "place__disposal",
+      "name": "DisposalCosts",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 435
+    },
+    {
+      "id": "place__shortage_costs",
+      "name": "ShortageCosts",
+      "colorId": "type__record",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 825,
+      "y": 165
+    },
+    {
+      "id": "place__plan_clock",
+      "name": "PlanClock",
+      "colorId": "type__job",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__production",
+      "showAsInitialState": true,
+      "x": 120,
+      "y": 180
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__diffusion",
+      "name": "Shift the demand rate (diffusion step)",
+      "inputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"DemandOutlook\"][0].diffusion_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const m = input[\"DemandOutlook\"][0];\n  return {\n    \"DemandOutlook\": [{\n      // Kernel values may be Distributions but not arithmetic on them,\n      // so the sample is not clampable here; the mean is clamped, and\n      // the arrival lambda clamps at the point of use.\n      rate: Distribution.Gaussian(Math.max(m.rate, 0),\n        parameters.demand_sigma * Math.sqrt(parameters.diffusion_step)),\n      diffusion_clock: parameters.diffusion_step,\n    }],\n  };\n});",
+      "x": 1095,
+      "y": -705
+    },
+    {
+      "id": "transition__order_contract_small",
+      "name": "Receive a contract order (small)",
+      "inputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1
+        },
+        {
+          "placeId": "place__backlog",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.contract_share * parameters.small_share * Math.max(0, input[\"DemandOutlook\"][0].rate);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const m = input[\"DemandOutlook\"][0];\n  return {\n    \"DemandOutlook\": [{ rate: m.rate, diffusion_clock: m.diffusion_clock }],\n    \"Backlog\": [{ kind: \"contract\", waited: 0, patience: 0, qty: Distribution.Gaussian(parameters.small_qty_mean, parameters.small_qty_sd).map((v) => Math.max(v, 5)) }],\n  };\n});",
+      "x": 1335,
+      "y": -420
+    },
+    {
+      "id": "transition__order_contract_bulk",
+      "name": "Receive a contract order (bulk)",
+      "inputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1
+        },
+        {
+          "placeId": "place__backlog",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.contract_share * (1 - parameters.small_share) * Math.max(0, input[\"DemandOutlook\"][0].rate);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const m = input[\"DemandOutlook\"][0];\n  return {\n    \"DemandOutlook\": [{ rate: m.rate, diffusion_clock: m.diffusion_clock }],\n    \"Backlog\": [{ kind: \"contract\", waited: 0, patience: 0, qty: Distribution.Gaussian(parameters.bulk_qty_mean, parameters.bulk_qty_sd).map((v) => Math.max(v, 5)) }],\n  };\n});",
+      "x": 1335,
+      "y": -330
+    },
+    {
+      "id": "transition__order_spot_small",
+      "name": "Receive a spot order (small)",
+      "inputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1
+        },
+        {
+          "placeId": "place__backlog",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (1 - parameters.contract_share) * parameters.small_share * Math.max(0, input[\"DemandOutlook\"][0].rate);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const m = input[\"DemandOutlook\"][0];\n  return {\n    \"DemandOutlook\": [{ rate: m.rate, diffusion_clock: m.diffusion_clock }],\n    \"Backlog\": [{ kind: \"spot\", waited: 0, patience: Distribution.Gaussian(parameters.patience_weeks, parameters.spot_patience_sd).map((v) => Math.max(v, 0.5)), qty: Distribution.Gaussian(parameters.small_qty_mean, parameters.small_qty_sd).map((v) => Math.max(v, 5)) }],\n  };\n});",
+      "x": 1335,
+      "y": -600
+    },
+    {
+      "id": "transition__order_spot_bulk",
+      "name": "Receive a spot order (bulk)",
+      "inputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__demand",
+          "weight": 1
+        },
+        {
+          "placeId": "place__backlog",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return (1 - parameters.contract_share) * (1 - parameters.small_share) * Math.max(0, input[\"DemandOutlook\"][0].rate);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const m = input[\"DemandOutlook\"][0];\n  return {\n    \"DemandOutlook\": [{ rate: m.rate, diffusion_clock: m.diffusion_clock }],\n    \"Backlog\": [{ kind: \"spot\", waited: 0, patience: Distribution.Gaussian(parameters.patience_weeks, parameters.spot_patience_sd).map((v) => Math.max(v, 0.5)), qty: Distribution.Gaussian(parameters.bulk_qty_mean, parameters.bulk_qty_sd).map((v) => Math.max(v, 5)) }],\n  };\n});",
+      "x": 1335,
+      "y": -690
+    },
+    {
+      "id": "transition__cancel",
+      "name": "Cancel a spot order (patience hazard)",
+      "inputArcs": [
+        {
+          "placeId": "place__backlog",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__lost",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"Backlog\"][0].kind === \"spot\" ? parameters.cancel_rate * input[\"Backlog\"][0].waited * input[\"Backlog\"][0].waited / (input[\"Backlog\"][0].patience * input[\"Backlog\"][0].patience) : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    \"LostSales\": [{ kind: \"spot\", value: input[\"Backlog\"][0].qty }],\n  };\n});",
+      "x": 1815,
+      "y": -600
+    },
+    {
+      "id": "transition__order_v1",
+      "name": "Order Sonaflozin (reorder-point policy, Chinese supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__supplier_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1
+        },
+        {
+          "placeId": "place__orders_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InventoryPosition_Sonaflozin\"][0].position < parameters.rop_sonaflozin ? parameters.review_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const px = input[\"RawPriceIndex\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  const q = Math.max(parameters.moq_chinese, Math.ceil((parameters.target_sonaflozin - p.position) / parameters.round_chinese) * parameters.round_chinese);\n  const price = 89.43 * Math.max(px.level, 0.1);\n  return {\n    \"RawPriceIndex\": [{ level: px.level, diffusion_clock: px.diffusion_clock }],\n    \"AtVendor\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: q, remaining_life: parameters.shelf_life_sonaflozin, holding_eur: 0, unit_price: price, dispatch_clock: parameters.dispatch_time, transit_clock: Distribution.Gaussian(3.0286, 0.4714) }],\n    \"OrdersPlaced\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: q, remaining_life: parameters.shelf_life_sonaflozin, holding_eur: 0, unit_price: price, dispatch_clock: 0, transit_clock: 0 }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position + q }],\n  };\n});",
+      "x": -1725,
+      "y": -360
+    },
+    {
+      "id": "transition__order_v2",
+      "name": "Order Flowbind Material (reorder-point policy, Indian supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__supplier_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1
+        },
+        {
+          "placeId": "place__orders_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_2",
+          "weight": 1
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InventoryPosition_FlowbindMaterial\"][0].position < parameters.rop_flowbind ? parameters.review_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const px = input[\"RawPriceIndex\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  const q = Math.max(parameters.moq_indian, Math.ceil((parameters.target_flowbind - p.position) / parameters.round_indian) * parameters.round_indian);\n  const price = 109.91 * Math.max(px.level, 0.1);\n  return {\n    \"RawPriceIndex\": [{ level: px.level, diffusion_clock: px.diffusion_clock }],\n    \"AtVendor\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: parameters.dispatch_time, transit_clock: Distribution.Gaussian(0.9714, 0.5286) }],\n    \"OrdersPlaced\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: 0, transit_clock: 0 }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position + q }],\n  };\n});",
+      "x": -1725,
+      "y": -135
+    },
+    {
+      "id": "transition__order_v3",
+      "name": "Top up Flowbind Material (urgency threshold, German supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__supplier_3",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1
+        },
+        {
+          "placeId": "place__orders_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InventoryPosition_FlowbindMaterial\"][0].position < parameters.topup_threshold ? parameters.review_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const px = input[\"RawPriceIndex\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  const q = parameters.topup_qty;\n  const price = 81.73 * Math.max(px.level, 0.1);\n  return {\n    \"RawPriceIndex\": [{ level: px.level, diffusion_clock: px.diffusion_clock }],\n    \"AtVendor\": [{ material: \"Flowbind Material\", vendor: \"German supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: parameters.dispatch_time, transit_clock: Distribution.Gaussian(1.1571, 0.1286) }],\n    \"OrdersPlaced\": [{ material: \"Flowbind Material\", vendor: \"German supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: 0, transit_clock: 0 }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position + q }],\n  };\n});",
+      "x": -1725,
+      "y": 90
+    },
+    {
+      "id": "transition__order_substitute",
+      "name": "Substitute order Flowbind Material (Indian supplier out; policy qty via German supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__supplier_3",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__down_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1
+        },
+        {
+          "placeId": "place__orders_placed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__switch_fees",
+          "weight": 1
+        },
+        {
+          "placeId": "place__down_2",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1
+        },
+        {
+          "placeId": "place__price",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InventoryPosition_FlowbindMaterial\"][0].position < parameters.rop_flowbind ? parameters.review_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const px = input[\"RawPriceIndex\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  const q = Math.max(parameters.round_german, Math.ceil((parameters.target_flowbind - p.position) / parameters.round_german) * parameters.round_german);\n  const price = 81.73 * Math.max(px.level, 0.1);\n  return {\n    \"RawPriceIndex\": [{ level: px.level, diffusion_clock: px.diffusion_clock }],\n    \"AtVendor\": [{ material: \"Flowbind Material\", vendor: \"German supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: parameters.dispatch_time, transit_clock: Distribution.Gaussian(1.1571, 0.1286) }],\n    \"OrdersPlaced\": [{ material: \"Flowbind Material\", vendor: \"German supplier\", qty: q, remaining_life: parameters.shelf_life_flowbind, holding_eur: 0, unit_price: price, dispatch_clock: 0, transit_clock: 0 }],\n    \"SwitchFees\": [{ kind: \"switch\", value: parameters.switch_cost }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position + q }],\n  };\n});",
+      "x": -1725,
+      "y": 360
+    },
+    {
+      "id": "transition__deliver_v1",
+      "name": "Goods receipt into quarantine (Chinese supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InTransit\"][0].vendor === \"Chinese supplier\" && input[\"InTransit\"][0].transit_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"InTransit\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  return {\n    \"Quarantine\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": -675,
+      "y": -240
+    },
+    {
+      "id": "transition__deliver_v2",
+      "name": "Goods receipt into quarantine (Indian supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InTransit\"][0].vendor === \"Indian supplier\" && input[\"InTransit\"][0].transit_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"InTransit\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"Quarantine\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": -675,
+      "y": -105
+    },
+    {
+      "id": "transition__deliver_v3",
+      "name": "Goods receipt into quarantine (German supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InTransit\"][0].vendor === \"German supplier\" && input[\"InTransit\"][0].transit_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"InTransit\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"Quarantine\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": -675,
+      "y": 30
+    },
+    {
+      "id": "transition__start_batch",
+      "name": "Start a scheduled batch (Sonic Flow)",
+      "inputArcs": [
+        {
+          "placeId": "place__line",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__raw_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__raw_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__schedule",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip",
+          "weight": 1
+        },
+        {
+          "placeId": "place__raw_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__raw_2",
+          "weight": 1
+        },
+        {
+          "placeId": "place__shortage_costs",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"SonaflozinStock\"][0].qty >= input[\"ProductionOrdersWaiting\"][0].consume_sonaflozin && input[\"SonaflozinStock\"][0].remaining_life > 0 && input[\"FlowbindMaterialStock\"][0].qty >= input[\"ProductionOrdersWaiting\"][0].consume_flowbind && input[\"FlowbindMaterialStock\"][0].remaining_life > 0 ? parameters.production_start_rate * Math.exp(parameters.fefo_strength * (1 - (input[\"SonaflozinStock\"][0].remaining_life + input[\"FlowbindMaterialStock\"][0].remaining_life) / 320)) : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const a = input[\"SonaflozinStock\"][0];\n  const b = input[\"FlowbindMaterialStock\"][0];\n  const s = input[\"ProductionOrdersWaiting\"][0];\n  return {\n    \"SonaflozinStock\": [{ material: a.material, vendor: a.vendor, qty: a.qty - s.consume_sonaflozin, remaining_life: a.remaining_life, holding_eur: a.holding_eur, unit_price: a.unit_price, dispatch_clock: 0, transit_clock: 0 }],\n    \"FlowbindMaterialStock\": [{ material: b.material, vendor: b.vendor, qty: b.qty - s.consume_flowbind, remaining_life: b.remaining_life, holding_eur: b.holding_eur, unit_price: b.unit_price, dispatch_clock: 0, transit_clock: 0 }],\n    \"InProduction\": [{ remaining: parameters.production_time, qty: s.produce_qty }],\n    \"ShortageCosts\": [{ kind: \"shortage\", value: s.waited * s.produce_qty * parameters.shortage_cost_rate }],\n  };\n});",
+      "x": 540,
+      "y": 0
+    },
+    {
+      "id": "transition__complete_batch",
+      "name": "Complete a batch",
+      "inputArcs": [
+        {
+          "placeId": "place__wip",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__line",
+          "weight": 1
+        },
+        {
+          "placeId": "place__fg",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"InProduction\"][0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const job = input[\"InProduction\"][0];\n  return {\n    \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: job.qty, remaining_life: parameters.shelf_life_sonic_flow, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  };\n});",
+      "x": 1170,
+      "y": -90
+    },
+    {
+      "id": "transition__scrap_batch",
+      "name": "Scrap a batch (QC failure)",
+      "inputArcs": [
+        {
+          "placeId": "place__wip",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__line",
+          "weight": 1
+        },
+        {
+          "placeId": "place__scrap",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.scrap_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    \"ScrappedBatches\": [{ kind: \"scrap\", value: input[\"InProduction\"][0].qty }],\n  };\n});",
+      "x": 1170,
+      "y": 150
+    },
+    {
+      "id": "transition__fulfil",
+      "name": "Fulfil an order (its recorded-size qty)",
+      "inputArcs": [
+        {
+          "placeId": "place__backlog",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__fg",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__fg",
+          "weight": 1
+        },
+        {
+          "placeId": "place__sales",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FinishedGoods\"][0].qty >= input[\"Backlog\"][0].qty && input[\"FinishedGoods\"][0].remaining_life > 0 ? parameters.fulfil_rate * Math.exp(parameters.fefo_strength * (1 - input[\"FinishedGoods\"][0].remaining_life / 52)) : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const fg = input[\"FinishedGoods\"][0];\n  const o = input[\"Backlog\"][0];\n  // qty is clamped at creation (arrival kernels): use it raw\n  const oq = o.qty;\n  return {\n    \"FinishedGoods\": [{ material: fg.material, vendor: fg.vendor, qty: fg.qty - oq, remaining_life: fg.remaining_life, holding_eur: fg.holding_eur, unit_price: fg.unit_price, dispatch_clock: 0, transit_clock: 0 }],\n    \"FulfilledOrders\": [{ kind: o.kind, qty: oq, lead_time: o.waited,\n      tardiness: o.kind === \"contract\"\n        ? Math.max(0, o.waited - parameters.delivery_window) : 0 }],\n  };\n});",
+      "x": 1815,
+      "y": -420
+    },
+    {
+      "id": "transition__lose_shipment",
+      "name": "Lose a shipment (vendor reships)",
+      "inputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__lost_shipments",
+          "weight": 1
+        },
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.shipment_loss_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"InTransit\"][0];\n  return {\n    \"LostShipments\": [{ kind: c.vendor, value: c.qty * c.unit_price }],\n    \"AtVendor\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.material === \"Sonaflozin\" ? parameters.shelf_life_sonaflozin : parameters.shelf_life_flowbind, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: parameters.dispatch_time, transit_clock: c.vendor === \"Chinese supplier\" ? 3.0286 : c.vendor === \"Indian supplier\" ? 0.9714 : 1.1571 }],\n  };\n});",
+      "x": -675,
+      "y": -390
+    },
+    {
+      "id": "transition__stockout_0002",
+      "name": "Run out of stock (Chinese supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__up_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__down_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.outage_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -1215,
+      "y": -1260
+    },
+    {
+      "id": "transition__restock_0002",
+      "name": "Restock (Chinese supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__down_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__up_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.restock_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -765,
+      "y": -1260
+    },
+    {
+      "id": "transition__stockout_0016",
+      "name": "Run out of stock (Indian supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__up_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__down_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.outage_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -1200,
+      "y": -735
+    },
+    {
+      "id": "transition__restock_0016",
+      "name": "Restock (Indian supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__down_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__up_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.restock_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -780,
+      "y": -735
+    },
+    {
+      "id": "transition__stockout_0018",
+      "name": "Run out of stock (German supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__up_3",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__down_3",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.outage_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -1200,
+      "y": -1005
+    },
+    {
+      "id": "transition__restock_0018",
+      "name": "Restock (German supplier)",
+      "inputArcs": [
+        {
+          "placeId": "place__down_3",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__up_3",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.restock_rate;\n});",
+      "transitionKernelCode": "",
+      "x": -765,
+      "y": -1005
+    },
+    {
+      "id": "transition__merge_1",
+      "name": "Consolidate part-used stock (Sonaflozin)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 2,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"SonaflozinStock\"][0].qty > 0.5 && input[\"SonaflozinStock\"][0].qty < 1000 && input[\"SonaflozinStock\"][1].qty > 0.5 && input[\"SonaflozinStock\"][1].qty < 1000 ? parameters.handling_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const a = input[\"SonaflozinStock\"][0];\n  const b = input[\"SonaflozinStock\"][1];\n  return {\n    \"SonaflozinStock\": [{ material: a.material, vendor: a.vendor, qty: a.qty + b.qty, remaining_life: Math.min(a.remaining_life, b.remaining_life), holding_eur: a.holding_eur + b.holding_eur, unit_price: (a.qty * a.unit_price + b.qty * b.unit_price) / (a.qty + b.qty), dispatch_clock: 0, transit_clock: 0 }],\n  };\n});",
+      "x": 540,
+      "y": -540
+    },
+    {
+      "id": "transition__merge_2",
+      "name": "Consolidate part-used stock (Flowbind Material)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 2,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FlowbindMaterialStock\"][0].qty > 0.5 && input[\"FlowbindMaterialStock\"][0].qty < 1000 && input[\"FlowbindMaterialStock\"][1].qty > 0.5 && input[\"FlowbindMaterialStock\"][1].qty < 1000 ? parameters.handling_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const a = input[\"FlowbindMaterialStock\"][0];\n  const b = input[\"FlowbindMaterialStock\"][1];\n  return {\n    \"FlowbindMaterialStock\": [{ material: a.material, vendor: a.vendor, qty: a.qty + b.qty, remaining_life: Math.min(a.remaining_life, b.remaining_life), holding_eur: a.holding_eur + b.holding_eur, unit_price: (a.qty * a.unit_price + b.qty * b.unit_price) / (a.qty + b.qty), dispatch_clock: 0, transit_clock: 0 }],\n  };\n});",
+      "x": 525,
+      "y": 555
+    },
+    {
+      "id": "transition__discard_1",
+      "name": "Discard emptied stock (Sonaflozin)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"SonaflozinStock\"][0].qty <= 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"SonaflozinStock\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  return {\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": -465
+    },
+    {
+      "id": "transition__discard_2",
+      "name": "Discard emptied stock (Flowbind Material)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FlowbindMaterialStock\"][0].qty <= 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FlowbindMaterialStock\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": 315
+    },
+    {
+      "id": "transition__discard_fg",
+      "name": "Discard emptied stock (Sonic Flow)",
+      "inputArcs": [
+        {
+          "placeId": "place__fg",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FinishedGoods\"][0].qty <= 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FinishedGoods\"][0];\n  return {\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n  };\n});",
+      "x": 1815,
+      "y": 105
+    },
+    {
+      "id": "transition__expire_1",
+      "name": "Write off expired stock (Sonaflozin)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__expired",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"SonaflozinStock\"][0].remaining_life <= 0 && input[\"SonaflozinStock\"][0].qty > 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"SonaflozinStock\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  return {\n    \"ExpiredStock\": [{ kind: c.material, value: c.qty }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"DisposalCosts\": [{ kind: \"expiry\", value: c.qty * parameters.disposal_cost }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": -315
+    },
+    {
+      "id": "transition__expire_2",
+      "name": "Write off expired stock (Flowbind Material)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__expired",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FlowbindMaterialStock\"][0].remaining_life <= 0 && input[\"FlowbindMaterialStock\"][0].qty > 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FlowbindMaterialStock\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"ExpiredStock\": [{ kind: c.material, value: c.qty }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"DisposalCosts\": [{ kind: \"expiry\", value: c.qty * parameters.disposal_cost }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": 465
+    },
+    {
+      "id": "transition__expire_fg",
+      "name": "Write off expired stock (Sonic Flow)",
+      "inputArcs": [
+        {
+          "placeId": "place__fg",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__expired",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FinishedGoods\"][0].remaining_life <= 0 && input[\"FinishedGoods\"][0].qty > 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FinishedGoods\"][0];\n  return {\n    \"ExpiredStock\": [{ kind: c.material, value: c.qty }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n  \"DisposalCosts\": [{ kind: \"expiry\", value: c.qty * parameters.disposal_cost }],\n  };\n});",
+      "x": 1815,
+      "y": -75
+    },
+    {
+      "id": "transition__delay_shipment",
+      "name": "Delay a shipment (customs / GR hold)",
+      "inputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__delayed",
+          "weight": 1
+        },
+        {
+          "placeId": "place__delay_log",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.shipment_delay_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"InTransit\"][0];\n  return {\n    \"DelayedShipments\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"DelayLog\": [{ kind: c.vendor, value: c.qty }],\n  };\n});",
+      "x": -675,
+      "y": 195
+    },
+    {
+      "id": "transition__release_delayed_1",
+      "name": "Release a held shipment (into quarantine)",
+      "inputArcs": [
+        {
+          "placeId": "place__delayed",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.delayed_release_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"DelayedShipments\"][0];\n  const p1 = input[\"InventoryPosition_Sonaflozin\"][0];\n  const p2 = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"Quarantine\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_Sonaflozin\": [{ position: c.material === \"Sonaflozin\" ? p1.position - c.qty : p1.position }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: c.material === \"Flowbind Material\" ? p2.position - c.qty : p2.position }],\n  };\n});",
+      "x": -195,
+      "y": 375
+    },
+    {
+      "id": "transition__ship_0002",
+      "name": "Ship an order (Chinese supplier dispatches)",
+      "inputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"AtVendor\"][0].vendor === \"Chinese supplier\" && input[\"AtVendor\"][0].dispatch_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"AtVendor\"][0];\n  return {\n    \"InTransit\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n  };\n});",
+      "x": -1200,
+      "y": -390
+    },
+    {
+      "id": "transition__ship_0016",
+      "name": "Ship an order (Indian supplier dispatches)",
+      "inputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"AtVendor\"][0].vendor === \"Indian supplier\" && input[\"AtVendor\"][0].dispatch_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"AtVendor\"][0];\n  return {\n    \"InTransit\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n  };\n});",
+      "x": -1200,
+      "y": -240
+    },
+    {
+      "id": "transition__ship_0018",
+      "name": "Ship an order (German supplier dispatches)",
+      "inputArcs": [
+        {
+          "placeId": "place__at_vendor",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_transit",
+          "weight": 1
+        },
+        {
+          "placeId": "place__up_3",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"AtVendor\"][0].vendor === \"German supplier\" && input[\"AtVendor\"][0].dispatch_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"AtVendor\"][0];\n  return {\n    \"InTransit\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n  };\n});",
+      "x": -1200,
+      "y": -90
+    },
+    {
+      "id": "transition__price_diffusion",
+      "name": "Shift the price index (diffusion step)",
+      "inputArcs": [
+        {
+          "placeId": "place__price",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__price",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"RawPriceIndex\"][0].diffusion_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const p = input[\"RawPriceIndex\"][0];\n  return {\n    \"RawPriceIndex\": [{\n      // Mean clamped; the level is clamped again at the point of\n      // use (a Distribution cannot sit inside arithmetic).\n      level: Distribution.Gaussian(Math.max(p.level, 0.1),\n        parameters.price_sigma * Math.sqrt(parameters.diffusion_step)),\n      diffusion_clock: parameters.diffusion_step,\n    }],\n  };\n});",
+      "x": -1710,
+      "y": 825
+    },
+    {
+      "id": "transition__schedule_batch",
+      "name": "Scheduled production order (forecast-weighted plan)",
+      "inputArcs": [
+        {
+          "placeId": "place__plan_clock",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__demand",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__plan_clock",
+          "weight": 1
+        },
+        {
+          "placeId": "place__schedule",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"PlanClock\"][0].remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const pc = input[\"PlanClock\"][0];\n  const m = input[\"DemandOutlook\"][0];\n  const p1 = input[\"InventoryPosition_Sonaflozin\"][0];\n  const p2 = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  // Make-to-forecast: expected demand over the coming plan\n  // period at the live OU arrival rate, in units (mixture\n  // mean order size). Blended with the clock-carried static\n  // draw by forecast_weight: 0 replays the recorded plan,\n  // 1 is fully demand-tracking. Stored attributes and\n  // parameters only \u2014 a fresh Distribution sample cannot\n  // sit inside arithmetic.\n  const qtyPerOrder = parameters.small_share * parameters.small_qty_mean + (1 - parameters.small_share) * parameters.bulk_qty_mean;\n  const forecastQty = Math.max(m.rate, 0) * parameters.plan_period * qtyPerOrder;\n  const produce = Math.max((1 - parameters.forecast_weight) * pc.qty + parameters.forecast_weight * forecastQty, 100);\n  const need1 = produce * parameters.bom_sonaflozin_per_unit;\n  const need2 = produce * parameters.bom_flowbind_per_unit;\n  return {\n    \"PlanClock\": [{ remaining: parameters.plan_period, qty: Distribution.Gaussian(parameters.batch_qty_mean, parameters.batch_qty_sd) }],\n    \"ProductionOrdersWaiting\": [{ produce_qty: produce, consume_sonaflozin: need1, consume_flowbind: need2, waited: 0 }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p1.position - need1 }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p2.position - need2 }],\n  };\n});",
+      "x": 105,
+      "y": 0
+    },
+    {
+      "id": "transition__qc_release_1",
+      "name": "Quality release (Sonaflozin)",
+      "inputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"Quarantine\"][0].material === \"Sonaflozin\" ? parameters.qc_release_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"Quarantine\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  return {\n    \"SonaflozinStock\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position + c.qty }],\n  };\n});",
+      "x": -150,
+      "y": -120
+    },
+    {
+      "id": "transition__qc_release_2",
+      "name": "Quality release (Flowbind Material)",
+      "inputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"Quarantine\"][0].material === \"Flowbind Material\" ? parameters.qc_release_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"Quarantine\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"FlowbindMaterialStock\": [{ material: c.material, vendor: c.vendor, qty: c.qty, remaining_life: c.remaining_life, holding_eur: c.holding_eur, unit_price: c.unit_price, dispatch_clock: c.dispatch_clock, transit_clock: c.transit_clock }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position + c.qty }],\n  };\n});",
+      "x": -150,
+      "y": 120
+    },
+    {
+      "id": "transition__qc_reject",
+      "name": "QC rejection (failed inspection)",
+      "inputArcs": [
+        {
+          "placeId": "place__quarantine",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__rejected",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.qc_reject_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"Quarantine\"][0];\n  return {\n    \"RejectedStock\": [{ kind: c.material, value: c.qty }],\n    \"DisposalCosts\": [{ kind: \"reject\", value: c.qty * parameters.disposal_cost }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n  };\n});",
+      "x": -150,
+      "y": -315
+    },
+    {
+      "id": "transition__recall_1",
+      "name": "Recall a lot (Sonaflozin)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_1",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__recalled",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_1",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"SonaflozinStock\"][0].qty > 0.5 ? parameters.recall_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"SonaflozinStock\"][0];\n  const p = input[\"InventoryPosition_Sonaflozin\"][0];\n  return {\n    \"RecalledStock\": [{ kind: c.material, value: c.qty }],\n    \"DisposalCosts\": [{ kind: \"recall\", value: c.qty * parameters.disposal_cost }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"InventoryPosition_Sonaflozin\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": -165
+    },
+    {
+      "id": "transition__recall_2",
+      "name": "Recall a lot (Flowbind Material)",
+      "inputArcs": [
+        {
+          "placeId": "place__raw_2",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__recalled",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        },
+        {
+          "placeId": "place__pos_2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FlowbindMaterialStock\"][0].qty > 0.5 ? parameters.recall_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FlowbindMaterialStock\"][0];\n  const p = input[\"InventoryPosition_FlowbindMaterial\"][0];\n  return {\n    \"RecalledStock\": [{ kind: c.material, value: c.qty }],\n    \"DisposalCosts\": [{ kind: \"recall\", value: c.qty * parameters.disposal_cost }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n    \"InventoryPosition_FlowbindMaterial\": [{ position: p.position - c.qty }],\n  };\n});",
+      "x": 825,
+      "y": 630
+    },
+    {
+      "id": "transition__recall_fg",
+      "name": "Recall a batch (Sonic Flow)",
+      "inputArcs": [
+        {
+          "placeId": "place__fg",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__recalled",
+          "weight": 1
+        },
+        {
+          "placeId": "place__disposal",
+          "weight": 1
+        },
+        {
+          "placeId": "place__holding",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input[\"FinishedGoods\"][0].qty > 0.5 ? parameters.recall_rate : 0.0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const c = input[\"FinishedGoods\"][0];\n  return {\n    \"RecalledStock\": [{ kind: c.material, value: c.qty }],\n    \"DisposalCosts\": [{ kind: \"recall\", value: c.qty * parameters.disposal_cost }],\n    \"HoldingCosts\": [{ kind: \"holding\", value: c.holding_eur }],\n  };\n});",
+      "x": 1815,
+      "y": -240
+    }
+  ],
+  "types": [
+    {
+      "id": "type__market",
+      "name": "Market",
+      "iconSlug": "circle",
+      "displayColor": "#8b5cf6",
+      "elements": [
+        {
+          "elementId": "type__market__rate",
+          "name": "rate",
+          "type": "real"
+        },
+        {
+          "elementId": "type__market__diffusion_clock",
+          "name": "diffusion_clock",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__customer_order",
+      "name": "CustomerOrder",
+      "iconSlug": "circle",
+      "displayColor": "#f59e0b",
+      "elements": [
+        {
+          "elementId": "type__customer_order__kind",
+          "name": "kind",
+          "type": "string"
+        },
+        {
+          "elementId": "type__customer_order__waited",
+          "name": "waited",
+          "type": "real"
+        },
+        {
+          "elementId": "type__customer_order__patience",
+          "name": "patience",
+          "type": "real"
+        },
+        {
+          "elementId": "type__customer_order__qty",
+          "name": "qty",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__crate",
+      "name": "Stock",
+      "iconSlug": "circle",
+      "displayColor": "#0ea5e9",
+      "elements": [
+        {
+          "elementId": "type__crate__material",
+          "name": "material",
+          "type": "string"
+        },
+        {
+          "elementId": "type__crate__vendor",
+          "name": "vendor",
+          "type": "string"
+        },
+        {
+          "elementId": "type__crate__qty",
+          "name": "qty",
+          "type": "real"
+        },
+        {
+          "elementId": "type__crate__remaining_life",
+          "name": "remaining_life",
+          "type": "real"
+        },
+        {
+          "elementId": "type__crate__holding_eur",
+          "name": "holding_eur",
+          "type": "real"
+        },
+        {
+          "elementId": "type__crate__unit_price",
+          "name": "unit_price",
+          "type": "real"
+        },
+        {
+          "elementId": "type__crate__dispatch_clock",
+          "name": "dispatch_clock",
+          "type": "real"
+        },
+        {
+          "elementId": "type__crate__transit_clock",
+          "name": "transit_clock",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__job",
+      "name": "Job",
+      "iconSlug": "circle",
+      "displayColor": "#22c55e",
+      "elements": [
+        {
+          "elementId": "type__job__remaining",
+          "name": "remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__job__qty",
+          "name": "qty",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__record",
+      "name": "Record",
+      "iconSlug": "circle",
+      "displayColor": "#a3a3a3",
+      "elements": [
+        {
+          "elementId": "type__record__kind",
+          "name": "kind",
+          "type": "string"
+        },
+        {
+          "elementId": "type__record__value",
+          "name": "value",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__sale",
+      "name": "Sale",
+      "iconSlug": "circle",
+      "displayColor": "#16a34a",
+      "elements": [
+        {
+          "elementId": "type__sale__kind",
+          "name": "kind",
+          "type": "string"
+        },
+        {
+          "elementId": "type__sale__lead_time",
+          "name": "lead_time",
+          "type": "real"
+        },
+        {
+          "elementId": "type__sale__tardiness",
+          "name": "tardiness",
+          "type": "real"
+        },
+        {
+          "elementId": "type__sale__qty",
+          "name": "qty",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__price",
+      "name": "PriceIndex",
+      "iconSlug": "circle",
+      "displayColor": "#dc2626",
+      "elements": [
+        {
+          "elementId": "type__price__level",
+          "name": "level",
+          "type": "real"
+        },
+        {
+          "elementId": "type__price__diffusion_clock",
+          "name": "diffusion_clock",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__prod_order",
+      "name": "ProductionOrder",
+      "iconSlug": "circle",
+      "displayColor": "#dc2626",
+      "elements": [
+        {
+          "elementId": "type__prod_order__produce_qty",
+          "name": "produce_qty",
+          "type": "real"
+        },
+        {
+          "elementId": "type__prod_order__consume_sonaflozin",
+          "name": "consume_sonaflozin",
+          "type": "real"
+        },
+        {
+          "elementId": "type__prod_order__consume_flowbind",
+          "name": "consume_flowbind",
+          "type": "real"
+        },
+        {
+          "elementId": "type__prod_order__waited",
+          "name": "waited",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__position",
+      "name": "InventoryPosition",
+      "iconSlug": "circle",
+      "displayColor": "#0ea5e9",
+      "elements": [
+        {
+          "elementId": "type__position__position",
+          "name": "position",
+          "type": "real"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "de__demand",
+      "name": "Demand rate: OU drift (+ diffusion clock)",
+      "colorId": "type__market",
+      "code": "// The DETERMINISTIC half of the Ornstein-Uhlenbeck SDE\n//   d lambda = theta * (mu - lambda) dt + sigma dW.\n// The dW half is injected by the diffusion-step transition\n// (Euler-Maruyama split: drift integrates every solver step, noise\n// lands every diffusion_step). sigma = 0 turns this into a pure ODE.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((m) => ({\n    rate: parameters.demand_theta * (parameters.demand_mu - m.rate),\n    diffusion_clock: -1,\n  }));\n});"
+    },
+    {
+      "id": "de__waiting",
+      "name": "Clock: customer order ageing",
+      "colorId": "type__customer_order",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ waited: 1, patience: 0, qty: 0 }));\n});"
+    },
+    {
+      "id": "de__shelf",
+      "name": "Clock: shelf-life countdown (transit/hold \u2014 no storage charge)",
+      "colorId": "type__crate",
+      "code": "// Life ticks from order placement, wherever the stock physically\n// is (AtVendor, InTransit, DelayedShipments). Storage cost is NOT\n// charged here: the warehouse equation (de__stored) does that on\n// our own shelves; committed transit spend is already booked by\n// the spend metric.\nexport default Dynamics((tokens) => {\n  return tokens.map(() => ({ qty: 0, remaining_life: -1, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }));\n});"
+    },
+    {
+      "id": "de__production",
+      "name": "Clock: production countdown",
+      "colorId": "type__job",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ remaining: -1, qty: 0 }));\n});"
+    },
+    {
+      "id": "de__stored",
+      "name": "Shelf-life countdown + storage-cost accrual (our shelves)",
+      "colorId": "type__crate",
+      "code": "// Warehouse holding: capital + GMP storage, accrued per unit-week\n// on the stock token itself and banked to the HoldingCosts ledger when\n// the stock is discarded or written off.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: c.qty * parameters.holding_cost_rate,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: 0,\n  }));\n});"
+    },
+    {
+      "id": "de__price",
+      "name": "Price index: OU drift (+ diffusion clock)",
+      "colorId": "type__price",
+      "code": "// The deterministic half of dP = theta * (1 - P) dt + sigma dW.\n// The dW half is injected by the price diffusion transition\n// (same Euler-Maruyama split as demand). price_sigma = 0 freezes\n// prices at the recorded eina values.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((p) => ({\n    level: parameters.price_theta * (1 - p.level),\n    diffusion_clock: -1,\n  }));\n});"
+    },
+    {
+      "id": "de__at_vendor",
+      "name": "Order book: shelf life + dispatch clock",
+      "colorId": "type__crate",
+      "code": "// At the vendor: shelf life burns from order placement\n// (optimistic fresh-stock reading, as v1) and the fixed\n// processing clock counts down to dispatch.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: -1,\n    transit_clock: 0,\n  }));\n});"
+    },
+    {
+      "id": "de__in_transit",
+      "name": "Transit: shelf life + transit clock",
+      "colorId": "type__crate",
+      "code": "// On the truck: the FITTED Gaussian transit clock counts\n// down to goods receipt.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((c) => ({\n    qty: 0,\n    remaining_life: -1,\n    holding_eur: 0,\n    unit_price: 0,\n    dispatch_clock: 0,\n    transit_clock: -1,\n  }));\n});"
+    },
+    {
+      "id": "de__plan_wait",
+      "name": "Scheduled batch: waiting clock",
+      "colorId": "type__prod_order",
+      "code": "// A scheduled production order ages while it waits for\n// materials \u2014 the shortage cost integrates over this. Every\n// real attribute needs a derivative; the quantities hold.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map((s) => ({ produce_qty: 0, consume_sonaflozin: 0, consume_flowbind: 0, waited: 1 }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param__demand_mu",
+      "name": "Demand mean (sales order arrivals per week; FITTED vbak/vbap, all plants: 247 items / 55.6 wk)",
+      "variableName": "demand_mu",
+      "type": "real",
+      "defaultValue": "4.44"
+    },
+    {
+      "id": "param__demand_theta",
+      "name": "Demand mean-reversion rate (per week; ASSUMED)",
+      "variableName": "demand_theta",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__demand_sigma",
+      "name": "Demand volatility (per sqrt-week; ASSUMED, same relative scale as v1-v4; 0 = ODE/L3)",
+      "variableName": "demand_sigma",
+      "type": "real",
+      "defaultValue": "1.3"
+    },
+    {
+      "id": "param__diffusion_step",
+      "name": "Diffusion step (weeks between noise injections)",
+      "variableName": "diffusion_step",
+      "type": "real",
+      "defaultValue": "0.25"
+    },
+    {
+      "id": "param__patience",
+      "name": "Spot patience mean (weeks; ASSUMED, sampled per order)",
+      "variableName": "patience_weeks",
+      "type": "real",
+      "defaultValue": "4"
+    },
+    {
+      "id": "param__cancel_rate",
+      "name": "Spot cancellation hazard at the personal deadline (per week; ASSUMED, grows as (waited/patience)^2)",
+      "variableName": "cancel_rate",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__fulfil_rate",
+      "name": "Fulfilment rate when stock exists (per week)",
+      "variableName": "fulfil_rate",
+      "type": "real",
+      "defaultValue": "7.0"
+    },
+    {
+      "id": "param__production_start",
+      "name": "Start responsiveness once a scheduled order and materials are ready (per week; ASSUMED)",
+      "variableName": "production_start_rate",
+      "type": "real",
+      "defaultValue": "3.0"
+    },
+    {
+      "id": "param__production_time",
+      "name": "Batch duration (weeks; 0.995 per the dt-multiple defect)",
+      "variableName": "production_time",
+      "type": "real",
+      "defaultValue": "0.995"
+    },
+    {
+      "id": "param__scrap_rate",
+      "name": "QC scrap rate while in production (per week; ASSUMED)",
+      "variableName": "scrap_rate",
+      "type": "real",
+      "defaultValue": "0.02"
+    },
+    {
+      "id": "param__handling_rate",
+      "name": "Stock consolidation rate (per week; ASSUMED)",
+      "variableName": "handling_rate",
+      "type": "real",
+      "defaultValue": "7.0"
+    },
+    {
+      "id": "param__outage_rate",
+      "name": "Vendor stock-out rate (per week; ASSUMED ~2/year)",
+      "variableName": "outage_rate",
+      "type": "real",
+      "defaultValue": "0.04"
+    },
+    {
+      "id": "param__restock_rate",
+      "name": "Vendor restock rate (per week; ASSUMED ~2-week outage)",
+      "variableName": "restock_rate",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__switch_cost",
+      "name": "Cost of a substitute order (EUR; ASSUMED: expedite/qualification/admin)",
+      "variableName": "switch_cost",
+      "type": "real",
+      "defaultValue": "5000"
+    },
+    {
+      "id": "param__shipment_loss",
+      "name": "Shipment loss rate (per week per shipment in transit; ASSUMED ~0.3% of a 3-week transit leg \u2014 real freight loss is <1%)",
+      "variableName": "shipment_loss_rate",
+      "type": "real",
+      "defaultValue": "0.001"
+    },
+    {
+      "id": "param__shelf_r0006",
+      "name": "Shelf life, Sonaflozin (weeks; modal recorded 1,095 days)",
+      "variableName": "shelf_life_sonaflozin",
+      "type": "real",
+      "defaultValue": "156"
+    },
+    {
+      "id": "param__shelf_r0025",
+      "name": "Shelf life, Flowbind Material (weeks; ASSUMED, no batch data)",
+      "variableName": "shelf_life_flowbind",
+      "type": "real",
+      "defaultValue": "156"
+    },
+    {
+      "id": "param__shelf_a0005",
+      "name": "Shelf life, Sonic Flow (weeks; recorded 365 days)",
+      "variableName": "shelf_life_sonic_flow",
+      "type": "real",
+      "defaultValue": "52"
+    },
+    {
+      "id": "param__contract_share",
+      "name": "Contract share of arrivals (ASSUMED 70/30)",
+      "variableName": "contract_share",
+      "type": "real",
+      "defaultValue": "0.7"
+    },
+    {
+      "id": "param__spot_patience_sd",
+      "name": "Spot patience spread (weeks; ASSUMED)",
+      "variableName": "spot_patience_sd",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "param__delivery_window",
+      "name": "Contract delivery window (weeks; ASSUMED)",
+      "variableName": "delivery_window",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__late_penalty",
+      "name": "Contract lateness penalty (EUR per order-week; ASSUMED)",
+      "variableName": "late_penalty_per_week",
+      "type": "real",
+      "defaultValue": "2000"
+    },
+    {
+      "id": "param__shipment_delay",
+      "name": "Shipment delay rate (per week per open order; ASSUMED \u2014 customs hold / GR QC failure)",
+      "variableName": "shipment_delay_rate",
+      "type": "real",
+      "defaultValue": "0.02"
+    },
+    {
+      "id": "param__delayed_release",
+      "name": "Delayed-shipment release rate (per week; ASSUMED ~6-week mean hold \u2014 exponential stand-in for L1c's heavy tail)",
+      "variableName": "delayed_release_rate",
+      "type": "real",
+      "defaultValue": "0.16666666666666666"
+    },
+    {
+      "id": "param__price_theta",
+      "name": "Price index mean-reversion rate (per week; ASSUMED \u2014 eina prices are static, nothing grounds this)",
+      "variableName": "price_theta",
+      "type": "real",
+      "defaultValue": "0.2"
+    },
+    {
+      "id": "param__price_sigma",
+      "name": "Price index volatility (per sqrt-week; ASSUMED; 0 = prices frozen at the recorded eina values)",
+      "variableName": "price_sigma",
+      "type": "real",
+      "defaultValue": "0.04"
+    },
+    {
+      "id": "param__holding_rate",
+      "name": "Warehouse holding cost (EUR per unit per week; ASSUMED ~13%/year of unit value: capital + GMP storage)",
+      "variableName": "holding_cost_rate",
+      "type": "real",
+      "defaultValue": "0.25"
+    },
+    {
+      "id": "param__small_share",
+      "name": "Small-order share of arrivals (FITTED vbap: orders < 300 units)",
+      "variableName": "small_share",
+      "type": "real",
+      "defaultValue": "0.96"
+    },
+    {
+      "id": "param__small_qty_mean",
+      "name": "Small order qty mean (units; FITTED vbap)",
+      "variableName": "small_qty_mean",
+      "type": "real",
+      "defaultValue": "52.9"
+    },
+    {
+      "id": "param__small_qty_sd",
+      "name": "Small order qty sd (units; FITTED vbap)",
+      "variableName": "small_qty_sd",
+      "type": "real",
+      "defaultValue": "27.0"
+    },
+    {
+      "id": "param__bulk_qty_mean",
+      "name": "Bulk order qty mean (units; FITTED vbap)",
+      "variableName": "bulk_qty_mean",
+      "type": "real",
+      "defaultValue": "676.1"
+    },
+    {
+      "id": "param__bulk_qty_sd",
+      "name": "Bulk order qty sd (units; FITTED vbap)",
+      "variableName": "bulk_qty_sd",
+      "type": "real",
+      "defaultValue": "142.2"
+    },
+    {
+      "id": "param__batch_qty_mean",
+      "name": "Scheduled batch qty mean (units; FITTED afko, 3,000-unit outlier excluded; recorded median 700)",
+      "variableName": "batch_qty_mean",
+      "type": "real",
+      "defaultValue": "699.0"
+    },
+    {
+      "id": "param__batch_qty_sd",
+      "name": "Scheduled batch qty sd (units; FITTED afko)",
+      "variableName": "batch_qty_sd",
+      "type": "real",
+      "defaultValue": "200.0"
+    },
+    {
+      "id": "param__rop_r0006",
+      "name": "Reorder point, Sonaflozin (units; POLICY \u2014 default ~ lead-time consumption 1,470 + ~1 batch safety, ASSUMED)",
+      "variableName": "rop_sonaflozin",
+      "type": "real",
+      "defaultValue": "2200"
+    },
+    {
+      "id": "param__target_r0006",
+      "name": "Order-up-to target, Sonaflozin (units; POLICY)",
+      "variableName": "target_sonaflozin",
+      "type": "real",
+      "defaultValue": "6000"
+    },
+    {
+      "id": "param__rop_r0025",
+      "name": "Reorder point, Flowbind Material (units; POLICY \u2014 default ~ lead-time consumption 720 + ~1 batch safety, ASSUMED)",
+      "variableName": "rop_flowbind",
+      "type": "real",
+      "defaultValue": "1400"
+    },
+    {
+      "id": "param__target_r0025",
+      "name": "Order-up-to target, Flowbind Material (units; POLICY)",
+      "variableName": "target_flowbind",
+      "type": "real",
+      "defaultValue": "5000"
+    },
+    {
+      "id": "param__topup_threshold",
+      "name": "German supplier top-up threshold, Flowbind Material (units; POLICY \u2014 urgent-shortage trigger below the reorder point)",
+      "variableName": "topup_threshold",
+      "type": "real",
+      "defaultValue": "700"
+    },
+    {
+      "id": "param__topup_qty",
+      "name": "German supplier top-up quantity (units; POLICY; eine MOQ 250 \u2014 the recorded 200-unit POs sit below it, known data inconsistency)",
+      "variableName": "topup_qty",
+      "type": "real",
+      "defaultValue": "250"
+    },
+    {
+      "id": "param__review_rate",
+      "name": "Purchasing review responsiveness once below a threshold (per week; ASSUMED ~continuous review)",
+      "variableName": "review_rate",
+      "type": "real",
+      "defaultValue": "2.0"
+    },
+    {
+      "id": "param__moq_vend0002",
+      "name": "MOQ, Chinese supplier (units; eine MINBM org 1000)",
+      "variableName": "moq_chinese",
+      "type": "real",
+      "defaultValue": "2500"
+    },
+    {
+      "id": "param__round_vend0002",
+      "name": "Order rounding value, Chinese supplier (units; marc BSTRF)",
+      "variableName": "round_chinese",
+      "type": "real",
+      "defaultValue": "2500"
+    },
+    {
+      "id": "param__moq_vend0016",
+      "name": "MOQ, Indian supplier (units; eine MINBM org 1000)",
+      "variableName": "moq_indian",
+      "type": "real",
+      "defaultValue": "2500"
+    },
+    {
+      "id": "param__round_vend0016",
+      "name": "Order rounding value, Indian supplier (units; marc BSTRF)",
+      "variableName": "round_indian",
+      "type": "real",
+      "defaultValue": "2500"
+    },
+    {
+      "id": "param__round_vend0018",
+      "name": "Order rounding value, German supplier (units; eine MINBM)",
+      "variableName": "round_german",
+      "type": "real",
+      "defaultValue": "250"
+    },
+    {
+      "id": "param__dispatch_time",
+      "name": "Vendor processing before dispatch (weeks; ASSUMED split of the fitted door-to-door lead)",
+      "variableName": "dispatch_time",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__qc_release_rate",
+      "name": "Quality release rate (per week; ASSUMED ~4-day hold)",
+      "variableName": "qc_release_rate",
+      "type": "real",
+      "defaultValue": "1.75"
+    },
+    {
+      "id": "param__qc_reject_rate",
+      "name": "QC rejection rate (per week; ASSUMED ~5% of receipts)",
+      "variableName": "qc_reject_rate",
+      "type": "real",
+      "defaultValue": "0.09"
+    },
+    {
+      "id": "param__recall_rate",
+      "name": "Recall hazard per stored stock token (per week; 0 = off, the Recall wave scenario arms it \u2014 no data calibrates a normal rate)",
+      "variableName": "recall_rate",
+      "type": "real",
+      "defaultValue": "0"
+    },
+    {
+      "id": "param__fefo_strength",
+      "name": "FEFO bias exponent (dimensionless; ASSUMED \u2014 biases binding choice ~e^3 toward the oldest stock; a hard guarantee needs a binding ordering the engine lacks)",
+      "variableName": "fefo_strength",
+      "type": "real",
+      "defaultValue": "3.0"
+    },
+    {
+      "id": "param__plan_period",
+      "name": "Production plan period (weeks; FITTED 1/0.522 afko cadence, as a repeating calendar plan)",
+      "variableName": "plan_period",
+      "type": "real",
+      "defaultValue": "1.9157"
+    },
+    {
+      "id": "param__unit_margin",
+      "name": "Contribution margin per finished unit (EUR; DERIVED vbap NETPR 213.96 - mbew STPRS 158.49)",
+      "variableName": "unit_margin",
+      "type": "real",
+      "defaultValue": "55.47"
+    },
+    {
+      "id": "param__shortage_cost_rate",
+      "name": "Production delay cost (EUR per unit-week a scheduled batch waits; ASSUMED)",
+      "variableName": "shortage_cost_rate",
+      "type": "real",
+      "defaultValue": "2.0"
+    },
+    {
+      "id": "param__disposal_cost",
+      "name": "Disposal cost per written-off unit (EUR; ASSUMED \u2014 controlled destruction + admin; excludes the sunk purchase and holding cost already counted)",
+      "variableName": "disposal_cost",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "param__bom_sonaflozin",
+      "name": "BOM: Sonaflozin per unit of Sonic Flow (units/unit; DERIVED stpo MENGE 1 / stko BMENG 1, BOM10005)",
+      "variableName": "bom_sonaflozin_per_unit",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__bom_flowbind",
+      "name": "BOM: Flowbind Material per unit of Sonic Flow (units/unit; DERIVED stpo MENGE 1 / stko BMENG 1, BOM10005)",
+      "variableName": "bom_flowbind_per_unit",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__forecast_weight",
+      "name": "Production forecast weight: 0 = static recorded plan (fixed Gaussian batches, v8 behaviour), 1 = dynamic make-to-forecast (batch covers expected demand over the plan period at the live arrival rate); POLICY",
+      "variableName": "forecast_weight",
+      "type": "real",
+      "defaultValue": "1.0"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__demand_rate",
+      "name": "Demand rate now (orders per week)",
+      "description": "The OU-evolving arrival rate lambda(t). Its mean is demand_mu; excursions are the SDE at work.",
+      "code": "return state.places[\"DemandOutlook\"].tokens.reduce((n, t) => n + t.rate, 0);"
+    },
+    {
+      "id": "metric__backlog",
+      "name": "Backlog (orders waiting)",
+      "description": "Customer orders received and not yet fulfilled or cancelled.",
+      "code": "return state.places[\"Backlog\"].tokens.length;"
+    },
+    {
+      "id": "metric__fulfilled",
+      "name": "Orders fulfilled",
+      "description": "KPI: sales completed within the horizon. Scope note (review Option A): demand is all-site sales served from site 1000; this measures whether the plant supplies the network, not final customer delivery.",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.length;"
+    },
+    {
+      "id": "metric__lead_time_sum",
+      "name": "Sum of fulfilment lead times (weeks)",
+      "description": "Sum of `waited` at fulfilment. Average lead time = this / orders fulfilled (division done outside: 1 reduce per metric, DSL limit).",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.reduce((n, t) => n + t.lead_time, 0);"
+    },
+    {
+      "id": "metric__lost_sales",
+      "name": "Lost sales (spot orders cancelled)",
+      "description": "KPI: spot orders cancelled (count). Lost UNITS are the companion metric.",
+      "code": "return state.places[\"LostSales\"].tokens.length;"
+    },
+    {
+      "id": "metric__raw_units_r0006",
+      "name": "Raw stock on shelf, Sonaflozin (units)",
+      "description": "Sum of stock qty on the shelf.",
+      "code": "return state.places[\"SonaflozinStock\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__raw_units_r0025",
+      "name": "Raw stock on shelf, Flowbind Material (units)",
+      "description": "Sum of stock qty on the shelf.",
+      "code": "return state.places[\"FlowbindMaterialStock\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__on_order_units",
+      "name": "Stock in transit (units)",
+      "description": "Sum of stock qty in transit, all vendors.",
+      "code": "return state.places[\"InTransit\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__fg_units",
+      "name": "Finished goods, Sonic Flow (units)",
+      "description": "Sum of stock qty in the finished store.",
+      "code": "return state.places[\"FinishedGoods\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__expired_units",
+      "name": "Expired stock written off (units)",
+      "description": "KPI: qty lost to shelf-life expiry, raw and finished. Per-material split via kind in the verifier.",
+      "code": "return state.places[\"ExpiredStock\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__scrapped",
+      "name": "Batches scrapped (QC)",
+      "description": "KPI: rare-event branch; 1,000 units of product each.",
+      "code": "return state.places[\"ScrappedBatches\"].tokens.length;"
+    },
+    {
+      "id": "metric__orders_placed",
+      "name": "Purchase orders placed",
+      "description": "All vendors.",
+      "code": "return state.places[\"OrdersPlaced\"].tokens.length;"
+    },
+    {
+      "id": "metric__spend",
+      "name": "Purchase spend (EUR)",
+      "description": "Committed on placed orders at the price CAPTURED at order time (recorded eina/eine unit prices scaled by the OU price index). Switching fees are a separate metric.",
+      "code": "return state.places[\"OrdersPlaced\"].tokens.reduce((n, t) => n + t.qty * t.unit_price, 0);"
+    },
+    {
+      "id": "metric__switches",
+      "name": "Supplier switches (substitute orders)",
+      "description": "KPI: 2,500-unit Flowbind Material orders redirected to German supplier while Indian supplier was out of stock.",
+      "code": "return state.places[\"SwitchFees\"].tokens.length;"
+    },
+    {
+      "id": "metric__lost_shipments",
+      "name": "Shipments lost in transit",
+      "description": "KPI: consignments lost in transit. The vendor reships a replacement batch (fresh dispatch leg + mean transit leg, full shelf life \u2014 the lost goods are physically gone), so a loss costs lead time, not money; the replacement keeps the order-time price.",
+      "code": "return state.places[\"LostShipments\"].tokens.length;"
+    },
+    {
+      "id": "metric__lost_shipment_value",
+      "name": "Reshipped consignment value (EUR)",
+      "description": "Value of consignments lost and reshipped, at the order-time price. Not a write-off: the vendor honours the order, so the cost of a loss is the extra lead time, not the money.",
+      "code": "return state.places[\"LostShipments\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__switch_fees",
+      "name": "Switching fees (EUR)",
+      "description": "Cost of redirecting orders (switch_cost per substitute order). Total purchasing cost = spend + this (added in the harness: 1 reduce per metric, DSL limit).",
+      "code": "return state.places[\"SwitchFees\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__conservation_r0006",
+      "name": "Conservation component: Sonaflozin in-transit units",
+      "description": "Harness input: material conservation needs several sums (shelf + in transit + consumed + expired = initial + ordered); the DSL allows 1 reduce per metric, so the verifier assembles the identity from component metrics.",
+      "code": "return state.places[\"InTransit\"].tokens.reduce((n, t) => n + (t.material === \"Sonaflozin\" ? t.qty : 0), 0);"
+    },
+    {
+      "id": "metric__fulfilled_contract",
+      "name": "Orders fulfilled (contract)",
+      "description": "Split of fulfilled orders by segment colour.",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.reduce((n, t) => n + (t.kind === \"contract\" ? 1 : 0), 0);"
+    },
+    {
+      "id": "metric__tardiness",
+      "name": "Contract tardiness (order-weeks)",
+      "description": "Sum over fulfilled contract orders of max(0, waited - delivery window). Demand is conserved for contracts; lateness costs money instead of orders.",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.reduce((n, t) => n + t.tardiness, 0);"
+    },
+    {
+      "id": "metric__late_penalties",
+      "name": "Late-delivery penalties (EUR)",
+      "description": "Contract tardiness priced at late_penalty_per_week. Composes with purchase spend and switching fees into one cost objective.",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.reduce((n, t) => n + t.tardiness * parameters.late_penalty_per_week, 0);"
+    },
+    {
+      "id": "metric__delays",
+      "name": "Shipments delayed (cumulative)",
+      "description": "KPI: shipments that hit a customs / goods-receipt hold. The stock keeps ageing while held and is released to its shelf on the slow timescale; it cannot be lost while held (losses fire on OnOrder only \u2014 simplification).",
+      "code": "return state.places[\"DelayLog\"].tokens.length;"
+    },
+    {
+      "id": "metric__delayed_units",
+      "name": "Units held up in delayed shipments",
+      "description": "Current qty sitting in the hold, still ageing.",
+      "code": "return state.places[\"DelayedShipments\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__price_level",
+      "name": "Raw material price index (now)",
+      "description": "The OU-evolving multiplier on the recorded eina unit prices. Mean 1.0; excursions are the price SDE at work.",
+      "code": "return state.places[\"RawPriceIndex\"].tokens.reduce((n, t) => n + t.level, 0);"
+    },
+    {
+      "id": "metric__at_vendor_units",
+      "name": "Stock at vendor, not yet shipped (units)",
+      "description": "Order book: accepted orders awaiting dispatch. A vendor outage stalls this place (Ship holds the InStock token); it no longer stalls the transit pipe.",
+      "code": "return state.places[\"AtVendor\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__conservation_r0006_vendor",
+      "name": "Conservation component: Sonaflozin at-vendor units",
+      "description": "Harness input, as the in-transit component.",
+      "code": "return state.places[\"AtVendor\"].tokens.reduce((n, t) => n + (t.material === \"Sonaflozin\" ? t.qty : 0), 0);"
+    },
+    {
+      "id": "metric__holding_banked",
+      "name": "Holding costs banked (EUR)",
+      "description": "Storage cost accrued by stock that has since been discarded or written off. Total holding cost = this + the 3 live-accrual metrics (summed in the harness: 1 reduce per metric, DSL limit).",
+      "code": "return state.places[\"HoldingCosts\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__holding_raw1",
+      "name": "Holding cost accrued, Sonaflozin shelf (EUR)",
+      "description": "Live accrual on stock currently stored.",
+      "code": "return state.places[\"SonaflozinStock\"].tokens.reduce((n, t) => n + t.holding_eur, 0);"
+    },
+    {
+      "id": "metric__holding_raw2",
+      "name": "Holding cost accrued, Flowbind Material shelf (EUR)",
+      "description": "Live accrual on stock currently stored.",
+      "code": "return state.places[\"FlowbindMaterialStock\"].tokens.reduce((n, t) => n + t.holding_eur, 0);"
+    },
+    {
+      "id": "metric__holding_fg",
+      "name": "Holding cost accrued, Sonic Flow store (EUR)",
+      "description": "Live accrual on stock currently stored.",
+      "code": "return state.places[\"FinishedGoods\"].tokens.reduce((n, t) => n + t.holding_eur, 0);"
+    },
+    {
+      "id": "metric__units_sold",
+      "name": "Units sold",
+      "description": "Sum of fulfilled order quantities (fitted vbap sizes).",
+      "code": "return state.places[\"FulfilledOrders\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__units_lost",
+      "name": "Units lost (spot cancellations)",
+      "description": "Demand that walked, in units \u2014 the volume the lost-margin costing of review change 4 will price.",
+      "code": "return state.places[\"LostSales\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__backlog_units",
+      "name": "Backlog (units waiting)",
+      "description": "Open demand in units. Order qty is clamped >= 5 once, at arrival, so this reads it raw.",
+      "code": "return state.places[\"Backlog\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__schedule_waiting",
+      "name": "Scheduled batches waiting",
+      "description": "afko-cadence production orders not yet started \u2014 rises when materials starve the plan.",
+      "code": "return state.places[\"ProductionOrdersWaiting\"].tokens.length;"
+    },
+    {
+      "id": "metric__position_1",
+      "name": "Inventory position, Sonaflozin (units)",
+      "description": "on-hand + at-vendor + in-transit \u2212 committed; quarantined/rejected/recalled/expired excluded. The reorder-point policy's decision variable.",
+      "code": "return state.places[\"InventoryPosition_Sonaflozin\"].tokens.reduce((n, t) => n + t.position, 0);"
+    },
+    {
+      "id": "metric__position_2",
+      "name": "Inventory position, Flowbind Material (units)",
+      "description": "As the Sonaflozin position.",
+      "code": "return state.places[\"InventoryPosition_FlowbindMaterial\"].tokens.reduce((n, t) => n + t.position, 0);"
+    },
+    {
+      "id": "metric__quarantine_units",
+      "name": "Stock in quarantine (units)",
+      "description": "Delivered but not yet quality-released \u2014 unavailable to production and excluded from the inventory position.",
+      "code": "return state.places[\"Quarantine\"].tokens.reduce((n, t) => n + t.qty, 0);"
+    },
+    {
+      "id": "metric__rejected_units",
+      "name": "QC-rejected stock (units)",
+      "description": "Receipts that failed inspection (assumed ~5%).",
+      "code": "return state.places[\"RejectedStock\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__recalled_units",
+      "name": "Recalled stock (units)",
+      "description": "Stock pulled by recall events (Recall wave scenario).",
+      "code": "return state.places[\"RecalledStock\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__disposal_costs",
+      "name": "Disposal costs (EUR)",
+      "description": "Controlled destruction + admin on expiry, QC rejection and recalls, at the assumed EUR 1.5/unit. Excludes the sunk purchase spend and holding already counted elsewhere.",
+      "code": "return state.places[\"DisposalCosts\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__lost_margin",
+      "name": "Lost margin, cancelled spot (EUR)",
+      "description": "Lost units x contribution margin (vbap NETPR - mbew STPRS = EUR 55.47/unit).",
+      "code": "return state.places[\"LostSales\"].tokens.reduce((n, t) => n + t.value * parameters.unit_margin, 0);"
+    },
+    {
+      "id": "metric__shortage_banked",
+      "name": "Production delay cost, banked (EUR)",
+      "description": "waited x qty x rate charged when a late scheduled batch finally starts.",
+      "code": "return state.places[\"ShortageCosts\"].tokens.reduce((n, t) => n + t.value, 0);"
+    },
+    {
+      "id": "metric__shortage_live",
+      "name": "Production delay cost, accruing (EUR)",
+      "description": "The same charge accruing on batches still waiting for materials. Total shortage cost = banked + this.",
+      "code": "return state.places[\"ProductionOrdersWaiting\"].tokens.reduce((n, t) => n + t.waited * t.produce_qty * parameters.shortage_cost_rate, 0);"
+    },
+    {
+      "id": "metric__policy_cost",
+      "name": "Policy cost (EUR)",
+      "description": "The single objective for the optimiser: purchase spend + holding (banked + still accruing on live stock, quarantine included) + lost margin on cancelled spot + production delay (banked + accruing) + late-delivery penalties + switching fees + disposal. Equals the sum of the component metrics by construction.",
+      "code": "return state.places[\"OrdersPlaced\"].tokens.reduce((n, t) => n + t.qty * t.unit_price, state.places[\"HoldingCosts\"].tokens.concat(state.places[\"SwitchFees\"].tokens).concat(state.places[\"DisposalCosts\"].tokens).concat(state.places[\"ShortageCosts\"].tokens).reduce((m, t) => m + t.value, state.places[\"LostSales\"].tokens.reduce((l, t) => l + t.value * parameters.unit_margin, state.places[\"FulfilledOrders\"].tokens.reduce((f, t) => f + t.tardiness * parameters.late_penalty_per_week, state.places[\"ProductionOrdersWaiting\"].tokens.reduce((s, t) => s + t.waited * t.produce_qty * parameters.shortage_cost_rate, state.places[\"SonaflozinStock\"].tokens.concat(state.places[\"FlowbindMaterialStock\"].tokens).concat(state.places[\"FinishedGoods\"].tokens).concat(state.places[\"Quarantine\"].tokens).reduce((h, c) => h + c.holding_eur, 0))))));"
+    },
+    {
+      "id": "metric__fill_rate",
+      "name": "Fill rate (sold / demanded units)",
+      "description": "Units sold over all demanded units \u2014 sold + cancelled + still in the backlog \u2014 so a policy cannot look cheap by under-buying and failing customers. Division happens in a callback over the singleton DemandOutlook token (operand-position arithmetic around a reduce miscompiles); the 0.001 seed only guards the t=0 division. Scope note (review Option A): measures site 1000 supplying the network, not final customer delivery.",
+      "code": "return state.places[\"DemandOutlook\"].tokens.reduce((ratio, d) => state.places[\"FulfilledOrders\"].tokens.reduce((s, t) => s + t.qty, 0) / ratio, state.places[\"FulfilledOrders\"].tokens.reduce((a, t) => a + t.qty, state.places[\"LostSales\"].tokens.reduce((b, t) => b + t.value, state.places[\"Backlog\"].tokens.reduce((c, t) => c + t.qty, 0.001))));"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__recorded",
+      "name": "Baseline policy (recorded market)",
+      "description": "Stock as recorded: Sonaflozin as its 3 mcha batches with their real remaining lives (88/140/156 weeks); Flowbind Material as 1 stock token (mbew total; no batch rows exist, so its shelf life is the ASSUMED 156 weeks); finished Sonic Flow 4,273 units expiring in 28.5 weeks (mcha). Demand starts at its mean, 4.44/week.",
+      "scenarioParameters": [],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__calm",
+      "name": "Calm market (both sigmas = 0: the SDEs become ODEs)",
+      "description": "The L4 -> L3 subtraction as a scenario: no diffusion noise, demand relaxes deterministically to its mean. Everything else identical to the snapshot scenario.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "demand_sigma",
+          "default": 0.0
+        },
+        {
+          "type": "real",
+          "identifier": "price_sigma",
+          "default": 0.0
+        }
+      ],
+      "parameterOverrides": {
+        "param__demand_sigma": "scenario.demand_sigma",
+        "param__price_sigma": "scenario.price_sigma"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__volatile",
+      "name": "Volatile market (sigma x 3)",
+      "description": "Demand volatility 3.9 (3x the re-fitted sigma): spikes and droughts. The scenario that motivates holding stock at all.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "demand_sigma",
+          "default": 3.9
+        }
+      ],
+      "parameterOverrides": {
+        "param__demand_sigma": "scenario.demand_sigma"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__surge",
+      "name": "Demand surge (transient)",
+      "description": "Demand starts at 3x its mean (13.32/week) and mean-reverts. Tests whether recorded purchasing cadences survive a spike.",
+      "scenarioParameters": [],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 13.32, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__fragile",
+      "name": "Fragile supply (outage rate x 5)",
+      "description": "Vendors run out of stock at 0.2/week (~10 outages/year each, ~2-week mean outage: out of stock ~29% of the time). The scenario that gives dual sourcing and the switch mechanism their job \u2014 and exposes Sonaflozin's single sourcing, which has no substitute.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "outage_rate",
+          "default": 0.2
+        }
+      ],
+      "parameterOverrides": {
+        "param__outage_rate": "scenario.outage_rate"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__depleted",
+      "name": "Depleted start (initial stock is 0)",
+      "description": "FAMILY KNOB, not data: no stock anywhere, demand at its mean. Everything must be bought, made, and sold within the horizon.",
+      "scenarioParameters": [],
+      "parameterOverrides": {},
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [],\n  \"FlowbindMaterialStock\": [],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 0.00 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 0.00 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__customs",
+      "name": "Shipment delays (delay rate x 10)",
+      "description": "Shipments hit holds at 0.2/week per open order (~1 in 3 orders on the slow Chinese supplier leg). The stress case for the delayed-shipment mechanism, as Fragile supply is for outages: material ages in the hold and arrives late or expired.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "shipment_delay",
+          "default": 0.2
+        }
+      ],
+      "parameterOverrides": {
+        "param__shipment_delay": "scenario.shipment_delay"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__price_swing",
+      "name": "Volatile prices (price sigma x 4)",
+      "description": "The raw-material price index swings hard (typical excursions ~25%) while demand stays at its recorded volatility. The same blind purchasing cadence now produces a different bill every run \u2014 the gap a price-aware Phase B policy gets scored on closing.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "price_sigma",
+          "default": 0.16
+        }
+      ],
+      "parameterOverrides": {
+        "param__price_sigma": "scenario.price_sigma"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__recall",
+      "name": "Recall wave (recall hazard armed)",
+      "description": "Every stored stock token carries a 0.02/week recall hazard \u2014 whole lots leave the shelves for RecalledStock with disposal costs, and the reorder-point policy has to re-buy through the quarantine pipeline. No data calibrates a normal recall rate, so this is a stress scenario by design (the review's recommendation).",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "recall_rate",
+          "default": 0.02
+        }
+      ],
+      "parameterOverrides": {
+        "param__recall_rate": "scenario.recall_rate"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    },
+    {
+      "id": "scenario__optimise",
+      "name": "Optimise policy (recorded market)",
+      "description": "The Baseline policy (recorded market) scenario with the 6 purchasing-policy parameters plus the production forecast weight (0 = static recorded plan, 1 = dynamic make-to-forecast) exposed for optimisation: reorder point and order-up-to target per material, plus the German supplier top-up threshold and quantity. Defaults reproduce the baseline policy exactly. Search must respect target >= reorder point per material; minimise Policy cost (EUR) and monitor Fill rate, ending backlog, production queue, and expiry.",
+      "scenarioParameters": [
+        {
+          "type": "real",
+          "identifier": "rop_sonaflozin",
+          "default": 2200.0
+        },
+        {
+          "type": "real",
+          "identifier": "target_sonaflozin",
+          "default": 6000.0
+        },
+        {
+          "type": "real",
+          "identifier": "rop_flowbind",
+          "default": 1400.0
+        },
+        {
+          "type": "real",
+          "identifier": "target_flowbind",
+          "default": 5000.0
+        },
+        {
+          "type": "real",
+          "identifier": "topup_threshold",
+          "default": 700.0
+        },
+        {
+          "type": "real",
+          "identifier": "topup_qty",
+          "default": 250.0
+        },
+        {
+          "type": "real",
+          "identifier": "forecast_weight",
+          "default": 1.0
+        }
+      ],
+      "parameterOverrides": {
+        "param__rop_r0006": "scenario.rop_sonaflozin",
+        "param__target_r0006": "scenario.target_sonaflozin",
+        "param__rop_r0025": "scenario.rop_flowbind",
+        "param__target_r0025": "scenario.target_flowbind",
+        "param__topup_threshold": "scenario.topup_threshold",
+        "param__topup_qty": "scenario.topup_qty",
+        "param__forecast_weight": "scenario.forecast_weight"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  \"DemandOutlook\": [{ rate: 4.44, diffusion_clock: 0 }],\n  \"Backlog\": [],\n  \"LostSales\": [],\n  \"ChineseSupplier\": 200,\n  \"IndianSupplier\": 200,\n  \"GermanSupplier\": 200,\n  \"InStock_ChineseSupplier\": 1,\n  \"OutOfStock_ChineseSupplier\": 0,\n  \"InStock_IndianSupplier\": 1,\n  \"OutOfStock_IndianSupplier\": 0,\n  \"InStock_GermanSupplier\": 1,\n  \"OutOfStock_GermanSupplier\": 0,\n  \"SwitchFees\": [],\n  \"LostShipments\": [],\n  \"AtVendor\": [],\n  \"InTransit\": [],\n  \"HoldingCosts\": [],\n  \"RawPriceIndex\": [{ level: 1.0, diffusion_clock: 0 }],\n  \"DelayedShipments\": [],\n  \"DelayLog\": [],\n  \"OrdersPlaced\": [],\n  \"SonaflozinStock\": [{ material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 689.6, remaining_life: 88.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1305.75, remaining_life: 140.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }, { material: \"Sonaflozin\", vendor: \"Chinese supplier\", qty: 1840.46, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FlowbindMaterialStock\": [{ material: \"Flowbind Material\", vendor: \"Indian supplier\", qty: 4688.17, remaining_life: 156.0, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"ProductionLineFree\": 1,\n  \"PlanClock\": [{ remaining: 0.5, qty: 699.0 }],\n  \"InventoryPosition_Sonaflozin\": [{ position: 3835.81 }],\n  \"InventoryPosition_FlowbindMaterial\": [{ position: 4688.17 }],\n  \"Quarantine\": [],\n  \"RejectedStock\": [],\n  \"RecalledStock\": [],\n  \"DisposalCosts\": [],\n  \"ShortageCosts\": [],\n  \"ProductionOrdersWaiting\": [],\n  \"InProduction\": [],\n  \"FinishedGoods\": [{ material: \"Sonic Flow\", vendor: \"SITE-1000\", qty: 4273.39, remaining_life: 28.5, holding_eur: 0, unit_price: 0, dispatch_clock: 0, transit_clock: 0 }],\n  \"FulfilledOrders\": [],\n  \"ExpiredStock\": [],\n  \"ScrappedBatches\": [],\n};"
+      }
+    }
+  ]
+}

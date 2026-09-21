@@ -1,7 +1,8 @@
-import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import type { ReactNode, Ref } from "react";
+import { ShortcutTooltip } from "../../../../keyboard-shortcut";
+
+import type { CSSProperties, ReactNode, Ref } from "react";
 
 const buttonStyle = cva({
   base: {
@@ -46,10 +47,12 @@ const buttonStyle = cva({
 interface ToolbarButtonProps {
   /** Tooltip content shown on hover */
   tooltip: string;
+  shortcut?: string;
   /** Click handler */
   onClick?: () => void;
   /** Button content (icons, text, etc.) */
   children: ReactNode;
+  style?: CSSProperties;
   /** Whether the button is in a selected state */
   isSelected?: boolean;
   /** Whether the button appears disabled (lower opacity, but still clickable) */
@@ -78,8 +81,10 @@ interface ToolbarButtonProps {
  */
 export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   tooltip,
+  shortcut,
   onClick,
   children,
+  style,
   isSelected = false,
   disabled = false,
   ariaLabel,
@@ -97,13 +102,14 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   };
 
   return (
-    <Tooltip content={tooltip}>
+    <ShortcutTooltip label={tooltip} shortcut={shortcut}>
       <button
         ref={ref}
         type="button"
         onClick={onClick}
         onKeyDown={handleKeyDown}
         className={buttonStyle({ isSelected, isDisabled: disabled })}
+        style={style}
         aria-label={ariaLabel}
         aria-expanded={ariaExpanded}
         aria-pressed={isSelected}
@@ -115,6 +121,6 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       >
         {children}
       </button>
-    </Tooltip>
+    </ShortcutTooltip>
   );
 };

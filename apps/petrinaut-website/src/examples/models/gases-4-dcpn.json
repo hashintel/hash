@@ -1498,8 +1498,421 @@
       "scenarioParameters": [],
       "parameterOverrides": {},
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [],
+          "netParameters": [],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__returning": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__open_orders": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__hires": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__plant": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__outages": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "42",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "54",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s2_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s2_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "18",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "30",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s3_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s3_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s3_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s3_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "46",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "58",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            }
+          }
+        }
       }
     },
     {
@@ -1517,8 +1930,435 @@
         "param__route_scale": "scenario.route_scale"
       },
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "route_scale",
+              "type": "real",
+              "expression": "1.5",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__route_scale",
+              "expression": "scenario.route_scale",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__returning": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__open_orders": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__hires": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__plant": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__outages": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "42",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "54",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s2_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s2_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "18",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "30",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s3_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s3_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s3_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s3_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "46",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "58",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            }
+          }
+        }
       }
     },
     {
@@ -1528,8 +2368,400 @@
       "scenarioParameters": [],
       "parameterOverrides": {},
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [],
+          "netParameters": [],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__returning": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__open_orders": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__hires": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__plant": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__outages": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "42",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "54",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s2_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s2_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "18",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "30",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s3_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s3_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s3_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s3_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "46",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "58",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            }
+          }
+        }
       }
     },
     {
@@ -1547,8 +2779,435 @@
         "param__draw_2": "scenario.slow_draw"
       },
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "slow_draw",
+              "type": "real",
+              "expression": "0.01",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__draw_2",
+              "expression": "scenario.slow_draw",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__returning": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__open_orders": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__hires": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__plant": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__outages": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "42",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "54",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s2_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s2_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "18",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "30",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s3_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s3_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s3_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s3_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "46",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "58",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            }
+          }
+        }
       }
     },
     {
@@ -1566,8 +3225,435 @@
         "param__hire_enabled": "scenario.hire_enabled"
       },
       "initialState": {
-        "type": "code",
-        "content": "return {\n  IdleTankers: [{ remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"nitrogen\", payload: 12, hired: 0 }, { remaining: 0, product: \"oxygen\", payload: 12, hired: 0 }],\n  LoadsDelivered: 0,\n  Returning: [],\n  OpenOrders: 0,\n  Hires: 0,\n  Plant: [{ up: 1 }],\n  Outages: 0,\n  SteadyNitrogenOrderPlaced: 0,\n  SteadyNitrogenOrderPermits: 2,\n  SteadyNitrogenOnRoute: [],\n  SteadyNitrogenVented: 0,\n  SteadyNitrogenLineRunning: 1,\n  SteadyNitrogenLineStopped: 0,\n  SteadyNitrogenStockouts: 0,\n  SteadyNitrogenTank: [{ level: 42, pressure: 2, drawn: 0, boiled: 0, capacity: 54, draw: parameters.draw_1, criticality: 2, product: \"nitrogen\", spilled: 0 }],\n  SlowNitrogenOrderPlaced: 0,\n  SlowNitrogenOrderPermits: 1,\n  SlowNitrogenOnRoute: [],\n  SlowNitrogenVented: 0,\n  SlowNitrogenLineRunning: 1,\n  SlowNitrogenLineStopped: 0,\n  SlowNitrogenStockouts: 0,\n  SlowNitrogenTank: [{ level: 18, pressure: 2, drawn: 0, boiled: 0, capacity: 30, draw: parameters.draw_2, criticality: 1, product: \"nitrogen\", spilled: 0 }],\n  CriticalOxygenOrderPlaced: 0,\n  CriticalOxygenOrderPermits: 2,\n  CriticalOxygenOnRoute: [],\n  CriticalOxygenVented: 0,\n  CriticalOxygenLineRunning: 1,\n  CriticalOxygenLineStopped: 0,\n  CriticalOxygenStockouts: 0,\n  CriticalOxygenTank: [{ level: 46, pressure: 2, drawn: 0, boiled: 0, capacity: 58, draw: parameters.draw_3, criticality: 3, product: \"oxygen\", spilled: 0 }],\n};"
+        "type": "adhoc",
+        "content": {
+          "variables": [
+            {
+              "name": "hire_enabled",
+              "type": "real",
+              "expression": "0",
+              "exposed": true,
+              "optimize": null
+            }
+          ],
+          "netParameters": [
+            {
+              "parameterId": "param__hire_enabled",
+              "expression": "scenario.hire_enabled",
+              "optimize": null
+            }
+          ],
+          "places": {
+            "place__idle_tankers": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                },
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "12",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__loads_delivered": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__returning": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__open_orders": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__hires": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__plant": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__outages": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s1_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s1_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s1_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s1_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "42",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "54",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s2_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s2_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s2_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s2_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "18",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "30",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "1",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"nitrogen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            },
+            "place__s3_order_placed": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_order_permits": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "2",
+                "optimize": null
+              }
+            },
+            "place__s3_on_route": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [],
+              "sharedColumns": {}
+            },
+            "place__s3_vented": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_line_running": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "1",
+                "optimize": null
+              }
+            },
+            "place__s3_line_stopped": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_stockouts": {
+              "kind": "uncoloured",
+              "count": {
+                "expression": "0",
+                "optimize": null
+              }
+            },
+            "place__s3_tank": {
+              "kind": "coloured",
+              "variables": [],
+              "rows": [
+                {
+                  "kind": "fixed",
+                  "cells": [
+                    {
+                      "expression": "46",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "2",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "58",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "parameters.draw_3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "3",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "\"oxygen\"",
+                      "optimize": null
+                    },
+                    {
+                      "expression": "0",
+                      "optimize": null
+                    }
+                  ]
+                }
+              ],
+              "sharedColumns": {}
+            }
+          }
+        }
       }
     }
   ],

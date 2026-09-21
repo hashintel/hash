@@ -34,11 +34,9 @@ pub enum Device {
 }
 
 impl Device {
-    /// Derives the device family this host accelerates.
+    /// Returns [`Self::Metal`] on macOS and [`Self::Cuda`] elsewhere.
     ///
-    /// Apple hosts accelerate through Metal, and every other host is taken to carry a CUDA
-    /// device. A deployment whose hardware differs passes its own [`Device`] instead of the
-    /// derived one.
+    /// Select a [`Device`] explicitly if your hardware does not support the platform default.
     #[must_use]
     pub const fn host() -> Self {
         if cfg!(target_os = "macos") {
@@ -69,12 +67,12 @@ impl fmt::Display for Device {
     }
 }
 
-/// A runtime device request carrying its parsed ordinal.
+/// A requested device family together with the ordinal it carries.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PinnedDevice(Device, usize);
 
 impl PinnedDevice {
-    /// Pins the host's derived family at ordinal 0.
+    /// Pins the platform's default family at ordinal 0.
     pub(crate) const fn host() -> Self {
         Device::host().pin(0)
     }
@@ -127,11 +125,18 @@ impl Error for ParseDeviceError {
     }
 }
 
-/// Parses `family` or `family:ordinal`, the family case-insensitive and the ordinal defaulting
-/// to 0: `metal`, `cuda:1`, `cpu`.
 impl FromStr for PinnedDevice {
     type Err = ParseDeviceError;
 
+    /// Parses a request written as `family` or `family:ordinal`.
+    ///
+    /// The family matches `metal`, `cuda` or `cpu`, ignoring ASCII case. A request naming no
+    /// ordinal pins ordinal 0. The forms `metal`, `cuda:1` and `cpu` all parse.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ParseDeviceError`]. The parse reads the ordinal before it matches the family, and
+    /// it refuses a malformed ordinal even when the family is also unsupported.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (device, ordinal) = s.split_once(':').unwrap_or((s, "0"));
         let ordinal = usize::from_str(ordinal).map_err(ParseDeviceError::InvalidOrdinal)?;
@@ -158,6 +163,7 @@ mod tests {
 
     use super::{Device, ParseDeviceError, PinnedDevice};
 
+    /// Device families parse in any case, a bare family pins ordinal zero, and `family:n` pins `n`.
     #[test]
     fn families_parse_case_insensitively_and_default_to_ordinal_zero() {
         assert_eq!(
@@ -174,6 +180,7 @@ mod tests {
         );
     }
 
+    /// A pinned device's `Display` form parses back to the same device.
     #[test]
     fn the_display_form_parses_back_to_itself() {
         let device = Device::Cuda.pin(2);
@@ -183,6 +190,9 @@ mod tests {
         );
     }
 
+    /// An unknown family fails with `UnknownFamily`.
+    ///
+    /// A non-numeric or empty ordinal fails with `InvalidOrdinal`.
     #[test]
     fn unknown_families_and_malformed_ordinals_refuse() {
         assert_matches!(

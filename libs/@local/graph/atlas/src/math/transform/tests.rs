@@ -1,9 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "the exact fit fixtures produce exactly representable readings, so the asserted \
-              constants are exact contracts"
-)]
-
 use hashql_core::id::IdSlice;
 use proptest::{property_test, strategy::Strategy};
 
@@ -14,12 +8,18 @@ use crate::math::{
 };
 
 hashql_core::id::newtype! {
-    /// The fit-comparison tests' row domain.
+    /// Row identifiers for paired affine-fitting fixtures.
+    ///
     #[id(const)]
     struct PairId(u32)
 }
 
-/// Proves a fixture's points finite over the tests' row domain.
+/// Validates fixture coordinates over the tests' row domain.
+///
+/// # Panics
+///
+/// Panics when a point is non-finite, including when locating it requires an unrepresentable row
+/// ID.
 #[track_caller]
 fn field(points: &[Vec2]) -> &FinitePointField<PairId> {
     FinitePointField::new(IdSlice::from_raw(points)).expect("the fixture points are finite")
@@ -85,9 +85,7 @@ fn apply_x4_matches_scalar_apply() {
 
     let batch = transform.apply_x4(Vec2x4T::from(POINTS));
 
-    // FMA fuses the rounding of multiply and add, so the SIMD path may
-    // differ from the scalar path by a few units in the last place of
-    // the intermediate terms.
+    // SIMD fusion and grouping differ from the scalar expression
     for (index, point) in POINTS.into_iter().enumerate() {
         assert_vec2_close(batch.get(index), transform.apply(point));
     }
@@ -157,10 +155,11 @@ fn then_widens_rotation_and_translation() {
     assert_vec2_close(transform.apply(Vec2::new(3.0, 4.0)), Vec2::new(-8.0, 7.0));
 }
 
-/// A well-conditioned transform.
+/// Generates bounded transforms with invertible linear parts.
 ///
-/// Per-axis scale magnitudes in `0.1..10` (condition number at most 100), an arbitrary rotation,
-/// and a translation bounded to `-1e3..1e3`.
+/// Per-axis scale magnitudes lie in `0.1..10`, the angle in `-16..16` radians and each translation
+/// component in `-1e3..1e3`. Before coefficient rounding, the scale ratio bounds the linear part's
+/// condition number by 100.
 fn transform_strategy() -> impl Strategy<Value = Transform> {
     (
         0.1_f32..10.0,
@@ -185,18 +184,20 @@ fn transform_strategy() -> impl Strategy<Value = Transform> {
         )
 }
 
-/// A point with coordinates bounded to the well-conditioned `-1e3..1e3` range.
+/// Generates points with coordinates in `-1e3..1e3`.
 fn point_strategy() -> impl Strategy<Value = Vec2> {
     (-1e3_f32..1e3, -1e3_f32..1e3).prop_map(|(x, y)| Vec2::new(x, y))
 }
 
 /// Asserts two points agree up to a magnitude-scaled tolerance.
 ///
-/// The tolerance scales with the magnitude of the values flowing through the transforms under test.
+/// The absolute allowance is 128 · EPSILON · max(magnitude, 1), using [`f32::EPSILON`].
+/// Cancellation can leave a result much smaller than its intermediate terms. The supplied scale
+/// estimates those terms rather than the final result alone.
 ///
-/// Intermediate coordinates reach the order of `magnitude`, and cancellation can leave a result far
-/// smaller than the values that produced it, so the tolerance scales with the inputs' magnitude
-/// rather than the result's.
+/// # Panics
+///
+/// Panics when either coordinate comparison fails.
 #[track_caller]
 fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
     let tolerance = 128.0 * f32::EPSILON * magnitude.max(1.0);
@@ -208,10 +209,6 @@ fn assert_close_at_magnitude(actual: Vec2, expected: Vec2, magnitude: f32) {
     );
 }
 
-/// A well-conditioned transform's inverse round-trips points.
-///
-/// `inverse().apply(apply(p)) == p` up to rounding amplified by the bounded (at most 100) condition
-/// of the linear part.
 #[property_test]
 fn inverse_round_trips_arbitrary_points(
     #[strategy = transform_strategy()] transform: Transform,
@@ -221,16 +218,13 @@ fn inverse_round_trips_arbitrary_points(
         .inverse()
         .expect("scales bounded away from zero keep the determinant normal");
 
-    // The forward image reaches |p| · 10 + 1e3; the inverse multiplies
-    // the rounding by up to another factor of 10.
+    // each translation component is bounded by 10³, and forward/inverse linear scale magnitudes are
+    // bounded near 10. The coordinatewise tolerance scale allows a factor of 100 on ‖p‖ and 10⁴ for
+    // translation.
     let magnitude = point.length().get().mul_add(100.0, 1e4);
     assert_close_at_magnitude(inverse.apply(transform.apply(point)), point, magnitude);
 }
 
-/// Composition distributes over application.
-///
-/// `a.then(b).apply(p) == b.apply(a.apply(p))` up to rounding scaled by the intermediate
-/// coordinates' magnitude.
 #[property_test]
 fn then_matches_sequential_application_on_arbitrary_transforms(
     #[strategy = transform_strategy()] first: Transform,
@@ -240,14 +234,16 @@ fn then_matches_sequential_application_on_arbitrary_transforms(
     let composed = first.then(second).apply(point);
     let sequential = second.apply(first.apply(point));
 
-    // The first image reaches |p| · 10 + 1e3, the second another
-    // factor of 10 plus 1e3.
+    // the tolerance scale grows with the two linear scale factors and both translations
     let magnitude = point.length().get().mul_add(100.0, 1.1e4);
     assert_close_at_magnitude(composed, sequential, magnitude);
 }
 
-/// The dyadic anisotropic fixture lands every fitted coefficient on an exactly representable
-/// value, so the recovery asserts an exact contract.
+/// Fits an anisotropic map on symmetric axis points.
+///
+/// The source centroid is zero and its scatter is 2I. The target-source cross-scatter is diag(4,
+/// 1). Dividing by the source scatter recovers diag(2, 1/2), and the target centroid is the
+/// translation (1, −2). These small dyadic operations and their determinant are exact.
 #[test]
 fn fit_recovers_an_exact_anisotropic_map() {
     let expected = Transform::from_cols(
@@ -273,8 +269,6 @@ fn fit_recovers_an_exact_anisotropic_map() {
     );
 }
 
-/// The affine fit subsumes the similarity family: on exactly similar data it recovers the
-/// similarity's own transform, coefficient for coefficient.
 #[test]
 fn fit_recovers_an_exact_similarity() {
     let source = [
@@ -303,9 +297,11 @@ fn fit_recovers_an_exact_similarity() {
     );
 }
 
-/// A trace-free deformation - one axis contracted, the other expanded - leaves the similarity
-/// fit a residual while the affine fit absorbs it whole. The readings are exact: the
-/// similarity's best scale on this square is `1.25` and every point misses it by `0.75`.
+/// Separates uniform scale from an anisotropic deformation.
+///
+/// The target map is diag(2, 1/2) = (5/4)I + diag(3/4, −3/4). The source scatter is 2I, giving the
+/// best similarity scale 5/4 and identity rotation. The trace-free remainder moves every unit-axis
+/// point by exactly 3/4. The affine fit absorbs both parts and has zero residual.
 #[test]
 fn fit_absorbs_the_deformation_a_similarity_cannot() {
     let source = [
@@ -339,9 +335,11 @@ fn fit_absorbs_the_deformation_a_similarity_cannot() {
     );
 }
 
-/// Collinear source points collapse an axis of the scatter, and the fit refuses them the way
-/// the inverse refuses a collapsed transform. The diagonal fixture's determinant cancels
-/// exactly in dyadic arithmetic.
+/// Rejects a dyadic collinear fixture and invalid pair counts.
+///
+/// Both coordinates follow the same sequence 0, 1, 2, 3. The centred scatter has every entry equal
+/// to 5, and its determinant is exactly 25 − 25 = 0. This fixture avoids the rounding residuals
+/// that can affect other singular inputs.
 #[test]
 fn fit_refuses_degenerate_sources() {
     let collinear = [

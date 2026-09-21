@@ -30,6 +30,9 @@ vi.mock("@hashintel/ds-components", () => {
 
 function makeLanguageClientValue(): LanguageClientContextValue {
   return {
+    requestDiagnostics: vi.fn(() =>
+      Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 }),
+    ),
     diagnosticsByUri: new Map(),
     totalDiagnosticsCount: 0,
     errorDiagnosticsCount: 0,
@@ -39,6 +42,12 @@ function makeLanguageClientValue(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
+    requestConstraint: vi.fn(() =>
+      Promise.resolve({
+        ok: false as const,
+        diagnostics: [],
+      }),
+    ),
     requestScenarioHir: vi.fn(() =>
       Promise.resolve({
         version: 1 as const,
@@ -60,15 +69,15 @@ function makeLanguageClientValue(): LanguageClientContextValue {
         failures: [],
       }),
     ),
-    initializeScenarioSession: vi.fn(),
-    updateScenarioSession: vi.fn(),
-    killScenarioSession: vi.fn(),
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
     initializeAdHocSession: vi.fn(),
     updateAdHocSession: vi.fn(),
     killAdHocSession: vi.fn(),
+    initializeConstraintSession: vi.fn(),
+    updateConstraintSession: vi.fn(),
+    killConstraintSession: vi.fn(),
   };
 }
 

@@ -109,18 +109,20 @@ export const LanguageClientProvider: React.FC<{
     requestCompletion: client.requestCompletion,
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
+    requestDiagnostics: client.requestDiagnostics,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
-    initializeScenarioSession: client.initializeScenarioSession,
-    updateScenarioSession: client.updateScenarioSession,
-    killScenarioSession: client.killScenarioSession,
+    requestConstraint: client.requestConstraint,
     initializeMetricSession: client.initializeMetricSession,
     initializeAdHocSession: client.initializeAdHocSession,
     updateAdHocSession: client.updateAdHocSession,
     killAdHocSession: client.killAdHocSession,
     updateMetricSession: client.updateMetricSession,
     killMetricSession: client.killMetricSession,
+    initializeConstraintSession: client.initializeConstraintSession,
+    updateConstraintSession: client.updateConstraintSession,
+    killConstraintSession: client.killConstraintSession,
   };
 
   return (

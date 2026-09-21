@@ -213,14 +213,82 @@ return {
             param__contact_reduction: "scenario.contact_reduction",
           },
           initialState: {
-            type: "per_place",
+            type: "adhoc",
             content: {
-              place__susceptible:
-                "scenario.population - scenario.initial_infected - Math.round((scenario.population - scenario.initial_infected) * scenario.vaccination_coverage)",
-              place__infected: "scenario.initial_infected",
-              place__recovered: "0",
-              place__vaccinated:
-                "Math.round((scenario.population - scenario.initial_infected) * scenario.vaccination_coverage)",
+              variables: [
+                {
+                  name: "population",
+                  type: "integer",
+                  expression: "1000",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "initial_infected",
+                  type: "integer",
+                  expression: "20",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "vaccination_coverage",
+                  type: "ratio",
+                  expression: "0.3",
+                  exposed: true,
+                  optimize: null,
+                },
+                {
+                  name: "contact_reduction",
+                  type: "ratio",
+                  expression: "0.2",
+                  exposed: true,
+                  optimize: null,
+                },
+              ],
+              netParameters: [
+                {
+                  parameterId: "param__vaccination_coverage",
+                  expression: "scenario.vaccination_coverage",
+                  optimize: null,
+                },
+                {
+                  parameterId: "param__contact_reduction",
+                  expression: "scenario.contact_reduction",
+                  optimize: null,
+                },
+              ],
+              places: {
+                place__susceptible: {
+                  kind: "uncoloured",
+                  count: {
+                    expression:
+                      "scenario.population - scenario.initial_infected - Math.round((scenario.population - scenario.initial_infected) * scenario.vaccination_coverage)",
+                    optimize: null,
+                  },
+                },
+                place__infected: {
+                  kind: "uncoloured",
+                  count: {
+                    expression: "scenario.initial_infected",
+                    optimize: null,
+                  },
+                },
+                place__recovered: {
+                  kind: "uncoloured",
+                  count: {
+                    expression: "0",
+                    optimize: null,
+                  },
+                },
+                place__vaccinated: {
+                  kind: "uncoloured",
+                  count: {
+                    expression:
+                      "Math.round((scenario.population - scenario.initial_infected) * scenario.vaccination_coverage)",
+                    optimize: null,
+                  },
+                },
+              },
             },
           },
         },

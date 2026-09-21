@@ -139,7 +139,7 @@ This report therefore uses the detailed digest's breadth, the concise overview's
 
 Do not edit the teaching before executing the frozen prospective baseline. Otherwise the project loses the clean comparison point it just built.
 
-1. Run the unchanged three-replication baseline under `evaluations/protocols/prospective-runbook-v1/`.
+1. Run a supported three-replication baseline under a current instrument; the historical `prospective-runbook-v1` protocol has been retired.
 2. Grade each run with independent omniscient and cold contexts and human-adjudicate hard failures, grader disagreements, and new mistake classes.
 3. Compare a **phase-discipline repair** bundle: a pre-first-question load invariant, construction material moved out of elicitation, stronger authorship/assumption treatment, and elicitation gaps separated from construction losses. Keep the current typology count.
 4. Compare a **process-spine with overlays** bundle.

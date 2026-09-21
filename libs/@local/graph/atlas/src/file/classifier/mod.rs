@@ -42,7 +42,7 @@
 //! opening refuses a mismatch, so a cross-endian file fails by name instead of being
 //! reinterpreted.
 //!
-//! [`read::ClassifierFile`] opens a file under these rules and hands out the raw typed regions;
+//! [`read::ClassifierFile`] opens a file under these rules and hands out the raw typed regions.
 //! [`write::write_regions`] streams them into place. The format owns geometry alone - the model's
 //! domain invariants (finite parameters, positive temperature, positive inverse scales, sorted
 //! nonnegative distances) are `salt::policy::classifier`'s artifact contract, validated where the
@@ -51,7 +51,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -73,8 +73,10 @@ use crate::file::region::{
 /// Geometry classes per model: pinned by the layout version.
 pub(crate) const CLASSES: usize = 3;
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

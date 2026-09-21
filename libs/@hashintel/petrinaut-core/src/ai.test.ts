@@ -1,3 +1,4 @@
+import { rolldown } from "rolldown";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
 
@@ -27,6 +28,29 @@ const createInstance = () =>
   });
 
 describe("Petrinaut AI core exports", () => {
+  test("keeps execution runtimes out of the AI entry before tree shaking", async () => {
+    const build = await rolldown({
+      input: "src/ai.ts",
+      external: /^[^./]/u,
+      treeshake: false,
+      logLevel: "silent",
+    });
+    try {
+      const { output } = await build.generate({ format: "esm" });
+      const modules = output.flatMap((chunk) =>
+        chunk.type === "chunk" ? Object.keys(chunk.modules) : [],
+      );
+      expect(modules.length).toBeGreaterThan(0);
+      expect(
+        modules.filter((moduleId) =>
+          /\/(?:hir|simulation\/monte-carlo\/runtime)\//u.test(moduleId),
+        ),
+      ).toEqual([]);
+    } finally {
+      await build.close();
+    }
+  });
+
   test("tool metadata stays aligned with input schemas and has no execute", () => {
     expect(Object.keys(petrinautAiTools).sort()).toEqual(
       Object.keys(petrinautAiToolInputSchemas).sort(),

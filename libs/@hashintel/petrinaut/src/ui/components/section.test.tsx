@@ -1,11 +1,13 @@
 /**
  * @vitest-environment jsdom
- *
- * Stacking is the one thing about a Section that jsdom can still hold to
- * account: it computes no layout, but the classes Panda emits carry the
- * tiers, and the tiers are what the nesting bug was about.
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { Section, SectionList } from "./section";
@@ -13,6 +15,22 @@ import { Section, SectionList } from "./section";
 afterEach(cleanup);
 
 describe("Section", () => {
+  it("exposes the expanded state on its keyboard-accessible toggle", async () => {
+    render(
+      <Section title="Constraints" collapsible>
+        <span>Condition</span>
+      </Section>,
+    );
+    const trigger = screen.getByRole("button", {
+      name: "Toggle Constraints section",
+    });
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(trigger);
+    await waitFor(() =>
+      expect(trigger.getAttribute("aria-expanded")).toBe("false"),
+    );
+  });
+
   it("keeps a focused section below every sticky header", () => {
     render(
       <SectionList>

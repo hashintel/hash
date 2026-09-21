@@ -9,13 +9,15 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
+problematic = { workspace = true, public = true, features = ["error-stack"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 axum          = { workspace = true, public = true }
 axum-core     = { workspace = true, public = true }
-http          = { workspace = true, public = true, features = ["std"] }
+http          = { workspace = true, public = true }
 opentelemetry = { workspace = true, public = true, features = ["metrics"] }
+serde_core    = { workspace = true, public = true }
 tower-layer   = { workspace = true, public = true }
 tower-service = { workspace = true, public = true }
 

@@ -6,20 +6,28 @@ import type {
 } from "./parameter-grid";
 import type {
   SweepBatchStatus,
-  SweepCellSnapshot,
+  SweepNavigateOptions,
   SweepSelection,
+  SweepVisitedCell,
 } from "./sweep-session";
 
-export type { SweepBatchStatus } from "./sweep-session";
+export type {
+  SweepBatchStatus,
+  SweepNavigateOptions,
+  SweepVisitedCell,
+} from "./sweep-session";
 import type {
   AdHocScenarioState,
-  SDCPN,
+  Constraint,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
-  ReadableStore,
+  Scenario,
+  SDCPN,
+  PetrinautExtensionSettings,
 } from "@hashintel/petrinaut-core";
+import type { PetrinautOptimizationConstraintPolicy } from "@hashintel/petrinaut-core/optimization";
 
 export type ExperimentStatus =
   | "initializing"
@@ -68,6 +76,13 @@ export type CreateExperimentInput = {
    * `scenarioId` is set.
    */
   adHocScenario?: AdHocScenarioState | null;
+  /**
+   * Whether the definition's Sweep selections become sweep axes: each
+   * selected value turns into a generated scenario parameter swept over its
+   * bounds. Off, the definition runs at its fixed values and any selection
+   * left in it is ignored, as the form no longer shows one.
+   */
+  adHocSweeps?: boolean;
   /** Number of runs per parameter combination. */
   runCount: number;
   seed: number;
@@ -82,10 +97,33 @@ export type CreateExperimentInput = {
    * one actually ran.
    */
   computeBackend?: ExperimentComputeBackend;
+  /**
+   * Lowered constraints a study started from this sweep enforces: a
+   * parameter constraint prunes a suggested point before it computes, a
+   * state constraint runs as a 0/1 indicator metric on every batch.
+   */
+  constraints?: readonly Constraint[];
+  /** Share of runs a state constraint may fail per step; omitted at alpha 0.05. */
+  constraintPolicy?: PetrinautOptimizationConstraintPolicy;
+};
+
+export type CreateExperimentOptions = {
+  definition?: SDCPN;
+  extensions?: PetrinautExtensionSettings;
+  ownership?: {
+    signal: AbortSignal;
+    finished: Promise<void>;
+    cancel: () => void;
+    onError?: (message: string) => void;
+  };
 };
 
 export type ExperimentRecord = {
   id: string;
+  /** The model snapshot used by the runs and any optimization started later. */
+  definition?: SDCPN;
+  /** Compute controls are held until a host request captures its result. */
+  requestActive?: boolean;
   name: string;
   createdAt: number;
   scenarioId: string | null;
@@ -140,17 +178,34 @@ export type ExperimentRecord = {
   /** Live sweep state; null for a plain experiment. */
   sweep: ExperimentSweepState | null;
   /**
-   * Every batch the sweep session is computing right now — the selection's
-   * own ladder rungs plus the background surface and refine batches. Empty
-   * for a plain experiment and whenever nothing computes.
+   * The ladder rungs the sweep session is computing right now. Empty for a
+   * plain experiment and whenever nothing computes.
    */
   sweepBatches: readonly SweepBatchStatus[];
+  /**
+   * The scenario parameters' values as parsed at creation (swept ones at
+   * their fixed-form value). A study's manifest fixes the non-swept ones
+   * here and judges parameter constraints against them. Empty for ad-hoc.
+   */
+  scenarioParameterValues: Readonly<Record<string, number>>;
+  constraints: readonly Constraint[];
+  constraintPolicy: PetrinautOptimizationConstraintPolicy | null;
+  /**
+   * The scenario the runs compile from, as it was at creation: the saved
+   * scenario's snapshot, or the generated ad-hoc scenario (id
+   * "adhoc-scenario", one parameter per interval toggle). A study of this
+   * sweep binds its parameters. Null when the experiment runs the net's own
+   * marking.
+   */
+  scenario: Scenario | null;
 };
 
 /** Navigator-facing state of a sweep experiment. */
 export type ExperimentSweepState = {
   /** Inclusive position range per swept parameter identifier. */
   selection: SweepSelection;
+  /** The selection's key: one string per distinct selection, for consumers keying on it. */
+  selectionKey: string;
   /** Finished runs for the selection. */
   runsCompleted: number;
   /** Runs contributing to the shown frames, including the in-flight batch. */
@@ -158,6 +213,11 @@ export type ExperimentSweepState = {
   /** Ladder target the in-flight batch climbs to; null when saturated. */
   runTarget: number | null;
   computing: boolean;
+  /**
+   * Every point computed so far, first visit first, with its per-metric
+   * values: what the Surface draws. A new array only when a batch folds.
+   */
+  visited: readonly SweepVisitedCell[];
 };
 
 /** Whether a status is one an experiment can never leave. */
@@ -182,7 +242,7 @@ export function isExperimentActive(experiment: ExperimentRecord): boolean {
  * report, rather than a runtime of 0.
  */
 export function getExperimentElapsedMs(
-  experiment: ExperimentRecord,
+  experiment: Pick<ExperimentRecord, "startedAt" | "finishedAt">,
   now: number,
 ): number | null {
   if (experiment.startedAt === null) {
@@ -197,145 +257,46 @@ export type ExperimentsContextValue = {
   selectedExperimentId: string | null;
   selectedExperiment: ExperimentRecord | null;
   setSelectedExperimentId: (experimentId: string | null) => void;
-  createExperiment: (input: CreateExperimentInput) => Promise<string>;
+  /**
+   * Creates the experiment and starts its compute; resolves with the record
+   * once a sweep's session is registered (or a plain run's backend selection
+   * has begun). Selects nothing: the caller decides what opens, and when.
+   */
+  createExperiment: (
+    input: CreateExperimentInput,
+    options?: CreateExperimentOptions,
+  ) => Promise<ExperimentRecord>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
-  /** Moves a sweep's navigator; compute follows the selection. */
+  /** Moves a sweep's navigator; compute follows the selection up to the run count. */
   setSweepSelection: (experimentId: string, selection: SweepSelection) => void;
   /**
-   * Samples sweep-surface cells to `runsPerCell` runs each and returns each
-   * cell's per-metric mean, index-aligned with `positions` (null entries for
-   * cells with no finished runs). Waits for the navigator's own selection to
-   * stream first. One batch when the cells share an initial marking; the
-   * per-cell path otherwise. Resolves null with no session.
+   * Moves a sweep's navigator and resolves once the selection has the runs
+   * asked for (the cap, or the run count without one) with the finished
+   * runs' per-metric values: the optimizer's way to evaluate a point.
+   * Resolves null when another move superseded it or the sweep was
+   * disposed; rejects when a batch of the point fails or the sweep is gone.
    */
-  sampleSurfaceCells: (
+  navigateSweep: (
     experimentId: string,
-    positions: readonly Readonly<Record<string, number>>[],
-    runsPerCell: number,
-    onPartial?: (
-      cells: readonly (Readonly<Record<string, number>> | null)[],
-    ) => void,
-  ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
-  /**
-   * Computes one metric sample against an arbitrary net snapshot, on the
-   * background single-worker lane — the optimization surface's local compute
-   * path, which must run a study's frozen model rather than the live editor
-   * net. Batches are serialized; compilation is cached per `cacheKey`.
-   * Resolves null when the batch is refused or fails (a hole in the surface,
-   * not an error).
-   */
-  sampleDetachedObjective: (
-    request: DetachedObjectiveRequest,
-  ) => Promise<SweepCellSnapshot | null>;
-  /**
-   * Streams one batch of a study's objective at one parameter point on the
-   * requested backend: the in-browser optimizer's trials and the study
-   * drawer's selected-point refinement. Batches queue per `queueKey` (the
-   * `cacheKey` by default); different keys run side by side. The
-   * returned run never rejects — refusal, failure and cancellation all
-   * settle `completion` with a failed outcome naming the reason.
-   */
-  runDetachedObjective: (
-    request: DetachedObjectiveRunRequest,
-  ) => DetachedObjectiveRun;
+    selection: SweepSelection,
+    options?: SweepNavigateOptions,
+  ) => Promise<SweepVisitedCell | null>;
 };
-
-/** One local compute batch for an optimization study's objective. */
-export type DetachedObjectiveRequest = {
-  /** Compile-cache identity; one study keeps one compiled snapshot. */
-  cacheKey: string;
-  /** The frozen model snapshot to run (not the live editor net). */
-  definition: SDCPN;
-  scenarioId: string;
-  /** Parsed values for every scenario parameter (bindings plus navigation). */
-  scenarioParameterValues: Readonly<Record<string, number | boolean>>;
-  /** The study's objective metric, evaluated as an expression metric. */
-  metric: { id: string; label: string; code: string };
-  seed: number;
-  runCount: number;
-  dt: number;
-  maxTime: number;
-};
-
-export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
-  /**
-   * Pinned per-run seeds, `runCount` long; CPU only. Absent (and always on
-   * the GPU, which derives every run's seed from `seed`), runs derive their
-   * seeds from `seed`.
-   */
-  runSeeds?: readonly number[];
-  /**
-   * Runs sharing a queue key run one at a time, in order; runs with
-   * different keys overlap. Defaults to `cacheKey`, so a study's batches
-   * queue unless the caller gives each its own key.
-   */
-  queueKey?: string;
-  computeBackend: ExperimentComputeBackend;
-  signal?: AbortSignal;
-};
-
-export type DetachedObjectiveRunResult = {
-  runsCompleted: number;
-  metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
-  /** Per-run final metric values; empty on the GPU, which reports no run axis. */
-  runResults: ReadonlyMap<number, Readonly<Record<string, number>>>;
-  /** Where the batch ran. */
-  computeBackend: ExperimentComputeBackend;
-  /** Why the requested backend declined, when the batch ran elsewhere. */
-  computeBackendFallbackReason: string | null;
-};
-
-/**
- * How a batch ended. A failure carries a reason the user can act on: the
- * diagnostics of a metric that did not compile, each backend that declined
- * and why, how many runs errored. `cancelled` marks a batch stopped through
- * `cancel` or the request's signal, which nobody needs to act on.
- */
-export type DetachedObjectiveRunOutcome =
-  | ({ readonly ok: true } & DetachedObjectiveRunResult)
-  | {
-      readonly ok: false;
-      readonly reason: string;
-      readonly cancelled: boolean;
-    };
-
-/** One streaming batch for a study's objective at one parameter point. */
-export type DetachedObjectiveRun = {
-  /** Frames so far; replaced as the batch streams, at most every 100 ms. */
-  readonly frames: ReadableStore<readonly MonteCarloUserDefinedMetricFrame[]>;
-  readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
-  /** Settles on the terminal event; never rejects. */
-  readonly completion: Promise<DetachedObjectiveRunOutcome>;
-  cancel(this: void): void;
-};
-
-const constantStore = <T>(value: T): ReadableStore<T> => ({
-  get: () => value,
-  subscribe: () => () => {},
-});
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   experiments: [],
   selectedExperimentId: null,
   selectedExperiment: null,
   setSelectedExperimentId: () => {},
-  createExperiment: () => Promise.resolve(""),
+  createExperiment: () =>
+    Promise.reject(
+      new Error("createExperiment was called outside an ExperimentsProvider"),
+    ),
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
-  sampleSurfaceCells: () => Promise.resolve(null),
-  sampleDetachedObjective: () => Promise.resolve(null),
-  runDetachedObjective: () => ({
-    frames: constantStore([]),
-    progress: constantStore(null),
-    completion: Promise.resolve({
-      ok: false,
-      cancelled: false,
-      reason: "Experiments are unavailable",
-    }),
-    cancel: () => {},
-  }),
+  navigateSweep: () => Promise.resolve(null),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
@@ -355,9 +316,7 @@ export type ExperimentsActionsValue = Pick<
   | "cancelExperiment"
   | "removeExperiment"
   | "setSweepSelection"
-  | "sampleSurfaceCells"
-  | "sampleDetachedObjective"
-  | "runDetachedObjective"
+  | "navigateSweep"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(

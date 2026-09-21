@@ -1,0 +1,5 @@
+(version 1)
+(allow default)
+(deny network*)
+; tsx codegen uses a filesystem Unix-domain IPC socket, not an IP connection.
+(allow network* (regex "^(/private)?/(tmp|var/folders/[^/]+/[^/]+/T)/tsx-[0-9]+/[0-9]+[.]pipe$"))

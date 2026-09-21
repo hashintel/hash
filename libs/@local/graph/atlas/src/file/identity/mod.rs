@@ -54,7 +54,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -74,8 +74,10 @@ pub(crate) mod read;
 mod tests;
 pub(crate) mod write;
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,
@@ -155,7 +157,7 @@ pub(crate) enum Version {
     zerocopy::KnownLayout,
 )]
 #[repr(u16)]
-pub enum Kind {
+pub(crate) enum Kind {
     /// Ontology types: the payload holds icons.
     Ontology = 0,
     /// Nodes: the payload holds labels.
@@ -178,6 +180,10 @@ impl fmt::Display for Kind {
 ///
 /// A key is opaque at this layer. The kind pins its width and the [`Key`] type it reads back as,
 /// and byte order is the only order keys carry.
+///
+/// The high byte of each stored discriminant identifies its group: `0x00_xx` for domain identifiers
+/// and `0x01_xx` for little-endian integers. The low byte identifies the key type within that
+/// group.
 #[derive(
     Debug,
     Copy,
@@ -192,16 +198,40 @@ impl fmt::Display for Kind {
     zerocopy::KnownLayout,
 )]
 #[repr(u16)]
-pub enum KeyKind {
+pub(crate) enum KeyKind {
     /// An [`ArchivedOntologyTypeUuid`].
     OntologyTypeUuid = 0x00_00,
     /// An [`ArchivedEntityId`].
     EntityId = 0x00_01,
     /// A `u8`.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format, which a reader accepts from a \
+                      header and no writer in this crate produces yet"
+        )
+    )]
     U8Le = 0x01_00,
     /// A [`U16<LE>`].
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format, which a reader accepts from a \
+                      header and no writer in this crate produces yet"
+        )
+    )]
     U16Le = 0x01_01,
     /// A [`U64<LE>`].
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "a declared key width of the identity format; the only dataset writing u64 \
+                      keys is `dataset::memory`, which is test-only"
+        )
+    )]
     U64Le = 0x01_02,
 }
 
@@ -243,9 +273,12 @@ pub(crate) trait Key: ByteStable {
     /// A row's payload enters the file as the value's raw bytes. Opening a typed table casts
     /// every span once, validating on the way, and readback trusts that validation. Each
     /// payload type defines its own empty value, which is what a row without a display value
-    /// carries. The header pins [`KIND`](Self::KIND) but not the payload type, so two `Key`
-    /// impls sharing a kind may cast one file's payloads differently. The open-time casts
-    /// validate per impl, so a mismatched open fails loudly instead of misreading bytes.
+    /// carries. The header pins [`KIND`](Self::KIND) and records nothing about the payload type.
+    /// Two `Key` impls sharing a kind may cast one file's payloads differently: the in-memory
+    /// dataset's three ids all declare [`U64Le`](KeyKind::U64Le) and two payload types between
+    /// them. The open-time cast validates each span against the payload type the opener chose,
+    /// which is the whole of the check. A span whose bytes are valid for both types opens under
+    /// either, and no field records which one wrote it.
     type Payload: zerocopy::IntoBytes
         + zerocopy::Immutable
         + zerocopy::KnownLayout

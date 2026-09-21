@@ -4,27 +4,32 @@ import {
   type FlueClient,
   type FlueConversationMessage,
 } from "@flue/sdk";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
+  type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { LOCAL_UI_PRINCIPAL } from "../conversation/payload.ts";
 import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
+/** The local UI always speaks as its one demo principal. */
+type LocalConversationIdentity = ConversationIdentity & {
+  readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
+};
+
 type ChatConfiguration =
-  | {
-      readonly mode: "writable";
-      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
-      readonly conversationId: string;
-    }
-  | {
-      readonly mode: "observe";
-      readonly principalKey: typeof LOCAL_UI_PRINCIPAL;
-      readonly conversationId: string;
-    }
+  | ({ readonly mode: "writable" } & LocalConversationIdentity)
+  | ({ readonly mode: "observe" } & LocalConversationIdentity)
   | {
       readonly mode: "observer-error";
       readonly message: string;
@@ -105,13 +110,22 @@ function ChatConversation({
     agent.status === "submitted" ||
     agent.status === "streaming";
 
-  function submit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault();
-    const reply = input.trim();
-    if (!reply || busy) return;
-    setInput("");
-    void agent.sendMessage(reply);
-  }
+  const submit = useCallback(
+    (event: FormEvent<HTMLFormElement>): void => {
+      event.preventDefault();
+      const reply = input.trim();
+      if (!reply || busy) return;
+      setInput("");
+      void agent.sendMessage(reply);
+    },
+    [agent, busy, input],
+  );
+  const updateInput = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>): void => {
+      setInput(event.target.value);
+    },
+    [],
+  );
 
   return (
     <main className="shell">
@@ -143,7 +157,7 @@ function ChatConversation({
             <textarea
               id="reply"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={updateInput}
               placeholder="Ask something."
               rows={3}
             />

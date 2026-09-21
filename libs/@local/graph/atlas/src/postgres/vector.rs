@@ -45,7 +45,7 @@ pub(crate) fn normalized_prefix(embedding: Aliased<EntityEmbeddings>) -> Express
 pub(crate) enum VectorDecodeError {
     /// The four-byte header is truncated.
     Header,
-    /// The header's dimensions or the payload length disagree with the expected shape.
+    /// The dimensions or payload size are wrong, or the reserved header word is nonzero.
     Shape {
         /// The compile-time component count.
         expected: usize,
@@ -79,6 +79,11 @@ impl Error for VectorDecodeError {}
 pub(crate) struct PgVector<const N: usize>(pub BoxedVecN<N>);
 
 impl<'value, const N: usize> FromSql<'value> for PgVector<N> {
+    /// Decodes pgvector's binary wire form into an aligned `N`-component vector.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`VectorDecodeError`] for a truncated header or a value with the wrong vector shape.
     #[expect(
         clippy::big_endian_bytes,
         reason = "pgvector's binary protocol uses network byte order"
@@ -107,7 +112,7 @@ impl<'value, const N: usize> FromSql<'value> for PgVector<N> {
             }));
         }
 
-        // The components decode straight into the aligned buffer; the
+        // The components decode straight into the aligned buffer. The
         // shape check above pinned their count to exactly `N`.
         let mut decoded = BoxedVecN::<N>::zero();
         for (slot, &bytes) in decoded
@@ -122,6 +127,7 @@ impl<'value, const N: usize> FromSql<'value> for PgVector<N> {
     }
 
     fn accepts(ty: &Type) -> bool {
+        // pgvector's OID is assigned per database when the extension is installed.
         ty.name() == "vector"
     }
 }

@@ -1,3 +1,15 @@
+import { use, useEffect, useRef, useState } from "react";
+
+import { sirModel } from "@hashintel/petrinaut-core/examples";
+
+import { ExperimentsContext } from "../../../../../../react/experiments/context";
+import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
+import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
+import { PetrinautNavigationProvider } from "../../../../../../react/navigation";
+import { NotificationsProvider } from "../../../../../../react/notifications/provider";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
+import { MonacoProvider } from "../../../../../monaco/provider";
 /**
  * The full sweep drawer — Parameters, Surface, Metrics — against the real
  * experiments provider, so real workers stream while the surface samples.
@@ -6,17 +18,7 @@
  * split fixtures (navigator-only real compute, drawer-only fake compute)
  * each exercise half of what the user actually sees.
  */
-import { use, useEffect, useRef, useState } from "react";
-
-import { sirModel } from "@hashintel/petrinaut-core/examples";
-
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
-import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
-import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
-import { NotificationsProvider } from "../../../../../../react/notifications/provider";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
-import { MonacoProvider } from "../../../../../monaco/provider";
+import { SimulationWorkspace } from "../../../shared/simulation-workspace";
 import { sirSdcpnContextValue } from "./experiments-story-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
@@ -28,6 +30,21 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 const meta = {
   title: "Bench / SweepDrawer",
   parameters: { layout: "fullscreen" },
+  decorators: [
+    (Story) => (
+      <PetrinautNavigationProvider
+        initialState={{
+          simulateResource: { type: "experiment", id: "story-experiment" },
+        }}
+      >
+        <div style={{ height: "100vh", display: "flex" }}>
+          <SimulationWorkspace>
+            <Story />
+          </SimulationWorkspace>
+        </div>
+      </PetrinautNavigationProvider>
+    ),
+  ],
 } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -75,7 +92,8 @@ const Session = ({
   computeBackend: ExperimentComputeBackend;
   runCount: number;
 }) => {
-  const { experiments, createExperiment } = use(ExperimentsContext);
+  const { experiments, createExperiment, setSelectedExperimentId } =
+    use(ExperimentsContext);
   const started = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,8 +131,10 @@ const Session = ({
         },
       ],
       computeBackend,
-    }).catch((cause: unknown) => setError(String(cause)));
-  }, [computeBackend, createExperiment, runCount]);
+    })
+      .then((experiment) => setSelectedExperimentId(experiment.id))
+      .catch((cause: unknown) => setError(String(cause)));
+  }, [computeBackend, createExperiment, runCount, setSelectedExperimentId]);
 
   const experiment = experiments.find((candidate) => candidate.sweep !== null);
   if (error) {

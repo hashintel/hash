@@ -17,15 +17,17 @@ use crate::{
     math::{BoxedVecN, VecN, unit_fraction},
 };
 
+/// Sixteen distinct bytes read as an archived UUID by the identity tests.
 const UUID_BYTES: [u8; 16] = [
     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
 ];
 
+/// A row id's byte image is little-endian regardless of host, and reads back to the same id.
 #[test]
 fn row_ids_persist_little_endian() {
     let id = NodeRowId::new(0x0102_0304_0506_0708);
 
-    // The little-endian byte image is the persisted form; artifact files
+    // The little-endian byte image is the persisted form. Artifact files
     // depend on it being identical on every host.
     assert_eq!(
         id.as_bytes(),
@@ -91,6 +93,9 @@ fn fixture() -> MemoryDataset {
     )
 }
 
+/// The in-memory dataset streams its nodes, edges and ontology rows in construction order.
+///
+/// Confidences, type lists and parents stay intact.
 #[tokio::test]
 async fn memory_dataset_streams_rows_in_construction_order() {
     let dataset = fixture();
@@ -124,11 +129,10 @@ async fn memory_dataset_streams_rows_in_construction_order() {
     assert_eq!(ontology[1].parents.as_slice(), [OntologyRowId::new(0)]);
 }
 
+/// Requesting one node's canonical embedding returns that node's id.
+///
+/// The components come back exactly as stored.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture's exactly representable 1.0 must round-trip bit-identically"
-)]
 async fn memory_dataset_serves_canonical_embeddings() {
     let dataset = fixture();
 
@@ -143,6 +147,7 @@ async fn memory_dataset_serves_canonical_embeddings() {
     assert_eq!(embeddings[0].1.as_array()[0], 1.0);
 }
 
+/// `render_cards` yields one card per ontology row keyed by its memory id.
 #[tokio::test]
 async fn memory_dataset_renders_cards() {
     let dataset = fixture();
@@ -168,6 +173,9 @@ async fn memory_dataset_renders_cards() {
     );
 }
 
+/// A fresh fixture streams each node's representative type under the empty label.
+///
+/// Replaced node legends, edge legends and ontology icons stream back verbatim.
 #[tokio::test]
 async fn memory_dataset_streams_display_columns() {
     let mut dataset = fixture();
@@ -231,6 +239,7 @@ async fn memory_dataset_streams_display_columns() {
     );
 }
 
+/// A node legend column shorter than the node stream panics with the documented message.
 #[test]
 #[should_panic(expected = "one legend per node row")]
 fn memory_dataset_rejects_a_short_legend_column() {
@@ -240,6 +249,9 @@ fn memory_dataset_rejects_a_short_legend_column() {
     let _stream = dataset.node_auxiliary_payload();
 }
 
+/// `MemoryDataset::new` panics when an edge names a node row the node stream lacks.
+///
+/// The panic carries the documented message.
 #[test]
 #[should_panic(expected = "references a node row outside the node stream")]
 fn memory_dataset_rejects_dangling_edge_endpoints() {
@@ -264,7 +276,7 @@ fn memory_dataset_rejects_dangling_edge_endpoints() {
 /// The tests the `miri` nextest profile selects.
 ///
 /// Each test here derefs an archived identifier to the identity it wraps and round-trips the bytes
-/// behind it. The profile selects by module path, so moving a test in or out of this module is the
+/// behind it. The profile selects by module path. Moving a test in or out of this module is the
 /// whole edit.
 mod miri {
     use type_system::{
@@ -278,6 +290,7 @@ mod miri {
     use super::UUID_BYTES;
     use crate::postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId};
 
+    /// An `ArchivedEntityUuid` read from sixteen bytes dereferences to their `EntityUuid`.
     #[test]
     fn archived_entity_uuid_derefs_to_the_same_identity() {
         let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
@@ -286,6 +299,7 @@ mod miri {
         assert_eq!(*archived, EntityUuid::new(Uuid::from_bytes(UUID_BYTES)));
     }
 
+    /// An `ArchivedWebId` read from sixteen bytes dereferences to the `WebId` of those bytes.
     #[test]
     fn archived_web_id_derefs_to_the_same_identity() {
         let archived = ArchivedWebId::read_from_bytes(&UUID_BYTES)
@@ -294,6 +308,9 @@ mod miri {
         assert_eq!(*archived, WebId::new(Uuid::from_bytes(UUID_BYTES)));
     }
 
+    /// An `ArchivedOntologyTypeUuid` dereferences to the UUID of its source bytes.
+    ///
+    /// The bytes are a versioned URL's UUID.
     #[test]
     fn archived_ontology_type_uuid_derefs_to_the_same_identity() {
         let id = OntologyTypeUuid::from_url(

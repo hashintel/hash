@@ -4,20 +4,13 @@
 //! of a portable-SIMD vector without a libm call. Range reduction splits the input into an integer
 //! power of two and a small residual. A short minimax polynomial approximates the function on the
 //! residual. Reconstruction then applies the power of two through direct exponent-field arithmetic.
-//! Each function documents its own error bound, and each bound comes from the SLEEF accuracy tier
-//! its kernel derives from (`u10` is within 1.0 ULP, `u35` within 3.5).
+//! The f32 entry points document SLEEF accuracy tiers (`u10` is within 1.0 ULP, `u35` within 3.5).
 //!
-//! # Reproducibility contract
+//! # Arithmetic
 //!
-//! Content-hashed fit artifacts require bit-identical results from these kernels on every target
-//! the crate builds for. Unconditional fusion and plain lane arithmetic give that guarantee:
-//!
-//! - Every multiply-accumulate is a fused [`mul_add`](std::simd::StdFloat::mul_add). A fused
-//!   multiply-add has exactly one correctly rounded result, defined by IEEE 754 independently of
-//!   how a target lowers it, and both baselines the crate builds for lower it in hardware (aarch64
-//!   FMLA, x86-64 the v3 baseline's FMA). Targets differ in speed, never in bits.
-//! - Every step is plain `f32`/`f64` lane arithmetic, bit shifts, and lane selects, with one
-//!   rounding per operation as IEEE 754 requires. No step depends on a target-specific instruction.
+//! Every multiply-accumulate uses fused [`mul_add`](std::simd::StdFloat::mul_add) to round once
+//! instead of rounding the product separately. Portable-SIMD arithmetic does not guarantee
+//! identical NaN payloads across targets.
 //!
 //! # Provenance and divergences
 //!
@@ -25,88 +18,95 @@
 //! from the `sleef` crate, version 0.3.3 (MIT OR Apache-2.0), a pure-Rust port of the SLEEF
 //! vector math library (Naoki Shibata and contributors, Boost Software License 1.0):
 //! <https://github.com/burrbull/sleef-rs>. The entry points correspond to upstream's
-//! `f32x::exp_u10`, `f32x::exp2_u35`, `f32x::log2_u35`, and `f64x::exp_u10`. This module diverges
-//! from upstream in form, never in result bits:
+//! `f32x::exp_u10`, `f32x::exp2_u35`, `f32x::log2_u35`, and `f64x::exp_u10`. The evaluation differs
+//! in these respects:
 //!
 //! - This module fuses every multiply-accumulate unconditionally. Upstream selects fusion per
 //!   target under `cfg!(target_feature = "fma")`, an x86-only cfg string, and rounds twice per step
-//!   where it is false. This module's ladders round once everywhere, and their result bits are
-//!   their own contract, verified against libm by the tests below.
+//!   where it is false. Fused evaluation avoids that extra product rounding.
 //! - `exp_f64` keeps the coefficient set of upstream's non-FMA branch, evaluated fused. Upstream's
-//!   FMA branch carries a different degree-10 set, so the fused ladder here matches neither
-//!   upstream branch bit-for-bit; one coefficient set on every architecture is what keeps content
-//!   hashes reproducible.
+//!   FMA branch uses a different degree-10 set. Combining fused evaluation with the non-FMA
+//!   coefficients matches neither upstream branch bit-for-bit. The coefficient set is the same on
+//!   every architecture.
 //! - Nearest-integer rounding uses [`round_ties_even`](std::simd::StdFloat::round_ties_even)
 //!   directly. Upstream predates the portable-SIMD API and computes the same round-half-to-even
-//!   through an add-subtract trick against `2^23` (`2^52` for `f64`) plus sign restoration. The
-//!   intrinsic returns the identical value in every rounding regime, including the pass-through
-//!   above `2^23` where the trick's guard bit runs out.
-//! - Lane suppression uses mask selects against zero where upstream masks the raw bits through a
-//!   sign-extended integer AND; names, the `Poly`/`Sign` trait helpers (flattened to explicit
-//!   Estrin steps and plain functions), and constant spellings (shortest round-trip literals,
-//!   `core` constants where the value is exactly a named one) follow this crate's conventions.
+//!   through an add-subtract trick against 2²³ (2⁵² for `f64`) plus sign restoration. The intrinsic
+//!   specifies ties-to-even directly, including for inputs already integral at their precision.
+//! - Lane suppression selects zero with masks. Polynomial evaluation uses explicit Horner or Estrin
+//!   steps, and constant spellings preserve the source values.
 //!
 //! # Verification
 //!
-//! The tests at the bottom of this file sweep strided samples of the full input bit range (every
-//! exponent, both signs, zeros, infinities, subnormals, and NaN payloads) and bound each kernel's
-//! distance from a scalar libm reference evaluated in wider precision. Each bound is the kernel's
-//! accuracy tier plus the reference's own rounding step. [`math::kernel`](super)'s tests assert the
-//! special points exactly.
+//! The tests compare strided samples of input bit patterns against scalar libm. The f32 reference
+//! uses f64 precision before narrowing. The f64 reference uses f64 precision, and the sampling
+//! tests do not establish a worst-case error bound over all f64 inputs. [`math::kernel`](super)'s
+//! tests assert special points separately.
 
-use core::{f32, f64, f128, simd::prelude::*};
+use core::simd::{
+    Select as _, Simd,
+    cmp::{SimdPartialEq as _, SimdPartialOrd as _},
+    num::{SimdFloat as _, SimdInt as _, SimdUint as _},
+};
 use std::simd::StdFloat as _;
 
-// ln 2 split into a coarse part whose low mantissa bits are zero and
-// the correctly rounded remainder against the next-wider constant.
-// Multiplying the coarse part by `nearest` is exact through the
-// masked width (2^9 for f32, 2^12 for f64, beyond both exp kernels'
-// reduction ranges), so the range reduction `x - nearest · ln 2`
-// loses no bits to the subtraction; the remainder repays the split's
-// truncation.
+// A product is exact when its significand fits the destination precision and its exponent is in
+// range. Clearing nine low bits leaves at most 15 significand bits in the f32 coarse part, and
+// clearing twelve leaves at most 41 in f64. The reduction integers need at most nine and twelve
+// bits respectively. Therefore their coarse products are exact. The low part corrects the
+// truncation, but its stored value and the residual FMA still carry rounding error.
+/// The low `f32` mantissa bits zeroed in the coarse part of `ln 2`: nine bits.
 const F32_MASK: u32 = 0x1FF;
-const LN2_HI_F32: f32 = f32::from_bits(f32::consts::LN_2.to_bits() & !F32_MASK);
+/// The coarse part of `ln 2` in `f32`, exact under multiplication by integers below `2⁹`.
+const LN2_HI_F32: f32 = f32::from_bits(core::f32::consts::LN_2.to_bits() & !F32_MASK);
+/// The correctly rounded `f32` remainder `ln 2 - LN2_HI_F32`, computed in `f64`.
 #[expect(
     clippy::cast_possible_truncation,
     reason = "the cast is the derivation's rounding step: the remainder is correctly rounded into \
               the narrower type"
 )]
-const LN2_LO_F32: f32 = (f64::consts::LN_2 - (LN2_HI_F32 as f64)) as f32;
+const LN2_LO_F32: f32 = (core::f64::consts::LN_2 - (LN2_HI_F32 as f64)) as f32;
 
+/// The low `f64` mantissa bits zeroed in the coarse part of `ln 2`: twelve bits.
 const F64_MASK: u64 = 0xFFF;
-const LN2_HI_F64: f64 = f64::from_bits(f64::consts::LN_2.to_bits() & !F64_MASK);
-const LN2_LO_F64: f64 = (f128::consts::LN_2 - (LN2_HI_F64 as f128)) as f64;
+/// The coarse part of `ln 2` in `f64`, exact under multiplication by integers below `2¹²`.
+const LN2_HI_F64: f64 = f64::from_bits(core::f64::consts::LN_2.to_bits() & !F64_MASK);
+/// The correctly rounded `f64` remainder `ln 2 - LN2_HI_F64`, computed in `f128`.
+const LN2_LO_F64: f64 = (core::f128::consts::LN_2 - (LN2_HI_F64 as f128)) as f64;
 
-/// Raises two to the power in each lane of `exponent`, directly in the result's exponent field.
+/// Constructs single-precision power-of-two exponent fields.
 ///
-/// Exact for exponents where the result is a normal `f32`; the callers keep exponents in that range
-/// by splitting (see [`scale_by_pow2_f32`]).
+/// For integer n in [−126, 127], the result is exactly 2ⁿ. Other exponents need not encode that
+/// power. Use [`scale_by_pow2_f32`] for split scaling.
 #[inline]
 fn pow2_f32<const N: usize>(exponent: Simd<i32, N>) -> Simd<f32, N> {
     // 0x7F is the f32 exponent bias, and 23 the mantissa width.
     Simd::from_bits(((exponent + Simd::splat(0x7F)) << Simd::splat(23)).cast())
 }
 
-/// Raises two to the power in each lane of `exponent`, as `f64`.
+/// Constructs double-precision power-of-two exponent fields.
 ///
-/// The `f64` counterpart of [`pow2_f32`], exact for exponents where the result is a normal `f64`.
+/// For integer n in [−1022, 1023], the result is exactly 2ⁿ. Other exponents need not encode that
+/// power.
 #[inline]
 fn pow2_f64<const N: usize>(exponent: Simd<i32, N>) -> Simd<f64, N> {
-    // 0x3FF is the f64 exponent bias, and the field starts 20 bits into the upper half of the word,
-    // so the cast widens the biased value into the upper 32 bits before the shift moves it into
-    // place there.
+    // 0x3FF is the f64 exponent bias, and the field starts at bit 52, twenty bits into the upper
+    // 32-bit half. The shifts split that offset as 32 + 20, with widening to i64 before either
+    // shift.
     let biased = Simd::splat(0x3FF) + exponent;
     let upper = biased.cast::<i64>() << Simd::splat(32);
     Simd::from_bits((upper << Simd::splat(20)).cast())
 }
 
-/// Scales each lane by two raised to `exponent`, in two half-steps.
+/// Scales each lane by an integer power of two in two steps.
 ///
-/// Applying `2^(exponent/2)` twice keeps each factor a normal number for the exponent range the
-/// reconstruction step produces, where a single factor could overflow or flush to zero before the
-/// scaled value lands back in range. Both multiplies are by powers of two with normal intermediate
-/// results, so the scaling is exact except for the single rounding when the final result is
-/// subnormal.
+/// The split exponents are ⌊n/2⌋ and n − ⌊n/2⌋ for exponent n. When both constructed powers and the
+/// first scaled value are normal, the first multiplication is exact. The second multiplication
+/// supplies the final rounding if the result is subnormal or overflows. Splitting permits
+/// reconstruction even when a single scale factor would already be zero or infinite.
+///
+/// Outside those conditions, this helper has no general power-of-two scaling guarantee. The
+/// transcendental entry points also evaluate non-finite and out-of-range lanes here. Their final
+/// masks and NaN arithmetic determine the results for those lanes.
 #[inline]
 pub(super) fn scale_by_pow2_f32<const N: usize>(
     values: Simd<f32, N>,
@@ -125,10 +125,11 @@ fn scale_by_pow2_f64<const N: usize>(values: Simd<f64, N>, exponent: Simd<i32, N
     values * pow2_f64(half) * pow2_f64(exponent - half)
 }
 
-/// Scales each lane by two raised to `exponent`, by adding to the exponent field in place.
+/// Adds each lane's scale exponent to its stored exponent field.
 ///
-/// One integer add instead of two multiplies, valid only while input and result are both normal
-/// numbers. The caller guarantees the range.
+/// This represents exact multiplication by 2ⁿ when the input and mathematical result are both
+/// normal. The logarithm's finite positive lanes satisfy that range. Exceptional lanes are
+/// evaluated here too, then replaced by the logarithm's final masks.
 #[inline]
 fn scale_by_pow2_direct_f32<const N: usize>(
     values: Simd<f32, N>,
@@ -137,31 +138,30 @@ fn scale_by_pow2_direct_f32<const N: usize>(
     Simd::from_bits((values.to_bits().cast() + (exponent << Simd::splat(23))).cast())
 }
 
-/// The unbiased binary exponent of each lane, read from the exponent field.
+/// Extracts each exponent field and subtracts the single-precision bias.
 ///
-/// For a normal lane this is `floor(log2(|lane|))`. The caller scales subnormal lanes into the
-/// normal range first.
+/// For a normal lane x, this equals ⌊log₂|x|⌋. A zero exponent field yields −127, and an all-ones
+/// field yields 128. The helper does not validate normality.
 #[inline]
 fn binary_exponent_f32<const N: usize>(values: Simd<f32, N>) -> Simd<i32, N> {
     let field = (values.to_bits().cast::<i32>() >> Simd::splat(23)) & Simd::splat(0xFF);
     field - Simd::splat(0x7F)
 }
 
-/// Base-e exponential of each lane, accurate to the u10 tier (1.0 ULP).
+/// Approximates the base-e exponential with the u10 accuracy target.
 ///
-/// Measured faithfully rounded: 0.988 ULP maximum over an exhaustive sweep of the domain `|x| ≤
-/// 110` (2.24e9 inputs), zero misclassified specials, monotone across the reduction boundaries.
+/// The recorded exhaustive sweep of `|x| ≤ 110` (2.24e9 inputs) measured a maximum error of 0.988
+/// ULP against `f64` libm. This measurement uses a wider reference whose exactness it does not
+/// establish.
 #[inline]
 pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n · exp(r)
-    // for r = x - n · ln 2, accumulated in two exact steps against the
-    // split constants.
+    // choose n near x / ln 2 and approximate r = x − n · ln 2. The identity
+    // exp(x) = 2ⁿ · exp(r) separates reconstruction from the small-residual approximation.
+    // The two FMAs subtract the split constant without separately rounding their products.
     let nearest = (values * Simd::splat(core::f32::consts::LOG2_E)).round_ties_even();
     let exponent = nearest.cast::<i32>();
-    // `nearest` is integral, and every lane the backstops leave alive
-    // holds it within ±152, where it equals `exponent` exactly; the
-    // reduction uses it directly instead of round-tripping the integer
-    // back to float.
+    // for finite lanes in [−104, 100], nearest is integral within [−150, 144] and equals exponent
+    // exactly. Use it directly rather than converting the integer back to float.
     let reduced = nearest.mul_add(-Simd::splat(LN2_HI_F32), values);
     let reduced = nearest.mul_add(-Simd::splat(LN2_LO_F32), reduced);
 
@@ -179,11 +179,10 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
 
     let result = scale_by_pow2_f32(poly, exponent);
 
-    // Backstops only: the natural path rounds correctly through the
-    // overflow boundary (ln(f32::MAX) ≈ 88.72) and the underflow-to-
-    // zero boundary (≈ -103.97); the clamps guard the region beyond,
-    // where the saturating cast and the exponent-field scaling break
-    // down.
+    // reconstruction handles the neighbourhoods of overflow (x ≈ 88.72) and rounding to zero (x ≈
+    // −103.97). These masks enforce the more distant results and discard out-of-range
+    // exponent-field calculations. Within [−104, 100], both split power-of-two factors remain
+    // normal.
     let result = values
         .simd_lt(Simd::splat(-104.))
         .select(Simd::splat(0.), result);
@@ -192,23 +191,22 @@ pub(crate) fn exp_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
         .select(Simd::splat(f32::INFINITY), result)
 }
 
-/// Base-2 exponential of each lane, accurate to the u35 tier (3.5 ULP).
+/// Approximates the base-2 exponential with the u35 accuracy target.
 ///
-/// Measured far inside the tier, faithfully rounded: 0.885 ULP maximum over an exhaustive sweep of
-/// the domain `|x| ≤ 160` (2.25e9 inputs). The reduction `x - round(x)` is exact, so the polynomial
-/// fit dominates the error budget.
+/// The recorded exhaustive sweep of `|x| ≤ 160` (2.25e9 inputs) measured a maximum error of
+/// 0.885 ULP against `f64` libm. In this range the reduction `x - round(x)` is exact. Polynomial
+/// evaluation and reconstruction still round.
 #[inline]
 pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // Range reduction is exact: 2^x = 2^n · 2^f for n = round(x) and
-    // f = x - n, |f| ≤ 1/2.
+    // for finite lanes in [−150, 128), n = round(x) and f = x − n give an exact subtraction with
+    // |f| ≤ 1/2. The identity is 2ˣ = 2ⁿ · 2ᶠ.
     let nearest = values.round_ties_even();
     let exponent = nearest.cast::<i32>();
     let fraction = values - nearest;
 
-    // Degree-6 minimax polynomial for 2^f, in Horner form: the Taylor
-    // coefficients are ln(2)^k / k! (ln(2)^6/6! = 1.536e-4 down to
-    // ln(2)^2/2! = 0.240), minimax-nudged in the low digits; the last
-    // two steps add the exact k = 1 and k = 0 terms, ln(2) · f and 1.
+    // degree-6 minimax polynomial for 2ᶠ in Horner form. Its coefficients approximate ln(2)ᵏ/k!,
+    // from ln(2)⁶/6! ≈ 1.540e−4 to ln(2)²/2! ≈ 0.240, adjusted in the low digits. The final steps
+    // add the linear term using rounded ln(2), then the constant 1.
     let poly = Simd::splat(0.000_153_592_09)
         .mul_add(fraction, Simd::splat(0.001_339_262_7))
         .mul_add(fraction, Simd::splat(0.009_618_385))
@@ -227,36 +225,38 @@ pub(crate) fn exp2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
         .select(Simd::splat(0.), result)
 }
 
-/// Base-2 logarithm of each lane, accurate to the u35 tier (3.5 ULP).
+/// Approximates the base-2 logarithm with the u35 accuracy target.
 ///
-/// Measured 3.07 ULP maximum over an exhaustive sweep of all finite positive inputs, with every
-/// case above 2 ULP inside `[0.5, 1.5)`, where the result cancels toward zero; outside that band
-/// the maximum is 1.6 ULP. The dominant error terms are the roundings of `m + 1` and of the
-/// division, amplified when `|result|` is small; sub-ULP accuracy would need a double-float
-/// ratio, not a better polynomial.
+/// The recorded exhaustive sweep of finite positive inputs measured 3.07 ULP maximum against
+/// `f64` libm. Every measured case above 2 ULP was inside `[0.5, 1.5)`, where the logarithm
+/// approaches zero. Outside that interval the measured maximum was 1.6 ULP. Rounding in the
+/// reduced ratio contributes error before polynomial evaluation begins.
+///
+/// Either zero yields negative infinity. Negative inputs and NaN yield NaN, and positive infinity
+/// yields positive infinity.
 #[inline]
 pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
-    // The select below multiplies subnormal lanes by 2^64, which brings them into the normal range
-    // so the exponent-field read is exact, and the exponent subtraction afterwards repays the
-    // factor. Zero, negative, and NaN lanes compute whatever the arithmetic yields, and the
-    // selects at the end overwrite them.
+    // multiplication by 2⁶⁴ brings finite subnormal lanes into the normal range exactly.
+    // Subtracting 64 from the recovered exponent compensates for that scale. Final masks supply the
+    // zero, negative, infinite and NaN results.
     let is_subnormal = values.is_subnormal();
     let scaled = is_subnormal.select(values * Simd::splat(1.844_674_4e19), values);
 
-    // The 1/0.75 bias centers the mantissa split on [0.75, 1.5), so
-    // the ratio below stays small and symmetric around zero.
+    // the 1/0.75 bias targets a mantissa near [0.75, 1.5), keeping the ratio below near zero. For
+    // sufficiently large finite inputs the biased product overflows. Its all-ones exponent field
+    // yields 128, the exponent needed to scale those inputs into this interval.
     let exponent = binary_exponent_f32(scaled * Simd::splat(1. / 0.75));
     let mantissa = scale_by_pow2_direct_f32(scaled, -exponent);
     let exponent = is_subnormal.select(exponent - Simd::splat(64), exponent);
 
-    // With r = (m-1)/(m+1), the atanh identity gives ln(m) = 2 atanh(r) = 2 (r + r^3/3 + r^5/5 +
-    // ...), so log2(m) is a series in odd powers of r.
+    // with r = (m − 1)/(m + 1), the identity ln(m) = 2 atanh(r) = 2(r + r³/3 + r⁵/5 + ...)
+    // expresses log₂(m) as a series in odd powers of r.
     let ratio = (mantissa - Simd::splat(1.)) / (mantissa + Simd::splat(1.));
     let ratio_squared = ratio * ratio;
 
-    // The r^3, r^5, and r^7 coefficients, minimax-nudged from the
-    // series' 2/(k ln 2); the final mul_add below adds the exact
-    // leading term 2/ln(2) · r and the integer exponent.
+    // the r³, r⁵ and r⁷ coefficients approximate the series terms 2/(k · ln 2).
+    // The final FMA combines the polynomial correction with the leading term, whose
+    // coefficient 2/ln(2) is rounded to f32, and the integer exponent.
     let poly = Simd::splat(0.437_408_83)
         .mul_add(ratio_squared, Simd::splat(0.576_484_4))
         .mul_add(ratio_squared, Simd::splat(0.961_802_4));
@@ -277,17 +277,15 @@ pub(crate) fn log2_f32<const N: usize>(values: Simd<f32, N>) -> Simd<f32, N> {
         .select(Simd::splat(f32::NEG_INFINITY), result)
 }
 
-/// Base-e exponential of each lane, accurate to the u10 tier (1.0 ULP).
+/// Approximates the base-e exponential in each lane.
 ///
-/// Measured faithfully rounded (1.0 ULP maximum) over 242e6 samples including every double
-/// adjacent to a reduction boundary `k · ln(2) / 2`, the overflow window around `ln(f64::MAX)`,
-/// and the subnormal-output region, where the two-step power-of-two scaling keeps the error at
-/// one rounding.
+/// Reconstruction applies its power-of-two scale in two steps to avoid overflowing or underflowing
+/// the scale factor before multiplication.
 #[inline]
 pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
-    // Range reduction: with n = round(x / ln 2), exp(x) = 2^n · exp(r)
-    // for r = x - n · ln 2, accumulated in two exact steps against the
-    // split constants.
+    // use exp(x) = 2ⁿ · exp(r), with n near x / ln 2 and r ≈ x − n · ln 2.
+    // The coarse product is exact in the unclamped range. The low-part FMA corrects the
+    // split's truncation and rounds the residual once.
     let nearest = (values * Simd::splat(core::f64::consts::LOG2_E)).round_ties_even();
     let exponent = nearest.cast::<i32>();
     let reduced = nearest.mul_add(-Simd::splat(LN2_HI_F64), values);
@@ -333,14 +331,11 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
 
     let result = scale_by_pow2_f64(poly, exponent);
 
-    // Backstops only: the natural path rounds correctly through the
-    // overflow boundary (ln(f64::MAX) ≈ 709.7827) and far past the
-    // underflow-to-zero boundary (≈ -745.13); the clamps guard the
-    // region beyond, where the saturating cast and the exponent-field
-    // scaling break down (near |x| = 1421 the biased half-exponent
-    // leaves the normal range). Any upper constant ∈ [710, 1421) is
-    // correct, and one at or below ln(f64::MAX) misclassifies the finite doubles immediately under
-    // the boundary as infinite.
+    // reconstruction handles the neighbourhoods of overflow (x ≈ 709.7827) and rounding to zero (x
+    // ≈ −745.13). The masks enforce more distant results. Finite lanes retained in [−1000, 710]
+    // have reduction integers in [−1443, 1024], whose two half-exponents remain in the normal
+    // power-of-two range. The upper mask leaves finite results near the overflow boundary to
+    // reconstruction.
     let result = values
         .simd_gt(Simd::splat(710.))
         .select(Simd::splat(f64::INFINITY), result);
@@ -356,30 +351,35 @@ pub(crate) fn exp_f64<const N: usize>(values: Simd<f64, N>) -> Simd<f64, N> {
     reason = "narrowing the wider-precision libm result is how each sweep builds its reference"
 )]
 mod tests {
-    use core::simd::prelude::*;
+    use core::simd::Simd;
 
     use super::{exp_f32, exp_f64, exp2_f32, log2_f32};
 
-    // The strides are odd, so consecutive samples differ in exponent/mantissa phase. Full-bit-range
-    // iteration covers negative inputs, subnormals, both zeros, both infinities, and NaN payloads
-    // without listing them.
+    // odd strides sample different exponent and significand bit patterns across both signs.
+    // They do not visit every special encoding. Separate tests supply selected boundary cases.
+    /// The sampling stride through the `u32` bit space.
     const F32_STRIDE: usize = 641;
+    /// Odd stride through the `u64` bit space with the same coverage for `f64` inputs.
     const F64_STRIDE: usize = 0x0400_0000_000D;
 
-    // Each bound is the kernel's accuracy tier plus half a
-    // representation step for the reference's own correctly-rounded
-    // narrowing, rounded up to whole steps: 1.0 + 0.5 -> 2 and
-    // 3.5 + 0.5 -> 4. A result past the bound is a behavior change,
-    // not measurement noise: a wrong constant or a swapped
-    // coefficient moves results by orders of magnitude.
+    /// Representation-step budget for the `u10` single-precision sample test.
+    ///
+    /// The budget is ⌈1.0 + 0.5⌉ = 2, adding a nominal half-step narrowing allowance to the tier.
+    /// The wider libm reference is itself approximate. This comparison budget is not a certified
+    /// error bound against the exact function.
     const U10_F32_TOLERANCE: u64 = 2;
+    /// Representation-step budget for the `u35` single-precision sample tests.
+    ///
+    /// The budget is ⌈3.5 + 0.5⌉ = 4, using the same reference model as [`U10_F32_TOLERANCE`].
     const U35_F32_TOLERANCE: u64 = 4;
+    /// Allowed representation-step distance from the scalar f64 libm reference.
     const U10_F64_TOLERANCE: u128 = 2;
 
-    /// Position of a value in the ordered sequence of representable `f32`s.
+    /// Maps a single-precision encoding to a signed representation-step index.
     ///
-    /// Adjacent representable values differ by one across the whole line, including zeros,
-    /// subnormals, and infinities, so one distance bound holds without per-class cases.
+    /// Adjacent distinct non-NaN values differ by one, including the subnormal and infinity
+    /// boundaries. Both zeros map to zero. NaN encodings have indices beyond the corresponding
+    /// infinity, without numerical-distance semantics.
     fn ordered_f32(value: f32) -> i64 {
         let bits = value.to_bits();
         if bits & 0x8000_0000 == 0 {
@@ -389,7 +389,7 @@ mod tests {
         }
     }
 
-    /// Position of a value in the ordered sequence of representable `f64`s.
+    /// Maps a double-precision encoding to a signed representation-step index.
     fn ordered_f64(value: f64) -> i128 {
         let bits = value.to_bits();
         if bits & 0x8000_0000_0000_0000 == 0 {
@@ -401,7 +401,12 @@ mod tests {
 
     /// Checks one `f32` lane against its reference.
     ///
-    /// NaN must map to NaN. Every other pair must lie within `tolerance` representation steps.
+    /// A NaN reference requires a NaN output. Every other pair is compared by encoding distance,
+    /// including across the finite/infinite and infinite/NaN boundaries.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a NaN reference has a non-NaN output or the encoding distance exceeds `tolerance`.
     #[track_caller]
     fn assert_lane_f32(name: &str, at: f32, kernel: f32, reference: f32, tolerance: u64) {
         if reference.is_nan() {
@@ -419,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    fn exp_f32_tracks_libm_across_the_full_bit_range() {
+    fn exp_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -444,7 +449,7 @@ mod tests {
     }
 
     #[test]
-    fn exp2_f32_tracks_libm_across_the_full_bit_range() {
+    fn exp2_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -469,7 +474,7 @@ mod tests {
     }
 
     #[test]
-    fn log2_f32_tracks_libm_across_the_full_bit_range() {
+    fn log2_f32_libm_samples() {
         let mut lanes = [0.0_f32; 8];
         let mut filled = 0;
         for bits in (0..=u32::MAX).step_by(F32_STRIDE) {
@@ -495,11 +500,11 @@ mod tests {
 
     /// Overflow classification at the `f32` boundary matches libm exactly.
     ///
-    /// The ordered-step tolerance forgives an infinity one step from `MAX`, so the sweeps above
-    /// cannot see a misclassified overflow boundary; this scan pins the class over every
-    /// representable input around `ln(f32::MAX)`.
+    /// The ordered-step tolerance cannot distinguish infinity from an adjacent `MAX`. This scan
+    /// compares the class over every representable input around `ln(f32::MAX)`, independently of
+    /// that distance tolerance.
     #[test]
-    fn exp_f32_overflow_boundary_is_class_exact() {
+    fn exp_f32_overflow_class() {
         let mut bits = 88.5_f32.to_bits();
         let end = 89.0_f32.to_bits();
         while bits <= end {
@@ -524,12 +529,11 @@ mod tests {
 
     /// Overflow classification at the `f64` boundary matches libm exactly.
     ///
-    /// This window is doubly invisible to the strided sweep: the stride jumps over it, and the
-    /// ordered-step tolerance would forgive an infinity one step from `MAX` anyway. The scan
-    /// covers every double from below the retired conservative threshold through `ln(f64::MAX)`
-    /// and asserts both the class and the u10 distance.
+    /// The strided sweep can skip the overflow transition, and its representation-step tolerance
+    /// permits infinity beside `MAX`. This scan checks classification and distance at every
+    /// representable input in `[709.782711, 709.782713]`, which straddles that transition.
     #[test]
-    fn exp_f64_overflow_boundary_is_class_exact() {
+    fn exp_f64_overflow_class() {
         let mut bits = 709.782_711_f64.to_bits();
         let end = 709.782_713_f64.to_bits();
         while bits <= end {
@@ -559,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn exp_f64_tracks_libm_across_the_full_bit_range() {
+    fn exp_f64_libm_samples() {
         let mut lanes = [0.0_f64; 4];
         let mut filled = 0;
         for bits in (0..=u64::MAX).step_by(F64_STRIDE) {

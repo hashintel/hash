@@ -1,5 +1,4 @@
-//! The endpoint-association facts, covering the current source types that constrain each
-//! relation.
+//! The endpoint-association facts, covering the current source types that constrain each relation.
 
 use hash_graph_postgres_store::store::postgres::query::{
     Aliased, Binder, BoundStatement, ColumnName, CommonTableExpression, Constant, Correlation,
@@ -31,7 +30,7 @@ const REF_KEY: &str = "$ref";
 
 /// Matches the version suffix after a base id, anchored to consume the whole remainder.
 ///
-/// Travels as a bound parameter, so the statement text carries no quoted literal.
+/// Travels as a bound parameter. The statement text carries no quoted literal.
 const VERSION_SUFFIX: &str = "^v/[0-9]+$";
 /// Matches a trailing version suffix, for erasing it from a versioned URL.
 const TRAILING_VERSION_SUFFIX: &str = "v/[0-9]+$";
@@ -692,11 +691,21 @@ fn association_statement<'params>(
     BoundStatement::new(&statement, binder, columns)
 }
 
-fn cardinality(value: Option<i64>) -> Option<usize> {
+/// Reads a link-target cardinality bound out of its nullable column.
+///
+/// A null column is an unbounded end and answers [`None`]. The same applies to a stored value
+/// that is not a count on this host - negative, or past `usize` - since neither constrains a
+/// target list that has to fit in memory to be built.
+const fn cardinality(value: Option<i64>) -> Option<usize> {
     usize::try_from(value?).ok()
 }
 
 /// Applies one association row to its relation's facts.
+///
+/// # Errors
+///
+/// Returns the store's error when a selected column does not read back at the type the decode
+/// asks for. An absent target list is a null column that defaults to the empty list.
 fn apply_row(
     row: &Row,
     columns: &AssociationColumns,
@@ -756,6 +765,11 @@ fn apply_row(
 /// version contributes the newest constraint. Allowed targets resolve per base id to their
 /// latest current prose, ordered by target id. A target reference whose base id is no longer
 /// current drops out.
+///
+/// # Errors
+///
+/// Returns the store's error when it rejects the read, then when a row does not decode. `facts`
+/// keeps whatever earlier rows already contributed.
 pub(super) async fn association_rows(
     transaction: &Transaction<'_>,
     axes: TemporalAxes,
@@ -791,10 +805,6 @@ mod tests {
         assert_placeholders_dense(&statement.sql, statement.parameters.len());
     }
 
-    /// The rendered statement, pinned as the text the store receives.
-    ///
-    /// The pin makes any rendering change a visible snapshot diff in review instead of a
-    /// silent swap of what runs against the store.
     #[test]
     fn statement_text() {
         let axes = TemporalAxes::now();

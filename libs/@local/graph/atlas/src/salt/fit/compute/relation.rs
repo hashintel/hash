@@ -10,6 +10,7 @@ use super::{
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, OpenArrayError},
         repository::{Artifact as _, Binding},
         salt::artifact,
@@ -26,8 +27,8 @@ use crate::{
 
 /// The adjacency stage failed and staged nothing.
 ///
-/// One variant per way the stage refuses, so an adjacency failure attributes to this stage by
-/// construction.
+/// One variant per way the stage refuses. An adjacency failure therefore attributes to this
+/// stage by construction.
 #[derive(Debug)]
 pub(crate) enum AdjacencyError {
     /// The staged endpoint column failed to map in.
@@ -64,8 +65,8 @@ impl Error for AdjacencyError {
 
 /// The relation stage failed and staged no index.
 ///
-/// One variant per way the stage refuses, so a relation failure attributes to this stage by
-/// construction.
+/// One variant per way the stage refuses. A relation failure therefore attributes to this stage
+/// by construction.
 #[derive(Debug)]
 pub(crate) enum RelationError {
     /// An index build rejected its instances.
@@ -133,13 +134,19 @@ impl<'fit> AdjacencyDerivation<'fit> {
 
     /// Derives the incident-edge adjacency from the staged endpoint column and stages it.
     ///
-    /// Returns the owned adjacency beside its typed binding, so the level-of-detail stage reads
+    /// Returns the owned adjacency beside its typed binding, and the level-of-detail stage reads
     /// degrees from the value this call built rather than from the staged bytes.
     ///
     /// # Errors
     ///
     /// Returns [`AdjacencyError::OpenEndpoints`] when the staged endpoint column does not map,
     /// and [`AdjacencyError::Write`] when the staged adjacency does not write.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the mapped endpoint column does not hold little-endian `u64` pairs. The
+    /// ingest sealed the column in that shape, and a mismatch is a defect of the writer rather
+    /// than of the input.
     #[tracing::instrument(name = "adjacency-derivation", skip_all)]
     pub(super) fn run(self) -> Result<Staged<Adjacency, artifact::Adjacency, ()>, AdjacencyError> {
         let endpoints =
@@ -205,16 +212,17 @@ impl<'fit> RelationAssembly<'fit> {
 
     /// Assembles the spooled relation instances against the resolved policy table.
     ///
-    /// Builds the corpus-domain relation indexes and stages their published artifacts, keeping
-    /// their measurements, so the edge-scale corpus pair is spent inside this stage. It then
-    /// rebuilds the pair over the distinct row domain for the placement stage: endpoints
-    /// quotient-mapped, duplicate readings collapsed, degrees and protection evidence re-derived
-    /// by the same build over the collapsed set. The trainer's indexes return owned.
+    /// Builds the corpus-domain relation indexes, stages their published artifacts and keeps
+    /// their measurements. The edge-scale corpus pair is therefore consumed inside this stage.
+    /// The stage then rebuilds the pair over the distinct row domain for the placement stage:
+    /// endpoints quotient-mapped, duplicate readings collapsed, degrees and protection evidence
+    /// re-derived by the same build over the collapsed set. The trainer's indexes return owned.
     ///
     /// # Errors
     ///
-    /// Returns [`RelationError::Build`] when either index build rejects the instances, and an
-    /// I/O error when the instance spool does not map or a staged artifact does not write.
+    /// Returns [`RelationError::Build`] when either index build rejects the instances,
+    /// [`RelationError::Write`] when the protection index does not stage, and an I/O error when
+    /// the instance spool does not map or the attraction index does not stage.
     #[tracing::instrument(name = "relation-assembly", skip_all)]
     pub(super) fn run(
         self,
@@ -222,9 +230,9 @@ impl<'fit> RelationAssembly<'fit> {
         let policies = Policies::from(self.policies);
 
         let mapped = self.spool.map()?;
-        // The spool maps read-only encoded records and the index build sorts its instance slice
-        // in place, so the readings decode into owned storage once; the mapping unmaps before
-        // the sorts run.
+        // The spool maps read-only encoded records, and the index build sorts its instance slice
+        // in place. The readings therefore decode into owned storage once, and the mapping
+        // unmaps before the sorts run.
         let mut instances: Vec<_> = mapped
             .records()
             .iter()
@@ -249,9 +257,8 @@ impl<'fit> RelationAssembly<'fit> {
         )?;
         drop(collapsed);
 
-        // The histogram and the clamp count are drain facts the build
-        // cannot see; they join the build measurements here on their way
-        // to the manifest.
+        // The multiplicity histogram is a drain fact the build cannot
+        // see. It joins the build measurements here for the manifest.
         corpus.measurements.multi_typed_edges = self.multi_typed.to_vec();
 
         let attraction = self
@@ -288,10 +295,11 @@ impl<'fit> RelationAssembly<'fit> {
     }
 }
 
-/// The relation stage's published artifacts, pairing the staged corpus bindings with their
-/// measurements.
+/// The relation stage's published artifacts.
 ///
-/// The corpus-domain indexes are spent once staged. The manifest keeps their measurements, and
+/// They pair the staged corpus bindings with their measurements.
+///
+/// The corpus-domain indexes are dropped once staged. The manifest keeps their measurements, and
 /// the placement's paired-movement readout replays from the staged bytes on purpose.
 pub(super) struct RelationArtifacts {
     /// The staged attraction index's typed binding.

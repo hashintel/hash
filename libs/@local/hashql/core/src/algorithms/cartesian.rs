@@ -59,6 +59,8 @@ where
 mod tests {
     #![expect(clippy::min_ident_chars)]
 
+    use smallvec::SmallVec;
+
     use crate::algorithms::cartesian_product;
 
     #[test]
@@ -76,7 +78,7 @@ mod tests {
         let a = [1, 2];
         let b: [i32; 0] = [];
         let result = cartesian_product::<_, _, 8>(&[a.as_slice(), b.as_slice()]);
-        assert!(result.is_empty());
+        assert_eq!(result, [] as [SmallVec<i32, 8>; 0]);
     }
 
     #[test]

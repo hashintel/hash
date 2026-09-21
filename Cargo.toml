@@ -47,6 +47,7 @@ members = [
     "libs/darwin-kperf/sys",
     "libs/error-stack",
     "libs/error-stack/macros",
+    "libs/problematic/rust",
     "tests/graph/benches",
     "tests/graph/integration",
     "tests/graph/test-data/rust",
@@ -106,6 +107,7 @@ hashql-hir.path                     = "libs/@local/hashql/hir"
 hashql-macros.path                  = "libs/@local/hashql/macros"
 hashql-mir.path                     = "libs/@local/hashql/mir"
 hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
+problematic.path                    = "libs/problematic/rust"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
@@ -119,9 +121,12 @@ anstyle-lossy                      = { version = "1.1.4", default-features = fal
 anstyle-svg                        = { version = "1.0.0", default-features = false }
 arc-swap                           = { version = "1.9.1", default-features = false }
 async-scoped                       = { version = "0.9.0", default-features = false }
-aws-config                         = { version = "1.8.10" }
-aws-sdk-s3                         = { version = "1.110.0", default-features = false }
-aws-types                          = { version = "1.3.10", default-features = false }
+aws-config                         = { version = "1.12.0" }
+aws-credential-types               = { version = "1.3.0", default-features = false }
+aws-sdk-s3                         = { version = "1.146.0", default-features = false }
+aws-smithy-runtime-api             = { version = "1.16.0", default-features = false }
+aws-smithy-types                   = { version = "1.6.3", default-features = false }
+aws-types                          = { version = "1.6.0", default-features = false }
 axum                               = { version = "0.8.6" }
 axum-core                          = { version = "0.5.5" }
 base16ct                           = { version = "1.0.0", default-features = false }
@@ -160,6 +165,7 @@ email_address                      = { version = "0.2.9", default-features = fal
 ena                                = { version = "0.14.3", default-features = false }
 enum-iterator                      = { version = "2.1.0", default-features = false }
 enumflags2                         = { version = "0.7.12", default-features = false }
+erased-serde                       = { version = "0.4.10", default-features = false }
 expect-test                        = { version = "1.5.1", default-features = false }
 figment                            = { version = "0.10.19", default-features = false }
 foldhash                           = { version = "0.2.0", default-features = false }
@@ -184,7 +190,7 @@ hifijson                           = { version = "0.4.0", default-features = fal
 hkdf                               = { version = "0.13.0", default-features = false }
 hmac                               = { version = "0.13.0", default-features = false }
 hostname                           = { version = "0.4.2", default-features = false }
-http                               = { version = "1.3.1", default-features = false }
+http                               = { version = "1.3.1", default-features = false, features = ["std"] }
 humansize                          = { version = "2.1.3", default-features = false }
 hyper                              = { version = "1.7.0", default-features = false }
 include_dir                        = { version = "0.7.4", default-features = false }
@@ -196,6 +202,7 @@ insta                              = { version = "1.47.2", default-features = fa
 iso8601-duration                   = { version = "0.2.0", default-features = false }
 itertools                          = { version = "0.14.0", default-features = false }
 jsonptr                            = { version = "0.7.1", default-features = false }
+jsonschema                         = { version = "0.51.0", default-features = false }
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
 kiddo                              = { version = "6.0.0" }
 lcov                               = { version = "0.8.1" }
@@ -264,13 +271,13 @@ rpds                               = { version = "1.1.2", default-features = fal
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
-schemars                           = { version = "1.2.1" }
+schemars                           = { version = "1.2.2" }
 semver                             = { version = "1.0.27", default-features = false }
 sentry                             = { version = "0.48.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
 sentry-core                        = { version = "0.48.0", default-features = false }
 sentry-types                       = { version = "0.48.0", default-features = false }
-serde                              = { version = "1.0.228", default-features = false }
-serde_core                         = { version = "1.0.228", default-features = false }
+serde                              = { version = "1.0.229", default-features = false }
+serde_core                         = { version = "1.0.229", default-features = false }
 serde_json                         = { version = "1.0.145" }
 serde_plain                        = { version = "1.0.2", default-features = false }
 sha2                               = { version = "0.11.0", default-features = false }
@@ -422,6 +429,7 @@ unreachable                   = "allow"
 
 # Does not apply to us:
 blanket_clippy_restriction_lints = "allow"
+definition_in_module_root        = "allow"
 exhaustive_enums                 = "allow"
 exhaustive_structs               = "allow"
 implicit_return                  = "allow"
@@ -435,6 +443,7 @@ pub_with_shorthand               = "allow" # Opposite of `clippy::pub_without_sh
 question_mark_used               = "allow"
 redundant_pub_crate              = "allow" # Opposite of `unreachable_pub`
 ref_patterns                     = "allow"
+rest_pattern_accessible_field    = "allow"
 semicolon_outside_block          = "allow" # Opposite of `clippy::semicolon_inside_block`
 separated_literal_suffix         = "allow" # Opposite of `clippy::unseparated_literal_suffix`
 shadow_reuse                     = "allow"

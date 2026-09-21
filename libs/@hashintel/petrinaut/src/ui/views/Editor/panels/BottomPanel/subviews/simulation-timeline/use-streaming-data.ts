@@ -254,10 +254,20 @@ function useTimelineMetric(metric: Metric | null): TimelineMetricState {
  *    places), values are the sum of token counts across places of that type.
  *  - `metric`: a single series computed by the compiled user metric.
  */
-export function useStreamingData(source: ExecutionFrameSource): {
+export function useStreamingData(
+  source: ExecutionFrameSource,
+  options?: {
+    /**
+     * Stop reading frames. The cursor is kept, so resuming appends everything
+     * that arrived meanwhile in one batch.
+     */
+    paused?: boolean;
+  },
+): {
   store: StreamingStore;
   metricError: string | null;
 } {
+  const paused = options?.paused ?? false;
   const {
     extensions,
     petriNetDefinition: { places, types, transitions, metrics },
@@ -312,23 +322,26 @@ export function useStreamingData(source: ExecutionFrameSource): {
 
   // Stream new frames into the store.
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchData = async () => {
-      if (totalFrames === 0) {
-        if (storeController.getLength() > 0) {
-          storeController.resetCurrentSeries();
-          processedRef.current = 0;
-        }
-        return;
-      }
-
-      // Handle simulation restart
-      if (totalFrames < processedRef.current) {
+    // A reset is noticed while paused too, so resuming does not append a new
+    // run to the old one's rows.
+    if (totalFrames === 0) {
+      if (storeController.getLength() > 0) {
         storeController.resetCurrentSeries();
         processedRef.current = 0;
       }
+      return;
+    }
+    if (totalFrames < processedRef.current) {
+      storeController.resetCurrentSeries();
+      processedRef.current = 0;
+    }
+    if (paused) {
+      return;
+    }
 
+    let cancelled = false;
+
+    const fetchData = async () => {
       const startIndex = processedRef.current;
       if (startIndex >= totalFrames) {
         return;
@@ -349,7 +362,14 @@ export function useStreamingData(source: ExecutionFrameSource): {
     };
     // sourceId is depended on so a source-identity change always restarts
     // frame reads after the reset effect above cleared the store.
-  }, [getFramesInRange, seriesConfig, sourceId, storeController, totalFrames]);
+  }, [
+    getFramesInRange,
+    paused,
+    seriesConfig,
+    sourceId,
+    storeController,
+    totalFrames,
+  ]);
 
   return {
     store,

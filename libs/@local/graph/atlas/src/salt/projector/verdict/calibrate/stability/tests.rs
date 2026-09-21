@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exactness assertions on constructed dyadic values are bit-precise contracts"
-)]
-
 use super::{StabilityBound, Support, evaluate};
 use crate::{
     math::{DNonNegative, NonNegative, OpenUnitFraction, d_non_negative, d_positive, non_negative},
@@ -25,6 +20,10 @@ fn row(z: f32, weight: f64) -> (NonNegative, DNonNegative) {
     )
 }
 
+/// Compares `Support::quantile` with the production cumulative walk at every level `k/32`.
+///
+/// `Support::quantile` agrees with the production cumulative walk at every level `k/32` over a
+/// population with atoms on the level boundaries.
 #[test]
 fn quantile_matches_the_production_walk() {
     // Mixed dyadic weights, total exactly one, with atoms at the level boundaries.
@@ -49,6 +48,10 @@ fn quantile_matches_the_production_walk() {
     }
 }
 
+/// Ignores zero-weight rows in every quantile and clamps to the positive-mass extremes.
+///
+/// Zero-weight rows below and inside the positive support change no quantile, and the clamps at
+/// levels zero and one are the positive-mass minimum and maximum.
 #[test]
 fn quantile_ignores_zero_weight_rows_exactly_as_the_production_walk_does() {
     // A zero-weight row below the positive support and one inside it.
@@ -80,6 +83,7 @@ fn quantile_ignores_zero_weight_rows_exactly_as_the_production_walk_does() {
     assert_eq!(support.quantile(1.0), non_negative!(2.0));
 }
 
+/// Adding a zero-weight row leaves every certificate field equal.
 #[test]
 fn zero_weight_rows_change_no_certificate_field() {
     let with_zero = [
@@ -98,14 +102,16 @@ fn zero_weight_rows_change_no_certificate_field() {
     assert_eq!(evaluated_with, evaluated_without);
 }
 
+/// Sixty-four unit weights give an effective support of exactly 64.
 #[test]
 fn effective_support_of_balanced_dyadic_weights_is_the_count() {
-    // Unit weights over a power-of-two count keep every share and square dyadic, so the
-    // effective support is the count exactly.
+    // Unit weights over a power-of-two count keep every share and square dyadic: the effective
+    // support is the count exactly.
     let support = Support::new(balanced(&[1.0; 64]));
     assert_eq!(support.effective(), d_positive!(64.0));
 }
 
+/// Weights `(3, 1)` give an effective support of exactly `8/5`.
 #[test]
 fn effective_support_downweights_concentration() {
     // Weights (3, 1): shares (3/4, 1/4), squares sum 5/8, effective 8/5 - all dyadic-exact.
@@ -116,8 +122,8 @@ fn effective_support_downweights_concentration() {
 #[test]
 fn thin_reviews_fail_the_legibility_floor() {
     // The thin-reviews shape is one resolving verdict with three balanced pairs. The floor at
-    // q = 0.25, δ = 0.05 is 29.51 effective pairs, so the run fails on the floor conjunct
-    // before the gap is consulted.
+    // q = 0.25, δ = 0.05 is 29.51 effective pairs: the run fails on the floor conjunct before
+    // the gap is consulted.
     let certificate = evaluate(
         balanced(&[1.0, 1.0, 1.0]),
         [d_non_negative!(3.0)],
@@ -141,7 +147,7 @@ fn thin_reviews_fail_the_legibility_floor() {
 #[test]
 fn healthy_balanced_pairs_pass_and_the_suite_can_show_it() {
     // Sixty-four balanced pairs at one point: ε₀ = √(ln40/128) ≈ 0.1698 clears the floor and
-    // the gap is zero everywhere, so the certificate passes - the check provably can.
+    // the gap is zero everywhere. The certificate passes, which shows the check can.
     let certificate = evaluate(
         balanced(&[1.0; 64]),
         [d_non_negative!(64.0)],
@@ -157,8 +163,8 @@ fn healthy_balanced_pairs_pass_and_the_suite_can_show_it() {
     assert_eq!(certificate.gap, d_non_negative!(0.0));
     assert!(certificate.pass);
 
-    // The gap never exceeds τ on (0, q], so the sup is the domain endpoint and attained, and
-    // n* is the legibility floor itself.
+    // The gap never exceeds τ on (0, q]: the sup is the domain endpoint and attained, and n* is
+    // the legibility floor itself.
     assert_eq!(
         certificate.bound,
         StabilityBound::Finite {
@@ -205,10 +211,14 @@ fn the_eight_point_shape_persists_an_unattained_bound() {
     );
 }
 
+/// Reads an `Unattainable` bound and a full-width gap from a prefix fraction exactly on `q`.
+///
+/// A prefix fraction that falls exactly on `q` makes the bound `Unattainable`, the certificate
+/// fail, and the gap read the population's full width.
 #[test]
 fn an_atom_boundary_at_the_level_is_unattainable() {
-    // The unit-weight shape (0, 10, 10, 10) puts the first prefix fraction exactly at q, so
-    // the interval width is ten for every ε in the domain - a cliff wider than τ that no mass
+    // The unit-weight shape (0, 10, 10, 10) puts the first prefix fraction exactly at q: the
+    // interval width is ten for every ε in the domain, a cliff wider than τ that no mass
     // stabilizes.
     let certificate = evaluate(
         balanced(&[0.0, 10.0, 10.0, 10.0]),
@@ -219,15 +229,15 @@ fn an_atom_boundary_at_the_level_is_unattainable() {
 
     assert_eq!(certificate.bound, StabilityBound::Unattainable);
     assert!(!certificate.pass);
-    // Past the floor the lower endpoint clamps at the positive-mass minimum, so the persisted
-    // gap reads the population's full width.
+    // Past the floor the lower endpoint clamps at the positive-mass minimum: the persisted gap
+    // reads the population's full width.
     assert_eq!(certificate.gap, d_non_negative!(10.0));
 }
 
 #[test]
 fn the_gap_at_epsilon_zero_uses_the_clamped_lower_endpoint() {
-    // The unit-weight shape (1, 2, 3, 4) gives ε₀ ≈ 0.679, past q, so the lower level clamps
-    // at the minimum and the upper level 0.929 walks to the maximum. The gap is exactly three.
+    // The unit-weight shape (1, 2, 3, 4) gives ε₀ ≈ 0.679, past q: the lower level clamps at
+    // the minimum and the upper level 0.929 walks to the maximum. The gap is exactly three.
     let certificate = evaluate(
         balanced(&[1.0, 2.0, 3.0, 4.0]),
         [d_non_negative!(4.0)],
@@ -244,6 +254,10 @@ fn the_gap_at_epsilon_zero_uses_the_clamped_lower_endpoint() {
     assert!(!certificate.pass);
 }
 
+/// Echoes the certificate's inputs and lets a reader recompute `ε₀` and `n*`.
+///
+/// The certificate echoes its quantile, `δ`, `κ`, temperature, `τ`, pair count and mass, and the
+/// recorded fields let a reader recompute `ε₀` and `n*`.
 #[test]
 fn the_certificate_records_its_regime() {
     let certificate = evaluate(
@@ -272,10 +286,14 @@ fn the_certificate_records_its_regime() {
     );
 }
 
+/// Reads type effective supports of `1.6` and exactly two from two mass profiles.
+///
+/// Type masses `(3, 1, 0)` give a type effective support of `1.6`, ignoring the zero-mass type, and
+/// balanced masses `(2, 2)` read exactly two.
 #[test]
 fn type_effective_support_ignores_zero_mass_types() {
-    // Masses (3, 1, 0) total four with squares ten, so the support is 1.6 and the zero-mass
-    // type is not a type for the concentration reading.
+    // Masses (3, 1, 0) total four with squares ten: the support is 16/10 = 1.6, and the
+    // zero-mass type is not a type for the concentration reading.
     let certificate = evaluate(
         balanced(&[1.0; 4]),
         [

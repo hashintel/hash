@@ -383,13 +383,133 @@ return revenue - variableCost - productionCapacityCost - marketingCost - expedit
           param_demand_multiplier: "scenario.demand_multiplier",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_raw_inventory: "200",
-            place_finished_goods: "100",
-            place_customer_demand: "0",
-            place_sold_orders: "0",
-            place_lost_sales: "0",
+            variables: [
+              {
+                name: "production_rate",
+                type: "real",
+                expression: "125",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "replenishment_aggressiveness",
+                type: "integer",
+                expression: "190",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "batch_size",
+                type: "integer",
+                expression: "220",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "selling_price",
+                type: "real",
+                expression: "37",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "expedite_fraction",
+                type: "ratio",
+                expression: "0.33",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "marketing_spend",
+                type: "real",
+                expression: "32",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "demand_multiplier",
+                type: "real",
+                expression: "1",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_production_rate",
+                expression: "scenario.production_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "param_replenishment_aggressiveness",
+                expression: "scenario.replenishment_aggressiveness",
+                optimize: null,
+              },
+              {
+                parameterId: "param_batch_size",
+                expression: "scenario.batch_size",
+                optimize: null,
+              },
+              {
+                parameterId: "param_selling_price",
+                expression: "scenario.selling_price",
+                optimize: null,
+              },
+              {
+                parameterId: "param_expedite_fraction",
+                expression: "scenario.expedite_fraction",
+                optimize: null,
+              },
+              {
+                parameterId: "param_marketing_spend",
+                expression: "scenario.marketing_spend",
+                optimize: null,
+              },
+              {
+                parameterId: "param_demand_multiplier",
+                expression: "scenario.demand_multiplier",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_raw_inventory: {
+                kind: "uncoloured",
+                count: {
+                  expression: "200",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "100",
+                  optimize: null,
+                },
+              },
+              place_customer_demand: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_sold_orders: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost_sales: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },
@@ -421,13 +541,133 @@ return revenue - variableCost - productionCapacityCost - marketingCost - expedit
           param_demand_multiplier: "scenario.demand_multiplier",
         },
         initialState: {
-          type: "per_place",
+          type: "adhoc",
           content: {
-            place_raw_inventory: "0",
-            place_finished_goods: "0",
-            place_customer_demand: "0",
-            place_sold_orders: "0",
-            place_lost_sales: "0",
+            variables: [
+              {
+                name: "production_rate",
+                type: "real",
+                expression: "300",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "replenishment_aggressiveness",
+                type: "integer",
+                expression: "160",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "batch_size",
+                type: "integer",
+                expression: "600",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "selling_price",
+                type: "real",
+                expression: "37",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "expedite_fraction",
+                type: "ratio",
+                expression: "0.33",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "marketing_spend",
+                type: "real",
+                expression: "32",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "demand_multiplier",
+                type: "real",
+                expression: "1",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "param_production_rate",
+                expression: "scenario.production_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "param_replenishment_aggressiveness",
+                expression: "scenario.replenishment_aggressiveness",
+                optimize: null,
+              },
+              {
+                parameterId: "param_batch_size",
+                expression: "scenario.batch_size",
+                optimize: null,
+              },
+              {
+                parameterId: "param_selling_price",
+                expression: "scenario.selling_price",
+                optimize: null,
+              },
+              {
+                parameterId: "param_expedite_fraction",
+                expression: "scenario.expedite_fraction",
+                optimize: null,
+              },
+              {
+                parameterId: "param_marketing_spend",
+                expression: "scenario.marketing_spend",
+                optimize: null,
+              },
+              {
+                parameterId: "param_demand_multiplier",
+                expression: "scenario.demand_multiplier",
+                optimize: null,
+              },
+            ],
+            places: {
+              place_raw_inventory: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_finished_goods: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_customer_demand: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_sold_orders: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+              place_lost_sales: {
+                kind: "uncoloured",
+                count: {
+                  expression: "0",
+                  optimize: null,
+                },
+              },
+            },
           },
         },
       },

@@ -1,0 +1,20 @@
+{
+  "package": "@rust/problematic",
+  "dependencies": [
+    "@rust/error-stack"
+  ],
+  "tasks": {
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

@@ -722,7 +722,7 @@ mod test {
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
-        assert!(!items.is_empty());
+        assert_ne!(items, [] as [Reference<'_>; 0]);
 
         // Check for some known items in the "type" module
         assert!(items.iter().any(|item| item.name().as_str() == "Dict"));
@@ -749,7 +749,7 @@ mod test {
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
-        assert!(!items.is_empty());
+        assert_ne!(items, [] as [Reference<'_>; 0]);
 
         // Check for some known items in the "type" module
         assert!(items.iter().any(|item| item.name().as_str() == "type"));
@@ -1135,7 +1135,7 @@ mod test {
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
-        assert!(!items.is_empty());
+        assert_ne!(items, [] as [Reference<'_>; 0]);
 
         // Check for some known items in the "type" module
         assert!(items.iter().any(|item| item.name().as_str() == "Dict"));

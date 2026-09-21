@@ -39,7 +39,7 @@ mod tuple;
 
 use alloc::{alloc::Global, borrow::Cow};
 use core::{
-    alloc::Allocator,
+    alloc::{Allocator, AllocatorClone},
     cmp,
     fmt::{self, Display},
     hint::cold_path,
@@ -97,7 +97,7 @@ impl ValueDiscriminant {
 ///
 /// Represents all possible values that can be produced during interpretation.
 /// Values are immutable and use structural sharing.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Value<'heap, A: Allocator = Global> {
     /// The unit value.
     Unit,
@@ -249,7 +249,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: &Self,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
         match self {
@@ -349,7 +349,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: FieldIndex,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
 
@@ -453,7 +453,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: Symbol<'heap>,
     ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let terse_name = self.type_name_terse();
         match self {
@@ -478,6 +478,44 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
             }),
+        }
+    }
+}
+
+impl<A> Clone for Value<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        match self {
+            Self::Unit => Self::Unit,
+            &Self::Integer(int) => Self::Integer(int),
+            &Self::Number(num) => Self::Number(num),
+            Self::String(str) => Self::String(str.clone()),
+            &Self::Pointer(ptr) => Self::Pointer(ptr),
+            Self::Opaque(opaque) => Self::Opaque(opaque.clone()),
+            Self::Struct(struct_) => Self::Struct(struct_.clone()),
+            Self::Tuple(tuple) => Self::Tuple(tuple.clone()),
+            Self::List(list) => Self::List(list.clone()),
+            Self::Dict(dict) => Self::Dict(dict.clone()),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        match (&mut *self, source) {
+            (Self::Unit, Self::Unit) => {}
+            (Self::Integer(this), &Self::Integer(source)) => *this = source,
+            (Self::Number(this), &Self::Number(source)) => *this = source,
+            (Self::String(this), Self::String(source)) => this.clone_from(source),
+            (Self::Pointer(this), &Self::Pointer(source)) => *this = source,
+            (Self::Opaque(this), Self::Opaque(source)) => this.clone_from(source),
+            (Self::Struct(this), Self::Struct(source)) => this.clone_from(source),
+            (Self::Tuple(this), Self::Tuple(source)) => this.clone_from(source),
+            (Self::List(this), Self::List(source)) => this.clone_from(source),
+            (Self::Dict(this), Self::Dict(source)) => this.clone_from(source),
+            (this, source) => *this = source.clone(),
         }
     }
 }

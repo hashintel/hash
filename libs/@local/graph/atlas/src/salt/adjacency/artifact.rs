@@ -1,20 +1,22 @@
-//! The writable builder, its matrix file, and the mapped reader that publish an adjacency.
-
 use core::ops::Range;
+use std::path::Path;
 
 use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
 use crate::{
-    file::sprs::{
-        IndexVariant, SprsIndex,
-        read::{SprsFile, SprsMatrixError},
+    file::{
+        ArtifactFile,
+        sprs::{
+            IndexVariant, SprsIndex,
+            read::{OpenSprsError, SprsFile, SprsMatrixError},
+        },
     },
     identity::{EdgeRowId, NodeRowId},
 };
 
-/// An opened sparse matrix file does not hold a valid adjacency.
+/// A failure while validating an adjacency's sparse-matrix representation.
 #[derive(Debug)]
-pub enum InvalidAdjacencyFile {
+pub(crate) enum InvalidAdjacencyFile {
     /// The file fails the published adjacency shape.
     ///
     /// The bytes are not the structure-only matrix the adjacency publishes, or the compressed
@@ -75,7 +77,48 @@ impl core::error::Error for InvalidAdjacencyFile {
     }
 }
 
-/// The index width an adjacency's edge row ids read at.
+/// A failure to open or validate a mapped adjacency.
+#[derive(Debug)]
+pub(crate) enum OpenAdjacencyArchiveError {
+    /// The sparse matrix file failed to open.
+    Open(OpenSprsError),
+    /// The file does not hold a valid adjacency.
+    Invalid(InvalidAdjacencyFile),
+}
+
+const impl From<OpenSprsError> for OpenAdjacencyArchiveError {
+    fn from(error: OpenSprsError) -> Self {
+        Self::Open(error)
+    }
+}
+
+const impl From<InvalidAdjacencyFile> for OpenAdjacencyArchiveError {
+    fn from(error: InvalidAdjacencyFile) -> Self {
+        Self::Invalid(error)
+    }
+}
+
+impl core::fmt::Display for OpenAdjacencyArchiveError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Open(error) => write!(fmt, "the sparse matrix file failed to open: {error}"),
+            Self::Invalid(error) => {
+                write!(fmt, "the file does not hold a valid adjacency: {error}")
+            }
+        }
+    }
+}
+
+impl core::error::Error for OpenAdjacencyArchiveError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::Open(error) => Some(error),
+            Self::Invalid(error) => Some(error),
+        }
+    }
+}
+
+/// The stored unsigned width of an adjacency's edge row ids.
 #[derive(Debug, Copy, Clone)]
 enum Width {
     U16,
@@ -85,11 +128,17 @@ enum Width {
 
 /// A published adjacency opened over its mapped sparse matrix file.
 ///
-/// Construction checks the list contract once, covering the structure-only element types and
-/// compressed structure (fencepost coverage, strictly ascending runs, in-bound indices), paired
-/// runs, the domain-bound column dimension, and every edge in exactly one slot per direction. An
-/// open adjacency therefore serves only valid runs and consumers re-validate nothing. The regions
-/// stay in the page cache under memory pressure and off the heap.
+/// For CSR input, construction checks structure-only element types, compressed structure, paired
+/// runs, the edge-domain bound, and exactly one slot per edge per direction. The lists borrow the
+/// mapping without retaining a heap copy. Pages can be evicted and faulted back under memory
+/// pressure.
+///
+/// Supply CSR files, as produced by [`super::Adjacency`]. Construction does not check storage order
+/// and does not establish the list contract for CSC input.
+///
+/// # Panics
+///
+/// Opening a CSC file can panic during validation.
 #[derive(Debug)]
 pub(crate) struct AdjacencyArchive {
     file: SprsFile,
@@ -98,20 +147,40 @@ pub(crate) struct AdjacencyArchive {
     edges: u64,
 }
 
+impl ArtifactFile for AdjacencyArchive {
+    type Error = OpenAdjacencyArchiveError;
+
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
+        let file = SprsFile::open(path)?;
+        Self::new(file).map_err(From::from)
+    }
+}
+
 impl AdjacencyArchive {
-    /// Opens the adjacency over its mapped sparse matrix file.
+    /// Validates a CSR file for mapped incident-edge lookups.
+    ///
+    /// The file must use CSR storage. Validation checks internal list consistency, without
+    /// comparing against an endpoint column.
     ///
     /// # Errors
     ///
-    /// Returns an error when the file violates the list contract.
+    /// Returns [`InvalidAdjacencyFile`] for invalid element types, compressed structure, or list
+    /// invariants.
+    ///
+    /// # Panics
+    ///
+    /// A CSC file can panic during run validation.
+    ///
+    /// # Complexity
+    ///
+    /// Validation takes O(N + E) time and O(E) temporary bits for N nodes and E edges in a CSR
+    /// file. Successful construction retains only the mapping and scalar metadata.
     #[tracing::instrument(skip_all)]
     pub(crate) fn new(file: SprsFile) -> Result<Self, InvalidAdjacencyFile> {
         let (width, (nodes, edges)) = match file.header().index() {
             IndexVariant::U16 => (Width::U16, validate::<u16>(&file)?),
             IndexVariant::U32 => (Width::U32, validate::<u32>(&file)?),
-            // The writer emits unsigned widths only. The signed index
-            // types fail the element check inside, reported over the
-            // described types.
+            // signed widths fail the element check against u64.
             IndexVariant::U64 | IndexVariant::I16 | IndexVariant::I32 | IndexVariant::I64 => {
                 (Width::U64, validate::<u64>(&file)?)
             }
@@ -146,7 +215,7 @@ impl AdjacencyArchive {
             .expect("construction validated the element types")
     }
 
-    /// Returns the value array at its described width.
+    /// Borrows the edge-row index array at its stored width.
     fn values(&self) -> EdgeValues<'_> {
         let expect = "construction validated the element types";
         match self.width {
@@ -157,6 +226,11 @@ impl AdjacencyArchive {
     }
 
     /// Returns the run between fenceposts `start` and `end`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either fencepost index is outside the column or the selected fenceposts describe a
+    /// reversed slot range.
     fn run(&self, start: usize, end: usize) -> EdgeList<'_> {
         let fenceposts = self.fenceposts();
         let from = usize::try_from(fenceposts[start]).expect("slots fit the address space");
@@ -176,16 +250,18 @@ impl AdjacencyArchive {
         Some(usize::try_from(2 * node.as_u64()).expect("resident node domains fit usize"))
     }
 
-    /// Returns the edge rows leaving `node`, strictly ascending, when the node row is in domain.
+    /// Returns the strictly ascending edge rows leaving `node`.
+    ///
+    /// Returns [`None`] when `node` is outside the node domain.
     #[must_use]
     pub(crate) fn outgoing(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
         Some(self.run(posts, posts + 1))
     }
 
-    /// Returns the edge rows arriving at `node`.
+    /// Returns the strictly ascending edge rows arriving at `node`.
     ///
-    /// Strictly ascending, when the node row is in domain.
+    /// Returns [`None`] when `node` is outside the node domain.
     #[must_use]
     pub(crate) fn incoming(&self, node: NodeRowId) -> Option<EdgeList<'_>> {
         let posts = self.posts(node)?;
@@ -193,15 +269,19 @@ impl AdjacencyArchive {
     }
 }
 
-/// Validates the list contract over a mapped file at index type `I`.
+/// Validates incident-edge runs in a CSR file at index type `I`.
 ///
-/// Returns the node and edge row counts. The matrix view re-checks the compressed structure
-/// (fencepost coverage, strictly ascending runs, indices below the column bound). The walk below
-/// adds the rules that the format leaves unexpressed.
+/// Returns the node and edge counts. The file must use CSR storage. The matrix check establishes
+/// compressed structure, and the additional checks require paired runs, an edge-domain column
+/// bound, a zero first fencepost, and one slot per edge per direction.
 ///
-/// - Runs pair two per node.
-/// - The column dimension equals the edge-domain bound.
-/// - Each edge occupies exactly one slot per direction.
+/// # Errors
+///
+/// Returns [`InvalidAdjacencyFile`] for invalid matrix or list structure, in check order.
+///
+/// # Panics
+///
+/// A CSC file can panic when its pointer count or index domain differs from the CSR interpretation.
 fn validate<I>(file: &SprsFile) -> Result<(u64, u64), InvalidAdjacencyFile>
 where
     I: SprsIndex + Into<u64> + Copy,
@@ -229,12 +309,11 @@ where
     }
     let values = file.indices::<I>().expect(expect);
 
-    // Each direction gets one bit set. Strict run order rules out
-    // duplicates within a run and the bit rules them out across runs, so
-    // 2E valid slots force every edge into exactly one slot of each
-    // direction. Every index lies below the column bound. That bound
-    // equals the edge count whenever entries exist, so the bit domain
-    // covers every walked value.
+    // A CSR matrix has one compressed run per row, covering every stored entry. For nonempty input
+    // the checked column bound equals E, giving 2E possible (direction, edge) pairs. The walk
+    // visits all 2E slots and rejects repeated pairs using one bitset per direction. Therefore
+    // every edge occupies exactly one slot in each direction. For E = 0 there are no indices to
+    // access in the empty bitsets.
     let capacity = usize::try_from(edges).expect("resident edge domains fit usize");
     let mut seen = [
         DenseBitSet::new_empty(capacity),
@@ -245,7 +324,7 @@ where
         let start = usize::try_from(fenceposts[run]).expect("slots fit the address space");
         let end = usize::try_from(fenceposts[run + 1]).expect("slots fit the address space");
 
-        // Runs alternate outgoing (even) and incoming (odd).
+        // even runs are outgoing, odd runs incoming.
         let direction = &mut seen[run & 1];
 
         for &value in &values[start..end] {
@@ -262,9 +341,9 @@ where
     Ok((rows >> 1, edges))
 }
 
-/// A borrowed edge row id array, at either stored width.
+/// A borrowed edge row id array at its stored unsigned width.
 ///
-/// Value-level accessors widen to `u64`, so consumers stay width-agnostic.
+/// Accessors widen each id to `u64`.
 #[derive(Debug, Copy, Clone)]
 enum EdgeValues<'map> {
     /// Two-byte edge row ids.
@@ -306,7 +385,7 @@ impl EdgeValues<'_> {
     ///
     /// # Panics
     ///
-    /// This panics when `range` escapes [`len`](Self::len), like a slice.
+    /// Panics if `range.start > range.end` or `range.end` exceeds [`len`](Self::len).
     #[inline]
     #[must_use]
     const fn slice(&self, range: Range<usize>) -> Self {
@@ -323,7 +402,7 @@ impl EdgeValues<'_> {
     }
 }
 
-/// One node's edge rows, borrowed from the mapped value array.
+/// One node's strictly ascending edge rows for a single direction.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct EdgeList<'map> {
     values: EdgeValues<'map>,

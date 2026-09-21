@@ -15,7 +15,7 @@ hash-middleware          = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
-http          = { workspace = true, public = true, features = ["std"] }
+http          = { workspace = true, public = true }
 jsonwebtoken  = { workspace = true, public = true, features = ["aws_lc_rs"] }
 opentelemetry = { workspace = true, public = true, features = ["metrics"] }
 reqwest       = { workspace = true, public = true }
@@ -41,6 +41,7 @@ axum              = { workspace = true }
 hash-middleware   = { workspace = true, features = ["test-utils"] }
 jsonwebtoken      = { workspace = true, features = ["use_pem"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
+problematic       = { workspace = true, features = ["error-stack"] }
 rstest            = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
 uuid              = { workspace = true, features = ["v4"] }

@@ -55,7 +55,7 @@ describe("Petrinaut oEmbed endpoint", () => {
       provider_url: "https://demo.petrinaut.org",
       width: 800,
       height: 450,
-      html: '<iframe src="https://demo.petrinaut.org/embed/examples/gases-1-pn" title="Gases 1 — One Customer" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" allowfullscreen></iframe>',
+      html: '<iframe src="https://demo.petrinaut.org/embed/examples/gases-1-pn" title="Gases 1 — One Customer" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" allowfullscreen></iframe>',
     });
   });
 
@@ -78,7 +78,7 @@ describe("Petrinaut oEmbed endpoint", () => {
 
     expect(response.status).toBe(200);
     expect(body.html).toBe(
-      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?itemId=transition-1&amp;itemType=transition&amp;mode=simulate&amp;scenario=scenario-1&amp;subnet=subnet-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin" referrerpolicy="no-referrer" allowfullscreen></iframe>',
+      '<iframe src="https://demo.petrinaut.org/embed/examples/gases-2-spn?itemId=transition-1&amp;itemType=transition&amp;mode=simulate&amp;scenario=scenario-1&amp;subnet=subnet-1" title="Gases 2 — Shared Tanker" width="800" height="450" style="border:0" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" allowfullscreen></iframe>',
     );
   });
 

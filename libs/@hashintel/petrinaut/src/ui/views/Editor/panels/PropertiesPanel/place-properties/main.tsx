@@ -22,13 +22,9 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
-const baseSubViews: SubView[] = [
-  placeMainContentSubView,
-  placeInitialStateSubView,
-];
-
 const placeVisualizerSubView = createDeferredSubView({
   id: "place-visualizer",
+  canMaximize: true,
   headerActionMutates: true,
   title: "Visualizer",
   tooltip:
@@ -65,6 +61,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     extensions.colors && place.colorId
       ? (types.find((tp) => tp.id === place.colorId) ?? null)
       : null;
+  const baseSubViews: SubView[] = [
+    {
+      ...placeMainContentSubView,
+      title: `${placeMainContentSubView.title} ${place.name}`,
+    },
+    placeInitialStateSubView,
+  ];
   const subViews =
     extensions.colors && presentation.showSourceCode
       ? [...baseSubViews, placeVisualizerSubView]
@@ -80,6 +83,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         updatePlace={updatePlace}
       >
         <VerticalSubViewsContainer
+          key={place.id}
           name="place-properties"
           subViews={subViews}
         />

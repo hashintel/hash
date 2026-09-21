@@ -18,29 +18,29 @@ A quick map of the things you'll encounter:
 - **Scenario** -- a saved, named configuration for running the net (initial markings, scenario parameters, parameter overrides). Optional.
 - **Metric** -- a built-in or user-authored function over simulation state that returns a number to plot on the Timeline.
 - **Experiment** -- a Monte Carlo batch: many independent simulation runs of the current net, optionally against one scenario, aggregated as distributions over time.
-- **Optimization** -- a search over a flat set of scenario parameters,
-  targeting one saved or run-local custom metric.
+- **Parameter sweep** -- an experiment over intervals of scenario parameters,
+  whose sliders the in-browser optimizer can drive to maximize or minimize one metric.
 
 Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
 
-- **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
-- **Simulate** -- a separate management surface for scenarios and experiments,
-  with optimizations when the host application provides an optimizer.
+- **Edit** -- Canvas and Definitions views for editing the same net, plus single-run simulation playback on Canvas.
+- **Simulate** -- a separate management surface for scenarios and experiments.
 - **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
 
 ## Contents
 
-- [Drawing a Net](drawing-a-net.md) -- Top bar, canvas, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
+- [Drawing a Net](drawing-a-net.md) -- Top bar, Canvas and Definitions views, sidebars, adding nodes and connecting arcs, selection, keyboard shortcuts, import/export, auto-layout.
 - [Petri Net Extensions](petri-net-extensions.md) -- Types, dynamics, transition kernels, firing rules, read/inhibitor arcs, as well as parameters and state visualizers.
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
-- [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- Define initial state and parameters inline for one run, without saving a scenario.
+- [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- The scenario form: define initial state and parameters inline for one run, or save them as a scenario.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
-- [Optimization](optimization.md) -- Search scenario parameter ranges to maximize or minimize a metric.
+- [Simulation Panels](simulation-panels.md) -- Open scenarios and experiments beside the main view, expand to fullscreen, and use links and browser history.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
-- [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
+- [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
+- [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, and Labs.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.

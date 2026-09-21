@@ -54,7 +54,7 @@ export type PetrinautAiComposerControl = (
   context: PetrinautAiComposerControlContext,
 ) => ReactNode;
 
-/** Imperative lifecycle controls registered by a host-owned Voice mode. */
+/** Complete lifecycle controls retained for existing host-owned Voice modes. */
 export type PetrinautAiVoiceModeControls = {
   /**
    * Invalidates the active Voice generation synchronously, then finishes
@@ -77,9 +77,30 @@ export type PetrinautAiVoiceModeControls = {
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /** Allows speech to interrupt assistant playback without clearing input. */
+  setInterruptionBySpeaking?: (enabled: boolean) => void;
+  /** Mutes assistant audio without changing its retained volume. */
+  setSpeakerMuted?: (muted: boolean) => void;
+  /** Sets normalized 0–1 assistant audio volume without changing mute state. */
+  setSpeakerVolume?: (volume: number) => void;
   /** Cancels Voice output and hands the live microphone turn to the user. */
   takeTurn?: () => Promise<void> | void;
 };
+
+/** Lifecycle controls registered by a session with provider-specific capabilities. */
+export type PetrinautAiVoiceModeSessionControls = Omit<
+  PetrinautAiVoiceModeControls,
+  "reconnect" | "resume" | "setMicrophoneMuted"
+> &
+  Partial<
+    Pick<
+      PetrinautAiVoiceModeControls,
+      "reconnect" | "resume" | "setMicrophoneMuted"
+    >
+  > & {
+    /** Retries browser-blocked session audio from a user gesture. */
+    retryPlayback?: () => void;
+  };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
 export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
@@ -93,6 +114,13 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
    */
   registerVoiceModeControls: (
     controls: PetrinautAiVoiceModeControls,
+  ) => () => void;
+  /**
+   * Registers a Voice session whose provider supports only a subset of the
+   * complete lifecycle controls.
+   */
+  registerVoiceModeSessionControls?: (
+    controls: PetrinautAiVoiceModeSessionControls,
   ) => () => void;
   /**
    * Publishes the live session state Petrinaut renders from. Pass `null` once

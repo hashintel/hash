@@ -2,13 +2,9 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, bail};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
 use super::{Constraint, ConstraintError, ConstraintValidator, JsonSchemaValueType};
 use crate::{knowledge::PropertyValue, ontology::data_type::schema::ResolveClosedDataTypeError};
-
-#[derive(Debug, Error)]
-pub enum ObjectValidationError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -99,16 +95,13 @@ impl Constraint for ObjectConstraints {
 }
 
 impl ConstraintValidator<HashMap<String, PropertyValue>> for ObjectConstraints {
-    type Error = [ObjectValidationError];
+    type Error = !;
 
     fn is_valid(&self, _value: &HashMap<String, PropertyValue>) -> bool {
         true
     }
 
-    fn validate_value(
-        &self,
-        _value: &HashMap<String, PropertyValue>,
-    ) -> Result<(), Report<[ObjectValidationError]>> {
+    fn validate_value(&self, _value: &HashMap<String, PropertyValue>) -> Result<(), Report<!>> {
         Ok(())
     }
 }

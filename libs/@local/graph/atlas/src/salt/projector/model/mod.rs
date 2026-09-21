@@ -11,18 +11,21 @@
 //! ```
 //!
 //! `FiLM` predicts a delta from unit scale and a shift out of the condition vector: `FiLM(v, c) =
-//! (1 + Δγ(c)) · v + β(c)`. Modulation sits between normalization and activation, where it gates
-//! normalized features directly. Modulation placed before the block's linear and normalization
-//! instead loses its scale component to the downstream LN (exactly so for a uniform gamma).
-//! Condition columns are opaque to the model. The batch assembler names them, and their count is
-//! the [`Architecture`]'s `condition_dimensions`.
+//! (1 + Δγ(c)) · v + β(c)`. Modulation applies between normalization and activation, where it
+//! scales and shifts normalized features directly. Modulation placed before the block's linear and
+//! normalization would instead lose its scale component to the downstream LN: a uniform positive
+//! scale cancels exactly in an ideal normalization (zero ε, no bias between the scale and the LN),
+//! cancels up to the normalization's ε and the linear's bias in the actual layer, and a negative
+//! uniform scale survives as a sign reversal of the centered signal. Condition columns are opaque
+//! to the model. The batch assembler names them, and their count is the [`Architecture`]'s
+//! `condition_dimensions`.
 //!
 //! The unit tests certify both initialization contracts:
 //!
-//! - every residual block is the identity (its second linear and bias initialize to zero), so the
+//! - every residual block is the identity (its second linear and bias initialize to zero): the
 //!   initial model is stem plus head;
-//! - `FiLM` is the identity for every condition (its linear map and bias initialize to zero), so
-//!   all conditions share one function before training.
+//! - `FiLM` is the identity for every condition (its linear map and bias initialize to zero): all
+//!   conditions share one function before training.
 //!
 //! All other biases initialize to zero and all weights to scaled uniform values, except the role
 //! embedding, whose per-component scale matches the representation's (a unit-norm vector has
@@ -144,7 +147,7 @@ impl Dimension {
 
 /// A model's parameters do not describe an architecture.
 ///
-/// The named dimension is the first one that differs; an `actual` of zero on a bias or shift
+/// The named dimension is the first one that differs. An `actual` of zero on a bias or shift
 /// reports the parameter as absent, a shape no present parameter can have.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct ArchitectureMismatch {
@@ -189,7 +192,7 @@ impl Error for ArchitectureMismatch {}
 
 /// The projection role of a node row.
 ///
-/// Roles distinguish what kind of thing a row is on the map; the model learns one embedding vector
+/// Roles distinguish what kind of thing a row is on the map. The model learns one embedding vector
 /// per role and concatenates it to the representation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum NodeRole {
@@ -197,27 +200,27 @@ pub(crate) enum NodeRole {
     KnowledgeEntity,
     /// An ontology type projected as a first-class map citizen.
     ///
-    /// The role axis sizes trained models by variant count, so the variant stays in every unit
-    /// while only the training corpus generators construct it today.
+    /// The role axis sizes trained models by variant count, and the variant stays in every unit
+    /// even though only the training corpus generators construct it.
     #[cfg_attr(
         not(any(test, feature = "bench")),
         expect(
             dead_code,
-            reason = "no production path constructs this role yet; the variant count sizes the \
-                      trained role table, so retiring it is a model-format change"
+            reason = "no production path constructs this role, and the variant count sizes the \
+                      trained role table, which makes retiring it a model-format change"
         )
     )]
     OntologyType,
     /// A supported row that is neither of the above.
     ///
-    /// The role axis sizes trained models by variant count, so the variant stays in every unit
-    /// while only the training corpus generators construct it today.
+    /// The role axis sizes trained models by variant count, and the variant stays in every unit
+    /// even though only the training corpus generators construct it.
     #[cfg_attr(
         not(any(test, feature = "bench")),
         expect(
             dead_code,
-            reason = "no production path constructs this role yet; the variant count sizes the \
-                      trained role table, so retiring it is a model-format change"
+            reason = "no production path constructs this role, and the variant count sizes the \
+                      trained role table, which makes retiring it a model-format change"
         )
     )]
     Other,
@@ -227,7 +230,7 @@ impl NodeRole {
     /// Distinct roles: the role embedding's vocabulary size.
     pub(crate) const COUNT: usize = core::mem::variant_count::<Self>();
 
-    /// This role's embedding index.
+    /// Returns this role's embedding index.
     #[inline]
     #[must_use]
     pub(crate) const fn index(self) -> u32 {
@@ -235,11 +238,16 @@ impl NodeRole {
     }
 }
 
+/// The default hidden width.
 const DEFAULT_WIDTH: NonZero<usize> = const { NonZero::new(512).unwrap() };
+/// The default residual block count.
 const DEFAULT_RESIDUAL_BLOCKS: NonZero<usize> = const { NonZero::new(4).unwrap() };
+/// The projector prefix width used by default for the stored representation.
 const DEFAULT_REPRESENTATION_DIMENSIONS: NonZero<usize> =
     const { NonZero::new(PROJECTOR_DIMENSIONS).unwrap() };
+/// The default role embedding width.
 const DEFAULT_ROLE_DIMENSIONS: NonZero<usize> = const { NonZero::new(16).unwrap() };
+/// The default condition width of one relation-lens column.
 const DEFAULT_CONDITION_DIMENSIONS: NonZero<usize> = const { NonZero::new(1).unwrap() };
 
 /// Output coordinates per row.
@@ -247,10 +255,10 @@ const PROJECTED_DIMENSIONS: usize = 2;
 
 /// Every dimension that gives a [`Projector`] its shape.
 ///
-/// All fields are construction-valid, so building a model from an architecture cannot fail. Width
-/// and depth are benchmark axes - the defaults are the candidate the quality and throughput
-/// criteria judge first, not validated optima.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// All fields are construction-valid, and building a model from an architecture cannot fail. Width
+/// and depth are benchmark axes: the defaults are the candidate the quality and throughput
+/// criteria judge first rather than validated optima.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Architecture {
     /// Hidden width of the stem and every residual block.
     pub width: NonZero<usize> = DEFAULT_WIDTH,
@@ -286,7 +294,7 @@ pub(crate) struct ProjectorInput<B: Backend> {
 /// Feature-wise linear modulation from a condition vector.
 ///
 /// `forward(h, c) = (1 + Δγ(c)) · h + β(c)`, where one linear map produces `[dgamma; beta]`, the
-/// delta scale stacked over the shift. The map and its bias initialize to zero, so modulation
+/// delta scale stacked over the shift. The map and its bias initialize to zero, and modulation
 /// starts as the identity for every condition.
 #[derive(Module, Debug)]
 struct Film<B: Backend> {
@@ -294,6 +302,7 @@ struct Film<B: Backend> {
 }
 
 impl<B: Backend> Film<B> {
+    /// Builds the zero-initialized modulation map from `condition_dimensions` to `2 · width`.
     fn new<R: Rng>(
         width: usize,
         condition_dimensions: usize,
@@ -310,6 +319,10 @@ impl<B: Backend> Film<B> {
         }
     }
 
+    /// Modulates `features` of shape `[rows, width]` by `condition` of shape `[rows, condition]`.
+    ///
+    /// The map's first `width` outputs are the delta scale and the rest the shift. The result is
+    /// `(1 + Δγ(c)) · h + β(c)` row by row.
     fn forward(&self, features: Tensor<B, 2>, condition: Tensor<B, 2>) -> Tensor<B, 2> {
         let width = features.dims()[1];
         let modulation = self.linear.forward(condition);
@@ -323,7 +336,7 @@ impl<B: Backend> Film<B> {
 /// One residual block, condition-modulated between LN and activation.
 ///
 /// `forward(h, c) = h + W2 SiLU(FiLM(LN(W1 h + b1), c)) + b2`. The second linear and its bias
-/// initialize to zero, so the block is the identity before training.
+/// initialize to zero, and the block is the identity before training.
 #[derive(Module, Debug)]
 struct ResidualBlock<B: Backend> {
     film: Film<B>,
@@ -333,6 +346,9 @@ struct ResidualBlock<B: Backend> {
 }
 
 impl<B: Backend> ResidualBlock<B> {
+    /// Builds one block of hidden `width`.
+    ///
+    /// Scaled input map, layer norm, zero-initialized modulation and output map.
     fn new<R: Rng>(
         width: usize,
         condition_dimensions: usize,
@@ -347,6 +363,7 @@ impl<B: Backend> ResidualBlock<B> {
         }
     }
 
+    /// Applies the block: `hidden + W2 SiLU(FiLM(LN(W1 hidden + b1), condition)) + b2`.
     fn forward(&self, hidden: Tensor<B, 2>, condition: Tensor<B, 2>) -> Tensor<B, 2> {
         let normalized = self
             .normalization
@@ -376,8 +393,8 @@ pub(crate) struct Projector<B: Backend> {
 impl<B: Backend> Projector<B> {
     /// Builds a freshly initialized model.
     ///
-    /// This draws every parameter from `rng` in construction order, so equal architectures, stream
-    /// types, and seeds produce identical models on every backend.
+    /// This draws every parameter from `rng` in construction order. Equal architectures, stream
+    /// types, and seeds therefore produce identical models on every backend.
     #[must_use]
     pub(crate) fn new<R: Rng>(architecture: Architecture, device: &B::Device, mut rng: R) -> Self {
         let width = architecture.width.get();
@@ -422,7 +439,7 @@ impl<B: Backend> Projector<B> {
     #[must_use]
     pub(crate) fn forward(&self, input: ProjectorInput<B>) -> Tensor<B, 2> {
         // The shape checks cost integer compares against host-side dim metadata once per forward
-        // call, with no device sync, so they are free beside the matmuls they guard.
+        // call, with no device sync. They are free beside the matmuls they guard.
         let [rows, representation_dimensions] = input.representation.dims();
         assert_eq!(
             representation_dimensions, self.representation_dimensions,
@@ -460,11 +477,11 @@ impl<B: Backend> Projector<B> {
 
     /// Builds the model a record describes, verified against the architecture.
     ///
-    /// A record loaded into a model adopts the record's tensor shapes, so a record decoded against
-    /// the wrong architecture would produce a structurally wrong model without an error of its own.
-    /// This constructor reports that as an error: it verifies the block-stack depth before the
-    /// record loads (a depth mismatch panics inside the module zip) and every parameter shape
-    /// after.
+    /// A record loaded into a model adopts the record's tensor shapes. A record decoded against the
+    /// wrong architecture would therefore produce a structurally wrong model without an error of
+    /// its own. This constructor reports that as an error: it verifies the block-stack depth before
+    /// the record loads (a depth mismatch panics inside the module zip) and every parameter
+    /// shape after.
     ///
     /// # Errors
     ///
@@ -480,10 +497,11 @@ impl<B: Backend> Projector<B> {
             record.blocks.len(),
         )?;
 
-        // `load_record` on the next line replaces every parameter this construction draws, so the
-        // stream's seed is meaningless by design, and a throwaway is the price of reusing the one
-        // construction path. The checkpoint's rng state is a different object: it resumes the
-        // *training* draw sequence, and threading it here would launder meaning into dead draws.
+        // `load_record` on the next line replaces every parameter this construction draws. The
+        // stream's seed is therefore meaningless by design, and a throwaway is the price of reusing
+        // the one construction path. The checkpoint's rng state is a different object: it resumes
+        // the *training* draw sequence, and threading it here would launder meaning into
+        // dead draws.
         let throwaway = Xoshiro256PlusPlus::seed_from_u64(0);
         let model = Self::new(architecture, device, throwaway).load_record(record);
         model.check_architecture(architecture)?;
@@ -574,12 +592,12 @@ struct Site {
 }
 
 impl Site {
-    /// A layer outside the block stack.
+    /// Names a layer outside the block stack.
     const fn model(layer: Layer) -> Self {
         Self { layer, block: None }
     }
 
-    /// A layer inside residual block `block`.
+    /// Names a layer inside residual block `block`.
     const fn block(layer: Layer, block: usize) -> Self {
         Self {
             layer,
@@ -662,7 +680,7 @@ enum LinearInit {
 /// Deterministic parameter materialization from one random stream.
 ///
 /// Parameters receive sequential identifiers and values drawn from the stream in construction
-/// order, replacing whatever the layer configs would have initialized; the backend's global random
+/// order, replacing whatever the layer configs would have initialized. The backend's global random
 /// state is never touched.
 struct Initialization<R> {
     rng: R,
@@ -718,8 +736,8 @@ impl<R: Rng> Initialization<R> {
     /// Builds an embedding scaled to sit beside a unit-norm vector.
     ///
     /// Rows are uniform with per-component variance `1/reference_dimensions`, the per-component
-    /// variance of a unit-norm `reference_dimensions`-vector, so concatenating a row to such a
-    /// vector lets neither block dominate a downstream linear by scale alone.
+    /// variance of a unit-norm `reference_dimensions`-vector. Concatenating a row to such a vector
+    /// therefore lets neither block dominate a downstream linear by scale alone.
     fn embedding<B: Backend>(
         &mut self,
         count: usize,
@@ -743,6 +761,11 @@ impl<R: Rng> Initialization<R> {
         embedding
     }
 
+    /// Replaces a parameter's tensor with `values` in `shape`, under the next sequential id.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the parameter identifier counter overflows `u64`.
     fn parameter<B: Backend, const DIMENSIONS: usize>(
         &mut self,
         parameter: Param<Tensor<B, DIMENSIONS>>,
@@ -762,6 +785,9 @@ impl<R: Rng> Initialization<R> {
         )
     }
 
+    /// Draws `count` values uniformly from `[-bound, bound]`, or all zeros for a zero bound.
+    ///
+    /// A zero bound does not advance the random stream.
     fn values(&mut self, count: usize, bound: f32) -> Vec<f32> {
         if bound == 0.0 {
             return vec![0.0; count];

@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::num::NonZero;
+use core::assert_matches;
 use std::{collections::HashMap, fs, io};
 
 use camino::{Utf8Path, Utf8PathBuf};
@@ -23,7 +23,7 @@ use super::{
 use crate::{
     identity::{NodeRowId, OntologyRowId},
     integrity::{Sha256, Sha256Digest, Update as _},
-    math::{AlignedVecN, BoxedVecN, unit_fraction},
+    math::{AlignedVecN, BoxedVecN, nz, unit_fraction},
     postgres::id::{ArchivedEntityId, ArchivedOntologyTypeUuid},
     progress::NoProgress,
     salt::{
@@ -32,14 +32,14 @@ use crate::{
     },
 };
 
-/// A nonzero literal, checked at compile time.
-macro_rules! nz {
-    ($value:expr) => {
-        const { NonZero::new($value).expect("the literal is nonzero") }
-    };
-}
-
-/// A fresh per-test dump directory under the system temp directory.
+/// Returns the dump path for `name` after attempting to remove its directory.
+///
+/// Relative names resolve against a process-specific path under the system temporary directory. A
+/// failed removal can leave existing contents in place. This helper creates no directory.
+///
+/// # Panics
+///
+/// Panics if the system temporary directory's path is not UTF-8.
 fn scratch(name: &str) -> Utf8PathBuf {
     let directory = Utf8PathBuf::from_path_buf(std::env::temp_dir())
         .expect("the system temp path is UTF-8")
@@ -52,18 +52,18 @@ fn scratch(name: &str) -> Utf8PathBuf {
     directory
 }
 
-/// An archived entity id whose 32 bytes all carry `tag`.
+/// Reads an archived entity id whose 32 bytes all carry `tag`.
 fn entity(tag: u8) -> ArchivedEntityId {
     ArchivedEntityId::read_from_bytes(&[tag; 32]).expect("any 32 bytes form an archived entity id")
 }
 
-/// An archived ontology-type uuid whose 16 bytes all carry `tag`.
+/// Reads an archived ontology-type uuid whose 16 bytes all carry `tag`.
 fn ontology_type(tag: u8) -> ArchivedOntologyTypeUuid {
     ArchivedOntologyTypeUuid::read_from_bytes(&[tag; 16])
         .expect("any 16 bytes form an archived type uuid")
 }
 
-/// A finite embedding whose components cycle the byte values from `seed` upward.
+/// Builds a finite embedding whose components cycle the byte values from `seed` upward.
 fn vector<const N: usize>(seed: u8) -> BoxedVecN<N> {
     let mut vector = BoxedVecN::zero();
     for (component, byte) in vector
@@ -79,7 +79,7 @@ fn vector<const N: usize>(seed: u8) -> BoxedVecN<N> {
 /// Asserts that a served embedding borrows its bytes from inside one stream file's mapping.
 #[expect(
     clippy::ptr_arg,
-    reason = "the assertion discriminates the Cow's arms, so the Cow itself is the subject"
+    reason = "the assertion discriminates the Cow's arms: the Cow itself is the subject"
 )]
 #[track_caller]
 fn assert_borrowed_from<const N: usize>(map: &[u8], embedding: &Cow<'_, AlignedVecN<N>>) {
@@ -151,7 +151,7 @@ impl Fixture {
     /// Node confidences and type lists cover present and absent, one edge carries an embedding and
     /// full confidences while the other carries neither, one icon is empty, and the third card
     /// repeats the first card's text so the card-embedding stream's dedupe has work to do. The
-    /// canonical map covers every node, so any probe sample is servable.
+    /// canonical map covers every node. Any probe sample is servable.
     fn new() -> Self {
         let nodes = vec![
             Node {
@@ -254,6 +254,12 @@ impl Fixture {
     }
 
     /// Dumps this fixture into `directory`, running the read phase and then the embed phase.
+    ///
+    /// # Errors
+    ///
+    /// Returns whatever [`read`] or [`embed`] reports about the directory: its creation, a
+    /// stream file's writes, an archive's serialization, or the manifest. The fixture's dataset
+    /// cannot fail, and [`DumpError::Dataset`] is uninhabited at this instantiation.
     async fn dump(
         &self,
         directory: &Utf8Path,
@@ -372,7 +378,7 @@ impl Dataset for Fixture {
     }
 }
 
-/// Dump options under probe coverage: a two-row sample over the fixture's four nodes.
+/// Builds dump options under probe coverage: a two-row sample over the fixture's four nodes.
 fn options() -> DumpOptions<'static> {
     DumpOptions {
         seed: 7,
@@ -386,8 +392,14 @@ fn options() -> DumpOptions<'static> {
 
 /// Rewrites one stream file's bytes and reseals the manifest over them.
 ///
-/// The digest check would otherwise mask every deeper refusal, so a test aiming past it patches
-/// the manifest's length and digest to vouch for the tampered bytes.
+/// The digest check would otherwise mask every deeper refusal. A test aiming past it patches the
+/// manifest's length and digest to vouch for the tampered bytes.
+///
+/// # Panics
+///
+/// Panics when writing the stream file, reading the manifest or writing it back fails, and when the
+/// manifest's bytes do not parse as JSON. It panics too when the parsed manifest holds no entry for
+/// `kind`, or holds one that will not take the byte-length and digest fields.
 fn reseal(directory: &Utf8Path, kind: StreamKind, bytes: &[u8]) {
     fs::write(directory.join(kind.file_name()), bytes).expect("the tampered stream writes back");
 
@@ -411,6 +423,7 @@ fn reseal(directory: &Utf8Path, kind: StreamKind, bytes: &[u8]) {
     .expect("the resealed manifest writes back");
 }
 
+/// An opened dump's origin digest is the SHA-256 of its manifest bytes.
 #[tokio::test]
 async fn dump_origin_names_the_manifest_bytes() {
     let directory = scratch("origin-manifest");
@@ -434,6 +447,9 @@ async fn dump_origin_names_the_manifest_bytes() {
     );
 }
 
+/// Dumping the fixture, reopening it and dumping again produces byte-identical streams.
+///
+/// The written and reread record counts agree.
 #[tokio::test]
 async fn dump_roundtrips_byte_identically() {
     let first = scratch("roundtrip-first");
@@ -478,20 +494,19 @@ async fn dump_roundtrips_byte_identically() {
         "the manifests differ between the two dumps",
     );
 
-    // Probe coverage dumps exactly the sampled anchor and comparison rows, and the three cards
-    // hold two distinct texts. The reread counts come from the reader's own serving, so they pin
-    // both sides.
+    // Probe coverage dumps exactly the sampled anchor and comparison rows, and the three cards hold
+    // two distinct texts. The reread counts come from the reader's own serving. They pin both
+    // sides.
     assert_eq!(written.records.canonical_embeddings, 2);
     assert_eq!(written.records.card_embeddings, 2);
     assert_eq!(reread.records.canonical_embeddings, 2);
     assert_eq!(reread.records.card_embeddings, 2);
 }
 
+/// An opened dump serves every row equal field by field to the source fixture.
+///
+/// The rows are nodes, edges, ontology, cards, legends and icons, with embeddings bit-identical.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_dataset_serves_the_row_streams_verbatim() {
     let directory = scratch("row-oracle");
     let source = Fixture::new();
@@ -574,11 +589,10 @@ async fn offline_dataset_serves_the_row_streams_verbatim() {
     assert_eq!(ontology_icons, source.ontology_icons);
 }
 
+/// A dump with every canonical embedding serves requested embeddings equal to the source.
+///
+/// Node types come back equal as well.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_dataset_serves_the_request_streams_verbatim() {
     let directory = scratch("request-oracle");
     let source = Fixture::new();
@@ -626,6 +640,9 @@ async fn offline_dataset_serves_the_request_streams_verbatim() {
     }
 }
 
+/// Served node, edge and canonical embeddings borrow from the mapped stream files.
+///
+/// The serve copies nothing.
 #[tokio::test]
 async fn served_embeddings_borrow_the_mapped_stream_files() {
     let directory = scratch("borrow-proof");
@@ -675,10 +692,6 @@ async fn served_embeddings_borrow_the_mapped_stream_files() {
 }
 
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_embedder_serves_hits_and_refuses_misses() {
     let directory = scratch("embedder-hit-miss");
     Fixture::new()
@@ -709,6 +722,7 @@ async fn offline_embedder_serves_hits_and_refuses_misses() {
     assert_eq!(error.hash, Sha256Digest::of(text));
 }
 
+/// Flipping one byte of the node stream makes `open` fail with `Digest` naming that stream.
 #[tokio::test]
 async fn open_refuses_a_tampered_stream() {
     let directory = scratch("digest-tamper");
@@ -724,18 +738,19 @@ async fn open_refuses_a_tampered_stream() {
 
     let error =
         OfflineDataset::open(&directory).expect_err("a tampered stream must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::Digest {
-                kind: StreamKind::Nodes,
-                ..
-            },
-        ),
-        "the refusal names the tampered stream: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::Digest {
+            kind: StreamKind::Nodes,
+            ..
+        },
+        "the refusal names the tampered stream: {error}"
     );
 }
 
+/// An absurd record-column length in the node root makes `open` fail with `Archive`.
+///
+/// The error names the stream. The digest alone cannot see this defect.
 #[tokio::test]
 #[expect(
     clippy::little_endian_bytes,
@@ -749,9 +764,10 @@ async fn open_refuses_a_defective_archive() {
         .await
         .expect("the fixture dumps cleanly");
 
-    // The node root sits at the file's tail, and its trailing eight bytes are the embedding
-    // column's length. An absurd length makes the column escape the file, which is exactly the
-    // class of defect the digest cannot see and byte-level validation must.
+    // The node root sits at the file's tail, its two archived columns lie there in declaration
+    // order, and each one ends with its own length. The file's trailing eight bytes are therefore
+    // the record column's length. An absurd length makes the column escape the file, which is
+    // exactly the class of defect the digest cannot see and byte-level validation must.
     let path = directory.join(StreamKind::Nodes.file_name());
     let mut bytes = fs::read(&path).expect("the dump holds the node stream");
     let tail = bytes.len() - 8;
@@ -760,18 +776,19 @@ async fn open_refuses_a_defective_archive() {
 
     let error =
         OfflineDataset::open(&directory).expect_err("a defective archive must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::Archive {
-                kind: StreamKind::Nodes,
-                ..
-            },
-        ),
-        "the refusal names the defective stream: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::Archive {
+            kind: StreamKind::Nodes,
+            ..
+        },
+        "the refusal names the defective stream: {error}"
     );
 }
 
+/// An edge record naming an embedding position its column lacks makes `open` fail.
+///
+/// `EmbeddingPosition` names the record, the position and the column length.
 #[tokio::test]
 async fn open_refuses_an_embedding_position_outside_the_column() {
     let directory = scratch("edge-position");
@@ -803,20 +820,19 @@ async fn open_refuses_an_embedding_position_outside_the_column() {
 
     let error = OfflineDataset::open(&directory)
         .expect_err("an out-of-column embedding position must refuse to open");
-    assert!(
-        matches!(
-            error,
-            OpenDumpError::EmbeddingPosition {
-                kind: StreamKind::Edges,
-                record: 0,
-                position: 3,
-                embeddings: 1,
-            },
-        ),
-        "the refusal names the defective record: {error}",
+    assert_matches!(
+        error,
+        OpenDumpError::EmbeddingPosition {
+            kind: StreamKind::Edges,
+            record: 0,
+            position: 3,
+            embeddings: 1,
+        },
+        "the refusal names the defective record: {error}"
     );
 }
 
+/// Rewriting a stored confidence's bytes to `1.5` makes rkyv validation of the node root refuse.
 #[test]
 #[expect(
     clippy::little_endian_bytes,

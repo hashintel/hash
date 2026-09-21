@@ -4,10 +4,17 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
-import { isToolPart, toToolRenderItem, type ToolRenderItem } from "./tool-list";
+import {
+  getToolName,
+  isToolPart,
+  toToolRenderItem,
+  type ToolRenderItem,
+} from "./tool-list";
 
+import type { PetrinautAiToolPresentationResolver } from "../../../../../petrinaut";
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { PetrinautAiMessage } from "../types";
+import type { ExperimentToolPart } from "./experiment-card";
 
 export type MessagePart = PetrinautAiMessage["parts"][number];
 export type TextPart = Extract<MessagePart, { type: "text" }>;
@@ -16,7 +23,10 @@ export type ReasoningMessagePart = Extract<MessagePart, { type: "reasoning" }>;
 export type MessageRenderItem =
   | { type: "reasoning"; key: string; part: ReasoningMessagePart }
   | { type: "text"; key: string; part: TextPart }
+  | { type: "experiment"; key: string; part: ExperimentToolPart }
   | { type: "tools"; key: string; tools: ToolRenderItem[] };
+
+const emptyHiddenToolNames: ReadonlySet<string> = new Set();
 
 export const isPartActive = (
   part: PetrinautAiMessage["parts"][number],
@@ -29,6 +39,8 @@ export const isPartActive = (
 export const getMessageRenderItems = (
   message: PetrinautAiMessage,
   interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
+  resolveToolPresentation?: PetrinautAiToolPresentationResolver,
+  hiddenToolNames: ReadonlySet<string> = emptyHiddenToolNames,
 ): MessageRenderItem[] => {
   const items: MessageRenderItem[] = [];
   let pendingTools: ToolRenderItem[] = [];
@@ -47,6 +59,11 @@ export const getMessageRenderItems = (
   };
 
   message.parts.forEach((part, index) => {
+    if (part.type === "step-start") {
+      flushTools();
+      return;
+    }
+
     if (part.type === "text") {
       flushTools();
       items.push({
@@ -67,8 +84,22 @@ export const getMessageRenderItems = (
       return;
     }
 
+    if (part.type === "tool-createExperiment") {
+      flushTools();
+      items.push({ type: "experiment", key: part.toolCallId, part });
+      return;
+    }
+
     if (isToolPart(part)) {
-      const tool = toToolRenderItem(message, part, interactiveTools);
+      if (hiddenToolNames.has(getToolName(part))) {
+        return;
+      }
+      const tool = toToolRenderItem(
+        message,
+        part,
+        interactiveTools,
+        resolveToolPresentation,
+      );
 
       if (
         tool.toolName === getLatestNetDefinitionToolName ||

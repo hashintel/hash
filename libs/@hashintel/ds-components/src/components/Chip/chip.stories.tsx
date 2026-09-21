@@ -105,7 +105,7 @@ const KitchenSinkChip = ({
     shape={shape}
     onClick={noop}
     prefix={{ iconName: "sparkles", variant: prefixVariant }}
-    removeable={{ removeable: true, onRemove: noop }}
+    removeable={{ onRemove: noop }}
   >
     {children}
   </Chip>
@@ -260,7 +260,7 @@ export const Size: Story<ChipProps> = (args) => (
         variant={args.variant}
         shape={args.shape}
         prefix={{ iconName: "sparkles" }}
-        removeable={{ removeable: true, onRemove: noop }}
+        removeable={{ onRemove: noop }}
       >
         {emptyLabel}
       </Chip>
@@ -363,7 +363,7 @@ export const PrefixAndSuffix: Story<ChipProps> = (args) => {
               {...base}
               shape={shape}
               prefix={{ iconName: "sparkles", variant: style.variant }}
-              removeable={{ removeable: true, onRemove: noop }}
+              removeable={{ onRemove: noop }}
             >
               Removeable
             </Chip>

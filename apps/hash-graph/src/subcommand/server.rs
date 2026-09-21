@@ -15,7 +15,7 @@ use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
-    rest::{
+    legacy::{
         ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
         auth::{CloudflareAccessConfig, KratosSessionConfig, SessionCacheConfig},
         entity::ClusteringContext,

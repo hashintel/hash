@@ -22,12 +22,8 @@ export type NetHir = {
   /** Place id → dynamics HIR, for places with dynamics enabled. */
   dynamics: Map<string, HirFunction>;
   /**
-   * Transition id → kernel HIR, for transitions with a compiled kernel.
-   *
-   * Collected but not yet emitted: the shader's fire block only adjusts token
-   * counts, so a kernel's output attributes are not written. Carrying the HIR is
-   * the prerequisite for that, and lets the compilation report say whether a
-   * kernel *could* be translated rather than only that it is unsupported.
+   * Transition id → kernel HIR, for transitions with a compiled kernel. The
+   * fire block emits it to write the produced tokens' attributes.
    */
   kernels: Map<string, HirFunction>;
   /** Items whose artifact carried no HIR, with why it matters. Non-fatal. */

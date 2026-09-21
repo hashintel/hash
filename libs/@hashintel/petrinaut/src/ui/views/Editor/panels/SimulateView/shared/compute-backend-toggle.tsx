@@ -11,6 +11,7 @@ import { Toggle, Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { usePrefersReducedMotion } from "./use-prefers-reduced-motion";
 
 import type { GpuAvailability } from "./use-gpu-availability";
 
@@ -83,6 +84,8 @@ export const ComputeBackendToggle = ({
   onSelectedChange: (selected: boolean) => void;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
+  const reducedMotion = usePrefersReducedMotion();
+  const animate = showAnimations && !reducedMotion;
 
   return (
     <Tooltip
@@ -103,10 +106,11 @@ export const ComputeBackendToggle = ({
         </span>
         <Toggle
           size="sm"
+          aria-label="Run on GPU"
           value={selected}
           onChange={onSelectedChange}
           disabled={!gpu.available}
-          className={cx(gpuToggleStyle, showAnimations && gpuToggleGlowStyle)}
+          className={cx(gpuToggleStyle, animate && gpuToggleGlowStyle)}
         />
         <span
           className={cx(sideLabelStyle, gpuSideLabelStyle)}

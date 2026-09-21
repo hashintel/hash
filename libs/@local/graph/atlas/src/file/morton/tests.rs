@@ -1,3 +1,9 @@
+//! Certificates for the morton file's format.
+//!
+//! The tests pin the fencepost rules the open validates, the header's wire layout byte by byte,
+//! the region geometry, the writer-to-reader round trip, and the run queries against
+//! hand-computed cells - with a property test holding `run` to a linear scan over arbitrary
+//! columns.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
@@ -15,13 +21,17 @@ use super::{
     write::{PAGE_STRIDE, write_regions},
 };
 use crate::{
-    file::region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    file::{
+        ArtifactFile as _,
+        region::{PAGE_BYTES, header::HeaderError, machine::Machine},
+    },
     identity::BasePosition,
     morton::{Depth, MortonCell, MortonKey},
 };
 
+/// A subdivision depth, panicking on a fixture outside the documented domain.
 fn depth(value: u8) -> Depth {
-    Depth::new(value).expect("test depths lie within the documented domain")
+    Depth::try_new(value).expect("test depths lie within the documented domain")
 }
 
 /// Fenceposts holding `lengths.len()` leading segments and empty ones behind them.
@@ -46,6 +56,10 @@ fn scratch(name: &str) -> PathBuf {
     dir.join(name)
 }
 
+/// Anchored, non-decreasing fenceposts wrap, and their segment ranges and per-segment lengths
+/// read back what built them, empty segments included. A first post off zero breaks the anchor
+/// rule, a decreasing post reports its own index, and lengths whose running sum overflows `u64`
+/// build no fenceposts at all, because they match no real column.
 #[test]
 fn fenceposts_carry_the_structural_rules() {
     // Anchored, non-decreasing posts wrap; segment ranges and the
@@ -83,6 +97,9 @@ fn fenceposts_carry_the_structural_rules() {
     assert_eq!(Fenceposts::<BasePosition>::from_lengths(&lengths), None);
 }
 
+/// The header's bytes sit where the format's table says: magic, little-endian version 2, this
+/// machine's information, the index stride, and all fenceposts as little-endian `u64`s - the last
+/// count repeating out to the final post - with zero padding to 4096.
 #[test]
 fn header_wire_layout() {
     let header = PaddedFileHeader::new(FileHeader::new(512, posts_of(&[600, 400])));
@@ -130,6 +147,8 @@ fn header_parse_pins_identity() {
         .expect_err("an unsupported version should not parse");
 }
 
+/// The header's index-key count, code-region offset and expected file length agree with the
+/// geometry computed by hand from the code count and the index stride.
 #[test]
 fn region_geometry() {
     // 1000 codes at stride 512 need two keys. Padding the 16-byte index to one page puts codes at
@@ -163,7 +182,9 @@ fn region_geometry() {
 
 /// Depth-1 quadrant prefixes of a 64-bit key: bit 62 is the x axis's top bit, bit 63 the y axis's.
 const Q10: u64 = 0x4000_0000_0000_0000;
+/// The quadrant (0, 1) prefix.
 const Q01: u64 = 0x8000_0000_0000_0000;
+/// The quadrant (1, 1) prefix.
 const Q11: u64 = 0xC000_0000_0000_0000;
 /// A depth-2 sub-cell of quadrant (0, 0): top four key bits 0001.
 const SUB: u64 = 0x1000_0000_0000_0000;
@@ -195,6 +216,7 @@ fn fixture_codes() -> Vec<MortonKey> {
     .collect()
 }
 
+/// Builds fenceposts for one, three, and five codes in the leading three buckets.
 fn fixture_posts() -> Fenceposts<BasePosition> {
     posts_of(&[1, 3, 5])
 }
@@ -265,6 +287,8 @@ fn runs_slice_hand_computed_cells() {
     assert_eq!(file.run(depth(2), cell), span(7..7));
 }
 
+/// A zero-code column is valid geometry: it writes, reopens, reports no codes, and answers the
+/// root cell's run with the empty range rather than failing.
 #[test]
 fn empty_column_reopens() {
     let path = scratch("empty.mrtn");

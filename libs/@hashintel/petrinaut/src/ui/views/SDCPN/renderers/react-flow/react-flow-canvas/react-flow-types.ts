@@ -10,6 +10,7 @@ import type {
   CanvasPlaceNode,
   CanvasTransitionNode,
 } from "../../../canvas-scene";
+import type { OutlineArcPath } from "./shared/outline-arcs";
 import type { Edge, Node } from "@xyflow/react";
 
 export type TransitionFrameState = NonNullable<
@@ -18,13 +19,7 @@ export type TransitionFrameState = NonNullable<
 
 export type PlaceNodeData = CanvasPlaceNode;
 
-export type TransitionNodeData = CanvasTransitionNode & {
-  /**
-   * State of this transition in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
-};
+export type TransitionNodeData = CanvasTransitionNode;
 
 export type ComponentInstanceNodeData = CanvasComponentInstanceNode;
 
@@ -42,12 +37,11 @@ export type NodeType =
   | PlaceNodeType
   | ComponentInstanceNodeType;
 
-export type ArcData = Pick<CanvasArc, "kind" | "weight"> & {
-  /**
-   * State of the transition connected to this arc in the current simulation frame.
-   * Null when no simulation is running.
-   */
-  frame: TransitionFrameState | null;
+export type ArcData = Pick<
+  CanvasArc,
+  "kind" | "weight" | "focus" | "transitionId"
+> & {
+  outlinePath?: OutlineArcPath;
 };
 
 export type ArcEdgeType = Edge<ArcData>;

@@ -1,7 +1,9 @@
 //! Fixture tests for the canonical card format.
 //!
-//! The expected strings are the format's contract: every test compares rendered text byte-for-byte,
-//! so any layout change is a deliberate format revision that shows up here.
+//! The rendering fixtures carry the format's expected strings. The canonical one compares its
+//! whole rendered text byte-for-byte, and the rest compare the exact lines they concern. A layout
+//! change under those lines is a deliberate format revision. The selection fixtures read the
+//! chosen examples themselves and render nothing.
 use alloc::borrow::Cow;
 use core::assert_matches;
 
@@ -20,17 +22,20 @@ use super::{
     token::{HeuristicTokenizer, ReservedTokenError, Tokenizer as _},
 };
 
+/// A token budget no fixture card reaches.
 const BIG: usize = 10_000_000;
 
 /// Normalizes a label into a slug.
 ///
-/// Transliterated to ASCII, lowercased, and joined by hyphens at word boundaries.
+/// Words separated by whitespace join with hyphens, and the result lowercases its ASCII letters.
+/// Fixture labels carry nothing else.
 fn slugify(label: &str) -> String {
     let mut label: String = label.split_whitespace().intersperse("-").collect();
     label.make_ascii_lowercase();
     label
 }
 
+/// Builds an English card context with the Unicode segmenter and the offline heuristic tokenizer.
 fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
     CardContext {
         language: "en",
@@ -39,6 +44,7 @@ fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
     }
 }
 
+/// Builds a cards config with the given soft and hard token budgets.
 fn cards_config(token_budget: usize, hard_token_budget: usize) -> CardsConfig {
     CardsConfig {
         token_budget,
@@ -46,16 +52,36 @@ fn cards_config(token_budget: usize, hard_token_budget: usize) -> CardsConfig {
     }
 }
 
+/// Builds a card from `contents` under `config`.
+///
+/// The build uses the heuristic tokenizer and no source identifiers to lint against.
+///
+/// # Errors
+///
+/// Returns [`CardError::Lint`] when the rendered text embeds a URL or a UUID, which the fixtures
+/// exercise. The empty identifier list rules out [`IdentifierLeakError::SourceIdentifier`], the
+/// heuristic tokenizer cannot reject a text, and [`CardError::Token`] is uninhabited at this
+/// instantiation.
 fn render(contents: CardContents<'_>, config: CardsConfig) -> Result<Card, CardError<!>> {
     build_card(contents, config, &HeuristicTokenizer, &[])
 }
 
+/// Builds a phrase from `label` and an optional description under the test context.
+///
+/// # Panics
+///
+/// Panics when `label` normalizes to empty, which an empty label does and so does one holding only
+/// whitespace.
 fn phrase<'text>(label: &'text str, description: Option<&'text str>) -> Phrase<'text> {
     Phrase::new(label, description, &context())
         .unwrap_or_else(|never| never)
         .expect("fixture labels are non-empty")
 }
 
+/// Builds card contents holding only the relation `title`.
+///
+/// The contents carry no inverse, empty sections, every constraint unrecorded and a slug derived
+/// from the title.
 fn minimal_contents(title: &'static str) -> CardContents<'static> {
     CardContents {
         prelude: Prelude {
@@ -82,6 +108,11 @@ fn minimal_contents(title: &'static str) -> CardContents<'static> {
     }
 }
 
+/// Builds a grouped example pairing `source` with `target` under `group`.
+///
+/// # Panics
+///
+/// Panics through [`phrase`] when either endpoint label normalizes to empty.
 fn example(
     source: &'static str,
     target: &'static str,
@@ -96,6 +127,11 @@ fn example(
     }
 }
 
+/// Builds the fully populated "part of" fixture.
+///
+/// It carries a description, two aliases, an inverse, one ancestor and one source type with
+/// removable detail sentences, one target type without one, every constraint recorded and two
+/// grouped examples.
 fn canonical_contents() -> CardContents<'static> {
     CardContents {
         prelude: Prelude {
@@ -131,6 +167,10 @@ fn canonical_contents() -> CardContents<'static> {
     }
 }
 
+/// Builds the "owns" fixture with paired endpoint constraints.
+///
+/// The organization constraint allows one or two of subsidiary or office, while the person
+/// constraint allows at most one asset.
 fn owns_contents() -> CardContents<'static> {
     CardContents {
         endpoint_constraints: vec![
@@ -169,6 +209,9 @@ fn owns_contents() -> CardContents<'static> {
     }
 }
 
+/// `Card::verbatim` adopts the text unchanged.
+///
+/// It counts `ceil(bytes / 4)` heuristic tokens and reports no truncation.
 #[test]
 fn verbatim_adopts_text_with_heuristic_diagnostics() {
     let card = Card::verbatim("Relation: fixture".to_owned());
@@ -176,10 +219,13 @@ fn verbatim_adopts_text_with_heuristic_diagnostics() {
     assert_eq!(card.card_text(), "Relation: fixture");
     // 17 UTF-8 bytes count as ceil(17 / 4) = 5 heuristic tokens.
     assert_eq!(card.token_count(), 5);
-    assert!(card.truncations().is_empty());
+    assert_eq!(card.truncations(), [] as [Cow<'static, str>; 0]);
     assert!(!card.severely_truncated());
 }
 
+/// Rendering the canonical fixture twice yields the same text.
+///
+/// The text equals the expected section-by-section block layout, with no truncations.
 #[test]
 fn canonical_block_rendering_is_deterministic() {
     let first =
@@ -215,10 +261,11 @@ fn canonical_block_rendering_is_deterministic() {
             "Slug: part-of\n",
         )
     );
-    assert!(first.truncations().is_empty());
+    assert_eq!(first.truncations(), [] as [Cow<'static, str>; 0]);
     assert!(!first.severely_truncated());
 }
 
+/// Every unrecorded constraint renders as `not recorded` and a missing inverse as `none recorded`.
 #[test]
 fn unavailable_constraint_facts_render_as_not_recorded() {
     let card = render(minimal_contents("related to"), cards_config(BIG, BIG))
@@ -232,6 +279,10 @@ fn unavailable_constraint_facts_render_as_not_recorded() {
     assert!(text.contains("Inverse Name: none recorded\n"));
 }
 
+/// Under a one-token soft budget the canonical fixture drops the second example first.
+///
+/// The ancestor and source-type details follow. One example survives, and the card reports no
+/// severe truncation.
 #[test]
 fn soft_truncation_uses_shared_structural_passes() {
     let card = render(canonical_contents(), cards_config(1, BIG))
@@ -248,6 +299,9 @@ fn soft_truncation_uses_shared_structural_passes() {
     assert!(!card.severely_truncated());
 }
 
+/// A description containing a type URL fails with `IdentifierLeakError::Url`.
+///
+/// One containing a UUID fails with `IdentifierLeakError::Uuid`.
 #[test]
 fn identifier_linter_rejects_embedded_source_keys() {
     let mut url_contents = minimal_contents("related to");
@@ -269,6 +323,9 @@ fn identifier_linter_rejects_embedded_source_keys() {
     );
 }
 
+/// Prose that merely resembles identifiers passes the linter and renders.
+///
+/// The cases are `P2P`, `Q5` and a short hex fragment.
 #[test]
 fn identifier_linter_allows_similar_ordinary_prose() {
     let mut contents = minimal_contents("P2P relation");
@@ -280,6 +337,9 @@ fn identifier_linter_allows_similar_ordinary_prose() {
     assert!(card.card_text().starts_with("Relation: P2P relation\n"));
 }
 
+/// `lint_card_text` rejects text containing an adapter-supplied source identifier.
+///
+/// `SourceIdentifier` names it, and the message repeats the identifier.
 #[test]
 fn identifier_linter_rejects_adapter_supplied_source_identifier() {
     let error = lint_card_text("Relation: source property P361\n", &["P361"])
@@ -292,6 +352,10 @@ fn identifier_linter_rejects_adapter_supplied_source_identifier() {
     assert!(error.to_string().contains("P361"));
 }
 
+/// Endpoint constraints render as an `Endpoint constraints:` section.
+///
+/// The section pairs each source with its own targets and cardinality, replaces the flat source and
+/// target type sections, and never cross-pairs.
 #[test]
 fn endpoint_constraints_preserve_source_target_associations() {
     let card = render(owns_contents(), cards_config(BIG, BIG))
@@ -311,6 +375,9 @@ fn endpoint_constraints_preserve_source_target_associations() {
     assert!(!text.contains("Person -> Subsidiary"));
 }
 
+/// Under a one-token soft budget the `endpoint_type_details` pass trims description details.
+///
+/// Endpoint phrases keep their lead sentence, and every source-target pair survives.
 #[test]
 fn endpoint_description_details_are_truncated_without_losing_pairs() {
     let card = render(owns_contents(), cards_config(1, BIG))
@@ -329,6 +396,10 @@ fn endpoint_description_details_are_truncated_without_losing_pairs() {
     assert!(text.contains("Person -> Asset"));
 }
 
+/// One constraint with a single source and target renders as plain type sections.
+///
+/// With no cardinality beyond the singleton flag the card keeps `Source types:` and `Target types:`
+/// rather than an endpoint section.
 #[test]
 fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
     let contents = CardContents {
@@ -358,6 +429,7 @@ fn single_simple_pair_keeps_the_legacy_unambiguous_sections() {
     assert!(text.contains("Target types:\n  - Asset\n"));
 }
 
+/// `EndpointConstraint::new` returns `None` when the minimum exceeds the maximum.
 #[test]
 fn endpoint_cardinality_rejects_an_inverted_range() {
     assert!(
@@ -366,6 +438,9 @@ fn endpoint_cardinality_rejects_an_inverted_range() {
     );
 }
 
+/// `Cl100kTokenizer` counts two tokens for `hello world`.
+///
+/// It rejects `<|endoftext|>` with `ReservedTokenError` naming the token.
 #[test]
 fn cl100k_tokenizer_matches_known_tokens_and_rejects_protocol_tokens() {
     assert_eq!(
@@ -382,12 +457,17 @@ fn cl100k_tokenizer_matches_known_tokens_and_rejects_protocol_tokens() {
     );
 }
 
+/// The candidate payload the selection tests identify results by.
 struct Payload {
     name: String,
 }
 
+/// An endpoint two candidates share.
 const SHARED_ENDPOINT: &str = "entity:shared";
 
+/// Builds a candidate named `name` in the `default` subgroup with zero recognizability.
+///
+/// Its endpoints derive from the name and it carries no conflicts.
 fn candidate(name: &str) -> Candidate<'static, Payload, &'static str> {
     Candidate {
         payload: Payload {
@@ -401,6 +481,7 @@ fn candidate(name: &str) -> Candidate<'static, Payload, &'static str> {
     }
 }
 
+/// The payload names of `selected`, in selection order.
 fn names<K>(selected: &[Selected<K, Payload>]) -> Vec<&str> {
     selected
         .iter()
@@ -408,6 +489,9 @@ fn names<K>(selected: &[Selected<K, Payload>]) -> Vec<&str> {
         .collect()
 }
 
+/// Selection takes the most recognizable candidate first.
+///
+/// A candidate from a not-yet-seen subgroup follows, and only then does a subgroup repeat.
 #[test]
 fn recognizable_head_then_distinct_subgroups_before_repeats() {
     let selected = select_diverse_examples(
@@ -438,6 +522,9 @@ fn recognizable_head_then_distinct_subgroups_before_repeats() {
     assert_eq!(names(&selected), ["France", "Casefabre", "Spain"]);
 }
 
+/// A budget of eight over a twenty-candidate and a two-candidate group fills the budget.
+///
+/// The small group keeps both its slots and the large group fills the remaining six.
 #[test]
 fn slot_cap_preserves_small_groups_then_relaxes_to_fill_budget() {
     let selected = select_diverse_examples(
@@ -552,7 +639,3 @@ fn empty_groups_do_not_consume_guaranteed_slots() {
     let groups: Vec<_> = selected.iter().map(|example| example.group).collect();
     assert_eq!(groups, ["alpha", "beta"]);
 }
-
-// The types rule out a negative example count and a zero slot cap
-// (`count` has type `usize` and `slot_cap` has type `NonZeroUsize`),
-// so no rejection tests exist.

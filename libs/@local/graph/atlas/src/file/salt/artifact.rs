@@ -12,13 +12,20 @@
 
 use crate::{
     file::{
-        WriteAs,
+        OpenAs, WriteAs,
         array::SizedColumn,
         generation::METADATA_FILE,
+        identity,
+        morton::read::MortonFile,
+        quad::read::QuadFile,
         repository::{Artifact, FileName},
     },
-    identity::{BasePosition, ImportanceRank, NodeRowId},
+    identity::{BasePosition, Column, EdgeRowId, ImportanceRank, NodeRowId, OntologyRowId},
     math::Vec2,
+    salt::{
+        adjacency::AdjacencyArchive, fit::prepare::identity::IdentityTableArchive,
+        postings::artifact::PostingsArchive,
+    },
 };
 
 /// Declares one artifact marker with its pinned file name.
@@ -124,3 +131,17 @@ impl WriteAs<RankOfPosition> for SizedColumn<BasePosition, ImportanceRank> {}
 impl WriteAs<PositionOfRank> for SizedColumn<ImportanceRank, BasePosition> {}
 impl WriteAs<PositionOfRow> for SizedColumn<NodeRowId, BasePosition> {}
 impl WriteAs<RowOfPosition> for SizedColumn<BasePosition, NodeRowId> {}
+
+impl OpenAs<Quad> for QuadFile {}
+impl OpenAs<Morton> for MortonFile {}
+impl OpenAs<Adjacency> for AdjacencyArchive {}
+impl OpenAs<Postings> for PostingsArchive {}
+impl OpenAs<WireCoordinates> for Column<BasePosition, Vec2> {}
+impl OpenAs<EdgeEndpoints> for Column<EdgeRowId, [NodeRowId; 2]> {}
+impl OpenAs<RankOfPosition> for Column<BasePosition, ImportanceRank> {}
+impl OpenAs<PositionOfRank> for Column<ImportanceRank, BasePosition> {}
+impl OpenAs<PositionOfRow> for Column<NodeRowId, BasePosition> {}
+impl OpenAs<RowOfPosition> for Column<BasePosition, NodeRowId> {}
+impl<I: identity::Key> OpenAs<NodeIdentities> for IdentityTableArchive<I, NodeRowId> {}
+impl<I: identity::Key> OpenAs<EdgeIdentities> for IdentityTableArchive<I, EdgeRowId> {}
+impl<I: identity::Key> OpenAs<OntologyIdentities> for IdentityTableArchive<I, OntologyRowId> {}

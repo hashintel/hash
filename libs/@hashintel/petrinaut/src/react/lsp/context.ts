@@ -4,8 +4,12 @@ import type {
   AdHocSynthesisContext,
   CompileHirArtifactsOptions,
   CompletionList,
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
   Diagnostic,
   DocumentUri,
+  LanguageClient,
   HirCompileResult,
   Hover,
   PetrinautExtensionSettings,
@@ -17,8 +21,8 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type {
   AdHocSessionParams,
+  ConstraintSessionParams,
   MetricSessionParams,
-  ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
@@ -46,6 +50,8 @@ export interface LanguageClientContextValue {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /** Check a captured net, independently of pushed editor diagnostics. */
+  requestDiagnostics: LanguageClient["requestDiagnostics"];
   /**
    * Compile the SDCPN's user code to HIR artifacts (in the language worker).
    * Required before starting simulations/experiments — the engine has no
@@ -73,12 +79,14 @@ export interface LanguageClientContextValue {
    * code does not lower — keep the user's text in that case.
    */
   requestFormatExpression: (code: string) => Promise<string | null>;
-  /** Initialize a temporary scenario editing session. */
-  initializeScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Update a scenario editing session. */
-  updateScenarioSession: (params: ScenarioSessionParams) => void;
-  /** Kill a scenario editing session. */
-  killScenarioSession: (sessionId: string) => void;
+  /**
+   * Lower one constraint's source to HIR (in the language worker) and check
+   * it produces a boolean.
+   */
+  requestConstraint: (
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ) => Promise<LowerConstraintResult>;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
   /** Starts an ad-hoc scenario editing session for expression type-checking */
@@ -91,6 +99,12 @@ export interface LanguageClientContextValue {
   updateMetricSession: (params: MetricSessionParams) => void;
   /** Kill a metric editing session. */
   killMetricSession: (sessionId: string) => void;
+  /** Starts a constraint editing session for one constraint's source. */
+  initializeConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Updates a constraint editing session. */
+  updateConstraintSession: (params: ConstraintSessionParams) => void;
+  /** Ends a constraint editing session. */
+  killConstraintSession: (sessionId: string) => void;
 }
 
 /** The inert default: no worker wired — requests resolve to empty results. */
@@ -102,6 +116,10 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
+  requestDiagnostics: () =>
+    Promise.reject(
+      new Error("No language client is wired; diagnostics are unavailable."),
+    ),
   requestHirArtifacts: () =>
     Promise.resolve({
       artifacts: {
@@ -121,15 +139,27 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
       placeExpressions: {},
     }),
   requestFormatExpression: () => Promise.resolve(null),
-  initializeScenarioSession: () => {},
-  updateScenarioSession: () => {},
-  killScenarioSession: () => {},
+  requestConstraint: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
   initializeMetricSession: () => {},
   initializeAdHocSession: () => {},
   updateAdHocSession: () => {},
   killAdHocSession: () => {},
   updateMetricSession: () => {},
   killMetricSession: () => {},
+  initializeConstraintSession: () => {},
+  updateConstraintSession: () => {},
+  killConstraintSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(

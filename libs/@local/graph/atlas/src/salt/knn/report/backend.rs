@@ -2,13 +2,13 @@
 //!
 //! The sweep builds one hannoy index per (fit seed, `ef_construction`) grid cell and scores it at
 //! every `ef_search` value against the exact reference of every distinct seed's sample. `ef_search`
-//! is a query-time setting, so one build serves its whole search row by reopening the persisted
-//! environment. The sweep removes the environment as soon as it finishes that row, which keeps peak
+//! is a query-time setting. Reopening the persisted environment reuses one build for its whole
+//! search row. The sweep removes the environment as soon as it finishes that row, which keeps peak
 //! disk at one index.
 //!
-//! The production check reads the grid's diagonal, a build scored against its own seed's sample.
-//! Off-diagonal readings separate build quality from sample hardness, and the sweep's decision
-//! surface is the worst recall a setting produced anywhere in the grid.
+//! Scoring every build against every seed's sample separates build variation from sample variation.
+//! The minimum across observed grid cells describes this sweep only. It is neither a confidence
+//! bound nor the fit's staged admission reading.
 
 use alloc::borrow::Cow;
 use core::{
@@ -42,8 +42,8 @@ use crate::{
 
 /// Fit seeds the sweep replays by default.
 ///
-/// The list holds three distinct seeds and repeats one of them, so the grid carries both build
-/// nondeterminism and seed spread.
+/// Repeating seed zero measures build nondeterminism. Seeds one and two add variation from the
+/// seed.
 pub(crate) const DEFAULT_SEEDS: &[u64] = &[0, 0, 1, 2];
 /// `ef_construction` values swept by default: the deployed setting and the one below it.
 pub(crate) const DEFAULT_CONSTRUCTIONS: &[usize] = &[128, 256];
@@ -57,6 +57,7 @@ pub(crate) const DEFAULT_SEARCHES: &[usize] = &[64, 128, 192, 256];
 // values: a moved default fails compilation here instead of silently leaving the swept grid
 // without the deployed setting.
 const _: () = {
+    /// Reports whether `values` holds `value`, at compile time.
     const fn contains(values: &[usize], value: usize) -> bool {
         let mut index = 0;
         while index < values.len() {
@@ -78,11 +79,15 @@ const _: () = {
 pub(crate) struct Options {
     /// Fit seeds whose build and sample streams the sweep replays.
     ///
-    /// A repeated seed rebuilds the same configuration again, measuring build nondeterminism.
+    /// A repeated seed rebuilds the same configuration again, measuring build nondeterminism. By default, uses [`DEFAULT_SEEDS`].
     pub seeds: Cow<'static, [u64]> = Cow::Borrowed(DEFAULT_SEEDS),
     /// `ef_construction` values, with one index build per (seed, value).
+    ///
+    /// By default, uses [`DEFAULT_CONSTRUCTIONS`].
     pub constructions: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_CONSTRUCTIONS),
     /// `ef_search` values, swept per built index.
+    ///
+    /// By default, uses [`DEFAULT_SEARCHES`].
     pub searches: Cow<'static, [usize]> = Cow::Borrowed(DEFAULT_SEARCHES),
 }
 
@@ -99,7 +104,7 @@ pub(crate) struct Point {
     pub sample_seed: u64,
     /// The query-time frontier breadth of this reading.
     pub ef_search: usize,
-    /// Aggregate recall@50 against the exact reference.
+    /// Aggregate recall at the sweep's comparison depth against the exact reference.
     pub recall: f64,
 }
 
@@ -112,7 +117,7 @@ pub(crate) struct Build {
     pub ef_construction: usize,
     /// Wall clock of insert plus link.
     pub wall: Duration,
-    /// One reading per `ef_search` value, in grid order.
+    /// One reading per (`ef_search`, distinct sample seed), in grid order.
     pub points: Vec<Point>,
 }
 
@@ -145,7 +150,7 @@ pub(crate) struct Sweep {
 }
 
 impl Sweep {
-    /// The swept `ef_construction` values, in grid order.
+    /// Returns distinct `ef_construction` values in first-appearance order.
     fn constructions(&self) -> impl IntoIterator<Item = usize> {
         let mut values: Vec<usize> = Vec::new();
         for build in &self.builds {
@@ -156,7 +161,7 @@ impl Sweep {
         values
     }
 
-    /// The swept `ef_search` values, in grid order.
+    /// Returns distinct `ef_search` values in first-appearance order.
     fn searches(&self) -> impl IntoIterator<Item = usize> {
         let mut values: Vec<usize> = Vec::new();
         for point in self.builds.iter().flat_map(|build| &build.points) {
@@ -167,10 +172,9 @@ impl Sweep {
         values
     }
 
-    /// The worst recall one setting produced across every build and sample that measured it.
+    /// Returns the lowest observed recall for a setting across every build and sample.
     ///
-    /// This reading is the sweep's decision surface, because a setting earns admission on what it
-    /// guarantees rather than on its best grid cell.
+    /// Returns positive infinity when the sweep contains no matching reading.
     fn minimum_recall(&self, ef_construction: usize, ef_search: usize) -> f64 {
         self.builds
             .iter()
@@ -282,8 +286,8 @@ impl Error for SweepError {
 
 /// An index persisted into its scratch directory, bound to the breadth it was built at.
 ///
-/// Scoring reopens the environment with this breadth, so the reopened options describe the index
-/// that exists on disk. [`Self::remove`] consumes the value together with the directory it names.
+/// Reopening retains the original build breadth in the options. [`Self::remove`] consumes the value
+/// and removes its directory.
 struct BuiltIndex {
     /// The scratch directory holding the persisted environment.
     directory: Utf8PathBuf,
@@ -395,8 +399,8 @@ fn score_grid(
 ///
 /// # Errors
 ///
-/// Returns a [`SweepError`] when reading the representations fails, when an index build fails, or
-/// when a sampled query fails.
+/// Returns [`SweepError`] when setup, scratch-directory management, reference computation or a
+/// backend operation fails.
 pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, SweepError> {
     let started = Instant::now();
 
@@ -406,8 +410,8 @@ pub(crate) fn sweep(root: &GenerationRoot, options: &Options) -> Result<Sweep, S
     let check = SpotCheckOptions::default();
     let scratch = root.scratch().map_err(SweepError::Scratch)?;
 
-    // Every distinct seed's sample, in first-appearance order. Each build scores against all of
-    // them, so the readings separate build quality from sample hardness.
+    // every build scores against all distinct seeds' samples, separating build variation from
+    // sample variation.
     let mut references: Vec<(u64, ExactReference<NodeRowId>)> = Vec::new();
     let mut reference_costs = Vec::new();
     for &seed in &*options.seeds {

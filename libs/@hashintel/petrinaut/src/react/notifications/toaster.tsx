@@ -24,7 +24,13 @@ const toastRootStyle = css({
   transition: "[translate 300ms, scale 300ms, opacity 300ms, box-shadow 300ms]",
   transitionTimingFunction: "[cubic-bezier(0.21, 1.02, 0.73, 1)]",
   display: "flex",
-  alignItems: "flex-start",
+  // A message on its own sits centred against its close button. One that
+  // carries detail grows into a column, so its title lines up with the top
+  // of the buttons beside it.
+  alignItems: "center",
+  "&[data-detail]": {
+    alignItems: "flex-start",
+  },
   gap: "2",
   minHeight: "[26px]",
   width: "[max-content]",
@@ -92,8 +98,16 @@ export const NotificationsToaster = () => (
         const detail =
           typeof toast.description === "string" ? toast.description : undefined;
 
+        // An error notification stays until it is dismissed, and one with
+        // detail is there to be read, so both offer a way out. A plain
+        // message clears itself and stays a single compact line.
+        const dismissible = detail !== undefined || toast.type === "error";
+
         return (
-          <Toast.Root className={toastRootStyle}>
+          <Toast.Root
+            className={toastRootStyle}
+            data-detail={detail === undefined ? undefined : ""}
+          >
             <div className={toastContentStyle}>
               <Toast.Title className={toastTitleStyle}>
                 {toast.title}
@@ -104,31 +118,33 @@ export const NotificationsToaster = () => (
                 </Toast.Description>
               )}
             </div>
-            <div className={toastActionsStyle}>
-              {detail && (
-                <Button
-                  aria-label="Copy details"
-                  className={toastActionStyle}
-                  iconName="copy"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(detail);
-                  }}
-                  size="xs"
-                  tooltip="Copy details"
-                  variant="ghost"
-                />
-              )}
-              <Toast.CloseTrigger asChild>
-                <Button
-                  aria-label="Close notification"
-                  className={toastActionStyle}
-                  iconName="close"
-                  size="xs"
-                  tooltip="Close notification"
-                  variant="ghost"
-                />
-              </Toast.CloseTrigger>
-            </div>
+            {dismissible && (
+              <div className={toastActionsStyle}>
+                {detail && (
+                  <Button
+                    aria-label="Copy details"
+                    className={toastActionStyle}
+                    iconName="copy"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(detail);
+                    }}
+                    size="xs"
+                    tooltip="Copy details"
+                    variant="ghost"
+                  />
+                )}
+                <Toast.CloseTrigger asChild>
+                  <Button
+                    aria-label="Close notification"
+                    className={toastActionStyle}
+                    iconName="close"
+                    size="xs"
+                    tooltip="Close notification"
+                    variant="ghost"
+                  />
+                </Toast.CloseTrigger>
+              </div>
+            )}
           </Toast.Root>
         );
       }}

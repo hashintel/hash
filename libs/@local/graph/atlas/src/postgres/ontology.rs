@@ -1,10 +1,9 @@
 //! The ontology payload lookups, under the frozen-snapshot regime.
 //!
-//! Both lookups take the dataset's transaction directly and execute their statements
-//! themselves, reshaping the rows before streaming: the supertype rows gather into per-type
-//! parent lists, and the icon rows decode into owned icons. The answers arrive in ontology row
-//! order, the order the bound type table fixes, so a position here names the same type at
-//! every consumer of the table.
+//! Both lookups take the dataset's transaction directly and execute their statements themselves,
+//! reshaping the rows before streaming: the supertype rows gather into per-type parent lists, and
+//! the icon rows decode into owned icons. The answers arrive in ontology row order, the order the
+//! bound type table fixes. A position here names the same type at every consumer of the table.
 
 use futures::{Stream, stream};
 use hash_graph_postgres_store::store::postgres::query::{
@@ -27,13 +26,22 @@ use crate::{
 
 /// Opens the ontology stream: each type's direct supertypes, in ontology row order.
 ///
-/// Parents outside the type table cannot occur: the store materializes closures per edition, so
-/// every depth-0 parent of a reachable type is itself reachable.
+/// Sort `types` by UUID: each row's source and target reach their row through a binary search
+/// over it. The stream drops a parent the slice does not hold. It therefore yields the whole
+/// parent relation only for a slice closed under depth-0 parents. The store materializes closures
+/// per edition, which is what closes the table this dataset supplies.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] when the store rejects the read or an inheritance row
+/// does not decode. This call reads every row before it builds the stream, and the stream itself
+/// yields no further failures.
 ///
 /// # Panics
 ///
-/// This panics when the store returns a source outside the type table, which the statement's
-/// own filter forbids.
+/// This panics when the binary search misses a returned source, which an unsorted slice causes
+/// even for a source the slice does hold. The statement's own filter keeps returned sources
+/// inside the table.
 ///
 /// # SQL
 ///
@@ -131,6 +139,12 @@ pub(crate) async fn ontology<'t>(
 /// Each type answers exactly one row, because every join is outer and the unnested type table
 /// survives them. The lateral picks the nearest declared icon in the type's closed schema, and
 /// a chain without one answers SQL NULL for the decoder to default.
+///
+/// # Errors
+///
+/// Returns [`PostgresDatasetError::Query`] when the store rejects the read. The stream decodes
+/// each row as the caller pulls it. A column that does not read back fails at that item rather
+/// than here.
 ///
 /// # SQL
 ///

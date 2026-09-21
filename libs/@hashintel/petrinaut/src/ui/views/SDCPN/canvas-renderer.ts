@@ -16,6 +16,8 @@ import type { Size } from "@hashintel/petrinaut-core";
 /** The viewport type is owned by the React layer, where it is persisted. */
 export type { CanvasViewport };
 
+export type FrameSceneResult = "framed" | "empty" | "no-renderer" | "timed-out";
+
 export type CanvasController = {
   getViewport: () => CanvasViewport;
   /** `animate` eases the move when the renderer supports it. */
@@ -26,7 +28,12 @@ export type CanvasController = {
   zoomIn: () => void;
   zoomOut: () => void;
   /** Frames the whole scene, easing the move when the renderer supports it. */
-  fitView: () => void;
+  fitView: () => Promise<FrameSceneResult>;
+  /**
+   * Frames once after the renderer has committed its next scene. The promise
+   * is bounded so callers never wait indefinitely for an unmounted renderer.
+   */
+  frameSceneAfterRender: () => Promise<FrameSceneResult>;
   /** Client (viewport-relative screen) coordinates to scene coordinates. */
   screenToScene: (point: CanvasPoint) => CanvasPoint;
   sceneToScreen: (point: CanvasPoint) => CanvasPoint;
@@ -53,6 +60,8 @@ export type CanvasRendererProps = {
   containerSize: Size;
   /** Extra buttons hosts add to the viewport controls. */
   viewportActions?: ViewportAction[];
+  /** Publishes this renderer's controller to the editor-level command seam. */
+  registerController: (controller: CanvasController | null) => void;
 };
 
 export type CanvasRenderer = React.FC<CanvasRendererProps>;

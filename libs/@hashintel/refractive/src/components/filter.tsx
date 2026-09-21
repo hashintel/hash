@@ -100,11 +100,13 @@ export const Filter: React.FC<FilterProps> = ({
 
   const content = (
     <filter id={id}>
-      <feGaussianBlur
-        in="SourceGraphic"
-        stdDeviation={blur}
-        result="blurred_source"
-      />
+      {blur > 0 && (
+        <feGaussianBlur
+          in="SourceGraphic"
+          stdDeviation={blur}
+          result="blurred_source"
+        />
+      )}
 
       <CompositeParts
         imageData={displacementMap}
@@ -133,7 +135,7 @@ export const Filter: React.FC<FilterProps> = ({
       />
 
       <feDisplacementMap
-        in="blurred_source"
+        in={blur > 0 ? "blurred_source" : "SourceGraphic"}
         in2="displacement_map"
         scale={scale}
         xChannelSelector="R"

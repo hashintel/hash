@@ -9,12 +9,16 @@ use crate::{
 
 /// Quantizes each point onto the frame's 32-bit-per-axis grid.
 ///
-/// [`Bounds2::quantize`] maps each point onto the grid. The grid outresolves the data, so only
-/// points closer together than one coordinate ULP share a cell.
+/// Uses [`Bounds2::quantize`] and preserves input order. For generation indexing, the frame must
+/// contain every point. The fixed [`super::stage::WIRE_FRAME`] gives each grid cell an axis width
+/// of 2⁻³¹. Quantization in that frame clamps coordinates outside `[-1, 1]` onto its boundary
+/// cells. A zero-extent frame axis maps to cell zero.
 ///
-/// The caller owns the frame and guarantees that it contains every point. The frame fit produces
-/// such a frame from these coordinates. Coordinates outside the frame clamp onto the boundary
-/// cells.
+/// # Warning
+///
+/// Quantization can merge distinct `f32` coordinates, because its uniform grid does not resolve
+/// every representable value near zero and arbitrary frames also inherit the extent rounding of
+/// [`Bounds2::quantize`].
 #[must_use]
 pub(crate) fn keys(points: &[Vec2], frame: Bounds2) -> Box<[MortonKey]> {
     points

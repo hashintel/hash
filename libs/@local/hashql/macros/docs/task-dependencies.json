@@ -2,7 +2,14 @@
   "package": "@rust/hashql-macros",
   "dependencies": [],
   "tasks": {
-    "fix:clippy": [],
-    "lint:clippy": []
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    }
   }
 }

@@ -7,11 +7,11 @@
 //!
 //! Reporting is one-way traffic. Observations and log lines travel down a channel as
 //! [`Observation`]s, and the renderer owns the only [`RunState`], folding what has arrived into it
-//! before each frame. A reporting thread parts with its observation and carries on, so a hot loop
-//! never waits on the terminal.
+//! before each frame. A reporting thread parts with its observation and carries on, and the hot
+//! loop never waits on the terminal.
 //!
-//! The dashboard observes and never steers, so nothing here can change what a run publishes. The
-//! channel takes every observation as it comes. A closed channel means the dashboard has already
+//! The dashboard observes and never steers: what a run publishes is the run's alone. The channel
+//! takes every observation as it comes. A closed channel means the dashboard has already
 //! finished. No observation can fail a fit.
 //!
 //! One deliberate exception to that, because raw mode swallows the interrupt: `q` and `Ctrl-C`
@@ -53,7 +53,7 @@ use crate::{
 /// How long the renderer waits for a key before drawing the next frame.
 ///
 /// The spinner's cadence and the terminal's responsiveness are the same number: a keypress
-/// short-circuits the wait, so the dashboard reacts at once and idles at ten frames a second.
+/// short-circuits the wait. The dashboard reacts at once and idles at ten frames a second.
 const TICK: Duration = Duration::from_millis(100);
 
 /// The exit code of an interrupted run, as a shell reports `SIGINT`.
@@ -61,7 +61,7 @@ const INTERRUPTED: u8 = 130;
 
 /// Placement rows the dashboard asks the run to sample for its map.
 ///
-/// Exactly what the widest map can hold apart, so the appetite is the frame's own resolution rather
+/// Exactly what the widest map can hold apart. The appetite is the frame's own resolution rather
 /// than a number chosen to feel large enough.
 const SNAPSHOT_ROWS: usize = render::MAP_CAPACITY;
 
@@ -76,7 +76,7 @@ pub(super) struct Dashboard {
     /// Raised to bring the rendering thread home.
     ///
     /// A sending half outlives every run, since the shell installs the log subscriber globally and
-    /// never drops it, so this flag is what ends the loop.
+    /// never drops it. This flag is what ends the loop.
     stop: Arc<AtomicBool>,
     /// The rendering thread, which owns the terminal and restores it as it leaves.
     renderer: JoinHandle<io::Result<()>>,
@@ -88,7 +88,7 @@ impl Dashboard {
     /// # Errors
     ///
     /// Returns an [`io::Error`] when this cannot take the terminal or cannot spawn the rendering
-    /// thread. Both happen before the run begins, so a failure here costs nothing.
+    /// thread. Both happen before the run begins. A failure here costs nothing.
     pub(super) fn start() -> io::Result<Self> {
         let terminal = ratatui::try_init()?;
         let (observations, arrived) = mpsc::channel();
@@ -133,7 +133,7 @@ impl Dashboard {
         self.stop.store(true, Ordering::Release);
 
         self.renderer.join().unwrap_or_else(|_panicked| {
-            // The hook `ratatui::try_init` installed has already restored the terminal; restoring
+            // The hook `ratatui::try_init` installed has already restored the terminal. Restoring
             // twice costs nothing and guarantees the shell prints onto a sane screen.
             ratatui::restore();
             Ok(())
@@ -159,7 +159,6 @@ impl Observer {
 }
 
 impl Progress for Observer {
-    /// A detached half reports into the same dashboard through the same channel.
     type Detached = Self;
 
     fn detach(&self) -> Self {
@@ -182,6 +181,8 @@ impl Progress for Observer {
         self.report(Observation::ClassifierStarted(folds));
     }
 
+    // The model counts folds done rather than which fold it was, and this observer drops the index
+    // before sending the fieldless observation.
     fn classifier_fold_completed(&self, _fold: usize) {
         self.report(Observation::ClassifierFoldCompleted);
     }
@@ -218,10 +219,17 @@ impl Progress for Observer {
         });
     }
 
+    /// Reports the number of positions the dashboard wants sampled.
+    ///
+    /// This is the widest map's own capacity, which is what turns snapshot gathering on at all.
     fn projector_sample_size(&self) -> usize {
         SNAPSHOT_ROWS
     }
 
+    /// Reports the sampled positions to the renderer.
+    ///
+    /// The observer copies the positions out of the run's buffer because the observation outlives
+    /// the call, and carries the landmark prefix length alongside.
     fn projector_snapshot(&self, positions: &[Vec2], landmarks: usize) {
         self.report(Observation::ProjectorSnapshot {
             positions: positions.to_vec(),
@@ -274,6 +282,10 @@ impl io::Write for LogWriter {
         Ok(buf.len())
     }
 
+    /// Sends every whole line buffered so far to the renderer.
+    ///
+    /// A trailing partial line remains buffered for the next write. Here a closed channel is not
+    /// an error, because a log line may not fail a fit.
     fn flush(&mut self) -> io::Result<()> {
         // The subscriber writes one record as a sequence of calls and ends it with a newline. Only
         // whole lines become rows of the pane.
@@ -288,14 +300,21 @@ impl io::Write for LogWriter {
 }
 
 impl Drop for LogWriter {
+    /// Flushes the record's last line when the writer is dropped.
+    ///
+    /// The subscriber drops the writer at the end of every record, which is what makes the record
+    /// appear in the pane.
     fn drop(&mut self) {
-        // The subscriber drops the writer at the end of every record,
-        // which is what makes the record appear.
         drop(io::Write::flush(self));
     }
 }
 
 /// Draws one frame of the model as it currently stands.
+///
+/// # Errors
+///
+/// Returns an [`io::Error`] when the terminal refuses the frame. The renderer gives up on the
+/// terminal at that point rather than redrawing into it.
 fn draw(terminal: &mut DefaultTerminal, state: &RunState, tick: usize) -> io::Result<()> {
     terminal.draw(|frame| render::frame(frame, state, tick))?;
 
@@ -337,6 +356,11 @@ fn interrupted(event: &Event) -> bool {
 ///
 /// The model lives here, on the thread that draws it: each frame folds in what has arrived since
 /// the last one.
+///
+/// # Errors
+///
+/// Returns an [`io::Error`] when a frame, a key poll or the terminal's restoration fails. The
+/// dashboard's owner reports it after the run, since the fit itself is unaffected.
 fn render(
     mut terminal: DefaultTerminal,
     arrived: &Receiver<Observation>,
@@ -420,7 +444,7 @@ mod tests {
         observer.classifier_fold_completed(0);
         observer.classifier_fold_completed(1);
 
-        // The model drops a fold that arrives before its announcement, so the counter reads the
+        // The model drops a fold that arrives before its announcement. The counter reads the
         // arrival order rather than the set.
         let folds = absorbed(&arrived)
             .classifier()
@@ -429,6 +453,9 @@ mod tests {
         assert_eq!(folds.done, 2);
     }
 
+    /// Quality readings followed by the stage's completion all reach the model in one fold.
+    ///
+    /// The readings outlive the stage that reported them.
     #[test]
     fn the_admission_batterys_readings_reach_the_state_the_renderer_draws() {
         let (observations, arrived) = channel();
@@ -459,10 +486,13 @@ mod tests {
         let observer = Observer { observations };
         drop(arrived);
 
-        // The renderer has left; the run has not, and an observation may not fail it.
+        // The renderer has left. The run has not, and an observation may not fail it.
         observer.stage_completed(Stage::Seal);
     }
 
+    /// The dashboard's sample appetite is greater than the trait's silent default.
+    ///
+    /// The snapshot returned for it reaches the model with its rows and landmark prefix intact.
     #[test]
     fn the_dashboard_asks_for_a_sample_and_draws_what_comes_back() {
         let (observations, arrived) = channel();
@@ -481,6 +511,9 @@ mod tests {
         assert_eq!(placement.landmarks, 1);
     }
 
+    /// A record emitted through a subscriber writing into the sink becomes exactly one pane line.
+    ///
+    /// The line carries its level, its message and its fields.
     #[test]
     fn log_records_become_pane_lines() {
         let (observations, arrived) = channel();
@@ -490,8 +523,8 @@ mod tests {
             .without_time()
             .finish();
 
-        // The dispatcher is thread-local here on purpose, so the test exercises the writer rather
-        // than the shell's global installation.
+        // The dispatcher is thread-local here on purpose. The test exercises the writer rather than
+        // the shell's global installation.
         tracing::subscriber::with_default(subscriber, || {
             tracing::info!(rows = 49, "staged the annotation corpus");
         });
@@ -520,7 +553,7 @@ mod tests {
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");
         writer.flush().expect("should flush");
-        assert!(lines(&arrived).is_empty());
+        assert_eq!(lines(&arrived), [] as [String; 0]);
 
         writer
             .write_all(b"halfway\nWARN and then some\n")

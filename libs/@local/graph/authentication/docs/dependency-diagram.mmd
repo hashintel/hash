@@ -24,11 +24,12 @@ graph TD
     12[<a href="../hash_middleware/index.html">hash-middleware</a>]
     13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
     14[<a href="../error_stack/index.html">error-stack</a>]
-    15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    16[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    15[<a href="../problematic/index.html">problematic</a>]
+    16[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    17[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     1 --> 8
-    1 -.-> 16
+    1 -.-> 17
     2 -.-> 3
     2 --> 11
     4 -.-> 5
@@ -41,11 +42,13 @@ graph TD
     7 --> 9
     7 --> 13
     8 --> 2
-    9 -.-> 16
+    9 -.-> 17
     11 -.-> 10
     11 --> 10
     11 --> 14
     12 --> 1
+    12 --> 15
     13 --> 1
-    15 -.-> 4
-    16 --> 7
+    15 --> 14
+    16 -.-> 4
+    17 --> 7

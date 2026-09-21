@@ -8,17 +8,17 @@ use zerocopy::U32;
 use zerocopy::{FromBytes as _, LE, U64};
 
 use super::{FileHeader, Node};
-use crate::{
-    file::region::{
+use crate::file::{
+    ArtifactFile,
+    region::{
         PAGE,
         header::{HeaderError, HeaderMap},
     },
-    morton::MortonCell,
 };
 
 /// Opening a quad file failed.
 #[derive(Debug)]
-pub enum OpenQuadError {
+pub(crate) enum OpenQuadError {
     /// Reading the header page failed.
     Header(HeaderError),
     /// The node count leaves no room for the absent-child sentinel.
@@ -92,15 +92,14 @@ impl Error for OpenQuadError {
 /// index stays inside the table and points deeper in the pre-order. Traversals and set slices
 /// therefore never re-check. Within-set ascending order is the writer's contract, assumed the way
 /// every merge assumes its sorted inputs.
-///
-/// [`locate`](Self::locate) is the serving query: the node owning one tile cell, found by walking
-/// the two-bit digits of the cell's key prefix from the root.
 #[derive(Debug)]
 pub(crate) struct QuadFile {
     map: HeaderMap<FileHeader>,
 }
 
-impl QuadFile {
+impl ArtifactFile for QuadFile {
+    type Error = OpenQuadError;
+
     /// Opens and maps the quad file at `path`.
     ///
     /// # Errors
@@ -111,7 +110,7 @@ impl QuadFile {
     /// [`OpenQuadError::Posts`] when a type-set fencepost breaks a structural rule, and
     /// [`OpenQuadError::Child`] when a child index escapes the table or fails to point deeper.
     #[tracing::instrument(skip_all)]
-    pub(crate) fn open(path: impl AsRef<Path>) -> Result<Self, OpenQuadError> {
+    fn open(path: impl AsRef<Path>) -> Result<Self, Self::Error> {
         let map = HeaderMap::<FileHeader>::open(path).map_err(OpenQuadError::Header)?;
         let header = map.header();
 
@@ -160,7 +159,9 @@ impl QuadFile {
 
         Ok(this)
     }
+}
 
+impl QuadFile {
     /// Borrows the parsed header at the head of the mapping.
     #[inline]
     #[must_use]
@@ -237,29 +238,5 @@ impl QuadFile {
         let end =
             usize::try_from(posts[node + 1].get()).expect("a mapped region fits the address space");
         &self.ids()[start..end]
-    }
-
-    /// Returns the node owning `cell`.
-    ///
-    /// [`None`] when the schedule delivers nothing new below the cell's deepest ancestor node.
-    ///
-    /// The walk consumes the two-bit digits of the cell's key prefix from the root: digit `d` names
-    /// the Morton child quadrant at depth `d + 1`. An empty table locates nothing.
-    #[must_use]
-    pub(crate) fn locate(&self, cell: MortonCell) -> Option<u32> {
-        let nodes = self.nodes();
-        if nodes.is_empty() {
-            return None;
-        }
-
-        let mut node = 0_u32;
-        let prefix = cell.min_key().prefix(cell.depth());
-        for step in (0..cell.depth().get()).rev() {
-            let quadrant = (prefix >> (2 * u64::from(step))) & 0b11;
-            let record = &nodes[node as usize];
-            node = record.child(quadrant as usize)?;
-        }
-
-        Some(node)
     }
 }

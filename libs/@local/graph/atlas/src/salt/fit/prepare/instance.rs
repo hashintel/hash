@@ -1,9 +1,9 @@
 //! The relation-instance spool, the edge drain's working artifact.
 //!
-//! The drain consumes the edge stream exactly once, before the policy table exists, so it spools
-//! every `(edge, relation)` reading into a scratch file and the relation stage maps that file back
-//! once the policy table resolves. The spool is transient by design. It lives in the run's
-//! [`ScratchDirectory`], and only the run that wrote it consumes it. It never publishes.
+//! The drain consumes the edge stream exactly once, before the policy table exists. It therefore
+//! spools every `(edge, relation)` reading into a scratch file, and the relation stage maps that
+//! file back once the policy table resolves. The spool is transient by design. It lives in the
+//! run's [`ScratchDirectory`], and only the run that wrote it consumes it. It never publishes.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::fmt;
@@ -26,10 +26,11 @@ use crate::{
 /// One spooled `(edge, relation)` reading.
 ///
 /// Each confidence stores its value beside a presence bit (bit 0 link, bit 1 source, bit 2 target,
-/// the attraction file's score vocabulary), so the absent-score distinction survives the spool.
-// The confidence fields carry their domains in their types, so the mapping's parse refuses an
-// out-of-domain value. The row ids, the presence bits and the multiplicity are unconstrained
-// primitive encodings.
+/// the attraction file's score vocabulary), and the absent-score distinction therefore survives
+/// the spool.
+// The confidence fields carry their domains in their types, and the mapping's parse therefore
+// refuses an out-of-domain value. The row ids, the presence bits and the multiplicity are
+// unconstrained primitive encodings.
 #[derive(
     Copy,
     Clone,
@@ -52,8 +53,11 @@ pub(crate) struct InstanceRecord {
 }
 
 impl InstanceRecord {
+    /// Presence bit of the link confidence in `scored`.
     const LINK: u32 = 1;
+    /// Presence bit of the source confidence in `scored`.
     const SOURCE: u32 = 1 << 1;
+    /// Presence bit of the target confidence in `scored`.
     const TARGET: u32 = 1 << 2;
 
     /// Encodes one reading of `edge` under `relation`.
@@ -209,7 +213,7 @@ impl InstanceSpool {
     /// # Panics
     ///
     /// This panics when the file length disagrees with the pushed count. One run writes and
-    /// consumes the spool, so a mismatch is a program bug rather than a data error.
+    /// consumes the spool, and a mismatch is therefore a program bug rather than a data error.
     #[tracing::instrument(skip_all)]
     pub(crate) fn map(&self) -> io::Result<MappedInstances> {
         if self.count == 0 {
@@ -240,8 +244,14 @@ pub(crate) struct MappedInstances {
 impl MappedInstances {
     /// Views the spooled readings, in drain order.
     ///
-    /// The parse validates each confidence's domain as the bytes are read, so a reading never
-    /// decodes to a value its type refuses.
+    /// The parse validates each confidence's domain as the bytes are read, and a reading therefore
+    /// never decodes to a value its type refuses.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the mapped bytes do not parse as records with every confidence in its
+    /// domain. The run wrote the spool from typed values, and a mismatch is therefore a program
+    /// bug rather than a data error.
     #[must_use]
     pub(crate) fn records(&self) -> &[InstanceRecord] {
         let Some(map) = &self.map else {

@@ -9,6 +9,7 @@ import {
 } from "../simulation/monte-carlo";
 import { analyzeCompilation } from "../webgpu/compilation-report";
 import { assessGpuEligibility } from "../webgpu/eligibility";
+import { tryTranslateMetric } from "../webgpu/try-translate-metric";
 import { vaccinationCampaign } from "./vaccination-campaign";
 
 import type { CompiledScenarioResult } from "../simulation/authoring/scenario/compile-scenario";
@@ -28,7 +29,13 @@ const infectedPlace = petriNetDefinition.places.find(
 const { artifacts } = compileHirArtifacts(petriNetDefinition, undefined, {
   includeHir: true,
 });
-const winterWaveHir = lowerScenarioToHir(winterWave);
+const winterWaveHir = lowerScenarioToHir(winterWave, {
+  adHocContext: {
+    places: petriNetDefinition.places,
+    types: petriNetDefinition.types,
+    netParameters: petriNetDefinition.parameters,
+  },
+});
 
 /** The two levers the optimization stories range over. */
 type Levers = { vaccination_coverage: number; contact_reduction: number };
@@ -124,6 +131,39 @@ describe("Vaccination Campaign", () => {
         .filter((item) => item.kind === "lambda")
         .map((item) => item.status),
     ).toStrictEqual(["gpu-ready", "gpu-ready"]);
+  });
+
+  it("compiles to a GPU shader with the Total cost expression objective", () => {
+    // The optimization stories minimise this metric; it prices counts by
+    // parameters, so its samples are real and the GPU bins them to a
+    // calibrated window.
+    const artifact = artifacts.metrics[totalCost.id]!;
+    expect(
+      tryTranslateMetric({ sdcpn: petriNetDefinition, hir: artifact.hir! }),
+    ).toStrictEqual({ translatable: true, integer: false });
+
+    const report = analyzeCompilation({
+      sdcpn: petriNetDefinition,
+      artifacts,
+      metricSpecs: [
+        {
+          kind: "expression",
+          id: totalCost.id,
+          label: totalCost.name,
+          code: totalCost.code,
+          artifact,
+        },
+      ],
+    });
+
+    expect(report.gpuReady).toBe(true);
+    expect(report.metricFailure).toBeNull();
+    expect(report.shaderFailure).toBeNull();
+    expect(
+      report.items.find(
+        (item) => item.kind === "metric" && item.itemId === totalCost.id,
+      )?.status,
+    ).toBe("gpu-ready");
   });
 
   it("seeds the Winter wave from the coverage and the initial cases", () => {

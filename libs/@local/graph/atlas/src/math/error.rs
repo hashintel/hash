@@ -1,19 +1,11 @@
-//! The refusal a finiteness scan hands back, shared by every consumer that proves a point set.
-//!
-//! [`FinitePointField::new`] owns the scan and refuses the first offender; every boundary that
-//! propagates a refusal names the same error type, so refusals stay interchangeable wherever a
-//! point set is proven.
-//!
-//! [`FinitePointField::new`]: super::FinitePointField::new
-
 use core::{error::Error, fmt};
 
 use hashql_core::id::Id;
 
-/// A refused point, a NaN or infinite component at the named id.
+/// A point containing a NaN or infinite coordinate, identified by its row ID.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct NonFinitePoint<I> {
-    /// The first id whose point is non-finite.
+    /// The first ID whose point is non-finite.
     pub id: I,
 }
 

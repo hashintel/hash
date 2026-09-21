@@ -49,11 +49,12 @@ graph TD
     37[<a href="../darwin_kperf_events/index.html">darwin-kperf-events</a>]
     38[<a href="../darwin_kperf_sys/index.html">darwin-kperf-sys</a>]
     39[<a href="../error_stack/index.html">error-stack</a>]
-    40[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    41[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    40[<a href="../problematic/index.html">problematic</a>]
+    41[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    42[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     1 --> 10
-    1 -.-> 41
+    1 -.-> 42
     2 -.-> 3
     2 --> 21
     4 -.-> 5
@@ -78,8 +79,8 @@ graph TD
     9 --> 34
     10 --> 2
     11 --> 9
-    12 -.-> 41
-    13 -.-> 41
+    12 -.-> 42
+    13 -.-> 42
     14 --> 18
     15 --> 20
     15 --> 39
@@ -108,10 +109,12 @@ graph TD
     30 --> 22
     30 --> 24
     31 --> 1
+    31 --> 40
     33 --> 39
     34 --> 1
     35 --> 37
     35 --> 38
     36 --> 35
-    40 -.-> 4
-    41 --> 9
+    40 --> 39
+    41 -.-> 4
+    42 --> 9

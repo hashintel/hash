@@ -23,6 +23,8 @@ export type DialogSize = "xs" | "sm" | "md" | "lg" | "xl" | "fullScreen";
 const backdropClassName = overlayPartsStyles({ component: "dialog" }).backdrop;
 
 const DialogRoot = ({
+  ref,
+  style,
   className,
   size = "md",
   variant = "partitionedFooter",
@@ -35,6 +37,8 @@ const DialogRoot = ({
   onKeyDown,
   ...ariaAttributes
 }: {
+  ref?: React.Ref<HTMLDivElement>;
+  style?: React.CSSProperties;
   className?: string;
   size?: DialogSize;
   onKeyDown?: React.KeyboardEventHandler<Element>;
@@ -112,6 +116,8 @@ const DialogRoot = ({
           <ArkDialog.Positioner className={classes.positioner}>
             <ArkDialog.Content
               {...ariaAttributes}
+              ref={ref}
+              style={style}
               className={cx(classes.content, className)}
               aria-busy={loading ?? undefined}
               onKeyDown={onKeyDown}

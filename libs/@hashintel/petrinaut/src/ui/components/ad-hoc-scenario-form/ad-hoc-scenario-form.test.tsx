@@ -7,6 +7,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -58,8 +59,8 @@ class ObserverStub {
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   ObserverStub as unknown as typeof IntersectionObserver;
-// jsdom implements no scrolling at all, and the Scale list scrolls itself to
-// the selected option when it opens.
+// jsdom implements no scrolling at all, and an open Select list (the type
+// column's) scrolls itself to the selected option when it opens.
 Element.prototype.scrollTo = () => {};
 
 afterEach(cleanup);
@@ -80,6 +81,7 @@ const context: AdHocSynthesisContext = {
       name: "Pumps",
       colorId: "colour-pump",
       dynamicsEnabled: false,
+      showAsInitialState: true,
       differentialEquationId: null,
       x: 0,
       y: 0,
@@ -89,6 +91,7 @@ const context: AdHocSynthesisContext = {
       name: "Queue",
       colorId: null,
       dynamicsEnabled: false,
+      showAsInitialState: true,
       differentialEquationId: null,
       x: 0,
       y: 0,
@@ -112,14 +115,12 @@ const Harness: React.FC<{
   selection?: AdHocFormSelection;
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
-  withVariables?: boolean;
   renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
   mode?: React.ComponentProps<typeof AdHocScenarioForm>["mode"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
-  withVariables,
   renderLayout,
   mode,
 }) => {
@@ -133,7 +134,6 @@ const Harness: React.FC<{
       }}
       context={context}
       selection={selection}
-      withVariables={withVariables}
       renderLayout={renderLayout}
       mode={mode}
     />
@@ -149,6 +149,35 @@ const colouredPlace = (state: AdHocScenarioState | undefined) => {
 };
 
 describe("AdHocScenarioForm", () => {
+  it("filters starting places without changing their authored state", async () => {
+    const onChange = vi.fn();
+    render(
+      <AdHocScenarioForm
+        state={EMPTY_AD_HOC_STATE}
+        onChange={onChange}
+        context={{
+          ...context,
+          places: context.places.map((place) => ({
+            ...place,
+            showAsInitialState: place.id === "place-queue",
+          })),
+        }}
+        selection="none"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Pumps place" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Queue › count" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show all places" }));
+    expect(
+      await screen.findByRole("button", { name: "Pumps place" }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show all places" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Pumps place" })).toBeNull(),
+    );
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("selects a row's kind from the gutter menu", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
@@ -362,7 +391,7 @@ describe("AdHocScenarioForm", () => {
     expect(place.count.expression).toBe("parameters.rate * 4");
   });
 
-  it("renders a synthesis error on the closed slot's trigger", () => {
+  it("keeps bound errors visible when the editor opens", async () => {
     const initial: AdHocScenarioState = {
       variables: [],
       netParameters: [],
@@ -391,7 +420,33 @@ describe("AdHocScenarioForm", () => {
     const trigger = screen.getByRole("button", {
       name: "Pumps › item 0 › pressure",
     });
-    expect(trigger.getAttribute("title")).toContain("nope");
+    const error = trigger.getAttribute("title");
+    expect(error).toBeTruthy();
+    fireEvent.click(trigger);
+    expect((await screen.findByRole("alert")).textContent).toBe(error);
+  });
+
+  it("shows an invalid ratio value below valid optimization bounds", async () => {
+    render(
+      <Harness
+        initial={{
+          ...EMPTY_AD_HOC_STATE,
+          variables: [
+            {
+              name: "fill",
+              type: "ratio",
+              expression: "1.5",
+              optimize: { min: "0", max: "1", scale: "linear" },
+            },
+          ],
+        }}
+      />,
+    );
+    const trigger = screen.getByTitle(/between 0 and 1/);
+    fireEvent.click(trigger);
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "between 0 and 1",
+    );
   });
 
   it("removes the row when Delete is pressed on its gutter", async () => {
@@ -629,11 +684,13 @@ describe("AdHocScenarioForm", () => {
   it("walks between the form's members and toggles sections from their headers", async () => {
     render(<Harness />);
 
-    // Variables lead the form; down from the parameters grid (one row)
-    // lands on the Initial state section header.
+    // A model with only starting places needs no visibility toggle.
     const rateValue = screen.getByRole("button", { name: "Rate" });
     rateValue.focus();
     fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(
+      screen.queryByRole("checkbox", { name: "Show all places" }),
+    ).toBeNull();
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Toggle Initial state section" }),
     );
@@ -766,9 +823,11 @@ describe("AdHocScenarioForm", () => {
       "Type of altitude",
     );
 
-    // The native select mirrors the dropdown: three types, no empty item.
+    // The native select mirrors the dropdown: the four types, no empty item.
     const nativeSelect = document.querySelector("select");
-    expect(nativeSelect?.options.length).toBe(3);
+    expect(
+      [...(nativeSelect?.options ?? [])].map((option) => option.value),
+    ).toEqual(["real", "integer", "boolean", "ratio"]);
 
     // The trailing add-a-variable line is one cell, reachable with
     // ArrowDown from any column of the row above it.
@@ -876,7 +935,7 @@ describe("AdHocScenarioForm", () => {
           name: "n",
           type: "integer",
           expression: "2",
-          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+          optimize: { min: "0", max: "10", scale: "linear" },
         },
       ],
       netParameters: [],
@@ -896,7 +955,7 @@ describe("AdHocScenarioForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "n" }));
     const minCell = await screen.findByRole("button", { name: "Min of n" });
     expect(document.activeElement).toBe(minCell);
-    expect(screen.getByText("Scale")).toBeTruthy();
+    expect(screen.getByText("Max")).toBeTruthy();
 
     // Arrows move between the bound cells; Enter opens the expression
     // editor in place (no per-cell path or Optimize chrome).
@@ -916,11 +975,11 @@ describe("AdHocScenarioForm", () => {
     expect(document.activeElement).toBe(
       screen.getByRole("button", { name: "Max of n" }),
     );
-    expect(screen.getByText("Scale")).toBeTruthy();
+    expect(screen.getByText("Max")).toBeTruthy();
 
     // ...then the whole slab.
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
-    expect(screen.queryByText("Scale")).toBe(null);
+    expect(screen.queryByText("Max")).toBe(null);
   });
 
   it("keeps the optimize bounds usable while the slab is open", async () => {
@@ -931,7 +990,7 @@ describe("AdHocScenarioForm", () => {
           name: "n",
           type: "integer",
           expression: "2",
-          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+          optimize: { min: "0", max: "10", scale: "linear" },
         },
       ],
       netParameters: [],
@@ -955,13 +1014,6 @@ describe("AdHocScenarioForm", () => {
     // to the row beneath it — which the dismiss handler reads as a press
     // outside and closes the slab on.
     expect(slab?.className).toContain("pointer-events_auto");
-
-    // A layer opened from inside the slab lives inside it, so pressing its
-    // options is not an outside press.
-    fireEvent.click(screen.getByRole("combobox", { name: "Scale of n" }));
-    const scaleList = await screen.findByRole("listbox");
-    expect(slab?.contains(scaleList)).toBe(true);
-    fireEvent.keyDown(scaleList, { key: "Escape" });
 
     // Editing one bound keeps focus in its editor. Each keystroke dispatches
     // and re-renders the slab, and the one-shot Min selection must not
@@ -1095,22 +1147,6 @@ describe("AdHocScenarioForm", () => {
     expect(screen.getByText("1 + 0 … 10 tokens")).toBeTruthy();
   });
 
-  it("hides the Variables section when the embedding offers none", () => {
-    render(<Harness withVariables={false} />);
-    expect(
-      screen.queryByRole("button", {
-        name: "Add a variable (Top-level variables)",
-      }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Toggle Variables section" }),
-    ).toBeNull();
-    // The other groups are untouched.
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-  });
-
   it("the add-variable line selects on the first pointer click and materializes on the second", () => {
     let latest: AdHocScenarioState | undefined;
     render(
@@ -1223,7 +1259,6 @@ describe("AdHocScenarioForm", () => {
   it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {
     render(
       <Harness
-        withVariables={false}
         renderLayout={({ parameters, places }) => (
           <div>
             <div>
@@ -1269,6 +1304,16 @@ describe("AdHocScenarioForm", () => {
     addVariable.focus();
     fireEvent.keyDown(addVariable, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(optimizeToggle);
+
+    pumpsHeader.focus();
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowLeft" });
+    expect(pumpsHeader.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(pumpsHeader);
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(optimizeToggle);
+    fireEvent.keyDown(optimizeToggle, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pumpsHeader);
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowRight" });
 
     // Within the places column the walk still chains: up from the token
     // table's column header lands on the place's own add-variable line.
@@ -1434,5 +1479,232 @@ describe("AdHocScenarioForm", () => {
     );
     expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: "Expression" })).toBeNull();
+  });
+});
+
+describe.each([
+  {
+    selection: "optimize" as const,
+    word: "Optimize",
+    gutter: "Optimized count",
+  },
+  { selection: "sweep" as const, word: "Sweep", gutter: "Swept count" },
+])("interval selection ($word)", ({ selection, word, gutter }) => {
+  const INTERVAL_STATE: AdHocScenarioState = {
+    variables: [
+      {
+        name: "altitude",
+        type: "real",
+        expression: "400",
+        optimize: null,
+        exposed: true,
+      },
+      {
+        name: "armed",
+        type: "boolean",
+        expression: "true",
+        optimize: null,
+        exposed: true,
+      },
+    ],
+    netParameters: [],
+    places: {},
+  };
+
+  it("run mode offers the toggle on numeric scenario parameters only", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection={selection}
+        mode="run"
+        initial={INTERVAL_STATE}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: `${word} altitude` }));
+    expect(latest?.variables[0]?.optimize).toEqual({
+      min: "0",
+      max: "1",
+      scale: "linear",
+    });
+  });
+
+  it("authoring offers the toggle on numeric values and Parameters, never on booleans", () => {
+    render(<Harness selection={selection} initial={INTERVAL_STATE} />);
+
+    expect(screen.getByRole("button", { name: `${word} Rate` })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: `${word} altitude` }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
+  });
+
+  it("run mode offers no toggle on the computed net parameters", () => {
+    render(
+      <Harness
+        selection={selection}
+        mode="run"
+        initial={{
+          ...INTERVAL_STATE,
+          netParameters: [
+            { parameterId: "param-rate", expression: "2", optimize: null },
+          ],
+        }}
+        renderLayout={({ variables, parameters }) => (
+          <>
+            {variables}
+            {parameters}
+          </>
+        )}
+      />,
+    );
+
+    // The computed parameters are a preview the host derives; a toggle on
+    // them would revert on the next render.
+    expect(
+      screen.getByRole("button", { name: `${word} altitude` }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: `${word} Rate` })).toBe(null);
+  });
+
+  it.each(["integer", "real"] as const)(
+    "edits a toggled %s value as Min and Max cells only",
+    async (type) => {
+      render(
+        <Harness
+          selection={selection}
+          initial={{
+            ...INTERVAL_STATE,
+            variables: [
+              {
+                ...INTERVAL_STATE.variables[0]!,
+                type,
+                optimize: { min: "100", max: "800", scale: "linear" },
+              },
+            ],
+          }}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "altitude" }));
+      const minCell = await screen.findByRole("button", {
+        name: "Min of altitude",
+      });
+      expect(document.activeElement).toBe(minCell);
+      expect(
+        screen.getByRole("button", { name: "Max of altitude" }),
+      ).toBeTruthy();
+      // The interval is Min and Max under either word: no Step, no Scale.
+      const slab = document.querySelector<HTMLElement>("[data-adhoc-slab]")!;
+      expect(within(slab).queryByText("Step")).toBe(null);
+      expect(within(slab).queryByText("Scale")).toBe(null);
+      expect(within(slab).queryByRole("combobox")).toBe(null);
+      // The right arrow stops at Max.
+      fireEvent.keyDown(minCell, { key: "ArrowRight" });
+      const maxCell = screen.getByRole("button", { name: "Max of altitude" });
+      expect(document.activeElement).toBe(maxCell);
+      fireEvent.keyDown(maxCell, { key: "ArrowRight" });
+      expect(document.activeElement).toBe(maxCell);
+    },
+  );
+
+  it("turns the toggle off with a type change to boolean, as one undo step", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection={selection}
+        initial={{
+          ...INTERVAL_STATE,
+          variables: [
+            {
+              ...INTERVAL_STATE.variables[0]!,
+              optimize: { min: "100", max: "800", scale: "linear" },
+            },
+            INTERVAL_STATE.variables[1]!,
+          ],
+        }}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    expect(
+      screen
+        .getByRole("button", { name: `${word} altitude` })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByLabelText("Type of altitude"));
+    fireEvent.click(await screen.findByRole("option", { name: "Boolean" }));
+    await waitFor(() => expect(latest?.variables[0]?.type).toBe("boolean"));
+    expect(latest?.variables[0]?.optimize).toBe(null);
+    expect(screen.queryByRole("button", { name: `${word} altitude` })).toBe(
+      null,
+    );
+
+    // One step: undo restores the type and the selection together.
+    fireEvent.keyDown(
+      screen.getByRole("button", {
+        name: "Name of variable 1 (Top-level variables)",
+      }),
+      { key: "z", metaKey: true },
+    );
+    expect(latest?.variables[0]?.type).toBe("real");
+    expect(latest?.variables[0]?.optimize).toEqual({
+      min: "100",
+      max: "800",
+      scale: "linear",
+    });
+  });
+
+  it("keeps a toggle that arrived on a boolean clearable", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection={selection}
+        initial={{
+          ...INTERVAL_STATE,
+          variables: [
+            INTERVAL_STATE.variables[0]!,
+            {
+              ...INTERVAL_STATE.variables[1]!,
+              optimize: { min: "0", max: "1", scale: "linear" },
+            },
+          ],
+        }}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // Booleans offer no toggle, but one already there shows its toggle so
+    // the definition can be brought back to something that runs.
+    const toggle = screen.getByRole("button", { name: `${word} armed` });
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(latest?.variables[1]?.optimize).toBe(null);
+    expect(screen.queryByRole("button", { name: `${word} armed` })).toBe(null);
+  });
+
+  it("names the token gutter's interval kind after the word", async () => {
+    render(<Harness selection={selection} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Row 1 kind" }));
+    expect(
+      await screen.findByRole("menuitemradio", { name: gutter }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("menuitemradio", {
+        name: gutter === "Swept count" ? "Optimized count" : "Swept count",
+      }),
+    ).toBe(null);
   });
 });

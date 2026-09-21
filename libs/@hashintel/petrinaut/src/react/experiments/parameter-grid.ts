@@ -1,6 +1,7 @@
 import { createMonteCarloMetricNumericAccumulator } from "@hashintel/petrinaut-core";
 
 import type {
+  AdHocOptimizedField,
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
   ScenarioParameter,
@@ -40,12 +41,21 @@ export type ExperimentParameterInput =
  */
 export type ExperimentParameterAxis = {
   identifier: string;
+  /**
+   * The name the navigator shows when the identifier is generated: an
+   * ad-hoc value's path (`Queue › count`) rather than `adhoc_count_queue`.
+   */
+  label?: string;
   min: number;
   max: number;
   /** Positions run 0..stepCount inclusive. */
   stepCount: number;
   integer: boolean;
 };
+
+/** The name a swept parameter shows in the navigator and the surface. */
+export const axisDisplayName = (axis: ExperimentParameterAxis): string =>
+  axis.label ?? axis.identifier;
 
 /**
  * Quantization steps per axis. Fine enough that the slider feels continuous
@@ -59,9 +69,21 @@ export type SweepAxisSelection = { from: number; to: number };
 
 /**
  * The navigator's selection: an inclusive position range per swept
- * parameter. The default selection spans every axis whole.
+ * parameter.
  */
 export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
+
+/**
+ * The midpoint of a selection's range on one axis, in position space. The
+ * selection is normalized, so every axis has a range.
+ */
+export const selectionMidpoint = (
+  selection: SweepSelection,
+  axis: ExperimentParameterAxis,
+): number => {
+  const range = selection[axis.identifier]!;
+  return (range.from + range.to) / 2;
+};
 
 /**
  * Cumulative run targets a combination climbs through as it is refined:
@@ -70,7 +92,9 @@ export type SweepSelection = Readonly<Record<string, SweepAxisSelection>>;
  * while the user stays on a selection. Extended ×5/×2 beyond the last step
  * for very large run budgets.
  */
-export const EXPERIMENT_RUN_LADDER: readonly number[] = [8, 25, 100, 500, 1000];
+export const EXPERIMENT_RUN_LADDER = [
+  8, 25, 100, 500, 1000,
+] as const satisfies readonly number[];
 
 /**
  * The next cumulative run target for a combination that currently has
@@ -166,6 +190,46 @@ export function buildParameterAxis(
   };
 }
 
+export type BuildAxesOutcome =
+  | { ok: true; axes: ExperimentParameterAxis[] }
+  | { ok: false; error: string };
+
+/**
+ * The axes of an ad-hoc definition's Sweep selections. Synthesis resolves
+ * each selection to a generated scenario parameter with a numeric domain;
+ * the axis takes the domain's bounds and the selection's path as its label.
+ * A boolean domain cannot be swept: the form offers no toggle on booleans,
+ * so one here is a stale selection, reported like any other invalid range.
+ */
+export function buildAdHocSweepAxes(
+  fields: readonly AdHocOptimizedField[],
+): BuildAxesOutcome {
+  const axes: ExperimentParameterAxis[] = [];
+  for (const field of fields) {
+    if (field.domain.kind === "boolean") {
+      return {
+        ok: false,
+        error: `${field.label}: boolean values cannot be swept`,
+      };
+    }
+    const outcome = buildParameterAxis(
+      {
+        identifier: field.parameterName,
+        type: field.domain.kind === "integer" ? "integer" : "real",
+      },
+      { min: field.domain.minimum, max: field.domain.maximum },
+    );
+    if (!outcome.ok) {
+      return {
+        ok: false,
+        error: outcome.error.replace(field.parameterName, field.label),
+      };
+    }
+    axes.push({ ...outcome.axis, label: field.label });
+  }
+  return { ok: true, axes };
+}
+
 /** The concrete parameter value at a quantized position (0..stepCount). */
 export function axisValueAt(
   axis: ExperimentParameterAxis,
@@ -194,6 +258,23 @@ export function axisPositionFor(
     axis.stepCount,
   );
 }
+
+/** The sweep point an optimizer's suggestion lands on. */
+export const sweepPointFor = (
+  axes: readonly ExperimentParameterAxis[],
+  values: Readonly<Record<string, number | boolean>>,
+): SweepSelection | null => {
+  const selection: Record<string, { from: number; to: number }> = {};
+  for (const axis of axes) {
+    const value = values[axis.identifier];
+    if (typeof value !== "number") {
+      return null;
+    }
+    const position = axisPositionFor(axis, value);
+    selection[axis.identifier] = { from: position, to: position };
+  }
+  return selection;
+};
 
 /** The default selection: every axis spans its whole interval. */
 export function fullSweepSelection(
@@ -226,6 +307,19 @@ export function normalizeSweepSelection(
     }),
   );
 }
+
+export const pointSweepSelection = (
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+): SweepSelection => {
+  const normalized = normalizeSweepSelection(axes, selection);
+  return Object.fromEntries(
+    axes.map((axis) => {
+      const position = Math.round(selectionMidpoint(normalized, axis));
+      return [axis.identifier, { from: position, to: position }];
+    }),
+  );
+};
 
 // One prime base per swept axis: two axes sharing a base would draw along a
 // diagonal. A sweep can range every scenario parameter, so the list is long.

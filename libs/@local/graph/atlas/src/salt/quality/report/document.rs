@@ -24,22 +24,18 @@ pub(crate) struct MetricRow {
     pub trustworthiness: UnitFraction,
     /// Continuity, in `[0, 1]`.
     pub continuity: UnitFraction,
-    /// Fraction of false neighbours past the horizon, in `[0, 1]`.
+    /// Fraction of map neighbours past the reference-rank horizon, in `[0, 1]`.
     pub intrusion_rate: UnitFraction,
-    /// Fraction of banished neighbours past the horizon, in `[0, 1]`.
+    /// Fraction of reference neighbours past the map-rank horizon, in `[0, 1]`.
     pub extrusion_rate: UnitFraction,
 }
 
 impl MetricRow {
     /// Reads one aggregate at the given neighbourhood size.
     ///
-    /// Every row a probe produces observes at least one query, from three independent reasons:
-    /// `ProbeOptions::anchors` is a `NonZero`, the sampled pass observes every step cell once per
-    /// anchor, and a subgroup row merges at least the anchor that created its membership. A row
-    /// read from an empty aggregate publishes each reading's own optimum instead - recall one, the
-    /// rates zero - and [`controls`](QualityReport::controls) folds those into its extremum as
-    /// observed evidence, where the triplet control keys on its observed count and refuses. A new
-    /// row source either keeps that invariant or gives the controls `queries` to key on.
+    /// `neighbourhood` labels the row and must match the aggregate's size. An empty aggregate
+    /// produces recall, trustworthiness and continuity of one and rates of zero.
+    /// [`QualityReport::controls`] includes such a row in its extrema without checking `queries`.
     pub(super) fn read(neighbourhood: NonZero<usize>, aggregate: &NeighbourhoodAggregate) -> Self {
         Self {
             neighbourhood,
@@ -55,19 +51,25 @@ impl MetricRow {
 
 /// One neighbourhood size's density-distortion reading.
 ///
-/// The reading is the spread of `ln(map radius / representation radius)` over the anchors: zero
-/// when the map rescales every neighbourhood alike, growing as regions compress or dilate unevenly.
-/// The median log ratio is the global scale offset - it carries the two metrics' unit difference
-/// and is comparable only across probes of the same spaces.
+/// For positive finite radii, the reading is the unscaled median absolute deviation of ln(map
+/// radius) − ln(representation radius). A constant radius ratio gives zero spread. MAD measures
+/// dispersion around the median and can remain zero when some ratios differ. The median log ratio
+/// retains the metrics' relative scale. Uniform multiplicative radius rescaling shifts it without
+/// changing the spread in exact arithmetic.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DensityRow {
     /// The neighbourhood size both radii come from.
     pub neighbourhood: NonZero<usize>,
-    /// Anchors contributing a finite log ratio.
+    /// Anchors with positive radii contributing a log ratio.
+    ///
+    /// Finite radii give finite ratios, though positivity alone admits an overflowed infinite
+    /// radius.
     pub anchors: usize,
     /// Anchors excluded for a zero radius.
     ///
-    /// At least `neighbourhood` rows coincide with the anchor in one of the spaces.
+    /// The computed k-th radius is zero in at least one space. Cosine-equivalent directions or
+    /// floating-point rounding can produce a zero representation radius without equal embedding
+    /// components.
     pub degenerate: usize,
     /// The median log radius ratio, absent without contributing anchors.
     pub median_log_ratio: Option<f64>,
@@ -113,7 +115,7 @@ pub(crate) struct ClumpRow {
     pub queries: usize,
     /// Mean matched fraction of the collapsed neighbourhoods, in `[0, 1]`.
     ///
-    /// Never below the plain recall at the same size.
+    /// For probe-produced rows, never below plain recall over the same neighbourhood lists.
     pub recall: UnitFraction,
 }
 
@@ -167,16 +169,16 @@ pub(crate) struct BaselineRow {
     pub recall: UnitFraction,
     /// The same reading collapsed onto clump ids, when clump readings exist.
     ///
-    /// Never below the plain recall.
+    /// For probe-produced rows, never below plain recall over the same neighbourhood lists.
     pub clump_recall: Option<UnitFraction>,
 }
 
 /// One subgroup's representation-baseline readings over the sampled universe.
 ///
-/// The stratification separates representation loss from near-tie reshuffling under the triage
-/// rule. When a subgroup's plain baseline recall trails the whole-probe reading and its collapsed
-/// recall restores to it, the breach lies only on component labels in the representation itself,
-/// before any projection. That reading triages the breach and certifies nothing about placement.
+/// Plain and collapsed recall show how a subgroup's representation loss changes when component
+/// labels replace row identity, before projection. Matching the whole-probe baseline after collapse
+/// is diagnostic evidence, not proof that the difference arose from near ties or that the component
+/// is compact. These rows contain no placement judgment.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BaselineSubgroupReport {
     /// The subgroup's type, as its ontology row.
@@ -192,9 +194,9 @@ pub(crate) struct BaselineSubgroupReport {
 /// One breach of the subgroup degradation rule.
 ///
 /// A flag carries its own triage evidence. When clump readings exist, the report re-evaluates the
-/// breach on clump ids and marks a breach the collapse restores as resolved, meaning
-/// component-label recall no longer breaches. The mark is triage evidence and certifies neither
-/// component compactness nor within-component placement, and it never affects admission.
+/// breach on clump ids and marks it resolved when collapsed subgroup degradation is at most the
+/// configured factor times collapsed whole-probe degradation. The mark certifies neither component
+/// compactness nor within-component placement. Flags and resolution never affect admission.
 #[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SubgroupFlag {
     /// The flagged subgroup's type, as its ontology row.
@@ -220,9 +222,9 @@ pub(crate) struct SubgroupFlag {
 /// The side of a control's threshold that admits.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum Bound {
-    /// The reading must reach the threshold.
+    /// The reading must be at least the threshold.
     Floor(f64),
-    /// The reading must stay under the threshold.
+    /// The reading must be at most the threshold.
     Ceiling(f64),
 }
 
@@ -236,19 +238,21 @@ impl Bound {
     }
 }
 
-/// One control of the battery, reading one metric against the threshold that admits it.
+/// One metric reading paired with its inclusive admission bound.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct Control {
     /// The metric the control checks.
     pub metric: QualityMetric,
-    /// The reading the verdict turns on, absent exactly when the evidence is.
+    /// The reduced reading, absent when the control's presence check fails.
     pub reading: Option<f64>,
     /// The applied threshold and the side of it that admits.
     pub bound: Bound,
 }
 
 impl Control {
-    /// Returns whether the control admits: evidence present, and inside its bound.
+    /// Returns whether a reading is present and satisfies its inclusive bound.
+    ///
+    /// A NaN reading fails either bound.
     pub(crate) fn admits(&self) -> bool {
         self.reading
             .is_some_and(|reading| self.bound.admits(reading))
@@ -257,8 +261,10 @@ impl Control {
 
 /// One probe's rendered evidence and verdict inputs.
 ///
-/// The report carries the probe sizes and the applied thresholds, so a serialized report justifies
-/// its own verdict without the configuration that produced it.
+/// The report carries probe sizes and applied thresholds, permitting verdict recomputation without
+/// the original configuration. These fields record results rather than prove their provenance.
+/// Direct construction and deserialization do not check grid alignment, observation counts or
+/// consistency between readings.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QualityReport {
     /// Sampled anchor count.
@@ -293,7 +299,7 @@ pub(crate) struct QualityReport {
     pub subgroups: Vec<SubgroupReport>,
     /// Per-subgroup representation-baseline readings, ascending by ontology row.
     ///
-    /// The audit stratification, report-only.
+    /// Per-type representation-baseline readings over the sampled universe, report-only.
     pub baseline_subgroups: Vec<BaselineSubgroupReport>,
     /// Degradation-rule breaches, in subgroup then neighbourhood order.
     pub flags: Vec<SubgroupFlag>,
@@ -318,14 +324,16 @@ pub(crate) struct QualityReport {
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// Each control is a conjunction over the neighbourhood steps, so the reading that decides it
-    /// is the extremum across them - the lowest step against a floor and the highest against a
-    /// ceiling. An absent reading is absent evidence - an empty grid, a step whose spread is
-    /// absent, triplet sampling switched off - and a control refuses that rather than passing
-    /// vacuously.
+    /// Neighbourhood floors use the lowest primary-grid reading and the intrusion ceiling uses the
+    /// highest. An empty primary grid yields absent readings. The density control is absent for an
+    /// empty density list or any row with no spread, otherwise it uses the maximum spread. Triplet
+    /// agreement is present only when its recorded triplet count is positive.
+    /// [`passes`](Self::passes) is the conjunction of these controls.
     ///
-    /// [`passes`](Self::passes) is this list's conjunction and an observer reports these same
-    /// numbers, so the verdict and the observation read one reduction instead of two.
+    /// These reductions do not check metric-row query counts or alignment between metric and
+    /// density steps. Density spreads must be finite: [`f64::max`] ignores a NaN operand,
+    /// permitting a non-finite row to leave a finite maximum or the initial negative infinity. The
+    /// controls report which readings exist, not whether those readings are sound.
     #[must_use]
     pub(crate) fn controls(&self) -> [Control; variant_count::<QualityMetric>()] {
         let lowest = |read: fn(&MetricRow) -> UnitFraction| {
@@ -341,8 +349,7 @@ impl QualityReport {
                 .reduce(UnitFraction::max)
         };
 
-        // A step with no spread reading gives the ceiling nothing to check, so the control loses
-        // its evidence whole rather than reading the steps that do have one.
+        // every density step must supply a spread; an absent step invalidates the whole control
         let spread = self
             .density
             .iter()
@@ -390,13 +397,11 @@ impl QualityReport {
         ]
     }
 
-    /// Returns whether the full battery admits the generation.
+    /// Returns whether every reduced metric satisfies its admission bound.
     ///
-    /// True exactly when every [control](Self::controls) holds: each reading present and inside its
-    /// bound. The controls are concrete validated values that stay maximally permissive by default.
-    /// The verdict therefore turns on evidence and readings, never on configuration shape. Subgroup
-    /// flags and their clump-resolution triage are report-only fields: they inform the human
-    /// reading the report and never affect admission.
+    /// True exactly when every [control](Self::controls) has a present reading inside its inclusive
+    /// bound. Subgroup flags and clump resolution never affect this verdict. The controls' presence
+    /// checks do not validate the report as a whole.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
         self.controls().iter().all(Control::admits)

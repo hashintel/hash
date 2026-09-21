@@ -9,8 +9,7 @@
  * puts one value slot directly below the header, and renders the cells
  * beneath as dimmed derived copies whose clicks edit the shared value. A
  * phantom trailing row follows the cell selection model — the first click
- * selects, the second (or Enter, or the gutter's +) materializes a fixed
- * row — and the place's token total sits at the bottom.
+ * selects, the second (or Enter, or the gutter's +) materializes a fixed row.
  *
  * The whole table is a keyboard grid. Arrows and Tab move between cells;
  * vertical moves pass through the shared-values line and each dynamic row's
@@ -26,7 +25,6 @@ import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocRowKindOf,
-  resolveAdHocPlaceTotal,
   type AdHocColouredPlace,
   type AdHocRow,
   type AdHocRowKind,
@@ -42,7 +40,7 @@ import {
 } from "../../worksheet/use-focus-stops";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
-import { AdHocFormContext } from "./form-context";
+import { AdHocFormContext, adHocIntervalSelection } from "./form-context";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
@@ -133,18 +131,6 @@ const stripEditorOptimizedStyle = css({
   backgroundColor: "[transparent]",
 });
 
-// The place total sits under the spreadsheet, outside it — one tight line,
-// so it doesn't widen the gap to the next place block.
-const totalTextStyle = css({
-  textAlign: "right",
-  fontFamily: "mono",
-  fontSize: "[10px]",
-  lineHeight: "[1.2]",
-  color: "neutral.s80",
-  paddingX: "1",
-  marginTop: "[1px]",
-});
-
 const targetKey = ({ stopId, column }: FocusStopTarget): string =>
   `${stopId}:${column}`;
 
@@ -159,14 +145,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
 }) => {
-  const {
-    mode,
-    formState,
-    synthesisContext,
-    selection,
-    setFocusedValue,
-    dispatch,
-  } = use(AdHocFormContext);
+  const { mode, selection, setFocusedValue, dispatch } = use(AdHocFormContext);
   // Run mode: cells and gutters stay focusable and walkable, but nothing
   // edits and no rows are added or removed.
   const readOnly = mode === "run";
@@ -205,7 +184,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const sharedColumnIndexes = elements.flatMap((element, columnIndex) =>
     state.sharedColumns[element.name] ? [columnIndex] : [],
   );
-  const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
 
   // Every keyboard-reachable line of the table, top to bottom, declared as
   // worksheet stops: the column headers, the shared values (a sparse line),
@@ -385,7 +363,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       rowIndex + 1
                     } — one token. Enter chooses the row's kind, Delete removes it.`
                   : `Row ${rowIndex + 1} — dynamic${
-                      kind === "optimized" ? ", count optimized" : ""
+                      kind === "optimized"
+                        ? selection === "sweep"
+                          ? ", count swept"
+                          : ", count optimized"
+                        : ""
                     }. Enter chooses the row's kind, Delete removes it.`
               }
               label={`Row ${rowIndex + 1} kind`}
@@ -401,11 +383,14 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label: "Dynamic count",
                   checked: kind === "dynamic",
                 },
-                ...(selection === "optimize"
+                ...(adHocIntervalSelection(selection)
                   ? [
                       {
                         id: "optimized",
-                        label: "Optimized count",
+                        label:
+                          selection === "sweep"
+                            ? "Swept count"
+                            : "Optimized count",
                         checked: kind === "optimized",
                       },
                     ]
@@ -524,179 +509,174 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   };
 
   return (
-    <>
-      <FormSpreadsheet attach={attach} tone="raised">
-        <thead>
-          <tr>
-            <th aria-label="Row kind" className={gutterHeaderStyle} />
-            {elements.map((element, columnIndex) => {
-              const shared = Boolean(state.sharedColumns[element.name]);
-              return (
-                <th
-                  key={element.elementId}
-                  className={cx(columnHeaderStyle, shared && sharedWashStyle)}
-                >
-                  <Tooltip
-                    content={
-                      readOnly
-                        ? element.name
-                        : shared
-                          ? "Shared value — click to release the column"
-                          : "Click to share one value across the column"
-                    }
-                  >
-                    <button
-                      ref={registerTarget({
-                        stopId: "header",
-                        column: columnIndex,
-                      })}
-                      type="button"
-                      className={headerButtonStyle}
-                      aria-label={`Share column ${element.name}`}
-                      aria-pressed={shared}
-                      onFocus={() =>
-                        onFocusTarget({
-                          stopId: "header",
-                          column: columnIndex,
-                        })
-                      }
-                      onKeyDown={onKeyDown({
-                        stopId: "header",
-                        column: columnIndex,
-                      })}
-                      onClick={() => {
-                        if (readOnly) {
-                          return;
-                        }
-                        dispatch(
-                          shared
-                            ? {
-                                type: "unshareColumn",
-                                placeId: place.id,
-                                field: element.name,
-                              }
-                            : {
-                                type: "shareColumn",
-                                placeId: place.id,
-                                field: element.name,
-                                column: columnIndex,
-                              },
-                        );
-                      }}
-                    >
-                      {element.name}
-                    </button>
-                  </Tooltip>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-
-        {/* Shared values: one slot directly below each shared header. */}
-        {hasSharedColumns ? (
-          <tbody>
-            <tr>
-              <td className={gutterCellStyle} />
-              {elements.map((element, columnIndex) => {
-                const shared = state.sharedColumns[element.name];
-                if (!shared) {
-                  return <td key={element.elementId} className={cellStyle} />;
-                }
-                const target = {
-                  kind: "column" as const,
-                  placeId: place.id,
-                  column: columnIndex,
-                };
-                return (
-                  <td
-                    key={element.elementId}
-                    className={cx(cellStyle, sharedWashStyle)}
-                  >
-                    <ValueEditor
-                      value={shared}
-                      target={target}
-                      kind={element.type}
-                      readOnly={readOnly}
-                      autoOpen={
-                        sharedAutoOpen?.field === element.name
-                          ? sharedAutoOpen.nonce
-                          : 0
-                      }
-                      triggerRef={registerTarget({
-                        stopId: "shared",
-                        column: columnIndex,
-                      })}
-                      onTriggerFocus={() =>
-                        onFocusTarget({
-                          stopId: "shared",
-                          column: columnIndex,
-                        })
-                      }
-                      onTriggerKeyDown={onKeyDown({
-                        stopId: "shared",
-                        column: columnIndex,
-                      })}
-                    />
-                  </td>
-                );
-              })}
-            </tr>
-          </tbody>
-        ) : null}
-
-        {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
-
-        {/* Phantom trailing row: a first click selects a phantom cell; a
-            click on the selected cell, a double-click, or Enter materializes
-            the row. The gutter's + materializes directly. Run mode adds no
-            rows, so the line is gone entirely. */}
-        {readOnly ? null : (
-          <tbody>
-            <PhantomLine
-              gutterLabel="Add a token row"
-              onMaterialize={() => materializeRow(0)}
-            >
-              {elements.map((element, columnIndex) => (
-                <td
-                  key={element.elementId}
-                  className={cx(
-                    cellStyle,
-                    phantomRowCellStyle,
-                    state.sharedColumns[element.name] && sharedWashStyle,
-                  )}
+    <FormSpreadsheet attach={attach} tone="raised">
+      <thead>
+        <tr>
+          <th aria-label="Row kind" className={gutterHeaderStyle} />
+          {elements.map((element, columnIndex) => {
+            const shared = Boolean(state.sharedColumns[element.name]);
+            return (
+              <th
+                key={element.elementId}
+                className={cx(columnHeaderStyle, shared && sharedWashStyle)}
+              >
+                <Tooltip
+                  content={
+                    readOnly
+                      ? element.name
+                      : shared
+                        ? "Shared value — click to release the column"
+                        : "Click to share one value across the column"
+                  }
                 >
                   <button
                     ref={registerTarget({
-                      stopId: "phantom",
+                      stopId: "header",
                       column: columnIndex,
                     })}
                     type="button"
-                    className={phantomCellButtonStyle}
-                    aria-label={`Add a token row (${element.name})`}
-                    onPointerDown={phantomActivation.onPointerDown}
-                    onClick={(event) => {
-                      if (phantomActivation.shouldActivate(event)) {
-                        materializeRow(columnIndex);
-                      }
-                    }}
+                    className={headerButtonStyle}
+                    aria-label={`Share column ${element.name}`}
+                    aria-pressed={shared}
                     onFocus={() =>
-                      onFocusTarget({ stopId: "phantom", column: columnIndex })
+                      onFocusTarget({
+                        stopId: "header",
+                        column: columnIndex,
+                      })
                     }
                     onKeyDown={onKeyDown({
-                      stopId: "phantom",
+                      stopId: "header",
+                      column: columnIndex,
+                    })}
+                    onClick={() => {
+                      if (readOnly) {
+                        return;
+                      }
+                      dispatch(
+                        shared
+                          ? {
+                              type: "unshareColumn",
+                              placeId: place.id,
+                              field: element.name,
+                            }
+                          : {
+                              type: "shareColumn",
+                              placeId: place.id,
+                              field: element.name,
+                              column: columnIndex,
+                            },
+                      );
+                    }}
+                  >
+                    {element.name}
+                  </button>
+                </Tooltip>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+
+      {/* Shared values: one slot directly below each shared header. */}
+      {hasSharedColumns ? (
+        <tbody>
+          <tr>
+            <td className={gutterCellStyle} />
+            {elements.map((element, columnIndex) => {
+              const shared = state.sharedColumns[element.name];
+              if (!shared) {
+                return <td key={element.elementId} className={cellStyle} />;
+              }
+              const target = {
+                kind: "column" as const,
+                placeId: place.id,
+                column: columnIndex,
+              };
+              return (
+                <td
+                  key={element.elementId}
+                  className={cx(cellStyle, sharedWashStyle)}
+                >
+                  <ValueEditor
+                    value={shared}
+                    target={target}
+                    kind={element.type}
+                    readOnly={readOnly}
+                    autoOpen={
+                      sharedAutoOpen?.field === element.name
+                        ? sharedAutoOpen.nonce
+                        : 0
+                    }
+                    triggerRef={registerTarget({
+                      stopId: "shared",
+                      column: columnIndex,
+                    })}
+                    onTriggerFocus={() =>
+                      onFocusTarget({
+                        stopId: "shared",
+                        column: columnIndex,
+                      })
+                    }
+                    onTriggerKeyDown={onKeyDown({
+                      stopId: "shared",
                       column: columnIndex,
                     })}
                   />
                 </td>
-              ))}
-            </PhantomLine>
-          </tbody>
-        )}
-      </FormSpreadsheet>
-      <div className={totalTextStyle}>
-        {total.resolved ? `${total.total} tokens` : `${total.text} tokens`}
-      </div>
-    </>
+              );
+            })}
+          </tr>
+        </tbody>
+      ) : null}
+
+      {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
+
+      {/* Phantom trailing row: a first click selects a phantom cell; a
+            click on the selected cell, a double-click, or Enter materializes
+            the row. The gutter's + materializes directly. Run mode adds no
+            rows, so the line is gone entirely. */}
+      {readOnly ? null : (
+        <tbody>
+          <PhantomLine
+            gutterLabel="Add a token row"
+            onMaterialize={() => materializeRow(0)}
+          >
+            {elements.map((element, columnIndex) => (
+              <td
+                key={element.elementId}
+                className={cx(
+                  cellStyle,
+                  phantomRowCellStyle,
+                  state.sharedColumns[element.name] && sharedWashStyle,
+                )}
+              >
+                <button
+                  ref={registerTarget({
+                    stopId: "phantom",
+                    column: columnIndex,
+                  })}
+                  type="button"
+                  className={phantomCellButtonStyle}
+                  aria-label={`Add a token row (${element.name})`}
+                  onPointerDown={phantomActivation.onPointerDown}
+                  onClick={(event) => {
+                    if (phantomActivation.shouldActivate(event)) {
+                      materializeRow(columnIndex);
+                    }
+                  }}
+                  onFocus={() =>
+                    onFocusTarget({ stopId: "phantom", column: columnIndex })
+                  }
+                  onKeyDown={onKeyDown({
+                    stopId: "phantom",
+                    column: columnIndex,
+                  })}
+                />
+              </td>
+            ))}
+          </PhantomLine>
+        </tbody>
+      )}
+    </FormSpreadsheet>
   );
 };

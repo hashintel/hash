@@ -21,6 +21,11 @@ import { arcStrokeColor } from "./styles/type-colors";
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 import type { DraggingStateByNodeId } from "../../../react/state/editor-context";
 import type {
+  CanvasArcFocus,
+  CanvasFocus,
+  CanvasNodeFocus,
+} from "./canvas-focus";
+import type {
   ArcEndpoint,
   InputArcType,
   PetrinautExtensionSettings,
@@ -43,11 +48,8 @@ type CanvasNodeBase = {
   dragging: boolean;
   selected: boolean;
   hovered: boolean;
-  /**
-   * Lightened because it is neither hovered, selected, nor connected to the
-   * hovered or selected items.
-   */
-  dimmed: boolean;
+  /** Where this node stands relative to the focused item. */
+  focus: CanvasNodeFocus;
 };
 
 export type CanvasPlaceNode = CanvasNodeBase & {
@@ -56,6 +58,8 @@ export type CanvasPlaceNode = CanvasNodeBase & {
   hasColorType: boolean;
   /** Whether the place defines custom visualizer code. */
   hasVisualizer: boolean;
+  /** Whether its visualizer is pinned open, so it shows without a hover. */
+  visualizerPinned: boolean;
   /** Display colour of the place's token type, when it has one. */
   typeColor: string | undefined;
 };
@@ -91,16 +95,22 @@ export type CanvasArc = {
   targetPortId: string | null;
   /** The transition whose firings animate this arc. */
   transitionId: string;
-  /** Stroke colour before any dimming is applied. */
+  /** Stroke colour before the focus role recolours it. */
   color: string;
   selected: boolean;
-  dimmed: boolean;
+  /** Where this arc stands relative to the focused item. */
+  focus: CanvasArcFocus;
 };
 
 export type CanvasScene = {
   nodes: CanvasNode[];
   arcs: CanvasArc[];
   dimensions: RenderNodeDimensions;
+  /**
+   * Whether anything is focused. Drives the muting of everything outside the
+   * neighbourhood from the pane, so a hover leaves the other items untouched.
+   */
+  focusActive: boolean;
 };
 
 export type CanvasSceneInput = {
@@ -111,8 +121,11 @@ export type CanvasSceneInput = {
   dimensions: RenderNodeDimensions;
   draggingStateByNodeId: DraggingStateByNodeId;
   isSelected: (id: string) => boolean;
-  isHovered: (id: string) => boolean;
-  isDimmed: (id: string) => boolean;
+  /** The node under the pointer, once the hover has settled. */
+  hoveredId: string | null;
+  focus: CanvasFocus;
+  /** Places whose state visualizer is pinned open. */
+  pinnedVisualizerIds: ReadonlySet<string>;
 };
 
 const positionOf = (
@@ -132,13 +145,14 @@ export const buildCanvasScene = ({
   dimensions,
   draggingStateByNodeId,
   isSelected,
-  isHovered,
-  isDimmed,
+  hoveredId,
+  focus,
+  pinnedVisualizerIds,
 }: CanvasSceneInput): CanvasScene => {
   const interaction = (id: string) => ({
     selected: isSelected(id),
-    hovered: isHovered(id),
-    dimmed: isDimmed(id),
+    hovered: hoveredId === id,
+    focus: focus.nodeFocus(id),
   });
 
   const typeOf = (colorId: string | null) =>
@@ -161,6 +175,7 @@ export const buildCanvasScene = ({
         extensions.colors && extensions.dynamics && place.dynamicsEnabled,
       hasColorType: (placeType?.elements.length ?? 0) > 0,
       hasVisualizer: !!place.visualizerCode,
+      visualizerPinned: pinnedVisualizerIds.has(place.id),
       typeColor: placeType?.displayColor,
     });
   }
@@ -245,7 +260,7 @@ export const buildCanvasScene = ({
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
         selected: isSelected(id),
-        dimmed: isDimmed(id),
+        focus: focus.arcFocus(id),
       });
     }
 
@@ -266,10 +281,10 @@ export const buildCanvasScene = ({
         transitionId: transition.id,
         color: arcStrokeColor(endpointColor(endpoint)),
         selected: isSelected(id),
-        dimmed: isDimmed(id),
+        focus: focus.arcFocus(id),
       });
     }
   }
 
-  return { nodes, arcs, dimensions };
+  return { nodes, arcs, dimensions, focusActive: focus.active };
 };

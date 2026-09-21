@@ -1,7 +1,9 @@
 import { Form, TextInput, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { useIsReadOnly } from "../../react/state/use-is-read-only";
 import { useDraftField } from "../hooks/use-draft-field";
+import { PropertyValue } from "./property-value";
 
 type ValidationResult =
   | { valid: true; name: string }
@@ -50,43 +52,50 @@ export const DraftFieldInput: React.FC<DraftFieldInputProps> = ({
   tooltip,
 }) => {
   const field = useDraftField({ sourceId, sourceValue });
+  const isReadOnly = useIsReadOnly();
 
   return (
     <Form.Field
       label={label}
       labelTooltip={labelTooltip}
       size="sm"
-      disabled={disabled}
-      errors={field.error ? [field.error] : undefined}
+      // A read-only field is not a disabled one: its label describes a value
+      // the reader can read, so it keeps full contrast.
+      disabled={disabled && !isReadOnly}
+      // The error belongs to a draft the reader cannot see; showing it beside
+      // the canonical value would contradict the value itself.
+      errors={!isReadOnly && field.error ? [field.error] : undefined}
     >
-      <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
-        <TextInput
-          value={field.value}
-          size="sm"
-          className={monospace ? monospaceInputStyle : undefined}
-          onChange={(value) => {
-            field.setValue(value);
-            if (field.error) {
+      <PropertyValue text={sourceValue}>
+        <Tooltip content={tooltip ?? ""} disableTooltip={!tooltip}>
+          <TextInput
+            value={field.value}
+            size="sm"
+            className={monospace ? monospaceInputStyle : undefined}
+            onChange={(value) => {
+              field.setValue(value);
+              if (field.error) {
+                field.setError(null);
+              }
+            }}
+            onBlur={() => {
+              const result = validate(field.value);
+
+              if (!result.valid) {
+                field.setError(result.error);
+                return;
+              }
+
               field.setError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validate(field.value);
-
-            if (!result.valid) {
-              field.setError(result.error);
-              return;
-            }
-
-            field.setError(null);
-            if (result.name !== sourceValue) {
-              onCommit(result.name);
-            }
-          }}
-          disabled={disabled}
-          invalid={!!field.error}
-        />
-      </Tooltip>
+              if (result.name !== sourceValue) {
+                onCommit(result.name);
+              }
+            }}
+            disabled={disabled}
+            invalid={!!field.error}
+          />
+        </Tooltip>
+      </PropertyValue>
     </Form.Field>
   );
 };

@@ -5,12 +5,12 @@
 //! [`objective`](Evaluation::objective) projects the batch rows and hands the coordinates to
 //! [`evaluate`](Evaluation::evaluate), which computes the composite objective in two regimes. The
 //! hand-gradient families (semantic attraction, ordinary and hard repulsion, relation attraction)
-//! evaluate value and per-node coordinate gradient against the detached coordinate frame; the
+//! evaluate value and per-node coordinate gradient against the detached coordinate frame. The
 //! evaluation measures the relation field per node against the semantic one for the budget
 //! diagnostics, and the combined field re-enters the parameter graph through the surrogate scalar,
 //! whose single backward pass deposits exactly that field. The support families (temporal anchors,
-//! landmarks) ride ordinary autodiff on the coordinate tensor - they carry no budget diagnostics -
-//! and add onto the same scalar.
+//! landmarks) differentiate through ordinary autodiff on the coordinate tensor - they carry no
+//! budget diagnostics - and add onto the same scalar.
 //!
 //! Relation-inactive nodes - every node when the batch carries no relation edges, and any node
 //! whose accumulated relation gradient is exactly zero - contribute their semantic gradient alone
@@ -45,7 +45,7 @@ use crate::{
 
 /// The step's evaluated loss values, one per objective family.
 ///
-/// Values are the scaled batch sums the step actually descends; families absent from the batch
+/// Values are the scaled batch sums the step actually descends. Families absent from the batch
 /// report zero.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct LossBreakdown {
@@ -101,7 +101,7 @@ pub(crate) struct Objective<B: AutodiffBackend> {
 ///
 /// The corpus input columns, the numerical contract, and the reporting decile axis.
 ///
-/// Bound once per training run; the loop composes the frozen relation energy into `options` at the
+/// Bound once per training run. The loop composes the frozen relation energy into `options` at the
 /// phase boundary.
 #[derive(Debug)]
 pub(crate) struct Evaluation<'run, N> {
@@ -144,8 +144,8 @@ where
     ///
     /// `coordinates` are the batch rows' projections in the batch's local row order, optionally
     /// followed by alignment padding. Trailing rows beyond the batch's own are the materialized
-    /// input's padding twins (see [`ROW_ALIGNMENT`]), which no population references, so they
-    /// carry exactly zero force.
+    /// input's padding twins (see [`ROW_ALIGNMENT`]), which no population references. They carry
+    /// exactly zero force.
     ///
     /// The coordinate producer stays exchangeable: [`objective`](Self::objective) forwards the
     /// model's projection, while tests drive hand-built frames through this method directly.
@@ -302,7 +302,7 @@ where
     let rows = frame.len();
 
     // One scratch field serves every type. The pass reads and re-zeroes only the rows a type
-    // touches, so it costs the edge lists rather than types times batch rows.
+    // touches, and it costs the edge lists rather than types times batch rows.
     let mut relation_field = GradientField::new(rows);
     let mut scratch = GradientField::new(rows);
     let mut contributions: Vec<(BatchRowId, OntologyRowId, Vec2)> = Vec::new();
@@ -389,9 +389,9 @@ where
 
 /// Reads the detached coordinate frame back to the host as a proven-finite field.
 ///
-/// The finiteness scan covers the whole readback, alignment padding included, so the returned
-/// [`FinitePointField`] carries every row of the tensor in row order and downstream views need
-/// no rescan.
+/// The finiteness scan covers the whole readback, alignment padding included. The returned
+/// [`FinitePointField`] therefore carries every row of the tensor in row order and downstream views
+/// need no rescan.
 ///
 /// # Errors
 ///

@@ -3,17 +3,20 @@ import { describe, expect, it } from "vitest";
 import {
   axisPositionFor,
   axisValueAt,
+  buildAdHocSweepAxes,
   buildParameterAxis,
   fullSweepSelection,
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
+  pointSweepSelection,
   SWEEP_AXIS_STEPS,
   sweepRunFraction,
 } from "./parameter-grid";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {
+  AdHocOptimizedField,
   MonteCarloUserDefinedDistributionMetricFrame,
   MonteCarloUserDefinedScalarMetricFrame,
 } from "@hashintel/petrinaut-core";
@@ -195,6 +198,22 @@ describe("selections and regions", () => {
         y: { from: 1, to: 1 },
       }),
     ).toEqual({ x: { from: 0, to: 4 }, y: { from: 1, to: 1 } });
+  });
+
+  it("selects midpoint values for missing axes and retains selected points", () => {
+    expect(pointSweepSelection(axes, { x: { from: 3, to: 3 } })).toEqual({
+      x: { from: 3, to: 3 },
+      y: { from: 1, to: 1 },
+    });
+  });
+
+  it("collapses ranges to their nearest valid midpoint", () => {
+    expect(
+      pointSweepSelection(axes, {
+        x: { from: 4, to: 1 },
+        y: { from: -3, to: 9 },
+      }),
+    ).toEqual({ x: { from: 3, to: 3 }, y: { from: 1, to: 1 } });
   });
 });
 
@@ -406,5 +425,80 @@ describe("mergeMetricFramesAcrossCells", () => {
 
     expect(merged).toEqual(frames);
     expect(merged).not.toBe(frames);
+  });
+});
+
+describe("buildAdHocSweepAxes", () => {
+  const field = (
+    parameterName: string,
+    label: string,
+    domain: AdHocOptimizedField["domain"],
+  ): AdHocOptimizedField => ({
+    parameterName,
+    label,
+    target: { kind: "count", placeId: "place-queue", row: null },
+    domain,
+    default: 0,
+  });
+
+  it("turns numeric domains into labelled axes", () => {
+    const outcome = buildAdHocSweepAxes([
+      field("adhoc_count_queue", "Queue › count", {
+        kind: "integer",
+        minimum: 0,
+        maximum: 20,
+        step: 1,
+        scale: "linear",
+      }),
+      field("adhoc_param_rate", "Rate", {
+        kind: "continuous",
+        minimum: 0.5,
+        maximum: 1.5,
+        scale: "log",
+      }),
+    ]);
+    expect(outcome).toEqual({
+      ok: true,
+      axes: [
+        {
+          identifier: "adhoc_count_queue",
+          label: "Queue › count",
+          min: 0,
+          max: 20,
+          stepCount: 20,
+          integer: true,
+        },
+        {
+          identifier: "adhoc_param_rate",
+          label: "Rate",
+          min: 0.5,
+          max: 1.5,
+          stepCount: SWEEP_AXIS_STEPS,
+          integer: false,
+        },
+      ],
+    });
+  });
+
+  it("names the selection, not the generated parameter, in an error", () => {
+    const outcome = buildAdHocSweepAxes([
+      field("adhoc_param_rate", "Rate", {
+        kind: "continuous",
+        minimum: 2,
+        maximum: 1,
+        scale: "linear",
+      }),
+    ]);
+    expect(outcome).toEqual({
+      ok: false,
+      error: "Rate: range max must be greater than min",
+    });
+  });
+
+  it("refuses a boolean selection", () => {
+    const outcome = buildAdHocSweepAxes([
+      field("adhoc_var_net_flag", "flag", { kind: "boolean" }),
+    ]);
+    expect(outcome.ok).toBe(false);
   });
 });

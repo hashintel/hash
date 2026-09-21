@@ -5,27 +5,29 @@
 //! repulsion at specific pairs while ordinary sampled negatives spread it across many pairs. Each
 //! channel carries its own applicability floor and admission threshold.
 //!
-//! The index stores evidence and computes judgement. It holds one [`PairEvidence`] per linked pair
-//! (the maxima of the applicability-discounted and undiscounted class evidence over the pair's
-//! instances), and every channel's mass under a floor `F` is
+//! One [`PairEvidence`] holds the independently aggregated discounted and undiscounted maxima over
+//! a pair's instances. With `uᵢ` the non-negative undiscounted evidence, applicability `aᵢ ∈ [0,
+//! 1]` and floor `F ∈ [0, 1]`, the governing identity is
 //!
 //! ```text
-//! m_F = max(discounted, F · undiscounted),
+//! maxᵢ(uᵢ · max(aᵢ, F)) = max(maxᵢ(uᵢ · aᵢ), F · maxᵢ(uᵢ)).
 //! ```
 //!
-//! exactly, because the maximum distributes over the per-instance `max(a, F)`: `max_i(c_i p_i
-//! max(a_i, F)) = max(max_i(c_i p_i a_i), F max_i(c_i p_i))`. Floors and thresholds are therefore
-//! both query-time parameters ([`ProtectionConfig`]), and one built index serves every floor and
-//! threshold calibration unchanged.
+//! Non-negative multiplication is monotone and distributes over a finite maximum. The build narrows
+//! `cᵢ · (p_C + p_P)` once to `f32` as `uᵢ` and narrows `aᵢ` once. It computes discounted evidence
+//! from those shared values. Rounded non-negative multiplication remains monotone, preserving the
+//! identity numerically for these rounded inputs. Therefore `max(discounted, F · undiscounted)`
+//! reproduces per-instance flooring without rebuilding the index. It does not recover unrounded
+//! real-valued evidence. Floors and thresholds remain query-time parameters of
+//! [`ProtectionConfig`].
 //!
-//! The index is a symmetric compressed sparse row matrix over the node-row domain, with each linked
-//! pair stored in both of its rows with bit-equal evidence. Row `i` lists every partner whose link
-//! protects the pair, which is the shape hard-negative mining consumes when it vets the candidates
-//! of one projected point.
+//! The index is a symmetric compressed sparse row matrix over the node-row domain. Construction
+//! copies each pair's aggregate into both directions. Validation requires numerically equal
+//! evidence, admitting opposite signs of zero. A stored pair need not pass a channel's threshold.
+//! Row-wise access supports checking a point's candidate list.
 //!
-//! Protection is blind to attraction strength. Class coefficients, degree normalization, strength,
-//! and force pruning answer how strongly an admitted force pulls, while protection answers whether
-//! repulsion is safe, so none of those factors enters the evidence.
+//! Protection uses class evidence independently of attraction strength. Class coefficients, reading
+//! shares, degree normalization, frozen strength and force pruning never enter its evidence.
 #![expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")]
 
 use core::{
@@ -39,10 +41,10 @@ use sprs::{CsMatI, CsMatViewI};
 
 use crate::{
     file::sprs::{SprsValue, ValueTag},
-    math::NonNegative,
+    math::{NonNegative, UnitFraction},
 };
 
-/// The index's matrix layout of evidence values, `u32` partner columns, and `u64` row pointers.
+/// A sparse evidence matrix with `u32` partner columns and `u64` row pointers.
 pub(crate) type ProtectionMatrix = CsMatI<PairEvidence, u32, u64>;
 
 /// A borrowed [`ProtectionMatrix`].
@@ -51,21 +53,19 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 /// One linked pair's aggregated class evidence.
 ///
 /// Both components take the maximum over every admitted instance between the pair's rows, parallel
-/// links and distinct relations alike. One strong link suffices to veto repulsion, however many
-/// weak ones accompany it. Per instance, the class evidence is the effective confidence times the
-/// selected Coincident and Proximal probability. `discounted` additionally multiplies the
-/// relation's calibrated applicability. The index validates both components finite, non-negative,
-/// and ordered `discounted ≤ undiscounted`.
-// FromBytes on purpose: the components carry no construction invariant
-// of their own - the index validates its entries as a whole, exactly
-// like the semantic graph's mapped weights.
+/// links and distinct relations alike. One instance suffices to veto repulsion when its floored
+/// evidence reaches the channel threshold, however many weaker instances accompany it. The
+/// [module's rounding convention](super::protection) defines the components. [`ProtectionIndex`]
+/// validates finiteness, non-negativity and `discounted ≤ undiscounted`, but does not verify their
+/// derivation from link instances.
+// raw f32 fields admit every bit pattern. ProtectionIndex validates their joint evidence contract.
 #[derive(
     Debug,
     Copy,
     Clone,
     PartialEq,
     Default,
-    zerocopy::FromBytes,
+    zerocopy::TryFromBytes,
     zerocopy::IntoBytes,
     zerocopy::Immutable,
     zerocopy::KnownLayout,
@@ -73,77 +73,49 @@ pub(crate) type ProtectionMatrixView<'view> = CsMatViewI<'view, PairEvidence, u3
 #[repr(C)]
 pub(crate) struct PairEvidence {
     /// The applicability-discounted evidence maximum, `max(c · (p_C + p_P) · a)`.
-    pub discounted: f32,
+    pub discounted: NonNegative,
     /// The undiscounted evidence maximum, `max(c · (p_C + p_P))`.
-    pub undiscounted: f32,
+    pub undiscounted: NonNegative,
 }
 
 impl PairEvidence {
     /// Returns the pair's evidence mass under an applicability floor.
     ///
-    /// This is the exact per-channel mass: the floor's `max(a, F)` distributes through the
-    /// per-instance maximum into `max(discounted, floor · undiscounted)`.
+    /// Returns `max(discounted, floor · undiscounted)` without validating either input. For the
+    /// module's floor identity, `self` must contain valid aggregated evidence.
     #[inline]
     #[must_use]
-    pub(crate) fn mass(self, floor: f32) -> f32 {
-        self.discounted.max(floor * self.undiscounted)
+    pub(crate) const fn mass(self, floor: UnitFraction) -> NonNegative {
+        let undiscounted = self.undiscounted * floor;
+        self.discounted.max(undiscounted)
     }
 }
 
 impl SprsValue for PairEvidence {
-    // Opaque on purpose: the pair is this stage's vocabulary, not a scalar the format vocabulary
-    // pins. Width is the wire identity.
+    // opaque values identify their layout by width, leaving evidence semantics to this index.
     const TAG: ValueTag = ValueTag::Opaque;
 }
 
 /// One protection channel's applicability floor and admission threshold, valid by construction.
 ///
-/// The floor lifts a relation's calibrated applicability before it enters the channel's mass, so a
-/// relation too unfamiliar to earn pull can still retain enough evidence to veto repulsion. A floor
-/// of 0 leaves applicability undisturbed. The threshold is the mass at which the channel protects.
-/// A threshold of 0 protects every linked pair, the conservative reading of link evidence. Floors
-/// and thresholds jointly determine the protected set. Calibration fixes them together from
-/// reviewed validation pairs.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// Flooring applicability preserves protection evidence for unfamiliar relations even when low
+/// applicability reduces their attraction. A floor of zero leaves applicability undisturbed. The
+/// threshold is the mass at which the channel protects. Both are zero by default, protecting every
+/// stored pair, including zero-evidence pairs. Calibrate floors and thresholds together against
+/// labeled validation pairs.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ChannelConfig {
-    floor: f32 = 0.0,
-    threshold: f32 = 0.0,
+    pub floor: UnitFraction = UnitFraction::ZERO,
+    pub threshold: NonNegative = NonNegative::ZERO,
 }
 
 impl ChannelConfig {
-    /// Creates a channel configuration.
+    /// Returns whether the floored mass reaches the channel's threshold.
     ///
-    /// Returns [`None`] unless the floor lies in `0.0..=1.0` and the threshold is finite and
-    /// non-negative. The default is floor 0, threshold 0.
-    #[must_use]
-    pub(crate) const fn new(floor: f32, threshold: f32) -> Option<Self> {
-        if !(floor >= 0.0 && floor <= 1.0) {
-            return None;
-        }
-        if !(threshold.is_finite() && threshold >= 0.0) {
-            return None;
-        }
-        Some(Self { floor, threshold })
-    }
-
-    /// Returns the applicability floor.
+    /// `evidence` must satisfy [`ProtectionIndex`]'s value invariants.
     #[inline]
     #[must_use]
-    pub(crate) const fn floor(self) -> f32 {
-        self.floor
-    }
-
-    /// Returns the admission threshold.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn threshold(self) -> f32 {
-        self.threshold
-    }
-
-    /// Returns whether `evidence` clears the channel.
-    #[inline]
-    #[must_use]
-    pub(crate) fn protects(self, evidence: PairEvidence) -> bool {
+    pub(crate) const fn protects(self, evidence: PairEvidence) -> bool {
         evidence.mass(self.floor) >= self.threshold
     }
 }
@@ -154,12 +126,49 @@ const impl Default for ChannelConfig {
     }
 }
 
+/// Protection channels whose floors or thresholds violate their shared ordering.
+#[derive(Debug)]
+struct UnvalidatedProtectionConfigError {
+    _marker: PhantomData<()>,
+}
+
+impl fmt::Display for UnvalidatedProtectionConfigError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("the ordinary channel must be less conservative than the hard channel")
+    }
+}
+
+/// Protection settings awaiting the cross-channel ordering check.
+#[derive(Debug, serde::Deserialize)]
+struct UnvalidatedProtectionConfig {
+    hard: ChannelConfig,
+    ordinary: ChannelConfig,
+    protect_ordinary: bool,
+}
+
+impl TryFrom<UnvalidatedProtectionConfig> for ProtectionConfig {
+    type Error = UnvalidatedProtectionConfigError;
+
+    fn try_from(
+        UnvalidatedProtectionConfig {
+            hard,
+            ordinary,
+            protect_ordinary,
+        }: UnvalidatedProtectionConfig,
+    ) -> Result<Self, Self::Error> {
+        Self::new(hard, ordinary, protect_ordinary).ok_or(UnvalidatedProtectionConfigError {
+            _marker: PhantomData,
+        })
+    }
+}
+
 /// Both channels' query-time protection settings, valid by construction.
 ///
 /// The channels satisfy `ordinary.floor ≤ hard.floor` and `hard.threshold ≤ ordinary.threshold`:
-/// hard negatives are aimed at specific pairs, so their channel warrants at least as much caution
-/// in the floor and no more evidence to trip in the threshold.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// the hard channel is at least as conservative as the ordinary channel. Both channels use floor
+/// zero and threshold zero by default, with ordinary protection enabled.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedProtectionConfig")]
 pub(crate) struct ProtectionConfig {
     hard: ChannelConfig = ChannelConfig::default(),
     ordinary: ChannelConfig = ChannelConfig::default(),
@@ -176,9 +185,9 @@ impl ProtectionConfig {
     /// Creates a protection configuration from the two channels.
     ///
     /// Returns [`None`] unless `ordinary.floor ≤ hard.floor` and `hard.threshold ≤
-    /// ordinary.threshold`. `protect_ordinary` disables the ordinary channel outright, so every
-    /// ordinary negative passes while hard-negative protection stands. The default is both channels
-    /// at floor 0 and threshold 0 with both active.
+    /// ordinary.threshold`. Setting `protect_ordinary` to `false` disables only the ordinary
+    /// protection veto. Other negative-sampling exclusions remain independent. By default both
+    /// channels use floor zero and threshold zero, with ordinary protection enabled.
     #[must_use]
     pub(crate) const fn new(
         hard: ChannelConfig,
@@ -220,8 +229,12 @@ impl ProtectionConfig {
 
 /// An unordered pair of node rows in canonical order.
 ///
-/// The smaller row becomes [`lhs`](Self::lhs) and the larger becomes [`rhs`](Self::rhs), so a pair
-/// equals itself however its rows arrive, and the derived order is total over pairs.
+/// [`Self::lhs`] is the smaller row and [`Self::rhs`] the larger. Equal endpoints are allowed.
+/// Pairs order lexicographically by these canonical endpoints.
+///
+/// # Properties
+///
+/// For all row ids `a` and `b`, `NodePair::new(a, b) == NodePair::new(b, a)`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct NodePair<N> {
     lhs: N,
@@ -281,7 +294,7 @@ impl PairVerdict {
     };
 }
 
-/// One protected partner of a row.
+/// One stored partner and its evidence, before channel judgment.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[cfg(any(test, feature = "bench"))]
 pub(crate) struct ProtectedPartner<N> {
@@ -300,8 +313,7 @@ pub(crate) enum ProtectionValidationError {
     NotSquare { rows: usize, columns: usize },
     /// A row references itself.
     SelfEdge { row: usize },
-    /// A stored evidence component is not finite or negative.
-    EvidenceOutOfRange { row: usize, column: usize },
+
     /// A stored evidence pair has `discounted > undiscounted`.
     EvidenceOrdering { row: usize, column: usize },
     /// The matrix stores an edge in one direction only.
@@ -321,11 +333,6 @@ impl fmt::Display for ProtectionValidationError {
                 "the protection matrix spans {rows} rows by {columns} columns",
             ),
             Self::SelfEdge { row } => write!(fmt, "row {row} references itself"),
-            Self::EvidenceOutOfRange { row, column } => write!(
-                fmt,
-                "the evidence between rows {row} and {column} has a non-finite or negative \
-                 component",
-            ),
             Self::EvidenceOrdering { row, column } => write!(
                 fmt,
                 "the evidence between rows {row} and {column} discounts above its undiscounted \
@@ -348,10 +355,18 @@ impl core::error::Error for ProtectionValidationError {}
 
 /// Checks every index invariant over a borrowed matrix.
 ///
-/// Rows check in parallel; the reported violation is the first in row order regardless of
-/// scheduling, so failures are deterministic.
-// The symmetry check compares the two directions bit-exactly (derived PartialEq over the f32
-// components): one aggregated value produces both, so bit equality is the constructed contract.
+/// Checks compression and shape before checking rows in parallel. The reported row violation is the
+/// first in row order regardless of scheduling. Symmetry uses numeric `f32` equality, treating
+/// positive and negative zero as equal.
+///
+/// # Errors
+///
+/// Returns [`ProtectionValidationError`] for a compression, shape or row-evidence violation.
+///
+/// # Complexity
+///
+/// For `N` rows, `M` entries and maximum row length `d`, time is `O(N + M log(d + 1))`.
+/// Reverse-entry lookups account for the logarithmic factor.
 pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), ProtectionValidationError> {
     if !matrix.is_csr() {
         return Err(ProtectionValidationError::ColumnCompressed);
@@ -368,7 +383,16 @@ pub(super) fn validate(matrix: ProtectionMatrixView<'_>) -> Result<(), Protectio
         .map_or(Ok(()), Err)
 }
 
-/// Checks one row's entries against the index invariants.
+/// Checks one row's values and reverse entries in a square CSR matrix.
+///
+/// # Errors
+///
+/// Returns [`ProtectionValidationError`] for an invalid self-edge, evidence value, ordering or
+/// reverse entry.
+///
+/// # Panics
+///
+/// Panics when `row` is outside the matrix's outer dimension.
 fn validate_row(
     matrix: ProtectionMatrixView<'_>,
     row: usize,
@@ -380,13 +404,6 @@ fn validate_row(
     for (column, &evidence) in stored.iter() {
         if column == row {
             return Err(ProtectionValidationError::SelfEdge { row });
-        }
-
-        let in_range = NonNegative::new(evidence.discounted).is_some()
-            && NonNegative::new(evidence.undiscounted).is_some();
-
-        if !in_range {
-            return Err(ProtectionValidationError::EvidenceOutOfRange { row, column });
         }
 
         if evidence.discounted > evidence.undiscounted {
@@ -410,10 +427,17 @@ fn validate_row(
 
 /// The symmetric no-repel evidence matrix of one generation.
 ///
-/// Row `i` stores the evidence of every protected pair at node row `i`, keyed by the other endpoint
-/// in ascending row order. Every pair occupies both of its rows with bit-equal evidence, and no row
-/// references itself. A pair absent from the matrix has no admitted link between its rows and stays
-/// unprotected under every configuration.
+/// Each row lists stored partners in strictly ascending order. Every pair occupies both directions
+/// with numerically equal evidence, and no row references itself. A pair absent from the matrix is
+/// unprotected under every configuration. Validation establishes these matrix properties, not
+/// completeness or provenance relative to a dataset.
+///
+/// Writing through [`crate::file::WriteInto`] returns an error for zero rows.
+///
+/// # Panics
+///
+/// Writing a nonempty matrix with a nonzero initial row pointer panics, although [`Self::new`]
+/// accepts such offset pointers.
 #[derive(Debug, Clone)]
 pub(crate) struct ProtectionIndex<N>(ProtectionMatrix, PhantomData<N>);
 
@@ -425,9 +449,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not square, self-referencing, stores
-    /// a non-finite, negative, or misordered evidence pair, or stores an edge whose two directions
-    /// are missing or unequal.
+    /// Returns [`ProtectionValidationError`] for a matrix-invariant violation. See [`validate`] for
+    /// check order and cost.
     pub(crate) fn new(matrix: ProtectionMatrix) -> Result<Self, ProtectionValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix, PhantomData))
@@ -456,10 +479,10 @@ impl<'view, N> ProtectionView<'view, N>
 where
     N: Id,
 {
-    /// Wraps a matrix whose invariants already hold.
+    /// Borrows an evidence matrix satisfying [`validate`]'s invariants.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
-    /// own.
+    /// The matrix must satisfy those invariants throughout the borrow.
+    // the unchecked promise concerns index semantics, not memory safety.
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: ProtectionMatrixView<'view>) -> Self {
@@ -476,16 +499,17 @@ where
     /// Returns the stored entry count, counting each pair twice.
     #[inline]
     #[must_use]
-    #[cfg(test)] // The relation tests count stored pairs.
+    #[cfg(test)]
     pub(crate) fn entries(&self) -> usize {
         self.0.nnz()
     }
 
-    /// Returns row `row`'s protected partners in ascending row order.
+    /// Returns row `row`'s stored partners in ascending row order.
     ///
     /// # Panics
     ///
-    /// This panics when `row` is outside the matrix's row domain.
+    /// Panics when `row` is outside the matrix's row domain or a stored partner cannot be
+    /// represented by `N`.
     #[cfg(any(test, feature = "bench"))]
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = ProtectedPartner<N>> + '_ {
         let (columns, evidence) = self
@@ -505,8 +529,9 @@ where
 
     /// Looks up a pair's evidence.
     ///
-    /// Returns [`None`] when no admitted link connects the pair's rows, or either row lies outside
-    /// the row domain. Time is one row resolution plus a binary search of that row's partners.
+    /// Returns [`None`] when the pair is absent or either row lies outside the matrix domain. Both
+    /// ids must be representable as `usize`. Time is a binary search of the smaller endpoint's
+    /// stored partners.
     #[must_use]
     pub(crate) fn get(&self, pair: NodePair<N>) -> Option<PairEvidence> {
         self.0
@@ -517,7 +542,8 @@ where
     /// Judges a pair's protection under the given configuration.
     ///
     /// A channel protects when the pair's evidence mass under the channel's floor reaches the
-    /// channel's threshold. A pair with no link evidence stays unprotected in both channels.
+    /// channel's threshold. An absent pair is unprotected in both channels. Both ids must be
+    /// representable as `usize`.
     #[must_use]
     pub(crate) fn judge(&self, pair: NodePair<N>, config: ProtectionConfig) -> PairVerdict {
         let Some(evidence) = self.get(pair) else {

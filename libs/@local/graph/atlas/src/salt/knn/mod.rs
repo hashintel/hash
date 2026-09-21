@@ -2,28 +2,29 @@
 //!
 //! The deliverable is [`table::Knn`], a directed cosine k-nearest-neighbour table over the
 //! projector representations, stored as a compressed sparse row matrix whose row `i` holds the `k`
-//! nearest non-self neighbours of node row `i` with their cosine distances.
+//! selected non-self neighbours of node row `i` with their cosine distances. Construction is
+//! approximate.
 //!
 //! Every row stores exactly `k` entries. No row references itself or repeats a neighbour, every
 //! distance is finite in `[0, 2]`, and a row's entries ascend by neighbour row. The default `k` is
 //! [`DEFAULT_NEIGHBOURS`]. The bound applies to semantic sampling and does not limit relation
 //! edges.
 //!
-//! [`construction::KnnConstruction`] separates the table's semantics from how a constructor
-//! produces neighbour lists. [`construction::IndexConstruction`] wraps a [`NearestNeighboursIndex`]
-//! search backend, where [`hannoy::HannoyIndex`] is the LMDB-backed HNSW production backend.
-//! [`descent::NnDescent`] derives the lists directly by local joins, without a search structure.
-//! The landmark assignment keeps querying a backend by vector, while the table build needs only the
-//! lists.
+//! [`construction::KnnConstruction`] produces neighbour lists independently of the persisted
+//! table's representation. [`construction::IndexConstruction`] queries a [`NearestNeighboursIndex`]
+//! search backend, including the LMDB-backed HNSW backend [`hannoy::HannoyIndex`].
+//! [`descent::NnDescent`] derives lists directly by local joins. Use a search backend when you also
+//! need vector queries, and a list constructor when only per-row neighbours are required.
 //!
-//! Exact comparison admits a construction. [`recall::spot_check_lists`] intersects sampled rows of
-//! the produced lists with brute-force [`AlignedVecN`] cosine rankings and reads the aggregate
-//! recall's one-sided bound against a configured minimum ([`recall::SpotCheckOptions`]), so an
-//! admission stands on what the sample demonstrates rather than on a point estimate.
+//! [`recall::spot_check_lists`] compares sampled lists with brute-force [`AlignedVecN`] cosine
+//! rankings. It classifies an aggregate recall interval against the minimum in
+//! [`recall::SpotCheckOptions`]. The interval uses a normal approximation, with the limitations
+//! described in [`recall`]. Recall evidence measures approximation quality. Separate table
+//! validation establishes structural invariants.
 //!
-//! The validated table publishes as one sparse matrix file ([`crate::file::sprs`]) holding its
-//! matrix verbatim; [`artifact::KnnArchive`] reopens it over a whole-file mapping, so stages after
-//! the build read the table from the page cache without holding it on the heap.
+//! A table with a zero initial row pointer publishes as one sparse matrix file
+//! ([`crate::file::sprs`]) holding its matrix verbatim. [`artifact::KnnArchive`] reopens it over a
+//! whole-file mapping, allowing table reads without a heap copy of the matrix regions.
 //!
 //! # Reproducibility boundary
 //!
@@ -38,7 +39,7 @@ use rand::{Rng, SeedableRng};
 
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    math::{AlignedVecN, NonNegative},
+    math::{AlignedVecN, NonNegative, nz},
     progress::Progress,
 };
 
@@ -55,8 +56,7 @@ pub(crate) mod table;
 mod tests;
 
 /// Stored neighbours per row of the persisted table.
-pub(crate) const DEFAULT_NEIGHBOURS: NonZero<usize> =
-    NonZero::new(30).expect("the default neighbour count is nonzero");
+pub(crate) const DEFAULT_NEIGHBOURS: NonZero<usize> = nz!(30);
 
 /// One node row's projector representation, keyed for insertion.
 #[derive(Debug, Copy, Clone)]
@@ -87,6 +87,7 @@ pub(crate) trait NearestNeighboursIndex<N>
 where
     N: Id,
 {
+    /// The backend failure every fallible operation reports.
     type Error;
 
     /// Ingests projector representations keyed by node row.
@@ -101,14 +102,14 @@ where
 
     /// Links the search structure over every inserted row.
     ///
-    /// `rng` drives the backend's randomized construction. Sampling streams derive from the seed,
-    /// but linking applies updates in parallel and unordered, so same-seed builds need not agree.
-    /// The recall spot check downstream is the arbiter of a construction, never a replay.
+    /// `rng` drives the backend's randomized construction. A seed determines its random stream, but
+    /// does not fix a parallel update order. Same-seed builds need not agree.
     ///
-    /// The link is the construction's long phase and only the backend knows its parts, so a backend
-    /// reports them as they begin through [`knn_build_phase`](Progress::knn_build_phase). A backend
-    /// that hands the reporting on to machinery owning it takes the observer's detached half, never
-    /// this borrow.
+    /// # Implementation Note
+    ///
+    /// Implementations report their construction phases as they begin through
+    /// [`knn_build_phase`](Progress::knn_build_phase). Reporting machinery that outlives this
+    /// call's observer borrow must take its detached observer, never retain the borrow.
     ///
     /// # Errors
     ///
@@ -119,8 +120,8 @@ where
 
     /// Returns up to `limit` nearest neighbours of `query`.
     ///
-    /// The query is positional, so a row whose stored vector equals the query shows up in the
-    /// results.
+    /// The query excludes no row by identity. A row whose stored vector equals the query is
+    /// eligible for the results.
     ///
     /// # Errors
     ///

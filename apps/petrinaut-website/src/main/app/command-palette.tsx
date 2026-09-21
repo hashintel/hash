@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 
-import {
-  formatShortcutKeys,
-  useCommandRegistry,
-  useCommands,
-} from "@hashintel/petrinaut/react";
+import { useCommandRegistry, useCommands } from "@hashintel/petrinaut/react";
+import { KeyboardShortcut } from "@hashintel/petrinaut/ui";
 
 import type { CSSProperties } from "react";
 
@@ -70,29 +67,6 @@ const categoryStyle: CSSProperties = {
   minWidth: 64,
 };
 
-const shortcutStyle: CSSProperties = {
-  display: "flex",
-  gap: 3,
-};
-
-const keyStyle = (isWide: boolean): CSSProperties => ({
-  width: isWide ? undefined : 20,
-  minWidth: 20,
-  height: 20,
-  flexShrink: 0,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingInline: isWide ? 5 : 0,
-  fontSize: 12,
-  fontFamily: "monospace",
-  color: "#3d4250",
-  backgroundColor: "#f2f3f0",
-  border: "1px solid #d8dade",
-  borderRadius: 4,
-  boxShadow: "0 1px 0 #d8dade",
-});
-
 const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
 
@@ -110,7 +84,12 @@ export const CommandPalette = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      if (
+        !event.shiftKey &&
+        !event.altKey &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "k"
+      ) {
         event.preventDefault();
         setOpen((open) => !open);
         setQuery("");
@@ -143,6 +122,7 @@ export const CommandPalette = () => {
 
   return (
     <div
+      className="petrinaut-root"
       style={overlayStyle}
       role="presentation"
       onPointerDown={() => setOpen(false)}
@@ -158,6 +138,14 @@ export const CommandPalette = () => {
         aria-label="Command palette"
         style={paletteStyle}
         onPointerDown={(event) => event.stopPropagation()}
+        onBlur={(event) => {
+          if (
+            event.relatedTarget &&
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            setOpen(false);
+          }
+        }}
       >
         <input
           ref={(element) => element?.focus()}
@@ -198,13 +186,7 @@ export const CommandPalette = () => {
                 <span style={categoryStyle}>{command.category ?? ""}</span>
                 <span style={{ flex: 1 }}>{command.label}</span>
                 {command.shortcut ? (
-                  <span style={shortcutStyle} aria-hidden>
-                    {formatShortcutKeys(command.shortcut).map((key) => (
-                      <kbd key={key} style={keyStyle(key.length > 1)}>
-                        {key}
-                      </kbd>
-                    ))}
-                  </span>
+                  <KeyboardShortcut shortcut={command.shortcut} />
                 ) : null}
               </button>
             ))

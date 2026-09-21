@@ -1,40 +1,30 @@
-import {
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
-  arcMatchesEndpoint,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  placeArcEndpoint,
+  createJsonDocHandle,
+  createPetrinaut,
   type Color,
   type DifferentialEquation,
   type Parameter,
   type Place,
+  type SelectionItem,
   type Transition,
 } from "@hashintel/petrinaut-core";
 
 import {
-  SDCPNContext,
-  type SDCPNContextValue,
-} from "../../../../../react/state/sdcpn-context";
+  defaultPetrinautNavigationState,
+  type PetrinautNavigationState,
+} from "../../../../../react/navigation";
+import { PetrinautProvider } from "../../../../../react/petrinaut-provider";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { MonacoProvider } from "../../../../monaco/provider";
-import { DifferentialEquationProperties } from "./differential-equation-properties/main";
-import { ParameterProperties } from "./parameter-properties/main";
-import { PlaceProperties } from "./place-properties/main";
-import { TransitionProperties } from "./transition-properties/main";
-import { TypeProperties } from "./type-properties/main";
+import { entitiesTreeSubView } from "../LeftSideBar/subviews/entities-tree";
+import { SelectedItemProperties } from "./selected-item-properties";
 
-import type { PetrinautMutations } from "../../../../../react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-// ---------------------------------------------------------------------------
-// Fake data
-// ---------------------------------------------------------------------------
-
-const TYPES: Color[] = [
+const types: Color[] = [
   {
     id: "type-1",
     name: "Protein",
@@ -54,7 +44,7 @@ const TYPES: Color[] = [
   },
 ];
 
-const DIFF_EQS: DifferentialEquation[] = [
+const differentialEquations: DifferentialEquation[] = [
   {
     id: "eq-1",
     name: "Decay Equation",
@@ -83,7 +73,7 @@ const DIFF_EQS: DifferentialEquation[] = [
   },
 ];
 
-const PLACES: Place[] = [
+const places: Place[] = [
   {
     id: "place-1",
     name: "PlantASupply",
@@ -113,7 +103,7 @@ const PLACES: Place[] = [
   },
 ];
 
-const TRANSITION: Transition = {
+const transition: Transition = {
   id: "transition-1",
   name: "ProcessOrder",
   inputArcs: [
@@ -128,7 +118,7 @@ const TRANSITION: Transition = {
   y: 100,
 };
 
-const PARAMETER: Parameter = {
+const parameter: Parameter = {
   id: "param-1",
   name: "Reaction Rate",
   variableName: "reaction_rate",
@@ -136,325 +126,109 @@ const PARAMETER: Parameter = {
   defaultValue: "0.5",
 };
 
-// ---------------------------------------------------------------------------
-// Stub SDCPN context (provides fake petriNetDefinition so panels can read
-// types / differential equations from the net).
-// EditorContext, SimulationContext, and PlaybackContext all have sensible
-// createContext() defaults so they don't need explicit providers here.
-// ---------------------------------------------------------------------------
-
-const SDCPN_STUB: SDCPNContextValue = {
-  createNewNet: () => {},
-  existingNets: [],
-  loadPetriNet: () => {},
-  petriNetId: "story-net",
-  petriNetDefinition: {
-    places: PLACES,
-    transitions: [TRANSITION],
-    types: TYPES,
-    differentialEquations: DIFF_EQS,
-    parameters: [PARAMETER],
-  },
-  readonly: false,
-  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-  setTitle: () => {},
-  title: "Story Net",
-  getItemType: () => null,
+const emptyPlace: Place = {
+  id: "place-empty",
+  name: "NewPlace",
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const emptyTransition: Transition = {
+  id: "transition-empty",
+  name: "NewTransition",
+  inputArcs: [],
+  outputArcs: [],
+  lambdaType: "predicate",
+  lambdaCode: "",
+  transitionKernelCode: "",
+  x: 0,
+  y: 0,
+};
 
-/** Deep-clone story state so local Storybook updates mimic app mutations. */
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
+const PropertiesPanelStory = ({
+  selection,
+  showSidebar = false,
+}: {
+  selection: SelectionItem;
+  showSidebar?: boolean;
+}) => {
+  const [instance] = useState(() =>
+    createPetrinaut({
+      document: createJsonDocHandle({
+        id: "properties-panel-story",
+        initial: {
+          places: [...places, emptyPlace],
+          transitions: [transition, emptyTransition],
+          types,
+          differentialEquations,
+          parameters: [parameter],
+        },
+      }),
+    }),
+  );
+  const [navigationState, setNavigationState] =
+    useState<PetrinautNavigationState>(() => ({
+      ...defaultPetrinautNavigationState,
+      selection: [selection],
+    }));
 
-function applyStoryUpdate<T>(
-  setValue: Dispatch<SetStateAction<T>>,
-  update: Partial<T>,
-): void {
-  setValue((prev) => ({ ...clone(prev), ...clone(update) }));
-}
+  useEffect(() => () => instance.dispose(), [instance]);
 
-/** Wraps panel content with the required contexts, filling the viewport. */
-const PanelFrame = ({ children }: { children: ReactNode }) => (
-  <MonacoProvider>
-    <SDCPNContext value={SDCPN_STUB}>
-      <div
-        style={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          overflow: "hidden",
-        }}
-      >
+  return (
+    <PetrinautProvider
+      instance={instance}
+      netManagement={{
+        title: "Story Net",
+        existingNets: [],
+        createNewNet: () => {},
+        loadPetriNet: () => {},
+      }}
+      navigation={{ state: navigationState, onNavigate: setNavigationState }}
+    >
+      <MonacoProvider>
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
+            width: "100%",
+            height: "100vh",
             display: "flex",
-            flexDirection: "column",
+            overflow: "hidden",
           }}
         >
-          {children}
+          {showSidebar && (
+            <div style={{ width: 260, display: "flex", flexShrink: 0 }}>
+              <VerticalSubViewsContainer
+                name="properties-story-entities"
+                subViews={[entitiesTreeSubView]}
+              />
+            </div>
+          )}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <SelectedItemProperties />
+          </div>
         </div>
-      </div>
-    </SDCPNContext>
-  </MonacoProvider>
-);
-
-// ---------------------------------------------------------------------------
-// Interactive story components (manage local state)
-// ---------------------------------------------------------------------------
-
-const PlacePanelStory = () => {
-  const [place, setPlace] = useState<Place>(PLACES[0]!);
-  const updatePlace: PetrinautMutations["updatePlace"] = (input) => {
-    applyStoryUpdate(setPlace, input.update);
-  };
-  return (
-    <PanelFrame>
-      <PlaceProperties place={place} types={TYPES} updatePlace={updatePlace} />
-    </PanelFrame>
+      </MonacoProvider>
+    </PetrinautProvider>
   );
 };
-
-const PlaceEmptyPanelStory = () => {
-  const [place, setPlace] = useState<Place>({
-    id: "place-empty",
-    name: "NewPlace",
-    colorId: null,
-    dynamicsEnabled: false,
-    differentialEquationId: null,
-    x: 0,
-    y: 0,
-  });
-  const updatePlace: PetrinautMutations["updatePlace"] = (input) => {
-    applyStoryUpdate(setPlace, input.update);
-  };
-  return (
-    <PanelFrame>
-      <PlaceProperties place={place} types={TYPES} updatePlace={updatePlace} />
-    </PanelFrame>
-  );
-};
-
-const TransitionPanelStory = () => {
-  const [transition, setTransition] = useState<Transition>(TRANSITION);
-  const endpointFromInput = (input: {
-    placeId?: string;
-    endpoint?: Parameters<typeof arcMatchesEndpoint>[1];
-  }) => input.endpoint ?? placeArcEndpoint(input.placeId ?? "");
-  const updateTransition: PetrinautMutations["updateTransition"] = (input) => {
-    applyStoryUpdate(setTransition, input.update);
-  };
-  const updateArcWeight: PetrinautMutations["updateArcWeight"] = (input) => {
-    setTransition((prev) => {
-      const next = clone(prev);
-      const arcs =
-        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const endpoint = endpointFromInput(input);
-      const arc = arcs.find((item) => arcMatchesEndpoint(item, endpoint));
-      if (arc) {
-        arc.weight = input.weight;
-      }
-      return next;
-    });
-  };
-  const updateArcPlace: PetrinautMutations["updateArcPlace"] = (input) => {
-    setTransition((prev) => {
-      const next = clone(prev);
-      const arcs =
-        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const oldEndpoint =
-        input.oldEndpoint ?? placeArcEndpoint(input.oldPlaceId ?? "");
-      const newEndpoint =
-        input.newEndpoint ?? placeArcEndpoint(input.newPlaceId ?? "");
-      const arc = arcs.find((item) => arcMatchesEndpoint(item, oldEndpoint));
-      if (arc) {
-        delete arc.placeId;
-        delete arc.endpoint;
-        Object.assign(
-          arc,
-          newEndpoint.kind === "place"
-            ? { placeId: newEndpoint.placeId }
-            : { endpoint: newEndpoint },
-        );
-      }
-      return next;
-    });
-  };
-  const removeArc: PetrinautMutations["removeArc"] = (input) => {
-    setTransition((prev) => {
-      const next = clone(prev);
-      const arcs =
-        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
-      const endpoint = endpointFromInput(input);
-      const index = arcs.findIndex((arc) => arcMatchesEndpoint(arc, endpoint));
-      if (index !== -1) {
-        arcs.splice(index, 1);
-      }
-      return next;
-    });
-  };
-  return (
-    <PanelFrame>
-      <TransitionProperties
-        transition={transition}
-        net={{ places: PLACES, componentInstances: [] }}
-        places={PLACES}
-        types={TYPES}
-        updateTransition={updateTransition}
-        onArcWeightUpdate={updateArcWeight}
-        updateArcPlace={updateArcPlace}
-        removeArc={removeArc}
-      />
-    </PanelFrame>
-  );
-};
-
-const TransitionEmptyPanelStory = () => {
-  const [transition, setTransition] = useState<Transition>({
-    id: "transition-empty",
-    name: "NewTransition",
-    inputArcs: [],
-    outputArcs: [],
-    lambdaType: "predicate",
-    lambdaCode: "",
-    transitionKernelCode: "",
-    x: 0,
-    y: 0,
-  });
-  const updateTransition: PetrinautMutations["updateTransition"] = (input) => {
-    applyStoryUpdate(setTransition, input.update);
-  };
-  return (
-    <PanelFrame>
-      <TransitionProperties
-        transition={transition}
-        net={{ places: PLACES, componentInstances: [] }}
-        places={PLACES}
-        types={TYPES}
-        updateTransition={updateTransition}
-        onArcWeightUpdate={() => {}}
-        updateArcPlace={() => {}}
-        removeArc={() => {}}
-      />
-    </PanelFrame>
-  );
-};
-
-const TypePanelStory = () => {
-  const [type, setType] = useState<Color>(TYPES[0]!);
-  const updateType: PetrinautMutations["updateType"] = (input) => {
-    applyStoryUpdate(setType, input.update);
-  };
-  const addTypeElement: PetrinautMutations["addTypeElement"] = (input) => {
-    setType((prev) => {
-      const next = clone(prev);
-      next.elements.push(clone(input.element));
-      return next;
-    });
-  };
-  const updateTypeElement: PetrinautMutations["updateTypeElement"] = (
-    input,
-  ) => {
-    setType((prev) => {
-      const next = clone(prev);
-      const element = next.elements.find(
-        (item) => item.elementId === input.elementId,
-      );
-      if (element) {
-        Object.assign(element, clone(input.update));
-      }
-      return next;
-    });
-  };
-  const removeTypeElement: PetrinautMutations["removeTypeElement"] = (
-    input,
-  ) => {
-    setType((prev) => ({
-      ...clone(prev),
-      elements: prev.elements.filter(
-        (element) => element.elementId !== input.elementId,
-      ),
-    }));
-  };
-  const moveTypeElement: PetrinautMutations["moveTypeElement"] = (input) => {
-    setType((prev) => {
-      const next = clone(prev);
-      const fromIndex = next.elements.findIndex(
-        (element) => element.elementId === input.elementId,
-      );
-      if (fromIndex !== -1) {
-        const [element] = next.elements.splice(fromIndex, 1);
-        if (element) {
-          next.elements.splice(input.toIndex, 0, element);
-        }
-      }
-      return next;
-    });
-  };
-  return (
-    <PanelFrame>
-      <TypeProperties
-        type={type}
-        updateType={updateType}
-        addTypeElement={addTypeElement}
-        updateTypeElement={updateTypeElement}
-        removeTypeElement={removeTypeElement}
-        moveTypeElement={moveTypeElement}
-      />
-    </PanelFrame>
-  );
-};
-
-const ParameterPanelStory = () => {
-  const [parameter, setParameter] = useState<Parameter>(PARAMETER);
-  const updateParameter: PetrinautMutations["updateParameter"] = (input) => {
-    applyStoryUpdate(setParameter, input.update);
-  };
-  return (
-    <PanelFrame>
-      <ParameterProperties
-        parameter={parameter}
-        updateParameter={updateParameter}
-      />
-    </PanelFrame>
-  );
-};
-
-const DifferentialEquationPanelStory = () => {
-  const [diffEq, setDiffEq] = useState<DifferentialEquation>(DIFF_EQS[0]!);
-  const updateDiffEq: PetrinautMutations["updateDifferentialEquation"] = (
-    input,
-  ) => {
-    applyStoryUpdate(setDiffEq, input.update);
-  };
-  return (
-    <PanelFrame>
-      <DifferentialEquationProperties
-        differentialEquation={diffEq}
-        types={TYPES}
-        places={PLACES}
-        updateDifferentialEquation={updateDiffEq}
-      />
-    </PanelFrame>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Storybook
-// ---------------------------------------------------------------------------
 
 const meta = {
   title: "Panels / Properties Panel",
+  component: PropertiesPanelStory,
   parameters: {
     layout: "fullscreen",
   },
-} satisfies Meta;
+  render: (args) => <PropertiesPanelStory key={args.selection.id} {...args} />,
+} satisfies Meta<typeof PropertiesPanelStory>;
 
 export default meta;
 
@@ -462,35 +236,90 @@ type Story = StoryObj<typeof meta>;
 
 export const PlaceWithType: Story = {
   name: "Place (with type & dynamics)",
-  render: () => <PlacePanelStory />,
+  args: { selection: { type: "place", id: "place-1" } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      await canvas.findByRole("textbox", { name: "Name" }),
+    ).toHaveValue("PlantASupply");
+    for (const label of [
+      "Component port",
+      "Token capacity",
+      "Default starting place",
+    ]) {
+      const checkbox = canvas.getByRole("checkbox", { name: label });
+      await userEvent.click(canvas.getByText(label, { exact: true }));
+      await expect(checkbox).toBeChecked();
+      await userEvent.click(canvas.getByText(label, { exact: true }));
+      await expect(checkbox).not.toBeChecked();
+    }
+  },
 };
 
 export const PlaceEmpty: Story = {
   name: "Place (no type)",
-  render: () => <PlaceEmptyPanelStory />,
+  args: { selection: { type: "place", id: "place-empty" } },
+};
+
+export const SidebarAndProperties: Story = {
+  args: {
+    selection: { type: "place", id: "place-1" },
+    showSidebar: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const row = await canvas.findByRole("option", { name: "PlantASupply" });
+    const label = within(row).getByText("PlantASupply");
+    await expect(getComputedStyle(label).fontSize).toBe("14px");
+    await expect(getComputedStyle(label).fontWeight).toBe("500");
+    await expect(getComputedStyle(label).lineHeight).toBe("19.25px");
+    await expect(row.getBoundingClientRect().height).toBe(32);
+    await expect(getComputedStyle(row).padding).toBe("4px 4px 4px 20px");
+
+    const sidebarHeader = canvas
+      .getByText("Entities", { exact: true })
+      .closest<HTMLElement>("[data-subview-header]")!;
+    const propertyHeader = canvas
+      .getByText("Place PlantASupply", { exact: true })
+      .closest<HTMLElement>("[data-subview-header]")!;
+    await expect(sidebarHeader.getBoundingClientRect().height).toBe(44);
+    await expect(getComputedStyle(sidebarHeader).borderBottomColor).toBe(
+      "rgba(0, 0, 0, 0.024)",
+    );
+    await expect(getComputedStyle(propertyHeader).borderBottomColor).toBe(
+      "rgba(0, 0, 0, 0.09)",
+    );
+    const stateToggle = canvas.getByRole("button", {
+      name: /^State\b/,
+    });
+    await expect(
+      getComputedStyle(stateToggle.querySelector("[data-toggle-icon]")!)
+        .opacity,
+    ).toBe("1");
+  },
 };
 
 export const TransitionWithArcs: Story = {
   name: "Transition (with arcs)",
-  render: () => <TransitionPanelStory />,
+  args: { selection: { type: "transition", id: "transition-1" } },
 };
 
 export const TransitionEmpty: Story = {
   name: "Transition (empty)",
-  render: () => <TransitionEmptyPanelStory />,
+  args: { selection: { type: "transition", id: "transition-empty" } },
 };
 
 export const Type: Story = {
   name: "Type",
-  render: () => <TypePanelStory />,
+  args: { selection: { type: "type", id: "type-1" } },
 };
 
 export const ParameterPanel: Story = {
   name: "Parameter",
-  render: () => <ParameterPanelStory />,
+  args: { selection: { type: "parameter", id: "param-1" } },
 };
 
 export const DifferentialEquationPanel: Story = {
   name: "Differential Equation",
-  render: () => <DifferentialEquationPanelStory />,
+  args: { selection: { type: "differentialEquation", id: "eq-1" } },
 };

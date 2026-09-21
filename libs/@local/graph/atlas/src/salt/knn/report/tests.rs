@@ -1,4 +1,7 @@
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::{
+    assert_matches,
+    sync::atomic::{AtomicU64, Ordering},
+};
 use std::{fs, path::PathBuf};
 
 use zerocopy::IntoBytes as _;
@@ -6,16 +9,23 @@ use zerocopy::IntoBytes as _;
 use super::{Representations, SetupError};
 use crate::{
     dataset::PROJECTOR_DIMENSIONS,
-    file::array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    file::{
+        ArtifactFile as _,
+        array::{ArrayFile, ArrayVariant, ArrayWriter, Dim},
+    },
 };
 
-/// A uniquely named file in the system temporary directory, removed on drop.
+/// A scratch array file for mapped representation fixtures.
 struct TempFile {
     path: PathBuf,
 }
 
 impl TempFile {
     /// Writes an f32 array file holding one `width`-component row per value, filled with it.
+    ///
+    /// # Panics
+    ///
+    /// This panics when file creation or array writing fails.
     fn representation_rows(values: &[f32], width: usize) -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -46,6 +56,10 @@ impl Drop for TempFile {
 }
 
 /// Maps `written` as a fixture generation's representations.
+///
+/// # Panics
+///
+/// This panics when the array file cannot be opened.
 fn representations(written: &TempFile) -> Representations {
     Representations {
         generation: "3a"
@@ -57,10 +71,6 @@ fn representations(written: &TempFile) -> Representations {
 }
 
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture's exactly representable values round-trip through the mapped file"
-)]
 fn rows_read_at_the_projector_width() {
     let written = TempFile::representation_rows(&[1.0, 2.0], PROJECTOR_DIMENSIONS);
     let opened = representations(&written);
@@ -76,5 +86,5 @@ fn rows_refuse_another_width() {
     let written = TempFile::representation_rows(&[1.0, 2.0], 8);
     let opened = representations(&written);
 
-    assert!(matches!(opened.rows(), Err(SetupError::Width)));
+    assert_matches!(opened.rows(), Err(SetupError::Width));
 }

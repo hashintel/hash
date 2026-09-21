@@ -63,7 +63,7 @@ pub(crate) enum PlacementFailure<'alloc> {
 /// SCC — the edge that closes the cycle. Falls back to the first member's terminator if no
 /// back edge is found (shouldn't happen in a valid SCC).
 fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
-    assert!(!members.is_empty());
+    assert_ne!(members, []);
 
     // Find the member whose terminator has a successor that's also a member with a lower ID.
     // That successor edge is the back edge, and its terminator is the source of the cycle.

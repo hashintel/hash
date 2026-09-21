@@ -89,7 +89,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -107,8 +107,10 @@ use crate::{
     identity::{BasePosition, OntologyRowId},
 };
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

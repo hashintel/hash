@@ -7,34 +7,235 @@
  * deployment diagnostics and transport-specific instructions.
  */
 
-import { useInstruction, useTool } from "@flue/runtime";
+import {
+  useAgentStart,
+  useContextProjection,
+  useDelivery,
+  useInitialData,
+  useInstruction,
+  useTool,
+  type AgentProps,
+} from "@flue/runtime";
+import { createAgentRouter } from "@flue/runtime/routing";
+import { createFlueClient } from "@flue/sdk";
 
+import {
+  isReadPetrinautNetToolName,
+  parseClientToolResultMetadata,
+  readPetrinautNetToolName,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
+  type BrowserContext,
+  type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
+import { parseClientToolResults } from "@hashintel/brunch-agent-transport-aisdk";
+import {
+  createWorkpieceReadTool,
+  useBrunchAgent,
+} from "@hashintel/brunch-agent/flue";
 
+import {
+  selectChatModel,
+  selectChatModelSpecifier,
+  selectChatThinking,
+} from "../../chat-model.ts";
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  isClientToolResultDelivery,
+} from "../../conversation/client-tools.ts";
+import { diagnostics } from "../../runtime-diagnostics.ts";
+
+export { ACTIVATE_SKILL_TOOL_NAME };
+import { verifyMutationResults } from "../../conversation/mutation-delivery.ts";
+import {
+  deriveNetFreshness,
+  NET_STALE_SIGNAL,
+  netStaleSignalBody,
+} from "../../conversation/net-freshness.ts";
+import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
+import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
+import { createQueryWorkpieceTool } from "../../conversation/why.ts";
+import {
+  retainedSettledRevision,
+  workpieceEvidenceSources,
+} from "../../conversation/workpiece.ts";
+import { projectBrunchContext } from "./context-projection.ts";
+import { loadTestCompactionConfig } from "./test-compaction-config.ts";
 import { ping } from "./tools/ping.ts";
 
-export const CHAT_MODEL_ID =
-  process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
+import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
+
+export const CHAT_MODEL_ID = selectChatModel();
+export const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
+const chatThinkingLevel = selectChatThinking();
 
 export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
-export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
+const testCompactionConfig = loadTestCompactionConfig();
+const chatModelOptions =
+  testCompactionConfig === undefined && chatThinkingLevel === undefined
+    ? undefined
+    : {
+        ...(testCompactionConfig === undefined
+          ? {}
+          : { compaction: testCompactionConfig }),
+        ...(chatThinkingLevel === undefined
+          ? {}
+          : { thinkingLevel: chatThinkingLevel }),
+      };
 
-export function ChatAgent() {
-  const coreSystemPrompt = useBrunchAgent(`anthropic/${CHAT_MODEL_ID}`);
-  useSdcpnPlugin();
+export function ChatAgent({ id }: AgentProps) {
+  useContextProjection(projectBrunchContext);
+  const initialData = useInitialData<SdcpnInitialData>();
+  const delivery = useDelivery();
+  const browserContext: BrowserContext | undefined = initialData?.construction
+    ? { binding: initialData.construction.binding }
+    : undefined;
+  // Agent-local acquisition of this already-authorized instance's public history.
+  // Reuse the existing router and storage; no listener, companion log or private records.
+  const history = () => {
+    const router = createAgentRouter(ChatAgent);
+    return createFlueClient({
+      url: `http://brunch.local/${id}`,
+      fetch: async (input, init) =>
+        router.fetch(
+          input instanceof Request ? input : new Request(input, init),
+        ),
+    }).history();
+  };
+  const readSources = async () => workpieceEvidenceSources(await history());
+  const activeObservationCallIds: string[] = [];
+  const suppliedObservationCallIds: string[] = [];
+  const isClientResultDelivery = isClientToolResultDelivery(delivery);
+  if (isClientResultDelivery) {
+    // Dropped members stay dropped; the drop itself must not be silent.
+    const results = parseClientToolResults(delivery.body, (issue) =>
+      diagnostics.note("client-tool-result.parse", {
+        ...issue,
+        instanceId: id,
+      }),
+    );
+    for (const result of results) {
+      if (!isReadPetrinautNetToolName(result.toolName)) continue;
+      activeObservationCallIds.push(result.toolCallId);
+      if (parseClientToolResultMetadata(result.metadata)?.observation)
+        suppliedObservationCallIds.push(result.toolCallId);
+    }
+  }
+  const coreSystemPrompt = useBrunchAgent(
+    CHAT_MODEL_SPECIFIER,
+    chatModelOptions,
+    (currentRevision) => {
+      useSdcpnPlugin({
+        currentRevision,
+        retainedRevisionFor: async (revisionId) =>
+          retainedSettledRevision(await history(), revisionId),
+        ...(initialData?.construction
+          ? {
+              observationFor: async (callId: string) => {
+                const snapshot = await history();
+                return recordedBrowserObservation(
+                  snapshot,
+                  initialData.construction!,
+                  callId,
+                );
+              },
+            }
+          : {}),
+      });
+      if (browserContext) {
+        useTool(createWorkpieceReadTool({ currentRevision, readSources }));
+        useTool(
+          createQueryWorkpieceTool({
+            current: currentRevision,
+            browser: browserContext,
+            history,
+            activeObservationCallIds,
+          }),
+        );
+      }
+    },
+    ...(browserContext
+      ? ([
+          async (current: WorkpieceRevision | null) =>
+            workpieceEvidenceSources(await history(), current),
+        ] as const)
+      : []),
+  );
+  useAgentStart(async ({ append }) => {
+    if (browserContext && delivery.kind === "user") {
+      // Flue history is the only ledger of what the model has observed. The
+      // marker joins this response ahead of the model's first turn; it asks for
+      // a read and never withdraws the tool.
+      const freshness = await deriveNetFreshness(
+        await history(),
+        browserContext,
+        takeReportedDocumentRevision(),
+      );
+      if (freshness.kind !== "current")
+        append({
+          kind: "signal",
+          type: NET_STALE_SIGNAL,
+          tagName: NET_STALE_SIGNAL,
+          attributes: { kind: freshness.kind },
+          body: netStaleSignalBody(freshness),
+        });
+    }
+    if (browserContext && isClientResultDelivery) {
+      // Legacy recorded reads lack this optional sidecar. Only a why lookup that
+      // actually cites an observation requires it; legacy continuation is unchanged.
+      const snapshot = await history();
+      const browser = browserContext;
+      await Promise.all(
+        suppliedObservationCallIds.map((callId) =>
+          recordedBrowserObservation(snapshot, browser, callId),
+        ),
+      );
+      await verifyMutationResults({
+        body: delivery.body,
+        snapshot,
+        ...browserContext,
+        ...(initialData?.construction
+          ? {
+              observationFor: async (callId: string, beforeCallId: string) => {
+                const index = snapshot.messages.findIndex((message) =>
+                  message.parts.some(
+                    (part) =>
+                      part.type === "dynamic-tool" &&
+                      part.toolCallId === beforeCallId,
+                  ),
+                );
+                if (index < 0)
+                  throw new Error("Unknown issued construction call.");
+                return recordedBrowserObservation(
+                  { ...snapshot, messages: snapshot.messages.slice(0, index) },
+                  browserContext,
+                  callId,
+                );
+              },
+            }
+          : {}),
+      });
+    }
+  });
 
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
-A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.
+Submit at most one browser tool call per proposal, separately from server tools, and wait for its correlated client result before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
+A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation. For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${readPetrinautNetToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${readPetrinautNetToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
+  if (browserContext)
+    useInstruction(
+      `
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified read_petrinaut_net result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls read_petrinaut_net and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece citing that read's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+`.replace(/^\s+|\s+$/gu, ""),
+    );
   useTool(ping);
 
   return coreSystemPrompt;

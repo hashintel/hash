@@ -12,10 +12,16 @@ use axum::{
     response::{Html, IntoResponse},
 };
 
+/// The pre-serialized OpenAPI document, rendered once at startup and served as-is per request.
 #[derive(Debug, Clone)]
 pub(crate) struct OpenApiDocument(Bytes);
 
 impl OpenApiDocument {
+    /// Serializes `api` to its final JSON bytes.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `api` does not serialize to JSON.
     pub(crate) fn new(api: &OpenApi) -> Self {
         let document =
             Bytes::from(serde_json::to_string(&api).expect("the OpenAPI document serializes"));
@@ -33,6 +39,7 @@ pub(super) async fn json(
 
 /// Serves the Scalar reference page.
 pub(super) async fn html() -> impl IntoResponse {
+    // Rendered once per process and reused for every request.
     static BUNDLE: LazyLock<Bytes> = LazyLock::new(|| {
         let html = Scalar::new("/v1/atlas/openapi.json")
             .with_title("HASH Atlas API")

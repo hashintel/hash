@@ -1,0 +1,231 @@
+use alloc::borrow::Cow;
+use core::{assert_matches, pin::pin};
+use std::{fs, io};
+
+use aws_sdk_s3::{
+    Client,
+    config::{BehaviorVersion, Credentials, Region},
+};
+use tokio::io::AsyncReadExt as _;
+
+use super::{FilePath, FilePathVariant};
+use crate::file::{
+    generation::test_utils::{entry_count, scratch, scratch_root},
+    storage::{
+        Storage,
+        error::StorageError,
+        path::error::{FilePathError, PathComponent},
+    },
+};
+
+mod mutation;
+
+/// A spelling without a scheme selects the local variant and prints back unchanged.
+#[test]
+fn parse_local() {
+    let path: FilePath = "relative/file.bin"
+        .parse()
+        .expect("should parse a local path");
+    assert_matches!(&path.variant, FilePathVariant::Local(_));
+    assert_eq!(path.to_string(), "relative/file.bin");
+}
+
+/// An `s3://` spelling keeps the object variant, and the bucket and the key read back apart.
+#[test]
+fn parse_s3() {
+    let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
+    let FilePathVariant::Bucket(remote) = &path.variant else {
+        panic!("should retain the S3 variant");
+    };
+    assert_eq!((remote.bucket(), remote.key()), ("bucket", "key"));
+}
+
+/// Only a leading `s3://` selects the object location.
+#[test]
+fn parse_embedded_scheme() {
+    let path: FilePath = "not-s3://bucket/key"
+        .parse()
+        .expect("should parse a local path");
+    assert_matches!(&path.variant, FilePathVariant::Local(_));
+}
+
+/// A missing bucket fails the parse rather than falling back to a local path.
+#[test]
+fn parse_empty_bucket() {
+    assert_matches!(
+        "s3:///key".parse::<FilePath>(),
+        Err(FilePathError::Empty {
+            component: PathComponent::Bucket
+        })
+    );
+}
+
+/// Backend validation accepts configured S3 storage without accessing the source object.
+#[tokio::test]
+async fn validate_s3_unavailable_object() {
+    let client = Client::from_conf(
+        aws_sdk_s3::Config::builder()
+            .behavior_version(BehaviorVersion::latest())
+            .region(Region::new("us-east-1"))
+            .credentials_provider(Credentials::new(
+                "fixture", "fixture", None, None, "fixture",
+            ))
+            .endpoint_url("http://127.0.0.1:0")
+            .build(),
+    );
+    let storage = Storage::in_temp_dir()
+        .await
+        .expect("should create temporary storage")
+        .with_s3(client);
+    let source: FilePath = "s3://unavailable-bucket/source"
+        .parse()
+        .expect("should parse the source");
+    source
+        .validate_backend(&storage)
+        .expect("should accept a configured backend without reading an object");
+}
+
+/// Reading a local file yields its bytes without an S3 backend.
+#[tokio::test]
+async fn read_local() {
+    let directory = scratch();
+    let file = scratch_root(&directory).join("input.bin");
+    fs::write(&file, b"local contents").expect("should write the source file");
+    let reader = {
+        let path: FilePath = file.as_str().parse().expect("should parse a local path");
+        let storage = Storage::new(scratch_root(&directory).join("unused"));
+        path.read(&storage).await.expect("should open without S3")
+    };
+    let mut reader = pin!(reader);
+    let mut bytes = Vec::new();
+    reader
+        .read_to_end(&mut bytes)
+        .await
+        .expect("should read the local file");
+    assert_eq!(bytes, b"local contents");
+    drop(directory);
+}
+
+/// A missing local file reports the filesystem's not-found error.
+#[tokio::test]
+async fn read_local_missing() {
+    let directory = scratch();
+    let file = scratch_root(&directory).join("missing.bin");
+    let path: FilePath = file.as_str().parse().expect("should parse a local path");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+
+    let error = path
+        .read(&storage)
+        .await
+        .err()
+        .expect("should report the missing file");
+
+    drop(storage);
+    drop(directory);
+
+    assert_matches!(error, StorageError::Io(error) if error.kind() == io::ErrorKind::NotFound);
+}
+
+/// An S3 path without a client reports the unavailable backend instead of an I/O error.
+#[tokio::test]
+async fn read_s3_unconfigured() {
+    let directory = scratch();
+    let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
+    let storage = Storage::new(scratch_root(&directory).to_owned());
+
+    let error = path
+        .read(&storage)
+        .await
+        .err()
+        .expect("should require an S3 backend");
+
+    drop(storage);
+    drop(directory);
+
+    assert_matches!(error, StorageError::S3Unavailable);
+}
+
+/// A local input resolves to its own spelling without writing to the scratch directory.
+#[tokio::test]
+async fn sync_local() {
+    let source = scratch();
+    let file = scratch_root(&source).join("input.bin");
+    fs::write(&file, b"local contents").expect("should write the source file");
+    let path: FilePath = file.as_str().parse().expect("should parse a local path");
+    let destination = scratch();
+    let storage = Storage::new(scratch_root(&destination).to_owned());
+    let resolved = path
+        .sync_to_local(&storage)
+        .await
+        .expect("should resolve the local path without S3");
+    assert_matches!(resolved, Cow::Borrowed(value) if value == file);
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
+    drop(storage);
+    drop(destination);
+    drop(source);
+}
+
+/// Resolving a local input opens nothing and keeps the caller's own allocation.
+#[tokio::test]
+async fn into_local_missing() {
+    let directory = scratch();
+    let file = scratch_root(&directory).join("missing.bin");
+    let allocation = file.as_str().as_ptr();
+    let path = FilePath {
+        variant: FilePathVariant::Local(file),
+    };
+    let storage = Storage::new(scratch_root(&directory).join("unused"));
+    let resolved = path
+        .into_local_file(&storage)
+        .await
+        .expect("should return the local path without opening it");
+
+    assert_eq!(resolved, scratch_root(&directory).join("missing.bin"));
+    assert_eq!(resolved.as_str().as_ptr(), allocation);
+    assert_eq!(entry_count(scratch_root(&directory)), 0);
+
+    drop(storage);
+    drop(directory);
+}
+
+/// A missing backend fails the call before it creates the scratch destination.
+#[tokio::test]
+async fn into_local_unconfigured() {
+    let destination = scratch();
+    let storage = Storage::new(scratch_root(&destination).join("missing"));
+    let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
+
+    let error = path
+        .into_local_file(&storage)
+        .await
+        .expect_err("should require S3 before creating a destination");
+
+    assert_matches!(error, StorageError::S3Unavailable);
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
+
+    drop(storage);
+    drop(destination);
+}
+
+/// Missing S3 configuration preserves both existing and absent scratch directories.
+#[tokio::test]
+async fn sync_s3_unconfigured() {
+    let path: FilePath = "s3://bucket/key".parse().expect("should parse an S3 path");
+    let destination = scratch();
+    let missing = scratch_root(&destination).join("missing");
+    let storages = [
+        Storage::new(scratch_root(&destination).to_owned()),
+        Storage::new(missing),
+    ];
+    for storage in &storages {
+        let error = path
+            .sync_to_local(storage)
+            .await
+            .expect_err("should require S3 before accessing the destination");
+        assert_matches!(error, StorageError::S3Unavailable);
+    }
+    assert_eq!(entry_count(scratch_root(&destination)), 0);
+
+    drop(storages);
+    drop(destination);
+}

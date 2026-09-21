@@ -152,7 +152,7 @@ describe("classicRunVariables", () => {
     });
     expect(variables[1]!.expression).toBe("35");
     expect(variables[2]).toMatchObject({ type: "boolean", expression: "true" });
-    expect(variables[3]).toMatchObject({ type: "real", expression: "0.5" });
+    expect(variables[3]).toMatchObject({ type: "ratio", expression: "0.5" });
   });
 });
 
@@ -208,6 +208,18 @@ describe("classicRunParameterValues", () => {
       value: "0",
     });
     expect(values).toContainEqual({ identifier: "night_mode", value: "0" });
+  });
+
+  it("skips a ratio outside 0 and 1 so the previous value stands", () => {
+    // The form marks such a value; the run must not take what it marks.
+    const values = classicRunParameterValues(
+      stateWith({ mix: "1.5" }),
+      SCENARIO,
+    );
+    expect(values.find((value) => value.identifier === "mix")).toBeUndefined();
+    expect(
+      classicRunParameterValues(stateWith({ mix: "0.75" }), SCENARIO),
+    ).toContainEqual({ identifier: "mix", value: "0.75" });
   });
 
   it("skips non-literal expressions so the previous value stands", () => {

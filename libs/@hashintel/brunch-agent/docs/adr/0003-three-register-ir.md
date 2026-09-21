@@ -1,9 +1,10 @@
 # ADR-0003: The IR is the elicited model, derived — three registers, not one
 
 Date: 2026-08-18
-Status: accepted
-Amends: [ir-design.md](../specs/intermediate-representation.md) Layer A (the
-"Definition" paragraph), ratified FE-1364/FE-1397
+Status: historical; superseded as product provenance by the 2026-09-04 lineage/basis lock in
+[`MISSION.next.md`](../../MISSION.next.md). The three-register capture/fold IR is rejected.
+Amends: historical IR spec Layer A (last living copy
+`69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/intermediate-representation.md`), ratified FE-1364/FE-1397
 Amended by: [ADR-0005](0005-model-assisted-sdcpn-realization.md) — projections remain pure through
 the scaffold and obligation plan; executable code is realized downstream.
 Decided on: FE-1405 (payload-interiors session); ratified by Lu, 2026-08-18

@@ -4,9 +4,23 @@
     "@rust/error-stack-macros"
   ],
   "tasks": {
-    "fix:clippy": [],
-    "lint:clippy": [],
-    "test:miri": [],
-    "test:unit": []
+    "fix:clippy": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:miri": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

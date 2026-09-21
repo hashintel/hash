@@ -1,32 +1,35 @@
-//! The condition ladder.
+//! Projected layouts across relation-lens conditions, aligned for comparison.
 //!
-//! One projected layout per relation-lens condition, aligned and measured against its neighbours.
+//! A generation publishes one coordinate field: the configured canonical step's layout aligned into
+//! the baseline frame. Every other step is a measurement counterfactual, the same jointly trained
+//! [projector](crate::salt::projector) evaluated at a different lens strength. Its measurements
+//! persist as evidence, and its coordinates never publish as the canonical field.
 //!
-//! A generation publishes one coordinate field, the configured canonical step's layout aligned into
-//! the baseline frame. Every other step is a measurement counterfactual (the same jointly trained
-//! model projected at a different lens strength) that persists as evidence and never publishes as
-//! the coordinate field.
+//! [`Conditions`] defines the zero-condition step at `0.0`, with relation conditioning disabled in
+//! the jointly trained model. This baseline is not a separately trained relation-free model. The
+//! steps ascend strictly and every value is finite. The schedule has no configured step-count cap.
+//! Projection evaluates every step. Each non-baseline measurement then traverses the paired fields
+//! for two fits and two residuals. The baseline's alignment is the identity and both of its
+//! movements are zero.
 //!
-//! [`Conditions`] carries the schedule, valid by construction. The schedule opens at the
-//! zero-condition value `0.0`, the jointly trained model with the lens off rather than a
-//! relation-free model trained on its own. The steps ascend strictly and every value is finite. The
-//! step count has no upper bound. Each step costs one projection pass plus four alignment passes,
-//! so the schedule length is configuration rather than a format limit.
+//! [`measure_ladder`] fits each non-baseline field onto the baseline and separately onto its
+//! predecessor using unweighted, orientation-preserving Procrustes alignment
+//! ([`Similarity::fit_uniform_par`]). For source points sᵢ and target points tᵢ over N
+//! corresponding rows, the model chooses scale a > 0, rotation R and translation b to minimize Σᵢ
+//! ‖aR sᵢ + b − tᵢ‖². Movement is √(Σᵢ ‖aR sᵢ + b − tᵢ‖²/N). It measures residual deformation after
+//! removing the source's global similarity freedom, in the target frame's units. Scaling the target
+//! scales this residual, and reflections remain outside the fit family.
 //!
-//! [`measure_ladder`] derives each step's evidence. Every step aligns onto the baseline and onto
-//! its predecessor with the unweighted Procrustes fit ([`Similarity::fit_uniform_par`]); the RMS
-//! movement the alignment cannot explain is the step's real geometric change, invariant under the
-//! scale, rotation, and translation freedom the projector never promises to pin down. The
-//! measurements are diagnostics: they persist as evidence and surface as structured log events, and
-//! they never block publication.
+//! Fits accumulate moments in `f64` and narrow their coefficients to `f32`. Residuals apply the
+//! widened coefficients in `f64`. Rounding, cancellation and parallel summation limit exact
+//! invariance and bitwise repeatability. A field can fail alignment despite having finite
+//! coordinates. Measurement errors abort this operation. Successful movement and loss values are
+//! diagnostics, with no acceptance threshold here.
 //!
-//! [`select_canonical`] names the step that publishes as the canonical field. The configured
-//! condition names an exact member of the measured schedule, so configuration picks a step rather
-//! than an interpolation point.
-//!
-//! Projection itself is the conditioned projector's inference (`salt/projector`), and the per-step
-//! relation loss is its frozen objective. Both enter here as constructed domain values, so the
-//! boundary between the stages stays artifact-level.
+//! [`select_canonical`] selects the configured condition by exact membership, without interpolation
+//! or a quality-based choice. Projection and frozen relation-loss evaluation happen before
+//! [`Field`] construction. This module checks field counts and lengths, while row correspondence
+//! and common model provenance remain input requirements.
 
 use alloc::borrow::Cow;
 
@@ -42,15 +45,31 @@ mod tests;
 
 pub(crate) use self::error::{CanonicalError, ConditionsError, LadderError};
 
+/// A relation-lens schedule awaiting length, baseline and ordering checks.
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct UnvalidatedConditions(Cow<'static, [NonNegative]>);
+
+impl TryFrom<UnvalidatedConditions> for Conditions {
+    type Error = ConditionsError;
+
+    fn try_from(UnvalidatedConditions(values): UnvalidatedConditions) -> Result<Self, Self::Error> {
+        Self::new(values)
+    }
+}
+
+impl From<Conditions> for UnvalidatedConditions {
+    fn from(conditions: Conditions) -> Self {
+        Self(conditions.values)
+    }
+}
+
 /// A validated relation-lens condition schedule.
 ///
-/// Construction validates the schedule. A schedule has at least two steps and opens at the
-/// zero-condition step that every other step measures against. The steps ascend strictly, and
-/// every value is finite and non-negative with a canonical sign of zero by construction
-/// ([`NonNegative`]), so a step's bits identify its value in reproducibility records with no
-/// `-0.0` alias to guard against. A [`Cow`] carries the values so the reference schedule is a
-/// constant.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A schedule has at least two steps and opens at the zero-condition step, `0.0`. Every later value
+/// strictly exceeds its predecessor. [`NonNegative`] supplies finite, non-negative values with
+/// canonical positive zero: a step's bits identify its value without a `-0.0` alias.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "UnvalidatedConditions", into = "UnvalidatedConditions")]
 pub(crate) struct Conditions {
     values: Cow<'static, [NonNegative]>,
 }
@@ -58,8 +77,8 @@ pub(crate) struct Conditions {
 impl Conditions {
     /// The reference schedule, the baseline plus four evenly spaced steps.
     ///
-    /// An unvalidated starting point carried over from the legacy pipeline. The ladder's own
-    /// movement evidence revises it.
+    /// The values are structurally valid. Their spacing is an uncalibrated starting point to
+    /// revisit using the ladder's movement evidence.
     pub(crate) const REFERENCE: Self = Self {
         values: Cow::Borrowed(&[
             NonNegative::new_unchecked(0.0),
@@ -74,8 +93,8 @@ impl Conditions {
     ///
     /// # Errors
     ///
-    /// Returns an error when the schedule has fewer than two steps, the first step is not zero,
-    /// or a step does not strictly exceed its predecessor.
+    /// Returns [`ConditionsError`] when the values violate the schedule's minimum length, baseline
+    /// or ordering.
     pub(crate) fn new(
         values: impl Into<Cow<'static, [NonNegative]>>,
     ) -> Result<Self, ConditionsError> {
@@ -131,8 +150,9 @@ const impl Default for Conditions {
 
 /// One step's projected field with its frozen relation loss.
 ///
-/// `I` is the step frames' shared row domain. The coordinates arrive proven finite, so the
-/// alignment fits consume them with no rescan and a non-finite frame is unrepresentable here.
+/// `I` is the step frames' shared row domain. Coordinates must obey [`FinitePointField`]'s
+/// finiteness contract, and each row must identify the same subject in every field. The field does
+/// not validate the relationship between coordinates and loss.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Field<'coordinates, I> {
     /// The step's projected coordinates, row-aligned with every other step's.
@@ -143,21 +163,17 @@ pub(crate) struct Field<'coordinates, I> {
     pub relation_loss: DNonNegative,
 }
 
-/// One fit's whole ladder configuration.
+/// The projection schedule and the condition selected for canonical coordinates.
 ///
-/// The schedule and the step that publishes.
-///
-/// The canonical value names a schedule member exactly ([`select_canonical`]): equality on
-/// [`NonNegative`] is bit equality. A value outside the schedule is a configuration
-/// contradiction, and [`Self::canonical_index`] decides the membership from the options alone,
-/// so a fit refuses the contradiction before it trains.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// The canonical value must name a schedule member exactly: equality on [`NonNegative`] is bit
+/// equality. Use [`Self::canonical_index`] to check membership before projection.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LadderOptions {
-    /// The condition schedule the ladder projects.
+    /// The condition schedule, [`Conditions::REFERENCE`] by default.
     pub conditions: Conditions = Conditions::REFERENCE,
     /// The condition whose aligned field publishes as the canonical coordinates.
     ///
-    /// `1.0` is the full-strength lens, matching the reference pipeline's canonical condition.
+    /// The full-strength condition `1.0` by default.
     pub canonical: NonNegative = NonNegative::ONE,
 }
 
@@ -170,13 +186,11 @@ const impl Default for LadderOptions {
 impl LadderOptions {
     /// Returns the canonical step's position in the schedule.
     ///
-    /// The canonical value names a schedule member exactly, so the index exists exactly when
-    /// the configuration is self-consistent. The membership is a property of the options alone,
-    /// decidable before any step projects.
+    /// Membership depends only on these options and can be checked before projection.
     ///
     /// # Errors
     ///
-    /// Returns an error when the canonical value names no step of the schedule.
+    /// Returns [`CanonicalError`] when the canonical value names no schedule member.
     pub(crate) fn canonical_index(&self) -> Result<usize, CanonicalError> {
         canonical_position(self.conditions.values().iter().copied(), self.canonical)
     }
@@ -184,8 +198,11 @@ impl LadderOptions {
 
 /// Returns the position of the canonical `value` among `conditions`.
 ///
-/// The one membership rule both the options check and the measured selection apply: equality on
-/// [`NonNegative`] is bit equality.
+/// Returns the first match using [`NonNegative`]'s bit equality.
+///
+/// # Errors
+///
+/// Returns [`CanonicalError`] when no condition matches `value`.
 fn canonical_position(
     mut conditions: impl Iterator<Item = NonNegative>,
     value: NonNegative,
@@ -206,24 +223,28 @@ pub(crate) struct StepMeasurement {
     ///
     /// The identity for the baseline itself.
     pub alignment: Similarity,
-    /// RMS movement against the baseline field after alignment.
+    /// RMS movement after alignment onto the baseline, in baseline-frame units.
     pub baseline_movement: DNonNegative,
-    /// RMS movement against the preceding field after alignment.
+    /// RMS movement after alignment onto the predecessor, in predecessor-frame units.
     pub adjacent_movement: DNonNegative,
 }
 
 /// Aligns and measures a condition ladder.
 ///
-/// `fields[i]` is the projection of the whole corpus at `conditions.values()[i]`; rows correspond
-/// across fields. Each non-baseline step fits its alignment onto the baseline and onto its
-/// predecessor in parallel, and the returned measurements carry one entry per step in schedule
-/// order.
+/// `fields[i]` must be the whole-corpus projection at `conditions.values()[i]`, with corresponding
+/// rows across every field. Non-baseline steps fit onto the baseline and then onto their
+/// predecessor. Each fit and residual uses parallel reductions. The result has one measurement per
+/// step in schedule order and echoes every supplied loss without recomputing it.
+///
+/// # Complexity
+///
+/// O(SN) work and O(S) result storage for S steps of N rows, excluding the already supplied
+/// coordinate fields.
 ///
 /// # Errors
 ///
-/// Returns an error when the field count does not match the schedule, a field's rows differ from
-/// the baseline's, or a field admits no similarity alignment (coincident points or an exactly
-/// cancelling covariance).
+/// Returns [`LadderError`] for field-count or row-count disagreement, or when a similarity fit
+/// rejects a pair.
 pub(crate) fn measure_ladder<I: Id>(
     conditions: &Conditions,
     fields: &[Field<'_, I>],
@@ -276,7 +297,7 @@ pub(crate) fn measure_ladder<I: Id>(
     Ok(measurements)
 }
 
-/// The step authorized to publish as the canonical field.
+/// The selected step's position and baseline alignment.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct CanonicalSelection<'ladder> {
     /// The step's position in the schedule.
@@ -292,12 +313,13 @@ pub(crate) struct CanonicalSelection<'ladder> {
 
 /// Selects the step publishing as the canonical field.
 ///
-/// The value must be an exact member of the measured schedule, so the canonical condition names
-/// an existing step. Equality on [`NonNegative`] is bit equality.
+/// The value must be an exact member of `measurements`. Equality on [`NonNegative`] is bit
+/// equality. This returns the first matching entry without checking schedule order, row
+/// correspondence or measurement quality.
 ///
 /// # Errors
 ///
-/// Returns an error when the value names no step.
+/// Returns [`CanonicalError`] when the value names no step.
 pub(crate) fn select_canonical(
     measurements: &[StepMeasurement],
     value: NonNegative,
@@ -313,11 +335,12 @@ pub(crate) fn select_canonical(
     })
 }
 
-/// Fits the alignment of `source` onto `target` and measures the RMS movement it cannot explain.
+/// Fits `source` onto `target` and measures the residual in target-frame units.
 ///
-/// Returns [`None`] exactly when the fit rejects the pair as degenerate: fewer than two rows,
-/// coincident points, or an exactly cancelling covariance. The residual of a successful fit
-/// over the proven-finite fields is total.
+/// Returns [`None`] when [`Similarity::fit_uniform_par`] rejects the pair, including length
+/// disagreement, fewer than two rows, unusable rounded moments or unrepresentable coefficients. A
+/// successful fit establishes the equal, nonempty fields and finite coefficients required by the
+/// residual.
 fn aligned_movement<I: Id>(
     source: &FinitePointField<I>,
     target: &FinitePointField<I>,

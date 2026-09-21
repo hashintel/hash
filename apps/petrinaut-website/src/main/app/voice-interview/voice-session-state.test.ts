@@ -16,12 +16,15 @@ const listeningSnapshot = {
   errorRequestId: "",
   input: "listening",
   inputNotice: "none",
+  interruptionBySpeaking: false,
   lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: true,
   microphoneLevel: 0.24,
   output: "idle",
   partialText: "The request goes to dispatch",
+  speakerMuted: false,
+  speakerVolume: 1,
 } satisfies VoiceTurnSnapshot;
 
 const mapSnapshot = (overrides: Partial<VoiceTurnSnapshot> = {}) =>
@@ -38,10 +41,13 @@ describe("toVoiceSessionState", () => {
       canRepeatQuestion: false,
       canTakeTurn: false,
       errorMessage: null,
+      interruptionBySpeaking: false,
       microphoneLevel: 0.24,
       microphoneMuted: false,
       notice: null,
       phase: "listening",
+      speakerMuted: false,
+      speakerVolume: 1,
     });
   });
 
@@ -97,6 +103,37 @@ describe("toVoiceSessionState", () => {
     expect(
       mapSnapshot({ microphoneEnabled: false, output: "waiting-for-tool" }),
     ).toMatchObject({ microphoneMuted: true, phase: "thinking" });
+  });
+
+  test("reports speaker state without changing phase priority", () => {
+    expect(mapSnapshot({ speakerMuted: true, speakerVolume: 0 })).toMatchObject(
+      {
+        phase: "listening",
+        speakerMuted: true,
+        speakerVolume: 0,
+      },
+    );
+    expect(
+      mapSnapshot({
+        microphoneEnabled: false,
+        output: "speaking",
+        speakerMuted: true,
+        speakerVolume: 0,
+      }),
+    ).toMatchObject({
+      microphoneMuted: true,
+      phase: "speaking",
+      speakerMuted: true,
+      speakerVolume: 0,
+    });
+    expect(
+      mapSnapshot({
+        connection: "error",
+        input: "paused",
+        output: "speaking",
+        speakerMuted: true,
+      }),
+    ).toMatchObject({ phase: "error" });
   });
 
   test("prefers paused over the turn phases", () => {

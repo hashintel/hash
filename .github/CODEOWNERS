@@ -13,3 +13,7 @@ LICENSE.md @hashintel/legal
 # Turborepo configuration
 turbo.json @hashintel/infra
 task-dependencies.json @hashintel/infra
+
+# Environment variable files
+.env @hashintel/infra
+.env.* @hashintel/infra

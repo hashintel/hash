@@ -1,8 +1,9 @@
 //! Fixture tests for the HASH fact-to-contents projection.
 //!
-//! Every fixture is a set of adapter input rows; assertions inspect the assembled contents or, for
+//! Every fixture is a set of adapter input rows. Assertions inspect the assembled contents or, for
 //! the rendering test, the fully rendered card text byte-for-byte.
 
+use alloc::borrow::Cow;
 use std::collections::HashSet;
 
 use super::{EndpointAssociation, ExampleRow, TypeFacts, TypePhrase, build_contents};
@@ -11,14 +12,22 @@ use crate::dataset::card::{
     token::HeuristicTokenizer,
 };
 
+/// Base URL of the fixture's `Owns` link type.
 const RELATION_ID: &str = "https://example.com/@acme/types/entity-type/owns/";
+/// Base URL of the fixture's `Person` source type, the default direct type of example rows.
 const PERSON_ID: &str = "https://example.com/@acme/types/entity-type/person/";
+/// Base URL of an `Employee` type titled `Person`, for the title-collision stratification test.
 const EMPLOYEE_ID: &str = "https://example.com/@acme/types/entity-type/employee/";
+/// Base URL of the fixture's `Organization` source type.
 const ORGANIZATION_ID: &str = "https://example.com/@acme/types/entity-type/organization/";
+/// Base URL of the `Asset` type, used as an unexpected source direct type.
 const ASSET_ID: &str = "https://example.com/@acme/types/entity-type/asset/";
+/// Base URL of one `Person` subtype, a direct type for contested example rows.
 const DIRECT_A: &str = "https://example.com/@acme/types/entity-type/person-a/";
+/// Base URL of the other `Person` subtype, a direct type for contested example rows.
 const DIRECT_B: &str = "https://example.com/@acme/types/entity-type/person-b/";
 
+/// Builds an English card context with the Unicode segmenter and the offline heuristic tokenizer.
 fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
     CardContext {
         language: "en",
@@ -27,6 +36,7 @@ fn context() -> CardContext<UnicodeSegmenter, HeuristicTokenizer> {
     }
 }
 
+/// Builds the `Owns` link type's facts: title, description, inverse title and no ancestors.
 fn facts() -> TypeFacts<'static> {
     TypeFacts {
         id: RELATION_ID,
@@ -37,6 +47,7 @@ fn facts() -> TypeFacts<'static> {
     }
 }
 
+/// Builds a `Person -> Asset` association capped at one target per source, both phrases described.
 fn person_association() -> EndpointAssociation<'static> {
     EndpointAssociation {
         source_id: PERSON_ID,
@@ -53,6 +64,7 @@ fn person_association() -> EndpointAssociation<'static> {
     }
 }
 
+/// Builds an undescribed `Organization -> Organization` association, one target per source at most.
 fn organization_association() -> EndpointAssociation<'static> {
     EndpointAssociation {
         source_id: ORGANIZATION_ID,
@@ -69,6 +81,9 @@ fn organization_association() -> EndpointAssociation<'static> {
     }
 }
 
+/// Builds an undescribed, uncapped association titled `title` from `source_id`.
+///
+/// Its targets are the titles in `targets`.
 fn association(
     source_id: &'static str,
     title: &'static str,
@@ -92,6 +107,7 @@ fn association(
     }
 }
 
+/// Builds an example row whose source is a direct `Person` with unit frequencies on both endpoints.
 fn example_row(
     link_id: &'static str,
     source_id: &'static str,
@@ -112,6 +128,12 @@ fn example_row(
     }
 }
 
+/// Builds card contents from the given inputs under the test context.
+///
+/// # Panics
+///
+/// Panics when an association's source title normalizes to empty, and when one records a minimum
+/// above its maximum. Either answer leaves the build with no contents to return.
 fn build(
     facts: TypeFacts<'static>,
     associations: Vec<EndpointAssociation<'static>>,
@@ -123,10 +145,14 @@ fn build(
         .expect("fixture inputs satisfy the association contract")
 }
 
+/// Renders the example lines of `contents`, in order.
 fn example_lines(contents: &CardContents<'static>) -> Vec<String> {
     contents.examples.iter().map(ToString::to_string).collect()
 }
 
+/// Endpoint constraints sort sources by case-folded title and break ties by source id.
+///
+/// Each source's targets sort by case-folded title as well.
 #[test]
 fn endpoint_constraints_sort_sources_and_targets_by_casefolded_title() {
     let contents = build(
@@ -225,6 +251,7 @@ fn single_value_requires_every_association_to_cap_targets_at_one() {
     assert_eq!(unbounded.constraints.singleton, Some(false));
 }
 
+/// An example row from the shared source whose direct type is `direct`, a `Person` subtype.
 fn contested_row(
     link_id: &'static str,
     source_id: &'static str,
@@ -240,6 +267,7 @@ fn contested_row(
     }
 }
 
+/// Builds five example rows, two sharing a source endpoint.
 fn contested_rows() -> Vec<ExampleRow<'static>> {
     vec![
         contested_row(
@@ -287,8 +315,8 @@ fn contested_rows() -> Vec<ExampleRow<'static>> {
 
 #[test]
 fn examples_are_endpoint_deduplicated_bounded_and_input_order_independent() {
-    // Two of the five candidates share a source endpoint, so only four can coexist, however many
-    // slots the budget offers.
+    // Two of the five candidates share a source endpoint. Only four can coexist, however many slots
+    // the budget offers.
     let unbounded = build(facts(), vec![person_association()], contested_rows(), 5);
     assert_eq!(unbounded.examples.len(), 4);
     let shared_lines = example_lines(&unbounded)
@@ -306,6 +334,10 @@ fn examples_are_endpoint_deduplicated_bounded_and_input_order_independent() {
     assert_eq!(reversed.to_string(), unbounded.to_string());
 }
 
+/// Higher endpoint frequencies rank an example first.
+///
+/// Labels are whitespace-normalized, and a rare row whose normalized line duplicates a chosen one
+/// loses its slot.
 #[test]
 fn frequency_ranking_prefers_recognizable_normalized_labels() {
     let rows = vec![
@@ -342,7 +374,7 @@ fn frequency_ranking_prefers_recognizable_normalized_labels() {
 
     let contents = build(facts(), vec![person_association()], rows, 3);
 
-    // The frequent pair leads; the rare candidate loses its slot because
+    // The frequent pair leads. The rare candidate loses its slot because
     // its whitespace-normalized labels render the same line.
     assert_eq!(
         example_lines(&contents),
@@ -353,6 +385,9 @@ fn frequency_ranking_prefers_recognizable_normalized_labels() {
     );
 }
 
+/// Rows from different webs that render the same line collapse to one.
+///
+/// Distinct lines from the same webs survive.
 #[test]
 fn rendered_pair_conflicts_drop_duplicate_text_but_keep_alternates() {
     let rows = vec![
@@ -421,8 +456,8 @@ fn stratification_uses_nearest_closure_entry_despite_title_collisions() {
         maximum_targets: Some(1),
     };
     let rows = vec![
-        // The nearest closure entry is the person type, so this candidate
-        // belongs to the later group despite its stronger recognizability.
+        // The nearest closure entry is the person type. This candidate belongs to the later group
+        // despite its stronger recognizability.
         ExampleRow {
             source_type_closure: vec![PERSON_ID, EMPLOYEE_ID],
             source_frequency: 50,
@@ -497,6 +532,7 @@ fn unmatched_candidates_fall_back_only_when_every_source_group_is_empty() {
     );
 }
 
+/// The slug is the last path segment of the type id however many trailing slashes it carries.
 #[test]
 fn slug_takes_the_last_path_segment_ignoring_trailing_slashes() {
     for id in [
@@ -509,6 +545,7 @@ fn slug_takes_the_last_path_segment_ignoring_trailing_slashes() {
     }
 }
 
+/// `build_contents` returns `None` for an inverted cardinality range or a blank source title.
 #[test]
 fn association_outside_its_contract_yields_no_contents() {
     let inverted = build_contents(
@@ -542,6 +579,9 @@ fn association_outside_its_contract_yields_no_contents() {
     assert!(unlabelled.is_none());
 }
 
+/// Facts, two associations and two grouped example rows render the expected canonical card text.
+///
+/// The render reports no truncation.
 #[test]
 fn assembled_contents_render_the_canonical_card() {
     let contents = build(
@@ -591,6 +631,6 @@ fn assembled_contents_render_the_canonical_card() {
             "Slug: owns\n",
         )
     );
-    assert!(card.truncations().is_empty());
+    assert_eq!(card.truncations(), [] as [Cow<'static, str>; 0]);
     assert!(!card.severely_truncated());
 }

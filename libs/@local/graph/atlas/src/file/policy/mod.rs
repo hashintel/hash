@@ -28,7 +28,7 @@
 //! whole-file-mapping alignment guarantee of the array format applies unchanged. Map the whole
 //! file and slice, never mmap at a file offset.
 //!
-//! [`read::PolicyFile`] opens a file under these rules and hands out the raw typed rows;
+//! [`read::PolicyFile`] opens a file under these rules and hands out the raw typed rows.
 //! [`write::write_rows`] streams them into place. The format owns geometry alone - the table's
 //! domain invariants (strictly ascending relations, probabilities and applicability in `[0, 1]`,
 //! finite nonnegative strength) are `salt::policy`'s artifact contract, validated where the domain
@@ -37,7 +37,7 @@
 #![expect(
     clippy::little_endian_bytes,
     reason = "the fields are little endian, while the magic discriminant stores native endian, so \
-              a cross-endian reader fails loudly at the magic instead of misreading fields"
+              a cross-endian reader fails magic validation instead of misreading fields"
 )]
 
 use core::fmt;
@@ -52,8 +52,10 @@ pub(crate) mod write;
 use super::region::machine::{Architecture, Machine};
 use crate::file::region::{PAGE, header::header};
 
-// The single variant makes the derive validate the discriminant, so parsing admits exactly the
-// pinned magic value.
+/// The discriminant carrier behind [`FileHeaderMagic`].
+///
+/// Parsing admits exactly the pinned magic value because the derive validates the single
+/// variant's discriminant.
 #[derive(
     Debug,
     Copy,

@@ -1,5 +1,13 @@
 const conversationStorageKey = "brunch-conversation-id-v1";
 
+/** Incarnation-scoped Flue conversation for ordinary configured Brunch. */
+export const ordinaryConstructionConversationIdPrefix =
+  "brunch-construction-v1";
+
+export const ordinaryConstructionConversationIdFrom = (
+  incarnationId: string,
+): string => `${ordinaryConstructionConversationIdPrefix}:${incarnationId}`;
+
 interface ConversationStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -22,9 +30,13 @@ export const getOrCreateBrunchConversationId = (
     return existing;
   }
   const conversationId = createId();
-  storage.setItem(
-    conversationStorageKey,
-    JSON.stringify({ ...stored, [netId]: conversationId }),
-  );
+  try {
+    storage.setItem(
+      conversationStorageKey,
+      JSON.stringify({ ...stored, [netId]: conversationId }),
+    );
+  } catch {
+    // The generated id remains valid for this page load.
+  }
   return conversationId;
 };

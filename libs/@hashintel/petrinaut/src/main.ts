@@ -10,7 +10,10 @@
  * @role The host-facing entry point: the contexts and types an embedder wires up
  */
 
-export type { ErrorTracker } from "./react/error-tracker-context";
+export type {
+  ErrorTracker,
+  ErrorTrackerCaptureContext,
+} from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 export type {
   PetrinautConnectedOptimization,
@@ -71,6 +74,7 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
+  type DocumentRevisionId,
   type EventStream,
   type HistoryEntry,
   type MinimalNetMetadata,
@@ -106,5 +110,10 @@ export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautAiStopResult,
+  PetrinautAiToolPresentation,
+  PetrinautAiToolPresentationContext,
+  PetrinautAiToolPresentationResolver,
+  PetrinautAiToolPresentationState,
+  PetrinautAiToolPresentationTone,
   PetrinautProps,
 } from "./ui/petrinaut";

@@ -20,13 +20,13 @@ The campaign therefore supports no baseline-competitive, superiority, readiness,
 
 ## Arithmetic errata
 
-The retained omniscient report supplied dimension scores `3, 4, 4, 4, 3, 3` with weights `20, 20, 20, 15, 15, 10`. Its listed contributions sum to `88.75`, which rounds under the frozen one-decimal rule to **88.8 / 100**, not `72.5 / 100`.
+The historical omniscient report supplied dimension scores `3, 4, 4, 4, 3, 3` with weights `20, 20, 20, 15, 15, 10`. Its listed contributions sum to `88.75`, which rounds under the frozen one-decimal rule to **88.8 / 100**, not `72.5 / 100`.
 
-The retained cold attempt 2 supplied scores `4.0, 3.5, 3.0, 4.0, 3.5, 2.5`. Their mean is `20.5 / 6 = 3.4167`, which rounds to **3.4 / 4**, not `3.2 / 4`.
+The historical cold attempt 2 supplied scores `4.0, 3.5, 3.0, 4.0, 3.5, 2.5`. Their mean is `20.5 / 6 = 3.4167`, which rounds to **3.4 / 4**, not `3.2 / 4`.
 
 Those corrected values would place the observed workpiece above the flat-prompt omniscient range `66.3–80.0` and within its cold range `3.3–3.5`. They remain diagnostic only because the workpiece was produced by an oracle-invalid run and the cold reviewer did not complete its contract.
 
-The model-authored `.omniscient.md`, `.cold.md`, and `.cold-attempt-2.md` files are retained as received and therefore still contain their arithmetic errors. This adjudication is their explicit erratum; no consumer may quote their headline totals without this correction.
+The model-authored `.omniscient.md`, `.cold.md`, and `.cold-attempt-2.md` files originally contained those arithmetic errors and were subsequently retired with the raw campaign output. This adjudication preserves the corrected results; it does not promise access to the original reports.
 
 ## Incomplete independent oracle
 

@@ -1,28 +1,28 @@
 //! Relation indexes: factorized attraction edges and no-repel protection.
 //!
-//! The deliverable is [`RelationIndexes`]: the two link-derived structures projector training
-//! consumes, built together from one pass over the generation's admitted link instances so both
-//! always describe the same edge set.
+//! [`RelationIndexes::build`] derives attraction and protection from the same admitted link
+//! instances. Attraction assigns geometric weights to typed instances. Protection retains pair
+//! evidence independently of attraction pruning, for deciding which negative pairs to exclude.
 //!
-//! - [`attraction::AttractionIndex`] holds every force-bearing instance, grouped by relation type,
-//!   carrying the weight factors of the relation-attraction objective. Factors live where they
-//!   vary: the per-relation values (class weights, frozen strength) on the group, the per-instance
-//!   values (effective confidence, degree normalization) on the edge. Each factor therefore enters
-//!   the objective exactly once, and the grouped layout is the shape minibatch sampling limits
-//!   per-relation representation over.
-//! - [`protection::ProtectionIndex`] holds the per-pair evidence masses that veto targeted
-//!   repulsion between linked endpoint rows. Masses aggregate before attraction admission and
-//!   before force pruning, so an edge too weak to pull still vetoes a false-neighbour repulsion.
+//! - [`attraction::AttractionIndex`] groups retained instances by relation type. Class weights and
+//!   frozen strength belong to the group, effective confidence and share-weighted degree
+//!   normalization to the edge. Multiplying these factors into the class energies applies each
+//!   exactly once. The grouped layout supports per-relation sampling caps.
+//! - [`protection::ProtectionIndex`] aggregates evidence over each endpoint pair. A pruned
+//!   attraction instance still contributes protection evidence. Whether that evidence vetoes
+//!   repulsion depends on the channel's floor and threshold.
 //!
 //! # Input contract
 //!
-//! Instances are the caller's admission decision over the dataset's edge stream: one
-//! [`RelationInstance`] per admitted `(edge, relation)` reading, sharing the edge row's endpoints
-//! and confidence scores. Row references and score ranges are the dataset stream's contracts
-//! (`crate::dataset`), and each edge row appears at most once per relation because the stream
-//! assigns edge rows by position; the build consumes them under those contracts. Every invariant
-//! the build itself requires is carried by a validating type: [`Policies`] certifies the policy
-//! table once at construction, and the option types are valid by construction.
+//! Supply one [`RelationInstance`] per admitted `(edge, relation)` reading, with endpoints in the
+//! node-row domain. Readings of one edge must share endpoints and scores, and each must carry the
+//! edge's total admitted reading count. Each `(edge, relation)` must occur at most once. The build
+//! assumes these relationships rather than validating them. It treats a zero multiplicity as one
+//! and drops self-references before resolving policies.
+//!
+//! [`Policies`] certifies strictly ascending policy rows. Confidence and option types constrain
+//! individual scalar domains. They do not certify instance uniqueness, reading counts or that a
+//! policy's class components sum to at most one.
 //!
 //! # Weights
 //!
@@ -33,28 +33,29 @@
 //! c = c_link · √(c_source · c_target),
 //! ```
 //!
-//! where a missing score contributes the neutral factor 1 and sets a retained provenance bit, the
-//! reading share
+//! where each score lies in `[0, 1]`. A missing score contributes the neutral factor 1, and a
+//! presence bit records each supplied score. The reading share is
 //!
 //! ```text
 //! s = 1 / multiplicity,
 //! ```
 //!
-//! which distributes one link's worth of force over the edge's relation readings - a multi-typed
-//! link is a mixture of its types' geometric opinions, never a sum, while parallel links remain
-//! independent assertions at full strength - and the degree normalization
+//! which makes a complete set of one edge's readings a mixture of its types' geometric weights
+//! before degree normalization. Parallel edges remain independent assertions. This conservation is
+//! a real-arithmetic law for the shares and makes no claim about equal realized force after degree
+//! normalization. The degree normalization is
 //!
 //! ```text
 //! ν = 1 / √((1 + degree_r(i)) · (1 + degree_r(j))),
 //! ```
 //!
-//! where `degree_r` sums the shares of the relation's admitted instances at a row, so an edge
-//! contributes one unit of degree across its readings at each endpoint. Degrees always cover the
-//! complete admitted instance set: force pruning drops an edge from sampling without reweighting
-//! its neighbours. The persisted per-instance factor is the combined normalization `ν · s`.
+//! where `degree_r` sums the shares of every non-self instance of relation `r` incident to the row.
+//! A complete set of readings contributes one unit across relations at each endpoint in real
+//! arithmetic. Degrees cover all non-self instances before pruning: removing an edge from sampling
+//! does not reweight its neighbours. The persisted per-instance factor is `ν · s`.
 //!
-//! Protection is exempt from the share on purpose: evidence aggregates by maximum, and a fractional
-//! reading still fully asserts its relation - conservation for geometry, conjunction for safety.
+//! Protection uses undivided evidence. Aggregation by maximum lets one reading assert its full
+//! evidence even when its attraction share is fractional.
 //!
 //! The per-relation group carries the class weights
 //!
@@ -62,23 +63,29 @@
 //! coincident = κ_C · p*_C,        proximal = p*_P,
 //! ```
 //!
-//! the shared Coincident coefficient applied to the effective attraction distribution `p*`;
-//! Proximal's unit coefficient is the scale convention of normalized distance. The group's frozen
-//! strength multiplier completes the factors.
+//! where `p*` is the policy's effective attraction distribution over the [geometry
+//! classes](crate::salt::policy::GeometryClass), and `κ_C` is the non-negative Coincident
+//! coefficient. Proximal's unit coefficient fixes the scale convention. The group's frozen
+//! non-negative strength multiplier completes the factors.
+//!
+//! Confidence, shares, degree prefixes and combined normalization compute in `f64`. Class weights
+//! narrow to `f32`. These operations round, including prefix subtraction for a row's degree, and
+//! confidence products can underflow to zero. Fixed sorted order and fixed emission
+//! chunks make build results independent of input order and thread scheduling under the uniqueness
+//! contract, at the same floating-point implementation.
 //!
 //! # Protection
 //!
-//! Protection evidence derives from the selected class distribution `p` and the calibrated
-//! applicability `a`: per instance, the applicability-discounted evidence `c · (p_C + p_P) · a` and
-//! the undiscounted evidence `c · (p_C + p_P)`, each aggregated by maximum over every instance of
-//! an endpoint pair, including instances of different relations and parallel links. A channel's
-//! mass under an applicability floor `F` is then exactly `max(discounted, F · undiscounted)`,
-//! because the maximum distributes over the per-instance `max(a, F)` - so floors and admission
-//! thresholds are both query-time parameters ([`protection::ProtectionView::judge`]), and one built
-//! index serves every floor and threshold calibration, including the floor-ablation matrix,
-//! unchanged. The index is a symmetric sparse matrix over the node-row domain
-//! ([`protection::ProtectionIndex`]): row `i` lists every protected partner of node row `i`, the
-//! shape hard-negative mining vets one projected point's candidates against.
+//! Protection derives from the selected class distribution `p` and calibrated applicability `a ∈
+//! [0, 1]`. It aggregates the discounted evidence `c · (p_C + p_P) · a` and undiscounted evidence
+//! `c · (p_C + p_P)` by independent maxima over all non-self instances of each endpoint pair,
+//! across relations and parallel links.
+//!
+//! A channel's mass under applicability floor `F ∈ [0, 1]` is `max(discounted, F · undiscounted)`.
+//! [`protection`] gives the factorization and its rounding convention. Floors and admission
+//! thresholds are query-time parameters of [`protection::ProtectionView::judge`]. One built index
+//! supports the full floor/threshold calibration grid. Its symmetric sparse matrix exposes each
+//! row's partners for both pair lookups and row-wise candidate checks.
 
 use hashql_core::id::Id;
 
@@ -87,8 +94,6 @@ pub(crate) use self::{
     confidence::{EffectiveConfidence, RelationConfidence, Scored},
     error::RelationIndexError,
 };
-// The policy row vocabulary is `salt::policy`'s deliverable; the
-// certified `Policies` view over it stays here with its consumer.
 #[cfg(test)]
 pub(crate) use crate::salt::policy::ClassProbabilities;
 pub(crate) use crate::salt::policy::RelationPolicy;
@@ -100,8 +105,7 @@ use crate::{
 
 pub(crate) mod artifact;
 pub(crate) mod attraction;
-// Fully public: the root `bench` facade re-exports it; the private
-// module chain above keeps it unreachable except through the facade.
+// public for the root bench facade's re-export.
 #[cfg(feature = "bench")]
 pub mod bench;
 mod build;
@@ -112,13 +116,13 @@ pub(crate) mod protection;
 #[cfg(test)]
 mod tests;
 
-/// One admitted link instance: an edge row read under one of its relation types.
+/// One admitted reading of an edge row under a relation type.
 ///
-/// A link entity carrying several relation types yields one instance per type, all referencing the
-/// same edge row and confidence scores. Each instance carries the share `1 / multiplicity` of the
-/// edge's force, so the edge's total force mass is one link's worth regardless of how many types it
-/// carries. The caller admits instances (security mode and conflict quarantine are upstream
-/// concerns); every instance handed to the build participates.
+/// A link entity carrying multiple relation types yields one instance per type, all referencing the
+/// same edge row and confidence scores. With `multiplicity` equal to the admitted reading count,
+/// the shares `1 / multiplicity` sum to one before degree normalization, up to rounding. Admission
+/// belongs to the producer. The build drops self-references and applies attraction pruning to the
+/// remaining instances.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) struct RelationInstance<N, E> {
     /// The edge row that produced the instance.
@@ -131,7 +135,10 @@ pub(crate) struct RelationInstance<N, E> {
     pub target: N,
     /// The link's confidence scores.
     pub confidence: RelationConfidence,
-    /// The edge's total reading count across its relation types, at least 1.
+    /// The edge's total admitted reading count across its relation types, at least 1.
+    ///
+    /// The build clamps zero to one without checking that this count matches the supplied
+    /// readings.
     pub multiplicity: u32,
 }
 
@@ -151,9 +158,8 @@ impl<N, E> RelationInstance<N, E> {
 /// A certified relation policy table.
 ///
 /// Construction checks the strictly ascending relation order once, or adopts it from an owned
-/// [`CertifiedPolicies`] whose construction already proved it. Every value's domain rides in
-/// the policy's field types. Lookups and the build consume the table without further
-/// validation.
+/// [`CertifiedPolicies`] with the same ordering invariant. The policy's field types constrain
+/// individual values. Certification does not check relationships between class probabilities.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct Policies<'policy>(&'policy [RelationPolicy]);
 
@@ -162,7 +168,7 @@ impl<'policy> Policies<'policy> {
     ///
     /// # Errors
     ///
-    /// Returns an error when the policies are not strictly ascending by relation row.
+    /// Returns [`RelationIndexError`] for a policy-order violation.
     #[cfg(any(test, feature = "bench"))]
     pub(crate) fn new(
         policies: &'policy [RelationPolicy],
@@ -181,8 +187,8 @@ impl<'policy> Policies<'policy> {
 
     /// Looks up a relation's policy.
     ///
-    /// Returns [`None`] when the table does not cover the relation. Time is `O(log R)` in the table
-    /// length.
+    /// Returns [`None`] when the table does not cover the relation. Time is `O(log(R + 2))` for
+    /// table length `R`.
     #[must_use]
     pub(crate) fn get(self, relation: OntologyRowId) -> Option<&'policy RelationPolicy> {
         self.0
@@ -193,7 +199,6 @@ impl<'policy> Policies<'policy> {
 }
 
 impl<'policy> From<&'policy CertifiedPolicies> for Policies<'policy> {
-    /// Adopts the owned table's construction fact without re-checking it.
     fn from(certified: &'policy CertifiedPolicies) -> Self {
         Self(certified.as_slice())
     }
@@ -202,7 +207,7 @@ impl<'policy> From<&'policy CertifiedPolicies> for Policies<'policy> {
 /// The build's account of dropped instances and pruned force mass.
 ///
 /// The recorded threshold is the criterion the pruned/retained split was judged against.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct BuildMeasurements {
     /// The force-pruning threshold the build applied.
     pub pruning_threshold: NonNegative,
@@ -220,15 +225,18 @@ pub(crate) struct BuildMeasurements {
     pub self_references: usize,
     /// The edge multiplicity histogram.
     ///
-    /// Entry `i` counts edges carrying `i + 1` relation readings.
+    /// Entry `i` counts edges carrying `i + 1` relation readings. [`RelationIndexes::build`]
+    /// leaves this empty. The edge drain supplies the histogram separately.
     pub multi_typed_edges: Vec<u64>,
 }
 
 impl BuildMeasurements {
     /// Returns the fraction of total force mass the pruning dropped.
     ///
-    /// This quantity audits the pruning threshold: a threshold is admissible while the omitted
-    /// fraction stays numerically negligible. An instance set without positive mass omits nothing.
+    /// Compare this fraction with an acceptable omitted-mass budget when choosing a pruning
+    /// threshold. It measures `c · s · s+`, excluding degree normalization, frozen strength and
+    /// class-energy derivatives, and does not bound layout movement. An instance set without
+    /// positive mass returns zero.
     #[must_use]
     #[cfg(any(test, feature = "bench"))]
     pub(crate) fn omitted_mass_fraction(&self) -> crate::math::UnitFraction {
@@ -240,8 +248,9 @@ impl BuildMeasurements {
             return UnitFraction::ZERO;
         }
 
-        // Adding the non-negative retained mass never rounds the sum below the pruned mass, so
-        // the quotient lies in [0, 1]; an overflowed total gives a zero quotient, still in domain.
+        // A rounded sum of finite non-negative masses is at least each operand. Both stored masses
+        // are finite, even if their sum overflows to infinity. Therefore the quotient lies in [0,
+        // 1], with an infinite total yielding zero.
         UnitFraction::new(self.pruned_mass.get() / total)
             .expect("a non-negative share of a total at least as large lies in [0, 1]")
     }
@@ -249,12 +258,12 @@ impl BuildMeasurements {
 
 /// The relation-force and no-repel structures of one generation.
 ///
-/// Both indexes derive from the same admitted instance set in one build, so the edge an attraction
-/// group weights and the pair a protection evidence entry covers can never disagree about the
-/// underlying link.
+/// [`Self::build`] derives both indexes from the same admitted instance set. Protection includes
+/// every non-self pair, including pairs whose attraction instances all prune. The public fields do
+/// not validate shared provenance when assembled separately.
 #[derive(Debug, Clone)]
 pub(crate) struct RelationIndexes<N, E> {
-    /// Force-bearing instances grouped by relation type.
+    /// Retained link instances grouped by relation type.
     pub attraction: attraction::AttractionIndex<N, E>,
     /// The symmetric per-row no-repel evidence matrix.
     pub protection: protection::ProtectionIndex<N>,
@@ -265,29 +274,35 @@ pub(crate) struct RelationIndexes<N, E> {
 impl<N, E> RelationIndexes<N, E> {
     /// Builds both indexes from the generation's admitted link instances.
     ///
-    /// `rows` is the node-row domain the protection matrix spans, and every instance endpoint lies
-    /// in it under the dataset row contract. The build reorders the instances in place, and both
-    /// indexes are functions of the instance set alone, identical for any input order. The build
-    /// drops instances whose endpoints are one row and counts them in the measurements, because
-    /// they exert no force between distinct points and protect nothing. Degrees and protection
-    /// evidence cover the complete remaining instance set regardless of pruning.
+    /// `rows` is the node-row domain the protection matrix spans. Endpoints must lie in this
+    /// domain, and `N` must represent the domain's row positions and end fencepost. Instances must
+    /// satisfy the module's uniqueness and multiplicity contract. The build reorders them in place
+    /// and drops self-references, counting each dropped instance. Degrees and protection evidence
+    /// cover the complete remaining instance set regardless of pruning.
     ///
-    /// Sorting and emission are parallel at two levels. Groups build concurrently, and a group's
-    /// instances emit over fixed-position chunks, so one high-volume relation cannot serialize the
-    /// pass. The fixed boundaries keep the double-precision mass sums a function of the instance
-    /// set alone. Time is `O(E log E)` in the instance count. Beyond the returned indexes the build
-    /// allocates one two-column endpoint scratch per relation group and one per-instance protection
-    /// record buffer.
+    /// Groups build concurrently. Within a group, emission uses fixed-position chunks with partial
+    /// masses combined in chunk order. Together with the unique sort keys, this gives input-order
+    /// and scheduling independence at the same floating-point implementation.
+    ///
+    /// # Complexity
+    ///
+    /// For `E` instances, `R` policy rows and `N` node rows, time is:
+    ///
+    /// `O(E log(E + 1) + E log(R + 1) + N)`.
+    ///
+    /// Working storage is `O(E + N)` beyond the returned indexes: endpoint columns and their share
+    /// prefixes, per-chunk edge buffers, group ranges, protection records and row cursors. The
+    /// final protection scatter is sequential.
     ///
     /// # Errors
     ///
-    /// Returns an error when an instance references a relation the policy table does not cover, or
-    /// `rows` exceeds the protection matrix's `u32` column encoding.
+    /// Returns [`RelationIndexError`] for an oversized row domain or a non-self instance without a
+    /// policy. The row bound is checked first, then missing policies in ascending relation order.
     ///
     /// # Panics
     ///
-    /// This panics when an instance endpoint lies outside the `rows` domain, which the dataset row
-    /// contract excludes.
+    /// Panics when a non-self endpoint is outside `rows` or `N` cannot represent a required row
+    /// position or fencepost.
     pub(crate) fn build(
         rows: usize,
         policies: Policies<'_>,

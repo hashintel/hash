@@ -12,7 +12,6 @@
 //! as tie-breaker. Forward checking narrows domains bidirectionally after each assignment.
 
 use core::{alloc::Allocator, mem};
-use std::f32;
 
 use hashql_core::{
     graph::{Predecessors as _, Successors as _},
@@ -598,13 +597,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             }
 
             // Restore cost to what it was before this assignment
-            self.cost_so_far = {
-                let mut restored = ApproxCost::ZERO;
-                for index in 0..saved_depth {
-                    restored += self.cost_deltas[index];
-                }
-                restored
-            };
+            self.cost_so_far = self.cost_deltas.iter().copied().take(saved_depth).sum();
 
             // Restore domains
             self.depth = saved_depth;

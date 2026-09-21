@@ -5,6 +5,10 @@ import { getDocumentUri } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
+import {
+  ChevronRightIcon,
+  useExperimentalIconPackEnabled,
+} from "../../experimental-icons";
 import { useDraftField } from "../../hooks/use-draft-field";
 import { CodeEditor } from "../../monaco/code-editor";
 import { focusLands } from "../../worksheet/focus-flow";
@@ -1372,6 +1376,7 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
   bodyParts,
   onFocusSearch,
 }) => {
+  const experimentalIcons = useExperimentalIconPackEnabled();
   const { iconColor, name, summary, body } = cellPresentation(
     net,
     cell,
@@ -1428,9 +1433,13 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
             onSetExpanded(!isExpanded);
           }}
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
-            <path d="M2 0 L7 4 L2 8 Z" fill="currentColor" />
-          </svg>
+          {experimentalIcons ? (
+            <ChevronRightIcon size={8} hover="none" />
+          ) : (
+            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden>
+              <path d="M2 0 L7 4 L2 8 Z" fill="currentColor" />
+            </svg>
+          )}
         </button>
         <span
           className={iconStyle}

@@ -1,11 +1,10 @@
 //! The ingest side of one fit: everything that reads the dataset.
 //!
-//! [`Ingest::run`] drains the dataset streams - nodes, edges, ontology, cards, and the display
-//! streams
-//! beside them - into their staged artifacts
-//! and resident columns and certifies the representation contract, so everything the compute side
-//! needs afterwards lives in staged files and the returned [`Ingested`] value. The dataset and the
-//! embedding provider are never touched again after this module returns.
+//! [`Ingest::run`] drains the dataset streams - nodes, edges, ontology, cards, and the auxiliary
+//! payload streams (labels and icons) beside them - into their staged artifacts and resident
+//! columns, and certifies the representation contract. Everything the compute side needs
+//! afterwards therefore lives in staged files and the returned [`Ingested`] value. The dataset
+//! and the embedding provider are never touched again after this module returns.
 
 use alloc::collections::BTreeSet;
 use core::{borrow::Borrow, pin::pin};
@@ -31,6 +30,7 @@ use super::{
 use crate::{
     dataset::{Dataset, DatasetOrigin, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
+        ArtifactFile as _,
         array::{ArrayFile, ColumnScalar as _},
         digest_file,
         generation::{Generation, ScratchDirectory, StagedGeneration},
@@ -75,8 +75,9 @@ struct EdgeArtifacts {
     endpoints: Binding<artifact::EdgeEndpoints>,
     /// The spooled `(edge, relation)` readings.
     instances: InstanceSpool,
-    /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
-    /// readings.
+    /// The edge multiplicity histogram.
+    ///
+    /// Entry `i` counts edges carrying `i + 1` relation readings.
     multi_typed: Vec<u64>,
 }
 
@@ -125,8 +126,9 @@ pub(super) struct Ingested {
     pub edge_endpoints: Binding<artifact::EdgeEndpoints>,
     /// The spooled `(edge, relation)` readings the relation stage consumes.
     pub instances: InstanceSpool,
-    /// The edge multiplicity histogram, whose entry `i` counts edges carrying `i + 1` relation
-    /// readings.
+    /// The edge multiplicity histogram.
+    ///
+    /// Entry `i` counts edges carrying `i + 1` relation readings.
     pub multi_typed: Vec<u64>,
     /// The staged card-embedding artifacts.
     pub cards: CardArtifacts,
@@ -145,11 +147,12 @@ impl Ingested {
         }
     }
 
-    /// The metadata document's `reproducibility` section: the configuration and provenance the
-    /// fit ran under.
+    /// The metadata document's `reproducibility` section.
     ///
-    /// With [`snapshot`](Self::snapshot) it forms the paired-movement salt preimage, so the
-    /// readout's draw replays from the published document's input sections alone.
+    /// It records the configuration and provenance the fit ran under.
+    ///
+    /// With [`snapshot`](Self::snapshot) it forms the paired-movement salt preimage. The
+    /// readout's draw therefore replays from the published document's input sections alone.
     pub(super) const fn reproducibility(
         &self,
         config: FitConfig,
@@ -180,9 +183,18 @@ where
     /// Drains the dataset into the staged stream artifacts.
     ///
     /// The stages run in the dataset's documented ingest order (nodes, edges, ontology, then the
-    /// card render over the same type table) and the ingest certifies the representation
-    /// contract before the card stream touches the embedding provider, so a defective corpus
-    /// never spends provider budget.
+    /// card render over the same type table). Before the card stream touches the embedding
+    /// provider, the norm spot check certifies the representation contract on a row sample, and
+    /// its refusal stops the ingest before the generation's cards embed. A defective row outside
+    /// that sample passes unseen, while a supplied annotation corpus has already embedded before
+    /// the ingest begins.
+    ///
+    /// # Errors
+    ///
+    /// Returns the failing stage's [`FitError`] for a dataset stream failure, a streamed staged
+    /// write, a representation matrix that does not map back or whose norm spot check refuses or
+    /// fails, a card stream or embedding failure, or a prior generation whose card files do not
+    /// serve reuse.
     pub(super) async fn run<E, P>(
         self,
         embedder: &E,
@@ -273,6 +285,11 @@ where
     ///
     /// The matrix digest streams over the finished file because the writer seals its header by
     /// seeking. The identity writer is forward-only and digests inline.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Dataset`] when the node stream or its auxiliary payload fails, and
+    /// [`FitError::Io`] when a staged write, the flush, or the digest fails.
     async fn stage_representations<E>(&self) -> Result<NodeArtifacts, FitError<D::Error, E>> {
         let mut writer = BufWriter::new(self.staging.create(&artifact::Representations::NAME)?);
         let columns = prepare::write_node_representations(self.dataset, &mut writer)
@@ -313,6 +330,18 @@ where
     /// Certifies the source contract on the freshly staged representation rows.
     ///
     /// Returns the passing evidence.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::OpenRepresentations`] when the staged matrix does not map back,
+    /// [`FitError::NormCheck`] when the spot check's sampling settings are unusable, and
+    /// [`FitError::RepresentationDefects`] when the sampled rows violate the source contract.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the mapped matrix does not hold `f32` rows of the projector width. The
+    /// node drain just sealed it in that shape, and a mismatch is a defect of the writer rather
+    /// than of the input.
     fn certify_representations<E>(
         &self,
         config: &FitConfig,
@@ -351,6 +380,16 @@ where
     ///
     /// The endpoint digest streams over the finished file because the array writer seals its
     /// header by seeking. The identity writer is forward-only and digests inline.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Dataset`] when the edge stream or its auxiliary payload fails, and
+    /// [`FitError::Io`] when the spool, a staged write, the flush, or the digest fails.
+    ///
+    /// # Panics
+    ///
+    /// This panics when an edge carries more direct types than `u32` counts. The dataset's direct
+    /// type lists are deduplicated ontology rows, far below that bound.
     async fn stage_edges<E>(&self) -> Result<EdgeArtifacts, FitError<D::Error, E>> {
         let mut ids = IdentityTable::new();
         let mut relations = BTreeSet::new();
@@ -427,6 +466,10 @@ where
     ///
     /// The column is type-scale and crosses to the compute side by value: the postings build
     /// restates it as the published type graph's parent regions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Dataset`] when the ontology stream fails.
     async fn collect_type_parents<E>(
         &self,
     ) -> Result<IdVec<OntologyRowId, SmallVec<OntologyRowId, 2>>, FitError<D::Error, E>> {
@@ -441,11 +484,19 @@ where
 
     /// Renders every card and stages the card-embedding columns from the embedded unique texts.
     ///
-    /// Both columns land beside the ontology identity table collected from the same stream.
+    /// Both columns are staged beside the ontology identity table collected from the same stream.
     ///
     /// A prior generation's card files map back as the reuse table: texts whose hash the reuse
     /// table lists keep their rows without touching the provider. Reuse is fingerprint-guarded
-    /// inside [`embed_cards`], so a changed embedding contract re-embeds everything.
+    /// inside [`embed_cards`], and a changed embedding contract therefore re-embeds everything.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FitError::Cards`] when the card render stream fails, [`FitError::Dataset`] when
+    /// the ontology auxiliary payload fails, [`FitError::Io`] when a staged write fails,
+    /// [`FitError::Embedding`] when the provider fails to produce the table, and a [`PriorError`]
+    /// (wrapped as [`FitError::Compute`]) when the prior card files do not map or are not
+    /// row-aligned digest and embedding columns.
     async fn embed_card_table<E, P>(
         &self,
         embedder: &E,

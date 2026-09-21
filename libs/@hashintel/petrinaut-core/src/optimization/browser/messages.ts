@@ -11,6 +11,12 @@ export type OptimizerBestTrial = {
   objective: number;
 };
 
+/** PED-ANOVA importances over the completed trials, normalised to sum to 1. */
+export type OptimizerImportances = {
+  values: Record<string, number>;
+  completedTrials: number;
+};
+
 /** One finished Optuna trial, as the Python study reports it. */
 export type OptimizerTrialPayload = {
   trial: number;
@@ -18,6 +24,8 @@ export type OptimizerTrialPayload = {
   objective: number | null;
   state: "complete" | "pruned" | "failed";
   best: OptimizerBestTrial | null;
+  /** Set at the importance cadence once the study is past its floor. */
+  importances?: OptimizerImportances;
 };
 
 /** Counts over the whole study so far, across every segment it ran. */
@@ -29,6 +37,8 @@ export type OptimizerStudySummary = {
   best: OptimizerBestTrial | null;
   /** Set when the segment stopped early because the run was cancelled. */
   cancelled?: boolean;
+  /** The final estimate, when the study could make one. */
+  importances?: OptimizerImportances;
 };
 
 export type OptimizerInitMessage = {

@@ -19,6 +19,7 @@ import { ActualModeContext } from "../actual-mode-context";
 
 import type {
   EditorGlobalMode,
+  EditViewMode,
   SimulateDrawerState,
   SimulateViewMode,
 } from "../state/editor-context";
@@ -27,15 +28,16 @@ import type { SelectionItem } from "@hashintel/petrinaut-core";
 export type PetrinautSimulateResource =
   | { type: "scenario"; id: string }
   | { type: "metric"; id: string }
-  | { type: "experiment"; id: string }
-  | { type: "optimization"; id: string };
+  | { type: "experiment"; id: string };
+
+export type PetrinautSettingsSection = "general" | "viewport" | "labs";
 
 export type PetrinautNavigationOverlay =
+  | { type: "user-settings"; section?: PetrinautSettingsSection }
   | { type: "viewport-settings" }
   | { type: "create-scenario" }
   | { type: "create-metric" }
   | { type: "create-experiment" }
-  | { type: "create-optimization" }
   | null;
 
 /**
@@ -47,21 +49,27 @@ export type PetrinautNavigationOverlay =
  */
 export type PetrinautNavigationState = {
   mode: EditorGlobalMode;
+  editView: EditViewMode;
   simulateView: SimulateViewMode;
   simulateResource: PetrinautSimulateResource | null;
+  /** Omission uses the panel presentation, including in existing host controllers. */
+  simulatePresentation?: "panel" | "fullscreen";
   scenarioId: string | null | undefined;
   subnetId: string | null;
   selection: readonly SelectionItem[];
+  expandedSubView: { container: string; id: string } | null;
   overlay: PetrinautNavigationOverlay;
 };
 
 export const defaultPetrinautNavigationState: PetrinautNavigationState = {
   mode: "edit",
+  editView: "canvas",
   simulateView: "experiments",
   simulateResource: null,
   scenarioId: undefined,
   subnetId: null,
   selection: [],
+  expandedSubView: null,
   overlay: null,
 };
 
@@ -69,11 +77,14 @@ export type PetrinautNavigationHistory = "push" | "replace";
 
 export type PetrinautNavigationAction =
   | "mode"
+  | "edit-view"
   | "simulation-view"
   | "simulation-resource"
+  | "simulation-presentation"
   | "scenario"
   | "subnet"
   | "selection"
+  | "subview"
   | "overlay";
 
 export type PetrinautNavigationIntent =
@@ -166,13 +177,22 @@ export const petrinautNavigationStatesMatch = (
   right: Readonly<PetrinautNavigationState>,
 ) =>
   left.mode === right.mode &&
+  left.editView === right.editView &&
   left.simulateView === right.simulateView &&
   left.simulateResource?.type === right.simulateResource?.type &&
   left.simulateResource?.id === right.simulateResource?.id &&
+  (left.simulatePresentation ?? "panel") ===
+    (right.simulatePresentation ?? "panel") &&
   left.scenarioId === right.scenarioId &&
   left.subnetId === right.subnetId &&
   selectionsMatch(left.selection, right.selection) &&
-  left.overlay?.type === right.overlay?.type;
+  left.expandedSubView?.container === right.expandedSubView?.container &&
+  left.expandedSubView?.id === right.expandedSubView?.id &&
+  left.overlay?.type === right.overlay?.type &&
+  (left.overlay?.type !== "user-settings" ||
+    right.overlay?.type !== "user-settings" ||
+    (left.overlay.section ?? "general") ===
+      (right.overlay.section ?? "general"));
 
 const resolveNavigationUpdate = (
   current: Readonly<PetrinautNavigationState>,
@@ -180,10 +200,25 @@ const resolveNavigationUpdate = (
 ): PetrinautNavigationState => {
   const updated =
     typeof update === "function" ? update(current) : { ...current, ...update };
+  const selection = canonicalizeSelection(updated.selection);
+  const scopeChanged =
+    updated.subnetId !== current.subnetId ||
+    !selectionsMatch(selection, current.selection);
 
   return {
     ...updated,
-    selection: canonicalizeSelection(updated.selection),
+    selection,
+    expandedSubView:
+      scopeChanged && updated.expandedSubView === current.expandedSubView
+        ? null
+        : updated.expandedSubView,
+    simulatePresentation:
+      updated.simulateResource?.type === "scenario" ||
+      updated.simulateResource?.type === "experiment" ||
+      updated.overlay?.type === "create-experiment" ||
+      updated.overlay?.type === "create-scenario"
+        ? updated.simulatePresentation
+        : undefined,
   };
 };
 
@@ -201,6 +236,32 @@ export const PetrinautNavigationProvider = ({
       selection: canonicalizeSelection(initialState?.selection ?? []),
     }));
   const state = controller?.state ?? uncontrolledState;
+  const [simulationVisits, setSimulationVisits] = useState<
+    Partial<
+      Record<
+        SimulateViewMode,
+        Pick<
+          PetrinautNavigationState,
+          "simulateResource" | "simulatePresentation"
+        >
+      >
+    >
+  >({});
+  const visit = simulationVisits[state.simulateView];
+  if (
+    visit === undefined ||
+    visit.simulateResource?.type !== state.simulateResource?.type ||
+    visit.simulateResource?.id !== state.simulateResource?.id ||
+    visit.simulatePresentation !== state.simulatePresentation
+  ) {
+    setSimulationVisits({
+      ...simulationVisits,
+      [state.simulateView]: {
+        simulateResource: state.simulateResource,
+        simulatePresentation: state.simulatePresentation,
+      },
+    });
+  }
   /**
    * React normally rerenders after navigation, but several UI libraries emit
    * related callbacks in the same event. Track the state those accepted
@@ -241,7 +302,24 @@ export const PetrinautNavigationProvider = ({
   ) => {
     const updater: PetrinautNavigationUpdater<PetrinautNavigationState> = (
       current,
-    ) => resolveNavigationUpdate(current, update);
+    ) => {
+      const next = resolveNavigationUpdate(current, update);
+      if (
+        intent.cause === "user" &&
+        intent.action === "simulation-view" &&
+        next.simulateView !== current.simulateView
+      ) {
+        return {
+          ...next,
+          simulateResource:
+            simulationVisits[next.simulateView]?.simulateResource ?? null,
+          simulatePresentation:
+            simulationVisits[next.simulateView]?.simulatePresentation,
+          overlay: null,
+        };
+      }
+      return next;
+    };
     const optimistic = optimisticRef.current;
     const current = optimistic?.preview ?? state;
     const preview = updater(current);
@@ -303,8 +381,6 @@ const simulateResourceTypeToView = (
       return "metrics";
     case "experiment":
       return "experiments";
-    case "optimization":
-      return "optimizations";
   }
 };
 
@@ -342,7 +418,6 @@ export const simulateDrawerToNavigationResource = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return current.simulateResource;
     // `closed` means whichever drawer is on top. Closing a create overlay
     // reveals the record it was layered over; closing that record's own
@@ -362,7 +437,6 @@ export const simulateDrawerToNavigationOverlay = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return { type: drawer.type };
     case "closed":
     case "view-scenario":
@@ -380,9 +454,9 @@ export const navigationResourceToSimulateDrawer = (
     case "create-scenario":
     case "create-metric":
     case "create-experiment":
-    case "create-optimization":
       return { type: overlay.type };
     case "viewport-settings":
+    case "user-settings":
     case undefined:
       break;
   }
@@ -393,7 +467,6 @@ export const navigationResourceToSimulateDrawer = (
       return { type: "view-metric", metricId: resource.id };
     case "experiment":
       return { type: "view-experiment", experimentId: resource.id };
-    case "optimization":
     case undefined:
       return { type: "closed" };
   }

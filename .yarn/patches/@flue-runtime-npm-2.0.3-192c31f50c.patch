@@ -1,0 +1,843 @@
+diff --git a/dist/builtin-providers-DW08g5fh.mjs b/dist/builtin-providers-DW08g5fh.mjs
+index 33bee3895e9240ff9a4838886ff81368072d3b1d..0247f7db2e2d761df6f983eaa451e4b00e7c7d0c 100644
+--- a/dist/builtin-providers-DW08g5fh.mjs
++++ b/dist/builtin-providers-DW08g5fh.mjs
+@@ -540,6 +540,7 @@ async function initializeRootHarness(agent, config, emitEvent, delivery) {
+ 		model: resolvedModel,
+ 		thinkingLevel: definition.thinkingLevel ?? config.agentConfig.thinkingLevel,
+ 		compaction: definition.compaction ?? config.agentConfig.compaction,
++		contextProjection: definition.contextProjection,
+ 		durability: resolveAgentDurability(config.agentName)
+ 	};
+ 	const rerender = () => {
+diff --git a/dist/conversation-stream-store-CXwRWonS.mjs b/dist/conversation-stream-store-CXwRWonS.mjs
+index 3fa342b27631ffcf2a05f0f8dcf571fc2236e2cd..72f214bd9081106430fb022341a08d449769ba80 100644
+--- a/dist/conversation-stream-store-CXwRWonS.mjs
++++ b/dist/conversation-stream-store-CXwRWonS.mjs
+@@ -1,10 +1,10 @@
+ import { c as encodeBase64, f as createCallHandle, l as abandonToolOnAbort, r as createCwdSandbox, s as decodeBase64, u as abortErrorFor } from "./sandbox-DAJ0daML.mjs";
+ import { A as createEditTool, D as READ_SKILL_RESOURCE_TOOL_NAME, E as redactObservationDetailImages, F as createTaskTool, I as createWriteTool, L as formatBashResult, M as createGrepTool, N as createPackagedSkillReadTool, O as createActivateSkillTool, P as createReadTool, R as overlayPackagedSkills, S as renderWithFrame, T as redactEventImages, _ as packageSkillDefinition, a as buildPromptText, b as getSkillReferenceDirectory, c as buildWorkspaceSkillPrompt, d as parseSkillMarkdown, f as getPreparedToolAdapter, g as isSkillDefinition, i as buildPackagedSkillPrompt, j as createGlobTool, k as createBashTool, l as createResultTools, n as GIVE_UP_TOOL_NAME, o as buildResultFollowUpPrompt, r as ResultUnavailableError, s as buildSkillByPathlessNamePrompt, t as FINISH_TOOL_NAME, u as prepareResultTool, w as IMAGE_DATA_OMITTED } from "./result-DfjetCf9.mjs";
+ import { $ as generateIncarnationId, A as SubmissionConflictError, F as ToolNameConflictError, J as createConversationIdentity, K as serializeEventError, M as SubmissionRetryExhaustedError, N as SubmissionTimeoutError, O as SubagentNotDeclaredError, S as SessionBusyError, T as SkillNotRegisteredError, W as normalizeLogAttributes, X as generateAttemptId, Y as deriveKeyedSubmissionId, Z as generateBlockId, a as AttachmentNotAvailableError, c as ConversationRecordInvariantError, ct as generateToolCallId, d as FlueError, ft as interceptExecution, h as OperationFailedError, j as SubmissionInterruptedError, k as SubmissionAbortedError, l as ConversationStreamStoreError, lt as generateTurnId, n as AgentInstanceNotFoundError, nt as generateInvocationId, ot as generateSubmissionId, p as InvalidRequestError, rt as generateOperationId, st as generateTaskId, t as AgentInstanceExistsError, tt as generateInstanceUid, u as DelegationDepthExceededError, z as classifyError } from "./errors-CsDcT_C4.mjs";
+-import { $ as shouldCompact, B as aggregateConversationUsageSince, C as DeliveredMessageSchema, Ct as generateConversationEntryId, E as assertDurability, G as findTrailingPartialToolBatch, H as getActiveConversationPathSince, I as MAX_READ_LIMIT, J as calculateContextTokens, K as isRetryableModelError, L as agentStreamPath, Q as prepareCompaction, R as formatOffset, St as encodeCanonicalId, Tt as toolStepRecordId, U as getLatestConversationCompaction, V as classifyConversationSubmission, W as countConsecutiveRetryableModelErrors, X as deriveCompactionDefaults, Y as compact, Z as isAssistantContextOverflow, _t as assertAppendMessage, bt as fnv1a64, ct as toolOutcomeKey, d as resolveAgentInitialDataSchema, et as addUsage, ft as createSessionStorageKey, gt as renderSignalMessage, ht as createUserContextMessage, it as buildConversationContextEntries, lt as toolResultEntryId, mt as parseSessionStorageKey, nt as fromProviderUsage, ot as getActiveConversationPath, q as DEFAULT_COMPACTION_SETTINGS, rt as buildConversationContext, tt as emptyUsage, w as MAX_IMAGE_DATA_LENGTH, wt as generateConversationRecordId, xt as RESERVED_SIGNAL_TYPES, yt as runResponseMetadataHooks, z as parseOffset } from "./dispatch-nU3cIlT-.mjs";
++import { $ as shouldCompact, B as aggregateConversationUsageSince, C as DeliveredMessageSchema, Ct as generateConversationEntryId, E as assertDurability, G as findTrailingPartialToolBatch, H as getActiveConversationPathSince, I as MAX_READ_LIMIT, J as calculateContextTokens, K as isRetryableModelError, L as agentStreamPath, Q as prepareCompaction, R as formatOffset, St as encodeCanonicalId, Tt as toolStepRecordId, U as getLatestConversationCompaction, V as classifyConversationSubmission, W as countConsecutiveRetryableModelErrors, X as deriveCompactionDefaults, Y as compact, Z as isAssistantContextOverflow, _t as assertAppendMessage, bt as fnv1a64, ct as toolOutcomeKey, d as resolveAgentInitialDataSchema, et as addUsage, ft as createSessionStorageKey, gt as renderSignalMessage, ht as createUserContextMessage, it as buildConversationContextEntries, lt as toolResultEntryId, mt as parseSessionStorageKey, nt as fromProviderUsage, ot as getActiveConversationPath, q as DEFAULT_COMPACTION_SETTINGS, rt as buildConversationContext, tt as emptyUsage, w as MAX_IMAGE_DATA_LENGTH, wt as generateConversationRecordId, xt as RESERVED_SIGNAL_TYPES, yt as runResponseMetadataHooks, z as parseOffset, projectContextEntries, renderContextEntries } from "./dispatch-nU3cIlT-.mjs";
+ import { i as providerTelemetryName, n as getRuntimeModels } from "./providers-B1VyW-aH.mjs";
+-import { i as valibotToJsonSchema } from "./schema-DIDpvZZa.mjs";
+-import { a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
++import { toolInputToJsonSchema, isNativeToolInput, n as isValibotSchema } from "./schema-DIDpvZZa.mjs";
++import { toolContextBase, a as parseToolInput, n as claimStepName, o as resolveToolRun, r as cloneStepValue, t as assertToolDefinition } from "./tool-DZ5dxCl_.mjs";
+ import { n as readProviderResponseDiagnostics } from "./provider-diagnostics-C8itP2qI.mjs";
+ import { r as migrateFlueSqlSchema, s as createAttachmentRef } from "./format-version-Bmc1L_3t.mjs";
+ import * as v from "valibot";
+@@ -515,6 +515,7 @@ function renderAgentFunctionWithStructure(agent, state) {
+ 			...tools.length > 0 ? { tools } : {},
+ 			...frame.thinkingLevel !== void 0 ? { thinkingLevel: frame.thinkingLevel } : {},
+ 			...frame.compaction !== void 0 ? { compaction: frame.compaction } : {},
++			...frame.contextProjection !== void 0 ? { contextProjection: frame.contextProjection } : {},
+ 			...frame.cwd !== void 0 ? { cwd: frame.cwd } : {},
+ 			...frame.sandbox !== void 0 ? { sandbox: frame.sandbox } : {},
+ 			...frame.skills.length > 0 ? { skills: frame.skills } : {},
+@@ -541,7 +542,7 @@ function toolResourceEntry(tool) {
+ 	return {
+ 		name: tool.name,
+ 		description: tool.description,
+-		...tool.input ? { schema: JSON.stringify(valibotToJsonSchema(tool.input)) } : {}
++		...tool.input ? { schema: JSON.stringify(toolInputToJsonSchema(tool.input)) } : {}
+ 	};
+ }
+ /**
+@@ -1245,6 +1246,7 @@ var Session = class {
+ 		} : void 0;
+ 		if (swapped) await this.narrateEnvironmentSnapshot(next.resources.snapshot);
+ 		else await this.narrateResourceDelta(anchor);
++		if (this.config.contextProjection) await this.rebuildCanonicalContext();
+ 		return { context: {
+ 			systemPrompt: next.systemPrompt,
+ 			messages: this.agentLoop.state.messages.slice(),
+@@ -1814,7 +1816,7 @@ var Session = class {
+ 			const image = resolved.get(attachment.id);
+ 			if (!image) throw new AttachmentNotAvailableError({ attachmentId: attachment.id });
+ 			return image;
+-		} }).findLast((candidate) => candidate.sourceEntry.id === entryId);
++		}, contextProjection: this.config.contextProjection }).findLast((candidate) => candidate.sourceEntry.id === entryId);
+ 		if (!entry) throw new Error("[flue] A joined delivery input entry is missing from the projected context.");
+ 		this.agentLoop.steer(entry.message);
+ 	}
+@@ -2040,9 +2042,9 @@ var Session = class {
+ 		if (records.length > 0) await this.appendCanonical(records);
+ 	}
+ 	/** Turn buffered `usePersistentState` writes into canonical records, in write order. */
+-	drainHookStateRecords() {
++	drainHookStateRecords(toolCallId) {
+ 		if (!this.hookState) return [];
+-		return this.hookState.drain().map((write) => ({
++		return this.hookState.drain(toolCallId).map((write) => ({
+ 			...this.canonicalEnvelope("state_write"),
+ 			type: "state_write",
+ 			name: write.name,
+@@ -2410,7 +2412,9 @@ var Session = class {
+ 					const details = result.details;
+ 					const hasStructuredOutput = !event.isError && typeof details === "object" && details !== null && "output" in details;
+ 					const toolDurationMs = durationSince(call.startedAt);
+-					await this.appendCanonical([{
++					// Recovery skips recorded outcomes, so their buffered state must be
++					// durable in the same canonical append, not only at turn_end.
++					await this.appendCanonical([...this.drainHookStateRecords(event.toolCallId), {
+ 						...this.canonicalEnvelope("tool_outcome", `record_tool_outcome_${outcomeKey}`),
+ 						type: "tool_outcome",
+ 						assistantMessageId,
+@@ -2651,12 +2655,14 @@ var Session = class {
+ 		try {
+ 			const invocationId = toolDef.harness ? generateInvocationId() : void 0;
+ 			harness = invocationId ? this.createInvocationHarness(invocationId, signal) : void 0;
+-			const parsed = parseToolInput(toolDef, params, signal, {
++			const preparedParams = toolDef.prepareArguments ? toolDef.prepareArguments(structuredClone(params)) : params;
++			const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, preparedParams, signal, {
+ 				log,
+ 				toolCallId,
+ 				step: this.createToolStep(toolDef.name, toolCallId, log),
+ 				...harness ? { harness } : {}
+-			});
++			}), signal);
++			if (signal.aborted) throw abortErrorFor(signal);
+ 			const resolved = resolveToolRun(toolDef, await toolDef.run(parsed.context));
+ 			return buildOutcome(false, resolved.output === void 0 ? "null" : JSON.stringify(resolved.output), resolved.output, resolved.terminate);
+ 		} catch (error) {
+@@ -2800,8 +2806,9 @@ var Session = class {
+ 			});
+ 			outcomeIds.push(recordId);
+ 		}
+-		if (outcomeRecords.length > 0) await this.appendCanonical(outcomeRecords);
+-		await this.appendCanonical([{
++		// Reexecution uses the real tool setter. Commit its buffered writes with
++		// its outcomes and result batch, including across an interrupted repair.
++		await this.appendCanonical([...this.drainHookStateRecords(), ...outcomeRecords, {
+ 			...this.canonicalEnvelope("tool_results_committed", `record_tool_repair_commit_${encodeCanonicalId(assistantEntryId)}`),
+ 			type: "tool_results_committed",
+ 			assistantMessageId: assistantEntryId,
+@@ -3161,7 +3168,7 @@ var Session = class {
+ 				let prepared;
+ 				try {
+ 					if (signal?.aborted) throw abortErrorFor(signal);
+-					prepared = prepare(toolCallId, params, signal);
++					prepared = await abandonToolOnAbort(async () => prepare(toolCallId, params, signal), signal);
+ 				} catch (error) {
+ 					const call = this.activeToolCalls.get(toolCallId) ?? {
+ 						startedAt: Date.now(),
+@@ -3201,11 +3208,12 @@ var Session = class {
+ 					call.startEmitted = true;
+ 				}
+ 				try {
++					const run = () => abandonToolOnAbort(prepared.run, signal);
+ 					const result = await interceptExecution({
+ 						type: "tool",
+ 						toolCallId,
+ 						toolName: tool.name
+-					}, this.executionContext(), () => abandonToolOnAbort(prepared.run, signal));
++					}, this.executionContext(), () => this.hookState ? this.hookState.runForTool(toolCallId, run) : run());
+ 					call.effectiveResult = prepared.result ? prepared.result(result) : result;
+ 					call.effectiveResultCaptured = true;
+ 					return result;
+@@ -3319,11 +3327,17 @@ var Session = class {
+ 		return tools.map((toolDef) => {
+ 			const preparedToolAdapter = getPreparedToolAdapter(toolDef);
+ 			if (!preparedToolAdapter) assertToolDefinition(toolDef, `Tool "${toolDef.name}"`);
++			const nativeInput = !preparedToolAdapter && !isValibotSchema(toolDef.input) && isNativeToolInput(toolDef.input);
+ 			const tool = {
++				...(nativeInput ? { validateArguments: async (args, { toolCallId, signal }) => {
++					const parsed = await abandonToolOnAbort(() => parseToolInput(toolDef, args, signal, { toolCallId }), signal);
++					return parsed.data;
++				} } : {}),
+ 				name: toolDef.name,
+ 				label: toolDef.name,
++				...(toolDef.prepareArguments ? { prepareArguments: (args) => toolDef.prepareArguments(structuredClone(args)) } : {}),
+ 				description: toolDef.description,
+-				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? valibotToJsonSchema(toolDef.input) : {
++				parameters: preparedToolAdapter?.parameters ?? (toolDef.input ? toolInputToJsonSchema(toolDef.input) : {
+ 					type: "object",
+ 					properties: {},
+ 					additionalProperties: false
+@@ -3332,7 +3346,7 @@ var Session = class {
+ 					throw new Error("unreachable");
+ 				}
+ 			};
+-			return this.wrapModelTool(tool, "custom", (toolCallId, params, signal) => {
++			return this.wrapModelTool(tool, "custom", async (toolCallId, params, signal) => {
+ 				if (preparedToolAdapter) return {
+ 					args: params,
+ 					run: async () => ({
+@@ -3345,11 +3359,9 @@ var Session = class {
+ 					result: toolResultText
+ 				};
+ 				const toolLogger = this.createToolLogger(toolDef.name, toolCallId);
+-				const parsed = parseToolInput(toolDef, params, signal, {
+-					log: toolLogger,
+-					toolCallId,
+-					...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {}
+-				});
++				const facilities = { log: toolLogger, toolCallId, ...toolDef.durable ? { step: this.createToolStep(toolDef.name, toolCallId, toolLogger) } : {} };
++				// Native args were parsed once by validateArguments, before beforeToolCall.
++				const parsed = nativeInput ? { data: params, context: { ...toolContextBase(toolDef, signal, facilities), data: params } } : await parseToolInput(toolDef, params, signal, facilities);
+ 				return {
+ 					args: parsed.data,
+ 					run: async () => {
+@@ -3912,7 +3924,7 @@ var Session = class {
+ 			const image = resolved.get(attachment.id);
+ 			if (!image) throw new AttachmentNotAvailableError({ attachmentId: attachment.id });
+ 			return image;
+-		} });
++		}, contextProjection: this.config.contextProjection });
+ 		this.agentLoop.state.messages = messages;
+ 	}
+ 	/**
+@@ -3970,6 +3982,14 @@ var Session = class {
+ 					});
+ 					return;
+ 				}
++				// Silent overflow can be inferred from usage on a successful stop.
++				// That response is already canonical and complete: compact for the
++				// next actual input, rather than retrying an assistant tail (or
++				// replaying completed work). Error/partial responses still recover.
++				if (assistant.stopReason === "stop" && !hasToolCallBlocks(assistant)) {
++					throwIfHalted();
++					return;
++				}
+ 				this.internalLog("info", "[flue:compaction] Retrying after overflow recovery...");
+ 				start = continueRebuilt;
+ 			} else if (retryable && assistant !== void 0) {
+@@ -4054,11 +4074,13 @@ var Session = class {
+ 			const summarizationModel = compactionConfig?.model ? this.resolveModelForCall(compactionConfig.model) : sessionModel;
+ 			const canonicalConversation = await this.requireConversation();
+ 			const resolvedAttachments = await this.resolveCanonicalContextAttachments(canonicalConversation);
+-			const contextEntries = buildConversationContextEntries(canonicalConversation, { resolveAttachment: (attachment) => {
++			const canonicalContextEntries = buildConversationContextEntries(canonicalConversation, { resolveAttachment: (attachment) => {
+ 				const image = resolvedAttachments.get(attachment.id);
+ 				if (!image) throw new AttachmentNotAvailableError({ attachmentId: attachment.id });
+ 				return image;
+-			} });
++			}, renderSignals: false });
++			const projectEntries = (entries) => renderContextEntries(projectContextEntries(entries, this.config.contextProjection));
++			const contextEntries = projectEntries(canonicalContextEntries);
+ 			const messages = contextEntries.map((entry) => entry.message);
+ 			const latestCompaction = getLatestConversationCompaction(canonicalConversation);
+ 			const preparation = prepareCompaction(messages, settings, latestCompaction ? {
+@@ -4070,6 +4092,14 @@ var Session = class {
+ 				this.internalLog("info", "[flue:compaction] Nothing to compact (no valid cut point found)");
+ 				return false;
+ 			}
++			const projectionStart = latestCompaction ? 1 : 0;
++			const historyEnd = projectionStart + preparation.messagesToSummarize.length;
++			const prefixEnd = historyEnd + preparation.turnPrefixMessages.length;
++			const exactPreparation = {
++				...preparation,
++				messagesToSummarize: projectEntries(canonicalContextEntries.slice(projectionStart, historyEnd)).map((entry) => entry.message),
++				turnPrefixMessages: projectEntries(canonicalContextEntries.slice(historyEnd, prefixEnd)).map((entry) => entry.message)
++			};
+ 			const firstKeptEntry = contextEntries[preparation.firstKeptIndex]?.sourceEntry;
+ 			if (!firstKeptEntry || firstKeptEntry.type !== "message") {
+ 				this.internalLog("info", "[flue:compaction] Nothing to compact (first kept message has no entry)");
+@@ -4083,7 +4113,7 @@ var Session = class {
+ 				estimatedTokens
+ 			});
+ 			terminalPending = true;
+-			const result = await compact(preparation, summarizationModel, this.compactionAbortController.signal, {
++			const result = await compact(exactPreparation, summarizationModel, this.compactionAbortController.signal, {
+ 				start: (purpose, model, context, options) => {
+ 					const handle = { turnId: generateTurnId() };
+ 					this.emitTurnRequest(handle.turnId, purpose, model, context, options);
+diff --git a/dist/dispatch-nU3cIlT-.mjs b/dist/dispatch-nU3cIlT-.mjs
+index c661b214b2c1e0e33c5fe696e23f44e3ac96a474..96e9183c970d2e2871b77f0ab76dfe4479eb0f20 100644
+--- a/dist/dispatch-nU3cIlT-.mjs
++++ b/dist/dispatch-nU3cIlT-.mjs
+@@ -711,27 +711,81 @@ function getActiveConversationPath(conversation) {
+ 	}
+ 	return path.reverse();
+ }
++function freezeContextValue(value) {
++	if (value && typeof value === "object" && !Object.isFrozen(value)) {
++		Object.freeze(value);
++		for (const child of Object.values(value)) freezeContextValue(child);
++	}
++	return value;
++}
++function contextMessageIdentity(message) {
++	if (message.role === "assistant") return {
++		role: message.role,
++		tools: message.content.filter((block) => block.type === "toolCall").map((block) => [block.id, block.name])
++	};
++	if (message.role === "toolResult") return {
++		role: message.role,
++		toolCallId: message.toolCallId,
++		toolName: message.toolName
++	};
++	if (message.role === "signal") return {
++		role: message.role,
++		type: message.type,
++		tagName: message.tagName
++	};
++	return { role: message.role };
++}
++function projectContextEntries(entries, project) {
++	if (!project) return entries;
++	const immutable = entries.map((entry) => freezeContextValue({
++		id: entry.sourceEntry.id,
++		message: structuredClone(entry.message)
++	}));
++	const projected = project(Object.freeze(immutable));
++	if (!Array.isArray(projected) || projected.length !== entries.length) throw new Error("[flue] Context projection must return one entry per input.");
++	return projected.map((entry, index) => {
++		const source = entries[index];
++		const expected = immutable[index];
++		if (!source || !expected || !entry || entry.id !== expected.id) throw new Error("[flue] Context projection must preserve entry identity and order.");
++		if (JSON.stringify(contextMessageIdentity(entry.message)) !== JSON.stringify(contextMessageIdentity(expected.message))) throw new Error("[flue] Context projection must preserve message roles and tool call/result pairing.");
++		return {
++			message: structuredClone(entry.message),
++			sourceEntry: source.sourceEntry
++		};
++	});
++}
++function renderContextEntries(entries) {
++	return entries.map((entry) => entry.message.role === "signal" ? {
++		message: createUserContextMessage(renderSignalMessage(entry.message), entry.sourceEntry.timestamp),
++		sourceEntry: entry.sourceEntry
++	} : entry);
++}
+ function buildConversationContextEntries(conversation, options = {}) {
+ 	const path = getActiveConversationPath(conversation);
+ 	const latestCompactionIndex = path.findLastIndex((entry) => entry.type === "compaction");
+-	if (latestCompactionIndex === -1) return pathToContextEntries(path, options);
+-	const compaction = path[latestCompactionIndex];
+-	const firstKeptIndex = path.findIndex((entry) => entry.id === compaction.firstKeptEntryId);
+-	const keptStart = firstKeptIndex >= 0 ? firstKeptIndex : latestCompactionIndex + 1;
+-	return [
++	let entries;
++	if (latestCompactionIndex === -1) entries = pathToContextEntries(path, options);
++	else {
++		const compaction = path[latestCompactionIndex];
++		const firstKeptIndex = path.findIndex((entry) => entry.id === compaction.firstKeptEntryId);
++		const keptStart = firstKeptIndex >= 0 ? firstKeptIndex : latestCompactionIndex + 1;
++		entries = [
+ 		{
+-			message: createUserContextMessage(renderSignalMessage({
++			message: {
+ 				role: "signal",
+ 				type: "context_summary",
+ 				tagName: "compaction",
+ 				content: compaction.summary,
+ 				timestamp: new Date(compaction.timestamp).getTime()
+-			}), compaction.timestamp),
++			},
+ 			sourceEntry: compaction
+ 		},
+ 		...pathToContextEntries(path.slice(keptStart, latestCompactionIndex), options),
+ 		...pathToContextEntries(path.slice(latestCompactionIndex + 1), options)
+-	];
++		];
++	}
++	const projected = projectContextEntries(entries, options.contextProjection);
++	return options.renderSignals === false ? projected : renderContextEntries(projected);
+ }
+ function buildConversationContext(conversation, options = {}) {
+ 	return buildConversationContextEntries(conversation, options).map((entry) => entry.message);
+@@ -748,7 +802,7 @@ function pathToContextEntries(path, options) {
+ 		const message = resolveMessageAttachments(entry, options);
+ 		if (message.role === "signal") {
+ 			messages.push({
+-				message: createUserContextMessage(renderSignalMessage(message), entry.timestamp),
++				message,
+ 				sourceEntry: entry
+ 			});
+ 			index += 1;
+@@ -3763,4 +3817,4 @@ function validateDispatchRequest(request, agent) {
+ 	return parseDeliveredMessage(request.message);
+ }
+ //#endregion
+-export { shouldCompact as $, replyFromSnapshot as A, aggregateConversationUsageSince as B, DeliveredMessageSchema as C, generateConversationEntryId as Ct, assertThinkingLevel as D, assertDurability as E, DEFAULT_READ_LIMIT as F, findTrailingPartialToolBatch as G, getActiveConversationPathSince as H, MAX_READ_LIMIT as I, calculateContextTokens as J, isRetryableModelError as K, agentStreamPath as L, throwIfAborted as M, getConversationFoldHost as N, observeSubmissionSettlement as O, writeFoldCheckpoint as P, prepareCompaction as Q, formatOffset as R, handleAgentRequest as S, encodeCanonicalId as St, assertCompaction as T, toolStepRecordId as Tt, getLatestConversationCompaction as U, classifyConversationSubmission as V, countConsecutiveRetryableModelErrors as W, deriveCompactionDefaults as X, compact as Y, isAssistantContextOverflow as Z, normalizeMessageInput as _, assertAppendMessage as _t, getRegisteredAgentIdentity as a, conversationScopeKey as at, handleAgentConversationRead as b, fnv1a64 as bt, resetFlueAgentRegistrationForTests as c, toolOutcomeKey as ct, resolveAgentInitialDataSchema as d, createActionScopeName as dt, addUsage as et, configureFlueRuntime as f, createSessionStorageKey as ft, resetFlueRuntimeForTests as g, renderSignalMessage as gt, getFlueRuntime as h, createUserContextMessage as ht, createAgentRouter as i, buildConversationContextEntries as it, settlementFromChunk as j, readSubmissionReply as k, resolveAgentDurability as l, toolResultEntryId as lt, getAgentInstance as m, parseSessionStorageKey as mt, AGENT_IDENTITY_PATTERN as n, fromProviderUsage as nt, getRegisteredFlueAgents as o, getActiveConversationPath as ot, dispatch as p, createTaskSessionName as pt, DEFAULT_COMPACTION_SETTINGS as q, __flueBindAgentModule as r, buildConversationContext as rt, registerFlueAgents as s, reduceConversationRecords as st, enqueueDispatch as t, emptyUsage as tt, resolveAgentIdentity as u, assertPublicSessionName as ut, handleAgentAttachmentRead as v, createAgentOutputChannel as vt, MAX_IMAGE_DATA_LENGTH as w, generateConversationRecordId as wt, assertAgentDispatchAdmissionInput as x, RESERVED_SIGNAL_TYPES as xt, handleAgentConversationHead as y, runResponseMetadataHooks as yt, parseOffset as z };
++export { shouldCompact as $, replyFromSnapshot as A, aggregateConversationUsageSince as B, DeliveredMessageSchema as C, generateConversationEntryId as Ct, assertThinkingLevel as D, assertDurability as E, DEFAULT_READ_LIMIT as F, findTrailingPartialToolBatch as G, getActiveConversationPathSince as H, MAX_READ_LIMIT as I, calculateContextTokens as J, isRetryableModelError as K, agentStreamPath as L, throwIfAborted as M, getConversationFoldHost as N, observeSubmissionSettlement as O, writeFoldCheckpoint as P, prepareCompaction as Q, formatOffset as R, handleAgentRequest as S, encodeCanonicalId as St, assertCompaction as T, toolStepRecordId as Tt, getLatestConversationCompaction as U, classifyConversationSubmission as V, countConsecutiveRetryableModelErrors as W, deriveCompactionDefaults as X, compact as Y, isAssistantContextOverflow as Z, normalizeMessageInput as _, assertAppendMessage as _t, getRegisteredAgentIdentity as a, conversationScopeKey as at, handleAgentConversationRead as b, fnv1a64 as bt, resetFlueAgentRegistrationForTests as c, toolOutcomeKey as ct, resolveAgentInitialDataSchema as d, createActionScopeName as dt, addUsage as et, configureFlueRuntime as f, createSessionStorageKey as ft, resetFlueRuntimeForTests as g, renderSignalMessage as gt, getFlueRuntime as h, createUserContextMessage as ht, createAgentRouter as i, buildConversationContextEntries as it, settlementFromChunk as j, readSubmissionReply as k, resolveAgentDurability as l, toolResultEntryId as lt, getAgentInstance as m, parseSessionStorageKey as mt, AGENT_IDENTITY_PATTERN as n, fromProviderUsage as nt, getRegisteredFlueAgents as o, getActiveConversationPath as ot, dispatch as p, createTaskSessionName as pt, DEFAULT_COMPACTION_SETTINGS as q, __flueBindAgentModule as r, buildConversationContext as rt, registerFlueAgents as s, reduceConversationRecords as st, enqueueDispatch as t, emptyUsage as tt, resolveAgentIdentity as u, assertPublicSessionName as ut, handleAgentAttachmentRead as v, createAgentOutputChannel as vt, MAX_IMAGE_DATA_LENGTH as w, generateConversationRecordId as wt, assertAgentDispatchAdmissionInput as x, RESERVED_SIGNAL_TYPES as xt, handleAgentConversationHead as y, runResponseMetadataHooks as yt, parseOffset as z, projectContextEntries, renderContextEntries };
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index 96e42a23d7..ed3647f3fd 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -1,7 +1,7 @@
+ import { $ as Sandbox, A as LlmAssistantMessage, B as ModelRequest, Ct as JsonValue, D as FlueObservation, E as FlueLogger, Et as McpTransport, F as LlmTool, G as PackagedSkillFile, H as ModelRequestInput, I as LlmToolCall, J as PromptOptions, K as PromptImage, L as LlmToolResultMessage, M as LlmMessage, N as LlmTextContent, P as LlmThinkingContent, R as LlmTurnPurpose, St as ToolStep, T as FlueHarness, Tt as McpConnectionDefinition, U as ModelResponse, V as ModelRequestInfo, W as PackagedSkillDirectory, X as PromptResultResponse, Y as PromptResponse, Z as PromptUsage, _ as DurabilityConfig, _t as ToolInput, a as AgentProps, at as SessionToolFactoryOptions, bt as ToolOutputSchema, c as AttachedAgentEvent, ct as Skill, d as CallHandle, dt as SkillReference, et as SandboxFactory, f as CompactionConfig, ft as SubagentDefinition, g as DispatchReceipt, gt as ToolDefinition, h as DeliveredMessageInput, ht as ToolContext, i as AgentFunction, it as SessionToolFactory, j as LlmImageContent, l as BashFactory, lt as SkillDefinition, m as DeliveredMessage, mt as ThinkingLevel, nt as SandboxToolFactoryOptions, o as AgentRuntimeConfig, ot as ShellOptions, p as DeliveredAttachment, pt as TaskOptions, q as PromptModel, r as AgentDispatchRequest, rt as SessionEnv, s as AgentStatics, st as ShellResult, t as Agent, tt as SandboxToolFactory, u as BashLike, ut as SkillOptions, v as FileStat, vt as ToolInputSchema, w as FlueFs, wt as McpAuth, x as FlueEventContext, xt as ToolRunEnvelope, y as FlueEvent, yt as ToolOutput, z as LlmUserMessage } from "./types-CVx9SjIx.mjs";
+ import { A as AgentAppendMessage, D as createMcpConnection, F as ResponseFinishContext, I as ResponseMetadataCallback, L as ResponseStartContext, M as AgentResponseToolCall, N as AgentSignalAppend, O as StateSetter, P as AgentStartContext, T as McpConnection, j as AgentFinishContext, k as usePersistentState, v as FlueEventSubscriber, y as observe } from "./agent-execution-store-DvID6-b8.mjs";
+ import { i as FlueExecutionOperation, n as FlueExecutionContext, r as FlueExecutionInterceptor, t as FlueObservationSubscriber } from "./observation-IWUJUvRg.mjs";
+-import { A as ToolOutputValidationError, C as SubmissionConflictError, D as ToolInputValidationError, E as SubmissionTimeoutError, M as ValidationIssue, O as ToolNameConflictError, S as SubmissionAbortedError, T as SubmissionRetryExhaustedError, _ as SessionBusyError, a as AttachmentNotAvailableError, b as SkillNotRegisteredError, c as DelegationDepthExceededError, d as OperationFailedError, g as SandboxOperationUnsupportedError, h as SandboxDiedError, j as ToolValidationIssue, k as ToolOutputSerializationError, l as FlueError, n as AgentInstanceNotFoundError, t as AgentInstanceExistsError, u as InstrumentationAlreadyInstalledError, v as SessionNotFoundError, w as SubmissionInterruptedError, x as SubagentNotDeclaredError, y as SkillDefinitionValidationError } from "./errors-CJ7UH_EB.mjs";
++import { A as ToolOutputValidationError, C as SubmissionConflictError, D as ToolInputValidationError, E as SubmissionTimeoutError, M as ValidationIssue, O as ToolNameConflictError, S as SubmissionAbortedError, T as SubmissionRetryExhaustedError, _ as SessionBusyError, a as AttachmentNotAvailableError, b as SkillNotRegisteredError, c as DelegationDepthExceededError, d as OperationFailedError, g as SandboxOperationUnsupportedError, h as SandboxDiedError, j as ToolValidationIssue, k as ToolOutputSerializationError, l as FlueError, n as AgentInstanceNotFoundError, p as RETRYABLE_INTERRUPTION_MARKER, t as AgentInstanceExistsError, u as InstrumentationAlreadyInstalledError, v as SessionNotFoundError, w as SubmissionInterruptedError, x as SubagentNotDeclaredError, y as SkillDefinitionValidationError } from "./errors-CJ7UH_EB.mjs";
+ import { i as instrument, t as FlueInstrumentation } from "./instrumentation-DqIN6XiL.mjs";
+ import { o as dispatch, s as getAgentInstance, t as AgentInstanceInfo } from "./flue-app-p6KE9Aed.mjs";
+ import { f as setProvider, i as bash, m as ConversationStreamChunk, n as SandboxApi, o as createSandboxSessionEnv, r as SandboxDriver, s as sandboxFromDriver, t as OrphanedExecSettlement } from "./sandbox-CMzrNm4Z.mjs";
+@@ -539,6 +539,33 @@ declare function useInitialData<T = unknown>(): T;
+  */
+ declare function useInstruction(text: string): void;
+ //#endregion
++//#region src/hooks/use-context-projection.d.ts
++/** A canonical signal before Flue renders it as model-facing XML. */
++interface ContextProjectionSignalMessage {
++  readonly role: "signal";
++  readonly type: string;
++  readonly tagName: string;
++  readonly content: string;
++  readonly timestamp?: number;
++  readonly attributes?: Readonly<Record<string, string>>;
++}
++type ContextProjectionMessage = LlmMessage | ContextProjectionSignalMessage;
++/** One immutable canonical-context entry supplied to an agent's projector. */
++interface ContextProjectionEntry {
++  readonly id: string;
++  readonly message: ContextProjectionMessage;
++}
++type ContextProjection = (entries: readonly ContextProjectionEntry[]) => readonly ContextProjectionEntry[];
++/**
++ * Project only the model-facing conversation context for this root agent.
++ *
++ * The callback receives immutable structured entries before signal XML
++ * rendering. It must return one entry per input, preserving order, entry ids,
++ * roles, and tool call/result identities. Canonical persistence and public
++ * history remain unchanged.
++ */
++declare function useContextProjection(project: ContextProjection): void;
++//#endregion
+ //#region src/hooks/use-mcp-connection.d.ts
+ /**
+  * Declare a reusable MCP connection. A typing helper in the `defineTool()`
+@@ -890,6 +917,7 @@ declare function useTool<const TInput extends ToolInputSchema | undefined = unde
+   name: string;
+   description: string;
+   input?: TInput;
++  prepareArguments?: (args: unknown) => unknown;
+   output?: TOutput;
+   /**
+    * Connect this tool to the agent's runtime: `run` receives `harness` —
+@@ -960,4 +988,4 @@ declare function createChannelRouter<E extends Env = Env>(routes: readonly Chann
+  */
+ declare function defineSkill(definition: SkillDefinition): SkillDefinition;
+ //#endregion
+-export { type Agent, type AgentAppendMessage, type AgentDispatchRequest, type AgentFinishContext, type AgentFunction, type AgentHandleDispatchRequest, type AgentIdentityBinding, AgentInstanceExistsError, type AgentInstanceHandle, type AgentInstanceInfo, AgentInstanceNotFoundError, type AgentProps, type AgentReadOptions, type AgentReply, type AgentResponseToolCall, AgentRunError, type AgentRuntimeConfig, type AgentSignalAppend, type AgentStartContext, type AgentStatics, type AttachedAgentEvent, AttachmentNotAvailableError, type BashFactory, type BashLike, type CallHandle, type ChannelRouteDefinition, type CompactionConfig, type ConversationStreamChunk, DelegationDepthExceededError, type DeliveredAttachment, type DeliveredMessage, type DeliveredMessageInput, type DispatchReceipt, type DurabilityConfig, type FileStat, FlueError, type FlueEvent, type FlueEventContext, type FlueEventSubscriber, type FlueExecutionContext, type FlueExecutionInterceptor, type FlueExecutionOperation, type FlueFs, type FlueHarness, type FlueInstrumentation, type FlueLogger, type FlueObservation, type FlueObservationSubscriber, GeneralSubagent, IMAGE_DATA_OMITTED, type InitOptions, InstrumentationAlreadyInstalledError, type JsonValue, type LlmAssistantMessage, type LlmImageContent, type LlmMessage, type LlmTextContent, type LlmThinkingContent, type LlmTool, type LlmToolCall, type LlmToolResultMessage, type LlmTurnPurpose, type LlmUserMessage, type McpAuth, type McpConnection, type McpConnectionDefinition, type McpTransport, type ModelRequest, type ModelRequestInfo, type ModelRequestInput, type ModelResponse, OperationFailedError, type OrphanedExecSettlement, type PackagedSkillDirectory, type PackagedSkillFile, type PromptImage, type PromptModel, type PromptOptions, type PromptResponse, type PromptResultResponse, type PromptUsage, type ResponseFinishContext, type ResponseMetadataCallback, type ResponseStartContext, ResultUnavailableError, type Sandbox, type SandboxApi, SandboxDiedError, type SandboxDriver, type SandboxFactory, SandboxOperationUnsupportedError, type SandboxToolFactory, type SandboxToolFactoryOptions, SessionBusyError, type SessionEnv, SessionNotFoundError, type SessionToolFactory, type SessionToolFactoryOptions, type ShellOptions, type ShellResult, type Skill, type SkillDefinition, SkillDefinitionValidationError, SkillNotRegisteredError, type SkillOptions, type SkillReference, type StateSetter, type SubagentDefinition, SubagentNotDeclaredError, SubmissionAbortedError, SubmissionConflictError, SubmissionInterruptedError, SubmissionRetryExhaustedError, SubmissionTimeoutError, type TaskOptions, type ThinkingLevel, type ToolContext, type ToolDefinition, type ToolInput, type ToolInputSchema, ToolInputValidationError, ToolNameConflictError, type ToolOutput, type ToolOutputSchema, ToolOutputSerializationError, ToolOutputValidationError, type ToolRunEnvelope, type ToolStep, type ToolValidationIssue, type UseModelOptions, type UseSandboxOptions, type ValidationIssue, __flueBindAgentModule, bash, createBashTool, createChannelRouter, createEditTool, createGlobTool, createGrepTool, createMcpConnection, createReadTool, createSandboxSessionEnv, createWriteTool, defineMcpConnection, defineSkill, defineSubagent, defineTool, dispatch, getAgentInstance, init, instrument, observe, sandboxFromDriver, setProvider, useAgentFinish, useAgentStart, useDataWriter, useDelivery, useDispatchMessage, useInitialData, useInstruction, useMcpConnection, useModel, usePersistentState, useResponseFinish, useResponseStart, useSandbox, useSkill, useSubagent, useTool };
+\ No newline at end of file
++export { type Agent, type AgentAppendMessage, type AgentDispatchRequest, type AgentFinishContext, type AgentFunction, type AgentHandleDispatchRequest, type AgentIdentityBinding, AgentInstanceExistsError, type AgentInstanceHandle, type AgentInstanceInfo, AgentInstanceNotFoundError, type AgentProps, type AgentReadOptions, type AgentReply, type AgentResponseToolCall, AgentRunError, type AgentRuntimeConfig, type AgentSignalAppend, type AgentStartContext, type AgentStatics, type AttachedAgentEvent, AttachmentNotAvailableError, type BashFactory, type BashLike, type CallHandle, type ChannelRouteDefinition, type CompactionConfig, type ContextProjection, type ContextProjectionEntry, type ContextProjectionMessage, type ContextProjectionSignalMessage, type ConversationStreamChunk, DelegationDepthExceededError, type DeliveredAttachment, type DeliveredMessage, type DeliveredMessageInput, type DispatchReceipt, type DurabilityConfig, type FileStat, FlueError, type FlueEvent, type FlueEventContext, type FlueEventSubscriber, type FlueExecutionContext, type FlueExecutionInterceptor, type FlueExecutionOperation, type FlueFs, type FlueHarness, type FlueInstrumentation, type FlueLogger, type FlueObservation, type FlueObservationSubscriber, GeneralSubagent, IMAGE_DATA_OMITTED, type InitOptions, InstrumentationAlreadyInstalledError, type JsonValue, type LlmAssistantMessage, type LlmImageContent, type LlmMessage, type LlmTextContent, type LlmThinkingContent, type LlmTool, type LlmToolCall, type LlmToolResultMessage, type LlmTurnPurpose, type LlmUserMessage, type McpAuth, type McpConnection, type McpConnectionDefinition, type McpTransport, type ModelRequest, type ModelRequestInfo, type ModelRequestInput, type ModelResponse, OperationFailedError, type OrphanedExecSettlement, type PackagedSkillDirectory, type PackagedSkillFile, type PromptImage, type PromptModel, type PromptOptions, type PromptResponse, type PromptResultResponse, type PromptUsage, RETRYABLE_INTERRUPTION_MARKER, type ResponseFinishContext, type ResponseMetadataCallback, type ResponseStartContext, ResultUnavailableError, type Sandbox, type SandboxApi, SandboxDiedError, type SandboxDriver, type SandboxFactory, SandboxOperationUnsupportedError, type SandboxToolFactory, type SandboxToolFactoryOptions, SessionBusyError, type SessionEnv, SessionNotFoundError, type SessionToolFactory, type SessionToolFactoryOptions, type ShellOptions, type ShellResult, type Skill, type SkillDefinition, SkillDefinitionValidationError, SkillNotRegisteredError, type SkillOptions, type SkillReference, type StateSetter, type SubagentDefinition, SubagentNotDeclaredError, SubmissionAbortedError, SubmissionConflictError, SubmissionInterruptedError, SubmissionRetryExhaustedError, SubmissionTimeoutError, type TaskOptions, type ThinkingLevel, type ToolContext, type ToolDefinition, type ToolInput, type ToolInputSchema, ToolInputValidationError, ToolNameConflictError, type ToolOutput, type ToolOutputSchema, ToolOutputSerializationError, ToolOutputValidationError, type ToolRunEnvelope, type ToolStep, type ToolValidationIssue, type UseModelOptions, type UseSandboxOptions, type ValidationIssue, __flueBindAgentModule, bash, createBashTool, createChannelRouter, createEditTool, createGlobTool, createGrepTool, createMcpConnection, createReadTool, createSandboxSessionEnv, createWriteTool, defineMcpConnection, defineSkill, defineSubagent, defineTool, dispatch, getAgentInstance, init, instrument, observe, sandboxFromDriver, setProvider, useAgentFinish, useAgentStart, useContextProjection, useDataWriter, useDelivery, useDispatchMessage, useInitialData, useInstruction, useMcpConnection, useModel, usePersistentState, useResponseFinish, useResponseStart, useSandbox, useSkill, useSubagent, useTool };
+\ No newline at end of file
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 8b3a82cb17..bf2e8df2ce 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1,6 +1,6 @@
+ import { a as sandboxFromDriver, i as createSandboxSessionEnv, t as bash } from "./sandbox-DAJ0daML.mjs";
+ import { A as createEditTool, C as requireRenderFrame, I as createWriteTool, M as createGrepTool, P as createReadTool, h as defineSkill, j as createGlobTool, k as createBashTool, m as assertSkillDefinition, r as ResultUnavailableError, w as IMAGE_DATA_OMITTED, x as isRendering } from "./result-DfjetCf9.mjs";
+-import { A as SubmissionConflictError, C as SessionNotFoundError, F as ToolNameConflictError, I as ToolOutputSerializationError, L as ToolOutputValidationError, M as SubmissionRetryExhaustedError, N as SubmissionTimeoutError, O as SubagentNotDeclaredError, P as ToolInputValidationError, S as SessionBusyError, T as SkillNotRegisteredError, a as AttachmentNotAvailableError, b as SandboxDiedError, d as FlueError, et as generateInstanceId, f as InstrumentationAlreadyInstalledError, h as OperationFailedError, j as SubmissionInterruptedError, k as SubmissionAbortedError, m as MethodNotAllowedError, n as AgentInstanceNotFoundError, p as InvalidRequestError, q as toHttpResponse, t as AgentInstanceExistsError, u as DelegationDepthExceededError, v as RouteNotFoundError, w as SkillDefinitionValidationError, x as SandboxOperationUnsupportedError } from "./errors-CsDcT_C4.mjs";
++import { A as SubmissionConflictError, C as SessionNotFoundError, F as ToolNameConflictError, I as ToolOutputSerializationError, L as ToolOutputValidationError, M as SubmissionRetryExhaustedError, N as SubmissionTimeoutError, O as SubagentNotDeclaredError, P as ToolInputValidationError, S as SessionBusyError, T as SkillNotRegisteredError, _ as RETRYABLE_INTERRUPTION_MARKER, a as AttachmentNotAvailableError, b as SandboxDiedError, d as FlueError, et as generateInstanceId, f as InstrumentationAlreadyInstalledError, h as OperationFailedError, j as SubmissionInterruptedError, k as SubmissionAbortedError, m as MethodNotAllowedError, n as AgentInstanceNotFoundError, p as InvalidRequestError, q as toHttpResponse, t as AgentInstanceExistsError, u as DelegationDepthExceededError, v as RouteNotFoundError, w as SkillDefinitionValidationError, x as SandboxOperationUnsupportedError } from "./errors-CsDcT_C4.mjs";
+ import { A as replyFromSnapshot, D as assertThinkingLevel, L as agentStreamPath, M as throwIfAborted, O as observeSubmissionSettlement, T as assertCompaction, _ as normalizeMessageInput, a as getRegisteredAgentIdentity, h as getFlueRuntime, j as settlementFromChunk, k as readSubmissionReply, m as getAgentInstance, p as dispatch, r as __flueBindAgentModule, t as enqueueDispatch } from "./dispatch-nU3cIlT-.mjs";
+ import { c as setProvider } from "./providers-B1VyW-aH.mjs";
+ import { n as usePersistentState, r as normalizeJsonValue } from "./use-persistent-state-DUUiJyWP.mjs";
+@@ -634,6 +634,19 @@ function useInstruction(text) {
+ 	frame.instructions.push(text);
+ }
+ //#endregion
++//#region src/hooks/use-context-projection.ts
++/**
++* Declare a deterministic model-context projection for this root agent.
++* Canonical records and public history remain unchanged.
++*/
++function useContextProjection(project) {
++	const frame = requireRenderFrame("useContextProjection");
++	if (frame.kind === "subagent") throw new Error("[flue] useContextProjection() is not available in a subagent render.");
++	if (frame.contextProjection !== void 0) throw new Error("[flue] useContextProjection() was called twice in one render.");
++	if (typeof project !== "function") throw new TypeError("[flue] useContextProjection() requires a function.");
++	frame.contextProjection = project;
++}
++//#endregion
+ //#region src/hooks/use-mcp-connection.ts
+ const DEFINITION_KEYS = /* @__PURE__ */ new Set([
+ 	"name",
+@@ -1204,4 +1217,4 @@ function normalizeFetchResponse(value) {
+ 	}
+ }
+ //#endregion
+-export { AgentInstanceExistsError, AgentInstanceNotFoundError, AgentRunError, AttachmentNotAvailableError, DelegationDepthExceededError, FlueError, GeneralSubagent, IMAGE_DATA_OMITTED, InstrumentationAlreadyInstalledError, OperationFailedError, ResultUnavailableError, SandboxDiedError, SandboxOperationUnsupportedError, SessionBusyError, SessionNotFoundError, SkillDefinitionValidationError, SkillNotRegisteredError, SubagentNotDeclaredError, SubmissionAbortedError, SubmissionConflictError, SubmissionInterruptedError, SubmissionRetryExhaustedError, SubmissionTimeoutError, ToolInputValidationError, ToolNameConflictError, ToolOutputSerializationError, ToolOutputValidationError, __flueBindAgentModule, bash, createBashTool, createChannelRouter, createEditTool, createGlobTool, createGrepTool, createMcpConnection, createReadTool, createSandboxSessionEnv, createWriteTool, defineMcpConnection, defineSkill, defineSubagent, defineTool, dispatch, getAgentInstance, init, instrument, observe, sandboxFromDriver, setProvider, useAgentFinish, useAgentStart, useDataWriter, useDelivery, useDispatchMessage, useInitialData, useInstruction, useMcpConnection, useModel, usePersistentState, useResponseFinish, useResponseStart, useSandbox, useSkill, useSubagent, useTool };
++export { AgentInstanceExistsError, AgentInstanceNotFoundError, AgentRunError, AttachmentNotAvailableError, DelegationDepthExceededError, FlueError, GeneralSubagent, IMAGE_DATA_OMITTED, InstrumentationAlreadyInstalledError, OperationFailedError, RETRYABLE_INTERRUPTION_MARKER, ResultUnavailableError, SandboxDiedError, SandboxOperationUnsupportedError, SessionBusyError, SessionNotFoundError, SkillDefinitionValidationError, SkillNotRegisteredError, SubagentNotDeclaredError, SubmissionAbortedError, SubmissionConflictError, SubmissionInterruptedError, SubmissionRetryExhaustedError, SubmissionTimeoutError, ToolInputValidationError, ToolNameConflictError, ToolOutputSerializationError, ToolOutputValidationError, __flueBindAgentModule, bash, createBashTool, createChannelRouter, createEditTool, createGlobTool, createGrepTool, createMcpConnection, createReadTool, createSandboxSessionEnv, createWriteTool, defineMcpConnection, defineSkill, defineSubagent, defineTool, dispatch, getAgentInstance, init, instrument, observe, sandboxFromDriver, setProvider, useAgentFinish, useAgentStart, useContextProjection, useDataWriter, useDelivery, useDispatchMessage, useInitialData, useInstruction, useMcpConnection, useModel, usePersistentState, useResponseFinish, useResponseStart, useSandbox, useSkill, useSubagent, useTool };
+diff --git a/dist/result-DfjetCf9.mjs b/dist/result-DfjetCf9.mjs
+index 1d958d9fbbe9ccb39e85d479b8d7f081786147f1..1c54fa3dba1565e2ef4ebfc01cbe8572794f7022 100644
+--- a/dist/result-DfjetCf9.mjs
++++ b/dist/result-DfjetCf9.mjs
+@@ -644,6 +644,7 @@ function renderWithFrame(render, state, kind = "agent") {
+ 		model: void 0,
+ 		thinkingLevel: void 0,
+ 		compaction: void 0,
++		contextProjection: void 0,
+ 		skills: [],
+ 		subagents: [],
+ 		mcpConnections: [],
+diff --git a/dist/schema-DIDpvZZa.mjs b/dist/schema-DIDpvZZa.mjs
+index af697f9c85917b9697762f4adbb7bc50397ff933..c3e25a90a1769c0888b596bf8af55edc8d6e76d3 100644
+--- a/dist/schema-DIDpvZZa.mjs
++++ b/dist/schema-DIDpvZZa.mjs
+@@ -60,4 +60,30 @@ function normalizeValibotIssue(issue) {
+ 	} : { message: issue.message };
+ }
+ //#endregion
+-export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t };
++// Native custom-tool inputs use Standard Schema and Standard JSON Schema together.
++function isNativeToolInput(schema) {
++	const standard = schema?.["~standard"];
++	return standard?.version === 1 && typeof standard.vendor === "string" && typeof standard.validate === "function" && typeof standard.jsonSchema?.input === "function";
++}
++function toolInputToJsonSchema(schema) {
++	if (isValibotSchema(schema)) return valibotToJsonSchema(schema);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a Valibot or native Standard Schema with input JSON Schema.");
++	const cached = jsonSchemas.get(schema);
++	if (cached) return cached;
++	const exported = schema["~standard"].jsonSchema.input({ target: "draft-2020-12" });
++	if (!exported || typeof exported !== "object" || Array.isArray(exported) || exported.type !== "object") throw new TypeError("[flue] Native tool input must export a top-level object schema.");
++	const frozen = deepFreeze(structuredClone(exported));
++	jsonSchemas.set(schema, frozen);
++	return frozen;
++}
++async function parseToolInputSchema(schema, value) {
++	if (isValibotSchema(schema)) return parseValibot(schema, value);
++	if (!isNativeToolInput(schema)) throw new TypeError("[flue] Expected a native Standard Schema with input JSON Schema.");
++	const parsed = await schema["~standard"].validate(value);
++	if (!parsed.issues) return { success: true, output: parsed.value };
++	return { success: false, issues: parsed.issues.map((issue) => {
++		const path = issue.path?.map((segment) => typeof segment === "object" && segment !== null ? segment.key : segment);
++		return path?.length ? { message: issue.message, path } : { message: issue.message };
++	}) };
++}
++export { valibotToJsonSchema as i, isValibotSchema as n, parseValibot as r, isTopLevelObjectSchema as t, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema };
+diff --git a/dist/tool-DZ5dxCl_.mjs b/dist/tool-DZ5dxCl_.mjs
+index abcc3f3699a59be1228be9e7a89c1ad1c7cd94d5..e4060a9a1a5a386ae0f65460dfddaa34fa8acaa4 100644
+--- a/dist/tool-DZ5dxCl_.mjs
++++ b/dist/tool-DZ5dxCl_.mjs
+@@ -1,5 +1,5 @@
+ import { I as ToolOutputSerializationError, L as ToolOutputValidationError, P as ToolInputValidationError, ct as generateToolCallId } from "./errors-CsDcT_C4.mjs";
+-import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema } from "./schema-DIDpvZZa.mjs";
++import { n as isValibotSchema, r as parseValibot, t as isTopLevelObjectSchema, isNativeToolInput, toolInputToJsonSchema, parseToolInputSchema } from "./schema-DIDpvZZa.mjs";
+ //#region src/json-snapshot.ts
+ function cloneJsonSerializable(value, label) {
+ 	assertJsonLike(value, label, /* @__PURE__ */ new WeakSet());
+@@ -42,6 +42,7 @@ function defineTool(options) {
+ 		name: options.name,
+ 		description: options.description,
+ 		input: options.input,
++		prepareArguments: options.prepareArguments,
+ 		output: options.output,
+ 		harness: options.harness,
+ 		durable: options.durable,
+@@ -52,6 +53,7 @@ const TOOL_DEFINITION_FIELDS = /* @__PURE__ */ new Set([
+ 	"name",
+ 	"description",
+ 	"input",
++	"prepareArguments",
+ 	"output",
+ 	"harness",
+ 	"durable",
+@@ -64,27 +66,35 @@ function assertToolDefinition(value, label) {
+ 	assertNonEmptyString(tool.name, `${label} name`);
+ 	assertNonEmptyString(tool.description, `${label} description`);
+ 	if (tool.input !== void 0) {
+-		if (!isValibotSchema(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot schema.`);
+-		if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		if (isValibotSchema(tool.input)) {
++			if (!isTopLevelObjectSchema(tool.input)) throw new Error(`[flue] ${label} input must be a top-level object schema.`);
++		} else {
++			if (!isNativeToolInput(tool.input)) throw new Error(`[flue] ${label} input must be a Valibot or native Standard Schema with input JSON Schema.`);
++			toolInputToJsonSchema(tool.input);
++		}
+ 	}
++	if (tool.prepareArguments !== void 0 && typeof tool.prepareArguments !== "function") throw new Error(`[flue] ${label} prepareArguments must be a function.`);
+ 	if (tool.output !== void 0 && !isValibotSchema(tool.output)) throw new Error(`[flue] ${label} output must be a Valibot schema.`);
+ 	if (tool.harness !== void 0 && typeof tool.harness !== "boolean") throw new Error(`[flue] ${label} harness must be a boolean.`);
+ 	if (tool.durable !== void 0 && typeof tool.durable !== "boolean") throw new Error(`[flue] ${label} durable must be a boolean.`);
+ 	if (typeof tool.run !== "function") throw new Error(`[flue] ${label} run must be a function.`);
+ }
+-function parseToolInput(tool, data, signal, facilities) {
+-	const base = {
++function toolContextBase(tool, signal, facilities) {
++	return {
+ 		signal,
+ 		log: facilities?.log ?? NOOP_LOGGER,
+ 		toolCallId: facilities?.toolCallId ?? generateToolCallId(),
+ 		...facilities?.harness ? { harness: facilities.harness } : {},
+ 		...tool.durable ? { step: facilities?.step ?? createEphemeralToolStep(tool.name) } : {}
+ 	};
++}
++async function parseToolInput(tool, data, signal, facilities) {
++	const base = toolContextBase(tool, signal, facilities);
+ 	if (!tool.input) return {
+ 		context: base,
+ 		data: void 0
+ 	};
+-	const parsed = parseValibot(tool.input, data === void 0 ? {} : data);
++	const parsed = await parseToolInputSchema(tool.input, data === void 0 ? {} : data);
+ 	if (!parsed.success) throw new ToolInputValidationError({
+ 		tool: tool.name,
+ 		issues: parsed.issues
+@@ -203,4 +213,4 @@ function assertNonEmptyString(value, label) {
+ 	if (typeof value !== "string" || value.trim().length === 0) throw new Error(`[flue] ${label} must be a non-empty string.`);
+ }
+ //#endregion
+-export { parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
++export { toolContextBase, parseToolInput as a, defineTool as i, claimStepName as n, resolveToolRun as o, cloneStepValue as r, assertToolDefinition as t };
+diff --git a/dist/tool-NmMNtPCM.d.mts b/dist/tool-NmMNtPCM.d.mts
+index e2a78862b5771dd96315a664fb40f365658e2a9c..653a91a69ba162b74739d7a66ba5f51e9ac921f7 100644
+--- a/dist/tool-NmMNtPCM.d.mts
++++ b/dist/tool-NmMNtPCM.d.mts
+@@ -4,6 +4,7 @@ declare function defineTool<const TInput extends ToolInputSchema | undefined = u
+   name: string;
+   description: string;
+   input?: TInput;
++  prepareArguments?: (args: unknown) => unknown;
+   output?: TOutput;
+   harness?: THarness;
+   durable?: TDurable;
+diff --git a/dist/types-CVx9SjIx.d.mts b/dist/types-CVx9SjIx.d.mts
+index 0c9ab2477d44e4df8b60c007f5e04c327abb20c3..df1caad47ff5ed2ffc0274521594ba7dceb40ae3 100644
+--- a/dist/types-CVx9SjIx.d.mts
++++ b/dist/types-CVx9SjIx.d.mts
+@@ -1,5 +1,6 @@
+ import { ImageContent, Model } from "@earendil-works/pi-ai";
+ import * as v from "valibot";
++import type { StandardSchemaV1, StandardJSONSchemaV1 } from "@standard-schema/spec";
+ import { AgentMessage, AgentTool, ThinkingLevel } from "@earendil-works/pi-agent-core";
+ //#region src/mcp-types.d.ts
+ /**
+@@ -76,7 +77,7 @@ type JsonValue = null | boolean | number | string | JsonValue[] | {
+ };
+ //#endregion
+ //#region src/tool-types.d.ts
+-type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown>;
++type ToolInputSchema = v.GenericSchema<Record<string, unknown>, unknown> | (StandardSchemaV1 & StandardJSONSchemaV1);
+ type ToolOutputSchema = v.GenericSchema<any, NonNullable<unknown> | null>;
+ /**
+  * The durable-step surface a `durable: true` tool's `run` receives. Each
+@@ -126,7 +127,7 @@ type ToolContext<S extends ToolInputSchema | undefined, H extends boolean | unde
+    */
+   readonly log: FlueLogger;
+ } & (S extends ToolInputSchema ? {
+-  readonly data: v.InferOutput<S>;
++  readonly data: StandardSchemaV1.InferOutput<S>;
+ } : Record<never, never>) & ([H] extends [true] ? {
+   readonly harness: FlueHarness;
+ } : Record<never, never>) & ([D] extends [true] ? {
+@@ -153,6 +154,8 @@ interface ToolDefinition<TInput extends ToolInputSchema | undefined = ToolInputS
+   readonly name: string;
+   readonly description: string;
+   readonly input: TInput;
++  /** Explicit compatibility normalization before validation; never inferred from JSON Schema. */
++  readonly prepareArguments?: (args: unknown) => unknown;
+   readonly output: TOutput;
+   /**
+    * Connect this tool to the agent's runtime: `run` receives `harness`,
+@@ -173,7 +176,7 @@ interface ToolDefinition<TInput extends ToolInputSchema | undefined = ToolInputS
+   readonly durable?: TDurable;
+   run(context: ToolContext<TInput, THarness, TDurable>): ToolRunReturn<TOutput> | Promise<ToolRunReturn<TOutput>> | (TOutput extends undefined ? void | Promise<void> : never);
+ }
+-type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? v.InferInput<TInput> : never : never;
++type ToolInput<TTool extends ToolDefinition> = TTool extends ToolDefinition<infer TInput, any, any> ? TInput extends ToolInputSchema ? StandardSchemaV1.InferInput<TInput> : never : never;
+ type ToolOutput<TTool extends ToolDefinition> = TTool extends ToolDefinition<any, infer TOutput, any> ? TOutput extends ToolOutputSchema ? v.InferOutput<TOutput> : unknown : never;
+ //#endregion
+ //#region src/types.d.ts
+@@ -537,6 +540,27 @@ interface DurabilityConfig {
+    */
+   timeoutMs?: number;
+ }
++type ContextProjection = (entries: readonly {
++  readonly id: string;
++  readonly message: LlmMessage | {
++    readonly role: "signal";
++    readonly type: string;
++    readonly tagName: string;
++    readonly content: string;
++    readonly timestamp?: number;
++    readonly attributes?: Readonly<Record<string, string>>;
++  };
++}[]) => readonly {
++  readonly id: string;
++  readonly message: LlmMessage | {
++    readonly role: "signal";
++    readonly type: string;
++    readonly tagName: string;
++    readonly content: string;
++    readonly timestamp?: number;
++    readonly attributes?: Readonly<Record<string, string>>;
++  };
++}[];
+ interface AgentConfig {
+   /** Discovered at runtime from AGENTS.md + .agents/skills/ in the session's cwd. */
+   systemPrompt: string;
+@@ -563,6 +587,8 @@ interface AgentConfig {
+    * uses defaults.
+    */
+   compaction?: false | CompactionConfig;
++  /** Optional model-context-only projection for this root agent session. */
++  contextProjection?: ContextProjection;
+   /** Durability settings resolved from the agent definition. */
+   durability?: DurabilityConfig;
+ }
+@@ -605,6 +631,8 @@ interface AgentRuntimeConfig {
+    * calls still compact when needed.
+    */
+   compaction?: false | CompactionConfig;
++  /** Optional model-context-only projection declared by the root agent. */
++  contextProjection?: ContextProjection;
+   /** Working directory inside the initialized sandbox. */
+   cwd?: string;
+   /** Sandbox factory used to construct the initialized environment. */
+diff --git a/dist/use-persistent-state-DUUiJyWP.mjs b/dist/use-persistent-state-DUUiJyWP.mjs
+index 8f85a62641a6387bc3a5916fb510be2f09a6b3eb..16f74ff3fbe26637a668c30c372bfb0b39476b32 100644
+--- a/dist/use-persistent-state-DUUiJyWP.mjs
++++ b/dist/use-persistent-state-DUUiJyWP.mjs
+@@ -1,3 +1,4 @@
++import { AsyncLocalStorage } from "node:async_hooks";
+ import { C as requireRenderFrame, x as isRendering } from "./result-DfjetCf9.mjs";
+ //#region src/hooks/json-value.ts
+ /**
+@@ -45,7 +46,10 @@ function usePersistentState(name, defaultValue) {
+ }
+ function createHookStateBuffer(snapshot) {
+ 	const overlay = /* @__PURE__ */ new Map();
++	const toolScope = new AsyncLocalStorage();
+ 	let pending = [];
++	let nextWriteOrder = 0;
++	const committedWriteOrder = /* @__PURE__ */ new Map();
+ 	const currentValue = (name) => {
+ 		if (overlay.has(name)) return { value: overlay.get(name) };
+ 		if (snapshot.has(name)) return { value: snapshot.get(name) };
+@@ -57,14 +61,24 @@ function createHookStateBuffer(snapshot) {
+ 			if (current && JSON.stringify(current.value) === JSON.stringify(value)) return;
+ 			pending.push({
+ 				name,
+-				value
++				value,
++				toolCallId: toolScope.getStore(),
++				order: nextWriteOrder++
+ 			});
+ 			overlay.set(name, value);
+ 		},
+-		drain() {
+-			const drained = pending;
+-			pending = [];
+-			return drained;
++		drain(toolCallId) {
++			const selected = toolCallId === void 0 ? pending : pending.filter((write) => write.toolCallId === toolCallId);
++			pending = toolCallId === void 0 ? [] : pending.filter((write) => write.toolCallId !== toolCallId);
++			return selected.filter((write) => {
++				const committed = committedWriteOrder.get(write.name);
++				if (committed !== void 0 && committed > write.order) return false;
++				committedWriteOrder.set(write.name, write.order);
++				return true;
++			});
++		},
++		runForTool(toolCallId, run) {
++			return toolScope.run(toolCallId, run);
+ 		}
+ 	};
+ }
+diff --git a/docs/guide/durability.md b/docs/guide/durability.md
+index 632d779eba76fe2e17ccb5d81812c1dc95be1b2b..f019d42583759638c4ea8913f8f7aafd66c807a4 100644
+--- a/docs/guide/durability.md
++++ b/docs/guide/durability.md
+@@ -108,9 +108,9 @@ Two edge cases:
+ 
+ ## Persisted state
+ 
+-Every [`usePersistentState`](/docs/guide/agent-hooks/#persisted-state) write is a record in the conversation's canonical stream, which is why state survives restarts for the life of the conversation. Its recovery behavior follows from _when_ writes commit: a write becomes durable atomically with the unit of work that made it. A write from a tool commits with that turn's tool batch; a write from an event hook commits with the hook seam's checkpoint. If recovery settles the batch as interrupted, the write never happened — the re-attempt renders from the last committed state, exactly matching the work the model actually sees as done.
++Every [`usePersistentState`](/docs/guide/agent-hooks/#persisted-state) write is a record in the conversation's canonical stream. Pending writes now commit in the same canonical append as each model-tool outcome, because recovery preserves recorded outcomes without reexecuting their tools. Parallel writes retain setter invocation order even when their owning tools complete in another order: a superseded older write is not appended after the newer owner has committed. The turn boundary still flushes remaining writes with the ordered result commitment. Durable-tool repair commits buffered writes, newly resolved outcomes and the repaired result commitment in one append. A crash before that append leaves no partial batch; a crash after it retains state alongside the recoverable outcome. Event-hook checkpoint behavior is unchanged.
+ 
+-That atomicity is what makes persistent state the correct guard for at-least-once callbacks: a `sent` flag set by the same unit of work that sent the email cannot end up `true` while the work it guarded rolled back.
++This is forward consistency of canonical appends, not reconstruction of missing state in stores written by earlier runtimes, per-tool transaction isolation for parallel callbacks sharing the attempt buffer, or rollback of external effects. Keep durable external effects in the existing step machinery; do not separately memoize a buffered state setter.
+ 
+ ## Recovery by target
+ 
+diff --git a/docs/guide/tools.md b/docs/guide/tools.md
+index 0b82b030770bf2df34adbbb277743ea79b07dc0e..413967d9334ced937850e6ee56f424bb6107403b 100644
+--- a/docs/guide/tools.md
++++ b/docs/guide/tools.md
+@@ -50,7 +50,9 @@ The model reads the tool's name, description, and input schema; when it decides
+ 
+ **What the model sees.** Each mounted tool is presented to the model as its `name`, its `description`, and its `input` schema (converted to JSON Schema; a tool without an `input` schema presents an empty object). The description is the model's _only_ documentation: state what the tool does, when to use it, and what it returns. Vague descriptions are the most common cause of a tool being called incorrectly or not at all.
+ 
+-**Input.** The `input` schema is a [Valibot](https://valibot.dev) schema and must be a top-level object schema. Model-supplied arguments are parsed by it before `run` executes, and `run` receives the parsed value as `data`, fully typed. When validation fails, `run` is never called — the failure goes back to the model as a tool error so it can correct its arguments and retry.
++**Input.** `input` accepts the existing top-level Valibot object schemas or a native schema implementing both Standard Schema V1 and Standard JSON Schema V1. A native schema must export an object input via `~standard.jsonSchema.input({ target: 'draft-2020-12' })`; export failures refuse the definition. Flue carries that native input schema unchanged and uses its `~standard.validate` method as the authoritative parser before Pi's `beforeToolCall` hook and tool execution, without prior generic JSON-Schema coercion. `run.data` is the inferred parsed output, including native defaults/transforms, not the unparsed input type. Validation failure becomes a matching-call tool error and never calls `run`. Async native validation is supported and abandoned on cancellation. Valibot conversion/validation and output/result schemas retain their existing behavior.
++
++An optional synchronous `prepareArguments(args)` compatibility normalizer runs before validation. It does not change the model-facing input schema or confer validity; the native validator still checks the normalized input. Use only an explicitly chosen normalization policy, never derive coercions from JSON Schema. Durable re-execution uses the same normalizer and validator on the retained raw arguments. Native schemas may contain executable refinements not expressible in JSON Schema; carriage does not claim those refinements were exported.
+ 
+ **Output.** `run` returns a result envelope, `{ output?, terminate? }`, not a bare value. `output` is the JSON-compatible data (an object, array, string, number — anything JSON-serializable) that's JSON-stringified for the model, and a bare `string` return is shorthand for `{ output: <string> }`. Returning nothing is allowed only when no `output` schema is declared; any other bare return throws. `terminate: true` ends the agent's turn once the current tool batch settles, the same contract `finish`/`give_up` use. Add an optional `output` schema when the returned shape should be typed and validated too:
+ 
+diff --git a/docs/reference/agent-api.md b/docs/reference/agent-api.md
+index 9dfc5ee1e98675b4a90fa0b3c7168af97f2b6f9a..1d2f76dce8caa656b8844dc0e62734f29e6f092a 100644
+--- a/docs/reference/agent-api.md
++++ b/docs/reference/agent-api.md
+@@ -488,7 +488,8 @@ The agent's environment itself: the live [`Sandbox`](/docs/reference/sandbox-api
+ function defineTool<...>(options: {
+   name: string;
+   description: string;
+-  input?: ToolInputSchema;   // Valibot schema; top-level object
++  input?: ToolInputSchema;   // Valibot object or native Standard Schema + Standard JSON Schema input
++  prepareArguments?: (args: unknown) => unknown; // explicit synchronous compatibility normalization
+   output?: ToolOutputSchema; // Valibot schema
+   harness?: boolean;
+   durable?: boolean;
+@@ -499,7 +500,8 @@ function defineTool<...>(options: {
+ A typing and validation helper: it validates the definition and returns it frozen, so bad definitions fail at module load instead of first render. Also importable from the lighter `@flue/runtime/tool` entry for tool-only modules. Agents mount the returned value per render with [`useTool()`](/docs/reference/agent-hooks-api/#usetool).
+ 
+ - `name`, `description` — required non-empty strings. The description is the model-facing catalog line.
+-- `input` — a Valibot schema for the call's arguments. Must be a top-level object schema (the model sends a JSON object); anything else throws. When present, the parsed output arrives as `context.data`, typed by inference. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `input` — a Valibot object schema or native Standard Schema V1 plus Standard JSON Schema V1. The native input exporter must produce an object schema for draft 2020-12. Native arguments reach its validator without prior generic schema coercion; parsed output reaches `beforeToolCall` and `context.data` once, typed by native output inference. Export/validation errors fail closed. When absent, the tool receives no `data` property and callers' arguments are ignored.
++- `prepareArguments` — optional synchronous compatibility normalization before validation; retained raw history and model-facing input JSON Schema are unchanged. Applied in both live execution and durable re-execution.
+ - `output` — a Valibot schema for the return value. When present, the runtime parses the returned value through it before recording; a mismatch throws `ToolOutputValidationError`, and a schema producing `undefined` throws `ToolOutputSerializationError`.
+ - `harness`, `durable` — capability flags, detailed below. Must be booleans when present.
+ - `run` — the implementation. May be async, and returns a `ToolRunEnvelope` — `{ output?, terminate? }`. `output` is the tool's result: it must be JSON-serializable, is snapshotted as JSON-compatible data, and is then JSON-stringified for the model; non-serializable output throws `ToolOutputSerializationError`. Returning a bare `string` is shorthand for `{ output: <string> }`, and returning nothing (`void`) is allowed only when no `output` schema is declared, reaching the model as `null`; any other bare return — a plain object, array, number, boolean, or `null` — throws, telling you to wrap it as `{ output: <value> }`. `terminate: true` ends the agent's turn once the current tool batch settles, the same loop-ending contract `finish`/`give_up` use — a multi-tool batch ends the turn only when every result in it terminates, a throwing tool never terminates, and the flag is recorded on the tool's canonical outcome, so termination survives a crash between the batch committing and the submission settling. Throwing inside `run` records a tool error the model sees; it does not fail the submission.
+diff --git a/docs/reference/agent-behavior.md b/docs/reference/agent-behavior.md
+index f8c923ba4b76fff08f892268baed47e857cea430..8938f30e17b99da8687311682b94742de6773d9b 100644
+--- a/docs/reference/agent-behavior.md
++++ b/docs/reference/agent-behavior.md
+@@ -164,6 +164,8 @@ overflow recovery and explicit
+ [`harness.compact()`](/docs/reference/agent-api/#harnesscompact) compact even
+ when threshold compaction is disabled.
+ 
++When usage indicates overflow on a retained successful `stop` response without tool calls, successful compaction completes that response without retrying it. The next actual input uses the rebuilt canonical context; no synthetic user message or replay of completed work is needed. Error and partial-response recovery retain their existing retry paths; this correction is not a universal provider-error recovery guarantee.
++
+ ## Limits
+ 
+ The numbers the runtime enforces, collected from the sections above plus the
+diff --git a/docs/reference/agent-hooks-api.md b/docs/reference/agent-hooks-api.md
+index 196e01d39f53be11dab1d6c5ea804edaf6b0c283..eaab1210ce6fed34bc3c13df52dae70a8cc46c31 100644
+--- a/docs/reference/agent-hooks-api.md
++++ b/docs/reference/agent-hooks-api.md
+@@ -187,6 +187,16 @@ Append raw instruction text for the current render — the deliberately low-leve
+ - `text` — required, non-empty after trimming; anything else throws.
+ - Callable in root and subagent renders, any number of times.
+ 
++## `useContextProjection()`
++
++```ts
++function useContextProjection(project: ContextProjection): void;
++```
++
++Declare a synchronous, deterministic projection used only for model-facing conversation context. The callback receives immutable structured entries, including canonical entry IDs and unrendered signal messages, and returns one entry per input. Order, IDs, roles, and tool call/result identities must remain unchanged or the request fails.
++
++Projection applies to initial and reopened context, continuation after server tools, repair and resume rebuilds, compaction token planning, compaction summary/prefix inputs, and retained suffixes. Each exact compaction consumer is projected independently so a compact reference cannot rely on content outside that consumer. Canonical records, public history, transport ingress, attachments, and provider usage remain unchanged. Root agents may declare this hook once per render; subagents cannot declare it.
++
+ ## `usePersistentState()`
+ 
+ ```ts
+@@ -201,7 +211,7 @@ Durable agent state: an API over the instance's record log. The hook reads the v
+ - Values are JSON: writes are normalized through a JSON round-trip and throw on non-serializable input. Setting `undefined` throws — there is no unset; a name, once written, always has a value. `defaultValue` fills in before the first write and is never persisted itself.
+ - The updater form (`set((previous) => next)`) is the read-modify-write path: `previous` resolves at **call** time through the attempt's write buffer, not the render snapshot the closure was born with — two callbacks in one turn composing with updaters cannot drop each other's writes. Any function argument is treated as an updater (a function was never a legal value).
+ - Writing a value deep-equal to the current one is a no-op; no record is appended.
+-- Writes made by tools become durable atomically with the tool batch that made them: if the batch settles, the write is durable; if recovery settles the batch as interrupted, the write never happened. See [Durability](/docs/guide/durability/#persisted-state).
++- Pending writes are owned by the model-tool call's async context and appended atomically with that call's recorded outcome, before the outcome can be recovered without reexecution; one parallel tool cannot drain another tool's writes. Remaining non-tool writes flush at the turn boundary. Durable-tool recovery appends its buffered writes, new outcomes and repaired result commitment together. This prevents the outcome/current-state gap going forward; it does not reconstruct missing state in already-inconsistent stores. See [Durability](/docs/guide/durability/#persisted-state).
+ - The setter throws during render (renders are pure reads) and on bare tooling/test renders with no durable runtime behind them.
+ - State is scoped to the agent instance, keyed by `name`. Declaring the same name twice in one render throws; declaring a name conditionally across renders is legal — a render that skips the declaration is a render that didn't touch it, and the recorded value is read again when the declaration returns.
+ - Subagent renders throw — durable state is instance-scoped, and delegates run detached tasks. Pass what a delegate needs through the task prompt.
+diff --git a/package.json b/package.json
+index dcd2069fcab0b373810f4e136fed206653c23938..307e3bd3cceaa749fcca614597df0afe0f94a64d 100644
+--- a/package.json
++++ b/package.json
+@@ -78,6 +78,7 @@
+     "node": ">=22.19.0"
+   },
+   "dependencies": {
++    "@standard-schema/spec": "1.1.0",
+     "@earendil-works/pi-agent-core": "^0.83.0",
+     "@earendil-works/pi-ai": "^0.83.0",
+     "@hono/node-server": "^2.0.3",

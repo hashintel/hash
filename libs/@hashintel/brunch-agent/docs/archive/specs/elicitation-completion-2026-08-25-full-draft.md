@@ -3,7 +3,8 @@
 > `where`-scoped `PresenceClause` / `SlotClause` vocabulary, and the `completionAnchor` matching
 > below have no current authority; completion is now specified as the invariants of
 > `evaluateCompletion(model, mustKnowRows)` over the plugin file's `Must know` table in the
-> rewritten [`elicitation-completion.md`](../../specs/elicitation-completion.md). Content is
+> a later living `elicitation-completion.md`, itself removed on 2026-09-07 (last copy
+> `69c02f69a9:libs/@hashintel/brunch-agent/docs/specs/elicitation-completion.md`). Content is
 > otherwise verbatim; only relative link targets were re-rooted for the archive location.
 
 # Spec: target-document completion and session stopping

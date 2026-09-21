@@ -1,10 +1,11 @@
-//! Drawing one frame of the dashboard: the stage rail, the loss chart beside the placement map, and
-//! the log pane.
+//! Drawing one frame of the dashboard.
 //!
-//! [`frame`] is a pure function of the model plus the tick that animates the running stage, so a
-//! frame is reproducible: the same [`RunState`] and tick draw the same cells. Every glyph choice,
-//! label, and color lives in this module tree - the model carries no presentation, and the
-//! pipeline's [`Stage`] carries no prose.
+//! The frame holds the stage rail, the loss chart beside the placement map, and the log pane.
+//!
+//! [`frame`] is a pure function of the model plus the tick that animates the running stage. A frame
+//! is reproducible: the same [`RunState`] and tick draw the same cells. Every glyph choice, label,
+//! and color lives in this module tree - the model carries no presentation, and the pipeline's
+//! [`Stage`] carries no prose.
 //!
 //! One module per pane - [`rail`], [`loss`], [`map`], [`log`] - each owning the vocabulary it draws
 //! with. This module owns the composition: the geometry it lays the panes out in, and which of them
@@ -58,8 +59,9 @@ const DOTS_ACROSS: u16 = 2;
 /// Dots one braille cell is tall.
 const DOTS_DOWN: u16 = 4;
 
-/// Points the widest map can hold apart: its braille dot grid, two dots per column and four per row
-/// inside the frame.
+/// Points the widest map can hold apart.
+///
+/// This is its braille dot grid, two dots per column and four per row inside the frame.
 ///
 /// This is what the dashboard asks a run to sample. A larger sample would cost the run copies of
 /// coordinates the map draws into dots already lit.
@@ -103,10 +105,12 @@ pub(super) fn frame(frame: &mut Frame, state: &RunState, tick: usize) {
     render_log(frame, log, state);
 }
 
-/// The rows the stage rail claims, one per pipeline stage plus one per admission reading the probe
-/// has reported.
+/// Returns the rows the stage rail claims.
 ///
-/// The rail earns the readings whole or not at all. Half a battery under the admission stage would
+/// The rail claims one row per pipeline stage plus one per admission reading the probe has
+/// reported.
+///
+/// The rail draws the readings whole or not at all. Half a battery under the admission stage would
 /// read as evidence the probe could not measure. Only the report says that. A terminal too short
 /// for a row per reading therefore draws no readings at all, and the numbers stay in the report.
 fn rail_height(state: &RunState, available: u16) -> u16 {
@@ -127,13 +131,12 @@ fn rail_height(state: &RunState, available: u16) -> u16 {
     RAIL_HEIGHT + readings
 }
 
-/// The rows the placement's band may claim, beneath a rail of `rail` rows.
+/// Returns the rows the placement's band may claim, beneath a rail of `rail` rows.
 ///
 /// The band takes rows only once the placement has something to show, and it never crowds out the
-/// rail or the log. The rail is the run's shape and the log is its voice, so the band takes what
-/// those two leave and stays away entirely below the height where a plot says anything. Readings
-/// arriving at the end of a run therefore cost the band its rows before they cost the log any. By
-/// then the placement's curve has told its story, and the battery's numbers have not.
+/// rail or the log. It takes what those two leave, and stays away entirely below the height where a
+/// plot says anything. Readings arriving at the end of a run therefore cost the band its rows
+/// before they cost the log any.
 const fn band_height(state: &RunState, available: u16, rail: u16) -> u16 {
     if state.projector().is_none() && state.placement().is_none() {
         return 0;
@@ -147,10 +150,10 @@ const fn band_height(state: &RunState, available: u16, rail: u16) -> u16 {
     spare.min(LOSS_HEIGHT)
 }
 
-/// The columns the map takes out of the band, beside the curve.
+/// Returns the columns the map takes out of the band, beside the curve.
 ///
-/// The curve is the reading an operator acts on, so it keeps its width first and the map takes the
-/// remainder; below the width where dots resolve anything the map stays away entirely, and past the
+/// The curve is the reading an operator acts on. It keeps its width first and the map takes the
+/// remainder. Below the width where dots resolve anything the map stays away entirely, and past the
 /// width where it stops gaining detail the curve takes the rest of the growth.
 const fn map_width(state: &RunState, available: u16) -> u16 {
     if state.placement().is_none() {

@@ -63,6 +63,8 @@ const phaseLevel: Record<
   PetrinautAiVoiceSessionPhase,
   (seconds: number, microphoneLevel: number) => number
 > = {
+  // Connectivity alone is not evidence that either side is speaking.
+  connected: () => 0,
   connecting: (seconds) => 0.1 + Math.sin(seconds * 2.2) * 0.04,
   error: () => 0,
   listening: (_seconds, microphoneLevel) =>
@@ -90,6 +92,7 @@ const ribbonStyle = cva({
   },
   variants: {
     phase: {
+      connected: { color: "blue.s90" },
       connecting: { color: "neutral.s80" },
       error: { color: "neutral.s80" },
       listening: { color: "blue.s90" },

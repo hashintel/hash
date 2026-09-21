@@ -3,12 +3,12 @@ import { Portal } from "@ark-ui/react/portal";
 import { useMemo } from "react";
 
 import { usePortalContainerRef } from "../../util/portal-container-context";
-import { collectSelectedIds, type MenuItem } from "../Menu/menu";
 import {
   SelectableList,
   type ItemOrGroup,
-} from "../Menu/SelectableList/selectable-list";
-import { useLoopSelection } from "../Menu/SelectableList/selectable-list-util";
+} from "../../util/SelectableList/selectable-list";
+import { useLoopSelection } from "../../util/SelectableList/selectable-list-util";
+import { collectSelectedIds, type MenuItem } from "../Menu/menu";
 import { type Position } from "../Tooltip/tooltip";
 
 export const RightClickMenu = ({

@@ -1,5 +1,6 @@
-//! The target objective's wiring through the training run, from the boundary freeze to the
-//! per-evaluation evidence.
+//! The target objective's wiring through the training run.
+//!
+//! From the boundary freeze to the per-evaluation evidence.
 //!
 //! A target-configured run trains the declared estimand beside the released families. At the
 //! phase boundary the run freezes every reference the estimand reads - the ruler's `σ₀` table
@@ -14,7 +15,7 @@
 //!
 //! The estimand exists at exactly two steps, zero and canonical, whatever step the step's
 //! round-robin trains the released families at. The pass therefore forwards its own row set -
-//! the drawn unit endpoints beside the whole gauge - at both steps, and never rides the released
+//! the drawn unit endpoints beside the whole gauge - at both steps, and never reuses the released
 //! batch frame. The estimand's zero-side calculus lives entirely inside that pass forward: the
 //! pass's zero values project under the frozen constraint's own clip law, forces are evaluated
 //! at the projected values, and the deposit composes them through the applied clip derivatives
@@ -26,8 +27,8 @@
 //!
 //! The activation is a value, never structure. A zero-activation run draws the same units and
 //! enforces the same band, then fits the same gauge and reads the same estimand - it adds
-//! exactly zero force. The reference replicate is that run, not a build without the code path,
-//! so absence and inertness stay distinguishable in the artifact record.
+//! exactly zero force. The reference replicate is that run rather than a build without the code
+//! path, which keeps absence and inertness distinguishable in the artifact record.
 
 mod evidence;
 mod inputs;
@@ -94,8 +95,8 @@ where
 {
     /// Admits the target configuration against the run's structure.
     ///
-    /// Every check here is coordinate-free and runs at session construction, so an impossible
-    /// target run fails before its opening segment. The schedule must open the ladder, and the
+    /// Every check here is coordinate-free and runs at session construction. An impossible target
+    /// run therefore fails before its opening segment. The schedule must open the ladder, and the
     /// canonical step must exist within it. The plan must draw unit types, and the corpus must
     /// carry a weighted unit population under the declared unit law. The declared split
     /// populations must be pairwise-disjoint - the membership law that keeps the optimizer
@@ -136,7 +137,7 @@ where
         );
 
         if schedule.boundary() == schedule.steps().get() {
-            // The ladder never opens, so no zero-condition reference exists to freeze.
+            // The ladder never opens, and no zero-condition reference exists to freeze.
             return Err(TrainError::Ruler(InvalidRuler::MissingReference));
         }
         let Some(&canonical_eta) = STEPS.get(options.canonical_step.get()) else {
@@ -144,8 +145,8 @@ where
                 step: options.canonical_step.get(),
             });
         };
-        // Distance equality must carry corrective force under the ruled shape constraint, so
-        // a penalty whose slope dies at a zero violation pairs only with a positive margin.
+        // Distance equality must carry corrective force: a penalty whose slope dies at a zero
+        // violation pairs only with a positive margin.
         if options.penalty.dead_at_equality() && options.margin.is_zero() {
             return Err(TrainError::PenaltyWithoutForceAtEquality);
         }
@@ -162,14 +163,14 @@ where
             }));
         }
 
-        // A forceless corpus declares no unit population: the run resolves into the released
-        // vacuous taxonomy instead of reading an estimand over nothing.
+        // A forceless corpus declares no unit population: the run is vacuous instead of reading
+        // an estimand over nothing.
         if vacuous {
             return Err(TrainError::EmptyTargetPopulation);
         }
 
-        // The declared populations are pairwise-disjoint under the one split rule the digest
-        // names - E5's membership law. One scan covers every pair because each row records
+        // The declared populations are pairwise-disjoint under the one split rule. One scan
+        // covers every pair because each row records
         // the population that claimed it, and the first double claim names the overlap. The
         // movement participants are the force-bearing endpoints, where relation gradients
         // reach coordinates directly.
@@ -215,9 +216,8 @@ where
         )?;
 
         // `W`: the split-time total unit weight over the whole declared population, derived
-        // under the declared unit law - the match closes nothing the ledger keeps open. Under
-        // the per-instance law every admitted instance of every group is one unit, and
-        // zero-weight units stay members with zero mass.
+        // under the declared unit law. Under the per-instance law every admitted instance of
+        // every group is one unit, and zero-weight units stay members with zero mass.
         let mut weight = DNonNegative::ZERO;
         match options.unit_law {
             UnitLaw::PerLinkInstance => {
@@ -284,8 +284,8 @@ where
     /// Converts one step's unit draws into priced units, in the corpus row domain.
     ///
     /// The construction conditions on the declared unit law - under the per-instance law each
-    /// drawn edge is one unit. The ruler is gathered from the frozen table here, before any
-    /// re-indexing, so the term stays decoupled from the live scale machinery. The weight is
+    /// drawn edge is one unit. Gathering the ruler from the frozen table here, before any
+    /// re-indexing, keeps the term decoupled from the live scale machinery. The weight is
     /// the released factor census, and the inclusion probability is the draw law's full
     /// per-unit product over the unit's group size.
     pub(super) fn units<E>(

@@ -1,9 +1,10 @@
 //! Validation-group derivation: leakage axes, near-duplication, and budgeted subdivision.
 //!
-//! Rows that could leak shared content across a train/validation split must share a group; the
-//! union runs over value-keyed leakage axes and near-duplicate pairs, and over-budget components
-//! subdivide by relaxing their weakest axes in information order. The target and weight arithmetic
-//! lives here beside the grouping because both read the same vote counts.
+//! Rows that could leak shared content across a train/validation split share a group where the
+//! group budget allows. The union runs over value-keyed leakage axes and near-duplicate pairs, and
+//! over-budget components subdivide by relaxing their weakest axes in information order, down to
+//! the identity edges that never relax. The target and weight arithmetic lives here beside the
+//! grouping because both read the same vote counts.
 
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
@@ -66,7 +67,9 @@ struct RowAxes {
 /// Beside the identity axis and the near-duplicate pairs it always honours.
 #[derive(Copy, Clone)]
 struct Ranks {
+    /// Whether relation-family edges unite.
     family: bool,
+    /// Whether base-URL edges unite.
     base: bool,
     /// The inclusive cosine-distance cut for near-duplicate pairs.
     cut: f64,
@@ -191,8 +194,8 @@ fn farthest_first_cut(
         .all(|part| (part.len() as f64) <= budget)
     };
 
-    // Component size is monotone in the cut, so the fitting prefix of
-    // the candidate list is contiguous and binary-searchable.
+    // Component size is monotone in the cut. The fitting prefix of the
+    // candidate list is therefore contiguous and binary-searchable.
     let (mut fitting, mut exceeded) = (None, distances.len());
     let mut low = 0;
     while low < exceeded {
@@ -209,7 +212,7 @@ fn farthest_first_cut(
         evidence.empty_cut_components = Some(evidence.empty_cut_components.unwrap_or(0) + 1);
     }
 
-    // The empty cut keeps identity edges alone; the caller records
+    // The empty cut keeps identity edges alone. The caller records
     // any part still over budget.
     partition(
         component,
@@ -315,11 +318,12 @@ struct NearDuplicateBoundary {
 /// the leading gap from zero.
 ///
 /// The boundary is the winning void's geometric midpoint, maximally far from the evidence on both
-/// sides. Ties keep the lowest void so a near-duplicate stays near.
+/// sides. Ties keep the lowest void, and a near-duplicate therefore stays near.
 ///
-/// Exact coincidences (distances ≤ 0 after rounding) join under any non-negative boundary and carry
-/// no void evidence. An empty region has no low tail below the ceiling, which means no duplicate
-/// structure and no near-duplicate edges, so the boundary derives as zero.
+/// Exact coincidences (distances ≤ 0 after rounding) join under any non-negative boundary, the zero
+/// boundary included, and carry no void evidence. An empty region has no positive distance below
+/// the ceiling and no void to derive from, and the boundary then derives as zero. The
+/// near-duplicate edges are then exactly the coincident pairs.
 fn near_duplicate_boundary(mut distances: Vec<f64>) -> NearDuplicateBoundary {
     if distances.is_empty() {
         return NearDuplicateBoundary {
@@ -373,8 +377,16 @@ fn near_duplicate_boundary(mut distances: Vec<f64>) -> NearDuplicateBoundary {
 
 /// Assigns every trained row its validation-group digest.
 ///
-/// The returned digests align with `trained`; the evidence gains the group count, the derived
+/// The returned digests align with `trained`. The evidence gains the group count, the derived
 /// near-duplicate boundary with its grounds, and the near-duplicate pair count.
+///
+/// # Panics
+///
+/// This panics when the embedding table holds fewer rows than `trained`, when the row count or
+/// the axis-value count exceeds `u32`, or, under overflow checks, when the product
+/// `rows · (rows − 1)` behind the pair-count reservation overflows `usize`, which a 32-bit `usize`
+/// reaches at 65,537 rows. The assembly built the table over exactly these cards, and a table
+/// mismatch is a program defect rather than a data condition.
 #[expect(
     clippy::cast_precision_loss,
     reason = "row and group counts are far below f64's 2^53 exact-integer range"
@@ -387,7 +399,7 @@ pub(super) fn validation_groups(
 ) -> Vec<Sha256Digest> {
     let rows = trained.len();
 
-    // Value-keyed axes join cards sharing an axis value; an inverse
+    // Value-keyed axes join cards sharing an axis value. An inverse
     // pair meets at the named identity's key whether or not that
     // identity is itself on the corpus.
     let mut keys: HashMap<String, u32> = HashMap::new();
@@ -416,7 +428,9 @@ pub(super) fn validation_groups(
         });
     }
 
-    // T(rows - 1) unordered pairs; the product is even, so the midpoint halves it exactly.
+    // rows · (rows - 1) / 2 unordered pairs. The product is even, and the midpoint therefore
+    // halves it exactly. A 32-bit `usize` overflows the product from 65,537 rows, and a wrapped
+    // product would reserve the wrong capacity.
     let mut distances = Vec::with_capacity(usize::midpoint(0, rows * rows.saturating_sub(1)));
     for left in 0..rows {
         let embedding = view
@@ -482,8 +496,9 @@ pub(super) fn validation_groups(
     }
     evidence.fold_groups = groups.len();
 
-    // Trained rows keep the corpus's ascending identity order, so a
-    // group hashes its members in one fixed order under any traversal.
+    // Trained rows keep the corpus's ascending identity order, and a
+    // group therefore hashes its members in one fixed order under any
+    // traversal.
     // The hashed bytes are each identity's canonical re-serialization,
     // which the wire order does not pin byte-for-byte.
     let mut assigned: Vec<Option<Sha256Digest>> = vec![None; rows];

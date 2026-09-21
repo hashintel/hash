@@ -1,8 +1,6 @@
-//! Design, domain, and delivery failures that stop the probe.
-
 use core::{error::Error, fmt, num::NonZero};
 
-/// The probe could not run.
+/// A design or canonical-delivery failure that prevents probe completion.
 #[derive(Debug)]
 pub(crate) enum ProbeError<E> {
     /// The corpus cannot host disjoint anchor and comparison samples.
@@ -83,7 +81,7 @@ impl<E: Error + 'static> Error for ProbeError<E> {
     }
 }
 
-/// An unordered id-keyed delivery did not match its requests.
+/// A failed or mismatched id-keyed delivery stream.
 #[derive(Debug)]
 pub(crate) enum DeliveryError<E> {
     /// The stream failed.
@@ -92,9 +90,8 @@ pub(crate) enum DeliveryError<E> {
     Unrequested,
     /// The stream delivered one requested id twice.
     ///
-    /// A repeat is never a harmless echo. Its payload would replace one the reading has already
-    /// accepted, and nothing at this seam can tell a duplicate of the same bytes from a second,
-    /// different answer arriving under one id.
+    /// Every requested id permits one delivery. Repetition fails regardless of payload equality,
+    /// without selecting one answer over another.
     Repeated,
     /// The stream ended before covering every requested id.
     Missing { requested: usize, delivered: usize },

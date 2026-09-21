@@ -80,12 +80,27 @@ export {
   type HirValue,
 } from "./hir/interpret";
 export {
+  lowerConstraint,
+  type ConstraintSource,
+  type LowerConstraintContext,
+  type LowerConstraintResult,
+} from "./constraint/lower";
+export {
+  hirExprSchema,
+  hirFunctionSchema,
+  hirSurfaceKindSchema,
+  spanSchema,
+} from "./hir/hir-schema";
+export {
+  lowerStateConstraintToHir,
   lowerTypeScriptToHir,
   type LowerTypeScriptResult,
 } from "./hir/lower-typescript";
 export {
   AMBIENT_INPUT_NAMES,
+  detectStateConstraintForm,
   detectUserCodeForm,
+  getStateConstraintExpression,
   type DualFormSurfaceKind,
   type UserCodeForm,
 } from "./hir/user-code-form";

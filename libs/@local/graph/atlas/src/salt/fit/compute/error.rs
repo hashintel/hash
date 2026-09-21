@@ -1,14 +1,14 @@
 //! The compute run's failure surface.
 //!
 //! [`ComputeError`] holds one variant per stage: each stage owns a closed error enum beside its
-//! stage type. The run carries the stage's enum here whole, so a failure attributes to its
-//! stage by construction. The enum carries no dataset or provider type, so it is
-//! `Send + 'static` by construction and crosses the rayon offload. The trunk keeps its own
-//! legs. The corpus matrix and the identity table map in at its boundary. The quotient's distinct
-//! matrix materializes into scratch, and the trunk's own staged writes and the seal complete
-//! its variants. A stage never reads its own staged bytes back mid-run, so no map-back variant
-//! exists for the values that flow as owned containers. The placement's deliberate re-reads of
-//! persisted artifacts live in its own error.
+//! stage type. The run carries the stage's enum here whole, and a failure therefore attributes
+//! to its stage by construction. The enum carries no dataset or provider type, which makes it
+//! `Send + 'static` by construction, and it crosses the rayon offload. The trunk's own failures
+//! have their own variants: the corpus matrix and the identity table map in at its boundary, the
+//! quotient's distinct matrix materializes into scratch, and the trunk's own staged writes and
+//! the seal complete the set. The values that flow between stages as owned containers have no
+//! map-back variant here. The placement is the one stage that maps its own staged artifacts back,
+//! and those failures live in its own error.
 
 use core::{error::Error, fmt};
 use std::io;
@@ -25,13 +25,16 @@ use super::{
 };
 use crate::{
     file::{generation::SealError, identity::read::OpenIdentityError},
+    offload::OffloadError,
     salt::file::OpenVectorError,
 };
 
-/// A compute-side stage failed and published nothing.
+/// A compute-side failure, attributed to the stage that produced it.
 ///
-/// Every variant is dataset- and provider-free, so the whole enum is `Send + 'static` and
-/// crosses the rayon offload boundary.
+/// Every variant is dataset- and provider-free. The whole enum is therefore `Send + 'static` and
+/// crosses the rayon offload boundary. Every variant but [`Seal`](Self::Seal) and
+/// [`Offload`](Self::Offload) arises before the seal's rename and leaves nothing published. Those
+/// two can also arise after the rename, with the generation directory already visible.
 #[derive(Debug)]
 pub(crate) enum ComputeError {
     /// The staged representation matrix failed to map in at the run's boundary.
@@ -65,12 +68,13 @@ pub(crate) enum ComputeError {
     /// The delivery stage failed to derive or stage the served structure.
     Delivery(DeliveryError),
     /// The finished staging failed to seal into a generation.
-    Seal(SealError),
-    /// A stage panicked on the compute pool.
     ///
-    /// The payload's message survives, unwinding removes the staging directory, and the async
-    /// executor never observes the unwind.
-    Panicked { message: Option<String> },
+    /// The seal renames the staging directory into the generation root and then syncs the root.
+    /// A failure before the rename leaves nothing published, and a root open or sync failure
+    /// after it leaves the generation directory visible.
+    Seal(SealError),
+    /// The offload computation failed to complete.
+    Offload(OffloadError),
 }
 
 impl From<io::Error> for ComputeError {
@@ -151,6 +155,12 @@ impl From<SealError> for ComputeError {
     }
 }
 
+impl From<OffloadError> for ComputeError {
+    fn from(error: OffloadError) -> Self {
+        Self::Offload(error)
+    }
+}
+
 /// Formats one boundary artifact's map-in failure.
 fn map_in(fmt: &mut fmt::Formatter<'_>, artifact: &str, error: &dyn fmt::Display) -> fmt::Result {
     write!(fmt, "the staged {artifact} failed to map in: {error}")
@@ -184,14 +194,8 @@ impl fmt::Display for ComputeError {
                 write!(fmt, "the placement stage failed: {error}")
             }
             Self::Delivery(error) => write!(fmt, "the delivery stage failed: {error}"),
-            Self::Seal(error) => write!(fmt, "the generation failed to publish: {error}"),
-            Self::Panicked { message } => {
-                fmt.write_str("a stage panicked on the compute pool")?;
-                if let Some(message) = message {
-                    write!(fmt, ": {message}")?;
-                }
-                Ok(())
-            }
+            Self::Seal(error) => write!(fmt, "the generation failed to seal: {error}"),
+            Self::Offload(error) => write!(fmt, "the offload computation failed: {error}"),
         }
     }
 }
@@ -213,7 +217,7 @@ impl Error for ComputeError {
             Self::Projector(error) => Some(error),
             Self::Delivery(error) => Some(error),
             Self::Seal(error) => Some(error),
-            Self::Panicked { .. } => None,
+            Self::Offload(error) => Some(error),
         }
     }
 }

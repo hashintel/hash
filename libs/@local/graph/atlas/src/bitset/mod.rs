@@ -18,7 +18,6 @@ pub(crate) use self::{
     compress::CompressedBitSet,
     dense::{
         DenseBitSlice, DenseBitSliceArray, ParseDenseBitSliceArrayError, ParseDenseBitSliceError,
-        RowsIn,
     },
 };
 

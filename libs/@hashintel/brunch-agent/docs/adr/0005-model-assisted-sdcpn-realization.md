@@ -1,7 +1,7 @@
 # ADR-0005: Realize executable SDCPNs from deterministic projection scaffolds
 
 Date: 2026-08-24
-Status: accepted
+Status: historical; register-3 projection scaffolds are not current product provenance. Mission 7 constructs through declared basis on browser mutations, not a pure fold over captures.
 Amends: [ADR-0003](0003-three-register-ir.md), register 3
 Extends: [ADR-0004](0004-in-petrinaut-staging-and-the-monorepo-import.md), artifact contract only;
 the application/library topology is unchanged

@@ -63,46 +63,74 @@ export const PlaceStateVisualization: React.FC<
     }
   }, [place.visualizerCode]);
 
+  /*
+   * Rendering the picture runs user code and derives its tokens afresh, so
+   * the element is kept until the frame, the marking, the parameters or the
+   * code change; a re-render of the surface it sits on, a hover settling, a
+   * pin, a box being measured, reuses it.
+   */
+  const picture = useMemo(() => {
+    if (!VisualizerComponent || !placeType) {
+      return null;
+    }
+
+    const tokens: TokenRecord[] = [];
+
+    if (totalFrames > 0 && currentFrameReader) {
+      tokens.push(...currentFrameReader.getPlaceTokens(place));
+    } else {
+      const marking = initialMarking[place.id];
+      if (Array.isArray(marking) && marking.length > 0) {
+        // Marking records may hold uuid values as at-rest strings; coerce them
+        // to runtime token values (uuid → bigint) as the engine would. Total
+        // per element: a stored value that no longer converts (e.g. legacy
+        // data predating a schema edit) falls back to the element's default
+        // instead of crashing the panel.
+        for (const token of marking) {
+          const coerced: TokenRecord = createUserKeyedRecord();
+          for (const element of placeType.elements) {
+            try {
+              coerced[element.name] = coerceTokenAttributeValue(
+                element,
+                getOwn(token, element.name),
+                `Initial marking for place ${place.name}`,
+              );
+            } catch {
+              coerced[element.name] = defaultTokenAttributeValue(element.type);
+            }
+          }
+          tokens.push(coerced);
+        }
+      }
+    }
+
+    return (
+      // eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input.
+      <VisualizerComponent
+        tokens={tokens}
+        parameters={mergeParameterValues(
+          parameterValues,
+          defaultParameterValues,
+        )}
+      />
+    );
+  }, [
+    VisualizerComponent,
+    defaultParameterValues,
+    initialMarking,
+    parameterValues,
+    place,
+    placeType,
+    totalFrames,
+    currentFrameReader,
+  ]);
+
   if (!place.visualizerCode) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
   if (!placeType) {
     return <div className={messageStyle}>Place has no type set</div>;
-  }
-
-  const tokens: TokenRecord[] = [];
-  let parameters: Record<string, number | boolean> = {};
-
-  if (totalFrames > 0 && currentFrameReader) {
-    tokens.push(...currentFrameReader.getPlaceTokens(place));
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  } else {
-    const marking = initialMarking[place.id];
-    if (Array.isArray(marking) && marking.length > 0) {
-      // Marking records may hold uuid values as at-rest strings; coerce them
-      // to runtime token values (uuid → bigint) as the engine would. Total
-      // per element: a stored value that no longer converts (e.g. legacy
-      // data predating a schema edit) falls back to the element's default
-      // instead of crashing the panel.
-      for (const token of marking) {
-        const coerced: TokenRecord = createUserKeyedRecord();
-        for (const element of placeType.elements) {
-          try {
-            coerced[element.name] = coerceTokenAttributeValue(
-              element,
-              getOwn(token, element.name),
-              `Initial marking for place ${place.name}`,
-            );
-          } catch {
-            coerced[element.name] = defaultTokenAttributeValue(element.type);
-          }
-        }
-        tokens.push(coerced);
-      }
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   }
 
   if (!VisualizerComponent) {
@@ -113,10 +141,5 @@ export const PlaceStateVisualization: React.FC<
     );
   }
 
-  return (
-    <VisualizerErrorBoundary>
-      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
-      <VisualizerComponent tokens={tokens} parameters={parameters} />
-    </VisualizerErrorBoundary>
-  );
+  return <VisualizerErrorBoundary>{picture}</VisualizerErrorBoundary>;
 };

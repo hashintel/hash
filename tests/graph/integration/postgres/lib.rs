@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 #![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,

@@ -6,18 +6,29 @@
     "@local/tsconfig"
   ],
   "tasks": {
-    "build": [
-      "@hashintel/petrinaut-core#build",
-      "codegen"
-    ],
-    "codegen": [],
-    "lint:tsc": [
-      "@hashintel/petrinaut-core#build",
-      "codegen"
-    ],
-    "test:unit": [
-      "@hashintel/petrinaut-core#build",
-      "codegen"
-    ]
+    "build": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "codegen"
+      ]
+    },
+    "codegen": {
+      "dependsOn": []
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "codegen"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "@hashintel/petrinaut-core#build",
+        "codegen"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
   }
 }

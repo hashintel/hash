@@ -1,41 +1,33 @@
-/**
- * The parameter navigator of a sweep: one slider row per swept parameter,
- * plus a sampling status line. Each slider selects a position range on the
- * parameter's quantized interval — the whole interval by default,
- * collapsible to a single point — and committing a move reports the new
- * selection so the owner can redirect compute to it. In the experiment
- * drawer this strip lives in the section's sticky band and stays visible
- * while the charts scroll.
- *
- * Purely presentational: selection and sampling progress come in as props,
- * and the only output is `onSelectionChange`. Slider moves commit live —
- * positions are quantized, so a drag emits one change per step crossed and
- * compute follows the thumb.
- */
-import {
-  LoadingSpinner,
-  SegmentedControl,
-  Slider,
-} from "@hashintel/ds-components";
+import { LoadingSpinner, Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
   axisStep,
   axisValueAt,
+  pointSweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 import { formatAxisValue } from "../shared/format-axis-value";
-import { RangeSlider } from "./sweep-navigator/range-slider";
+import { formatCount } from "../shared/format-value";
+import { parameterLabel } from "./shared/parameter-label";
 
 import type {
   ExperimentParameterAxis,
-  SweepAxisSelection,
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
 
-/** Sampling progress shown under the sliders. */
+/** Progress shown under the sliders. */
 export type SweepNavigatorStatus = {
   /** Whether a batch is currently running for the selection. */
   computing: boolean;
+  /**
+   * The study behind the selection: the step it follows while a study
+   * drives the sweep, or the settled study's outcome in one line. Null when
+   * no study was started.
+   */
+  following:
+    | { kind: "following"; step: number; total: number }
+    | { kind: "settled"; summary: string }
+    | null;
   /** Runs finished for the selection so far. */
   runsCompleted: number;
   /** Runs finished within the currently running batch's target. */
@@ -47,132 +39,82 @@ export type SweepNavigatorStatus = {
 };
 
 const navigatorStyle = css({
+  containerType: "inline-size",
   display: "flex",
   flexDirection: "column",
-  gap: "[6px]",
+  gap: "3",
+});
+
+const controlsStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  columnGap: "8",
+  rowGap: "4",
+  "@container (max-width: 639px)": {
+    gridTemplateColumns: "minmax(0, 1fr)",
+  },
 });
 
 const rowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-});
-
-const nameStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  width: "[140px]",
-  flexShrink: 0,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
+  position: "relative",
+  minWidth: "[0]",
 });
 
 const readoutStyle = css({
+  position: "absolute",
+  top: "[0]",
+  right: "[0]",
+  paddingX: "2",
+  minWidth: "[56px]",
+  borderRadius: "md",
+  backgroundColor: "neutral.s20",
   fontSize: "xs",
+  lineHeight: "[20px]",
+  fontWeight: "medium",
   fontVariantNumeric: "tabular-nums",
-  color: "neutral.s100",
-  width: "[128px]",
-  flexShrink: 0,
+  color: "neutral.s120",
   textAlign: "right",
 });
 
 const sliderStyle = css({
-  flex: "1",
+  gap: "2",
+  "& [data-part=label]": {
+    paddingRight: "[88px]",
+    fontSize: "sm",
+    lineHeight: "[20px]",
+    color: "neutral.s110",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+});
+
+const boundsStyle = css({
+  display: "flex",
+  justifyContent: "space-between",
+  marginTop: "1",
+  fontSize: "[11px]",
+  lineHeight: "[14px]",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s90",
 });
 
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
-  // Aligns under the sliders: the 140px name column plus the row gap.
-  paddingLeft: "[148px]",
+  minWidth: "[0]",
   fontSize: "xs",
-  color: "neutral.s80",
+  color: "neutral.s90",
   fontVariantNumeric: "tabular-nums",
-  minHeight: "[16px]",
+  height: "[16px]",
+  "& > span:last-child": {
+    minWidth: "[0]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
 });
-
-const spinnerSlotStyle = css({
-  display: "inline-flex",
-  "&[data-idle=true]": { visibility: "hidden" },
-});
-
-const AxisControl = ({
-  axis,
-  selected,
-  onSelect,
-}: {
-  axis: ExperimentParameterAxis;
-  selected: SweepAxisSelection;
-  onSelect: (range: SweepAxisSelection) => void;
-}) => {
-  const isPoint = selected.from === selected.to;
-
-  const commitPoint = (position: number) => {
-    if (position !== selected.from || position !== selected.to) {
-      onSelect({ from: position, to: position });
-    }
-  };
-  const commitRange = (range: [number, number]) => {
-    if (range[0] !== selected.from || range[1] !== selected.to) {
-      onSelect({ from: range[0], to: range[1] });
-    }
-  };
-
-  return (
-    <>
-      <SegmentedControl
-        size="xs"
-        aria-label={`${axis.identifier} selection mode`}
-        items={[
-          { value: "range", label: "Range" },
-          { value: "point", label: "Point" },
-        ]}
-        value={isPoint ? "point" : "range"}
-        onChange={(mode) => {
-          if (mode === "point" && !isPoint) {
-            // Collapse to the middle of the current range.
-            const middle = Math.round((selected.from + selected.to) / 2);
-            onSelect({ from: middle, to: middle });
-          } else if (mode === "range" && isPoint) {
-            // Expand back to the whole interval.
-            onSelect({ from: 0, to: axis.stepCount });
-          }
-        }}
-      />
-      {isPoint ? (
-        // A single thumb, not a collapsed RangeSlider: coincident range
-        // thumbs trap the drag on the upper one, which cannot move left.
-        <Slider
-          className={sliderStyle}
-          min={0}
-          max={axis.stepCount}
-          step={1}
-          value={selected.from}
-          aria-label={axis.identifier}
-          onChange={commitPoint}
-        />
-      ) : (
-        <RangeSlider
-          className={sliderStyle}
-          min={0}
-          max={axis.stepCount}
-          step={1}
-          value={[selected.from, selected.to]}
-          aria-label={axis.identifier}
-          onChange={commitRange}
-        />
-      )}
-      <span className={readoutStyle}>
-        {isPoint
-          ? formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))
-          : `${formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))} – ${formatAxisValue(axisValueAt(axis, selected.to), axisStep(axis))}`}
-      </span>
-    </>
-  );
-};
 
 const SamplingStatus = ({
   selection,
@@ -185,23 +127,39 @@ const SamplingStatus = ({
     (range) => range.from !== range.to,
   );
   const activity = isRange
-    ? "sampling across the selected ranges"
-    : "refining while you stay here";
+    ? "Sampling selected ranges"
+    : "Sampling selected values";
+  const { following } = status;
+  const sampling = status.computing
+    ? ` · ${formatCount(status.runsSampled)} / ${formatCount(status.runTarget ?? status.runCount)} runs`
+    : "";
 
   return (
     <div className={statusStyle}>
-      <span className={spinnerSlotStyle} data-idle={!status.computing}>
+      {status.computing || following?.kind === "following" ? (
         <LoadingSpinner size="xs" />
-      </span>
-      {status.computing ? (
+      ) : null}
+      {following?.kind === "following" ? (
         <span>
-          {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
-          {activity}
+          Testing step {following.step}
+          {sampling}
         </span>
+      ) : following?.kind === "settled" && !status.computing ? (
+        <span>
+          {following.summary}
+          {sampling}
+        </span>
+      ) : status.computing ? (
+        <span>
+          {activity}
+          {sampling}
+        </span>
+      ) : status.runsCompleted === 0 ? (
+        <span>Move a slider to explore results.</span>
       ) : (
         <span>
-          {status.runsCompleted} of {status.runCount} runs
-          {status.runsCompleted >= status.runCount ? " — fully sampled" : ""}
+          {formatCount(status.runsCompleted)}{" "}
+          {status.runsCompleted === 1 ? "run" : "runs"} sampled
         </span>
       )}
     </div>
@@ -212,37 +170,62 @@ export const SweepNavigator = ({
   axes,
   selection,
   status,
+  disabled,
   onSelectionChange,
 }: {
   axes: readonly ExperimentParameterAxis[];
   selection: SweepSelection;
   status: SweepNavigatorStatus;
+  /** The controls only show the selection: a study drives it, or the experiment is over. */
+  disabled: boolean;
   onSelectionChange: (selection: SweepSelection) => void;
 }) => {
+  const points = pointSweepSelection(axes, selection);
+
   return (
     <div className={navigatorStyle}>
-      {axes.map((axis) => (
-        <div className={rowStyle} key={axis.identifier}>
-          <span className={nameStyle} title={axis.identifier}>
-            {axis.identifier}
-          </span>
-          <AxisControl
-            axis={axis}
-            selected={
-              selection[axis.identifier] ?? {
-                from: 0,
-                to: axis.stepCount,
-              }
-            }
-            onSelect={(range) =>
-              onSelectionChange({
-                ...selection,
-                [axis.identifier]: range,
-              })
-            }
-          />
-        </div>
-      ))}
+      <div className={controlsStyle}>
+        {axes.map((axis) => {
+          const position =
+            points[axis.identifier]?.from ?? Math.round(axis.stepCount / 2);
+          return (
+            <div
+              className={rowStyle}
+              key={axis.identifier}
+              title={axis.identifier}
+            >
+              <Slider
+                className={sliderStyle}
+                variant="plain"
+                label={parameterLabel(axis)}
+                min={0}
+                max={axis.stepCount}
+                step={1}
+                value={position}
+                disabled={disabled}
+                onChange={(nextPosition) => {
+                  if (!disabled) {
+                    onSelectionChange({
+                      ...points,
+                      [axis.identifier]: {
+                        from: nextPosition,
+                        to: nextPosition,
+                      },
+                    });
+                  }
+                }}
+              />
+              <span className={readoutStyle}>
+                {formatAxisValue(axisValueAt(axis, position), axisStep(axis))}
+              </span>
+              <div className={boundsStyle}>
+                <span>{formatAxisValue(axis.min, axisStep(axis))}</span>
+                <span>{formatAxisValue(axis.max, axisStep(axis))}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
       <SamplingStatus selection={selection} status={status} />
     </div>
   );

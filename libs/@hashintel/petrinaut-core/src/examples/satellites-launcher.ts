@@ -32,6 +32,7 @@ export const probabilisticSatellitesSDCPN: {
       {
         id: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
         name: "Space",
+        showAsInitialState: true,
         description:
           "Satellites in orbit. The orbit dynamics integrate each one's position and velocity under the planet's gravity, and a custom visualizer draws them around the planet.",
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
@@ -448,7 +449,62 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
           "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
             "scenario.satellite_initial_velocity",
         },
-        initialState: { type: "per_place", content: {} },
+        initialState: {
+          type: "adhoc",
+          content: {
+            variables: [
+              {
+                name: "launch_rate",
+                type: "real",
+                expression: "0.3",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_altitude",
+                type: "real",
+                expression: "20",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_velocity",
+                type: "real",
+                expression: "11",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+                expression: "5000",
+                optimize: null,
+              },
+              {
+                parameterId: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+                expression: "14",
+                optimize: null,
+              },
+              {
+                parameterId: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+                expression: "scenario.launch_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+                expression: "scenario.satellite_initial_altitude",
+                optimize: null,
+              },
+              {
+                parameterId: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+                expression: "scenario.satellite_initial_velocity",
+                optimize: null,
+              },
+            ],
+            places: {},
+          },
+        },
       },
       {
         id: "scenario__earth_orbit",
@@ -477,7 +533,62 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
           "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
             "scenario.satellite_initial_velocity",
         },
-        initialState: { type: "per_place", content: {} },
+        initialState: {
+          type: "adhoc",
+          content: {
+            variables: [
+              {
+                name: "launch_rate",
+                type: "real",
+                expression: "0.5",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_altitude",
+                type: "real",
+                expression: "40",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_velocity",
+                type: "real",
+                expression: "67",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+                expression: "400000",
+                optimize: null,
+              },
+              {
+                parameterId: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+                expression: "50",
+                optimize: null,
+              },
+              {
+                parameterId: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+                expression: "scenario.launch_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+                expression: "scenario.satellite_initial_altitude",
+                optimize: null,
+              },
+              {
+                parameterId: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+                expression: "scenario.satellite_initial_velocity",
+                optimize: null,
+              },
+            ],
+            places: {},
+          },
+        },
       },
       {
         id: "scenario__mars_orbit",
@@ -506,7 +617,62 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
           "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
             "scenario.satellite_initial_velocity",
         },
-        initialState: { type: "per_place", content: {} },
+        initialState: {
+          type: "adhoc",
+          content: {
+            variables: [
+              {
+                name: "launch_rate",
+                type: "real",
+                expression: "0.4",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_altitude",
+                type: "real",
+                expression: "25",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_velocity",
+                type: "real",
+                expression: "29",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+                expression: "43000",
+                optimize: null,
+              },
+              {
+                parameterId: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+                expression: "27",
+                optimize: null,
+              },
+              {
+                parameterId: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+                expression: "scenario.launch_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+                expression: "scenario.satellite_initial_altitude",
+                optimize: null,
+              },
+              {
+                parameterId: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+                expression: "scenario.satellite_initial_velocity",
+                optimize: null,
+              },
+            ],
+            places: {},
+          },
+        },
       },
       {
         id: "scenario__solar_orbit",
@@ -535,42 +701,150 @@ return sats.reduce((sum, s) => sum + s.velocity, 0) / sats.length;`,
           "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
             "scenario.satellite_initial_velocity",
         },
-        initialState: { type: "per_place", content: {} },
+        initialState: {
+          type: "adhoc",
+          content: {
+            variables: [
+              {
+                name: "launch_rate",
+                type: "real",
+                expression: "0.6",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_altitude",
+                type: "real",
+                expression: "50",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "satellite_initial_velocity",
+                type: "real",
+                expression: "196",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [
+              {
+                parameterId: "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+                expression: "5000000",
+                optimize: null,
+              },
+              {
+                parameterId: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+                expression: "80",
+                optimize: null,
+              },
+              {
+                parameterId: "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+                expression: "scenario.launch_rate",
+                optimize: null,
+              },
+              {
+                parameterId: "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+                expression: "scenario.satellite_initial_altitude",
+                optimize: null,
+              },
+              {
+                parameterId: "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+                expression: "scenario.satellite_initial_velocity",
+                optimize: null,
+              },
+            ],
+            places: {},
+          },
+        },
       },
       {
         id: "scenario__pre_deployed_constellation",
         name: "Pre-deployed Constellation",
         description:
-          "Starts with a configurable number of satellites already in orbit, evenly spaced in a ring around the planet. The initial state is defined as code from the scenario parameters.",
+          "Starts with a configurable number of satellites already in orbit, evenly spaced in a ring around the planet. A dynamic row in the ad-hoc scenario form generates the initial state from the scenario parameters.",
         scenarioParameters: [
           { type: "integer", identifier: "number_of_satellites", default: 8 },
           { type: "real", identifier: "initial_altitude", default: 40 },
         ],
         parameterOverrides: {},
         initialState: {
-          type: "code",
-          content: `const distanceToCenter =
-  parameters.planet_radius + scenario.initial_altitude;
-
-// Speed of a circular orbit at this radius. The orbit dynamics divide by
-// velocity, so a satellite must start moving — a stationary token would make
-// the direction derivative 0/0 on the very first step.
-const orbitalSpeed = Math.sqrt(
-  parameters.gravitational_constant / distanceToCenter,
-);
-
-return {
-  Space: range(scenario.number_of_satellites).map((i) => {
-    const angle = Math.PI * 2 * (i / scenario.number_of_satellites);
-    return {
-      x: Math.cos(angle) * distanceToCenter,
-      y: Math.sin(angle) * distanceToCenter,
-      // Tangential heading: a quarter turn ahead of the outward radius.
-      direction: angle + Math.PI / 2,
-      velocity: orbitalSpeed,
-    };
-  }),
-};`,
+          type: "adhoc",
+          content: {
+            variables: [
+              {
+                name: "number_of_satellites",
+                type: "integer",
+                expression: "8",
+                exposed: true,
+                optimize: null,
+              },
+              {
+                name: "initial_altitude",
+                type: "real",
+                expression: "40",
+                exposed: true,
+                optimize: null,
+              },
+            ],
+            netParameters: [],
+            places: {
+              "3cbc7944-34cb-4eeb-b779-4e392a171fe1": {
+                kind: "coloured",
+                variables: [
+                  {
+                    name: "distanceToCenter",
+                    type: "real",
+                    expression:
+                      "parameters.planet_radius + scenario.initial_altitude",
+                    optimize: null,
+                  },
+                  {
+                    name: "orbitalSpeed",
+                    type: "real",
+                    expression:
+                      "Math.sqrt(\n  parameters.gravitational_constant / distanceToCenter,\n)",
+                    optimize: null,
+                  },
+                  {
+                    name: "angle",
+                    type: "real",
+                    expression:
+                      "Math.PI * 2 * (i / scenario.number_of_satellites)",
+                    optimize: null,
+                  },
+                ],
+                rows: [
+                  {
+                    kind: "template",
+                    count: {
+                      expression: "scenario.number_of_satellites",
+                      optimize: null,
+                    },
+                    cells: [
+                      {
+                        expression: "Math.cos(angle) * distanceToCenter",
+                        optimize: null,
+                      },
+                      {
+                        expression: "Math.sin(angle) * distanceToCenter",
+                        optimize: null,
+                      },
+                      {
+                        expression: "angle + Math.PI / 2",
+                        optimize: null,
+                      },
+                      {
+                        expression: "orbitalSpeed",
+                        optimize: null,
+                      },
+                    ],
+                  },
+                ],
+                sharedColumns: {},
+              },
+            },
+          },
         },
       },
     ],

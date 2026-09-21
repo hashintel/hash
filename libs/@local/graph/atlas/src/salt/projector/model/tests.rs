@@ -1,7 +1,7 @@
 //! Certificates for the projector model's initialization contracts.
 //!
 //! Identity assertions are bit-exact by design: the zero-initialized layers contribute exactly
-//! zero, `1 + 0 = 1` exactly, and `h · 1 + 0` reproduces `h` bit for bit, so any drift is a broken
+//! zero, `1 + 0 = 1` exactly, and `h · 1 + 0` reproduces `h` bit for bit: any drift is a broken
 //! contract, not rounding.
 
 use std::sync::LazyLock;
@@ -19,8 +19,12 @@ use crate::{
     math::nz,
 };
 
+/// The CPU device every model fixture runs on, resolved once.
 static DEVICE: LazyLock<PhysicalDevice> = LazyLock::new(|| Device::Cpu.pin(0).resolve());
 
+/// A small architecture with `CONDITION_DIMENSIONS` condition inputs.
+///
+/// Width 8, two residual blocks, six representation and four role dimensions.
 fn tiny<const CONDITION_DIMENSIONS: usize>() -> Architecture {
     Architecture {
         width: nz!(8),
@@ -31,15 +35,18 @@ fn tiny<const CONDITION_DIMENSIONS: usize>() -> Architecture {
     }
 }
 
+/// A `rows × columns` inference tensor from row-major `values`.
 fn matrix(rows: usize, columns: usize, values: Vec<f32>) -> Tensor<Inference, 2> {
     Tensor::from_data(TensorData::new(values, [rows, columns]), &*DEVICE)
 }
 
+/// A one-dimensional integer role tensor from `values`.
 fn roles(values: Vec<i64>) -> Tensor<Inference, 1, Int> {
     let rows = values.len();
     Tensor::from_data(TensorData::new(values, [rows]), &*DEVICE)
 }
 
+/// A 2-D tensor's contents as row-major `f32` values.
 fn to_values(tensor: Tensor<Inference, 2>) -> Vec<f32> {
     tensor
         .into_data()
@@ -62,6 +69,10 @@ fn representation(rows: usize, columns: usize) -> Tensor<Inference, 2> {
     matrix(rows, columns, values)
 }
 
+/// Returns the hidden input unchanged from a fresh `FiLM` layer at every condition.
+///
+/// A freshly initialized `FiLM` layer returns its hidden input unchanged for every condition value
+/// and width.
 #[test]
 fn film_is_identity_at_initialization_for_every_condition() {
     for condition_dimensions in [1, 3] {
@@ -93,7 +104,7 @@ fn film_is_identity_at_initialization_for_every_condition() {
 /// Pins the modulation arithmetic the identity certificates cannot see.
 ///
 /// The `[dgamma; beta]` column order, the `+ 1` on gamma, and per-row conditions. Every value is
-/// dyadic, so equality is exact.
+/// dyadic: equality is exact.
 #[test]
 fn film_modulates_by_hand_computed_values() {
     let mut rng = Xoshiro256PlusPlus::seed_from_u64(31);
@@ -123,6 +134,7 @@ fn film_modulates_by_hand_computed_values() {
     );
 }
 
+/// A freshly initialized residual block returns its input unchanged for every condition width.
 #[test]
 fn residual_block_is_identity_at_initialization() {
     for condition_dimensions in [1, 3] {
@@ -154,6 +166,10 @@ fn residual_block_is_identity_at_initialization() {
     }
 }
 
+/// Projects the same finite coordinates from a fresh projector whatever the condition.
+///
+/// A fresh projector projects the same finite 2-D coordinates whatever the condition value, for
+/// one- and three-dimensional conditions.
 #[test]
 fn forward_is_condition_invariant_at_initialization() {
     for (condition_dimensions, architecture) in [(1, tiny::<1>()), (3, tiny::<3>())] {
@@ -241,6 +257,7 @@ fn roles_reach_the_output() {
     );
 }
 
+/// Projecting two rows as a batch equals projecting each alone and concatenating.
 #[test]
 fn rows_project_independently() {
     let projector =
@@ -271,6 +288,7 @@ fn rows_project_independently() {
     );
 }
 
+/// A condition tensor wider than the architecture panics with the documented message.
 #[test]
 #[should_panic(expected = "condition width should match the architecture")]
 fn forward_rejects_a_mismatched_condition_width() {

@@ -22,7 +22,7 @@ Integer, Boolean, UUID, and String dimensions are **discrete**: their values onl
 
 **To create a type:**
 
-1. Open the **Token Types** tab in the left sidebar.
+1. Open the **Token Types** group in the left sidebar.
 2. Click **+** to add a new type.
 3. Give it a **name** and **display colour**.
 4. Add dimensions, giving each a name and a value type.
@@ -39,7 +39,7 @@ Parameters are named values available in all user-authored code: dynamics, firin
 
 **To create a parameter:**
 
-1. Open the **Parameters** tab in the left sidebar.
+1. Open the **Parameters** group in the left sidebar.
 2. Click **+** to add a new parameter.
 3. Set a **name** (display label), **variable name** (used in code), and **default value** (can be overridden in the simulation settings). Variable names must be lower_snake_case (e.g. `infection_rate`) and must not be a reserved JavaScript property name such as `constructor`.
 
@@ -58,7 +58,7 @@ Kernel, firing rate/predicate, differential equation, metric, and scenario code 
 | [Transition kernel](#transition-kernel)                   | `input`, `parameters`             | tokens for each typed output place, keyed by place name |
 | [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`             | `true`/`false` (predicate) or a rate (stochastic)       |
 | [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`            | one derivative object per token                         |
-| Metric (see [Optimization](optimization.md))              | `state`, `parameters`             | a finite number                                         |
+| Metric (see [Experiments](experiments.md#metric-charts))  | `state`, `parameters`             | a finite number                                         |
 | Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range` | tokens or counts, keyed by place name                   |
 
 `input` is the tokens from the transition's typed input places, keyed by place name; `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
@@ -71,9 +71,9 @@ Differential equations define how token data evolves continuously over time. The
 
 **Setup:**
 
-1. Create a differential equation in the **Differential Equations** tab (left sidebar).
+1. Create a differential equation in the **Differential Equations** group (left sidebar).
 2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
-3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place.
+3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place. Click **View equation** below the dropdown to open its definition.
 
 **Function body:**
 
@@ -93,7 +93,7 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 A visualizer renders a custom view of a place's tokens during simulation. It is a React component that returns JSX (SVG is recommended).
 
-**To enable:** select a place, then toggle **Visualizer** in its properties. A code editor opens.
+**To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
 
 ```tsx
 export default Visualization(({ tokens, parameters }) => {
@@ -108,6 +108,10 @@ export default Visualization(({ tokens, parameters }) => {
 ```
 
 The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
+
+It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
+
+Opening it belongs to that hover: move the pointer away and it closes, and pointing at the place again offers the button rather than the visualizer. A **pin** in the visualizer's top-right corner is what makes it stay -- faint until you point at the box, solid once pinned. A pinned box stays up with the pointer somewhere else entirely, which is what makes it possible to watch one place while scrubbing the [timeline](simulation.md#timeline) or editing the initial state. Click the pin again to release it. Pin as many places as you want to watch at once; pins last until the page is reloaded.
 
 <img width="474" height="385" alt="visauliser-preview" src="https://github.com/user-attachments/assets/303f51f3-0a53-480b-9639-52c4b77aa6e0" />
 
@@ -249,7 +253,7 @@ Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinau
 - `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
 - Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
 - Token access (`input.Place[0].attr`, `.length`) and `Distribution.*` constructors (with `.map` transforms).
-- Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`.
+- Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`. On the GPU, `.reduce(...)` over one place's tokens compiles to a loop; `.concat(...)` keeps a metric on the CPU.
 - In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number). Net parameters are available ambiently as `parameters.<variable name>` (scenario parameters are not).
 
 Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.

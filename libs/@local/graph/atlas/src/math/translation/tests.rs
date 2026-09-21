@@ -3,6 +3,10 @@ use crate::math::{
     tests::{POINTS, SWEEP_POINTS, SWEEP_TRANSLATIONS},
 };
 
+/// Composes and reverses translations on a dyadic fixture.
+///
+/// Offsets and points are small multiples of 1/2. Every sum fits exactly in `f32`, including the
+/// inverse round trip.
 #[test]
 fn translation_composes_and_inverts_exactly() {
     let translation = Translation::new(10.0, -2.5).then(Translation::new(0.5, 4.0));
@@ -31,12 +35,11 @@ fn translation_apply_x4_matches_apply() {
     }
 }
 
-/// `apply_x4` is exact against `apply` over a deterministic sweep of offsets and points.
+/// Compares scalar and SIMD translation over the finite fixture sweep.
 ///
-/// The SIMD path is a plain lane-wise `f32` addition with no fused operation to round differently
-/// from the scalar path's addition, so every lane must match bit for bit; measured across
-/// [`SWEEP_TRANSLATIONS`] and [`SWEEP_POINTS`] (spanning zero, sub-unit and super-unit magnitudes,
-/// and mixed signs), the maximum observed distance is 0 ULP in both components.
+/// Both paths use one `f32` addition per component, without different fusion or grouping. The
+/// assertions compare numerical values. They do not distinguish signed zeros or establish NaN-bit
+/// behavior.
 #[test]
 fn translation_apply_x4_matches_apply_exactly_over_a_sweep() {
     for &offset in &SWEEP_TRANSLATIONS {

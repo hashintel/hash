@@ -58,10 +58,19 @@ use hash_graph_atlas::{
 use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::ThreadPoolBuilder;
 
+/// The fixture seed every model and batch in this target builds from.
 const SEED: u64 = 0x9C0E_C708;
 
+/// The backends under comparison.
+///
+/// The CPU and the host's accelerated device family, each pinned to ordinal 0.
 const DEVICES: &[PinnedDevice] = &[Device::Cpu.pin(0), Device::host().pin(0)];
 
+/// Returns the largest forward batch's row count: `PROJECTOR_BENCH_ROWS`, or 65536.
+///
+/// # Panics
+///
+/// This panics when `PROJECTOR_BENCH_ROWS` is set to a value that is not a row count.
 fn rows() -> usize {
     std::env::var("PROJECTOR_BENCH_ROWS").map_or(65_536, |value| {
         value
@@ -70,6 +79,7 @@ fn rows() -> usize {
     })
 }
 
+/// Returns a synthetic batch of `rows` rows drawn from the fixture seed.
 fn synthesize(rows: usize) -> Batch {
     Batch::new::<Xoshiro256PlusPlus>(rows, SEED)
 }
@@ -115,6 +125,12 @@ fn bench_forward(criterion: &mut Criterion) {
 }
 
 /// One fixed CPU training step across rayon pool sizes.
+///
+/// Pool sizes above the host's rayon thread count are skipped.
+///
+/// # Panics
+///
+/// This panics when a rayon pool of a requested size cannot be built.
 fn bench_thread_scaling(criterion: &mut Criterion) {
     let model = Model::build::<Xoshiro256PlusPlus>(Device::Cpu.pin(0), SEED);
     let batch = synthesize(4_096);
@@ -141,6 +157,12 @@ fn bench_thread_scaling(criterion: &mut Criterion) {
 }
 
 /// One real training step at the production plan, phase by phase.
+///
+/// `PROJECTOR_BENCH_LIVE_ROWS` sizes the synthesized corpus, 65536 rows by default.
+///
+/// # Panics
+///
+/// This panics when `PROJECTOR_BENCH_LIVE_ROWS` is set to a value that is not a row count.
 fn bench_live_step(criterion: &mut Criterion) {
     let rows = std::env::var("PROJECTOR_BENCH_LIVE_ROWS").map_or(65_536, |value| {
         value
@@ -231,6 +253,9 @@ fn bench_live_step(criterion: &mut Criterion) {
     group.finish();
 }
 
+/// Returns the Criterion configuration the groups share.
+///
+/// Every benchmark warms up for half a second and measures for ten seconds.
 fn config() -> Criterion {
     Criterion::default()
         .warm_up_time(Duration::from_millis(500))

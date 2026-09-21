@@ -1,11 +1,15 @@
-use alloc::alloc::{Allocator, Global};
-use core::{fmt, fmt::Display};
+//! Paired endpoint constraints: each source type's allowed target types and cardinality.
+
+use alloc::alloc::Global;
+use core::{alloc::Allocator, fmt, fmt::Display};
 
 use super::phrase::Phrase;
 
 /// One source type's allowed target types and per-source cardinality.
 pub(crate) struct EndpointConstraint<'text, A: Allocator = Global> {
+    /// The source type the constraint applies to.
     pub source: Phrase<'text>,
+    /// The target types this source may relate to, where an empty list allows any target type.
     pub targets: Vec<Phrase<'text>, A>,
     minimum_targets: Option<usize>,
     maximum_targets: Option<usize>,
@@ -36,10 +40,13 @@ impl<'text, A: Allocator> EndpointConstraint<'text, A> {
         })
     }
 
-    /// Reports whether the constraint allows at most one target per source.
+    /// Reports whether the cardinality admits the independent source and target sections.
     ///
-    /// A lone simple pair carries no association a paired block could disambiguate, so the card
-    /// renders it through the independent source and target sections instead.
+    /// Admitted means no minimum recorded, and a maximum either absent or equal to one. An absent
+    /// maximum records no bound rather than a bound of one.
+    ///
+    /// A paired block prints no cardinality for the absent-maximum case and `[targets per source:
+    /// <= 1]` for the maximum-one case. Independent sections omit that annotation.
     pub(super) const fn is_simple_pair(&self) -> bool {
         self.minimum_targets.is_none() && matches!(self.maximum_targets, None | Some(1))
     }
@@ -93,7 +100,9 @@ impl<A: Allocator> Display for EndpointConstraint<'_, A> {
 /// The direction described by a card.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Direction {
+    /// The relation reads the same from either endpoint.
     Symmetric,
+    /// The relation reads from its source to its target.
     SourceToTarget,
 }
 
@@ -108,14 +117,19 @@ impl Display for Direction {
 
 /// The shared constraint vocabulary.
 ///
-/// `None` means the datasource does not record that fact and renders as "not recorded";
+/// `None` means the datasource does not record that fact and renders as "not recorded".
 /// `Some(false)` is a recorded negative assertion. Cards report the ontology as-is.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Constraints {
+    /// Whether the relation is symmetric, rendered as `symmetric?`.
     pub symmetric: Option<bool>,
+    /// Whether the relation is transitive, rendered as `transitive?`.
     pub transitive: Option<bool>,
+    /// Whether the relation carries a single value, rendered as `single value?`.
     pub singleton: Option<bool>,
+    /// Whether the relation's values are distinct, rendered as `distinct values?`.
     pub distinct: Option<bool>,
+    /// The direction the card describes.
     pub direction: Direction,
 }
 

@@ -48,6 +48,7 @@ export {
   type DocChangeEvent,
   type DocHandleState,
   type DocumentId,
+  type DocumentRevisionId,
   type HistoryEntry,
   type PetrinautDocHandle,
   type PetrinautHistory,
@@ -135,13 +136,17 @@ export type {
   PetrinautOptimizationEvent,
   PetrinautOptimizationExecution,
   PetrinautOptimizationInput,
+  PetrinautOptimizationDirection,
   PetrinautOptimizationManifest,
   PetrinautOptimizationObjective,
   PetrinautOptimizationParameterBinding,
   PetrinautOptimizationDescribeParameter,
   PetrinautOptimizationDescribeResult,
   PetrinautOptimizationStudy,
+  PetrinautOptimizationTrialConstraints,
   PetrinautOptimizationTrialEvent,
+  PetrinautOptimizationImportances,
+  PetrinautOptimizationConstraintPolicy,
   PetrinautIntegerOptimizationDomain,
 } from "./optimization";
 export { createPetrinautActions } from "./actions";
@@ -167,6 +172,15 @@ export type {
 } from "./command-schemas";
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
+  executeSelectedMutationBatch,
+  selectedMutationBatchSchema,
+  selectedMutationOperationSchema,
+  type SelectedMutationAttempt,
+  type SelectedMutationEffect,
+  type SelectedMutationOperation,
+  type SelectedMutationOutcome,
+} from "./selected-mutation-batch";
+export {
   calculateGraphLayout,
   classicNodeDimensions,
   compactNodeDimensions,
@@ -188,6 +202,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   createPetrinautAiWritableCallbacks,
+  createExperimentToolName,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -220,6 +235,15 @@ export type {
   PetrinautAiTools,
   PetrinautDocName,
 } from "./ai";
+
+export {
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
+  type PetrinautExperimentHost,
+  type PetrinautExperimentProgress,
+  type PetrinautExperimentRequest,
+  type PetrinautExperimentResult,
+} from "./experiments";
 
 // --- Simulation ---
 export {
@@ -440,6 +464,40 @@ export type {
   ScenarioLoweringInput,
 } from "./hir/scenario";
 export {
+  CONSTRAINT_SPACES,
+  CONSTRAINT_SURFACES,
+  constraintLabel,
+  constraintListSchema,
+  constraintSchema,
+  constraintSpaceSchema,
+  constraintsInSpace,
+  parameterConstraintSchema,
+  stateConstraintSchema,
+} from "./constraint/constraint";
+export type {
+  Constraint,
+  ConstraintSpace,
+  ParameterConstraint,
+  StateConstraint,
+} from "./constraint/constraint";
+export {
+  compileStateConstraintIndicator,
+  wrapHirAsIndicator,
+} from "./constraint/indicator-metric";
+export {
+  constraintMargin,
+  evaluateParameterConstraints,
+  type ParameterConstraintResult,
+} from "./constraint/margin";
+export type { HirInterpretBindings } from "./hir/interpret";
+// Type-only: lowering itself stays in ./hir (worker/Node).
+export type {
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
+} from "./constraint/lower";
+export { hirFunctionSchema } from "./hir/hir-schema";
+export {
   AD_HOC_DEFAULT_OPTIMIZE,
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
   adHocOptimizationBindings,
@@ -452,6 +510,8 @@ export {
   cycleAdHocRowKind,
   setAdHocRowKind,
   adHocNeutralExpression,
+  createAdHocPlaceTotalResolver,
+  createAdHocTargetLabeler,
   resolveAdHocPlaceTotal,
   shareAdHocColumn,
   synthesizeAdHocOptimization,
@@ -503,6 +563,10 @@ export {
   initialMarkingToAdHocPlaces,
   type TruncatedPlace,
 } from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
+export {
+  adHocStateFromScenario,
+  type AdHocStateFromScenario,
+} from "./simulation/authoring/scenario/ad-hoc/scenario-to-ad-hoc-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
@@ -584,8 +648,10 @@ export {
 export {
   getDocumentUri,
   getAdHocDocumentUri,
+  getConstraintDocumentUri,
   getMetricDocumentUri,
   getScenarioDocumentUri,
   parseAdHocDocumentUri,
+  parseConstraintDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";

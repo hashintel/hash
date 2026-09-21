@@ -8,9 +8,13 @@ use super::{
 };
 use crate::salt::policy::GeometryClass;
 
+/// The SHA-256 digest the fixture cards and their source record carry.
 const DIGEST: &str = "2a9934acae8bf210b6a3428e553b1bcc0e220a4de113940782cd573da1ea4f4b";
+/// A second digest, used to make one vote's card hash disagree with the others.
 const OTHER_DIGEST: &str = "33ddbf6ffdd995dc23be2e7d4e9a05ec57b50a0ab03b0f8f44edbb26f36cf059";
+/// The versioned HASH type URL of the fixture's hash-sourced card.
 const EMPLOYED_BY: &str = "https://hash.ai/@h/types/entity-type/employed-by/v/1";
+/// The Wikidata entity URL of the fixture's wikidata-sourced card.
 const PART_OF: &str = "http://www.wikidata.org/entity/P361";
 
 /// Composes one vote with conforming provenance.
@@ -79,7 +83,7 @@ fn wikidata_card() -> Value {
     })
 }
 
-/// Composes a sparse hash card, with the live corpus's presence realism.
+/// Composes a sparse hash card whose present and absent fields follow the live corpus.
 ///
 /// No aliases, examples, endpoint constraints, or inverse.
 fn hash_card() -> Value {
@@ -192,6 +196,7 @@ fn vote_counts_fold_excludes_unclear_and_abstain() {
     assert_eq!(counts.weight(), 3);
 }
 
+/// A document with a different schema tag fails with `Schema` carrying the tag found.
 #[test]
 fn foreign_schema_is_rejected() {
     let json =
@@ -203,6 +208,7 @@ fn foreign_schema_is_rejected() {
     );
 }
 
+/// Cards out of canonical identity order fail with `UnorderedCards` naming the offending index.
 #[test]
 fn unordered_cards_are_rejected() {
     let json = document(&[hash_card(), wikidata_card()]);
@@ -223,6 +229,10 @@ fn duplicated_identity_is_rejected() {
     );
 }
 
+/// A versionless hash base URL fails with `IdentityForm` for `Source::Hash`.
+///
+/// A hash identity given as a base URL without a version fails with `IdentityForm` for
+/// `Source::Hash`.
 #[test]
 fn base_url_hash_identity_is_rejected() {
     let mut card = hash_card();
@@ -238,6 +248,10 @@ fn base_url_hash_identity_is_rejected() {
     );
 }
 
+/// A wikidata identity outside `/entity/` fails with `IdentityForm` for `Source::Wikidata`.
+///
+/// A wikidata identity outside the `/entity/` namespace fails with `IdentityForm` for
+/// `Source::Wikidata`.
 #[test]
 fn wikidata_identity_off_the_entity_namespace_is_rejected() {
     let mut card = wikidata_card();
@@ -253,6 +267,10 @@ fn wikidata_identity_off_the_entity_namespace_is_rejected() {
     );
 }
 
+/// A wikidata card missing a pin field fails with `MissingPin` naming the field.
+///
+/// A wikidata card missing `retrieved_at` or `source_record_hash` fails with `MissingPin` naming
+/// the field.
 #[test]
 fn wikidata_card_without_pins_is_rejected() {
     let mut card = wikidata_card();
@@ -278,6 +296,7 @@ fn wikidata_card_without_pins_is_rejected() {
     );
 }
 
+/// A hash card carrying `retrieved_at` fails with `ForbiddenPin` naming the field.
 #[test]
 fn hash_card_with_pins_is_rejected() {
     let mut card = hash_card();
@@ -293,6 +312,7 @@ fn hash_card_with_pins_is_rejected() {
     );
 }
 
+/// A URL inside the title fails with `IdentifierInContent` naming `title`.
 #[test]
 fn url_scheme_in_prose_is_rejected() {
     let mut card = hash_card();
@@ -308,6 +328,7 @@ fn url_scheme_in_prose_is_rejected() {
     );
 }
 
+/// A UUID inside the description fails with `IdentifierInContent` naming `description`.
 #[test]
 fn uuid_shaped_token_in_prose_is_rejected() {
     let mut card = hash_card();
@@ -323,6 +344,7 @@ fn uuid_shaped_token_in_prose_is_rejected() {
     );
 }
 
+/// A null description admits and parses to `None`.
 #[test]
 fn null_description_admits() {
     let mut card = wikidata_card();
@@ -334,6 +356,7 @@ fn null_description_admits() {
     assert!(corpus.cards()[0].content.description.is_none());
 }
 
+/// An empty title fails with `EmptyField` naming `title`.
 #[test]
 fn empty_required_field_is_rejected() {
     let mut card = hash_card();
@@ -349,6 +372,7 @@ fn empty_required_field_is_rejected() {
     );
 }
 
+/// An empty string inside an axis list fails with `EmptyField` naming the axis.
 #[test]
 fn empty_axis_entry_is_rejected() {
     let mut card = hash_card();
@@ -364,6 +388,7 @@ fn empty_axis_entry_is_rejected() {
     );
 }
 
+/// A shot-excluded card that still carries votes fails with `ShotExcludedVotes`.
 #[test]
 fn shot_excluded_card_with_votes_is_rejected() {
     let mut card = hash_card();
@@ -376,6 +401,7 @@ fn shot_excluded_card_with_votes_is_rejected() {
     );
 }
 
+/// A shot-excluded card without votes admits with the flag set and zero vote weight.
 #[test]
 fn shot_excluded_card_without_votes_admits() {
     let mut card = hash_card();
@@ -388,6 +414,7 @@ fn shot_excluded_card_without_votes_admits() {
     assert_eq!(corpus.cards()[0].vote_counts().weight(), 0);
 }
 
+/// A card whose votes are all unclear admits, counting the unclear votes and weighing zero.
 #[test]
 fn all_unclear_card_admits_with_zero_weight() {
     let mut card = hash_card();
@@ -401,6 +428,7 @@ fn all_unclear_card_admits_with_zero_weight() {
     assert_eq!(counts.weight(), 0);
 }
 
+/// A card whose only vote abstains fails with `NoEvidence`.
 #[test]
 fn abstain_only_card_is_rejected() {
     let mut card = hash_card();
@@ -413,6 +441,7 @@ fn abstain_only_card_is_rejected() {
     );
 }
 
+/// A card with no votes and no excusing flag fails with `NoEvidence`.
 #[test]
 fn voteless_card_without_flags_is_rejected() {
     let mut card = hash_card();
@@ -425,6 +454,7 @@ fn voteless_card_without_flags_is_rejected() {
     );
 }
 
+/// Votes whose card hashes disagree fail with `DisagreeingCardHash`.
 #[test]
 fn disagreeing_vote_card_hashes_are_rejected() {
     let mut card = hash_card();
@@ -437,6 +467,7 @@ fn disagreeing_vote_card_hashes_are_rejected() {
     );
 }
 
+/// A card held out as `proximal` admits without votes and reports the proximal geometry class.
 #[test]
 fn holdout_card_admits_without_geometry_votes() {
     let mut card = hash_card();
@@ -459,6 +490,7 @@ fn holdout_card_admits_without_geometry_votes() {
     );
 }
 
+/// A card held out as `unclear` admits without votes and reports no geometry class.
 #[test]
 fn unclear_holdout_admits() {
     let mut card = hash_card();
@@ -477,6 +509,10 @@ fn unclear_holdout_admits() {
     );
 }
 
+/// An inverted endpoint constraint fails with `EndpointBounds` naming card and constraint.
+///
+/// An endpoint constraint whose minimum exceeds its maximum fails with `EndpointBounds` naming the
+/// card and constraint.
 #[test]
 fn inverted_endpoint_bounds_are_rejected() {
     let mut card = wikidata_card();
@@ -493,6 +529,7 @@ fn inverted_endpoint_bounds_are_rejected() {
     );
 }
 
+/// Removing a tristate constraint key fails at the JSON layer with `Json`.
 #[test]
 fn missing_tristate_key_is_rejected() {
     let mut card = hash_card();
@@ -508,6 +545,7 @@ fn missing_tristate_key_is_rejected() {
     );
 }
 
+/// An unknown card field fails at the JSON layer with `Json`.
 #[test]
 fn unknown_field_is_rejected() {
     let mut card = hash_card();
@@ -520,6 +558,7 @@ fn unknown_field_is_rejected() {
     );
 }
 
+/// An empty `model_pinned` on a vote fails with `EmptyVoteField` naming the card, vote and field.
 #[test]
 fn empty_vote_provenance_field_is_rejected() {
     let mut card = hash_card();

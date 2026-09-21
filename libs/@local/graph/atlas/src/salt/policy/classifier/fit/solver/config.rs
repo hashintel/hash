@@ -1,23 +1,25 @@
 //! Validated solver-loop configuration.
 //!
-//! [`SolverConfig`] carries every knob of the trust-region exact-Newton loop: the radius domain,
+//! [`SolverOptions`] carries every knob of the trust-region exact-Newton loop: the radius domain,
 //! shrink and expansion factors, acceptance thresholds, convergence tolerances, ulp counts, and the
-//! inclusive outer-iteration budget. Per-field domains travel in the field types - the validated
-//! scalars of [`math`](crate::math) and the non-zero integers of [`core::num`] - so a configuration
-//! value that exists is in domain. [`validate`](SolverConfig::validate) checks only what no field
-//! type can carry alone: the radius ordering and the acceptance-threshold ordering, in declared
-//! order, reporting the first violation. The preparation-side knobs ride along as
-//! [`PreparationSettings`], so one validated configuration covers the whole fit.
+//! inclusive outer-iteration budget. Per-field domains are carried by the field types, the
+//! validated scalars of [`math`](crate::math) and the non-zero integers of [`core::num`].
+//! [`SolverConfig::new`] checks the radius and acceptance-threshold orderings that no field type
+//! can carry alone. A [`SolverConfig`] value is therefore in domain. [`PreparationSettings`]
+//! supplies the preparation-side knobs within the same configuration.
 //!
 //! The outer-iteration budget is an inclusive maximum: equality is allowed and starting one more
 //! iteration fails the solve. It is the loop's only work limit. Per-request work is bounded by the
 //! iteration structure itself, at a small fixed number of evaluations and traversals per outer
 //! iteration.
 
-use core::num::NonZero;
+use core::{fmt, num::NonZero};
 
 use super::prepare::PreparationSettings;
-use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
+use crate::math::{
+    DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction, d_non_negative, d_positive,
+    greater_than_one, nz, open_unit_fraction,
+};
 
 /// A cross-field constraint failed.
 ///
@@ -26,113 +28,314 @@ use crate::math::{DNonNegative, DPositive, GreaterThanOne, OpenUnitFraction};
 pub(crate) enum SolverConfigError {
     /// The radius domain violates `minimum ≤ initial ≤ maximum`.
     RadiusDomain {
+        /// The configured minimum radius.
         minimum: DPositive,
+        /// The configured initial radius.
         initial: DPositive,
+        /// The configured maximum radius.
         maximum: DPositive,
     },
     /// The acceptance thresholds violate `accept < expand`.
     AcceptanceThresholds {
+        /// The configured acceptance threshold.
         accept: OpenUnitFraction,
+        /// The configured expansion threshold.
         expand: OpenUnitFraction,
     },
 }
 
+impl fmt::Display for SolverConfigError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RadiusDomain {
+                minimum,
+                initial,
+                maximum,
+            } => write!(
+                fmt,
+                "trust radii must satisfy minimum <= initial <= maximum: minimum={minimum}, \
+                 initial={initial}, maximum={maximum}",
+            ),
+            Self::AcceptanceThresholds { accept, expand } => write!(
+                fmt,
+                "acceptance thresholds must satisfy accept < expand: accept={accept}, \
+                 expand={expand}",
+            ),
+        }
+    }
+}
+
+impl core::error::Error for SolverConfigError {}
+
+/// Default preparation knobs.
+const DEFAULT_PREPARATION: PreparationSettings = PreparationSettings { .. };
+
+/// Default smallest admissible trust radius `Δ_min`.
+const DEFAULT_RADIUS_MINIMUM: DPositive = d_positive!(1.0e-8);
+
+/// Default starting trust radius `Δ_initial`.
+const DEFAULT_RADIUS_INITIAL: DPositive = DPositive::ONE;
+
+/// Default largest admissible trust radius `Δ_max`.
+const DEFAULT_RADIUS_MAXIMUM: DPositive = d_positive!(1.0e4);
+
+/// Default radius contraction factor on rejection.
+const DEFAULT_SHRINK_FACTOR: OpenUnitFraction = open_unit_fraction!(0.25);
+
+/// Default radius growth factor on an expanded boundary step.
+const DEFAULT_EXPANSION_FACTOR: GreaterThanOne = greater_than_one!(2.0);
+
+/// Default acceptance ratio threshold `η_accept`.
+const DEFAULT_ETA_ACCEPT: OpenUnitFraction = open_unit_fraction!(0.1);
+
+/// Default expansion ratio threshold `η_expand`.
+const DEFAULT_ETA_EXPAND: OpenUnitFraction = open_unit_fraction!(0.75);
+
+/// Default gradient-certificate tolerance relative to the initial scaled gradient norm.
+const DEFAULT_RELATIVE_SCALED_GRADIENT_TOLERANCE: OpenUnitFraction = open_unit_fraction!(1.0e-6);
+
+/// Default absolute floor of the gradient certificate.
+const DEFAULT_ABSOLUTE_SCALED_GRADIENT_TOLERANCE: DNonNegative = d_non_negative!(1.0e-10);
+
+/// Default objective-resolution width in ulps.
+const DEFAULT_OBJECTIVE_RESOLUTION_ULPS: NonZero<u32> = nz!(4);
+
+/// Default dogleg Cauchy-curvature guard width in ulps.
+const DEFAULT_CURVATURE_GUARD_ULPS: NonZero<u32> = nz!(16);
+
+/// Default inclusive maximum of started outer iterations.
+const DEFAULT_MAXIMUM_OUTER_ITERATIONS: NonZero<u64> = nz!(500);
+
+/// Raw solver knobs admitted by [`SolverConfig::new`].
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub(crate) struct SolverOptions {
+    /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
+    ///
+    /// By default, uses [`PreparationSettings`]' defaults.
+    pub preparation: PreparationSettings = DEFAULT_PREPARATION,
+    /// Smallest admissible trust radius `Δ_min`.
+    ///
+    /// By default, this is `1e-8`.
+    pub radius_minimum: DPositive = DEFAULT_RADIUS_MINIMUM,
+    /// Starting trust radius `Δ_initial`.
+    ///
+    /// By default, this is `1`.
+    pub radius_initial: DPositive = DEFAULT_RADIUS_INITIAL,
+    /// Largest admissible trust radius `Δ_max`.
+    ///
+    /// By default, this is `1e4`.
+    pub radius_maximum: DPositive = DEFAULT_RADIUS_MAXIMUM,
+    /// Radius contraction factor on rejection.
+    ///
+    /// By default, this is `0.25`.
+    pub shrink_factor: OpenUnitFraction = DEFAULT_SHRINK_FACTOR,
+    /// Radius growth factor on an expanded boundary step.
+    ///
+    /// By default, this is `2`.
+    pub expansion_factor: GreaterThanOne = DEFAULT_EXPANSION_FACTOR,
+    /// Acceptance ratio threshold `η_accept`. Equality accepts.
+    ///
+    /// By default, this is `0.1`.
+    pub eta_accept: OpenUnitFraction = DEFAULT_ETA_ACCEPT,
+    /// Expansion ratio threshold `η_expand`. Equality expands a tagged boundary step.
+    ///
+    /// By default, this is `0.75`.
+    pub eta_expand: OpenUnitFraction = DEFAULT_ETA_EXPAND,
+    /// Gradient-certificate tolerance relative to the initial scaled gradient norm.
+    ///
+    /// By default, this is `1e-6`.
+    pub relative_scaled_gradient_tolerance: OpenUnitFraction =
+        DEFAULT_RELATIVE_SCALED_GRADIENT_TOLERANCE,
+    /// Absolute floor of the gradient certificate. Zero disables it.
+    ///
+    /// By default, this is `1e-10`.
+    pub absolute_scaled_gradient_tolerance: DNonNegative =
+        DEFAULT_ABSOLUTE_SCALED_GRADIENT_TOLERANCE,
+    /// Objective-resolution width in ulps of the accepted objective's spacing.
+    ///
+    /// By default, this is `4`.
+    pub objective_resolution_ulps: NonZero<u32> = DEFAULT_OBJECTIVE_RESOLUTION_ULPS,
+    /// Dogleg Cauchy-curvature guard width in ulps of the gradient-scale product `‖g‖·‖Hg‖`.
+    ///
+    /// By default, this is `16`.
+    pub curvature_guard_ulps: NonZero<u32> = DEFAULT_CURVATURE_GUARD_ULPS,
+    /// Inclusive maximum of started outer iterations.
+    ///
+    /// By default, this is `500`.
+    pub maximum_outer_iterations: NonZero<u64> = DEFAULT_MAXIMUM_OUTER_ITERATIONS,
+}
+
+impl TryFrom<SolverOptions> for SolverConfig {
+    type Error = SolverConfigError;
+
+    fn try_from(options: SolverOptions) -> Result<Self, Self::Error> {
+        Self::new(options)
+    }
+}
+
 /// Trust-region exact-Newton loop configuration.
 ///
-/// Every field carries a default; `SolverConfig { .. }` is the deployment configuration and
-/// satisfies [`validate`](Self::validate). The outer-iteration cap sits well beyond the measured
-/// demand at annotation-corpus scale, so termination is by tolerance and the budget terminal
-/// reports as a failure.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// [`SolverOptions`] supplies every field. [`SolverConfig::default`] is the deployment
+/// configuration. Its outer-iteration cap lies well beyond the measured demand at
+/// annotation-corpus scale. Termination is therefore by tolerance, and the budget terminal reports
+/// as a failure.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "SolverOptions")]
 pub(crate) struct SolverConfig {
     /// Preparation knobs: regularization, target-sum tolerance, and curvature floor.
-    pub preparation: PreparationSettings = PreparationSettings { .. },
+    pub preparation: PreparationSettings,
     /// Smallest admissible trust radius `Δ_min`.
-    pub radius_minimum: DPositive = const {
-        DPositive::new(1.0e-8).expect("the radius floor is positive")
-    },
+    radius_minimum: DPositive,
     /// Starting trust radius `Δ_initial`.
-    pub radius_initial: DPositive = DPositive::ONE,
+    radius_initial: DPositive,
     /// Largest admissible trust radius `Δ_max`.
-    pub radius_maximum: DPositive = const {
-        DPositive::new(1.0e4).expect("the radius cap is positive")
-    },
+    radius_maximum: DPositive,
     /// Radius contraction factor on rejection.
-    pub shrink_factor: OpenUnitFraction = const {
-        OpenUnitFraction::new(0.25).expect("a quarter is interior")
-    },
+    shrink_factor: OpenUnitFraction,
     /// Radius growth factor on an expanded boundary step.
-    pub expansion_factor: GreaterThanOne = const {
-        GreaterThanOne::new(2.0).expect("doubling expands")
-    },
-    /// Acceptance ratio threshold `η_accept`; equality accepts.
-    pub eta_accept: OpenUnitFraction = const {
-        OpenUnitFraction::new(0.1).expect("a tenth is interior")
-    },
-    /// Expansion ratio threshold `η_expand`; equality expands a tagged boundary step.
-    pub eta_expand: OpenUnitFraction = const {
-        OpenUnitFraction::new(0.75).expect("three quarters is interior")
-    },
+    expansion_factor: GreaterThanOne,
+    /// Acceptance ratio threshold `η_accept`. Equality accepts.
+    eta_accept: OpenUnitFraction,
+    /// Expansion ratio threshold `η_expand`. Equality expands a tagged boundary step.
+    eta_expand: OpenUnitFraction,
     /// Gradient-certificate tolerance relative to the initial scaled gradient norm.
-    pub relative_scaled_gradient_tolerance: OpenUnitFraction = const {
-        OpenUnitFraction::new(1.0e-6).expect("the relative tolerance is interior")
-    },
+    relative_scaled_gradient_tolerance: OpenUnitFraction,
     /// Absolute floor of the gradient certificate. Zero disables it.
-    pub absolute_scaled_gradient_tolerance: DNonNegative = const {
-        DNonNegative::new(1.0e-10).expect("the absolute floor is non-negative")
-    },
+    absolute_scaled_gradient_tolerance: DNonNegative,
     /// Objective-resolution width in ulps of the accepted objective's spacing.
-    pub objective_resolution_ulps: NonZero<u32> = const {
-        NonZero::<u32>::new(4).expect("four is nonzero")
-    },
+    objective_resolution_ulps: NonZero<u32>,
     /// Dogleg Cauchy-curvature guard width in ulps of the gradient-scale product `‖g‖·‖Hg‖`.
-    pub curvature_guard_ulps: NonZero<u32> = const {
-        NonZero::<u32>::new(16).expect("sixteen is nonzero")
-    },
+    curvature_guard_ulps: NonZero<u32>,
     /// Inclusive maximum of started outer iterations.
-    pub maximum_outer_iterations: NonZero<u64> = const {
-        NonZero::<u64>::new(500).expect("five hundred is nonzero")
-    },
+    maximum_outer_iterations: NonZero<u64>,
 }
 
 impl SolverConfig {
-    /// Admits the configuration or names the first violated cross-field constraint.
+    /// Admits raw solver options after checking their cross-field orderings.
     ///
     /// # Errors
     ///
-    /// Returns the [`SolverConfigError`] of the first violated ordering, in declared field order.
-    #[expect(clippy::missing_const_for_fn, reason = "false positive")]
-    pub(crate) fn validate(&self) -> Result<(), SolverConfigError> {
-        let radius_ordered = self.radius_minimum <= self.radius_initial
-            && self.radius_initial <= self.radius_maximum;
+    /// Returns [`SolverConfigError`] for misordered radii or acceptance thresholds.
+    pub(crate) const fn new(
+        SolverOptions {
+            preparation,
+            radius_minimum,
+            radius_initial,
+            radius_maximum,
+            shrink_factor,
+            expansion_factor,
+            eta_accept,
+            eta_expand,
+            relative_scaled_gradient_tolerance,
+            absolute_scaled_gradient_tolerance,
+            objective_resolution_ulps,
+            curvature_guard_ulps,
+            maximum_outer_iterations,
+        }: SolverOptions,
+    ) -> Result<Self, SolverConfigError> {
+        let radius_ordered = radius_minimum <= radius_initial && radius_initial <= radius_maximum;
 
         if !radius_ordered {
             return Err(SolverConfigError::RadiusDomain {
-                minimum: self.radius_minimum,
-                initial: self.radius_initial,
-                maximum: self.radius_maximum,
+                minimum: radius_minimum,
+                initial: radius_initial,
+                maximum: radius_maximum,
             });
         }
 
-        if self.eta_accept >= self.eta_expand {
+        if eta_accept >= eta_expand {
             return Err(SolverConfigError::AcceptanceThresholds {
-                accept: self.eta_accept,
-                expand: self.eta_expand,
+                accept: eta_accept,
+                expand: eta_expand,
             });
         }
 
-        Ok(())
+        Ok(Self {
+            preparation,
+            radius_minimum,
+            radius_initial,
+            radius_maximum,
+            shrink_factor,
+            expansion_factor,
+            eta_accept,
+            eta_expand,
+            relative_scaled_gradient_tolerance,
+            absolute_scaled_gradient_tolerance,
+            objective_resolution_ulps,
+            curvature_guard_ulps,
+            maximum_outer_iterations,
+        })
     }
 
-    /// The gradient-certificate threshold `max(absolute, relative·‖gζ,0‖₂)`, derived once from the
-    /// initial scaled gradient norm.
+    /// Derives the gradient-certificate threshold from the initial scaled gradient norm.
+    ///
+    /// The threshold is `max(absolute, relative·‖gζ,0‖₂)`.
     ///
     /// A zero threshold is valid. With the absolute floor at zero and an exactly-zero initial norm,
     /// only an exactly-zero gradient certifies. The derivation is total: the relative tolerance
-    /// lies below one, so the scaled term never exceeds the norm. The maximum of two in-domain
+    /// lies below one, and the scaled term never exceeds the norm. The maximum of two in-domain
     /// values therefore stays in domain.
     pub(super) const fn gradient_threshold(&self, initial_norm: DNonNegative) -> DNonNegative {
         self.absolute_scaled_gradient_tolerance
             .max(self.relative_scaled_gradient_tolerance * initial_norm)
+    }
+
+    /// Returns the smallest admissible trust radius.
+    pub(crate) const fn radius_minimum(&self) -> DPositive {
+        self.radius_minimum
+    }
+
+    /// Returns the starting trust radius.
+    pub(crate) const fn radius_initial(&self) -> DPositive {
+        self.radius_initial
+    }
+
+    /// Returns the largest admissible trust radius.
+    pub(crate) const fn radius_maximum(&self) -> DPositive {
+        self.radius_maximum
+    }
+
+    /// Returns the radius contraction factor.
+    pub(crate) const fn shrink_factor(&self) -> OpenUnitFraction {
+        self.shrink_factor
+    }
+
+    /// Returns the radius expansion factor.
+    pub(crate) const fn expansion_factor(&self) -> GreaterThanOne {
+        self.expansion_factor
+    }
+
+    /// Returns the acceptance ratio threshold.
+    pub(crate) const fn eta_accept(&self) -> OpenUnitFraction {
+        self.eta_accept
+    }
+
+    /// Returns the expansion ratio threshold.
+    pub(crate) const fn eta_expand(&self) -> OpenUnitFraction {
+        self.eta_expand
+    }
+
+    /// Returns the objective-resolution width in ulps.
+    pub(crate) const fn objective_resolution_ulps(&self) -> NonZero<u32> {
+        self.objective_resolution_ulps
+    }
+
+    /// Returns the dogleg curvature-guard width in ulps.
+    pub(crate) const fn curvature_guard_ulps(&self) -> NonZero<u32> {
+        self.curvature_guard_ulps
+    }
+
+    /// Returns the inclusive outer-iteration budget.
+    pub(crate) const fn maximum_outer_iterations(&self) -> NonZero<u64> {
+        self.maximum_outer_iterations
+    }
+}
+
+const impl Default for SolverConfig {
+    fn default() -> Self {
+        const DEFAULT: SolverConfig =
+            const { SolverConfig::new(SolverOptions { .. }).ok().unwrap() };
+
+        DEFAULT
     }
 }

@@ -1,8 +1,10 @@
 import {
   compileScenario,
+  constraintLabel,
   getDefaultMonteCarloShardCount,
   getOwn,
   prepareScenarioCompiler,
+  synthesizeAdHocOptimization,
   synthesizeAdHocScenario,
   type InitialMarking,
   type PetrinautExtensionSettings,
@@ -15,10 +17,20 @@ import {
   WORKER_POOL_BACKEND_ID,
 } from "@hashintel/petrinaut-core/experiments";
 
-import { buildParameterAxis, fullSweepSelection } from "../parameter-grid";
+import { constraintIndicatorSpecs } from "../constraint-indicators";
+import {
+  buildAdHocSweepAxes,
+  buildParameterAxis,
+  pointSweepSelection,
+} from "../parameter-grid";
+import { sweepSelectionKey } from "../sweep-session";
 
 import type { LanguageClientContextValue } from "../../lsp/context";
-import type { CreateExperimentInput, ExperimentRecord } from "../context";
+import type {
+  CreateExperimentInput,
+  ExperimentRecord,
+  ExperimentSweepState,
+} from "../context";
 import type { ExperimentParameterAxis } from "../parameter-grid";
 import type {
   BuildExperimentRequest,
@@ -65,6 +77,19 @@ export const assertExperimentInput = (input: CreateExperimentInput): void => {
     if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
       throw new Error(`Metric "${metricSpec.label}" code is required`);
     }
+  }
+
+  const constraintIds = new Set<string>();
+  for (const constraint of input.constraints ?? []) {
+    if (constraint.code.trim() === "") {
+      throw new Error(
+        `Constraint "${constraintLabel(constraint)}" code is required`,
+      );
+    }
+    if (constraintIds.has(constraint.id)) {
+      throw new Error(`Constraint id "${constraint.id}" is duplicated`);
+    }
+    constraintIds.add(constraint.id);
   }
 };
 
@@ -171,13 +196,52 @@ const formatCompileErrors = (
 export type CompiledExperimentScenario = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  /** Present for a selected scenario; a sweep compiles through it per batch. */
+  /**
+   * Present for a selected scenario and for an ad-hoc definition with Sweep
+   * selections; a sweep compiles through it per batch.
+   */
   sweptCompiler: SweptScenarioCompiler | null;
+  /** The swept parameters, empty for a plain experiment. */
+  axes: ExperimentParameterAxis[];
+  /** `parseFixedScenarioValues`' result; `{}` for an ad-hoc definition. */
+  fixedScenarioValues: Readonly<Record<string, number>>;
+  /**
+   * The scenario compiled: the saved one, the generated ad-hoc scenario (with
+   * the interval toggles as its parameters, or plain), or null for none.
+   */
+  scenario: Scenario | null;
 };
 
 /**
+ * Wraps a prepared scenario compiler for the sweep session: every batch
+ * compiles at its own swept assignment on top of the fixed values.
+ */
+const sweptCompilerFor = (
+  prepared: ReturnType<typeof prepareScenarioCompiler>,
+  fixed: Readonly<Record<string, number>>,
+): SweptScenarioCompiler => ({
+  compileForValues: (swept) => {
+    const compiled = prepared.compile({ ...fixed, ...swept });
+    if (!compiled.ok) {
+      throw new Error(formatCompileErrors(compiled.errors));
+    }
+    return compiled;
+  },
+  compileRunNumbers: (swept) => {
+    const compiled = prepared.compileParameterNumbers({ ...fixed, ...swept });
+    if (!compiled.ok) {
+      throw new Error(formatCompileErrors(compiled.errors));
+    }
+    return { parameters: compiled.parameters };
+  },
+});
+
+/**
  * Compiles the experiment's scenario — the selected one, an ad-hoc one, or
- * none — into the request's parameter values and initial marking.
+ * none — into the request's parameter values and initial marking, plus the
+ * axes of its sweep. A selected scenario's axes come from the ranged
+ * inputs; an ad-hoc definition's from its Sweep selections, each resolved by
+ * synthesis to a generated scenario parameter with a numeric domain.
  */
 export const compileExperimentScenario = async ({
   input,
@@ -190,7 +254,8 @@ export const compileExperimentScenario = async ({
   input: CreateExperimentInput;
   scenario: Scenario | null;
   fixedValues: Record<string, string>;
-  axes: readonly ExperimentParameterAxis[];
+  /** The selected scenario's swept parameters, from `buildSweepAxes`. */
+  axes: ExperimentParameterAxis[];
   /** The net as the experiment runs it (parameters stripped when disabled). */
   sdcpn: SDCPN;
   requestScenarioHir: LanguageClientContextValue["requestScenarioHir"];
@@ -214,34 +279,55 @@ export const compileExperimentScenario = async ({
       sdcpn.places,
       sdcpn.types,
     );
-    const sweptCompiler: SweptScenarioCompiler = {
-      compileForValues: (swept) => {
-        const compiled = prepared.compile({ ...fixed, ...swept });
-        if (!compiled.ok) {
-          throw new Error(formatCompileErrors(compiled.errors));
-        }
-        return compiled;
-      },
-      compileRunNumbers: (swept) => {
-        const compiled = prepared.compileParameterNumbers({
-          ...fixed,
-          ...swept,
-        });
-        if (!compiled.ok) {
-          throw new Error(formatCompileErrors(compiled.errors));
-        }
-        return { parameters: compiled.parameters };
-      },
-    };
+    const sweptCompiler = sweptCompilerFor(prepared, fixed);
     const compiled = sweptCompiler.compileForValues({});
     return {
       parameterValues: compiled.result.parameterValues,
       initialMarking: compiled.result.initialState,
       sweptCompiler,
+      axes,
+      fixedScenarioValues: fixed,
+      scenario,
     };
   }
 
   if (input.adHocScenario) {
+    if (input.adHocSweeps) {
+      const synthesized = synthesizeAdHocOptimization(
+        input.adHocScenario,
+        context,
+      );
+      if (!synthesized.ok) {
+        throw new Error(formatCompileErrors(synthesized.errors));
+      }
+      const adHocAxes = buildAdHocSweepAxes(synthesized.output.optimizedFields);
+      if (!adHocAxes.ok) {
+        throw new Error(adHocAxes.error);
+      }
+      if (adHocAxes.axes.length > 0) {
+        // Every generated parameter is swept, so nothing is fixed; a batch's
+        // compile supplies each one's value.
+        const generated = synthesized.output.scenario;
+        const scenarioHir = await requestScenarioHir(generated);
+        const prepared = prepareScenarioCompiler(
+          generated,
+          scenarioHir,
+          sdcpn.parameters,
+          sdcpn.places,
+          sdcpn.types,
+        );
+        const sweptCompiler = sweptCompilerFor(prepared, {});
+        const compiled = sweptCompiler.compileForValues({});
+        return {
+          parameterValues: compiled.result.parameterValues,
+          initialMarking: compiled.result.initialState,
+          sweptCompiler,
+          axes: adHocAxes.axes,
+          fixedScenarioValues: {},
+          scenario: generated,
+        };
+      }
+    }
     const synthesized = synthesizeAdHocScenario(input.adHocScenario, context);
     if (!synthesized.ok) {
       throw new Error(formatCompileErrors(synthesized.errors));
@@ -261,10 +347,36 @@ export const compileExperimentScenario = async ({
       parameterValues: compiled.result.parameterValues,
       initialMarking: compiled.result.initialState,
       sweptCompiler: null,
+      axes: [],
+      fixedScenarioValues: {},
+      scenario: synthesized.scenario,
     };
   }
 
-  return { parameterValues: {}, initialMarking: {}, sweptCompiler: null };
+  return {
+    parameterValues: {},
+    initialMarking: {},
+    sweptCompiler: null,
+    axes: [],
+    fixedScenarioValues: {},
+    scenario: null,
+  };
+};
+
+/** A sweep's state before anything computed: the whole space selected. */
+const idleSweepState = (
+  axes: readonly ExperimentParameterAxis[],
+): ExperimentSweepState => {
+  const selection = pointSweepSelection(axes, {});
+  return {
+    selection,
+    selectionKey: sweepSelectionKey(axes, selection),
+    runsCompleted: 0,
+    runsSampled: 0,
+    runTarget: null,
+    computing: false,
+    visited: [],
+  };
 };
 
 export const newExperimentRecord = ({
@@ -272,11 +384,15 @@ export const newExperimentRecord = ({
   input,
   scenarioName,
   axes,
+  fixedScenarioValues,
+  scenario,
 }: {
   id: string;
   input: CreateExperimentInput;
   scenarioName: string | null;
   axes: readonly ExperimentParameterAxis[];
+  fixedScenarioValues: Readonly<Record<string, number>>;
+  scenario: Scenario | null;
 }): ExperimentRecord => ({
   id,
   name: input.name.trim(),
@@ -299,31 +415,11 @@ export const newExperimentRecord = ({
   metricFrames: [],
   sweepBatches: [],
   parameterAxes: axes,
-  sweep:
-    axes.length > 0
-      ? {
-          selection: fullSweepSelection(axes),
-          runsCompleted: 0,
-          runsSampled: 0,
-          runTarget: null,
-          computing: true,
-        }
-      : null,
-});
-
-/**
- * The net the experiment compiles and runs: its metrics replaced by the
- * experiment's expression metrics, so they compile alongside the model's user
- * code in the language worker.
- */
-export const experimentSdcpnWithMetrics = (
-  sdcpn: SDCPN,
-  metricSpecs: CreateExperimentInput["metricSpecs"],
-): SDCPN => ({
-  ...sdcpn,
-  metrics: metricSpecs
-    .filter((spec) => spec.kind === "expression")
-    .map((spec) => ({ id: spec.id, name: spec.label, code: spec.code })),
+  sweep: axes.length > 0 ? idleSweepState(axes) : null,
+  scenarioParameterValues: fixedScenarioValues,
+  constraints: input.constraints ?? [],
+  constraintPolicy: input.constraintPolicy ?? null,
+  scenario,
 });
 
 /**
@@ -333,7 +429,10 @@ export const experimentSdcpnWithMetrics = (
  * shader-generating backend reads them, while re-lowering the whole net per
  * batch was most of the delay between a slider move and its first frames.
  * A failed compile is not cached, so a transient worker error stays
- * retryable.
+ * retryable. The experiment's state constraints ride every request as
+ * indicator metrics after the user's specs (`constraintIndicatorSpecs`),
+ * compiled once here on the main thread; the record's own metric specs
+ * never carry them.
  */
 export const createExperimentRequestBuilder = ({
   input,
@@ -349,6 +448,11 @@ export const createExperimentRequestBuilder = ({
   compiled: CompiledExperimentScenario;
   requestHirArtifacts: LanguageClientContextValue["requestHirArtifacts"];
 }): BuildExperimentRequest => {
+  const indicatorSpecs = constraintIndicatorSpecs(
+    input.constraints ?? [],
+    sdcpn,
+    extensions,
+  );
   const artifactsMemo = new Map<
     boolean,
     ReturnType<typeof requestHirArtifacts>
@@ -401,7 +505,7 @@ export const createExperimentRequestBuilder = ({
       dt: input.dt,
       maxTime: input.maxTime,
       runCount: input.runCount,
-      metricSpecs,
+      metricSpecs: [...metricSpecs, ...indicatorSpecs],
       hirArtifacts: artifacts,
       ...override,
     };

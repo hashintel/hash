@@ -5,10 +5,14 @@ import {
   useVoiceSessionActions,
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
+  useVoiceSessionCanRetryPlayback,
   useVoiceSessionCanTakeTurn,
+  useVoiceSessionInterruptionBySpeaking,
   useVoiceSessionMicrophoneMuted,
   useVoiceSessionNotice,
   useVoiceSessionPhase,
+  useVoiceSessionSpeakerMuted,
+  useVoiceSessionSpeakerVolume,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
 import {
@@ -17,8 +21,9 @@ import {
   voiceSetupLabels,
 } from "../../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./footer-height";
+import { AudioPopover } from "./voice-dock/audio-popover";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
-import { VoicePlaybackMenu } from "./voice-dock/playback-menu";
+import { EndIcon, StopIcon } from "./voice-dock/session-action-icons";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
@@ -45,19 +50,30 @@ const dockStyle = css({
 });
 
 // Equal flexible sides keep the ribbon on the panel's centre line however wide
-// the phase label or the action cluster turn out to be.
-const sideStyle = css({
-  display: "flex",
-  flex: "1",
-  minWidth: "[0]",
-  alignItems: "center",
+// the phase label or the action cluster turn out to be. With an error control,
+// reserve the controls' width and let the status shrink instead of overlapping.
+const sideStyle = cva({
+  base: {
+    display: "flex",
+    flex: "1",
+    minWidth: "[0]",
+    alignItems: "center",
+  },
+  variants: {
+    withError: { true: { flex: "[0 0 auto]" } },
+  },
 });
 
-const centerStyle = css({
-  display: "flex",
-  minWidth: "[0]",
-  alignItems: "center",
-  gap: "2",
+const centerStyle = cva({
+  base: {
+    display: "flex",
+    minWidth: "[0]",
+    alignItems: "center",
+    gap: "2",
+  },
+  variants: {
+    withError: { true: { flex: "1", justifyContent: "center" } },
+  },
 });
 
 const statusStyle = cva({
@@ -73,6 +89,7 @@ const statusStyle = cva({
   },
   variants: {
     phase: {
+      connected: { color: "blue.s90" },
       connecting: { color: "neutral.s90" },
       error: { color: "neutral.s100" },
       listening: { color: "blue.s90" },
@@ -103,21 +120,40 @@ const visuallyHiddenStyle = css({
   borderWidth: "[0]",
 });
 
-export type VoiceDockProps = {
-  actions: VoiceSessionActions | null;
+type VoiceDockSharedProps = {
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
+  canRetryPlayback?: boolean;
   canTakeTurn: boolean;
   collapsed: boolean;
+  errorIndicator?: ReactNode;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
+  interruptionBySpeaking?: boolean;
   microphoneMuted: boolean;
-  notice: string | null;
+  notice?: string | null;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
-  purpose?: "session" | "setup";
+  speakerMuted: boolean;
+  speakerVolume: number;
 };
+
+export type VoiceDockProps = VoiceDockSharedProps &
+  (
+    | {
+        actions: null;
+        assistantBusy?: never;
+        onStop?: never;
+        purpose: "setup";
+      }
+    | {
+        actions: VoiceSessionActions | null;
+        assistantBusy: boolean;
+        onStop: () => void;
+        purpose?: "session";
+      }
+  );
 
 /**
  * The compact Voice surface inside the assistant panel: one ribbon for setup
@@ -125,17 +161,24 @@ export type VoiceDockProps = {
  */
 export const VoiceDock = ({
   actions,
+  assistantBusy,
   canReadFullResponse,
   canRepeatQuestion,
+  canRetryPlayback = false,
   canTakeTurn,
   collapsed,
+  errorIndicator,
   indicator,
+  interruptionBySpeaking = false,
   microphoneMuted,
   notice,
   onCollapsedEnd,
   onCollapsedToggle,
+  onStop,
   phase,
   purpose = "session",
+  speakerMuted,
+  speakerVolume,
 }: VoiceDockProps) => {
   const collapseLabel =
     purpose === "setup"
@@ -148,6 +191,11 @@ export const VoiceDock = ({
   const microphoneLabel = microphoneMuted
     ? voiceSessionActionLabels.unmute
     : voiceSessionActionLabels.mute;
+  const statusLabel =
+    purpose === "setup"
+      ? voiceSetupLabels.status
+      : (notice ?? voiceSessionStatusLabel(phase));
+  const speakerControlsDisabled = phase === "connecting" || phase === "error";
 
   return (
     <section
@@ -156,10 +204,9 @@ export const VoiceDock = ({
       }
       className={dockStyle}
       data-phase={phase}
-      data-voice-notice={notice ? "visible" : undefined}
       data-testid="ai-voice-dock"
     >
-      <span className={sideStyle}>
+      <span className={sideStyle({ withError: !!errorIndicator })}>
         <Button
           aria-label={collapseLabel}
           iconName={collapsed ? "chevronUp" : "chevronDown"}
@@ -169,26 +216,47 @@ export const VoiceDock = ({
           type="button"
           variant="ghost"
         />
-        {actions !== null && (
-          <VoicePlaybackMenu
-            actions={actions}
-            canReadFullResponse={canReadFullResponse}
-            canRepeatQuestion={canRepeatQuestion}
-          />
-        )}
+        {errorIndicator}
+        {actions !== null &&
+          (actions.readFullResponse ||
+            actions.repeatQuestion ||
+            actions.setInterruptionBySpeaking ||
+            actions.setSpeakerMuted ||
+            actions.setSpeakerVolume) && (
+            <AudioPopover
+              actions={actions}
+              canReadFullResponse={canReadFullResponse}
+              canRepeatQuestion={canRepeatQuestion}
+              interruptionBySpeaking={interruptionBySpeaking}
+              speakerControlsDisabled={speakerControlsDisabled}
+              speakerMuted={speakerMuted}
+              speakerVolume={speakerVolume}
+            />
+          )}
       </span>
 
-      <div className={centerStyle}>
+      <div className={centerStyle({ withError: !!errorIndicator })}>
         {indicator ?? <LiveVoiceSessionIndicator />}
-        <span className={statusStyle({ phase })}>
-          {notice ?? voiceSessionStatusLabel(phase)}
-        </span>
+        <span className={statusStyle({ phase })}>{statusLabel}</span>
       </div>
 
-      <span className={`${sideStyle} ${actionsStyle}`}>
+      <span
+        className={`${sideStyle({ withError: !!errorIndicator })} ${actionsStyle}`}
+      >
         {actions !== null && (
           <>
-            {canTakeTurn && actions.takeTurn && (
+            {canRetryPlayback && actions.retryPlayback && (
+              <Button
+                aria-label={voiceSessionActionLabels.retryPlayback}
+                iconName="play"
+                onClick={actions.retryPlayback}
+                size="sm"
+                tooltip={voiceSessionActionLabels.retryPlayback}
+                type="button"
+                variant="ghost"
+              />
+            )}
+            {!interruptionBySpeaking && canTakeTurn && actions.takeTurn && (
               <Button
                 aria-label={voiceSessionActionLabels.takeTurn}
                 iconName="arrowsLeftRight"
@@ -199,7 +267,7 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
-            {phase === "error" ? (
+            {phase === "error" && actions.reconnect && (
               <Button
                 aria-label={voiceSessionActionLabels.reconnect}
                 iconName="rotate"
@@ -209,7 +277,8 @@ export const VoiceDock = ({
                 type="button"
                 variant="ghost"
               />
-            ) : phase === "paused" ? (
+            )}
+            {phase === "paused" && actions.resume && (
               <Button
                 aria-label={voiceSessionActionLabels.resume}
                 iconName="play"
@@ -219,11 +288,16 @@ export const VoiceDock = ({
                 type="button"
                 variant="ghost"
               />
-            ) : (
+            )}
+            {actions.setMicrophoneMuted && (
               <Button
                 aria-label={microphoneLabel}
-                disabled={phase === "connecting"}
-                onClick={() => actions.setMicrophoneMuted(!microphoneMuted)}
+                disabled={
+                  phase === "connecting" ||
+                  phase === "error" ||
+                  phase === "paused"
+                }
+                onClick={() => actions.setMicrophoneMuted?.(!microphoneMuted)}
                 prefix={<MicrophoneIcon muted={microphoneMuted} />}
                 pressed={microphoneMuted}
                 size="sm"
@@ -232,18 +306,29 @@ export const VoiceDock = ({
                 variant="ghost"
               />
             )}
+            {assistantBusy && (
+              <Button
+                aria-label={voiceSessionActionLabels.stop}
+                onClick={onStop}
+                prefix={<StopIcon />}
+                size="sm"
+                tooltip={voiceSessionActionLabels.stop}
+                type="button"
+                variant="ghost"
+              />
+            )}
             <Button
               aria-label={voiceSessionActionLabels.end}
-              iconName="close"
               onClick={() => {
                 actions.end();
                 if (collapsed) {
                   onCollapsedEnd?.();
                 }
               }}
+              prefix={<EndIcon />}
               size="sm"
               tone="error"
-              tooltip="End voice mode"
+              tooltip={voiceSessionActionLabels.end}
               type="button"
               variant="ghost"
             />
@@ -258,7 +343,7 @@ export const VoiceDock = ({
         className={visuallyHiddenStyle}
         role="status"
       >
-        {notice ?? `Voice status: ${voiceSessionStatusLabel(phase)}`}
+        Voice status: {statusLabel}
       </span>
     </section>
   );
@@ -266,21 +351,31 @@ export const VoiceDock = ({
 
 /** Reads the session straight from the store so the panel re-renders less. */
 export const LiveVoiceDock = ({
+  assistantBusy,
   collapsed,
+  errorIndicator,
   onCollapsedEnd,
   onCollapsedToggle,
+  onStop,
 }: {
+  assistantBusy: boolean;
   collapsed: boolean;
+  errorIndicator?: ReactNode;
   onCollapsedEnd?: () => void;
   onCollapsedToggle: () => void;
+  onStop: () => void;
 }) => {
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
+  const canRetryPlayback = useVoiceSessionCanRetryPlayback();
   const canTakeTurn = useVoiceSessionCanTakeTurn();
+  const interruptionBySpeaking = useVoiceSessionInterruptionBySpeaking();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
+  const speakerMuted = useVoiceSessionSpeakerMuted();
+  const speakerVolume = useVoiceSessionSpeakerVolume();
 
   if (phase === null) {
     return null;
@@ -289,15 +384,22 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      assistantBusy={assistantBusy}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
+      canRetryPlayback={canRetryPlayback}
       canTakeTurn={canTakeTurn}
       collapsed={collapsed}
+      errorIndicator={errorIndicator}
+      interruptionBySpeaking={interruptionBySpeaking}
       microphoneMuted={microphoneMuted}
       notice={notice}
       onCollapsedEnd={onCollapsedEnd}
       onCollapsedToggle={onCollapsedToggle}
+      onStop={onStop}
       phase={phase}
+      speakerMuted={speakerMuted}
+      speakerVolume={speakerVolume}
     />
   );
 };

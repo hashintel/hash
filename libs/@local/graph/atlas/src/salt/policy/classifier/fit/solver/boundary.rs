@@ -6,10 +6,11 @@
 //! the cancellation-free quadratic root `q = −½·(b + copysign(√(b² − 4ac), b))`, and it then checks
 //! its own result, requiring the normalized step to lie within the gross-defect guard of unit norm
 //! both as built and as returned after the radius rescaling. The matching Hessian product extends
-//! along the same `τ`, so a boundary step never charges a fresh Hessian-vector product.
+//! along the same `τ`, and a boundary step therefore never charges a fresh Hessian-vector
+//! product.
 //!
 //! Every arithmetic escape - a non-finite normalization, coefficient, discriminant, root, or
-//! product - returns [`None`]; the caller maps [`None`] onto its typed no-finite-boundary-step
+//! product - returns [`None`]. The caller maps [`None`] onto its typed no-finite-boundary-step
 //! failure.
 
 use super::{SOLVER_DIMENSIONS, flat};
@@ -23,14 +24,14 @@ use crate::math::{AlignedDVecN, BoxedDVecN, DPositive, DVecN};
 /// finite-positive-τ rule instead, because either mathematical root lies on the unit boundary.
 /// Honest striped-fold rounding stays orders of magnitude below the guard, and the margin is
 /// asymmetric by intent. A false abort costs a production fit, while the final gradient certificate
-/// still gates any drift the guard admits. The exact value is an implementation choice that no
+/// still bounds any drift the guard admits. The exact value is an implementation choice that no
 /// configuration exposes, no file persists, and no cross-target identity depends on.
 pub(super) const GROSS_DEFECT_GUARD: f64 = 4096.0 * f64::EPSILON;
 
 /// A validated step onto the numerical trust-region boundary.
 ///
 /// The step's radius-normalized norm lies within the gross-defect guard of one, and the product
-/// rides the same crossing, so later logic trusts the tag carrying this payload instead of
+/// extends along the same crossing. Later logic therefore trusts a value of this type instead of
 /// re-deriving boundary contact from a fresh norm.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct BoundaryStep {
@@ -43,7 +44,7 @@ pub(super) struct BoundaryStep {
 /// Advances an interior iterate to the numerical trust-region boundary.
 ///
 /// Normalizes `u = p/Δ` and `v = d/Δ`, solves `‖u + τv‖² = 1` as `aτ² + bτ + c = 0` with
-/// `a = v·v`, `b = 2·u·v`, `c = u·u − 1` (the interior iterate keeps `c < 0`, so exactly one
+/// `a = v·v`, `b = 2·u·v`, `c = u·u − 1` (the interior iterate keeps `c < 0`, and exactly one
 /// root is positive), and picks the finite positive `τ` from the paired roots `q/a` and `c/q`.
 /// The built `u + τv` and the returned `(Δ·(u + τv))/Δ` must both lie within
 /// [`GROSS_DEFECT_GUARD`] of unit norm.
@@ -79,8 +80,8 @@ pub(super) fn boundary_step(
         return None;
     }
 
-    // With c < 0 the roots q/a and c/q carry opposite signs. The selection order never varies, so a
-    // degenerate pair still resolves deterministically.
+    // With c < 0 the roots q/a and c/q carry opposite signs. The selection order never varies, and
+    // a degenerate pair therefore still resolves deterministically.
     let crossing = [root / quadratic, constant / root]
         .into_iter()
         .find_map(DPositive::new)?;

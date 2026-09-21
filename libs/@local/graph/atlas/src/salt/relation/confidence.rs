@@ -1,9 +1,8 @@
 //! Link-confidence algebra: scores, provenance bits, and the effective confidence.
 //!
-//! The dataset stream attaches up to three scores to one link instance ([`RelationConfidence`]);
-//! [`RelationConfidence::effective`] combines them into the per-instance factor `c = c_link ·
-//! √(c_source · c_target)` with missing scores contributing the neutral factor 1, and [`Scored`]
-//! retains which scores were present, down to its artifact wire encoding.
+//! [`RelationConfidence::effective`] combines a link's scores into `c = c_link · √(c_source ·
+//! c_target)`, with a missing score contributing the neutral factor 1. [`Scored`] preserves which
+//! scores were present when the original components are no longer retained.
 
 use crate::math::UnitFraction;
 
@@ -12,7 +11,7 @@ use crate::math::UnitFraction;
 pub(crate) struct Scored(u8);
 
 impl Scored {
-    /// Every speakable presence bit.
+    /// All defined score-presence bits.
     const ALL: Self = Self::LINK | Self::SOURCE | Self::TARGET;
     /// No score present.
     pub(crate) const EMPTY: Self = Self(0);
@@ -47,7 +46,6 @@ impl Scored {
 const impl core::ops::BitOr for Scored {
     type Output = Self;
 
-    /// Unions the presence bits.
     #[inline]
     fn bitor(self, rhs: Self) -> Self {
         Self(self.0 | rhs.0)
@@ -72,8 +70,9 @@ pub(crate) struct RelationConfidence {
 impl RelationConfidence {
     /// Combines the three scores into one effective confidence.
     ///
-    /// The value is `link · √(source · target)` with missing scores contributing the neutral factor
-    /// 1. The provenance bits record which scores were present.
+    /// The value is `link · √(source · target)`, substituting `1` for each missing score. The
+    /// provenance bits record which scores were present. Operations round in `f64`, and the
+    /// source-target product can underflow to zero before its square root.
     #[must_use]
     pub(crate) fn effective(self) -> EffectiveConfidence {
         let scored = self.link.map_or(Scored::EMPTY, |_| Scored::LINK)
@@ -99,9 +98,10 @@ pub(crate) struct EffectiveConfidence {
 }
 
 impl EffectiveConfidence {
-    /// Reassembles a confidence from its combined value and provenance bits.
+    /// Assembles a combined value and its score-presence bits.
     ///
-    /// The domain rides in the fraction, so construction validates nothing.
+    /// The fields constrain their individual domains, not whether any source scores produce this
+    /// combination.
     #[inline]
     #[must_use]
     pub(crate) const fn new(value: UnitFraction, scored: Scored) -> Self {
@@ -130,7 +130,8 @@ mod tests {
 
     #[test]
     fn effective_confidence_combines_scores_exactly() {
-        // 0.5 · √(0.25 · 0.25): every factor is a power of two, so the product 0.125 is exact.
+        // 0.5 · √(0.25 · 0.25) = 0.125: these products and the square root are exactly
+        // representable.
         let confidence = RelationConfidence {
             link: Some(unit_fraction!(0.5)),
             source: Some(unit_fraction!(0.25)),

@@ -9,16 +9,25 @@
 //!
 //! The last dataset touch splits the pipeline. [`ingest`] runs on the async runtime and drains the
 //! dataset's streams and the embedding provider into staged files. [`compute`] runs on the rayon
-//! pool behind [`offload`], so the CPU-heavy stages never occupy a tokio runtime thread. A stage
-//! panic surfaces as [`compute::ComputeError::Panicked`] instead of poisoning the executor.
+//! pool behind [`offload`], and the CPU-heavy stages never occupy a tokio runtime thread. A stage
+//! panic surfaces as [`compute::ComputeError::Offload`] instead of poisoning the executor.
 //!
 //! # Memory discipline
 //!
-//! Every corpus-scale stage output goes to its staged file and maps back before the next stage
-//! reads it. Owned `N`-scale values are construction-transient and drop at stage exit, so the
-//! pipeline's peak residency is one stage's working set rather than the sum. The mapped views stay
-//! cheap because their pages are freshly written and evictable under pressure. Config-bounded
-//! `M`-scale values (the landmark selection, the quotient graph) stay resident within the run.
+//! Ingest streams the corpus-scale inputs into staged files, and the compute stages map those
+//! files in where they consume them. The corpus matrix and the identity table open at the compute
+//! boundary, and the card, endpoint and ontology identity columns open inside the stages that
+//! read them. The mapped pages are freshly written and evictable under pressure. Every compute
+//! stage returns its own product as an owned value beside the staged file's binding
+//! ([`compute::Staged`]), and the run retains each value until it returns. The representation
+//! quotient's row maps, the adjacency, the trainer's relation indexes, the admitted neighbour
+//! table, the semantic graph and the skeleton are all resident while the placement runs, and the
+//! adjacency and the ingest's resident type columns feed the level-of-detail stage after it. Peak
+//! residency is the retained products plus the running stage's own working storage, not one
+//! stage's working set alone. Corpus-scale intermediates a stage writes and maps rather than
+//! retains live in the scratch directory: the quotient's distinct matrix and the placement's
+//! ladder frames. Config-bounded `M`-scale values (the landmark selection and its quotient graph)
+//! stay resident within the run.
 //!
 //! # Seeds
 //!
@@ -28,23 +37,29 @@
 //!
 //! # Failure
 //!
-//! Any stage error, failed admission check, or write failure aborts the run and publishes nothing.
-//! The staging and scratch directories remove themselves, and a compute-side panic unwinds through
-//! the worker that owns them, removing them the same way. A generation therefore exists exactly
-//! when every stage and every check of one run passed.
+//! Publication is the seal's rename of the staging directory into the generation root. Any stage
+//! error, failed admission check, or write failure before that rename aborts the run with nothing
+//! published. The seal syncs the staged files and the staging directory before the rename and the
+//! root after it, and an error after the rename (the root failing to open or to sync) returns a
+//! [`FitError`] while the generation directory is already visible. Likewise, when a supplied
+//! progress observer panics on the seal's completion report, the published run returns
+//! [`compute::ComputeError::Offload`]. Success proves publication, while an error proves only
+//! that the run did not complete. The staging and scratch directories attempt to remove
+//! themselves when dropped, on the error return as on a compute-side unwind, and a removal failure
+//! is logged rather than returned.
 
-use core::{error::Error, fmt, num::NonZero};
+use core::{error::Error, fmt, num::NonZero, panic::UnwindSafe};
 use std::io::{self, Write as _};
 
 use camino::Utf8Path;
 use rand::SeedableRng as _;
 use rand_xoshiro::Xoshiro256PlusPlus;
 
-use self::prepare::norm;
 pub(crate) use self::{
-    annotations::SuppliedAnnotations, echo::FitConfigDef, error::FitError,
-    verdicts::SuppliedVerdicts,
+    annotations::SuppliedAnnotations, error::FitError, verdicts::SuppliedVerdicts,
 };
+use self::{compute::ComputeError, prepare::norm};
+use super::projector::train::fit::TrainingScheduleOptions;
 use crate::{
     dataset::Dataset,
     device::PhysicalDevice,
@@ -58,6 +73,7 @@ use crate::{
         AffinityCurve, NonNegative, Positive, non_negative, nz, positive, positive_unit_fraction,
         unit_fraction,
     },
+    offload,
     progress::{self, Progress},
     salt::{
         embedding::CardEmbedder,
@@ -87,7 +103,6 @@ use crate::{
 
 pub(crate) mod annotations;
 mod compute;
-mod echo;
 mod error;
 mod ingest;
 pub(crate) mod prepare;
@@ -101,7 +116,7 @@ mod tests;
 /// The overrides supersede classifier predictions by precedence and must name relation types the
 /// edge stream carries: an override for a relation without edges contradicts the corpus and aborts
 /// the fit at resolution.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PolicyOptions {
     /// Higher-precedence policy records superseding classifier predictions.
     pub overrides: Vec<PolicyOverride> = Vec::new(),
@@ -110,7 +125,7 @@ pub(crate) struct PolicyOptions {
     /// Training-set assembly over a supplied annotation corpus.
     pub assembly: AssemblyConfig = AssemblyConfig { .. },
     /// The classifier fit over the assembled training set.
-    pub classifier_fit: ClassifierFitConfig = ClassifierFitConfig { .. },
+    pub classifier_fit: ClassifierFitConfig = ClassifierFitConfig::default(),
 }
 
 const impl Default for PolicyOptions {
@@ -127,9 +142,9 @@ const impl Default for PolicyOptions {
 /// the relation loss uses the same convention for its local scales. The unit weight is the neutral
 /// value because no evidence distinguishes landmark reliability yet. The per-anchor slot exists for
 /// the day it does.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LandmarkSupport {
-    weight: f32 = 1.0,
+    pub weight: Positive = Positive::ONE,
 }
 
 const impl Default for LandmarkSupport {
@@ -138,33 +153,11 @@ const impl Default for LandmarkSupport {
     }
 }
 
-impl LandmarkSupport {
-    /// Validates a landmark support weight.
-    ///
-    /// Returns [`None`] unless the weight is finite and strictly positive.
-    #[must_use]
-    pub(crate) const fn new(weight: f32) -> Option<Self> {
-        if !(weight.is_finite() && weight > 0.0) {
-            return None;
-        }
-        Some(Self { weight })
-    }
-
-    /// Returns each anchor's mass in the support sum.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn weight(self) -> f32 {
-        self.weight
-    }
-}
-
-const _: () = assert!(LandmarkSupport::new(LandmarkSupport::default().weight()).is_some());
-
 /// Every setting of the projector placement.
 ///
 /// The model, its training run, and the condition ladder that publishes the canonical field.
 ///
-/// Each field is a validated value. The struct is plain wiring. [`ratified`](Self::ratified) is the
+/// Each field is a validated value. The struct is plain wiring. [`live`](Self::live) is the
 /// stamped live configuration and the placement default.
 ///
 /// The semantic affinity energy composes at stage entry from the fit's low-dimensional kernel and
@@ -173,7 +166,7 @@ const _: () = assert!(LandmarkSupport::new(LandmarkSupport::default().weight()).
 /// bound, aborting the fit before training.
 ///
 /// [`affinity_offset`]: Self::affinity_offset
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ProjectorOptions {
     /// The model shape.
     pub architecture: Architecture,
@@ -183,8 +176,8 @@ pub(crate) struct ProjectorOptions {
     pub plan: BatchPlan,
     /// The logarithm offset of the semantic affinity energy.
     ///
-    /// It bounds the near-coincidence repulsion derivative, so it is a force ceiling, not a
-    /// numerical crumb.
+    /// It bounds the near-coincidence repulsion derivative: it is a force ceiling rather than a
+    /// numerical guard alone.
     pub affinity_offset: Positive,
     /// The support-term constants shared by anchors and landmarks.
     pub support: SupportOptions,
@@ -199,7 +192,7 @@ pub(crate) struct ProjectorOptions {
     ///
     /// The placement stage normalizes them at assembly. The semantic and ordinary bases divide by
     /// the corpus's total semantic edge weight, the hard-negative base by the row count, and the
-    /// support bases by their pool sizes, so a configured base weighs the same objective share on
+    /// support bases by their pool sizes, and a configured base weighs the same objective share on
     /// every corpus. The relation base passes through unchanged, because its estimator is already
     /// mass-free.
     pub coefficients: Coefficients,
@@ -225,7 +218,7 @@ pub(crate) struct ProjectorOptions {
 }
 
 impl ProjectorOptions {
-    /// Returns the ratified live configuration.
+    /// Returns the live configuration.
     ///
     /// Every value stamped for production training, schedule included.
     ///
@@ -240,17 +233,18 @@ impl ProjectorOptions {
     /// - 65536-row forward slices, the measured GPU sweet spot (on the CPU backend it means fewer,
     ///   larger slices)
     #[must_use]
-    pub(crate) const fn ratified() -> Self {
-        Self {
+    pub(crate) const fn live() -> Self {
+        const LIVE: ProjectorOptions = ProjectorOptions {
             architecture: Architecture { .. },
-            schedule: TrainingSchedule::new(
-                nz!(20_000),
-                5_000,
-                nz!(250),
-                positive_unit_fraction!(1.0e-3),
-                unit_fraction!(1.0e-5),
-            )
-            .expect("the ratified schedule is valid"),
+            schedule: TrainingSchedule::new(TrainingScheduleOptions {
+                steps: nz!(20_000),
+                boundary: 5_000,
+                refresh_interval: nz!(250),
+                initial_learning_rate: positive_unit_fraction!(1.0e-3),
+                minimum_learning_rate: unit_fraction!(1.0e-5),
+            })
+            .ok()
+            .unwrap(),
             plan: BatchPlan {
                 semantic_pairs: nz!(2048),
                 ordinary_pairs: 2048,
@@ -261,35 +255,43 @@ impl ProjectorOptions {
                 temporal_anchors: 0,
             },
             affinity_offset: positive!(1.0e-3),
-            support: SupportOptions::new(positive!(3.0), positive!(1.0e-3)),
+            support: SupportOptions {
+                threshold: positive!(3.0),
+                epsilon: positive!(1.0e-3),
+            },
             budget: Budget {
                 floor: positive!(2.0e-4),
             },
-            coefficients: Coefficients::new(
-                Positive::ONE,
-                non_negative!(5.0),
-                NonNegative::ONE,
-                NonNegative::ONE,
-                NonNegative::ZERO,
-                NonNegative::ONE,
-            ),
-            miner: MinerOptions::new(
-                NonZero::new(8).expect("the ratified quota is nonzero"),
-                NonZero::new(3).expect("the ratified margin is nonzero"),
-                Positive::ONE,
-                Positive::ONE,
-            ),
-            lens: RelationLens::new(
-                CoincidentEnergy::new(non_negative!(0.05), positive!(1.0)),
-                positive!(0.25),
-                positive!(1.0e-3),
-            ),
+            coefficients: Coefficients {
+                semantic: Positive::ONE,
+                ordinary: non_negative!(5.0),
+                hard: NonNegative::ONE,
+                relation: NonNegative::ONE,
+                anchor: NonNegative::ZERO,
+                landmark: NonNegative::ONE,
+            },
+            miner: MinerOptions {
+                neighbours: nz!(8),
+                search_margin: nz!(3),
+                maximum_weight: Positive::ONE,
+                rank_exponent: Positive::ONE,
+            },
+            lens: RelationLens {
+                coincident: CoincidentEnergy {
+                    radius: non_negative!(0.05),
+                    threshold: positive!(1.0),
+                },
+                temperature: positive!(0.25),
+                epsilon: positive!(1.0e-3),
+            },
             protection: ProtectionConfig::default(),
             landmark_support: LandmarkSupport { .. },
-            forward_rows: NonZero::new(1 << 16).expect("the ratified slice is nonzero"),
+            forward_rows: nz!(1 << 16),
             ladder: LadderOptions { .. },
             vacuous: false,
-        }
+        };
+
+        LIVE
     }
 }
 
@@ -305,7 +307,8 @@ impl ProjectorOptions {
     reason = "the projector default must be a const expression, which a boxed variant cannot \
               produce; the asymmetry costs one embedded options struct per configuration value"
 )]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub(crate) enum PlacementOptions {
     /// Every row takes its assigned landmark's layout coordinate.
     ///
@@ -319,11 +322,11 @@ pub(crate) enum PlacementOptions {
 
 /// How one fit constructs its k-NN lists.
 ///
-/// The search-backend wrapper is the default; NN-Descent derives the lists directly, with no
+/// The search-backend wrapper is the default. NN-Descent derives the lists directly, with no
 /// search structure. Either construction answers to the same recall spot check, and neither
 /// outlives the fit: the wrapper's index lives in the fit's scratch directory, which removes
 /// itself when the run ends.
-#[derive(Debug, Copy, Clone, PartialEq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) enum KnnConstructionChoice {
     /// Construct through the HNSW backend pinned by [`FitConfig::index`].
     #[default]
@@ -336,7 +339,7 @@ pub(crate) enum KnnConstructionChoice {
 ///
 /// Stage options keep their own documented defaults. The fields without defaults are the choices no
 /// fit can imply, which are the seed, the landmark capacity, and the low-dimensional kernel.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FitConfig {
     /// The fit's seed.
     ///
@@ -370,7 +373,7 @@ pub(crate) struct FitConfig {
     /// Shared attraction weighting and force pruning.
     pub attraction: AttractionOptions = AttractionOptions::default(),
     /// How the fit produces the canonical coordinates.
-    pub placement: PlacementOptions = PlacementOptions::Projector(ProjectorOptions::ratified()),
+    pub placement: PlacementOptions = PlacementOptions::Projector(ProjectorOptions::live()),
     /// The importance signal behind the delivery ranking.
     pub ranking: RankingConfig = RankingConfig::default(),
     /// The level-of-detail schedule.
@@ -414,7 +417,7 @@ impl Stage {
 
 /// Derives one stage's generator from the fit seed and the stage's pinned name.
 ///
-/// The full 32-byte digest seeds the generator, so a derived stream keeps the derivation's whole
+/// The full 32-byte digest seeds the generator, and a derived stream keeps the derivation's whole
 /// entropy.
 pub(crate) fn stage_rng(seed: u64, stage: Stage) -> Xoshiro256PlusPlus {
     let mut hasher = Sha256::new();
@@ -518,9 +521,9 @@ pub(crate) struct Supplies<'fit> {
 /// Runs one fit over the dataset and publishes the generation.
 ///
 /// The stages run in the dataset's documented ingest order (nodes, edges, ontology) with every
-/// artifact staged in place, so the returned generation is complete, durable, and verifiable
-/// against its metadata document. Activation stays with the caller. Publishing a generation and
-/// serving it are separate decisions.
+/// artifact staged in place. The returned generation is therefore complete, durable, and
+/// verifiable against its metadata document. Activation stays with the caller. Publishing a
+/// generation and serving it are separate decisions.
 ///
 /// The `classifier` input resolves to a fitted model either way ([`ClassifierInput`]). A supplied
 /// artifact passes through unchanged. The run instead stages an annotation corpus verbatim,
@@ -530,8 +533,10 @@ pub(crate) struct Supplies<'fit> {
 ///
 /// The `verdicts` are a supplied input in the policy-override category. A validated
 /// reviewed-verdicts document ([`SuppliedVerdicts`]) stages verbatim as the generation's
-/// `reviewed_verdicts` role for the trainer's phase boundary to consume. The fit itself never acts
-/// on it. A fit run without one publishes with the role absent. The manifest records the absence.
+/// `reviewed_verdicts` role. The fit derives nothing from it before the placement stage, where it
+/// resolves the verdicts against the staged ontology identity column into the corpus row domain
+/// and hands the resolution to the trainer's phase boundary. The staged bytes stay the supplied
+/// file's. A fit run without one publishes with the role absent. The manifest records the absence.
 ///
 /// A `prior` generation seeds reuse. Card texts whose hash its card table lists keep their
 /// embeddings without touching the provider (under a matching embedder fingerprint). Its landmarks
@@ -544,12 +549,14 @@ pub(crate) struct Supplies<'fit> {
 /// [`FitError::Cards`], [`FitError::Embedding`]) or a supplied annotation corpus fails to assemble
 /// into the classifier's training set ([`FitError::Assembly`]). A streamed ingest write can also
 /// fail ([`FitError::Io`]), and any compute stage rejecting its input, failing an admission check,
-/// or unable to write, map, or publish answers [`FitError::Compute`]. The run publishes nothing on
-/// any error.
+/// or unable to write, map, or publish answers [`FitError::Compute`]. Every error before the
+/// seal's rename leaves nothing published. A seal error after the rename, or a progress observer
+/// panicking after the seal, returns an error although the generation directory is already
+/// visible.
 #[expect(
     clippy::significant_drop_tightening,
-    reason = "the staging and scratch directories move into the compute closure whole; nothing \
-              here can drop them earlier"
+    reason = "the staging and scratch directories move into the compute closure whole and are \
+              dropped inside it"
 )]
 pub(crate) async fn fit<D, E, P>(
     dataset: &D,
@@ -567,14 +574,14 @@ pub(crate) async fn fit<D, E, P>(
 where
     D: Dataset,
     E: CardEmbedder + Sync,
-    P: Progress + Sync,
+    P: Progress<Detached: UnwindSafe> + Sync,
 {
     let staging = root.stage()?;
     let scratch = root.scratch()?;
 
-    // The supplied verdicts stage before any derivation: construction
-    // already validated the document, so nothing after this write can
-    // reject it, and the staged bytes are the supplied file verbatim.
+    // The supplied verdicts stage before any derivation. Construction
+    // already validated the document, and nothing after this write can
+    // therefore reject it. The staged bytes are the supplied file verbatim.
     let reviewed_verdicts = match verdicts {
         Some(supplied) => {
             let file = staging.stage_with(artifact::ReviewedVerdicts, |writer| {
@@ -651,52 +658,13 @@ where
         ingested,
     };
 
-    // The compute half leaves this stack for the rayon pool, so it takes the observer's detached
+    // The compute half leaves this stack for the rayon pool, and it takes the observer's detached
     // half rather than a borrow the spawn cannot hold.
     let detached = progress.detach();
     let published =
-        offload(move || compute.run::<D::NodeId, D::OntologyId, P::Detached>(&detached)).await?;
+        offload::run(move || compute.run::<D::NodeId, D::OntologyId, P::Detached>(&detached))
+            .await
+            .map_err(ComputeError::from)??;
 
     Ok(published)
-}
-
-/// Runs compute-side work on the rayon pool, keeping the tokio runtime thread free.
-///
-/// The caller's span carries across, so stage spans keep their parent. A panic in the work unwinds
-/// the worker and surfaces as [`compute::ComputeError::Panicked`]. The unwind drops the staging and
-/// scratch directories the worker owns, and they remove themselves. The async executor never
-/// observes the unwind.
-async fn offload<T: Send + 'static>(
-    work: impl FnOnce() -> Result<T, compute::ComputeError> + Send + 'static,
-) -> Result<T, compute::ComputeError> {
-    let span = tracing::Span::current();
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-
-    rayon::spawn(move || {
-        let _entered = span.entered();
-        // The work owns everything it touches, and the unwind drops every capture, so no shared
-        // state survives to observe a broken invariant.
-        let result = std::panic::catch_unwind(core::panic::AssertUnwindSafe(work)).unwrap_or_else(
-            |payload| {
-                Err(compute::ComputeError::Panicked {
-                    message: panic_message(payload.as_ref()),
-                })
-            },
-        );
-        // A send failure means the fit future dropped its receiver, so the result has no recipient.
-        let _: Result<(), _> = sender.send(result);
-    });
-
-    receiver
-        .await
-        .expect("the worker owns the sender and always sends")
-}
-
-/// Extracts the conventional string payloads of a panic.
-fn panic_message(payload: &(dyn core::any::Any + Send)) -> Option<String> {
-    if let Some(message) = payload.downcast_ref::<&'static str>() {
-        return Some((*message).to_owned());
-    }
-
-    payload.downcast_ref::<String>().cloned()
 }

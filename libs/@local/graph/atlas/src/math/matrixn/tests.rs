@@ -1,12 +1,7 @@
-/// The tests the `miri` nextest profile selects.
-///
-/// Each test here drives the row-major matrix buffer: row alignment and offsets, clone
-/// independence, and the return of the buffer to its allocator. The profile selects by module path,
-/// so moving a test in or out of this module is the whole edit.
 mod miri {
     use core::simd::f32x8;
 
-    use crate::math::{matrixn::MatrixN, test_alloc::CountingAllocator};
+    use crate::math::{AlignedVecN, matrixn::MatrixN, test_alloc::CountingAllocator};
 
     #[test]
     fn zeroed_matrix_reads_zero_everywhere() {
@@ -34,10 +29,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn writes_through_rows_land_at_the_row_major_offsets() {
         let mut matrix = MatrixN::<8>::zeroed(3);
 
@@ -50,10 +41,6 @@ mod miri {
     }
 
     #[test]
-    #[expect(
-        clippy::float_cmp,
-        reason = "the values are stored literals, not computed results"
-    )]
     fn clone_is_equal_and_independent() {
         let mut matrix = MatrixN::<8>::zeroed(2);
         matrix.rows_mut()[0].as_array_mut()[3] = 4.0;
@@ -70,12 +57,11 @@ mod miri {
     fn empty_matrix_is_well_formed() {
         let matrix = MatrixN::<8>::zeroed(0);
 
-        assert!(matrix.rows().is_empty());
-        assert!(matrix.as_components().is_empty());
+        assert_eq!(matrix.rows(), [] as [AlignedVecN<8>; 0]);
+        assert_eq!(matrix.as_components(), [] as [f32; 0]);
         assert_eq!(matrix, matrix.clone());
     }
 
-    /// `Debug` prints the rows.
     #[test]
     fn debug_prints_the_rows() {
         let mut matrix = MatrixN::<8>::zeroed(1);
@@ -87,7 +73,6 @@ mod miri {
         );
     }
 
-    /// Dropping a matrix returns its buffer to the allocator that provided it.
     #[test]
     fn drop_returns_the_buffer_to_its_allocator() {
         let alloc = CountingAllocator::new();

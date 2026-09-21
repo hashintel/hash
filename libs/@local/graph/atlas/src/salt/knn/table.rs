@@ -1,4 +1,6 @@
-//! The validated k-nearest-neighbour table.
+//! Structural validation and row access for approximate neighbour tables.
+//!
+//! Table validation establishes the stored shape and distance range. Recall is measured separately.
 
 use core::{error::Error, fmt, marker::PhantomData, num::NonZero};
 
@@ -12,7 +14,7 @@ use sprs::{CsMatI, CsMatViewI};
 use super::{Neighbour, construction::NeighbourLists, error::KnnError};
 use crate::math::NonNegative;
 
-/// A neighbour matrix violated a [`Knn`] invariant.
+/// A violation of a [`Knn`] matrix's domain or neighbour contract.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum KnnValidationError {
     /// The matrix uses column-compressed storage.
@@ -82,6 +84,10 @@ impl Error for KnnValidationError {}
 ///
 /// Structural invariants (in-bounds, strictly ascending row entries, consistent pointers) hold for
 /// any existing [`KnnMatrixView`]. This check covers the domain invariants layered on top.
+///
+/// # Errors
+///
+/// Returns [`KnnValidationError`] when a domain or neighbour invariant is violated.
 pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationError> {
     if !matrix.is_csr() {
         return Err(KnnValidationError::ColumnCompressed);
@@ -133,9 +139,8 @@ pub(super) fn validate(matrix: KnnMatrixView<'_>) -> Result<(), KnnValidationErr
 
 /// The table's matrix layout: `u32` neighbour columns under `u64` row pointers.
 ///
-/// Columns are `u32` because a `u32` encoding carries node rows end to end (the wire row ids, the
-/// search backend's item keys, the persisted column region). Row pointers are `u64` so the
-/// persisted and resident layouts coincide and a mapped table has the same type as a built one.
+/// The column and row-pointer widths match the persisted matrix regions, allowing mapped and
+/// resident tables to share the same matrix type.
 pub(crate) type KnnMatrix = CsMatI<NonNegative, u32, u64>;
 
 /// A borrowed [`KnnMatrix`].
@@ -144,13 +149,16 @@ pub(crate) type KnnMatrixView<'view> = CsMatViewI<'view, NonNegative, u32, u64>;
 /// The persisted directed k-nearest-neighbour table of one generation.
 ///
 /// A square compressed sparse row matrix over the node-row domain. Row `i` stores the cosine
-/// distances of the `k` nearest non-self neighbours of node row `i`, keyed by neighbour row in
+/// distances of `k` selected non-self neighbours of node row `i`, keyed by neighbour row in
 /// ascending row order. Every row stores exactly `k` entries, no row references itself, and every
 /// distance is finite in `[0, 2]`. Entries within a row are strictly ascending by column, which
-/// makes duplicate neighbours unrepresentable.
+/// makes duplicate neighbours unrepresentable. These invariants do not establish that the selected
+/// neighbours are the exact nearest ones.
 ///
-/// A `0.0` distance is a stored value (duplicate embeddings are exactly coincident), never an
-/// absent entry.
+/// A `0.0` distance is a stored value, never an absent entry.
+///
+/// Validation accepts checked offset row pointers. [`KnnView::row`] requires an initial zero, and
+/// writing through [`WriteInto`](crate::file::WriteInto) panics when that pointer is nonzero.
 #[derive(Debug, Clone)]
 pub(crate) struct Knn<N>(KnnMatrix, PhantomData<N>);
 
@@ -160,29 +168,26 @@ where
 {
     /// Validates a neighbour matrix against the table invariants.
     ///
+    /// Accepts offset row pointers without rebasing them. [`Knn`] documents the additional
+    /// row-access and publication requirements.
+    ///
     /// # Errors
     ///
-    /// Returns an error when the matrix is not row-compressed, not square over at least two rows,
-    /// ragged, or self-referencing, when its per-row neighbour count is zero or not below the row
-    /// count, or when a stored distance lies outside the finite `[0, 2]` range.
+    /// Returns [`KnnValidationError`] when the matrix violates a table invariant.
     pub(crate) fn new(matrix: KnnMatrix) -> Result<Self, KnnValidationError> {
         validate(matrix.view())?;
         Ok(Self(matrix, PhantomData))
     }
 
-    /// Slices each row's stored prefix from constructed lists and assembles the validated table.
+    /// Assembles a validated table from each constructed list's leading prefix.
     ///
     /// Each row keeps its `neighbours` nearest entries - the lists' leading prefix - rekeyed into
     /// the matrix's ascending-column order.
     ///
     /// # Errors
     ///
-    /// Returns [`KnnError::Invalid`] when the row domain or the assembled table violates a [`Knn`]
-    /// invariant, [`KnnError::ListsWidth`] when the lists are narrower than the stored width,
-    /// [`KnnError::TooManyRows`] when the row domain exceeds the table's `u32` column encoding,
-    /// [`KnnError::TooManyEntries`] when the requested shape overflows the entry count,
-    /// [`KnnError::NeighbourOutOfBounds`] when a list references a row outside the row domain, and
-    /// [`KnnError::DuplicateNeighbour`] when a list stores the same neighbour twice.
+    /// Returns [`KnnError`] for an unsupported table shape, insufficient list width, or invalid
+    /// selected neighbours.
     #[tracing::instrument(skip_all)]
     pub(crate) fn from_lists<E: Send>(
         lists: &NeighbourLists<N>,
@@ -296,6 +301,9 @@ where
 }
 
 /// Borrowed rows of one validated [`Knn`] table.
+///
+/// [`Self::row`] additionally requires a zero initial row pointer. Table validation accepts offset
+/// pointers without establishing this requirement.
 #[derive(Debug, Clone)]
 pub(crate) struct KnnView<'view, N>(KnnMatrixView<'view>, PhantomData<N>);
 
@@ -303,10 +311,9 @@ impl<'view, N> KnnView<'view, N>
 where
     N: Id,
 {
-    /// Wraps a matrix whose invariants already hold.
+    /// Borrows a matrix satisfying the table invariants.
     ///
-    /// The caller promises the matrix passed [`validate`]; the wrapper performs no checks of its
-    /// own.
+    /// The matrix must satisfy [`validate`].
     #[inline]
     #[must_use]
     pub(super) const fn new_unchecked(matrix: KnnMatrixView<'view>) -> Self {
@@ -341,9 +348,17 @@ where
 
     /// Returns row `row`'s neighbours in ascending row order.
     ///
+    /// The initial row pointer must be zero. [`Knn::new`] accepts offset pointers without rebasing
+    /// them, while this accessor uses the stored values as indices into the raw column and distance
+    /// slices. Nonzero offsets can select the wrong entries before a later row exceeds those
+    /// slices. The row and its successor, and the returned neighbour ids, must be representable by
+    /// `N`.
+    ///
     /// # Panics
     ///
-    /// This panics when `row` is outside the table's row domain.
+    /// Panics when `row` or its successor lies outside the pointer slice, a row pointer does not
+    /// fit usize, or the resulting range lies outside the raw column or distance slice. Row-id
+    /// operations also inherit [`Id`]'s domain requirements.
     pub(crate) fn row(&self, row: N) -> impl Iterator<Item = Neighbour<N>> + 'view {
         // outer_view reborrows at `&self`; the raw storage carries the
         // view's own lifetime.
