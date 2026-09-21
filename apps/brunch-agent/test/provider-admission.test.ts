@@ -11,6 +11,8 @@ import { expect, test, vi } from "vitest";
 
 import {
   admissionBufferLimits,
+  claimModelStreamIdleRetry,
+  modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
 } from "../src/provider-admission";
 
@@ -19,6 +21,21 @@ const collect = async (stream: ReturnType<Provider["streamSimple"]>) => {
   for await (const event of stream) events.push(event);
   return { events, result: await stream.result() };
 };
+test("production idle policy tolerates long reasoning silence while remaining bounded", () => {
+  expect(modelStreamIdleTimeoutDefaults).toEqual({
+    cancellationTimeoutMs: 2_000,
+    firstEventTimeoutMs: 60_000,
+    idleTimeoutMs: 120_000,
+    reasoningStartTimeoutMs: 120_000,
+  });
+});
+
+test("an idle retry scope can be claimed only once", () => {
+  const scope = { idleRetryAvailable: true };
+  expect(claimModelStreamIdleRetry(scope)).toBe(true);
+  expect(claimModelStreamIdleRetry(scope)).toBe(false);
+});
+
 const fixture = (active = true) => {
   const faux = fauxProvider({
     provider: "anthropic",
@@ -296,6 +313,87 @@ test("gives newly opened reasoning its longer first-delta grace", async () => {
       lastEventType: "thinking_start",
       phase: "reasoning_start",
     });
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("active reasoning continues below its configured threshold and retries once above it", async () => {
+  vi.useFakeTimers();
+  try {
+    const { faux, model } = fixture();
+    const upstream = createAssistantMessageEventStream();
+    let upstreamSignal: AbortSignal | undefined;
+    const retryScope = { idleRetryAvailable: true };
+    const claimRetry = vi.fn<() => boolean>(() =>
+      claimModelStreamIdleRetry(retryScope),
+    );
+    const provider = withBufferedToolAdmission(
+      {
+        ...faux.provider,
+        streamSimple(_model, _context, options) {
+          upstreamSignal = options?.signal;
+          options?.signal?.addEventListener(
+            "abort",
+            () => {
+              upstream.push({
+                error: fauxAssistantMessage([], { stopReason: "aborted" }),
+                reason: "aborted",
+                type: "error",
+              });
+            },
+            { once: true },
+          );
+          return upstream;
+        },
+      },
+      () => true,
+      new Set(["browser"]),
+      {
+        cancellationTimeoutMs: 5,
+        claimRetry,
+        firstEventTimeoutMs: 100,
+        idleTimeoutMs: 10,
+        reasoningStartTimeoutMs: 15,
+      },
+    );
+    const message = fauxAssistantMessage([
+      {
+        type: "thinking",
+        thinking: "Reasoning began.",
+        thinkingSignature: "synthetic",
+      },
+    ]);
+    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    void reading.catch(() => {});
+    upstream.push({ partial: message, type: "start" });
+    upstream.push({
+      contentIndex: 0,
+      partial: message,
+      type: "thinking_start",
+    });
+    upstream.push({
+      contentIndex: 0,
+      delta: "Reasoning began.",
+      partial: message,
+      type: "thinking_delta",
+    });
+
+    await vi.advanceTimersByTimeAsync(9);
+    expect(upstreamSignal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    const error: unknown = await reading.catch((reason: unknown) => reason);
+    expect(error).toMatchObject({
+      code: "model_stream_idle",
+      idleMs: 10,
+      lastEventType: "thinking_delta",
+      phase: "active_reasoning",
+    });
+    expect(error).toBeInstanceOf(Error);
+    if (!(error instanceof Error)) throw new Error("Expected idle failure.");
+    expect(error.message).toContain("retryable_interruption");
+    expect(claimRetry).toHaveBeenCalledOnce();
+    expect(retryScope.idleRetryAvailable).toBe(false);
   } finally {
     vi.useRealTimers();
   }
