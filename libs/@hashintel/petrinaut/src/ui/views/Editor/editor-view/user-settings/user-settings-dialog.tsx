@@ -18,10 +18,12 @@ import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
 import { FloatingResizeHandles } from "../../shared/floating-resize-handles";
 import { useFloatingPanel } from "../../shared/use-floating-panel";
+import { groupLabsSettings } from "./user-settings-dialog/group-labs-settings";
 import { SettingsHeading } from "./user-settings-dialog/settings-heading";
 import { SettingsPanel } from "./user-settings-dialog/settings-panel";
 
 import type { PetrinautSettingsSection } from "../../../../../react/navigation";
+import type { PetrinautLabsSetting } from "../../../../types/petrinaut-labs-setting";
 import type { IconName } from "@hashintel/ds-components";
 
 const settingsDialogStyles = {
@@ -352,10 +354,12 @@ const SettingsTabs = () => {
 
 export const UserSettingsDialog = ({
   section,
+  labsSettings,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
+  labsSettings?: readonly PetrinautLabsSetting[];
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -576,6 +580,24 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowCompilationOutput}
                         />
                       </SettingsGroup>
+                      {groupLabsSettings(labsSettings ?? []).map(
+                        (hostGroup) => (
+                          <SettingsGroup
+                            key={hostGroup.group}
+                            title={hostGroup.group}
+                          >
+                            {hostGroup.settings.map((setting) => (
+                              <SettingToggle
+                                key={setting.key}
+                                label={setting.label}
+                                description={setting.description}
+                                value={setting.value}
+                                onChange={setting.onChange}
+                              />
+                            ))}
+                          </SettingsGroup>
+                        ),
+                      )}
                     </>
                   )}
                 </FocusStack>

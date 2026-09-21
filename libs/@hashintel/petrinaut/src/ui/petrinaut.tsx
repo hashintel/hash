@@ -143,6 +143,7 @@ export type PetrinautAiAssistant = {
 
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
+import type { PetrinautLabsSetting } from "./types/petrinaut-labs-setting";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
 
@@ -167,6 +168,11 @@ export type PetrinautProps = {
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
+  /**
+   * Host-owned settings to offer in the Labs section of the settings dialog,
+   * alongside the editor's own. A host gates an entry by whether it passes it.
+   */
+  labsSettings?: readonly PetrinautLabsSetting[];
   /**
    * Host-supplied components to inject at specific locations in the editor.
    */
@@ -223,6 +229,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   loadPetriNet = noop,
   aiAssistant,
   viewportActions,
+  labsSettings,
   slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -266,6 +273,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               <EditorView
                 aiAssistant={aiAssistant}
                 hideNetManagementControls={hideNetManagementControls}
+                labsSettings={labsSettings}
                 slots={slots}
                 titleEditable={titleEditable}
                 viewportActions={viewportActions}

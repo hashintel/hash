@@ -25,6 +25,7 @@ export type {
 } from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 
+export type { PetrinautLabsSetting } from "./ui/types/petrinaut-labs-setting";
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
 export type {

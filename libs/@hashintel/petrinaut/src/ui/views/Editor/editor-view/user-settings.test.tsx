@@ -23,6 +23,7 @@ import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautLabsSetting } from "../../../types/petrinaut-labs-setting";
 
 beforeEach(() => {
   localStorage.clear();
@@ -49,6 +50,7 @@ afterEach(() => {
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
+  labsSettings?: readonly PetrinautLabsSetting[],
 ) => {
   const registry = createCommandRegistry();
   const result = render(
@@ -56,7 +58,7 @@ const renderSettings = (
       <UserSettingsProvider>
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
-            <UserSettings />
+            <UserSettings labsSettings={labsSettings} />
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
       </UserSettingsProvider>
@@ -417,6 +419,42 @@ describe("Labs settings", () => {
     renderSettings({ overlay: { type: "user-settings", section: "labs" } });
     await screen.findByRole("heading", { name: "Labs" });
     expect(screen.queryByText("Notebook view")).toBeNull();
+  });
+
+  it("offers no host settings when the host contributes none", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "labs" } });
+
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(
+      screen.getByRole("heading", { name: "Developer tools" }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Assistant" })).toBeNull();
+  });
+
+  it("offers a host setting under its own heading and reports a flip", async () => {
+    const onChange = vi.fn();
+    renderSettings(
+      { overlay: { type: "user-settings", section: "labs" } },
+      null,
+      [
+        {
+          key: "assistant",
+          group: "Assistant",
+          label: "Voice assistant",
+          description:
+            "Talk to the voice assistant instead of the built-in one.",
+          value: false,
+          onChange,
+        },
+      ],
+    );
+
+    await screen.findByRole("heading", { name: "Labs" });
+    expect(screen.getByRole("heading", { name: "Assistant" })).toBeTruthy();
+    const toggle = screen.getByRole("checkbox", { name: "Voice assistant" });
+    expect((toggle as HTMLInputElement).checked).toBe(false);
+    await act(async () => fireEvent.click(toggle));
+    expect(onChange).toHaveBeenCalledWith(true);
   });
 
   it("offer no Ad-hoc scenarios row: the scenario form is the only scenario form", async () => {

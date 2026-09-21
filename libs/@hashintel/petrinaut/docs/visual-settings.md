@@ -12,11 +12,11 @@ Drag the heading or empty space across the top of the settings window to move it
 
 Changes apply immediately and are saved as your preferences across nets. On hosts with app navigation enabled, opening or closing the dialog is part of Browser Back / Forward history. Switching settings sections updates the current history entry. Browser navigation leaves saved preferences in place.
 
-| Section      | Settings                                                             |
-| ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the welcome guide.                    |
-| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
-| **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
+| Section      | Settings                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| **General**  | Animations, panel loading, and the welcome guide.                                                    |
+| **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection.                                 |
+| **Labs**     | Experimental modeling views, code layouts, developer tools, and anything the app you are using adds. |
 
 ## General
 
@@ -175,3 +175,7 @@ Enable subnet definitions and component instances for hierarchical nets. This op
 ### Compilation output (experimental)
 
 Off by default. Adds a [Compilation](compilation-output.md) tab to the bottom panel.
+
+### Settings from the app you are using
+
+An app that embeds Petrinaut can add its own settings to Labs. They appear below the settings above, under their own headings, and work like the rest of the section: the switch takes effect immediately. The app that added a setting decides where your choice is kept. On the Petrinaut website, **Assistant → Brunch assistant** chooses which assistant the [AI panel](ai-assistant.md) talks to, when a Brunch endpoint is configured.
