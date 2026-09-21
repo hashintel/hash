@@ -20,17 +20,14 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
-  draftPetrinautExperimentInputSchema,
-  draftPetrinautExperimentToolName,
+  CANONICAL_PETRINAUT_TOOLS_MODE,
   queryWorkpieceInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
   parseConstructionWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
-  batchedConstructionMode,
-  VALIDATED_CONSTRUCTION_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { ordinaryBrunchToolCatalogue } from "../../src/agents/chat-agent/tool-catalogue.ts";
 import {
@@ -45,6 +42,8 @@ import {
 } from "../native-schema-provider.ts";
 
 import type { RootArcExplanation } from "../../src/conversation/why.ts";
+
+type CapturedNativeTool = NativeRequestCapture["serialized"]["tools"][number];
 
 let networkAttempts = 0;
 const forbidden = () => {
@@ -122,7 +121,16 @@ try {
       ]);
       await typeClient.wait(
         await typeClient.send({
-          initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+          initialData: {
+            mode: CANONICAL_PETRINAUT_TOOLS_MODE,
+            construction: {
+              binding: {
+                conversationId: typeIdentity.conversationId,
+                documentId: "synthetic-canonical-document",
+                incarnationId: "synthetic-canonical-incarnation",
+              },
+            },
+          },
           message: {
             kind: "user",
             body: "Synthetic nested native type control.",
@@ -213,6 +221,19 @@ try {
       }
     }
   }
+  const canonicalNames = Object.keys(
+    petrinautAiTools,
+  ) as (keyof typeof petrinautAiTools)[];
+  const canonicalNameSet = new Set<string>(canonicalNames);
+  const withoutRuntimeTools = (names: readonly string[]) =>
+    names.filter((name) => name !== "task");
+  const representativeNestedTools = [
+    "addType",
+    "addScenario",
+    "addSubnet",
+    "addComponentInstance",
+    "createExperiment",
+  ] as const;
   for (const method of ["stream", "streamSimple"] as const) {
     const requests = captures.filter((capture) => capture.method === method);
     assert(requests.length > 0);
@@ -227,6 +248,69 @@ try {
         }
       }
     }
+    const canonicalRequest = requests.find((request) => {
+      const names = withoutRuntimeTools(
+        request.serialized.tools.map((tool) => tool.name),
+      );
+      return (
+        names.length === canonicalNames.length &&
+        names.every((name, index) => name === canonicalNames[index])
+      );
+    });
+    assert(
+      canonicalRequest,
+      `${method} must carry the complete exact stock Petrinaut catalogue`,
+    );
+    assert.deepEqual(
+      withoutRuntimeTools(
+        canonicalRequest.serialized.tools.map((tool) => tool.name),
+      ),
+      canonicalNames,
+    );
+    assert.deepEqual(
+      canonicalRequest.serialized.tools
+        .map((tool) => tool.name)
+        .filter((name) => !canonicalNameSet.has(name)),
+      ["task"],
+      `${method} canonical mode may add only Flue's runtime-owned task tool`,
+    );
+    for (const toolName of canonicalNames) {
+      const captured: CapturedNativeTool | undefined =
+        canonicalRequest.serialized.tools.find(
+          (tool) => tool.name === toolName,
+        );
+      assert(captured, `${method} missing canonical tool ${toolName}`);
+      assert.equal(
+        captured.description,
+        petrinautAiTools[toolName].description,
+        `${method} changed the canonical description for ${toolName}`,
+      );
+    }
+    for (const toolName of representativeNestedTools) {
+      const captured: CapturedNativeTool | undefined =
+        canonicalRequest.serialized.tools.find(
+          (tool) => tool.name === toolName,
+        );
+      assert(captured);
+      assert.deepEqual(
+        captured.input_schema,
+        petrinautAiTools[toolName].inputSchema.toJSONSchema({ io: "input" }),
+        `${method} flattened nested canonical schema for ${toolName}`,
+      );
+    }
+    const brunchOnlyNames = new Set(
+      ordinaryBrunchToolCatalogue
+        .map(({ name }) => name)
+        .filter((name) => name !== "task" && !canonicalNameSet.has(name)),
+    );
+    assert.deepEqual(
+      canonicalRequest.serialized.tools
+        .map((tool) => tool.name)
+        .filter((name) => brunchOnlyNames.has(name)),
+      [],
+      `${method} canonical catalogue must not contain Brunch or Ledger tools`,
+    );
+
     const ordinaryRequest = requests.find((request) =>
       request.serialized.tools.some(
         (tool) => tool.name === mutatePetrinautNetToolName,
@@ -332,77 +416,6 @@ try {
     );
     assert(tools.length > 0);
     for (const tool of tools) assert.deepEqual(tool.input_schema, expected);
-
-    // The session experiment draft carries core's request schema natively:
-    // the sent schema must be byte-identical to the Zod source and must still
-    // refuse a constraint (there is no constraint carriage) once serialized.
-    const draftTool = ordinaryRequest.serialized.tools.find(
-      (tool) => tool.name === draftPetrinautExperimentToolName,
-    );
-    assert(draftTool, `${method} must carry the experiment draft tool`);
-    assert.deepEqual(
-      draftTool.input_schema,
-      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
-        target: "draft-2020-12",
-      }),
-    );
-    const draftExperiment = {
-      name: "Synthetic staffing",
-      scenarioId: "scenario-peak",
-      scenarioParameterValues: { agents: { mode: "range", min: 2, max: 8 } },
-      runCount: 20,
-      seed: 1,
-      dt: 0.5,
-      maxTime: 120,
-      metricIds: ["metric-wait"],
-      execution: {
-        mode: "optimize",
-        objectiveMetricId: "metric-wait",
-        direction: "minimize",
-        steps: 5,
-        runsPerStep: 4,
-      },
-    };
-    const draftEnvelope = {
-      observation: { toolCallId: "read-1", baseHash: "a".repeat(64) },
-      declarations: [
-        { subject: "maxTime", statement: "120 model minutes: the peak." },
-      ],
-      basis: { kind: "absent", reason: "Synthetic control." },
-      unsupported: [],
-    };
-    const validateDraft = (arguments_: Record<string, unknown>): void => {
-      validateToolArguments(
-        {
-          name: draftTool.name,
-          description: "Captured draft tool",
-          parameters: draftTool.input_schema as Tool["parameters"],
-        },
-        {
-          type: "toolCall",
-          id: "draft-schema-control",
-          name: draftTool.name,
-          arguments: arguments_,
-        },
-      );
-    };
-    assert.doesNotThrow(() =>
-      validateDraft({ ...draftEnvelope, experiment: draftExperiment }),
-    );
-    assert.throws(() =>
-      validateDraft({
-        ...draftEnvelope,
-        experiment: { ...draftExperiment, constraints: [] },
-      }),
-    );
-    assert.throws(() =>
-      validateDraft({
-        ...draftEnvelope,
-        declarations: [],
-        experiment: draftExperiment,
-      }),
-    );
-    assert.throws(() => validateDraft(draftEnvelope));
   }
   assert.equal(networkAttempts, 0);
   process.stdout.write(

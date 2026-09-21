@@ -13,7 +13,12 @@ export type NativeRequestCapture = {
   method: "stream" | "streamSimple";
   payload: unknown;
   serialized: {
-    tools: { name: string; input_schema: unknown; strict?: boolean }[];
+    tools: {
+      name: string;
+      description: string;
+      input_schema: unknown;
+      strict?: boolean;
+    }[];
     messages: unknown;
   };
 };
