@@ -1,8 +1,8 @@
 {
-  "package": "@rust/darwin-kperf-criterion",
+  "package": "darwin-kperf-criterion",
   "dependencies": [
-    "@rust/darwin-kperf",
-    "@rust/darwin-kperf-events"
+    "darwin-kperf",
+    "darwin-kperf-events"
   ],
   "tasks": {
     "lint:clippy": {
@@ -11,7 +11,7 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen"
       ]
     }
   }

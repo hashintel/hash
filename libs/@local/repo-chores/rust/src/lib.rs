@@ -6,7 +6,6 @@
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
     // Library Features
-    core_io,
     exit_status_error
 )]
 
@@ -17,5 +16,4 @@ pub mod cli;
 pub(crate) mod dependency_diagram;
 pub(crate) mod lcov;
 pub(crate) mod sort_package_json;
-pub(crate) mod sync_turborepo;
 pub(crate) mod task_dependencies;

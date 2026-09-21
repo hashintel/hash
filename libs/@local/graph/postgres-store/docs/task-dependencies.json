@@ -1,28 +1,29 @@
 {
-  "package": "@rust/hash-graph-postgres-store",
+  "package": "hash-graph-postgres-store",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-codec",
-    "@rust/hash-graph-authorization",
-    "@rust/hash-graph-embeddings",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-test-data",
-    "@rust/hash-graph-types",
-    "@rust/hash-graph-validation",
-    "@rust/hash-status",
-    "@rust/hash-telemetry",
-    "@rust/hash-temporal-client"
+    "error-stack",
+    "hash-codec",
+    "hash-graph-authorization",
+    "hash-graph-embeddings",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-test-data",
+    "hash-graph-types",
+    "hash-graph-validation",
+    "hash-status",
+    "hash-telemetry",
+    "hash-temporal-client",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores"
       ]
     },
     "fix:clippy": {
@@ -34,18 +35,21 @@
         "GITHUB_EVENT_NAME"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     },
     "test:integration": {
       "dependsOn": [
-        "@rust/hash-graph-migrations#start:migrate:up"
+        "hash-graph-migrations#start:migrate:up"
       ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros",
+        "hash-graph-migrations"
       ]
     },
     "test:unit": {
@@ -54,7 +58,8 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "darwin-kperf-codegen",
+        "error-stack-macros"
       ]
     }
   }

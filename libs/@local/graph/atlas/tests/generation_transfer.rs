@@ -1,7 +1,7 @@
 //! Generation transfer and file-input integration against MinIO.
 //!
 //! Start the local MinIO service on port 9000 with access key `dev-s3-access-key-id` and secret
-//! `dev-s3-secret-access-key`, then run `yarn workspace @rust/hash-graph-atlas test:integration`.
+//! `dev-s3-secret-access-key`, then run `turbo run test:integration --filter hash-graph-atlas`.
 //! Each case creates its own bucket and local files. The test fails if the service is unavailable.
 
 use hash_graph_atlas::test_utils;

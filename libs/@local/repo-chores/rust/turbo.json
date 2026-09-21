@@ -2,19 +2,47 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "command": ["cargo", "build"],
       "cache": false
     },
     "analyze-benchmarks": {
+      "command": ["cargo", "run", "--", "benches", "analyze"],
       "dependsOn": ["build"],
       "cache": false
     },
     "upload-benchmarks": {
+      "command": ["cargo", "run", "--", "benches", "upload"],
       "dependsOn": ["build"],
       "cache": false
     },
     "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-repo-chores",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ],
       "dependsOn": ["build"],
       "cache": false
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
     }
   }
 }

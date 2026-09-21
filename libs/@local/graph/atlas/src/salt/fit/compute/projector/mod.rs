@@ -36,7 +36,7 @@ use crate::{
     math::NonNegative,
     progress::Progress,
     salt::{
-        fit::{PlacementOptions, ProjectorOptions, Stage, stage_rng},
+        fit::{PlacementOptions, ProjectorOptions, Stage, VacuousProjectorPlacement, stage_rng},
         projector::{
             artifact as checkpoint,
             loss::AffinityEnergy,
@@ -243,15 +243,37 @@ impl<'fit> PlacementPass<'fit> {
         // reviewed-Proximal verdict and freezes no relation radius. Semantic, protection and
         // support inputs remain available, and the published relation artifacts still describe the
         // corpus.
-        let vacuous = AttractionIndex::vacuous();
-        let attraction = if options.vacuous {
-            tracing::info!("the placement is vacuous: training uses no attraction term");
-            &vacuous
-        } else {
-            &distinct.indexes.attraction
+        let vacuous;
+        let attraction = match options.vacuous {
+            Some(VacuousProjectorPlacement::Force) => {
+                tracing::info!(
+                    "selected the vacuous training objective without relation attraction"
+                );
+                vacuous = AttractionIndex::vacuous();
+                &vacuous
+            }
+            Some(VacuousProjectorPlacement::Fallback)
+                if distinct
+                    .indexes
+                    .attraction
+                    .has_resolved_proximal_verdict(&self.inputs.resolution.resolved) =>
+            {
+                &distinct.indexes.attraction
+            }
+            Some(VacuousProjectorPlacement::Fallback) => {
+                tracing::warn!(
+                    "no reviewed Proximal verdict covers an attraction group with retained edges, \
+                     positive strength and positive Proximal weight: selecting the vacuous \
+                     training objective without relation attraction"
+                );
+
+                vacuous = AttractionIndex::vacuous();
+                &vacuous
+            }
+            None => &distinct.indexes.attraction,
         };
 
-        let trainer_inputs = TrainerInputs {
+        let inputs = TrainerInputs {
             semantic: distinct.semantic.view(),
             protection: distinct.indexes.protection.view(),
             protection_config: options.protection,
@@ -277,13 +299,13 @@ impl<'fit> PlacementPass<'fit> {
         let coefficients = options.coefficients.normalized(
             distinct.semantic.view().total_weight(),
             training.len(),
-            trainer_inputs.anchors.len(),
-            trainer_inputs.landmarks.len(),
+            inputs.anchors.len(),
+            inputs.landmarks.len(),
         );
 
         let model = self.train(
             options,
-            &trainer_inputs,
+            &inputs,
             distinct,
             &TrainOptions {
                 schedule: options.schedule,
@@ -429,6 +451,7 @@ impl<'fit> PlacementPass<'fit> {
                 unreachable!("no target objective is declared, yet training refused: {refusal}")
             }
         };
+
         tracing::info!(
             steps = options.schedule.steps().get(),
             "trained the projector"

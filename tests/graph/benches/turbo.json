@@ -2,10 +2,37 @@
   "extends": ["//"],
   "tasks": {
     "bench:integration": {
-      "dependsOn": ["^manifest", "@apps/hash-graph#start:healthcheck"]
+      "command": [
+        "cargo",
+        "bench",
+        "--bench",
+        "graph",
+        "--bench",
+        "read-scaling",
+        "--bench",
+        "representative-read",
+        "--bench",
+        "policy"
+      ],
+      "dependsOn": ["^manifest", "hash-graph#start:healthcheck"]
     },
     "test:integration": {
-      "dependsOn": ["^manifest", "@apps/hash-graph#start:test:healthcheck"]
+      "command": ["cargo", "test", "--benches"],
+      "dependsOn": ["^manifest", "hash-graph#start:test:healthcheck"]
+    },
+    "bench:integration:manual": {
+      "cache": false,
+      "command": ["cargo", "bench", "--bench", "manual-queries"]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:integration:manual": {
+      "cache": false,
+      "command": ["cargo", "test", "--bench", "manual-queries"]
     }
   }
 }

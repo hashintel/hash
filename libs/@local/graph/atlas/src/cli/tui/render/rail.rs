@@ -31,6 +31,7 @@ use crate::{
     cli::tui::state::{
         ClassifierFolds, EmbeddingWorkload, KnnActivity, ProjectorTraining, RunState, StageStatus,
     },
+    math::DFinite,
     progress::{Batch, Stage},
 };
 
@@ -127,7 +128,7 @@ pub(super) fn render_rail(
 ///
 /// Indented under the stage that measured it, and dim where a stage row is bold, because a reading
 /// is the admission stage's detail rather than a stage of its own.
-fn reading_row(label: &str, reading: f64, width: usize) -> Line<'static> {
+fn reading_row(label: &str, reading: DFinite, width: usize) -> Line<'static> {
     let value = format!("{reading:.4}");
     // Room for the indent, the label, the reading, and a space
     // either side of the dots. The rest of the row takes dots.

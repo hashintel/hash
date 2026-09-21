@@ -2,16 +2,16 @@
   "extends": ["//"],
   "tasks": {
     "manifest": {
-      "dependsOn": ["^manifest", "@rust/hash-graph-store#manifest"]
+      "dependsOn": ["^manifest", "hash-graph-store#manifest"]
     },
     "codegen": {
-      "dependsOn": ["@rust/hash-graph-store#build:types"],
+      "dependsOn": ["hash-graph-store#build:types"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
           "globs": ["types/index.snap.d.ts"],
-          "from": ["@rust/hash-graph-store#build:types"]
+          "from": ["hash-graph-store#build:types"]
         }
       ],
       "outputs": ["src/generated/**"]

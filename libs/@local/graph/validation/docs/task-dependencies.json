@@ -1,21 +1,23 @@
 {
-  "package": "@rust/hash-graph-validation",
+  "package": "hash-graph-validation",
   "dependencies": [
-    "@blockprotocol/type-system-rs",
-    "@rust/error-stack",
-    "@rust/hash-graph-store",
-    "@rust/hash-graph-temporal-versioning",
-    "@rust/hash-graph-test-data",
-    "@rust/hash-graph-types"
+    "error-stack",
+    "hash-graph-store",
+    "hash-graph-temporal-versioning",
+    "hash-graph-test-data",
+    "hash-graph-types",
+    "type-system"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -25,12 +27,18 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

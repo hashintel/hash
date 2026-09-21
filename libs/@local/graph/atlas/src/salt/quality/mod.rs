@@ -32,7 +32,8 @@ pub(crate) mod runner;
 mod tests;
 
 /// A metric checked by the admission thresholds.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 #[repr(u8)]
 pub enum QualityMetric {
     /// Shared map-versus-representation neighbourhoods.

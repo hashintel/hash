@@ -1,19 +1,25 @@
 {
-  "package": "@rust/problematic",
+  "package": "problematic",
   "dependencies": [
-    "@rust/error-stack"
+    "error-stack"
   ],
   "tasks": {
     "lint:clippy": {
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }
