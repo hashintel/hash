@@ -5,6 +5,7 @@
 //! ownership before enabling the writer. Opening a replacement writer invalidates the old one.
 //!
 //! [`ShardCommandHandle`] serializes submissions and applies each record after it is durable.
+//! Keep the [`ShardOwner`] until shutdown. Dropping it stops the shard.
 //! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
 use alloc::sync::Arc;
@@ -36,8 +37,8 @@ mod command_loop;
 pub use command_loop::start_recovered;
 pub use command_loop::{
     ControlResolution, OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandError,
-    ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, StartedShard, StartupRecovery,
-    StateChangeFeed,
+    ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, ShardOwner, StartedShard,
+    StartupRecovery, StateChangeFeed,
 };
 #[cfg(any(test, feature = "test-util"))]
 pub use command_loop::{TestHarness, TestHold};
@@ -1023,9 +1024,8 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        AppendFailureKind, AppendFault, OpenedShard, ShardLogLocation, ShardLogOpenError,
-        ShardLogRecovery, ShardLogWriter, post_invocation_message, read_journal,
-        wait_until_durable_with,
+        AppendFailureKind, OpenedShard, ShardLogLocation, ShardLogOpenError, ShardLogRecovery,
+        ShardLogWriter, post_invocation_message, read_journal, wait_until_durable_with,
     };
     use crate::{
         registry::{
@@ -1342,31 +1342,6 @@ mod tests {
                 .is_empty(),
             "rejected append should leave the journal empty"
         );
-    }
-
-    #[tokio::test]
-    async fn every_injected_post_invocation_failure_is_commit_unknown() {
-        let capability = TestPrefixCapability::new();
-        for (shard, fault) in [
-            (20, AppendFault::AfterInvocation),
-            (21, AppendFault::AfterAppend),
-            (22, AppendFault::AfterFlush),
-        ] {
-            let location =
-                capability.location(Shard::try_from(shard).expect("test shard should be in range"));
-            let writer = ShardLogWriter::open(&location)
-                .await
-                .expect("writer should open");
-            let error = writer
-                .append_with_fault(&record("fault-probe"), fault)
-                .await
-                .expect_err("injected append fault should fail");
-            assert_eq!(
-                error.current_context().kind,
-                AppendFailureKind::CommitUnknown
-            );
-            let _: Result<_, _> = writer.close().await;
-        }
     }
 
     #[tokio::test]

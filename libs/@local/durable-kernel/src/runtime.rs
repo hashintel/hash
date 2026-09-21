@@ -37,7 +37,7 @@ use crate::{
     shard_log::{
         LogStorageOptions, OpenedShard, ShardCommandConfig, ShardCommandError,
         ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, ShardLogLocation,
-        StateChangeFeed,
+        ShardOwner, StateChangeFeed,
     },
 };
 
@@ -229,6 +229,7 @@ impl Kernel {
             recovered_snapshots: BTreeMap::new(),
             drivers: Vec::new(),
             loops: Vec::new(),
+            owners: Vec::new(),
             shutdown,
         };
         let mut feeds = Vec::new();
@@ -273,11 +274,15 @@ impl Kernel {
                 .insert(shard.get(), started.recovery.snapshot_through_log_sequence);
             feeds.push((handle.clone(), started.state_changes));
             running.loops.push(started.task);
+            running.owners.push(started.owner);
             running.shards.insert(shard.get(), handle);
         }
-        for (handle, state_changes) in feeds {
-            let driver = AbortOnDropHandle::new(tokio::spawn(drive_shard::<S, X>(
-                handle.clone(),
+        for (owner, (handle, state_changes)) in
+            core::mem::take(&mut running.owners).into_iter().zip(feeds)
+        {
+            running.drivers.push(tokio::spawn(run_shard::<S, X>(
+                owner,
+                handle,
                 state_changes,
                 Arc::clone(&executor),
                 DriverSettings {
@@ -286,22 +291,6 @@ impl Kernel {
                 },
                 running.shutdown.clone(),
             )));
-            running.drivers.push(tokio::spawn(async move {
-                let result = driver
-                    .await
-                    .unwrap_or_else(|error| {
-                        Err(Report::new(error).change_context(KernelError::Internal(
-                            "effect driver task failed".to_owned(),
-                        )))
-                    })
-                    .attach_with(|| format!("shard: {}", handle.shard().get()));
-                if let Err(error) = &result {
-                    handle.stop_admission();
-                    handle.cancel_owned_writer();
-                    tracing::error!(?error, "effect driver failed; shard stopped");
-                }
-                result
-            }));
         }
         Ok(running)
     }
@@ -325,6 +314,7 @@ pub struct RunningKernel<S: SimpleDomain> {
     recovered_snapshots: BTreeMap<u8, Option<u64>>,
     drivers: Vec<JoinHandle<Result<(), Report<KernelError>>>>,
     loops: Vec<JoinHandle<Result<(), ShardCommandError>>>,
+    owners: Vec<ShardOwner<Hosted<S>>>,
     shutdown: CancellationToken,
 }
 
@@ -424,8 +414,8 @@ impl<S: SimpleDomain> RunningKernel<S> {
                 }
             }
         }
-        for handle in self.shards.values() {
-            if let Err(error) = handle.shutdown().await
+        for owner in self.owners.drain(..) {
+            if let Err(error) = owner.shutdown().await
                 && error.current_context().kind != ShardCommandErrorKind::Closed
             {
                 first_error.get_or_insert_with(|| error.change_context(KernelError::Command));
@@ -455,16 +445,54 @@ impl<S: SimpleDomain> Drop for RunningKernel<S> {
         for driver in &self.drivers {
             driver.abort();
         }
-        for handle in self.shards.values() {
-            handle.stop_admission();
-            handle.cancel_owned_writer();
-        }
     }
 }
 
 struct DriverSettings {
     poll_interval: Duration,
     snapshot_policy: SnapshotPolicy,
+}
+
+async fn run_shard<S, X>(
+    owner: ShardOwner<Hosted<S>>,
+    handle: ShardCommandHandle<Hosted<S>>,
+    state_changes: StateChangeFeed<PartitionKey>,
+    executor: Arc<X>,
+    settings: DriverSettings,
+    shutdown: CancellationToken,
+) -> Result<(), Report<KernelError>>
+where
+    S: SimpleDomain,
+    X: Executor<S>,
+{
+    let driver = AbortOnDropHandle::new(tokio::spawn(drive_shard::<S, X>(
+        handle.clone(),
+        state_changes,
+        executor,
+        settings,
+        shutdown,
+    )));
+    let result = driver
+        .await
+        .unwrap_or_else(|error| {
+            Err(Report::new(error).change_context(KernelError::Internal(
+                "effect driver task failed".to_owned(),
+            )))
+        })
+        .attach_with(|| format!("shard: {}", handle.shard().get()));
+    if let Err(error) = result {
+        drop(owner);
+        tracing::error!(?error, "effect driver failed; shard stopped");
+        return Err(error);
+    }
+    if let Err(error) = owner.shutdown().await
+        && error.current_context().kind != ShardCommandErrorKind::Closed
+    {
+        return Err(error
+            .change_context(KernelError::Command)
+            .attach(format!("shard: {}", handle.shard().get())));
+    }
+    Ok(())
 }
 
 fn settle_driver_error(
@@ -710,6 +738,7 @@ mod tests {
             recovered_snapshots: BTreeMap::new(),
             drivers: Vec::new(),
             loops: Vec::new(),
+            owners: Vec::new(),
             shutdown: CancellationToken::new(),
         };
         let event = InvalidJsonEvent(BTreeMap::from([((1, 2), 3)]));

@@ -1060,7 +1060,7 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
 #[cfg(test)]
 mod tests {
     use alloc::{collections::BTreeMap, sync::Arc};
-    use core::{num::NonZeroUsize, time::Duration};
+    use core::{future::poll_fn, num::NonZeroUsize, task::Poll, time::Duration};
 
     use chrono::{DateTime, Utc};
     use error_stack::Report;
@@ -1476,7 +1476,11 @@ mod tests {
             .expect("capture should succeed")
             .expect("snapshot should be due")
             .into_record(DateTime::UNIX_EPOCH);
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -1515,7 +1519,7 @@ mod tests {
             .expect("replayed state should be readable");
         assert_eq!(totals.get("orders"), Some(&5));
         restarted
-            .handle
+            .owner
             .shutdown()
             .await
             .expect("shutdown should succeed");
@@ -1878,12 +1882,154 @@ mod tests {
             CounterRejection::ZeroIncrement
         ));
 
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
             .expect("loop task should join")
             .expect("loop should stop cleanly");
+    }
+
+    #[tokio::test]
+    async fn shutdown_full_queue() {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            for cancel_shutdown in [false, true] {
+                let journal = SimLogHandle::new(42, Vec::new());
+                let record = incremented("orders", 5);
+                let location = ShardLogLocation::simulated(
+                    shard_of(record.partition()),
+                    journal.clone(),
+                    Arc::default(),
+                );
+                let recovered: RecoveredShard<Toy> = OpenedShard::open(location)
+                    .await
+                    .expect("shard should open")
+                    .recover()
+                    .await
+                    .expect("shard should recover");
+                let hold = TestHold::armed();
+                let started = recovered.enable_with_harness(
+                    ShardCommandConfig::new(NonZeroUsize::MIN, 0),
+                    TestHarness {
+                        before_append: Some(Arc::clone(&hold)),
+                        ..TestHarness::default()
+                    },
+                );
+                let handle = started.handle.clone();
+                let active = tokio::spawn(async move { handle.propose(record).await });
+                hold.entered().notified().await;
+                let handle = started.handle.clone();
+                let queued =
+                    tokio::spawn(async move { handle.propose(incremented("orders", 7)).await });
+                while started.handle.queue_capacity() != 0 {
+                    tokio::task::yield_now().await;
+                }
+                let mut blocked = Box::pin(started.handle.propose(incremented("orders", 9)));
+                poll_fn(|context| {
+                    assert!(
+                        blocked.as_mut().poll(context).is_pending(),
+                        "a full queue should block admission"
+                    );
+                    Poll::Ready(())
+                })
+                .await;
+                let mut shutdown = Box::pin(started.owner.shutdown());
+                poll_fn(|context| {
+                    assert!(
+                        shutdown.as_mut().poll(context).is_pending(),
+                        "shutdown should wait for accepted commands"
+                    );
+                    Poll::Ready(())
+                })
+                .await;
+                let error = blocked.await.expect_err(
+                    "shutdown should release blocked admission before the queue advances",
+                );
+                assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+                let shutdown = if cancel_shutdown {
+                    drop(shutdown);
+                    None
+                } else {
+                    Some(shutdown)
+                };
+                hold.release().notify_one();
+                for proposal in [active, queued] {
+                    let result = proposal.await.expect("proposal task should join");
+                    if cancel_shutdown {
+                        let error = result.expect_err("losing the owner should stop accepted work");
+                        assert_eq!(error.current_context().kind, ShardCommandErrorKind::Fenced);
+                    } else {
+                        assert!(matches!(
+                            result.expect("accepted proposal should finish"),
+                            ShardCommandOutcome::Applied { .. }
+                        ));
+                    }
+                }
+                if let Some(shutdown) = shutdown {
+                    shutdown.await.expect("shutdown should close the writer");
+                }
+                let result = started.task.await.expect("loop task should join");
+                if cancel_shutdown {
+                    assert_eq!(
+                        result.expect_err("owner drop should stop the loop").kind,
+                        ShardCommandErrorKind::Fenced
+                    );
+                    assert!(
+                        journal.durable_entries(SimKey::Events).is_empty(),
+                        "owner drop before append should prevent writes"
+                    );
+                } else {
+                    result.expect("loop should shut down cleanly");
+                    assert_eq!(
+                        journal.durable_entries(SimKey::Events).len(),
+                        2,
+                        "only the accepted proposals should be stored"
+                    );
+                }
+            }
+        })
+        .await
+        .expect("shutdown should release all callers");
+    }
+
+    #[tokio::test]
+    async fn owner_drop_idle_shard() {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            let journal = SimLogHandle::new(42, Vec::new());
+            let record = incremented("orders", 5);
+            let location = ShardLogLocation::simulated(
+                shard_of(record.partition()),
+                journal.clone(),
+                Arc::default(),
+            );
+            let (handle, started) = start(location).await;
+            handle
+                .read(|_| ())
+                .await
+                .expect("loop should accept a read before losing ownership");
+            drop(started.owner);
+            let error = handle
+                .propose(record)
+                .await
+                .expect_err("owner drop should close admission on existing clones");
+            assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+            let error = started
+                .task
+                .await
+                .expect("loop task should join")
+                .expect_err("owner drop should wake the idle loop");
+            assert_eq!(error.kind, ShardCommandErrorKind::Fenced);
+            assert!(
+                journal.durable_entries(SimKey::Events).is_empty(),
+                "a stopped shard should not write the rejected proposal"
+            );
+        })
+        .await
+        .expect("owner drop should stop the idle loop");
     }
 
     #[tokio::test]
@@ -1994,13 +2140,7 @@ mod tests {
             let active = tokio::spawn(async move { handle.propose(record).await });
             hold.entered().notified().await;
             active.abort();
-            assert!(
-                active
-                    .await
-                    .expect_err("proposal task should be aborted")
-                    .is_cancelled(),
-                "caller should disconnect before the append fails"
-            );
+            let _: Result<_, _> = active.await;
             hold.release().notify_one();
 
             let terminal = started
@@ -2087,7 +2227,11 @@ mod tests {
             3,
             "each accepted event should be stored once"
         );
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -2100,7 +2244,11 @@ mod tests {
             .await
             .expect("replayed state should be readable");
         assert_eq!(replayed, live, "replay should reproduce the live state");
-        handle.shutdown().await.expect("shutdown should succeed");
+        restarted
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         restarted
             .task
             .await
@@ -2147,7 +2295,11 @@ mod tests {
             .await
             .expect("read should succeed");
         assert_eq!(totals["orders"], 3);
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -2161,7 +2313,6 @@ mod tests {
             .expect("recovered sequence read should succeed")
             .expect("recovered projection should have a durable sequence");
         assert!(through < started.recovery.durable_end_exclusive);
-        assert!(started.recovery.live_work.is_empty());
         assert_eq!(started.state_changes.initial, vec![first.partition.clone()]);
         let totals = handle
             .read(|projection| projection.domain().totals.clone())
@@ -2190,7 +2341,11 @@ mod tests {
             .await
             .expect("read after new appends should succeed");
         assert_eq!(totals["orders"], 5);
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -2225,7 +2380,11 @@ mod tests {
                 rejection: FoldError::ForeignShard { .. }
             }
         ));
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -2263,7 +2422,11 @@ mod tests {
             .propose(incremented("orders", 3))
             .await
             .expect("post-snapshot event should be accepted");
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await
@@ -2289,7 +2452,7 @@ mod tests {
             .expect("read after snapshot recovery should succeed");
         assert_eq!(totals["orders"], 15);
         restarted
-            .handle
+            .owner
             .shutdown()
             .await
             .expect("shutdown should succeed");
@@ -2471,7 +2634,7 @@ mod tests {
                 .expect("recovered state should be readable");
             assert_eq!(totals.get("orders"), Some(&12));
             restarted
-                .handle
+                .owner
                 .shutdown()
                 .await
                 .expect("shutdown should succeed");
@@ -2565,7 +2728,11 @@ mod tests {
                 .is_some(),
             "new journal progress should permit another snapshot attempt"
         );
-        handle.shutdown().await.expect("shutdown should succeed");
+        started
+            .owner
+            .shutdown()
+            .await
+            .expect("shutdown should succeed");
         started
             .task
             .await

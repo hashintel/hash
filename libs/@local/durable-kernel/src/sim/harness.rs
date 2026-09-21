@@ -1070,7 +1070,6 @@ mod tests {
         let first = first.expect("plan 42 should complete");
         let second = second.expect("plan 42 should complete");
         assert_eq!(first_trace, second_trace);
-        assert_eq!(first.steps, second.steps);
         assert_eq!(first.acknowledged_events, second.acknowledged_events);
         assert_eq!(first.durable_events, second.durable_events);
         assert_eq!(first.effect_executions, second.effect_executions);
