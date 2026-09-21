@@ -9,7 +9,7 @@ use durable_kernel::{
         shard_of,
     },
     keyspace::Namespace,
-    registry::DurableRecord as _,
+    registry::{CompatError, DurableRecord as _},
     runtime::{Kernel, KernelConfig, SnapshotPolicy, Submitted},
     shard_log::{ShardCommandError, ShardCommandErrorKind},
 };
@@ -96,13 +96,20 @@ fn record_size_boundary() {
     assert_eq!(decoded.event(), &payload);
 
     let oversized = record(Payload(format!("{}x", payload.0)));
-    oversized
+    let error = oversized
         .encode()
         .expect_err("record one byte over the limit should fail encoding");
+    let expected = CompatError::TooLarge {
+        name: Payload::name(),
+        actual_bytes: MAX_RECORD_BYTES + 1,
+        max_bytes: MAX_RECORD_BYTES,
+    };
+    assert_eq!(error.current_context(), &expected);
     let bytes = serde_json::to_vec(&oversized).expect("oversized fixture should serialize");
     assert_eq!(bytes.len(), MAX_RECORD_BYTES + 1);
-    EventRecord::<Payload>::decode(&bytes)
+    let error = EventRecord::<Payload>::decode(&bytes)
         .expect_err("record one byte over the limit should fail decoding");
+    assert_eq!(error.current_context(), &expected);
 }
 
 #[tokio::test]

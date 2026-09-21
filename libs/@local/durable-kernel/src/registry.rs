@@ -13,8 +13,11 @@
 use alloc::collections::BTreeMap;
 use std::sync::{PoisonError, RwLock};
 
+use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::{domain::PartitionKey, ids::EventId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -60,10 +63,24 @@ pub struct RecordDeclaration {
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[error(ignore)]
 pub enum DeclarationError {
-    #[display("durable-record declaration {name:?} is invalid: {message}")]
-    Invalid { name: String, message: String },
-    #[display("durable-record declaration {_0:?} is not interned in this process")]
-    Unregistered(String),
+    #[display("journal {name:?} must retain its decoders, but declares {migration:?}")]
+    InvalidJournalMigration {
+        name: &'static str,
+        migration: MigrationPolicy,
+    },
+    #[display("record name {:?} is already registered with a different declaration", requested.name)]
+    ConflictingDeclaration {
+        registered: RecordDeclaration,
+        requested: RecordDeclaration,
+    },
+    #[display("record {name:?} declares migration policy {actual:?}, expected {expected:?}")]
+    MigrationMismatch {
+        name: &'static str,
+        expected: MigrationPolicy,
+        actual: MigrationPolicy,
+    },
+    #[display("record {name:?} is not registered")]
+    Unregistered { name: &'static str },
 }
 
 static DECLARATIONS: RwLock<BTreeMap<&'static str, &'static RecordDeclaration>> =
@@ -79,24 +96,24 @@ static DECLARATIONS: RwLock<BTreeMap<&'static str, &'static RecordDeclaration>> 
 /// allows removal of decoders for stored records.
 pub fn intern_declaration(
     declaration: RecordDeclaration,
-) -> Result<&'static RecordDeclaration, DeclarationError> {
+) -> Result<&'static RecordDeclaration, Report<DeclarationError>> {
     if declaration.migration != MigrationPolicy::NeverRetireWhileUntrimmed
         && declaration.durability == DurabilityClass::ImmutableJournal
     {
-        return Err(DeclarationError::Invalid {
-            name: declaration.name.to_owned(),
-            message: "journal records must keep decoders for all stored versions".to_owned(),
-        });
+        return Err(Report::new(DeclarationError::InvalidJournalMigration {
+            name: declaration.name,
+            migration: declaration.migration,
+        }));
     }
     let mut declarations = DECLARATIONS.write().unwrap_or_else(PoisonError::into_inner);
     if let Some(existing) = declarations.get(declaration.name) {
         return if **existing == declaration {
             Ok(existing)
         } else {
-            Err(DeclarationError::Invalid {
-                name: declaration.name.to_owned(),
-                message: "name is already registered with a different declaration".to_owned(),
-            })
+            Err(Report::new(DeclarationError::ConflictingDeclaration {
+                registered: **existing,
+                requested: declaration,
+            }))
         };
     }
     let interned: &'static RecordDeclaration = Box::leak(Box::new(declaration));
@@ -123,14 +140,14 @@ pub trait DurableRecord: Sized {
     /// # Errors
     ///
     /// Returns an error when the record cannot be encoded under its declared format.
-    fn encode(&self) -> Result<Vec<u8>, CompatError>;
+    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>>;
 
     /// Decodes bytes into a supported wire record.
     ///
     /// # Errors
     ///
     /// Returns an error when the bytes are malformed or use an unsupported record format.
-    fn decode(bytes: &[u8]) -> Result<Self, CompatError>;
+    fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>>;
 }
 
 /// Converts supported wire versions to one validated record type. Add a conversion here for
@@ -143,7 +160,7 @@ pub trait VersionedRecord: DurableRecord {
     /// # Errors
     ///
     /// Returns an error when the wire record cannot be converted to a valid current record.
-    fn normalize(self) -> Result<Self::Current, CompatError>;
+    fn normalize(self) -> Result<Self::Current, Report<CompatError>>;
 }
 
 /// Keeps stored bytes readable by converting supported versions to the current record type.
@@ -160,14 +177,14 @@ pub trait MutableCasRecord: VersionedRecord + Send + Sync {
     /// # Errors
     ///
     /// Returns an error when the current record cannot be represented in the emitted format.
-    fn from_current(current: Self::Current) -> Result<Self, CompatError>;
+    fn from_current(current: Self::Current) -> Result<Self, Report<CompatError>>;
 
     /// Converts a record to the format used for new writes.
     ///
     /// # Errors
     ///
     /// Returns an error when normalization or conversion to the emitted format fails.
-    fn into_emitted(self) -> Result<Self, CompatError> {
+    fn into_emitted(self) -> Result<Self, Report<CompatError>> {
         Self::from_current(self.normalize()?)
     }
 }
@@ -181,23 +198,25 @@ pub trait RebuildableRecord: DurableRecord {}
 ///
 /// Returns an error if the declaration is absent, differs from the registered declaration, or
 /// disagrees with the type’s migration policy.
-pub fn require_interned<T: DurableRecord>() -> Result<(), DeclarationError> {
-    if T::MIGRATION_POLICY != T::declaration().migration {
-        return Err(DeclarationError::Invalid {
-            name: T::declaration().name.to_owned(),
-            message: format!(
-                "record type declares {:?} but registry declares {:?}",
-                T::MIGRATION_POLICY,
-                T::declaration().migration
-            ),
-        });
+pub fn require_interned<T: DurableRecord>() -> Result<(), Report<DeclarationError>> {
+    let declaration = T::declaration();
+    if T::MIGRATION_POLICY != declaration.migration {
+        return Err(Report::new(DeclarationError::MigrationMismatch {
+            name: declaration.name,
+            expected: declaration.migration,
+            actual: T::MIGRATION_POLICY,
+        }));
     }
-    if interned_declaration_matches(T::declaration()) {
-        Ok(())
-    } else {
-        Err(DeclarationError::Unregistered(
-            T::declaration().name.to_owned(),
-        ))
+    let declarations = DECLARATIONS.read().unwrap_or_else(PoisonError::into_inner);
+    match declarations.get(declaration.name) {
+        Some(registered) if **registered == *declaration => Ok(()),
+        Some(registered) => Err(Report::new(DeclarationError::ConflictingDeclaration {
+            registered: **registered,
+            requested: *declaration,
+        })),
+        None => Err(Report::new(DeclarationError::Unregistered {
+            name: declaration.name,
+        })),
     }
 }
 
@@ -207,10 +226,34 @@ pub enum CompatError {
     UnsupportedVersion { name: &'static str, version: String },
     #[display("{name} contains undeclared field {path:?}")]
     ExtraField { name: &'static str, path: String },
-    #[display("malformed {name}: {message}")]
-    Malformed { name: &'static str, message: String },
-    #[display("conflicting {name}: {message}")]
-    Conflict { name: &'static str, message: String },
+    #[display("{name} field {path:?} must be an object")]
+    ExpectedObject { name: &'static str, path: String },
+    #[display("{name} is missing its version")]
+    MissingVersion { name: &'static str },
+    #[display("{name} version must be a string")]
+    InvalidVersionType { name: &'static str },
+    #[display("{name} could not be encoded")]
+    Encode { name: &'static str },
+    #[display("{name} could not be decoded")]
+    Decode { name: &'static str },
+    #[display("{name} is {actual_bytes} bytes; maximum is {max_bytes}")]
+    TooLarge {
+        name: &'static str,
+        actual_bytes: usize,
+        max_bytes: usize,
+    },
+    #[display("{name} record partition {actual} does not match the event's partition {expected}")]
+    PartitionMismatch {
+        name: &'static str,
+        expected: PartitionKey,
+        actual: PartitionKey,
+    },
+    #[display("{name} event ID mismatch: expected {expected}, found {actual}")]
+    EventIdMismatch {
+        name: &'static str,
+        expected: EventId,
+        actual: EventId,
+    },
 }
 
 /// Checks a JSON object against an explicit set of field names.
@@ -226,10 +269,12 @@ pub fn reject_unknown_fields(
     value: &Value,
     allowed: &[&str],
 ) -> Result<(), CompatError> {
-    let object = value.as_object().ok_or_else(|| CompatError::Malformed {
-        name,
-        message: format!("{path} must be an object"),
-    })?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| CompatError::ExpectedObject {
+            name,
+            path: path.to_owned(),
+        })?;
     for key in object.keys() {
         if !allowed.contains(&key.as_str()) {
             let path = if path.is_empty() {
@@ -245,8 +290,11 @@ pub fn reject_unknown_fields(
 
 #[cfg(test)]
 mod tests {
+    use error_stack::Report;
+
     use super::{
-        DeclarationError, DurabilityClass, MigrationPolicy, RecordDeclaration, intern_declaration,
+        CompatError, DeclarationError, DurabilityClass, DurableRecord, MigrationPolicy,
+        RecordDeclaration, intern_declaration, require_interned,
     };
 
     const fn declaration(name: &'static str) -> RecordDeclaration {
@@ -262,6 +310,71 @@ mod tests {
         }
     }
 
+    struct TestRecord<const VERSION: u32>;
+
+    impl<const VERSION: u32> DurableRecord for TestRecord<VERSION> {
+        const MIGRATION_POLICY: MigrationPolicy = if VERSION == 0 {
+            MigrationPolicy::PureUpcast
+        } else {
+            MigrationPolicy::NeverRetireWhileUntrimmed
+        };
+
+        fn declaration() -> &'static RecordDeclaration {
+            const {
+                &RecordDeclaration {
+                    emitted_version: VERSION,
+                    supported_versions: &[VERSION],
+                    ..declaration("registry_require_declaration")
+                }
+            }
+        }
+
+        fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+            Ok(Vec::new())
+        }
+
+        fn decode(_bytes: &[u8]) -> Result<Self, Report<CompatError>> {
+            Ok(Self)
+        }
+    }
+
+    #[test]
+    fn require_registered_declaration() {
+        let error = require_interned::<TestRecord<1>>()
+            .expect_err("an unregistered record should be rejected");
+        assert_eq!(
+            error.current_context(),
+            &DeclarationError::Unregistered {
+                name: TestRecord::<1>::declaration().name,
+            }
+        );
+
+        intern_declaration(*TestRecord::<1>::declaration()).expect("declaration should register");
+        require_interned::<TestRecord<1>>()
+            .expect("matching registered declaration should be accepted");
+
+        let error = require_interned::<TestRecord<0>>()
+            .expect_err("a mismatched migration policy should be rejected");
+        assert_eq!(
+            error.current_context(),
+            &DeclarationError::MigrationMismatch {
+                name: TestRecord::<0>::declaration().name,
+                expected: MigrationPolicy::NeverRetireWhileUntrimmed,
+                actual: MigrationPolicy::PureUpcast,
+            }
+        );
+
+        let error = require_interned::<TestRecord<2>>()
+            .expect_err("a conflicting declaration should be rejected");
+        assert_eq!(
+            error.current_context(),
+            &DeclarationError::ConflictingDeclaration {
+                registered: *TestRecord::<1>::declaration(),
+                requested: *TestRecord::<2>::declaration(),
+            }
+        );
+    }
+
     #[test]
     fn interning_is_idempotent_and_refuses_conflicting_redeclaration() {
         let first = intern_declaration(declaration("kernel_registry_test_record"))
@@ -275,10 +388,15 @@ mod tests {
             supported_versions: &[1, 2],
             ..declaration("kernel_registry_test_record")
         };
-        assert!(matches!(
-            intern_declaration(conflicting),
-            Err(DeclarationError::Invalid { .. })
-        ));
+        let error = intern_declaration(conflicting)
+            .expect_err("different versions should conflict with the registered declaration");
+        assert_eq!(
+            error.current_context(),
+            &DeclarationError::ConflictingDeclaration {
+                registered: *first,
+                requested: conflicting,
+            }
+        );
     }
 
     #[test]
@@ -287,9 +405,14 @@ mod tests {
             migration: MigrationPolicy::PureUpcast,
             ..declaration("kernel_registry_retiring_journal")
         };
-        assert!(matches!(
-            intern_declaration(retiring),
-            Err(DeclarationError::Invalid { .. })
-        ));
+        let error = intern_declaration(retiring)
+            .expect_err("journal declarations should retain their decoders");
+        assert_eq!(
+            error.current_context(),
+            &DeclarationError::InvalidJournalMigration {
+                name: retiring.name,
+                migration: MigrationPolicy::PureUpcast,
+            }
+        );
     }
 }
