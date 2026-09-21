@@ -7,10 +7,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
+
+import { ordinaryBrunchToolCatalogue } from "../src/agents/chat-agent/tool-catalogue.ts";
 import { STEP_A_MODEL_ID } from "../src/chat-model.ts";
 import { checkDevConfiguration } from "../src/dev-configuration-preflight.ts";
 
 import type { NativeRequestCapture } from "./native-schema-provider.ts";
+
+type CapturedNativeTool = NativeRequestCapture["serialized"]["tools"][number];
 
 const appRoot = fileURLToPath(new URL("../", import.meta.url));
 const output = mkdtempSync(join(tmpdir(), "brunch-anthropic-tools-"));
@@ -77,12 +82,71 @@ try {
   const captures = JSON.parse(
     readFileSync(join(output, "native/native-sdk-requests.json"), "utf8"),
   ) as NativeRequestCapture[];
-  const catalogues = [
-    ...new Set(
-      captures.map(({ serialized }) => JSON.stringify(serialized.tools)),
-    ),
-  ];
-  assert(catalogues.length > 0, "No native tool catalogues captured");
+  const canonicalNames = Object.keys(
+    petrinautAiTools,
+  ) as (keyof typeof petrinautAiTools)[];
+  const withoutRuntimeTools = (names: readonly string[]) =>
+    names.filter((name) => name !== "task");
+  const canonicalCaptures = captures.filter(({ serialized }) => {
+    const names = withoutRuntimeTools(
+      serialized.tools.map((tool) => tool.name),
+    );
+    return (
+      names.length === canonicalNames.length &&
+      names.every((name, index) => name === canonicalNames[index])
+    );
+  });
+  assert(
+    canonicalCaptures.length > 0,
+    "Canonical Petrinaut catalogue was absent from native capture",
+  );
+  const canonicalTools = canonicalCaptures[0]?.serialized.tools;
+  assert(canonicalTools);
+  assert.deepEqual(
+    withoutRuntimeTools(canonicalTools.map((tool) => tool.name)),
+    canonicalNames,
+  );
+  const canonicalNameSet = new Set<string>(canonicalNames);
+  assert.deepEqual(
+    canonicalTools
+      .map((tool) => tool.name)
+      .filter((name) => !canonicalNameSet.has(name)),
+    ["task"],
+    "Canonical mode may add only Flue's runtime-owned task tool",
+  );
+  for (const toolName of canonicalNames) {
+    const captured: CapturedNativeTool | undefined = canonicalTools.find(
+      (tool) => tool.name === toolName,
+    );
+    assert(captured, `Canonical capture omitted ${toolName}`);
+    assert.equal(captured.description, petrinautAiTools[toolName].description);
+  }
+  for (const toolName of [
+    "addType",
+    "addScenario",
+    "addSubnet",
+    "addComponentInstance",
+    "createExperiment",
+  ] as const) {
+    const captured: CapturedNativeTool | undefined = canonicalTools.find(
+      (tool) => tool.name === toolName,
+    );
+    assert(captured);
+    assert.deepEqual(
+      captured.input_schema,
+      petrinautAiTools[toolName].inputSchema.toJSONSchema({ io: "input" }),
+      `Canonical capture flattened nested schema for ${toolName}`,
+    );
+  }
+  const brunchOnlyNames = new Set(
+    ordinaryBrunchToolCatalogue
+      .map(({ name }) => name)
+      .filter((name) => name !== "task" && !canonicalNameSet.has(name)),
+  );
+  assert(
+    canonicalTools.every((tool) => !brunchOnlyNames.has(tool.name)),
+    "Canonical capture contains Brunch or Ledger tools",
+  );
 
   stage = "provider acceptance";
   const probes = [
@@ -100,13 +164,11 @@ try {
       ],
       expected: 400,
     },
-    ...catalogues.map((catalogue, index) => ({
-      name: `native-catalogue-${index + 1}`,
-      tools: JSON.parse(
-        catalogue,
-      ) as NativeRequestCapture["serialized"]["tools"],
+    {
+      name: "canonical-petrinaut-tools",
+      tools: canonicalTools,
       expected: 200,
-    })),
+    },
   ];
   for (const probe of probes) {
     stage = `${probe.name}: request`;
