@@ -5,7 +5,7 @@ import {
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
-import { brunchClientToolNames } from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
 import type {
   SweepCapture,
@@ -341,17 +341,8 @@ export const createBrunchPanelTransport = (
   tracker: BrunchPanelConversationTracker,
   options?: {
     readonly initialData?: FlueChatTransportOptions["initialData"];
-    /** Fixture-scoped client tools; defaults to the Petrinaut docs reader alone. */
+    /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
-    readonly dynamicClientToolNames?: ReadonlySet<string>;
-    readonly validatedClientToolNames?: ReadonlySet<string>;
-    readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
-    readonly clientToolResultOutput?: FlueChatTransportOptions["clientToolResultOutput"];
-    readonly mapClientToolInput?: (input: {
-      readonly input: unknown;
-      readonly toolName: string;
-      readonly toolCallId: string;
-    }) => unknown;
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -367,15 +358,9 @@ export const createBrunchPanelTransport = (
           ...(options?.initialData === undefined
             ? {}
             : { initialData: options.initialData }),
-          clientToolNames: options?.clientToolNames ?? brunchClientToolNames,
-          dynamicClientToolNames: options?.dynamicClientToolNames,
-          validatedClientToolNames: options?.validatedClientToolNames,
-          clientToolResultMetadata: options?.clientToolResultMetadata,
-          clientToolResultOutput: options?.clientToolResultOutput,
+          clientToolNames:
+            options?.clientToolNames ?? canonicalPetrinautClientToolNames,
           liveToolStream: options?.liveToolStream,
-          ...(options?.mapClientToolInput === undefined
-            ? {}
-            : { mapClientToolInput: options.mapClientToolInput }),
           onAdmission: (event) => {
             tracker.recordAdmission(event);
             options?.onAdmission?.(event.admission);

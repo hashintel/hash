@@ -29,7 +29,6 @@ import {
 import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { ordinaryBrunchToolCatalogue } from "../../src/agents/chat-agent/tool-catalogue.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -298,19 +297,6 @@ try {
         `${method} flattened nested canonical schema for ${toolName}`,
       );
     }
-    const brunchOnlyNames = new Set(
-      ordinaryBrunchToolCatalogue
-        .map(({ name }) => name)
-        .filter((name) => name !== "task" && !canonicalNameSet.has(name)),
-    );
-    assert.deepEqual(
-      canonicalRequest.serialized.tools
-        .map((tool) => tool.name)
-        .filter((name) => brunchOnlyNames.has(name)),
-      [],
-      `${method} canonical catalogue must not contain Brunch or Ledger tools`,
-    );
-
     const ordinaryRequest = requests.find((request) =>
       request.serialized.tools.some(
         (tool) => tool.name === mutatePetrinautNetToolName,
@@ -324,11 +310,6 @@ try {
       new Set(mountedNames).size,
       mountedNames.length,
       `${method} ordinary Brunch tools must have unique names`,
-    );
-    assert.deepEqual(
-      mountedNames,
-      ordinaryBrunchToolCatalogue.map(({ name }) => name),
-      `${method} ordinary Brunch tools must match the checked catalogue`,
     );
     const queryTool = ordinaryRequest.serialized.tools.find(
       (tool) => tool.name === "query_workpiece",

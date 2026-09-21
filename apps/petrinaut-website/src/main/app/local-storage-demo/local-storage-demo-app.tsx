@@ -62,11 +62,9 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
   stockChatEndpoint,
-  type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
 import {
@@ -74,33 +72,24 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
-import {
-  brunchPetrinautDynamicToolNames,
-  canonicalParityClientToolNames,
-} from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
-import { createBrunchDraftExperimentInteractiveTool } from "./brunch-draft-experiment-interactive-tool";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
-import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
 import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
+import { readLiveDocumentHash } from "./live-document-hash";
 import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
-import {
-  createJoinedBrowserMutationRecorder,
-  observeBrowserDefinition,
-} from "./mutation-record";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
-import { useRealtimePreference, useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { DocumentRecord } from "./documents/document-repository";
@@ -367,18 +356,8 @@ export const LocalStorageDemoApp = ({
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
-    setSelection: setAssistantSelection,
+    setSelection: selectAssistant,
   } = useAssistantSelection({ enabled: !remoteRouteSelected });
-  const {
-    enabled: voiceEnabled,
-    ready: voicePreferenceReady,
-    setEnabled: setVoiceEnabled,
-  } = useVoicePreference();
-  const {
-    enabled: realtimeEnabled,
-    ready: realtimePreferenceReady,
-    setEnabled: setRealtimeEnabled,
-  } = useRealtimePreference();
   const brunchSelected = remoteRouteSelected
     ? brunchPreviewConfig.isBrunchConfigured
     : assistantSelectionReady &&
@@ -388,12 +367,7 @@ export const LocalStorageDemoApp = ({
       );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
-  >(undefined);
-  const selectAssistant = (selection: AssistantSelection) => {
-    setOpenAIVoiceConfig(selection === "brunch" ? undefined : null);
-    setAssistantSelection(selection);
-    if (selection === "brunch") setVoiceEnabled(true);
-  };
+  >(() => (brunchSelected ? undefined : null));
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -424,7 +398,6 @@ export const LocalStorageDemoApp = ({
     { enabled: !remoteRouteSelected },
   );
   const productConstructionSelected = brunchSelected;
-  const canonicalConstructionSelected = productConstructionSelected;
   const selectLocalRoute = useCallback(
     () =>
       onSearchChange(
@@ -448,7 +421,6 @@ export const LocalStorageDemoApp = ({
   const { source } = controller;
   const currentDocument = source.repository.current;
   const currentNetId = currentDocument?.documentId ?? null;
-  const currentNetTitle = currentDocument?.title ?? "";
 
   useEffect(() => {
     if (!brunchSelected) {
@@ -456,7 +428,6 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
-    setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),
       abortController.signal,
@@ -651,7 +622,7 @@ export const LocalStorageDemoApp = ({
   const getObservedLiveHash = useCallback(
     () =>
       constructionBrowser && activeHandle?.handle.doc()
-        ? observeBrowserDefinition(activeHandle.handle).sha256
+        ? readLiveDocumentHash(activeHandle.handle)
         : undefined,
     [activeHandle, constructionBrowser],
   );
@@ -661,31 +632,13 @@ export const LocalStorageDemoApp = ({
     getObservedLiveHash,
     getServerObservedLiveHash,
   );
-  const mutationRecorder = useMemo(
-    () =>
-      constructionBrowser && activeHandle
-        ? createJoinedBrowserMutationRecorder({
-            handle: activeHandle.handle,
-            ...constructionBrowser,
-            onContainedFailure: (failure) =>
-              reportBrunchFailure("mutation-record", failure.error, {
-                kind: failure.kind,
-                toolCallId: failure.toolCallId,
-              }),
-          })
-        : undefined,
-    [constructionBrowser, activeHandle, reportBrunchFailure],
-  );
-  const constructionClientTools = canonicalConstructionSelected
-    ? canonicalParityClientToolNames
+  const constructionClientTools = productConstructionSelected
+    ? canonicalPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     constructionClientTools,
-    mutationRecorder?.mapClientToolInput,
-    mutationRecorder?.validatedClientToolNames,
-    brunchPetrinautDynamicToolNames,
   );
   useEffect(() => {
     if (flueHistory.error === undefined) return;
@@ -696,16 +649,7 @@ export const LocalStorageDemoApp = ({
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
-        brunchSelected &&
-          voicePreferenceReady &&
-          voiceEnabled &&
-          realtimePreferenceReady &&
-          openAIVoiceConfig
-          ? {
-              ...openAIVoiceConfig,
-              provider: realtimeEnabled ? "realtime" : "live",
-            }
-          : null,
+        brunchSelected ? openAIVoiceConfig : null,
         conversationTracker,
         flueHistory.settlements,
         flueHistory.snapshot,
@@ -716,10 +660,6 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       openAIVoiceConfig,
-      realtimeEnabled,
-      realtimePreferenceReady,
-      voiceEnabled,
-      voicePreferenceReady,
     ],
   );
   const transportClientPromise = flueClientPromise;
@@ -737,7 +677,6 @@ export const LocalStorageDemoApp = ({
                 },
               }
             : {}),
-          dynamicClientToolNames: brunchPetrinautDynamicToolNames,
           ...(transportClientPromise === flueClientPromise &&
           conversationId !== null
             ? {
@@ -753,13 +692,6 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
-                mapClientToolInput: mutationRecorder?.mapClientToolInput,
-                validatedClientToolNames:
-                  mutationRecorder?.validatedClientToolNames,
-                clientToolResultMetadata:
-                  mutationRecorder?.clientToolResultMetadata,
-                clientToolResultOutput:
-                  mutationRecorder?.clientToolResultOutput,
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -782,7 +714,6 @@ export const LocalStorageDemoApp = ({
     flueHistory.refresh,
     reportBrunchFailure,
     transportClientPromise,
-    mutationRecorder,
   ]);
 
   const aiAssistant = useMemo(() => {
@@ -820,53 +751,10 @@ export const LocalStorageDemoApp = ({
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      // Brunch's own tool names wrap canonical Petrinaut operations here, in
-      // the host; Petrinaut keeps its names and executes only what it is told.
-      automaticTools:
-        flueClientPromise === null
-          ? []
-          : createBrunchPetrinautTools({
-              readTitle: () => currentNetTitle,
-              ...(canonicalConstructionSelected && constructionBrowser
-                ? {
-                    mutation: {
-                      binding: constructionBrowser.binding,
-                      retainAttempt: mutationRecorder?.retainAttempt,
-                      onOperationFailure: (failure) =>
-                        reportBrunchFailure("mutate-petrinet", failure.error, {
-                          toolCallId: failure.toolCallId,
-                          operationId: failure.operationId,
-                          operationType: failure.operationType,
-                          status: failure.status,
-                        }),
-                    },
-                  }
-                : {}),
-              ...(currentDocument === null
-                ? {}
-                : {
-                    settleDocumentRevision: (revisionId) =>
-                      source.repository.settleRevision({
-                        documentId: currentDocument.documentId,
-                        revisionId,
-                      }),
-                  }),
-            }),
-      // The drafted-experiment card is the one Brunch tool the person answers
-      // in the panel: it prepares against the live model, reports "drafted",
-      // and waits for Run or Dismiss. Session-only; nothing is persisted.
-      interactiveTools:
-        flueClientPromise === null
-          ? []
-          : [
-              createBrunchDraftExperimentInteractiveTool({
-                readTitle: () => currentNetTitle,
-              }),
-            ],
+      // An empty host catalogue leaves Petrinaut's canonical static tools active.
+      automaticTools: [],
+      interactiveTools: [],
       transport: petrinautAiChatTransport,
-      ...(mutationRecorder === undefined || canonicalConstructionSelected
-        ? {}
-        : { executeMutation: mutationRecorder.executeMutation }),
       ...(flueClientPromise === null
         ? {}
         : {
@@ -916,24 +804,18 @@ export const LocalStorageDemoApp = ({
     aiMessagesByNetId,
     brunchSelected,
     brunchVoiceMode,
-    canonicalConstructionSelected,
     observedLiveHash,
     constructionBrowser,
     conversationTracker,
     conversationId,
     currentNetId,
-    currentNetTitle,
     flueClientPromise,
     flueHistory.messages,
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
     petrinautAiChatTransport,
-    reportBrunchFailure,
-    mutationRecorder,
     setAiMessagesByNetId,
-    currentDocument,
-    source.repository,
   ]);
 
   if (source.repository.status.state === "unavailable") {
@@ -1031,24 +913,6 @@ export const LocalStorageDemoApp = ({
               navigation={navigation}
               readonly={false}
               setTitle={setTitle}
-              slots={{
-                settingsLabs: (
-                  <AssistantLabsSettings
-                    assistantReady={assistantSelectionReady}
-                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                    brunchSelected={brunchSelected}
-                    forceBrunch={remoteRouteSelected}
-                    openAIVoiceConfig={openAIVoiceConfig}
-                    realtimeEnabled={realtimeEnabled}
-                    realtimePreferenceReady={realtimePreferenceReady}
-                    selectAssistant={selectAssistant}
-                    setRealtimeEnabled={setRealtimeEnabled}
-                    setVoiceEnabled={setVoiceEnabled}
-                    voiceEnabled={brunchSelected && voiceEnabled}
-                    voicePreferenceReady={voicePreferenceReady}
-                  />
-                ),
-              }}
               title={currentDocument.title}
               viewportActions={[sentryFeedbackAction]}
             />

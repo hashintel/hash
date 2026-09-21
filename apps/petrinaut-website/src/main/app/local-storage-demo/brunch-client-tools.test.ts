@@ -2,12 +2,7 @@ import { expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core";
 
-import {
-  batchedConstructionClientToolNames,
-  brunchPetrinautDynamicToolNames,
-  canonicalParityClientToolNames,
-  canonicalPetrinautClientToolNames,
-} from "./brunch-client-tools";
+import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
 
 test("keeps literal parity with the stock Petrinaut tool catalogue", () => {
   expect([...canonicalPetrinautClientToolNames].toSorted()).toEqual(
@@ -27,15 +22,5 @@ test("includes the full stock capability surface required by the tracer", () => 
     "createExperiment",
   ]) {
     expect(canonicalPetrinautClientToolNames.has(toolName)).toBe(true);
-  }
-});
-
-test("routes every canonical tool statically while retaining custom server tools", () => {
-  for (const toolName of canonicalPetrinautClientToolNames) {
-    expect(canonicalParityClientToolNames.has(toolName)).toBe(true);
-    expect(brunchPetrinautDynamicToolNames.has(toolName)).toBe(false);
-  }
-  for (const toolName of batchedConstructionClientToolNames) {
-    expect(canonicalParityClientToolNames.has(toolName)).toBe(true);
   }
 });
