@@ -1,4 +1,4 @@
-//! The error documents the middlewares answer rejections with.
+//! The problem documents the middlewares answer rejections with.
 
 use alloc::borrow::Cow;
 
@@ -10,7 +10,10 @@ use http::{HeaderValue, StatusCode, header::CONTENT_TYPE};
 use problematic::{ProblemDetails, ProblemType};
 use serde_core::Serialize;
 
-pub(crate) fn status_problem(status: StatusCode) -> ProblemDetails<'static> {
+/// The problem document that says no more than its HTTP status: `about:blank` with the status'
+/// canonical reason as its title.
+#[must_use]
+pub fn status_problem(status: StatusCode) -> ProblemDetails<'static> {
     ProblemDetails::from(ProblemType {
         type_uri: Cow::Borrowed("about:blank"),
         title: Cow::Borrowed(status.canonical_reason().unwrap_or("Unknown status")),
@@ -36,19 +39,34 @@ fn status_response(status: StatusCode) -> Response {
     problem_response_body(status, body)
 }
 
-pub(crate) fn problem_response(details: &ProblemDetails<'_, impl Serialize>) -> Response {
+/// Renders a problem document as an `application/problem+json` response with its status.
+///
+/// A document whose status is not a valid HTTP status is answered as a bare
+/// `500 Internal Server Error`; one whose extensions do not serialize is answered as the bare
+/// problem of its status. Both are logged with the document's status and type.
+pub fn problem_response(details: &ProblemDetails<'_, impl Serialize>) -> Response {
     let status = match StatusCode::from_u16(details.status) {
         Ok(status) => status,
         Err(error) => {
-            tracing::error!(status = details.status, %error, "invalid problem status code");
+            tracing::error!(
+                status = details.status,
+                type = %details.type_uri,
+                %error,
+                "invalid problem status code"
+            );
             return status_response(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
     let body = match serde_json::to_vec(details) {
         Ok(body) => body,
         Err(error) => {
-            tracing::error!(%error, "failed to serialize problem details");
-            return status_response(StatusCode::INTERNAL_SERVER_ERROR);
+            tracing::error!(
+                status = details.status,
+                type = %details.type_uri,
+                %error,
+                "failed to serialize problem details"
+            );
+            return status_response(status);
         }
     };
     problem_response_body(status, body)
@@ -152,7 +170,22 @@ mod tests {
             .detail("private diagnostic")
             .extensions(FailingExtensions);
 
-        assert_internal_error(problem_response(&details)).await;
+        let response = problem_response(&details);
+
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "the decided status should survive a body that does not serialize"
+        );
+        assert_eq!(
+            response_json(response).await,
+            json!({
+                "type": "about:blank",
+                "title": "Unprocessable Entity",
+                "status": 422,
+            }),
+            "the body should fall back to the bare problem of the status"
+        );
     }
 
     #[tokio::test]

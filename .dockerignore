@@ -21,6 +21,8 @@
 # Atlas compiles its wire contract into the binary with `include_str!`, so the
 # file is a build input rather than documentation the image can do without.
 !libs/@local/graph/atlas/docs/wire.md
+# Graph embeds the API overview in its OpenAPI documents.
+!libs/@local/graph/api/src/rest/documentation/overview.md
 # Brunch packages prompts and skills through `?raw` imports in their builds.
 !libs/@hashintel/brunch-agent/packages/*/src/**/*.md
 
