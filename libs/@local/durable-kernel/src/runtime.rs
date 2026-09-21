@@ -34,8 +34,9 @@ use crate::{
     keyspace::{Keyspace, Namespace},
     routing::Shard,
     shard_log::{
-        LogStorageOptions, OpenedShard, ShardCommandConfig, ShardCommandError, ShardCommandHandle,
-        ShardCommandOutcome, ShardLogLocation, StateChangeFeed,
+        LogStorageOptions, OpenedShard, ShardCommandConfig, ShardCommandError,
+        ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, ShardLogLocation,
+        StateChangeFeed,
     },
 };
 
@@ -51,6 +52,8 @@ pub enum KernelError {
     InvalidEvent(String),
     #[display("kernel storage failed: {_0}")]
     Storage(String),
+    #[display("shard command failed")]
+    Command,
     #[display("partition routes to shard {shard}, which this kernel does not own")]
     NotOwned { shard: u16 },
     #[display("kernel internal failure: {_0}")]
@@ -59,7 +62,27 @@ pub enum KernelError {
 
 impl From<ShardCommandError> for Report<KernelError> {
     fn from(error: ShardCommandError) -> Self {
-        Report::new(error).change_context(KernelError::Internal("shard command failed".to_owned()))
+        Report::new(error).change_context(KernelError::Command)
+    }
+}
+
+impl<R: core::error::Error + Send + Sync + 'static> From<domain::FoldError<R>>
+    for Report<KernelError>
+{
+    fn from(error: domain::FoldError<R>) -> Self {
+        let context = KernelError::InvalidEvent("event validation failed".to_owned());
+        match error {
+            domain::FoldError::InvalidRecord(error) => error.change_context(context),
+            domain::FoldError::Rejected {
+                event_id,
+                rejection,
+            } => rejection.change_context(context).attach(event_id),
+            error @ (domain::FoldError::ForeignShard { .. }
+            | domain::FoldError::ConflictingReuse { .. }
+            | domain::FoldError::NonIncreasingSequence { .. }) => {
+                Report::new(error).change_context(context)
+            }
+        }
     }
 }
 
@@ -213,10 +236,12 @@ impl Kernel {
                         .change_context_lazy(|| {
                             KernelError::Storage("invalid storage configuration".to_owned())
                         })?;
-                Ok(OpenedShard::open(location)
-                    .await?
+                OpenedShard::open(location)
+                    .await
+                    .change_context(KernelError::Command)?
                     .recover_with_snapshots::<Hosted<S>>(&())
-                    .await?)
+                    .await
+                    .change_context(KernelError::Command)
             }
             .await;
             let recovered = match recovered {
@@ -328,16 +353,17 @@ impl<S: SimpleDomain> RunningKernel<S> {
             KernelError::InvalidEvent("event record construction failed".to_owned())
         })?;
         let handle = self.handle_for(record.partition())?;
-        match handle.propose(record).await? {
+        match handle
+            .propose(record)
+            .await
+            .change_context(KernelError::Command)?
+        {
             ShardCommandOutcome::Applied { .. } => Ok(Submitted::Applied),
             ShardCommandOutcome::AlreadyDurable { .. } => Ok(Submitted::AlreadyDurable),
             ShardCommandOutcome::Rejected {
                 rejection: domain::FoldError::Rejected { rejection, .. },
             } => Ok(Submitted::Rejected(rejection)),
-            ShardCommandOutcome::Rejected { rejection } => Err(Report::new(
-                KernelError::InvalidEvent(rejection.to_string()),
-            )
-            .attach_opaque(rejection)),
+            ShardCommandOutcome::Rejected { rejection } => Err(Report::from(rejection)),
         }
     }
 
@@ -355,9 +381,10 @@ impl<S: SimpleDomain> RunningKernel<S> {
         F: FnOnce(&S::Projection) -> R + Send + 'static,
     {
         let handle = self.handle_for(key)?;
-        Ok(handle
+        handle
             .read(move |projection| read(projection.domain()))
-            .await?)
+            .await
+            .change_context(KernelError::Command)
     }
 
     /// Snapshot sequence restored during recovery for each shard. A value of
@@ -391,13 +418,17 @@ impl<S: SimpleDomain> RunningKernel<S> {
             }
         }
         for handle in self.shards.values() {
-            let _: Result<_, _> = handle.shutdown().await;
+            if let Err(error) = handle.shutdown().await
+                && error.current_context().kind != ShardCommandErrorKind::Closed
+            {
+                first_error.get_or_insert_with(|| error.change_context(KernelError::Command));
+            }
         }
         for task in &mut self.loops {
             match task.await {
                 Ok(Ok(())) => {}
                 Ok(Err(error)) => {
-                    first_error.get_or_insert_with(|| error.into());
+                    first_error.get_or_insert_with(|| Report::from(error));
                 }
                 Err(join_error) => {
                     first_error.get_or_insert_with(|| {
@@ -430,13 +461,13 @@ struct DriverSettings {
 }
 
 fn settle_driver_error(
-    error: ShardCommandError,
+    error: Report<ShardCommandError>,
     shutdown: &CancellationToken,
 ) -> Result<(), Report<KernelError>> {
     if shutdown.is_cancelled() {
         Ok(())
     } else {
-        Err(error.into())
+        Err(error.change_context(KernelError::Command))
     }
 }
 
@@ -535,20 +566,9 @@ where
                                 | ShardCommandOutcome::AlreadyDurable { .. },
                             ) => {}
                             Ok(ShardCommandOutcome::Rejected { rejection }) => {
-                                let context = KernelError::InvalidEvent(
-                                    "effect completion event was rejected".to_owned(),
-                                );
-                                return Err(match rejection {
-                                    domain::FoldError::Rejected { rejection, .. } => {
-                                        rejection.change_context(context)
-                                    }
-                                    rejection @ (domain::FoldError::ForeignShard { .. }
-                                    | domain::FoldError::ConflictingReuse { .. }
-                                    | domain::FoldError::Invalid { .. }) => {
-                                        Report::new(context).attach_opaque(rejection)
-                                    }
-                                }
-                                .attach(format!("effect ID: {id}")));
+                                return Err(Report::from(rejection)
+                                    .attach("effect completion event was rejected")
+                                    .attach(format!("effect ID: {id}")));
                             }
                             Err(error) => return settle_driver_error(error, &shutdown),
                         }
@@ -600,12 +620,12 @@ async fn maybe_snapshot<S: SimpleDomain>(
         Ok(Some(payload)) => {
             let record = payload.into_record(chrono::Utc::now());
             if let Err(error) = handle.commit_snapshot(record).await {
-                tracing::warn!(error = %error, "snapshot save failed; recovery will replay more events");
+                tracing::warn!(error = ?error, "snapshot save failed; recovery will replay more events");
             }
         }
         Ok(None) => {}
         Err(error) => {
-            tracing::debug!(error = %error, "snapshot capture unavailable");
+            tracing::debug!(error = ?error, "snapshot capture unavailable");
         }
     }
 }
@@ -699,12 +719,50 @@ mod tests {
     }
 
     #[test]
+    fn fold_error_sources() {
+        #[derive(Debug, PartialEq, Eq)]
+        struct CodecAttempt(u32);
+
+        let source = serde_json::to_value(InvalidJsonEvent(BTreeMap::from([((1, 2), 3)])))
+            .expect_err("tuple keys should fail encoding");
+        let report = Report::new(source)
+            .change_context(CompatError::Encode {
+                name: InvalidJsonEvent::name(),
+            })
+            .attach("codec diagnostic")
+            .attach_opaque(CodecAttempt(3));
+        let rejection = domain::FoldError::<Infallible>::from(report);
+        assert!(
+            core::error::Error::source(&rejection).is_some(),
+            "fold error should expose its report as a source"
+        );
+        let report: Report<KernelError> = Report::from(rejection);
+
+        assert!(
+            report.contains::<serde_json::Error>(),
+            "fold conversion should retain the JSON cause"
+        );
+        assert!(
+            report.contains::<CompatError>(),
+            "fold conversion should retain the codec context"
+        );
+        assert_eq!(
+            report.downcast_ref::<CodecAttempt>(),
+            Some(&CodecAttempt(3))
+        );
+        assert!(
+            format!("{report:?}").contains("codec diagnostic"),
+            "fold conversion should retain printable attachments"
+        );
+    }
+
+    #[test]
     fn command_failure_source() {
         let source = ShardCommandError {
             kind: ShardCommandErrorKind::Closed,
             message: "command queue is closed".to_owned(),
         };
-        let error: Report<KernelError> = source.clone().into();
+        let error: Report<KernelError> = Report::from(source.clone());
 
         assert_eq!(error.downcast_ref::<ShardCommandError>(), Some(&source));
         assert_eq!(
@@ -1307,10 +1365,7 @@ mod tests {
             .submit(increment("ready", 3, 1))
             .await
             .expect_err("failed shard should reject submissions");
-        assert!(matches!(
-            stopped.current_context(),
-            KernelError::Internal(_)
-        ));
+        assert!(matches!(stopped.current_context(), KernelError::Command));
         assert!(matches!(
             running
                 .submit(increment("orders", 1, 1))

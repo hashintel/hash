@@ -11,7 +11,7 @@ use durable_kernel::{
     keyspace::Namespace,
     registry::{CompatError, DurableRecord as _},
     runtime::{Kernel, KernelConfig, SnapshotPolicy, Submitted},
-    shard_log::{ShardCommandError, ShardCommandErrorKind},
+    shard_log::{AppendFailureKind, ShardAppendError, ShardCommandError, ShardCommandErrorKind},
 };
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
@@ -139,6 +139,21 @@ async fn oversized_submission_preserves_recovery() {
             .expect("submission failure should retain the command error")
             .kind,
         ShardCommandErrorKind::DefinitelyNotCommitted
+    );
+    assert_eq!(
+        error
+            .downcast_ref::<ShardAppendError>()
+            .expect("submission failure should retain append classification")
+            .kind,
+        AppendFailureKind::DefinitelyNotCommitted
+    );
+    assert!(
+        matches!(error.downcast_ref::<CompatError>(), Some(CompatError::TooLarge { actual_bytes, max_bytes, .. }) if *actual_bytes == MAX_RECORD_BYTES + 1 && *max_bytes == MAX_RECORD_BYTES),
+        "submission failure should retain the codec error"
+    );
+    assert!(
+        format!("{error:?}").contains("encode durable shard record"),
+        "submission failure should retain the append attachment"
     );
     assert_eq!(
         running

@@ -9,6 +9,7 @@
 //! can instead implement [`crate::domain::SimpleDomain`], which supplies this adapter.
 
 use chrono::{DateTime, Utc};
+use error_stack::Report;
 
 use crate::{
     ids::EventId,
@@ -52,7 +53,7 @@ pub trait Domain: Send + Sync + 'static {
     type Delta: Send;
     /// An error from validating or applying a record. Proposal validation returns this value
     /// unchanged in [`crate::shard_log::ShardCommandOutcome::Rejected`].
-    type FoldError: core::fmt::Display + Send;
+    type FoldError: core::error::Error + Send + Sync + 'static;
     /// Identifies the state that changed, for notifications after an append.
     type StateKey: Clone + Send + core::fmt::Debug;
     type Query: Send;
@@ -111,7 +112,7 @@ pub trait Domain: Send + Sync + 'static {
     fn inspect_control(
         projection: &Self::Projection,
         request: &Self::ControlRequest,
-    ) -> Result<Self::ControlSnapshot, ShardCommandError>;
+    ) -> Result<Self::ControlSnapshot, Report<ShardCommandError>>;
     fn control_prior_outcome(snapshot: &Self::ControlSnapshot) -> Option<Self::ControlOutcome>;
     /// The event ID returned when the control request has already been handled.
     fn control_event_id(request: &Self::ControlRequest) -> EventId;

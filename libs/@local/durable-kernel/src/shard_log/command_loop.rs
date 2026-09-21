@@ -10,13 +10,12 @@ use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::{
     convert::Infallible,
-    fmt,
     num::NonZeroUsize,
     sync::atomic::{AtomicBool, Ordering},
 };
 
 use chrono::{DateTime, Utc};
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 #[cfg(any(test, feature = "test-util"))]
 use tokio::sync::Notify;
 use tokio::sync::{mpsc, oneshot};
@@ -26,7 +25,7 @@ use super::{AppendFailureKind, ShardAppendError, ShardLogLocation, ShardLogWrite
 use crate::{
     ids::EventId,
     port::{Domain, Prepared, SnapshotRecoveryStats},
-    registry::{CompatError, DurableRecord},
+    registry::DurableRecord,
 };
 
 const DEFAULT_CHANNEL_CAPACITY: usize = 64;
@@ -53,28 +52,68 @@ pub struct ControlResolution<D: Domain> {
     pub outcome: D::ControlOutcome,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
 pub enum ShardCommandErrorKind {
+    #[display("invalid command")]
     InvalidCandidate,
+    #[display("record was not committed")]
     DefinitelyNotCommitted,
+    #[display("record commit status is unknown")]
     CommitUnknown,
+    #[display("writer no longer owns the journal")]
     Fenced,
+    #[display("shard recovery failed")]
     Recovery,
+    #[display("shard command loop is closed")]
     Closed,
 }
 
+impl ShardCommandErrorKind {
+    const fn is_terminal(self) -> bool {
+        matches!(self, Self::CommitUnknown | Self::Fenced | Self::Recovery)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("{message}")]
+#[display("{kind}: {message}")]
 pub struct ShardCommandError {
     pub kind: ShardCommandErrorKind,
     pub message: String,
 }
 
-impl From<Report<CompatError>> for ShardCommandError {
-    fn from(error: Report<CompatError>) -> Self {
+impl ShardCommandError {
+    fn from_append(error: Report<ShardAppendError>) -> Report<Self> {
+        let kind = match error.current_context().kind {
+            AppendFailureKind::DefinitelyNotCommitted => {
+                ShardCommandErrorKind::DefinitelyNotCommitted
+            }
+            AppendFailureKind::CommitUnknown => ShardCommandErrorKind::CommitUnknown,
+            AppendFailureKind::Fenced => ShardCommandErrorKind::Fenced,
+        };
+        error.change_context(Self {
+            kind,
+            message: "append shard record".to_owned(),
+        })
+    }
+
+    fn invalid_candidate(message: impl Into<String>) -> Self {
         Self {
             kind: ShardCommandErrorKind::InvalidCandidate,
-            message: format!("{error:#}"),
+            message: message.into(),
+        }
+    }
+
+    fn recovery(message: impl Into<String>) -> Self {
+        Self {
+            kind: ShardCommandErrorKind::Recovery,
+            message: message.into(),
+        }
+    }
+
+    fn closed(message: impl Into<String>) -> Self {
+        Self {
+            kind: ShardCommandErrorKind::Closed,
+            message: message.into(),
         }
     }
 }
@@ -118,17 +157,21 @@ impl<D: Domain> ShardCommandHandle<D> {
     pub async fn propose(
         &self,
         record: D::RecordCurrent,
-    ) -> Result<ShardCommandOutcome<D::FoldError>, ShardCommandError> {
+    ) -> Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed("shard command loop is not accepting proposals"));
+            return Err(Report::new(ShardCommandError::closed(
+                "shard command loop is not accepting proposals",
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
             .send(Command::Propose { record, reply })
             .await
-            .map_err(|_send_error| closed("shard command loop closed before accepting proposal"))?;
+            .map_err(|_send_error| {
+                ShardCommandError::closed("shard command loop closed before accepting proposal")
+            })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to proposal")
+            ShardCommandError::closed("shard command loop stopped before replying to proposal")
         })?
     }
 
@@ -140,19 +183,21 @@ impl<D: Domain> ShardCommandHandle<D> {
     pub async fn inspect_control(
         &self,
         request: D::ControlRequest,
-    ) -> Result<D::ControlSnapshot, ShardCommandError> {
+    ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed("shard command loop is not accepting control reads"));
+            return Err(Report::new(ShardCommandError::closed(
+                "shard command loop is not accepting control reads",
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
             .send(Command::InspectControl { request, reply })
             .await
             .map_err(|_send_error| {
-                closed("shard command loop closed before accepting control read")
+                ShardCommandError::closed("shard command loop closed before accepting control read")
             })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to control read")
+            ShardCommandError::closed("shard command loop stopped before replying to control read")
         })?
     }
 
@@ -167,11 +212,11 @@ impl<D: Domain> ShardCommandHandle<D> {
         &self,
         request: D::ControlRequest,
         preflight_rejection: Option<D::ControlRejection>,
-    ) -> Result<ControlResolution<D>, ShardCommandError> {
+    ) -> Result<ControlResolution<D>, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed(
+            return Err(Report::new(ShardCommandError::closed(
                 "shard command loop is not accepting control requests",
-            ));
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
@@ -182,10 +227,14 @@ impl<D: Domain> ShardCommandHandle<D> {
             })
             .await
             .map_err(|_send_error| {
-                closed("shard command loop closed before accepting control request")
+                ShardCommandError::closed(
+                    "shard command loop closed before accepting control request",
+                )
             })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to control request")
+            ShardCommandError::closed(
+                "shard command loop stopped before replying to control request",
+            )
         })?
     }
 
@@ -200,11 +249,11 @@ impl<D: Domain> ShardCommandHandle<D> {
     pub async fn capture_snapshot(
         &self,
         minimum_sequence_span: u64,
-    ) -> Result<Option<D::SnapshotCapture>, ShardCommandError> {
+    ) -> Result<Option<D::SnapshotCapture>, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed(
+            return Err(Report::new(ShardCommandError::closed(
                 "shard command loop is not accepting snapshot captures",
-            ));
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
@@ -214,10 +263,14 @@ impl<D: Domain> ShardCommandHandle<D> {
             })
             .await
             .map_err(|_send_error| {
-                closed("shard command loop closed before accepting snapshot capture")
+                ShardCommandError::closed(
+                    "shard command loop closed before accepting snapshot capture",
+                )
             })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to snapshot capture")
+            ShardCommandError::closed(
+                "shard command loop stopped before replying to snapshot capture",
+            )
         })?
     }
 
@@ -226,38 +279,52 @@ impl<D: Domain> ShardCommandHandle<D> {
     /// # Errors
     ///
     /// Returns an error when the command loop closes or the snapshot cannot be committed.
-    pub async fn commit_snapshot(&self, snapshot: D::Snapshot) -> Result<u64, ShardCommandError> {
+    pub async fn commit_snapshot(
+        &self,
+        snapshot: D::Snapshot,
+    ) -> Result<u64, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed(
+            return Err(Report::new(ShardCommandError::closed(
                 "shard command loop is not accepting snapshot commits",
-            ));
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
             .send(Command::CommitSnapshot { snapshot, reply })
             .await
             .map_err(|_send_error| {
-                closed("shard command loop closed before accepting snapshot commit")
+                ShardCommandError::closed(
+                    "shard command loop closed before accepting snapshot commit",
+                )
             })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to snapshot commit")
+            ShardCommandError::closed(
+                "shard command loop stopped before replying to snapshot commit",
+            )
         })?
     }
 
     /// # Errors
     ///
     /// Returns an error when the command loop closes before replying.
-    pub async fn query(&self, query: D::Query) -> Result<D::QueryResult, ShardCommandError> {
+    pub async fn query(
+        &self,
+        query: D::Query,
+    ) -> Result<D::QueryResult, Report<ShardCommandError>> {
         if !self.accepting.load(Ordering::Acquire) {
-            return Err(closed("shard command loop is not accepting queries"));
+            return Err(Report::new(ShardCommandError::closed(
+                "shard command loop is not accepting queries",
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
             .send(Command::Query { query, reply })
             .await
-            .map_err(|_send_error| closed("shard command loop closed before accepting query"))?;
+            .map_err(|_send_error| {
+                ShardCommandError::closed("shard command loop closed before accepting query")
+            })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before replying to query")
+            ShardCommandError::closed("shard command loop stopped before replying to query")
         })?
     }
 
@@ -265,21 +332,25 @@ impl<D: Domain> ShardCommandHandle<D> {
     ///
     /// Returns an error when the loop is already stopping, closes before replying, or cannot close
     /// its writer.
-    pub async fn shutdown(&self) -> Result<(), ShardCommandError> {
+    pub async fn shutdown(&self) -> Result<(), Report<ShardCommandError>> {
         if self
             .accepting
             .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
         {
-            return Err(closed("shard command loop is already stopping"));
+            return Err(Report::new(ShardCommandError::closed(
+                "shard command loop is already stopping",
+            )));
         }
         let (reply, response) = oneshot::channel();
         self.sender
             .send(Command::Shutdown { reply })
             .await
-            .map_err(|_send_error| closed("shard command loop closed before accepting shutdown"))?;
+            .map_err(|_send_error| {
+                ShardCommandError::closed("shard command loop closed before accepting shutdown")
+            })?;
         response.await.map_err(|_receive_error| {
-            closed("shard command loop stopped before acknowledging shutdown")
+            ShardCommandError::closed("shard command loop stopped before acknowledging shutdown")
         })?
     }
 
@@ -308,31 +379,32 @@ impl<D: Domain> ShardCommandHandle<D> {
 enum Command<D: Domain> {
     Propose {
         record: D::RecordCurrent,
-        reply: oneshot::Sender<Result<ShardCommandOutcome<D::FoldError>, ShardCommandError>>,
+        reply:
+            oneshot::Sender<Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>>>,
     },
     InspectControl {
         request: D::ControlRequest,
-        reply: oneshot::Sender<Result<D::ControlSnapshot, ShardCommandError>>,
+        reply: oneshot::Sender<Result<D::ControlSnapshot, Report<ShardCommandError>>>,
     },
     ResolveControl {
         request: D::ControlRequest,
         preflight_rejection: Option<D::ControlRejection>,
-        reply: oneshot::Sender<Result<ControlResolution<D>, ShardCommandError>>,
+        reply: oneshot::Sender<Result<ControlResolution<D>, Report<ShardCommandError>>>,
     },
     CaptureSnapshot {
         minimum_sequence_span: u64,
-        reply: oneshot::Sender<Result<Option<D::SnapshotCapture>, ShardCommandError>>,
+        reply: oneshot::Sender<Result<Option<D::SnapshotCapture>, Report<ShardCommandError>>>,
     },
     CommitSnapshot {
         snapshot: D::Snapshot,
-        reply: oneshot::Sender<Result<u64, ShardCommandError>>,
+        reply: oneshot::Sender<Result<u64, Report<ShardCommandError>>>,
     },
     Query {
         query: D::Query,
-        reply: oneshot::Sender<Result<D::QueryResult, ShardCommandError>>,
+        reply: oneshot::Sender<Result<D::QueryResult, Report<ShardCommandError>>>,
     },
     Shutdown {
-        reply: oneshot::Sender<Result<(), ShardCommandError>>,
+        reply: oneshot::Sender<Result<(), Report<ShardCommandError>>>,
     },
 }
 
@@ -396,6 +468,7 @@ pub struct StartedShard<D: Domain> {
     pub handle: ShardCommandHandle<D>,
     pub recovery: StartupRecovery<D::WorkIntent>,
     pub state_changes: StateChangeFeed<D::StateKey>,
+    /// Returns the terminal error context. The failing command's reply carries the full report.
     pub task: tokio::task::JoinHandle<Result<(), ShardCommandError>>,
 }
 
@@ -411,11 +484,11 @@ impl OpenedShard {
     /// # Errors
     ///
     /// Returns an error when the shard writer cannot be opened.
-    pub async fn open(location: ShardLogLocation) -> Result<Self, ShardCommandError> {
+    pub async fn open(location: ShardLogLocation) -> Result<Self, Report<ShardCommandError>> {
         let started = std::time::Instant::now();
         let writer = ShardLogWriter::open(&location)
             .await
-            .map_err(|error| recovery(format!("open shard writer: {error:?}")))?;
+            .change_context(ShardCommandError::recovery("open shard writer"))?;
         tracing::info!(
             shard = %crate::routing::shard_path(location.shard),
             durable_end_exclusive = writer.durable_end_exclusive(),
@@ -434,7 +507,7 @@ impl OpenedShard {
     /// # Errors
     ///
     /// Returns an error when the durable journal cannot be read, decoded, or folded.
-    pub async fn recover<D: Domain>(self) -> Result<RecoveredShard<D>, ShardCommandError> {
+    pub async fn recover<D: Domain>(self) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
         self.recover_inner(None).await
     }
 
@@ -444,22 +517,24 @@ impl OpenedShard {
     pub async fn recover_with_snapshots<D: Domain>(
         self,
         context: &D::SnapshotContext,
-    ) -> Result<RecoveredShard<D>, ShardCommandError> {
+    ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
         self.recover_inner(Some(context)).await
     }
 
     async fn recover_inner<D: Domain>(
         mut self,
         context: Option<&D::SnapshotContext>,
-    ) -> Result<RecoveredShard<D>, ShardCommandError> {
+    ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
         crate::registry::intern_declaration(*<D::Record as DurableRecord>::declaration())
-            .map_err(|error| recovery(format!("intern journal-record declaration: {error}")))?;
+            .change_context(ShardCommandError::recovery(
+                "intern journal-record declaration",
+            ))?;
         crate::registry::intern_declaration(*<D::Snapshot as DurableRecord>::declaration())
-            .map_err(|error| recovery(format!("intern snapshot declaration: {error}")))?;
+            .change_context(ShardCommandError::recovery("intern snapshot declaration"))?;
         let writer = self
             .writer
             .take()
-            .ok_or_else(|| recovery("opened shard writer is unavailable"))?;
+            .ok_or_else(|| ShardCommandError::recovery("opened shard writer is unavailable"))?;
         let durable_end_exclusive = writer.durable_end_exclusive();
         let replay_started = std::time::Instant::now();
         let recovered = match replay_with_snapshots::<D>(
@@ -473,8 +548,12 @@ impl OpenedShard {
             Ok(recovered) => recovered,
             Err(error) => {
                 if let Err(close_error) = writer.close().await {
-                    return Err(recovery(format!(
-                        "{error}; closing failed startup writer also failed: {close_error:?}"
+                    let mut failures = error.expand();
+                    failures.push(close_error.change_context(ShardCommandError::recovery(
+                        "close failed startup writer",
+                    )));
+                    return Err(failures.change_context(ShardCommandError::recovery(
+                        "recover shard during startup",
                     )));
                 }
                 return Err(error);
@@ -513,12 +592,12 @@ impl OpenedShard {
     /// # Errors
     ///
     /// Returns an error when the shard writer cannot be closed.
-    pub async fn close(mut self) -> Result<(), ShardCommandError> {
+    pub async fn close(mut self) -> Result<(), Report<ShardCommandError>> {
         if let Some(writer) = self.writer.take() {
             writer
                 .close()
                 .await
-                .map_err(|error| recovery(format!("close unopened shard loop: {error:?}")))?;
+                .change_context(ShardCommandError::recovery("close unopened shard loop"))?;
         }
         Ok(())
     }
@@ -609,11 +688,14 @@ impl<D: Domain> RecoveredShard<D> {
     /// # Errors
     ///
     /// Returns an error when the shard writer cannot be closed.
-    pub async fn close(mut self) -> Result<(), ShardCommandError> {
+    pub async fn close(mut self) -> Result<(), Report<ShardCommandError>> {
         if let Some(writer) = self.writer.take() {
-            writer.close().await.map_err(|error| {
-                recovery(format!("close recovered shard before enable: {error:?}"))
-            })?;
+            writer
+                .close()
+                .await
+                .change_context(ShardCommandError::recovery(
+                    "close recovered shard before enable",
+                ))?;
         }
         Ok(())
     }
@@ -631,7 +713,7 @@ impl<D: Domain> RecoveredShard<D> {
 pub async fn start_recovered<D: Domain>(
     location: ShardLogLocation,
     config: ShardCommandConfig,
-) -> Result<StartedShard<D>, ShardCommandError> {
+) -> Result<StartedShard<D>, Report<ShardCommandError>> {
     let opened = OpenedShard::open(location).await?;
     let recovered = opened.recover::<D>().await?;
     Ok(recovered.enable(config))
@@ -688,14 +770,18 @@ impl<D: Domain> CommandLoop<D> {
                     let terminal = result
                         .as_ref()
                         .err()
-                        .is_some_and(|error| is_terminal(error.kind));
-                    let terminal_error = result.as_ref().err().cloned();
+                        .is_some_and(|error| error.current_context().kind.is_terminal());
+                    let terminal_error = result
+                        .as_ref()
+                        .err()
+                        .map(|error| error.current_context().clone());
                     let _: Result<_, _> = reply.send(result);
                     if terminal {
                         self.accepting.store(false, Ordering::Release);
                         self.receiver.close();
-                        let error = terminal_error
-                            .unwrap_or_else(|| recovery("terminal command-loop failure"));
+                        let error = terminal_error.unwrap_or_else(|| {
+                            ShardCommandError::recovery("terminal command-loop failure")
+                        });
                         self.observe_terminal(&error);
                         self.reject_queued(&error);
                         let _: Result<_, _> = self.close_writer().await;
@@ -707,8 +793,11 @@ impl<D: Domain> CommandLoop<D> {
                     let terminal = result
                         .as_ref()
                         .err()
-                        .is_some_and(|error| is_terminal(error.kind));
-                    let terminal_error = result.as_ref().err().cloned();
+                        .is_some_and(|error| error.current_context().kind.is_terminal());
+                    let terminal_error = result
+                        .as_ref()
+                        .err()
+                        .map(|error| error.current_context().clone());
                     let _: Result<_, _> = reply.send(result);
                     if terminal {
                         return self.stop_after_terminal(terminal_error).await;
@@ -724,8 +813,11 @@ impl<D: Domain> CommandLoop<D> {
                     let terminal = result
                         .as_ref()
                         .err()
-                        .is_some_and(|error| is_terminal(error.kind));
-                    let terminal_error = result.as_ref().err().cloned();
+                        .is_some_and(|error| error.current_context().kind.is_terminal());
+                    let terminal_error = result
+                        .as_ref()
+                        .err()
+                        .map(|error| error.current_context().clone());
                     let _: Result<_, _> = reply.send(result);
                     if terminal {
                         return self.stop_after_terminal(terminal_error).await;
@@ -752,10 +844,13 @@ impl<D: Domain> CommandLoop<D> {
                 Command::CommitSnapshot { snapshot, reply } => {
                     let result = self.process_snapshot(snapshot).await;
                     let terminal = result.as_ref().err().is_some_and(|error| {
-                        error.kind != ShardCommandErrorKind::CommitUnknown
-                            && is_terminal(error.kind)
+                        error.current_context().kind != ShardCommandErrorKind::CommitUnknown
+                            && error.current_context().kind.is_terminal()
                     });
-                    let terminal_error = result.as_ref().err().cloned();
+                    let terminal_error = result
+                        .as_ref()
+                        .err()
+                        .map(|error| error.current_context().clone());
                     let _: Result<_, _> = reply.send(result);
                     if terminal {
                         return self.stop_after_terminal(terminal_error).await;
@@ -767,15 +862,23 @@ impl<D: Domain> CommandLoop<D> {
                 Command::Shutdown { reply } => {
                     self.accepting.store(false, Ordering::Release);
                     self.receiver.close();
-                    self.reject_queued(&closed("shard command loop is shutting down"));
+                    self.reject_queued(&ShardCommandError::closed(
+                        "shard command loop is shutting down",
+                    ));
                     let result = self.close_writer().await;
-                    let _: Result<_, _> = reply.send(result.clone());
-                    return result;
+                    let failure = result
+                        .as_ref()
+                        .err()
+                        .map(|error| error.current_context().clone());
+                    let _: Result<_, _> = reply.send(result);
+                    return failure.map_or(Ok(()), Err);
                 }
             }
         }
         self.accepting.store(false, Ordering::Release);
-        self.close_writer().await
+        self.close_writer()
+            .await
+            .map_err(|error| error.current_context().clone())
     }
 
     async fn stop_after_terminal(
@@ -784,7 +887,8 @@ impl<D: Domain> CommandLoop<D> {
     ) -> Result<(), ShardCommandError> {
         self.accepting.store(false, Ordering::Release);
         self.receiver.close();
-        let error = terminal_error.unwrap_or_else(|| recovery("terminal command-loop failure"));
+        let error = terminal_error
+            .unwrap_or_else(|| ShardCommandError::recovery("terminal command-loop failure"));
         self.observe_terminal(&error);
         self.reject_queued(&error);
         let _: Result<_, _> = self.close_writer().await;
@@ -802,12 +906,12 @@ impl<D: Domain> CommandLoop<D> {
     fn inspect_control_request(
         &self,
         request: &D::ControlRequest,
-    ) -> Result<D::ControlSnapshot, ShardCommandError> {
+    ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
         if D::control_shard(request) != self.location.shard {
-            return Err(ShardCommandError {
+            return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::InvalidCandidate,
                 message: D::describe_foreign_control(request),
-            });
+            }));
         }
         D::inspect_control(&self.projection, request)
     }
@@ -816,7 +920,7 @@ impl<D: Domain> CommandLoop<D> {
         &mut self,
         request: D::ControlRequest,
         preflight_rejection: Option<D::ControlRejection>,
-    ) -> Result<ControlResolution<D>, ShardCommandError> {
+    ) -> Result<ControlResolution<D>, Report<ShardCommandError>> {
         let snapshot = self.inspect_control_request(&request)?;
         if let Some(outcome) = D::control_prior_outcome(&snapshot) {
             return Ok(ControlResolution {
@@ -827,7 +931,7 @@ impl<D: Domain> CommandLoop<D> {
             });
         }
         let record = D::build_control_record(&self.projection, &request, preflight_rejection)
-            .map_err(invalid_candidate)?;
+            .change_context(ShardCommandError::invalid_candidate("build control record"))?;
         let append = match self.process(record).await? {
             ShardCommandOutcome::Applied {
                 event_id,
@@ -840,18 +944,20 @@ impl<D: Domain> CommandLoop<D> {
                 ShardCommandOutcome::AlreadyDurable { event_id }
             }
             ShardCommandOutcome::Rejected { rejection } => {
-                return Err(invalid_candidate(rejection));
+                return Err(Report::new(rejection).change_context(
+                    ShardCommandError::invalid_candidate("control record rejected"),
+                ));
             }
         };
-        let outcome =
-            D::control_outcome_after_append(&self.projection, &request).map_err(recovery)?;
+        let outcome = D::control_outcome_after_append(&self.projection, &request)
+            .map_err(ShardCommandError::recovery)?;
         Ok(ControlResolution { append, outcome })
     }
 
     async fn process(
         &mut self,
         record: D::RecordCurrent,
-    ) -> Result<ShardCommandOutcome<D::FoldError>, ShardCommandError> {
+    ) -> Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>> {
         if D::record_shard(&record) != self.location.shard {
             return Ok(ShardCommandOutcome::Rejected {
                 rejection: D::reject_foreign_shard(&record),
@@ -874,10 +980,10 @@ impl<D: Domain> CommandLoop<D> {
             #[cfg(any(test, feature = "test-util"))]
             self.wait_before_append().await;
             if self.ownership_lost.is_cancelled() {
-                return Err(ShardCommandError {
+                return Err(Report::new(ShardCommandError {
                     kind: ShardCommandErrorKind::Fenced,
                     message: "shard ownership was lost before append".to_owned(),
-                });
+                }));
             }
             let append_result = self.append(&D::wire(record.clone())).await;
             match append_result {
@@ -885,26 +991,27 @@ impl<D: Domain> CommandLoop<D> {
                     if let Err(error) = D::finalize(&mut self.projection, delta, sequence) {
                         // The record is durable even though the state update failed. Recover
                         // and verify that it was applied before accepting another command.
-                        self.recover_durable_prefix()
-                            .await
-                            .map_err(|recovery_error| {
-                                recovery(format!(
-                                    "finalize failed after durable append ({error}); \
-                                     {recovery_error}"
-                                ))
-                            })?;
+                        self.recover_after_failure(Report::new(error).change_context(
+                            ShardCommandError::recovery("finalize failed after durable append"),
+                        ))
+                        .await?;
                         return match D::prepare(&self.projection, &record) {
                             Ok(Prepared::Noop) => {
                                 self.notify_state_change_if_established(&integration_id);
                                 Ok(ShardCommandOutcome::AlreadyDurable { event_id })
                             }
-                            Ok(Prepared::Mutation(_)) => Err(recovery(format!(
-                                "event {event_id} was acknowledged but is absent after recovery"
-                            ))),
-                            Err(prepare_error) => Err(recovery(format!(
-                                "event {event_id} was acknowledged but conflicts after recovery: \
-                                 {prepare_error}"
-                            ))),
+                            Ok(Prepared::Mutation(_)) => {
+                                Err(Report::new(ShardCommandError::recovery(format!(
+                                    "event {event_id} was acknowledged but is absent after \
+                                     recovery"
+                                ))))
+                            }
+                            Err(prepare_error) => Err(Report::new(prepare_error).change_context(
+                                ShardCommandError::recovery(format!(
+                                    "event {event_id} was acknowledged but conflicts after \
+                                     recovery"
+                                )),
+                            )),
                         };
                     }
                     if self.checkpoint_state_sequence(&integration_id) != previous_state_sequence {
@@ -920,68 +1027,75 @@ impl<D: Domain> CommandLoop<D> {
                         == AppendFailureKind::DefinitelyNotCommitted =>
                 {
                     if safe_failures >= self.safe_append_retries {
-                        return Err(append_error(&error));
+                        return Err(ShardCommandError::from_append(error));
                     }
                     safe_failures = safe_failures.saturating_add(1);
                 }
                 Err(error) if error.current_context().kind == AppendFailureKind::CommitUnknown => {
                     #[cfg(any(test, feature = "test-util"))]
                     self.wait_before_recovery().await;
-                    self.recover_durable_prefix().await?;
+                    self.recover_after_failure(ShardCommandError::from_append(error))
+                        .await?;
                     // After recovery, `prepare` detects the stored event or a conflicting ID.
                     // If the event is absent, retry it before processing another command.
                     safe_failures = 0;
                 }
-                Err(error) => return Err(append_error(&error)),
+                Err(error) => return Err(ShardCommandError::from_append(error)),
             }
         }
     }
 
-    async fn process_snapshot(&mut self, snapshot: D::Snapshot) -> Result<u64, ShardCommandError> {
-        let (snapshot_shard, snapshot_through) = D::snapshot_bounds(&snapshot).map_err(recovery)?;
+    async fn process_snapshot(
+        &mut self,
+        snapshot: D::Snapshot,
+    ) -> Result<u64, Report<ShardCommandError>> {
+        let (snapshot_shard, snapshot_through) =
+            D::snapshot_bounds(&snapshot).map_err(ShardCommandError::recovery)?;
         if snapshot_shard != self.location.shard {
-            return Err(ShardCommandError {
+            return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::InvalidCandidate,
                 message: format!(
                     "projection snapshot for shard {} was proposed to shard {}",
                     crate::routing::shard_path(snapshot_shard),
                     crate::routing::shard_path(self.location.shard)
                 ),
-            });
+            }));
         }
         let Some(current_sequence) = D::through_sequence(&self.projection) else {
-            return Err(ShardCommandError {
+            return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::InvalidCandidate,
                 message: "cannot reference a snapshot for an empty projection".to_owned(),
-            });
+            }));
         };
         if snapshot_through > current_sequence {
-            return Err(ShardCommandError {
+            return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::InvalidCandidate,
                 message: format!(
                     "projection snapshot through {snapshot_through} is ahead of current \
                      projection {current_sequence}"
                 ),
-            });
+            }));
         }
 
         crate::registry::require_interned::<D::Snapshot>()
-            .map_err(|error| recovery(error.to_string()))?;
-        let bytes = bytes::Bytes::from(snapshot.encode()?);
+            .change_context(ShardCommandError::recovery("validate snapshot declaration"))?;
+        let bytes = bytes::Bytes::from(snapshot.encode().change_context(
+            ShardCommandError::invalid_candidate("encode projection snapshot"),
+        )?);
         let mut safe_failures = 0_u32;
         loop {
             #[cfg(any(test, feature = "test-util"))]
             self.wait_before_append().await;
             if self.ownership_lost.is_cancelled() {
-                return Err(ShardCommandError {
+                return Err(Report::new(ShardCommandError {
                     kind: ShardCommandErrorKind::Fenced,
                     message: "shard ownership was lost before snapshot append".to_owned(),
-                });
+                }));
             }
             let writer = self
                 .writer
                 .as_ref()
-                .ok_or_else(|| recovery("shard writer is unavailable"))?;
+                .ok_or_else(|| ShardCommandError::recovery("shard writer is unavailable"))?;
             match writer
                 .append_encoded(
                     super::PROJECTION_SNAPSHOTS_KEY,
@@ -1001,11 +1115,11 @@ impl<D: Domain> CommandLoop<D> {
                         == AppendFailureKind::DefinitelyNotCommitted =>
                 {
                     if safe_failures >= self.safe_append_retries {
-                        return Err(append_error(&error));
+                        return Err(ShardCommandError::from_append(error));
                     }
                     safe_failures = safe_failures.saturating_add(1);
                 }
-                Err(error) => return Err(append_error(&error)),
+                Err(error) => return Err(ShardCommandError::from_append(error)),
             }
         }
     }
@@ -1046,12 +1160,28 @@ impl<D: Domain> CommandLoop<D> {
         writer.append(record).await
     }
 
-    async fn recover_durable_prefix(&mut self) -> Result<(), ShardCommandError> {
+    async fn recover_after_failure(
+        &mut self,
+        failure: Report<ShardCommandError>,
+    ) -> Result<(), Report<ShardCommandError>> {
+        if let Err(recovery) = self.recover_durable_prefix().await {
+            let kind = recovery.current_context().kind;
+            let mut failures = failure.expand();
+            failures.push(recovery);
+            return Err(failures.change_context(ShardCommandError {
+                kind,
+                message: "recover shard after command failure".to_owned(),
+            }));
+        }
+        Ok(())
+    }
+
+    async fn recover_durable_prefix(&mut self) -> Result<(), Report<ShardCommandError>> {
         if self.recovery_mode == RecoveryMode::FullLeaseHandshake {
-            return Err(ShardCommandError {
+            return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::CommitUnknown,
                 message: "shard writer recovery requires acquiring a new lease".to_owned(),
-            });
+            }));
         }
         if let Some(writer) = self.writer.take() {
             // Reopening obtains a new writer epoch even if closing the old writer fails.
@@ -1059,13 +1189,13 @@ impl<D: Domain> CommandLoop<D> {
         }
         let writer = ShardLogWriter::open(&self.location)
             .await
-            .map_err(|error| recovery(format!("reopen shard writer: {error:?}")))?;
+            .change_context(ShardCommandError::recovery("reopen shard writer"))?;
         let durable_end_exclusive = writer.durable_end_exclusive();
         self.writer = Some(writer);
         let writer = self
             .writer
             .as_ref()
-            .ok_or_else(|| recovery("reopened shard writer is unavailable"))?;
+            .ok_or_else(|| ShardCommandError::recovery("reopened shard writer is unavailable"))?;
         let recovered = replay_with_snapshots::<D>(
             writer,
             self.location.shard,
@@ -1073,7 +1203,8 @@ impl<D: Domain> CommandLoop<D> {
             self.snapshot_context.as_ref(),
         )
         .await?;
-        D::validate_recovered_prefix(&self.projection, &recovered.projection).map_err(recovery)?;
+        D::validate_recovered_prefix(&self.projection, &recovered.projection)
+            .map_err(ShardCommandError::recovery)?;
         self.projection = recovered.projection;
         self.last_snapshot_attempt_through_log_sequence = self
             .last_snapshot_attempt_through_log_sequence
@@ -1082,39 +1213,41 @@ impl<D: Domain> CommandLoop<D> {
     }
 
     fn reject_queued(&mut self, error: &ShardCommandError) {
+        let stopped =
+            || Report::new(error.clone()).attach("command was queued when the shard loop stopped");
         while let Ok(command) = self.receiver.try_recv() {
             match command {
                 Command::Propose { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::InspectControl { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::ResolveControl { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::CaptureSnapshot { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::CommitSnapshot { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::Query { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
                 Command::Shutdown { reply } => {
-                    let _: Result<_, _> = reply.send(Err(error.clone()));
+                    let _: Result<_, _> = reply.send(Err(stopped()));
                 }
             }
         }
     }
 
-    async fn close_writer(&mut self) -> Result<(), ShardCommandError> {
+    async fn close_writer(&mut self) -> Result<(), Report<ShardCommandError>> {
         if let Some(writer) = self.writer.take() {
             writer
                 .close()
                 .await
-                .map_err(|error| recovery(format!("close shard writer: {error:?}")))?;
+                .change_context(ShardCommandError::recovery("close shard writer"))?;
         }
         Ok(())
     }
@@ -1151,7 +1284,7 @@ async fn replay_with_snapshots<D: Domain>(
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
     context: Option<&D::SnapshotContext>,
-) -> Result<RecoveredProjection<D>, ShardCommandError> {
+) -> Result<RecoveredProjection<D>, Report<ShardCommandError>> {
     let mut corruption_fallbacks = 0_u64;
     if let Some(context) = context {
         match writer
@@ -1233,7 +1366,7 @@ async fn replay_with_snapshots<D: Domain>(
                             tracing::warn!(
                                 shard = %crate::routing::shard_path(shard),
                                 reference_sequence,
-                                error = %error,
+                                error = ?error,
                                 "replaying events after the snapshot failed; trying an older snapshot"
                             );
                         }
@@ -1265,7 +1398,7 @@ async fn replay_durable_prefix<D: Domain>(
     writer: &ShardLogWriter,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
-) -> Result<(D::Projection, u64), ShardCommandError> {
+) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
     replay_durable_suffix::<D>(
         writer,
         shard,
@@ -1280,7 +1413,7 @@ async fn replay_durable_suffix<D: Domain>(
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
     mut recovered: D::Projection,
-) -> Result<(D::Projection, u64), ShardCommandError> {
+) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
     // Use the writer that supplied the durable position, so the scan and its bounds share the
     // same view of storage.
     let scan_started = std::time::Instant::now();
@@ -1288,7 +1421,7 @@ async fn replay_durable_suffix<D: Domain>(
     let records = writer
         .scan_suffix(through_sequence, durable_end_exclusive)
         .await
-        .map_err(|error| recovery(format!("read stored journal events: {error:?}")));
+        .change_context(ShardCommandError::recovery("read stored journal events"));
     let records = records?;
 
     tracing::info!(
@@ -1302,51 +1435,9 @@ async fn replay_durable_suffix<D: Domain>(
 
     let replayed_events = u64::try_from(records.len()).unwrap_or(u64::MAX);
     for (sequence, record) in records {
-        D::replay(&mut recovered, shard, sequence, record).map_err(recovery)?;
+        D::replay(&mut recovered, shard, sequence, record).map_err(ShardCommandError::recovery)?;
     }
     Ok((recovered, replayed_events))
-}
-
-fn invalid_candidate<E: fmt::Display>(error: E) -> ShardCommandError {
-    ShardCommandError {
-        kind: ShardCommandErrorKind::InvalidCandidate,
-        message: error.to_string(),
-    }
-}
-
-fn append_error(error: &error_stack::Report<ShardAppendError>) -> ShardCommandError {
-    let kind = match error.current_context().kind {
-        AppendFailureKind::DefinitelyNotCommitted => ShardCommandErrorKind::DefinitelyNotCommitted,
-        AppendFailureKind::CommitUnknown => ShardCommandErrorKind::CommitUnknown,
-        AppendFailureKind::Fenced => ShardCommandErrorKind::Fenced,
-    };
-    ShardCommandError {
-        kind,
-        message: format!("{error:?}"),
-    }
-}
-
-fn recovery(message: impl Into<String>) -> ShardCommandError {
-    ShardCommandError {
-        kind: ShardCommandErrorKind::Recovery,
-        message: message.into(),
-    }
-}
-
-fn closed(message: impl Into<String>) -> ShardCommandError {
-    ShardCommandError {
-        kind: ShardCommandErrorKind::Closed,
-        message: message.into(),
-    }
-}
-
-const fn is_terminal(kind: ShardCommandErrorKind) -> bool {
-    matches!(
-        kind,
-        ShardCommandErrorKind::CommitUnknown
-            | ShardCommandErrorKind::Fenced
-            | ShardCommandErrorKind::Recovery
-    )
 }
 
 #[cfg(any(test, feature = "test-util"))]
