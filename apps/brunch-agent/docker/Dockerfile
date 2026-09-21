@@ -24,26 +24,6 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     mise install --locked node
 
 
-FROM mise AS base
-
-WORKDIR /repo
-
-RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
-    mise install --locked npm:turbo yq
-
-COPY . .
-# `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
-RUN mise trust && \
-    turbo prune '@apps/brunch-agent' --docker && \
-    find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
-    [ -f "/repo/out/full/$1" ] || ( \
-    mkdir -p "/repo/out/full/$(dirname "$1")/src" && \
-    echo > "/repo/out/full/$(dirname "$1")/src/lib.rs" && \
-    printf "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/repo/out/full/$1" \
-    )' _ {} \; && \
-    cp -R .cargo Cargo.toml Cargo.lock /repo/out/full/
-
-
 FROM mise AS rust
 
 WORKDIR /usr/local/
@@ -60,6 +40,19 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     rustc --version && \
     cargo --version && \
     rm rust-toolchain.toml
+
+
+# `turbo prune` reads the Cargo workspace through `cargo metadata`.
+FROM rust AS base
+
+WORKDIR /repo
+
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    mise install --locked npm:turbo yq
+
+COPY . .
+RUN mise trust && \
+    turbo prune '@apps/brunch-agent' --docker
 
 
 FROM rust AS builder

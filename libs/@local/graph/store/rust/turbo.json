@@ -49,7 +49,7 @@
       "command": ["just", "clippy"]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@rust/hash-graph-store"]
+      "command": ["mise", "run", "test:unit", "hash-graph-store"]
     }
   }
 }

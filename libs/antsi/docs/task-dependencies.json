@@ -1,5 +1,5 @@
 {
-  "package": "@rust/antsi",
+  "package": "antsi",
   "dependencies": [],
   "tasks": {
     "fix:clippy": {

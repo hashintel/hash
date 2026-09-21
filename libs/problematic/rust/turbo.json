@@ -1,0 +1,11 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:unit": {
+      "command": ["mise", "run", "test:unit", "problematic"]
+    }
+  }
+}

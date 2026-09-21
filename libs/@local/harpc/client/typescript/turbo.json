@@ -6,13 +6,13 @@
       "outputs": ["./dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["@rust/harpc-wire-protocol#build:cli"],
+      "dependsOn": ["harpc-wire-protocol#build:cli"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
           "globs": ["./dist/release/codec"],
-          "from": ["@rust/harpc-wire-protocol#build:cli"]
+          "from": ["harpc-wire-protocol#build:cli"]
         }
       ]
     }

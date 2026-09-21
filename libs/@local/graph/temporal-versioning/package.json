@@ -1,9 +1,0 @@
-{
-  "name": "@rust/hash-graph-temporal-versioning",
-  "version": "0.0.0-private",
-  "private": true,
-  "license": "AGPL-3",
-  "dependencies": {
-    "@rust/hash-codec": "workspace:*"
-  }
-}

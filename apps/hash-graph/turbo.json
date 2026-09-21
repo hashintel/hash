@@ -129,7 +129,7 @@
       "command": ["just", "clippy"]
     },
     "test:unit": {
-      "command": ["mise", "run", "test:unit", "@apps/hash-graph"]
+      "command": ["mise", "run", "test:unit", "hash-graph"]
     }
   }
 }

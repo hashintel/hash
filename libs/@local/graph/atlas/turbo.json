@@ -63,7 +63,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/hash-graph-atlas",
+        "hash-graph-atlas",
         "--",
         "--filterset",
         "not kind(test)"

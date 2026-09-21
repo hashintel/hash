@@ -10,7 +10,7 @@
         "--feature-powerset",
         "--tests"
       ],
-      "dependsOn": ["^manifest", "@rust/hash-graph-migrations#start:migrate:up"]
+      "dependsOn": ["^manifest", "hash-graph-migrations#start:migrate:up"]
     },
     "doc:dependency-diagram": {
       "command": [
@@ -44,7 +44,7 @@
         "mise",
         "run",
         "test:unit",
-        "@rust/hash-graph-postgres-store",
+        "hash-graph-postgres-store",
         "--test-strategy=powerset",
         "--",
         "--lib"
