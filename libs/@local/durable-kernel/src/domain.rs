@@ -223,6 +223,7 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
 /// Wraps an application event with its partition and event ID.
 ///
 /// Records are stored under [`DomainEvent::name`], which must be unique to the event type.
+/// [`DurableRecord::decode`] reports ID and partition mismatches as [`CompatError`] values.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
     tag = "version",
@@ -242,20 +243,21 @@ pub struct EventRecordV1<E> {
     event: E,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EventRecordFields<E> {
+    event_id: EventId,
+    partition: PartitionKey,
+    event: E,
+}
+
 impl<'de, E: DomainEvent> Deserialize<'de> for EventRecordV1<E> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Fields<E> {
-            event_id: EventId,
-            partition: PartitionKey,
-            event: E,
-        }
-        let Fields {
+        let EventRecordFields {
             event_id,
             partition,
             event,
-        } = Fields::deserialize(deserializer)?;
+        } = EventRecordFields::deserialize(deserializer)?;
         Self::from_parts(event_id, partition, event)
             .map_err(|error| serde::de::Error::custom(format!("{error:#}")))
     }
@@ -395,6 +397,11 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
+        #[derive(Deserialize)]
+        struct Envelope<E> {
+            data: EventRecordFields<E>,
+        }
+
         if bytes.len() > MAX_EVENT_RECORD_BYTES {
             return Err(Report::new(CompatError::TooLarge {
                 name: E::name(),
@@ -416,7 +423,9 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
                 version: version.to_owned(),
             }));
         }
-        serde_json::from_value(value).change_context(CompatError::Decode { name: E::name() })
+        let Envelope { data } = serde_json::from_value(value)
+            .change_context(CompatError::Decode { name: E::name() })?;
+        EventRecordV1::from_parts(data.event_id, data.partition, data.event).map(Self::V1)
     }
 }
 
@@ -703,6 +712,40 @@ pub struct PreparedEvent<S: SimpleDomain> {
     change: <S::Projection as Fold<S::Event>>::Validated,
 }
 
+/// An error while restoring or checking durable state.
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum RecoveryError {
+    #[display("domain record at sequence {sequence} is invalid")]
+    InvalidRecord { sequence: u64 },
+    #[display(
+        "domain record at sequence {sequence} routes to shard {} instead of {}",
+        crate::routing::shard_path(*actual),
+        crate::routing::shard_path(*expected)
+    )]
+    ForeignShard {
+        sequence: u64,
+        expected: Shard,
+        actual: Shard,
+    },
+    #[display("domain record sequence {proposed} does not advance {previous}")]
+    NonIncreasingSequence { previous: u64, proposed: u64 },
+    #[display("event ID {event_id} was reused with different content at sequence {sequence}")]
+    ConflictingReuse { event_id: EventId, sequence: u64 },
+    #[display(
+        "snapshot for shard {} was offered to shard {}",
+        crate::routing::shard_path(*actual),
+        crate::routing::shard_path(*expected)
+    )]
+    SnapshotShardMismatch { expected: Shard, actual: Shard },
+    #[display("durable prefix regressed from {previous} to {recovered:?}")]
+    RegressedSequence {
+        previous: u64,
+        recovered: Option<u64>,
+    },
+    #[display("durable prefix lost or changed acknowledged event {event_id}")]
+    LostEvent { event_id: EventId },
+}
+
 impl<S: SimpleDomain> Domain for Hosted<S> {
     type ControlOutcome = Never;
     type ControlRejection = Never;
@@ -715,6 +758,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     type QueryResult = ReadResult;
     type Record = EventRecord<S::Event>;
     type RecordCurrent = EventRecordV1<S::Event>;
+    type RecoveryError = RecoveryError;
     type Snapshot = ProjectionSnapshot<S>;
     type SnapshotCapture = ProjectionSnapshotPayload<S>;
     type SnapshotContext = ();
@@ -841,7 +885,7 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     fn control_outcome_after_append(
         _projection: &Self::Projection,
         _request: &Never,
-    ) -> Result<Never, String> {
+    ) -> Result<Never, Report<RecoveryError>> {
         unreachable!("hosted domains have no control requests")
     }
 
@@ -859,7 +903,9 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         })
     }
 
-    fn snapshot_bounds(snapshot: &ProjectionSnapshot<S>) -> Result<(Shard, u64), String> {
+    fn snapshot_bounds(
+        snapshot: &ProjectionSnapshot<S>,
+    ) -> Result<(Shard, u64), Report<RecoveryError>> {
         let ProjectionSnapshot::V1(record) = snapshot;
         let shard = record.shard;
         Ok((shard, record.through_log_sequence))
@@ -878,15 +924,14 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         _context: &(),
         shard: Shard,
         snapshot: &ProjectionSnapshot<S>,
-    ) -> Result<Self::Projection, String> {
+    ) -> Result<Self::Projection, Report<RecoveryError>> {
         let ProjectionSnapshot::V1(record) = snapshot;
         let snapshot_shard = record.shard;
         if snapshot_shard != shard {
-            return Err(format!(
-                "snapshot for shard {} was offered to shard {}",
-                crate::routing::shard_path(record.shard),
-                crate::routing::shard_path(shard)
-            ));
+            return Err(Report::new(RecoveryError::SnapshotShardMismatch {
+                expected: shard,
+                actual: snapshot_shard,
+            }));
         }
         Ok(KernelProjection {
             seen: record.seen.clone(),
@@ -905,44 +950,45 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         shard: Shard,
         sequence: u64,
         record: Self::Record,
-    ) -> Result<(), String> {
+    ) -> Result<(), Report<RecoveryError>> {
         let record = record
             .normalize()
-            .map_err(|error| format!("validate domain record at sequence {sequence}: {error}"))?;
-        if shard_of(&record.partition) != shard {
-            return Err(format!(
-                "domain record at sequence {sequence} routes to a different shard"
-            ));
+            .change_context(RecoveryError::InvalidRecord { sequence })?;
+        let record_shard = shard_of(&record.partition);
+        if record_shard != shard {
+            return Err(Report::new(RecoveryError::ForeignShard {
+                sequence,
+                expected: shard,
+                actual: record_shard,
+            }));
         }
-        if projection
-            .through_log_sequence
-            .is_some_and(|through| sequence <= through)
+        if let Some(previous) = projection.through_log_sequence
+            && sequence <= previous
         {
-            return Err(format!(
-                "domain record sequence {sequence} does not advance {:?}",
-                projection.through_log_sequence
-            ));
+            return Err(Report::new(RecoveryError::NonIncreasingSequence {
+                previous,
+                proposed: sequence,
+            }));
         }
         let digest = record
             .digest()
-            .map_err(|error| format!("digest domain record at sequence {sequence}: {error:#}"))?;
+            .change_context(RecoveryError::InvalidRecord { sequence })?;
         match projection.seen.get(&record.event_id) {
             // A lost acknowledgement can leave duplicate records in the journal.
             Some(seen) if *seen == digest => {
                 projection.through_log_sequence = Some(sequence);
                 Ok(())
             }
-            Some(_seen) => Err(format!(
-                "event ID {} was reused with different content at sequence {sequence}",
-                record.event_id
-            )),
+            Some(_seen) => Err(Report::new(RecoveryError::ConflictingReuse {
+                event_id: record.event_id,
+                sequence,
+            })),
             None => {
                 projection.seen.insert(record.event_id, digest);
                 projection
                     .partitions
                     .insert(record.partition.clone(), sequence);
                 projection.through_log_sequence = Some(sequence);
-                // Replay uses the validation decision made when the event was accepted.
                 projection.domain.replay(&record.event);
                 Ok(())
             }
@@ -952,21 +998,22 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     fn validate_recovered_prefix(
         previous: &Self::Projection,
         recovered: &Self::Projection,
-    ) -> Result<(), String> {
-        if previous
-            .through_log_sequence
-            .is_some_and(|old| recovered.through_log_sequence.is_none_or(|new| new < old))
+    ) -> Result<(), Report<RecoveryError>> {
+        if let Some(previous) = previous.through_log_sequence
+            && recovered
+                .through_log_sequence
+                .is_none_or(|new| new < previous)
         {
-            return Err(format!(
-                "durable prefix regressed from {:?} to {:?}",
-                previous.through_log_sequence, recovered.through_log_sequence
-            ));
+            return Err(Report::new(RecoveryError::RegressedSequence {
+                previous,
+                recovered: recovered.through_log_sequence,
+            }));
         }
         for (event_id, digest) in &previous.seen {
             if recovered.seen.get(event_id) != Some(digest) {
-                return Err(format!(
-                    "durable prefix lost or changed acknowledged event {event_id}"
-                ));
+                return Err(Report::new(RecoveryError::LostEvent {
+                    event_id: *event_id,
+                }));
             }
         }
         Ok(())
@@ -1023,7 +1070,8 @@ mod tests {
     use super::{
         DomainEvent, EventRecord, EventRecordV1, Fold, FoldError, Hosted, InvalidPartitionKey,
         KernelProjection, MAX_PARTITION_KEY_BYTES, MAX_SNAPSHOT_BYTES, PartitionKey,
-        ProjectionSnapshot, ProjectionSnapshotV1, SimpleDomain, effect_id, register, shard_of,
+        ProjectionSnapshot, ProjectionSnapshotV1, RecoveryError, SimpleDomain, effect_id, register,
+        shard_of,
     };
     use crate::{
         port::{Domain as _, Prepared},
@@ -1372,7 +1420,13 @@ mod tests {
         let error = Toy::load_snapshot_projection(&(), Shard::from_u8(16), &snapshot)
             .await
             .expect_err("a snapshot should only restore to its own shard");
-        assert_eq!(error, "snapshot for shard 00f was offered to shard 010");
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::SnapshotShardMismatch {
+                expected: Shard::from_u8(16),
+                actual: Shard::from_u8(15),
+            }
+        );
     }
 
     #[test]
@@ -1517,19 +1571,42 @@ mod tests {
         }
     }
 
-    #[test]
-    fn record_decode_invalid_fields() {
-        for (field, value, expected_error) in [
+    #[tokio::test]
+    async fn record_decode_invalid_fields() {
+        register::<ToyDomain>().expect("toy name should register");
+        let record = incremented("orders", 5);
+        let other = incremented("payments", 6);
+        for (field, value, expected_error, expected) in [
             (
                 "event_id",
-                json!(incremented("orders", 6).event_id()),
+                json!(other.event_id()),
                 "event ID mismatch",
+                CompatError::EventIdMismatch {
+                    name: CounterEvent::name(),
+                    expected: record.event_id(),
+                    actual: other.event_id(),
+                },
             ),
-            ("partition", json!("payments"), "record partition"),
-            ("extra", json!(true), "unknown field"),
+            (
+                "partition",
+                json!(other.partition()),
+                "record partition",
+                CompatError::PartitionMismatch {
+                    name: CounterEvent::name(),
+                    expected: record.partition().clone(),
+                    actual: other.partition().clone(),
+                },
+            ),
+            (
+                "extra",
+                json!(true),
+                "unknown field",
+                CompatError::Decode {
+                    name: CounterEvent::name(),
+                },
+            ),
         ] {
-            let mut data =
-                serde_json::to_value(incremented("orders", 5)).expect("record should serialize");
+            let mut data = serde_json::to_value(&record).expect("record should serialize");
             data[field] = value;
             let error = serde_json::from_value::<EventRecordV1<CounterEvent>>(data.clone())
                 .expect_err("invalid record should fail deserialization");
@@ -1540,16 +1617,75 @@ mod tests {
 
             let bytes = serde_json::to_vec(&json!({"version": "v1", "data": data}))
                 .expect("wire record should serialize");
-            let error = EventRecord::<CounterEvent>::decode(&bytes)
-                .expect_err("invalid record should fail decoding");
-            let source = error
-                .downcast_ref::<serde_json::Error>()
-                .expect("decode report should retain the JSON error");
-            assert!(
-                source.to_string().contains(expected_error),
-                "error should contain {expected_error:?}: {source}"
+            let journal = SimLogHandle::new(42, Vec::new());
+            assert!(matches!(
+                journal.open_writer().append(SimKey::Events, bytes),
+                SimAppendResult::Acked(_)
+            ));
+            let opened = OpenedShard::open(ShardLogLocation::simulated(
+                shard_of(record.partition()),
+                journal,
+            ))
+            .await
+            .expect("shard should open");
+            let error = opened
+                .recover::<Toy>()
+                .await
+                .err()
+                .expect("a corrupt event should stop recovery");
+            assert_eq!(
+                error.current_context().kind,
+                ShardCommandErrorKind::Recovery
             );
+            assert_eq!(
+                error.downcast_ref::<CompatError>(),
+                Some(&expected),
+                "recovery should retain the typed decode failure"
+            );
+            if field == "extra" {
+                let source = error
+                    .downcast_ref::<serde_json::Error>()
+                    .expect("recovery should retain the JSON error");
+                assert!(source.to_string().contains(expected_error));
+            }
         }
+    }
+
+    #[tokio::test]
+    async fn recovery_foreign_shard() {
+        register::<ToyDomain>().expect("toy name should register");
+        let record = incremented("orders", 5);
+        let actual = shard_of(record.partition());
+        let expected = Shard::from_u8(actual.get().wrapping_add(1));
+        let journal = SimLogHandle::new(42, Vec::new());
+        let bytes = EventRecord::V1(record)
+            .encode()
+            .expect("record should encode");
+        let SimAppendResult::Acked(sequence) = journal.open_writer().append(SimKey::Events, bytes)
+        else {
+            panic!("record should be durable before recovery");
+        };
+        let opened = OpenedShard::open(ShardLogLocation::simulated(expected, journal))
+            .await
+            .expect("shard should open");
+        let error = opened
+            .recover::<Toy>()
+            .await
+            .err()
+            .expect("a record for another shard should stop recovery");
+        assert_eq!(
+            error.current_context().kind,
+            ShardCommandErrorKind::Recovery
+        );
+        assert_eq!(
+            error.downcast_ref::<RecoveryError>(),
+            Some(&RecoveryError::ForeignShard {
+                sequence,
+                expected,
+                actual,
+            }),
+            "the command error should retain the replay failure and both shard IDs"
+        );
     }
 
     #[test]
@@ -1612,15 +1748,28 @@ mod tests {
             EventRecord::V1(incremented("orders", 7)),
         )
         .expect_err("a non-advancing sequence should be rejected");
-        assert!(error.contains("does not advance"));
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::NonIncreasingSequence {
+                previous: 1,
+                proposed: 1,
+            }
+        );
 
         let other_digest = incremented("orders", 7)
             .digest()
             .expect("digest should compute");
         projection.seen.insert(record.event_id, other_digest);
+        let event_id = record.event_id();
         let error = Toy::replay(&mut projection, shard, 2, EventRecord::V1(record))
             .expect_err("an event ID stored with different content should be refused");
-        assert!(error.contains("reused with different content"));
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::ConflictingReuse {
+                event_id,
+                sequence: 2,
+            }
+        );
     }
 
     #[test]
@@ -1632,7 +1781,15 @@ mod tests {
             .expect("acknowledged record should replay");
 
         let empty = KernelProjection::<Counters>::default();
-        assert!(Toy::validate_recovered_prefix(&acknowledged, &empty).is_err());
+        let error = Toy::validate_recovered_prefix(&acknowledged, &empty)
+            .expect_err("recovery should preserve the acknowledged prefix");
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::RegressedSequence {
+                previous: 0,
+                recovered: None,
+            }
+        );
         Toy::validate_recovered_prefix(&acknowledged, &acknowledged.clone())
             .expect("identical state should preserve the acknowledged prefix");
         Toy::validate_recovered_prefix(&empty, &acknowledged)
@@ -1644,9 +1801,25 @@ mod tests {
             .expect("duplicate replay should advance the sequence");
         let error = Toy::validate_recovered_prefix(&advanced, &acknowledged)
             .expect_err("a lower recovered sequence should be a regression");
-        assert!(error.contains("regressed"));
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::RegressedSequence {
+                previous: 1,
+                recovered: Some(0),
+            }
+        );
         Toy::validate_recovered_prefix(&acknowledged, &advanced)
             .expect("a later sequence should preserve the acknowledged prefix");
+
+        let mut missing = advanced.clone();
+        let event_id = incremented("orders", 5).event_id();
+        missing.seen.remove(&event_id);
+        let error = Toy::validate_recovered_prefix(&advanced, &missing)
+            .expect_err("advancing the journal should not hide a missing acknowledged event");
+        assert_eq!(
+            error.current_context(),
+            &RecoveryError::LostEvent { event_id }
+        );
     }
 
     #[tokio::test]

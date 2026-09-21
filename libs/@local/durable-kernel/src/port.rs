@@ -54,6 +54,8 @@ pub trait Domain: Send + Sync + 'static {
     /// An error from validating or applying a record. Proposal validation returns this value
     /// unchanged in [`crate::shard_log::ShardCommandOutcome::Rejected`].
     type FoldError: core::error::Error + Send + Sync + 'static;
+    /// An error from restoring or checking durable state.
+    type RecoveryError: core::error::Error + Send + Sync + 'static;
     /// Identifies the state that changed, for notifications after an append.
     type StateKey: Clone + Send + core::fmt::Debug;
     type Query: Send;
@@ -135,7 +137,7 @@ pub trait Domain: Send + Sync + 'static {
     fn control_outcome_after_append(
         projection: &Self::Projection,
         request: &Self::ControlRequest,
-    ) -> Result<Self::ControlOutcome, String>;
+    ) -> Result<Self::ControlOutcome, Report<Self::RecoveryError>>;
 
     fn capture_snapshot(
         shard: Shard,
@@ -147,7 +149,9 @@ pub trait Domain: Send + Sync + 'static {
     /// # Errors
     ///
     /// Returns an error when the snapshot’s shard or journal position is invalid.
-    fn snapshot_bounds(snapshot: &Self::Snapshot) -> Result<(Shard, u64), String>;
+    fn snapshot_bounds(
+        snapshot: &Self::Snapshot,
+    ) -> Result<(Shard, u64), Report<Self::RecoveryError>>;
     /// Timestamp recorded in the snapshot and reported during recovery.
     fn snapshot_created_at(snapshot: &Self::Snapshot) -> DateTime<Utc>;
     /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the
@@ -160,7 +164,7 @@ pub trait Domain: Send + Sync + 'static {
         context: &Self::SnapshotContext,
         shard: Shard,
         snapshot: &Self::Snapshot,
-    ) -> impl core::future::Future<Output = Result<Self::Projection, String>> + Send;
+    ) -> impl core::future::Future<Output = Result<Self::Projection, Report<Self::RecoveryError>>> + Send;
 
     /// Observes one completed snapshot-enabled recovery.
     fn note_snapshot_recovery(_context: &Self::SnapshotContext, _stats: &SnapshotRecoveryStats) {}
@@ -180,7 +184,7 @@ pub trait Domain: Send + Sync + 'static {
         shard: Shard,
         sequence: u64,
         record: Self::Record,
-    ) -> Result<(), String>;
+    ) -> Result<(), Report<Self::RecoveryError>>;
     /// Checks that recovered state preserves all acknowledged events.
     ///
     /// # Errors
@@ -190,7 +194,7 @@ pub trait Domain: Send + Sync + 'static {
     fn validate_recovered_prefix(
         previous: &Self::Projection,
         recovered: &Self::Projection,
-    ) -> Result<(), String>;
+    ) -> Result<(), Report<Self::RecoveryError>>;
     /// Planned or blocked live work that the scheduler must resume.
     fn live_work(projection: &Self::Projection) -> Vec<Self::WorkIntent>;
     /// Keys whose state-change signal should fire once at startup.

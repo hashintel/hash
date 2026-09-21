@@ -543,7 +543,7 @@ impl OpenedShard {
     #[cfg(any(test, feature = "test-util"))]
     /// # Errors
     ///
-    /// Returns an error when the durable journal cannot be read, decoded, or folded.
+    /// Returns an error when the durable journal cannot be read, decoded, or replayed.
     pub async fn recover<D: Domain>(self) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
         self.recover_inner(None).await
     }
@@ -948,7 +948,7 @@ impl<D: Domain> CommandLoop<D> {
             }
         };
         let outcome = D::control_outcome_after_append(&self.projection, &request)
-            .map_err(ShardCommandError::recovery)?;
+            .change_context_lazy(|| ShardCommandError::recovery("read stored control outcome"))?;
         Ok(ControlResolution { append, outcome })
     }
 
@@ -1047,8 +1047,8 @@ impl<D: Domain> CommandLoop<D> {
         &mut self,
         snapshot: D::Snapshot,
     ) -> Result<u64, Report<ShardCommandError>> {
-        let (snapshot_shard, snapshot_through) =
-            D::snapshot_bounds(&snapshot).map_err(ShardCommandError::recovery)?;
+        let (snapshot_shard, snapshot_through) = D::snapshot_bounds(&snapshot)
+            .change_context_lazy(|| ShardCommandError::recovery("read snapshot bounds"))?;
         if snapshot_shard != self.location.shard {
             return Err(Report::new(ShardCommandError {
                 kind: ShardCommandErrorKind::InvalidCandidate,
@@ -1201,8 +1201,9 @@ impl<D: Domain> CommandLoop<D> {
             self.snapshot_context.as_ref(),
         )
         .await?;
-        D::validate_recovered_prefix(&self.projection, &recovered.projection)
-            .map_err(ShardCommandError::recovery)?;
+        D::validate_recovered_prefix(&self.projection, &recovered.projection).change_context_lazy(
+            || ShardCommandError::recovery("validate recovered journal prefix"),
+        )?;
         self.projection = recovered.projection;
         self.last_snapshot_attempt_through_log_sequence = self
             .last_snapshot_attempt_through_log_sequence
@@ -1311,7 +1312,7 @@ async fn replay_with_snapshots<D: Domain>(
                             tracing::warn!(
                                 shard = %crate::routing::shard_path(shard),
                                 reference_sequence,
-                                error = %error,
+                                error = ?error,
                                 "ignored projection snapshot with invalid addressing"
                             );
                             continue;
@@ -1336,7 +1337,7 @@ async fn replay_with_snapshots<D: Domain>(
                                 tracing::warn!(
                                     shard = %crate::routing::shard_path(shard),
                                     reference_sequence,
-                                    error = %error,
+                                    error = ?error,
                                     "ignored unusable projection snapshot"
                                 );
                                 continue;
@@ -1433,7 +1434,8 @@ async fn replay_durable_suffix<D: Domain>(
 
     let replayed_events = u64::try_from(records.len()).unwrap_or(u64::MAX);
     for (sequence, record) in records {
-        D::replay(&mut recovered, shard, sequence, record).map_err(ShardCommandError::recovery)?;
+        D::replay(&mut recovered, shard, sequence, record)
+            .change_context_lazy(|| ShardCommandError::recovery("replay stored journal event"))?;
     }
     Ok((recovered, replayed_events))
 }
