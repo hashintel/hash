@@ -562,28 +562,28 @@ impl OpenedShard {
         mut self,
         context: Option<&D::SnapshotContext>,
     ) -> Result<RecoveredShard<D>, Report<ShardCommandError>> {
-        self.location
-            .registry
-            .register(D::Record::declaration())
-            .change_context_lazy(|| {
-                ShardCommandError::recovery("register journal-record declaration")
-            })?;
-        self.location
-            .registry
-            .register(D::Snapshot::declaration())
-            .change_context_lazy(|| ShardCommandError::recovery("register snapshot declaration"))?;
         let writer = self
             .writer
             .take()
             .ok_or_else(|| ShardCommandError::recovery("opened shard writer is unavailable"))?;
         let durable_end_exclusive = writer.durable_end_exclusive();
         let replay_started = std::time::Instant::now();
-        let recovered = match replay_with_snapshots::<D>(
-            &writer,
-            self.location.shard,
-            durable_end_exclusive,
-            context,
-        )
+        let recovered = match async {
+            self.location
+                .registry
+                .register(D::Record::declaration())
+                .change_context_lazy(|| {
+                    ShardCommandError::recovery("register journal-record declaration")
+                })?;
+            self.location
+                .registry
+                .register(D::Snapshot::declaration())
+                .change_context_lazy(|| {
+                    ShardCommandError::recovery("register snapshot declaration")
+                })?;
+            replay_with_snapshots::<D>(&writer, self.location.shard, durable_end_exclusive, context)
+                .await
+        }
         .await
         {
             Ok(recovered) => recovered,
