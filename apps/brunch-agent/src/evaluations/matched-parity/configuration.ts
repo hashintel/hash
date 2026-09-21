@@ -7,6 +7,7 @@ export const paidAuthorizationValue = "I_AUTHORIZE_MATCHED_PAID_INFERENCE";
 
 export interface MatchedParityConfiguration {
   readonly executePaid: boolean;
+  readonly resumeCompleted: boolean;
   readonly maxTurnMs: number;
   readonly outputRoot: string;
   readonly provider: "openai";
@@ -37,7 +38,10 @@ const positiveInteger = (value: string | undefined, fallback: number) => {
 /** Resolve and refuse unlike provider/model/reasoning settings before launch. */
 export const resolveMatchedParityConfiguration = (
   environment: NodeJS.ProcessEnv = process.env,
-  options: { readonly executePaid?: boolean } = {},
+  options: {
+    readonly executePaid?: boolean;
+    readonly resumeCompleted?: boolean;
+  } = {},
 ): MatchedParityConfiguration => {
   const stockModel = required(environment, "PETRINAUT_AI_MODEL");
   const brunchModel = required(environment, "BRUNCH_CHAT_MODEL");
@@ -72,6 +76,7 @@ export const resolveMatchedParityConfiguration = (
 
   return {
     executePaid,
+    resumeCompleted: options.resumeCompleted === true,
     maxTurnMs: positiveInteger(
       environment.MATCHED_PARITY_MAX_TURN_MS,
       10 * 60_000,

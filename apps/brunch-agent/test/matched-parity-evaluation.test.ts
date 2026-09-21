@@ -1,9 +1,15 @@
-import { describe, expect, test, vi } from "vitest";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
+import { afterEach, describe, expect, test, vi } from "vitest";
+
+import { writeArmArtifacts } from "../src/evaluations/matched-parity/artifacts.ts";
 import {
   paidAuthorizationValue,
   resolveMatchedParityConfiguration,
 } from "../src/evaluations/matched-parity/configuration.ts";
+import { loadCompletedArm } from "../src/evaluations/matched-parity/resume.ts";
 import { runMatchedParityEvaluation } from "../src/evaluations/matched-parity/run.ts";
 import {
   matchedParityScenarios,
@@ -23,6 +29,15 @@ const environment = {
 };
 
 const configuration = resolveMatchedParityConfiguration(environment);
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
+});
 
 const artifact = (arm: "stock" | "brunch"): MatchedParityArtifact => ({
   arm,
@@ -108,6 +123,107 @@ describe("matched parity evaluation configuration", () => {
     expect(report).toHaveBeenCalledWith(
       expect.stringContaining("No browser, provider, model, or inference"),
     );
+  });
+});
+
+describe("completed arm reuse", () => {
+  const completedDirectory = async () => {
+    const directory = await mkdtemp(join(tmpdir(), "matched-parity-resume-"));
+    temporaryDirectories.push(directory);
+    const retainedArtifact = artifact("stock");
+    await writeArmArtifacts(directory, {
+      artifact: retainedArtifact,
+      rawDocument: {
+        title: retainedArtifact.document.title,
+        sdcpn: retainedArtifact.document.sdcpn,
+      },
+      rawTranscript: [
+        { role: "assistant", parts: [{ type: "text", text: "done" }] },
+      ],
+      transcriptText: "Assistant: done",
+    });
+    return directory;
+  };
+
+  test("reuses only a matching complete retained arm", async () => {
+    const directory = await completedDirectory();
+    const retained = await loadCompletedArm({
+      arm: "stock",
+      configuration,
+      directory,
+      resumeCompleted: true,
+      scenario: matchedParityScenarios[1]!,
+    });
+    expect(retained?.artifact).toEqual(artifact("stock"));
+    expect(retained?.transcriptText).toBe("Assistant: done\n");
+  });
+
+  test("refuses a retained scenario or configuration mismatch", async () => {
+    const directory = await completedDirectory();
+    await expect(
+      loadCompletedArm({
+        arm: "stock",
+        configuration,
+        directory,
+        resumeCompleted: true,
+        scenario: {
+          ...matchedParityScenarios[1]!,
+          prompt: "A different task",
+        },
+      }),
+    ).rejects.toThrow(/scenario mismatch/u);
+
+    const artifactPath = join(directory, "artifact.json");
+    const mismatched = {
+      ...artifact("stock"),
+      configuration: {
+        ...configuration,
+        stock: { ...configuration.stock, model: "gpt-5.6" },
+      },
+    };
+    await writeFile(artifactPath, `${JSON.stringify(mismatched)}\n`);
+    await expect(
+      loadCompletedArm({
+        arm: "stock",
+        configuration,
+        directory,
+        resumeCompleted: true,
+        scenario: matchedParityScenarios[1]!,
+      }),
+    ).rejects.toThrow(/provider\/model\/reasoning mismatch/u);
+  });
+
+  test("refuses an incomplete retained arm instead of rerunning it", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "matched-parity-partial-"));
+    temporaryDirectories.push(directory);
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      join(directory, "artifact.json"),
+      `${JSON.stringify(artifact("stock"))}\n`,
+    );
+    await expect(
+      loadCompletedArm({
+        arm: "stock",
+        configuration,
+        directory,
+        resumeCompleted: true,
+        scenario: matchedParityScenarios[1]!,
+      }),
+    ).rejects.toThrow(/incomplete retained arm artifact/u);
+  });
+
+  test("default mode never inspects or reuses retained files", async () => {
+    const directory = await completedDirectory();
+    await writeFile(join(directory, "artifact.json"), "not-json");
+    await expect(
+      loadCompletedArm({
+        arm: "stock",
+        configuration,
+        directory,
+        resumeCompleted: false,
+        scenario: matchedParityScenarios[1]!,
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 
