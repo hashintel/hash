@@ -129,15 +129,19 @@ pub struct FitArgs {
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 
-    /// Destination prefix for generated artifacts. No upload runs by default.
+    /// Destination generations root for generated artifacts.
+    ///
+    /// Publication paths and selection pointers are relative to this root. No upload runs by
+    /// default.
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 
-    /// Source prefix for a live fit's prior generation. No download runs by default.
+    /// Source generations root for a live fit's prior generation.
     ///
-    /// Use the parent of the `generations/` namespace. Acquisition verifies the selected
-    /// generation before replacing local current. An absent remote pointer preserves local
-    /// current. The `--fresh` flag still prevents the fit from reusing the acquired prior.
+    /// The root contains `current` and `active/`. No download runs by default. Acquisition
+    /// verifies the selected generation before replacing local current. An absent remote pointer
+    /// preserves local current. The `--fresh` flag still prevents the fit from reusing the
+    /// acquired prior.
     #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
     download: Option<FilePath>,
 

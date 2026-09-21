@@ -89,7 +89,7 @@ async fn assert_remote(
     namespace: &str,
 ) {
     let generation = source.open(id).expect("should open the source generation");
-    let prefix = format!("{PREFIX}/generations/{namespace}/{id}");
+    let prefix = format!("{PREFIX}/{namespace}/{id}");
 
     assert_eq!(
         bucket
@@ -119,7 +119,7 @@ async fn assert_remote(
 /// Panics if the local publication or a remote write fails.
 async fn seed_active(bucket: &Bucket, source: &GenerationRoot, id: GenerationId) {
     let generation = source.open(id).expect("should open the source generation");
-    let prefix = format!("{PREFIX}/generations/active/{id}");
+    let prefix = format!("{PREFIX}/active/{id}");
 
     for file in generation.repository().files.files() {
         bucket
@@ -137,7 +137,7 @@ async fn seed_active(bucket: &Bucket, source: &GenerationRoot, id: GenerationId)
         )
         .await;
     bucket
-        .write(&format!("{PREFIX}/generations/current"), id.to_string())
+        .write(&format!("{PREFIX}/current"), id.to_string())
         .await;
 }
 
@@ -171,11 +171,9 @@ pub async fn upload_repository() {
 
             assert_remote(bucket, &source, id, "repository").await;
 
+            bucket.assert_absent(&format!("{PREFIX}/current")).await;
             bucket
-                .assert_absent(&format!("{PREFIX}/generations/current"))
-                .await;
-            bucket
-                .assert_absent(&format!("{PREFIX}/generations/active/{id}/metadata.json"))
+                .assert_absent(&format!("{PREFIX}/active/{id}/metadata.json"))
                 .await;
         })
         .await;
@@ -213,16 +211,11 @@ pub async fn promotion_initial() {
             assert_eq!(promotion.id, id);
             assert_remote(bucket, &source, id, "active").await;
             assert_eq!(
-                bucket
-                    .read(&format!("{PREFIX}/generations/current"))
-                    .await
-                    .as_ref(),
+                bucket.read(&format!("{PREFIX}/current")).await.as_ref(),
                 id.to_string().as_bytes()
             );
 
-            bucket
-                .assert_absent(&format!("{PREFIX}/generations/previous"))
-                .await;
+            bucket.assert_absent(&format!("{PREFIX}/previous")).await;
         })
         .await;
 }
@@ -255,8 +248,8 @@ pub async fn promotion_stale_writer() {
         let promotion = winner.promote(winner_id, PromotionOptions::default()).await.expect("should promote the winner");
         assert_eq!(promotion.id, winner_id);
         assert_matches!(loser.promote(loser_id, PromotionOptions::default()).await, Err(UploadError::Conflict(error)) if error.is_precondition_failed());
-        assert_eq!(bucket.read(&format!("{PREFIX}/generations/current")).await.as_ref(), winner_id.to_string().as_bytes());
-        assert_eq!(bucket.read(&format!("{PREFIX}/generations/previous")).await.as_ref(), initial.to_string().as_bytes());
+        assert_eq!(bucket.read(&format!("{PREFIX}/current")).await.as_ref(), winner_id.to_string().as_bytes());
+        assert_eq!(bucket.read(&format!("{PREFIX}/previous")).await.as_ref(), initial.to_string().as_bytes());
 
         assert_remote(bucket, &source, winner_id, "active").await;
     }).await;
@@ -276,8 +269,8 @@ pub async fn promotion_retention(prune_active_generations: bool) {
             let destination = bucket.path(PREFIX);
             let generations = [7, 8, 9].map(|seed| publication(&source, seed));
             let [oldest, previous, current] = generations;
-            let adjacent = format!("{PREFIX}/generations/active/{oldest}-retained/artifact");
-            let unselected = format!("{PREFIX}/generations/active/unselected/artifact");
+            let adjacent = format!("{PREFIX}/active/{oldest}-retained/artifact");
+            let unselected = format!("{PREFIX}/active/unselected/artifact");
             bucket.write(&adjacent, "adjacent prefix").await;
             bucket.write(&unselected, "unselected prefix").await;
 
@@ -302,17 +295,11 @@ pub async fn promotion_retention(prune_active_generations: bool) {
             }
 
             assert_eq!(
-                bucket
-                    .read(&format!("{PREFIX}/generations/current"))
-                    .await
-                    .as_ref(),
+                bucket.read(&format!("{PREFIX}/current")).await.as_ref(),
                 current.to_string().as_bytes()
             );
             assert_eq!(
-                bucket
-                    .read(&format!("{PREFIX}/generations/previous"))
-                    .await
-                    .as_ref(),
+                bucket.read(&format!("{PREFIX}/previous")).await.as_ref(),
                 previous.to_string().as_bytes()
             );
             for id in generations {
@@ -326,7 +313,7 @@ pub async fn promotion_retention(prune_active_generations: bool) {
                     .client
                     .list_objects_v2()
                     .bucket(&bucket.name)
-                    .prefix(format!("{PREFIX}/generations/active/{oldest}/"))
+                    .prefix(format!("{PREFIX}/active/{oldest}/"))
                     .max_keys(1)
                     .send()
                     .await
@@ -363,14 +350,14 @@ pub async fn upload_existing_corrupt() {
         let generation = source.open(id).expect("should open the publication");
 
         let file = generation.repository().files.files().next().expect("should have an artifact");
-        let key = format!("{PREFIX}/generations/repository/{id}/{}", file.name);
+        let key = format!("{PREFIX}/repository/{id}/{}", file.name);
         bucket.write(&key, "corrupt").await;
 
         let upload = Upload::prepare(&storage, &source, &destination).await.expect("should prepare publication");
         assert_matches!(upload.upload(id).await, Err(UploadError::Checksum { expected, actual, .. })
             if expected == file.hash && actual == Sha256Digest::of(b"corrupt"));
-        bucket.assert_absent(&format!("{PREFIX}/generations/repository/{id}/metadata.json")).await;
-        bucket.assert_absent(&format!("{PREFIX}/generations/current")).await;
+        bucket.assert_absent(&format!("{PREFIX}/repository/{id}/metadata.json")).await;
+        bucket.assert_absent(&format!("{PREFIX}/current")).await;
 
         assert_eq!(bucket.read(&key).await.as_ref(), b"corrupt", "should not overwrite the conflicting object");
     }).await;
@@ -476,7 +463,7 @@ pub async fn download_corrupt_artifact() {
 
         let generation = source.open(id).expect("should open the remote source");
         let file = generation.repository().files.files().last().expect("should have an artifact");
-        let key = format!("{PREFIX}/generations/active/{id}/{}", file.name);
+        let key = format!("{PREFIX}/active/{id}/{}", file.name);
 
         bucket.write(&key, "corrupt").await;
 

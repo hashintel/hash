@@ -1,8 +1,8 @@
 //! Shared object paths for publishing and acquiring generations.
 //!
-//! [`RemoteRoot`] locates current and previous pointers below `generations/`. Its repository and
-//! active prefixes locate immutable [`RemoteGeneration`] publications, each completed by its
-//! metadata document.
+//! [`RemoteRoot`] locates current and previous pointers directly beneath the configured generations
+//! root. Its repository and active prefixes locate immutable [`RemoteGeneration`] publications,
+//! each completed by its metadata document.
 
 use super::{GenerationId, METADATA_FILE};
 use crate::file::{
@@ -40,12 +40,12 @@ impl RemoteGeneration {
     }
 }
 
-/// The parent location of a remote `generations/` namespace.
+/// The configured root of remote generation pointers and publications.
 #[repr(transparent)]
 pub(crate) struct RemoteRoot(FilePath);
 
 impl RemoteRoot {
-    /// Borrows `path` as the parent of a `generations/` namespace.
+    /// Borrows `path` as the generations root.
     pub(crate) const fn from_ref(path: &FilePath) -> &Self {
         // SAFETY: `repr(transparent)` gives `RemoteRoot` the layout and alignment of its sole
         // `FilePath` field. Every valid `FilePath` is a valid `RemoteRoot`, and the cast preserves
@@ -60,7 +60,7 @@ impl RemoteRoot {
     ///
     /// Returns [`FilePathError`] if constructing the object path fails.
     pub(crate) fn current(&self) -> Result<FilePath, FilePathError> {
-        self.0.join("generations/current")
+        self.0.join("current")
     }
 
     /// Locates the advisory identity replaced by the last promotion.
@@ -69,7 +69,7 @@ impl RemoteRoot {
     ///
     /// Returns [`FilePathError`] if constructing the object path fails.
     pub(crate) fn previous(&self) -> Result<FilePath, FilePathError> {
-        self.0.join("generations/previous")
+        self.0.join("previous")
     }
 
     /// Locates an uploaded publication independently of admission.
@@ -79,7 +79,7 @@ impl RemoteRoot {
     /// Returns [`FilePathError`] if constructing the prefix fails.
     pub(crate) fn repository(&self, id: GenerationId) -> Result<RemoteGeneration, FilePathError> {
         Ok(RemoteGeneration {
-            path: self.0.join(&format!("generations/repository/{id}"))?,
+            path: self.0.join(&format!("repository/{id}"))?,
         })
     }
 
@@ -90,7 +90,7 @@ impl RemoteRoot {
     /// Returns [`FilePathError`] if constructing the prefix fails.
     pub(crate) fn active(&self, id: GenerationId) -> Result<RemoteGeneration, FilePathError> {
         Ok(RemoteGeneration {
-            path: self.0.join(&format!("generations/active/{id}"))?,
+            path: self.0.join(&format!("active/{id}"))?,
         })
     }
 }

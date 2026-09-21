@@ -101,9 +101,8 @@ where
 {
     /// Captures the current and previous pointers before fitting.
     ///
-    /// `destination` is the parent path of the `generations/` namespace. The current revision
-    /// supplies the selection precondition. The previous identity supplies the optional pruning
-    /// target.
+    /// `destination` is the generations root. The current revision supplies the selection
+    /// precondition. The previous identity supplies the optional pruning target.
     ///
     /// # Errors
     ///
