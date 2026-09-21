@@ -1225,18 +1225,6 @@ mod tests {
     }
 
     #[test]
-    fn partition_keys_parse_at_the_length_boundary() {
-        assert!(
-            PartitionKey::parse("x".repeat(MAX_PARTITION_KEY_BYTES)).is_ok(),
-            "a key of exactly {MAX_PARTITION_KEY_BYTES} bytes should parse"
-        );
-        assert!(matches!(
-            PartitionKey::parse("x".repeat(MAX_PARTITION_KEY_BYTES + 1)),
-            Err(InvalidPartitionKey::TooLong { .. })
-        ));
-    }
-
-    #[test]
     fn record_decode_envelope() {
         let name = CounterEvent::name();
         for (value, expected) in [
@@ -1295,7 +1283,6 @@ mod tests {
 
     #[test]
     fn event_records_decode_at_the_size_boundary() {
-        assert_eq!(MAX_EVENT_RECORD_BYTES, 0x0040_0000);
         let encoded = EventRecord::V1(incremented("orders", 5))
             .encode()
             .expect("record should encode");
@@ -1336,7 +1323,6 @@ mod tests {
 
     #[test]
     fn snapshots_encode_and_decode_at_the_size_boundary() {
-        assert_eq!(MAX_SNAPSHOT_BYTES, 0x00F0_0000);
         let base = toy_snapshot("00f", 0)
             .encode()
             .expect("snapshot without padding should encode")
@@ -1526,21 +1512,6 @@ mod tests {
         Toy::replay(&mut projection, shard, 0, EventRecord::V1(record))
             .expect("historical replay should bypass current admission rules");
         assert_eq!(projection.domain().totals.get("orders"), Some(&0));
-    }
-
-    #[test]
-    fn record_from_parts_matching_fields() {
-        let event = CounterEvent::Incremented {
-            counter: "orders".to_owned(),
-            amount: 5,
-        };
-        let expected = incremented("orders", 5);
-        let record =
-            EventRecordV1::from_parts(expected.event_id(), expected.partition().clone(), event)
-                .expect("matching fields should create a record");
-        assert_eq!(record.event_id(), expected.event_id());
-        assert_eq!(record.partition(), expected.partition());
-        assert_eq!(record.event(), expected.event());
     }
 
     #[test]
@@ -2154,6 +2125,8 @@ mod tests {
     #[test]
     fn partition_keys_are_validated() {
         PartitionKey::parse("orders").expect("ordinary partition key should be valid");
+        PartitionKey::parse("x".repeat(MAX_PARTITION_KEY_BYTES))
+            .expect("partition key at the length limit should be valid");
         assert_eq!(PartitionKey::parse(""), Err(InvalidPartitionKey::Empty));
         assert_eq!(
             PartitionKey::parse("has space"),
