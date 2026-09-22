@@ -109,7 +109,7 @@ describe("resolveInstalledPlugins", () => {
         },
       ],
     });
-    expect(() => resolveInstalledPlugins([other], [elsewhere])).not.toThrow();
+    expect(() => resolveInstalledPlugins([chrome], [elsewhere])).not.toThrow();
   });
 
   it("refuses an edit view that would hide the Canvas", () => {

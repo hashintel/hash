@@ -53,23 +53,31 @@ export const PluginToolbarItems = ({
         </PluginContributionBoundary>
       );
     }
+    // The button renders the plugin's icon node, so a failing icon removes
+    // this button alone.
     const { button } = item;
     return (
-      <Button
+      <PluginContributionBoundary
         key={button.id}
-        {...buttonProps}
-        ref={button.ref}
-        aria-label={button.label}
-        tooltip={button.tooltip ?? button.label}
-        prefix={button.icon}
-        className={cx(button.className, buttonClassName)}
-        onClick={() => {
-          button.onClick?.();
-          if (button.command !== undefined) {
-            registry?.execute(button.command);
-          }
-        }}
-      />
+        pluginId={item.pluginId}
+        contributionId={button.id}
+        place={placement}
+      >
+        <Button
+          {...buttonProps}
+          ref={button.ref}
+          aria-label={button.label}
+          tooltip={button.tooltip ?? button.label}
+          prefix={button.icon}
+          className={cx(button.className, buttonClassName)}
+          onClick={() => {
+            button.onClick?.();
+            if (button.command !== undefined) {
+              registry?.execute(button.command);
+            }
+          }}
+        />
+      </PluginContributionBoundary>
     );
   });
 };

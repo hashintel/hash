@@ -88,4 +88,78 @@ describe("usePluginSubViews", () => {
     );
     consoleError.mockRestore();
   });
+
+  it("puts the icon, header action and title behind the boundary, and leaves absent parts absent", () => {
+    const captureException = vi.fn();
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const fail = (part: string) => () => {
+      throw new Error(`${part} failure`);
+    };
+    const headerPlugin = definePetrinautPlugin({
+      id: "test.header",
+      subViews: [
+        {
+          id: "test.header.section",
+          title: "Section",
+          placement: "left-sidebar",
+          component: Tab,
+          icon: fail("icon"),
+          renderHeaderAction: fail("action"),
+          renderTitle: fail("title"),
+        },
+        {
+          id: "test.header.plain",
+          title: "Plain",
+          placement: "left-sidebar",
+          component: Tab,
+        },
+      ],
+    });
+    const Header = () =>
+      usePluginSubViews("left-sidebar").map((subView) => {
+        const { icon: Icon, component: Content } = subView;
+        return (
+          <section key={subView.id} aria-label={subView.title}>
+            {Icon && <Icon size={12} />}
+            {subView.renderTitle?.()}
+            {subView.renderHeaderAction?.()}
+            <Content />
+          </section>
+        );
+      });
+
+    const { result } = renderHook(() => usePluginSubViews("left-sidebar"), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <InstalledPluginsProvider plugins={[headerPlugin]}>
+          {children}
+        </InstalledPluginsProvider>
+      ),
+    });
+    const plain = result.current[1];
+    expect(plain?.icon).toBeUndefined();
+    expect(plain?.renderHeaderAction).toBeUndefined();
+    expect(plain?.renderTitle).toBeUndefined();
+
+    render(
+      <ErrorTrackerContext value={{ captureException }}>
+        <InstalledPluginsProvider plugins={[headerPlugin]}>
+          <Header />
+        </InstalledPluginsProvider>
+      </ErrorTrackerContext>,
+    );
+
+    expect(screen.getByRole("region", { name: "Section" }).textContent).toBe(
+      "tab",
+    );
+    expect(captureException).toHaveBeenCalledTimes(3);
+    for (const part of ["icon", "title", "action"]) {
+      expect(captureException).toHaveBeenCalledWith(
+        expect.objectContaining({ message: `${part} failure` }),
+        expect.objectContaining({ source: "plugin.contribution" }),
+      );
+    }
+    consoleError.mockRestore();
+  });
 });

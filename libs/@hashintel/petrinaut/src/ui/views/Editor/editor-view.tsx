@@ -47,11 +47,7 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
-import {
-  InstalledPlugins,
-  useInstalledPlugins,
-} from "../../plugins/installed-plugins";
-import { selectPluginEditViews } from "../../plugins/plugin";
+import { InstalledPlugins } from "../../plugins/installed-plugins";
 import { PluginContributionBoundary } from "../../plugins/plugin-boundary";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -79,6 +75,7 @@ import {
 } from "./panels/SimulateView/simulate-view";
 import { SimulationWorkspace } from "./shared/simulation-workspace";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
+import { useEditWorkspace } from "./use-edit-workspace";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -212,7 +209,6 @@ const EditorViewContent = ({
   // Get editor context
   const {
     globalMode,
-    editViewMode,
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
@@ -228,22 +224,13 @@ const EditorViewContent = ({
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
 
-  // The Canvas and the Definitions view are built in; plugins contribute the
-  // other edit views. A view the location names but nothing provides falls
-  // back to the Canvas, so a stale URL still shows the net.
-  const installedEditViews = selectPluginEditViews(useInstalledPlugins());
+  const {
+    installedEditViews,
+    activeEditView,
+    isDefinitionsWorkspace,
+    isCanvasWorkspace,
+  } = useEditWorkspace();
   const pluginEditViews = installedEditViews.map(({ view }) => view);
-  const activeEditView =
-    globalMode === "edit"
-      ? pluginEditViews.find((view) => view.id === editViewMode)
-      : undefined;
-  const isDefinitionsWorkspace =
-    globalMode === "edit" && editViewMode === "definitions";
-  const isCanvasWorkspace =
-    globalMode === "actual" ||
-    (globalMode === "edit" &&
-      !isDefinitionsWorkspace &&
-      activeEditView === undefined);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../react/commands/command-registry";
+import { ErrorTrackerContext } from "../../react/error-tracker-context";
 import { InstalledPluginsProvider } from "./installed-plugins";
 import { definePetrinautPlugin } from "./plugin";
 import { PluginToolbarItems } from "./plugin-toolbar-items";
@@ -66,5 +67,55 @@ describe("PluginToolbarItems", () => {
     fireEvent.click(button);
     expect(onClick).toHaveBeenCalledOnce();
     expect(run).toHaveBeenCalledOnce();
+  });
+
+  it("removes only the button whose icon throws, and reports it with its place", () => {
+    const captureException = vi.fn();
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const BrokenIcon = () => {
+      throw new Error("icon failure");
+    };
+    const plugin = definePetrinautPlugin({
+      id: "test.toolbar",
+      buttons: [
+        {
+          id: "test.toolbar.broken",
+          placement: "top-bar-end",
+          label: "Broken",
+          icon: <BrokenIcon />,
+        },
+        {
+          id: "test.toolbar.working",
+          placement: "top-bar-end",
+          label: "Working",
+          icon: null,
+        },
+      ],
+    });
+
+    render(
+      <ErrorTrackerContext value={{ captureException }}>
+        <InstalledPluginsProvider plugins={[plugin]}>
+          <PluginToolbarItems placement="top-bar-end" />
+        </InstalledPluginsProvider>
+      </ErrorTrackerContext>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Broken" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Working" })).not.toBeNull();
+    expect(captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "icon failure" }),
+      {
+        source: "plugin.contribution",
+        tags: {
+          pluginId: "test.toolbar",
+          contributionId: "test.toolbar.broken",
+          place: "top-bar-end",
+        },
+      },
+    );
+    consoleError.mockRestore();
   });
 });
