@@ -22,6 +22,7 @@ use crate::{
     ids::EventId,
     port::{Domain, EventDomain, Prepared, SnapshotDomain, SnapshotRecoveryStats},
     registry::DurableRecord as _,
+    routing::Shard,
 };
 
 const DEFAULT_CHANNEL_CAPACITY: usize = 64;
@@ -70,46 +71,165 @@ impl ShardCommandErrorKind {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
+pub enum ShardCommandKind {
+    #[display("proposal")]
+    Propose,
+    #[display("control read")]
+    InspectControl,
+    #[display("control request")]
+    ResolveControl,
+    #[display("snapshot capture")]
+    CaptureSnapshot,
+    #[display("snapshot commit")]
+    CommitSnapshot,
+    #[display("query")]
+    Query,
+    #[display("shutdown")]
+    Shutdown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("{kind}: {message}")]
-pub struct ShardCommandError {
-    pub kind: ShardCommandErrorKind,
-    pub message: String,
+pub enum ShardCommandError {
+    #[display("could not append event {event_id}: {kind}")]
+    AppendEvent {
+        event_id: EventId,
+        kind: AppendFailureKind,
+    },
+    #[display("could not append snapshot through sequence {through_sequence}: {kind}")]
+    AppendSnapshot {
+        through_sequence: u64,
+        kind: AppendFailureKind,
+    },
+    #[display("shard command loop stopped before replying to {command}")]
+    ReplyDropped { command: ShardCommandKind },
+    #[display("shard command loop is not accepting {command}")]
+    AdmissionClosed { command: ShardCommandKind },
+    #[display("shard command loop closed before accepting {command}")]
+    QueueClosed { command: ShardCommandKind },
+    #[display("shard command loop is already stopping")]
+    AlreadyStopping,
+    #[display("shard command loop is shutting down")]
+    ShuttingDown,
+    #[display("could not open shard writer")]
+    OpenWriter,
+    #[display("shard writer is unavailable")]
+    WriterUnavailable,
+    #[display("could not register record {name}")]
+    RegisterRecord { name: &'static str },
+    #[display("could not close writer after startup failure")]
+    CloseStartupWriter,
+    #[display("could not recover shard during startup")]
+    RecoverStartup,
+    #[display("could not recover shard after event {event_id} failed")]
+    RecoverAfterFailure { event_id: EventId },
+    #[display("could not close writer before recovery")]
+    CloseUnrecoveredWriter,
+    #[display("could not close recovered writer before enabling commands")]
+    CloseRecoveredWriter,
+    #[display("shard ownership was lost")]
+    OwnershipLost,
+    #[display("shard ownership was lost before appending an event")]
+    OwnershipLostBeforeAppend,
+    #[display("shard ownership was lost before appending a snapshot")]
+    OwnershipLostBeforeSnapshot,
+    #[display("control request for shard {} was proposed to shard {}", actual.get(), expected.get())]
+    ControlShardMismatch { expected: Shard, actual: Shard },
+    #[display("could not inspect control request")]
+    InspectControl,
+    #[display("could not build control record for event {event_id}")]
+    BuildControlRecord { event_id: EventId },
+    #[display("control record for event {event_id} was rejected")]
+    ControlRecordRejected { event_id: EventId },
+    #[display("could not read stored control outcome for event {event_id}")]
+    ReadControlOutcome { event_id: EventId },
+    #[display("could not apply durable event {event_id} at sequence {sequence}")]
+    FinalizeRecord { event_id: EventId, sequence: u64 },
+    #[display("acknowledged event {event_id} is absent after recovery")]
+    MissingRecoveredEvent { event_id: EventId },
+    #[display("acknowledged event {event_id} conflicts after recovery")]
+    ConflictingRecoveredEvent { event_id: EventId },
+    #[display("could not read snapshot bounds")]
+    ReadSnapshotBounds,
+    #[display("projection snapshot for shard {:03x} was proposed to shard {:03x}", actual.get(), expected.get())]
+    SnapshotShardMismatch { expected: Shard, actual: Shard },
+    #[display("cannot reference a snapshot for an empty projection")]
+    SnapshotForEmptyProjection,
+    #[display(
+        "projection snapshot through {snapshot_through} is ahead of projection {current_sequence}"
+    )]
+    SnapshotAheadOfProjection {
+        snapshot_through: u64,
+        current_sequence: u64,
+    },
+    #[display("could not validate snapshot registration for {name}")]
+    ValidateSnapshotRegistration { name: &'static str },
+    #[display("could not encode projection snapshot")]
+    EncodeSnapshot,
+    #[display("recovering event {event_id} requires acquiring a new lease")]
+    LeaseRequired { event_id: EventId },
+    #[display("could not reopen shard writer")]
+    ReopenWriter,
+    #[display("recovered journal prefix is invalid")]
+    ValidateRecoveredPrefix,
+    #[display("could not close shard writer")]
+    CloseWriter,
+    #[display("could not read stored journal events")]
+    ReadJournal,
+    #[display("could not replay stored event at sequence {sequence}")]
+    ReplayRecord { sequence: u64 },
+    #[display("read closure returned a value with an unexpected type, expected {expected}")]
+    UnexpectedQueryResult { expected: &'static str },
 }
 
 impl ShardCommandError {
-    fn from_append(error: Report<ShardAppendError>) -> Report<Self> {
-        let kind = match error.current_context().kind {
-            AppendFailureKind::DefinitelyNotCommitted => {
-                ShardCommandErrorKind::DefinitelyNotCommitted
-            }
-            AppendFailureKind::CommitUnknown => ShardCommandErrorKind::CommitUnknown,
-            AppendFailureKind::Fenced => ShardCommandErrorKind::Fenced,
-        };
-        error.change_context(Self {
-            kind,
-            message: "append shard record".to_owned(),
-        })
-    }
-
-    fn invalid_candidate(message: impl Into<String>) -> Self {
-        Self {
-            kind: ShardCommandErrorKind::InvalidCandidate,
-            message: message.into(),
-        }
-    }
-
-    fn recovery(message: impl Into<String>) -> Self {
-        Self {
-            kind: ShardCommandErrorKind::Recovery,
-            message: message.into(),
-        }
-    }
-
-    fn closed(message: impl Into<String>) -> Self {
-        Self {
-            kind: ShardCommandErrorKind::Closed,
-            message: message.into(),
+    #[must_use]
+    pub const fn kind(&self) -> ShardCommandErrorKind {
+        match self {
+            Self::AppendEvent { kind, .. } | Self::AppendSnapshot { kind, .. } => match kind {
+                AppendFailureKind::DefinitelyNotCommitted => {
+                    ShardCommandErrorKind::DefinitelyNotCommitted
+                }
+                AppendFailureKind::CommitUnknown => ShardCommandErrorKind::CommitUnknown,
+                AppendFailureKind::Fenced => ShardCommandErrorKind::Fenced,
+            },
+            Self::LeaseRequired { .. } => ShardCommandErrorKind::CommitUnknown,
+            Self::OwnershipLost
+            | Self::OwnershipLostBeforeAppend
+            | Self::OwnershipLostBeforeSnapshot => ShardCommandErrorKind::Fenced,
+            Self::ReplyDropped { .. }
+            | Self::AdmissionClosed { .. }
+            | Self::QueueClosed { .. }
+            | Self::AlreadyStopping
+            | Self::ShuttingDown => ShardCommandErrorKind::Closed,
+            Self::ControlShardMismatch { .. }
+            | Self::InspectControl
+            | Self::BuildControlRecord { .. }
+            | Self::ControlRecordRejected { .. }
+            | Self::SnapshotShardMismatch { .. }
+            | Self::SnapshotForEmptyProjection
+            | Self::SnapshotAheadOfProjection { .. }
+            | Self::EncodeSnapshot => ShardCommandErrorKind::InvalidCandidate,
+            Self::OpenWriter
+            | Self::WriterUnavailable
+            | Self::RegisterRecord { .. }
+            | Self::CloseStartupWriter
+            | Self::RecoverStartup
+            | Self::RecoverAfterFailure { .. }
+            | Self::CloseUnrecoveredWriter
+            | Self::CloseRecoveredWriter
+            | Self::ReadControlOutcome { .. }
+            | Self::FinalizeRecord { .. }
+            | Self::MissingRecoveredEvent { .. }
+            | Self::ConflictingRecoveredEvent { .. }
+            | Self::ReadSnapshotBounds
+            | Self::ValidateSnapshotRegistration { .. }
+            | Self::ReopenWriter
+            | Self::ValidateRecoveredPrefix
+            | Self::CloseWriter
+            | Self::ReadJournal
+            | Self::ReplayRecord { .. }
+            | Self::UnexpectedQueryResult { .. } => ShardCommandErrorKind::Recovery,
         }
     }
 }
@@ -155,9 +275,11 @@ impl<D: Domain> ShardCommandHandle<D> {
     ) -> Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>> {
         let (reply, response) = oneshot::channel();
         self.send(Command::Propose { record, reply }).await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed("shard command loop stopped before replying to proposal")
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::Propose,
+            })?
     }
 
     /// Inspects a control request against the projection inside the command loop.
@@ -172,9 +294,11 @@ impl<D: Domain> ShardCommandHandle<D> {
         let (reply, response) = oneshot::channel();
         self.send(Command::InspectControl { request, reply })
             .await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed("shard command loop stopped before replying to control read")
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::InspectControl,
+            })?
     }
 
     /// Rechecks a control request and appends its acceptance or rejection before processing
@@ -196,11 +320,11 @@ impl<D: Domain> ShardCommandHandle<D> {
             reply,
         })
         .await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed(
-                "shard command loop stopped before replying to control request",
-            )
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::ResolveControl,
+            })?
     }
 
     /// Captures a snapshot after at least `minimum_sequence_span` journal positions have passed
@@ -221,11 +345,11 @@ impl<D: Domain> ShardCommandHandle<D> {
             reply,
         })
         .await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed(
-                "shard command loop stopped before replying to snapshot capture",
-            )
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::CaptureSnapshot,
+            })?
     }
 
     /// Appends a snapshot through the shard writer.
@@ -240,11 +364,11 @@ impl<D: Domain> ShardCommandHandle<D> {
         let (reply, response) = oneshot::channel();
         self.send(Command::CommitSnapshot { snapshot, reply })
             .await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed(
-                "shard command loop stopped before replying to snapshot commit",
-            )
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::CommitSnapshot,
+            })?
     }
 
     /// # Errors
@@ -256,9 +380,11 @@ impl<D: Domain> ShardCommandHandle<D> {
     ) -> Result<D::QueryResult, Report<ShardCommandError>> {
         let (reply, response) = oneshot::channel();
         self.send(Command::Query { query, reply }).await?;
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed("shard command loop stopped before replying to query")
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::Query,
+            })?
     }
 
     #[expect(
@@ -266,16 +392,13 @@ impl<D: Domain> ShardCommandHandle<D> {
         reason = "tokio select uses modulo to choose its polling order"
     )]
     async fn send(&self, command: Command<D>) -> Result<(), Report<ShardCommandError>> {
+        let kind = command.kind();
         let permit = tokio::select! {
             biased;
             () = self.admission_closed.cancelled() => {
-                return Err(Report::new(ShardCommandError::closed(
-                    "shard command loop is not accepting commands",
-                )));
+                return Err(Report::new(ShardCommandError::AdmissionClosed { command: kind }));
             }
-            permit = self.sender.reserve() => permit.change_context_lazy(|| ShardCommandError::closed(
-                "shard command loop closed before accepting command",
-            ))?,
+            permit = self.sender.reserve() => permit.change_context_lazy(|| ShardCommandError::QueueClosed { command: kind })?,
         };
         permit.send(command);
         Ok(())
@@ -315,22 +438,22 @@ impl<D: Domain> ShardOwner<D> {
     /// its writer.
     pub async fn shutdown(self) -> Result<(), Report<ShardCommandError>> {
         if self.admission_closed.is_cancelled() {
-            return Err(Report::new(ShardCommandError::closed(
-                "shard command loop is already stopping",
-            )));
+            return Err(Report::new(ShardCommandError::AlreadyStopping));
         }
         self.admission_closed.cancel();
         let (reply, response) = oneshot::channel();
         self.sender
             .reserve()
             .await
-            .change_context_lazy(|| {
-                ShardCommandError::closed("shard command loop closed before accepting shutdown")
+            .change_context(ShardCommandError::QueueClosed {
+                command: ShardCommandKind::Shutdown,
             })?
             .send(Command::Shutdown { reply });
-        response.await.change_context_lazy(|| {
-            ShardCommandError::closed("shard command loop stopped before acknowledging shutdown")
-        })?
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: ShardCommandKind::Shutdown,
+            })?
     }
 }
 
@@ -370,6 +493,20 @@ enum Command<D: Domain> {
     Shutdown {
         reply: oneshot::Sender<Result<(), Report<ShardCommandError>>>,
     },
+}
+
+impl<D: Domain> Command<D> {
+    const fn kind(&self) -> ShardCommandKind {
+        match self {
+            Self::Propose { .. } => ShardCommandKind::Propose,
+            Self::InspectControl { .. } => ShardCommandKind::InspectControl,
+            Self::ResolveControl { .. } => ShardCommandKind::ResolveControl,
+            Self::CaptureSnapshot { .. } => ShardCommandKind::CaptureSnapshot,
+            Self::CommitSnapshot { .. } => ShardCommandKind::CommitSnapshot,
+            Self::Query { .. } => ShardCommandKind::Query,
+            Self::Shutdown { .. } => ShardCommandKind::Shutdown,
+        }
+    }
 }
 
 struct CommandFailure {
@@ -490,7 +627,7 @@ impl<S: JournalStorage> OpenedShard<S> {
         let started = std::time::Instant::now();
         let writer = ShardLogWriter::open(&location)
             .await
-            .change_context(ShardCommandError::recovery("open shard writer"))?;
+            .change_context(ShardCommandError::OpenWriter)?;
         tracing::info!(
             shard = %crate::routing::shard_path(location.shard),
             durable_end_exclusive = writer.durable_end_exclusive(),
@@ -532,21 +669,21 @@ impl<S: JournalStorage> OpenedShard<S> {
         let writer = self
             .writer
             .take()
-            .ok_or_else(|| ShardCommandError::recovery("opened shard writer is unavailable"))?;
+            .ok_or(ShardCommandError::WriterUnavailable)?;
         let durable_end_exclusive = writer.durable_end_exclusive();
         let replay_started = std::time::Instant::now();
         let recovered = match async {
             self.location
                 .registry
                 .register(D::Record::declaration())
-                .change_context_lazy(|| {
-                    ShardCommandError::recovery("register journal-record declaration")
+                .change_context_lazy(|| ShardCommandError::RegisterRecord {
+                    name: D::Record::declaration().name,
                 })?;
             self.location
                 .registry
                 .register(D::Snapshot::declaration())
-                .change_context_lazy(|| {
-                    ShardCommandError::recovery("register snapshot declaration")
+                .change_context_lazy(|| ShardCommandError::RegisterRecord {
+                    name: D::Snapshot::declaration().name,
                 })?;
             replay_with_snapshots::<D>(&writer, self.location.shard, durable_end_exclusive, context)
                 .await
@@ -557,12 +694,9 @@ impl<S: JournalStorage> OpenedShard<S> {
             Err(error) => {
                 if let Err(close_error) = writer.close().await {
                     let mut failures = error.expand();
-                    failures.push(close_error.change_context(ShardCommandError::recovery(
-                        "close failed startup writer",
-                    )));
-                    return Err(failures.change_context(ShardCommandError::recovery(
-                        "recover shard during startup",
-                    )));
+                    failures
+                        .push(close_error.change_context(ShardCommandError::CloseStartupWriter));
+                    return Err(failures.change_context(ShardCommandError::RecoverStartup));
                 }
                 return Err(error);
             }
@@ -605,7 +739,7 @@ impl<S: JournalStorage> OpenedShard<S> {
             writer
                 .close()
                 .await
-                .change_context(ShardCommandError::recovery("close unopened shard loop"))?;
+                .change_context(ShardCommandError::CloseUnrecoveredWriter)?;
         }
         Ok(())
     }
@@ -679,9 +813,7 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
             writer
                 .close()
                 .await
-                .change_context(ShardCommandError::recovery(
-                    "close recovered shard before enable",
-                ))?;
+                .change_context(ShardCommandError::CloseRecoveredWriter)?;
         }
         Ok(())
     }
@@ -727,13 +859,13 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         let error = &failure.error;
         tracing::error!(
             shard = %crate::routing::shard_path(self.location.shard),
-            kind = ?error.current_context().kind,
+            kind = ?error.current_context().kind(),
             ?error,
             "stopping shard command loop after terminal failure"
         );
         let context = error.current_context().clone();
         failure.reply();
-        if context.kind == ShardCommandErrorKind::Fenced
+        if context.kind() == ShardCommandErrorKind::Fenced
             && let Some(snapshot_context) = &self.snapshot_context
         {
             D::note_fenced(snapshot_context);
@@ -760,10 +892,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             let command = tokio::select! {
                 biased;
                 () = self.ownership_lost.cancelled() => {
-                    return Err(CommandFailure::from(Report::new(ShardCommandError {
-                        kind: ShardCommandErrorKind::Fenced,
-                        message: "shard ownership was lost".to_owned(),
-                    })));
+                    return Err(CommandFailure::from(Report::new(ShardCommandError::OwnershipLost)));
                 }
                 command = self.receiver.recv() => command,
             };
@@ -818,15 +947,13 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                 Command::Shutdown { reply } => {
                     self.admission_closed.cancel();
                     self.receiver.close();
-                    self.reject_queued(&ShardCommandError::closed(
-                        "shard command loop is shutting down",
-                    ));
+                    self.reject_queued(&ShardCommandError::ShuttingDown);
                     let result = self.close_writer().await;
                     send_reply(reply, result)
                 }
             };
             if let Err(failure) = result {
-                let kind = failure.error.current_context().kind;
+                let kind = failure.error.current_context().kind();
                 if shutting_down
                     || (kind.is_terminal()
                         && !(committing_snapshot && kind == ShardCommandErrorKind::CommitUnknown))
@@ -849,10 +976,11 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         request: &D::ControlRequest,
     ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
         if D::control_shard(request) != self.location.shard {
-            return Err(Report::new(ShardCommandError {
-                kind: ShardCommandErrorKind::InvalidCandidate,
-                message: D::describe_foreign_control(request),
-            }));
+            return Err(Report::new(ShardCommandError::ControlShardMismatch {
+                expected: self.location.shard,
+                actual: D::control_shard(request),
+            })
+            .attach(D::describe_foreign_control(request)));
         }
         D::inspect_control(&self.projection, request)
     }
@@ -872,7 +1000,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             });
         }
         let record = D::build_control_record(&self.projection, &request, preflight_rejection)
-            .change_context(ShardCommandError::invalid_candidate("build control record"))?;
+            .change_context(ShardCommandError::BuildControlRecord {
+                event_id: D::control_event_id(&request),
+            })?;
         let append = match self.process(record).await? {
             ShardCommandOutcome::Applied {
                 event_id,
@@ -886,12 +1016,16 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             }
             ShardCommandOutcome::Rejected { rejection } => {
                 return Err(Report::new(rejection).change_context(
-                    ShardCommandError::invalid_candidate("control record rejected"),
+                    ShardCommandError::ControlRecordRejected {
+                        event_id: D::control_event_id(&request),
+                    },
                 ));
             }
         };
         let outcome = D::control_outcome_after_append(&self.projection, &request)
-            .change_context_lazy(|| ShardCommandError::recovery("read stored control outcome"))?;
+            .change_context_lazy(|| ShardCommandError::ReadControlOutcome {
+                event_id: D::control_event_id(&request),
+            })?;
         Ok(ControlResolution { append, outcome })
     }
 
@@ -919,37 +1053,29 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             };
 
             if self.ownership_lost.is_cancelled() {
-                return Err(Report::new(ShardCommandError {
-                    kind: ShardCommandErrorKind::Fenced,
-                    message: "shard ownership was lost before append".to_owned(),
-                }));
+                return Err(Report::new(ShardCommandError::OwnershipLostBeforeAppend));
             }
             let append_result = self.append(&record).await;
             match append_result {
                 Ok(sequence) => {
-                    if let Err(error) = D::finalize(&mut self.projection, delta, sequence) {
+                    if let Err(error) = D::finalize(&mut self.projection, delta, sequence)
+                        .change_context(ShardCommandError::FinalizeRecord { event_id, sequence })
+                    {
                         // The record is durable even though the state update failed. Recover
                         // and verify that it was applied before accepting another command.
-                        self.recover_after_failure(Report::new(error).change_context(
-                            ShardCommandError::recovery("finalize failed after durable append"),
-                        ))
-                        .await?;
+                        self.recover_after_failure(event_id, error).await?;
                         return match D::prepare(&self.projection, &record) {
                             Ok(Prepared::Noop) => {
                                 self.notify_state_change_if_established(&integration_id);
                                 Ok(ShardCommandOutcome::AlreadyDurable { event_id })
                             }
                             Ok(Prepared::Mutation(_)) => {
-                                Err(Report::new(ShardCommandError::recovery(format!(
-                                    "event {event_id} was acknowledged but is absent after \
-                                     recovery"
-                                ))))
+                                Err(Report::new(ShardCommandError::MissingRecoveredEvent {
+                                    event_id,
+                                }))
                             }
                             Err(prepare_error) => Err(Report::new(prepare_error).change_context(
-                                ShardCommandError::recovery(format!(
-                                    "event {event_id} was acknowledged but conflicts after \
-                                     recovery"
-                                )),
+                                ShardCommandError::ConflictingRecoveredEvent { event_id },
                             )),
                         };
                     }
@@ -961,23 +1087,27 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                         shard_sequence: sequence,
                     });
                 }
-                Err(error)
-                    if error.current_context().kind
-                        == AppendFailureKind::DefinitelyNotCommitted =>
-                {
-                    if safe_failures >= self.safe_append_retries {
-                        return Err(ShardCommandError::from_append(error));
+                Err(error) => {
+                    let kind = error.current_context().kind;
+                    let context = ShardCommandError::AppendEvent { event_id, kind };
+                    match kind {
+                        AppendFailureKind::DefinitelyNotCommitted => {
+                            if safe_failures >= self.safe_append_retries {
+                                return Err(error.change_context(context));
+                            }
+                            safe_failures = safe_failures.saturating_add(1);
+                        }
+                        AppendFailureKind::CommitUnknown => {
+                            self.recover_after_failure(event_id, error.change_context(context))
+                                .await?;
+                            // After recovery, `prepare` detects the stored event or a conflicting
+                            // ID. If the event is absent, retry it
+                            // before processing another command.
+                            safe_failures = 0;
+                        }
+                        AppendFailureKind::Fenced => return Err(error.change_context(context)),
                     }
-                    safe_failures = safe_failures.saturating_add(1);
                 }
-                Err(error) if error.current_context().kind == AppendFailureKind::CommitUnknown => {
-                    self.recover_after_failure(ShardCommandError::from_append(error))
-                        .await?;
-                    // After recovery, `prepare` detects the stored event or a conflicting ID.
-                    // If the event is absent, retry it before processing another command.
-                    safe_failures = 0;
-                }
-                Err(error) => return Err(ShardCommandError::from_append(error)),
             }
         }
     }
@@ -986,53 +1116,44 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         &mut self,
         snapshot: D::Snapshot,
     ) -> Result<u64, Report<ShardCommandError>> {
-        let (snapshot_shard, snapshot_through) = D::snapshot_bounds(&snapshot)
-            .change_context_lazy(|| ShardCommandError::recovery("read snapshot bounds"))?;
+        let (snapshot_shard, snapshot_through) =
+            D::snapshot_bounds(&snapshot).change_context(ShardCommandError::ReadSnapshotBounds)?;
         if snapshot_shard != self.location.shard {
-            return Err(Report::new(ShardCommandError {
-                kind: ShardCommandErrorKind::InvalidCandidate,
-                message: format!(
-                    "projection snapshot for shard {} was proposed to shard {}",
-                    crate::routing::shard_path(snapshot_shard),
-                    crate::routing::shard_path(self.location.shard)
-                ),
+            return Err(Report::new(ShardCommandError::SnapshotShardMismatch {
+                expected: self.location.shard,
+                actual: snapshot_shard,
             }));
         }
         let Some(current_sequence) = D::through_sequence(&self.projection) else {
-            return Err(Report::new(ShardCommandError {
-                kind: ShardCommandErrorKind::InvalidCandidate,
-                message: "cannot reference a snapshot for an empty projection".to_owned(),
-            }));
+            return Err(Report::new(ShardCommandError::SnapshotForEmptyProjection));
         };
         if snapshot_through > current_sequence {
-            return Err(Report::new(ShardCommandError {
-                kind: ShardCommandErrorKind::InvalidCandidate,
-                message: format!(
-                    "projection snapshot through {snapshot_through} is ahead of current \
-                     projection {current_sequence}"
-                ),
+            return Err(Report::new(ShardCommandError::SnapshotAheadOfProjection {
+                snapshot_through,
+                current_sequence,
             }));
         }
 
         self.location
             .registry
             .require::<D::Snapshot>()
-            .change_context_lazy(|| ShardCommandError::recovery("validate snapshot declaration"))?;
-        let bytes = bytes::Bytes::from(snapshot.encode().change_context(
-            ShardCommandError::invalid_candidate("encode projection snapshot"),
-        )?);
+            .change_context_lazy(|| ShardCommandError::ValidateSnapshotRegistration {
+                name: D::Snapshot::declaration().name,
+            })?;
+        let bytes = bytes::Bytes::from(
+            snapshot
+                .encode()
+                .change_context(ShardCommandError::EncodeSnapshot)?,
+        );
         let mut safe_failures = 0_u32;
         loop {
             if self.ownership_lost.is_cancelled() {
-                return Err(Report::new(ShardCommandError {
-                    kind: ShardCommandErrorKind::Fenced,
-                    message: "shard ownership was lost before snapshot append".to_owned(),
-                }));
+                return Err(Report::new(ShardCommandError::OwnershipLostBeforeSnapshot));
             }
             let writer = self
                 .writer
                 .as_ref()
-                .ok_or_else(|| ShardCommandError::recovery("shard writer is unavailable"))?;
+                .ok_or(ShardCommandError::WriterUnavailable)?;
             match writer
                 .append_encoded(super::PROJECTION_SNAPSHOTS_KEY, bytes.clone())
                 .await
@@ -1043,16 +1164,18 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                         .max(Some(snapshot_through));
                     return Ok(sequence);
                 }
-                Err(error)
-                    if error.current_context().kind
-                        == AppendFailureKind::DefinitelyNotCommitted =>
-                {
-                    if safe_failures >= self.safe_append_retries {
-                        return Err(ShardCommandError::from_append(error));
+                Err(error) => {
+                    let kind = error.current_context().kind;
+                    if kind != AppendFailureKind::DefinitelyNotCommitted
+                        || safe_failures >= self.safe_append_retries
+                    {
+                        return Err(error.change_context(ShardCommandError::AppendSnapshot {
+                            through_sequence: snapshot_through,
+                            kind,
+                        }));
                     }
                     safe_failures = safe_failures.saturating_add(1);
                 }
-                Err(error) => return Err(ShardCommandError::from_append(error)),
             }
         }
     }
@@ -1093,40 +1216,42 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
 
     async fn recover_after_failure(
         &mut self,
+        event_id: EventId,
         failure: Report<ShardCommandError>,
     ) -> Result<(), Report<ShardCommandError>> {
+        if self.recovery_mode == RecoveryMode::FullLeaseHandshake {
+            return Err(failure.change_context(ShardCommandError::LeaseRequired { event_id }));
+        }
         if let Err(recovery) = self.recover_durable_prefix().await {
-            let kind = recovery.current_context().kind;
             let mut failures = failure.expand();
             failures.push(recovery);
-            return Err(failures.change_context(ShardCommandError {
-                kind,
-                message: "recover shard after command failure".to_owned(),
-            }));
+            return Err(
+                failures.change_context(ShardCommandError::RecoverAfterFailure { event_id })
+            );
         }
         Ok(())
     }
 
     async fn recover_durable_prefix(&mut self) -> Result<(), Report<ShardCommandError>> {
-        if self.recovery_mode == RecoveryMode::FullLeaseHandshake {
-            return Err(Report::new(ShardCommandError {
-                kind: ShardCommandErrorKind::CommitUnknown,
-                message: "shard writer recovery requires acquiring a new lease".to_owned(),
-            }));
-        }
         if let Some(writer) = self.writer.take() {
             // Reopening obtains a new writer epoch even if closing the old writer fails.
-            let _: Result<_, _> = writer.close().await;
+            if let Err(error) = writer.close().await {
+                tracing::warn!(
+                    shard = %crate::routing::shard_path(self.location.shard),
+                    ?error,
+                    "failed to close shard writer before recovery"
+                );
+            }
         }
         let writer = ShardLogWriter::open(&self.location)
             .await
-            .change_context(ShardCommandError::recovery("reopen shard writer"))?;
+            .change_context(ShardCommandError::ReopenWriter)?;
         let durable_end_exclusive = writer.durable_end_exclusive();
         self.writer = Some(writer);
         let writer = self
             .writer
             .as_ref()
-            .ok_or_else(|| ShardCommandError::recovery("reopened shard writer is unavailable"))?;
+            .ok_or(ShardCommandError::WriterUnavailable)?;
         let recovered = replay_with_snapshots::<D>(
             writer,
             self.location.shard,
@@ -1134,9 +1259,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             self.snapshot_context.as_ref(),
         )
         .await?;
-        D::validate_recovered_prefix(&self.projection, &recovered.projection).change_context_lazy(
-            || ShardCommandError::recovery("validate recovered journal prefix"),
-        )?;
+        D::validate_recovered_prefix(&self.projection, &recovered.projection)
+            .change_context(ShardCommandError::ValidateRecoveredPrefix)?;
         self.projection = recovered.projection;
         self.last_snapshot_attempt_through_log_sequence = self
             .last_snapshot_attempt_through_log_sequence
@@ -1179,7 +1303,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             writer
                 .close()
                 .await
-                .change_context(ShardCommandError::recovery("close shard writer"))?;
+                .change_context(ShardCommandError::CloseWriter)?;
         }
         Ok(())
     }
@@ -1333,7 +1457,7 @@ async fn replay_durable_suffix<D: EventDomain>(
     let records = writer
         .scan_suffix(through_sequence, durable_end_exclusive)
         .await
-        .change_context(ShardCommandError::recovery("read stored journal events"));
+        .change_context(ShardCommandError::ReadJournal);
     let records = records?;
 
     tracing::info!(
@@ -1348,7 +1472,7 @@ async fn replay_durable_suffix<D: EventDomain>(
     let replayed_events = u64::try_from(records.len()).unwrap_or(u64::MAX);
     for (sequence, record) in records {
         D::replay(&mut recovered, shard, sequence, record)
-            .change_context_lazy(|| ShardCommandError::recovery("replay stored journal event"))?;
+            .change_context(ShardCommandError::ReplayRecord { sequence })?;
     }
     Ok((recovered, replayed_events))
 }

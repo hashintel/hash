@@ -456,7 +456,7 @@ impl Driver<'_> {
                 );
                 self.rejected.insert(record.event_id());
             }
-            Err(error) => match error.current_context().kind {
+            Err(error) => match error.current_context().kind() {
                 ShardCommandErrorKind::InvalidCandidate => {
                     panic!("proposal validation should return a typed rejection: {error}")
                 }
@@ -468,11 +468,11 @@ impl Driver<'_> {
                     properties::covered(
                         coverage,
                         &properties::WRITER_FENCED,
-                        error.current_context().kind == ShardCommandErrorKind::Fenced,
+                        error.current_context().kind() == ShardCommandErrorKind::Fenced,
                     );
                     self.trace.push(format!(
                         "command loop failed ({:?}); reopening",
-                        error.current_context().kind
+                        error.current_context().kind()
                     ));
                     self.crash_and_recover(coverage).await;
                 }
@@ -591,7 +591,7 @@ impl Driver<'_> {
             Ok(_sequence) => {}
             Err(error)
                 if matches!(
-                    error.current_context().kind,
+                    error.current_context().kind(),
                     ShardCommandErrorKind::Fenced
                         | ShardCommandErrorKind::CommitUnknown
                         | ShardCommandErrorKind::Recovery
@@ -600,7 +600,7 @@ impl Driver<'_> {
             {
                 self.trace.push(format!(
                     "snapshot save failed ({:?})",
-                    error.current_context().kind
+                    error.current_context().kind()
                 ));
                 self.crash_and_recover(coverage).await;
             }

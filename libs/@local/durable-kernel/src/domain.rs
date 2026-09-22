@@ -25,7 +25,7 @@ use crate::{
         VersionedRecord, reject_unknown_fields,
     },
     routing::{SHARD_COUNT, Shard},
-    shard_log::{ShardCommandError, ShardCommandErrorKind, ShardCommandHandle},
+    shard_log::{ShardCommandError, ShardCommandHandle},
 };
 
 pub const MAX_PARTITION_KEY_BYTES: usize = 1024;
@@ -1090,9 +1090,8 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
             .downcast::<R>()
             .map(|value| *value)
             .map_err(|_value| {
-                Report::new(ShardCommandError {
-                    kind: ShardCommandErrorKind::Recovery,
-                    message: "read closure returned an unexpected type".to_owned(),
+                Report::new(ShardCommandError::UnexpectedQueryResult {
+                    expected: core::any::type_name::<R>(),
                 })
             })
     }
@@ -1126,8 +1125,8 @@ mod tests {
         routing::Shard,
         shard_log::{
             AppendFailureKind, JournalStorage, OpenedShard, RecoveredShard, ShardAppendError,
-            ShardCommandConfig, ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation,
-            StartedShard,
+            ShardCommandConfig, ShardCommandError, ShardCommandErrorKind, ShardCommandOutcome,
+            ShardLogLocation, StartedShard,
         },
         sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
     };
@@ -1713,7 +1712,7 @@ mod tests {
                 .err()
                 .expect("a corrupt event should stop recovery");
             assert_eq!(
-                error.current_context().kind,
+                error.current_context().kind(),
                 ShardCommandErrorKind::Recovery
             );
             assert_eq!(
@@ -1766,7 +1765,7 @@ mod tests {
             .err()
             .expect("a record for another shard should stop recovery");
         assert_eq!(
-            error.current_context().kind,
+            error.current_context().kind(),
             ShardCommandErrorKind::Recovery
         );
         assert_eq!(
@@ -2023,7 +2022,10 @@ mod tests {
                 let error = blocked.await.expect_err(
                     "shutdown should release blocked admission before the queue advances",
                 );
-                assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+                assert_eq!(
+                    error.current_context().kind(),
+                    ShardCommandErrorKind::Closed
+                );
                 let shutdown = if cancel_shutdown {
                     drop(shutdown);
                     None
@@ -2035,7 +2037,10 @@ mod tests {
                     let result = proposal.await.expect("proposal task should join");
                     if cancel_shutdown && index == 1 {
                         let error = result.expect_err("losing the owner should stop accepted work");
-                        assert_eq!(error.current_context().kind, ShardCommandErrorKind::Fenced);
+                        assert_eq!(
+                            error.current_context().kind(),
+                            ShardCommandErrorKind::Fenced
+                        );
                     } else {
                         assert!(matches!(
                             result.expect("accepted proposal should finish"),
@@ -2049,7 +2054,7 @@ mod tests {
                 let result = started.task.await.expect("loop task should join");
                 if cancel_shutdown {
                     assert_eq!(
-                        result.expect_err("owner drop should stop the loop").kind,
+                        result.expect_err("owner drop should stop the loop").kind(),
                         ShardCommandErrorKind::Fenced
                     );
                     assert_eq!(
@@ -2091,13 +2096,16 @@ mod tests {
                 .propose(record)
                 .await
                 .expect_err("owner drop should close admission on existing clones");
-            assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+            assert_eq!(
+                error.current_context().kind(),
+                ShardCommandErrorKind::Closed
+            );
             let error = started
                 .task
                 .await
                 .expect("loop task should join")
                 .expect_err("owner drop should wake the idle loop");
-            assert_eq!(error.kind, ShardCommandErrorKind::Fenced);
+            assert_eq!(error.kind(), ShardCommandErrorKind::Fenced);
             assert!(
                 journal.durable_entries(SimKey::Events).is_empty(),
                 "a stopped shard should not write the rejected proposal"
@@ -2112,6 +2120,7 @@ mod tests {
         tokio::time::timeout(Duration::from_secs(5), async {
             let journal = SimLogHandle::new(42, Vec::new());
             let record = incremented("orders", 5);
+            let event_id = record.event_id();
             let location = ShardLogLocation::simulated(
                 shard_of(record.partition()),
                 journal.clone(),
@@ -2142,8 +2151,12 @@ mod tests {
                 .expect("active proposal should join")
                 .expect_err("injected append should fail");
             assert_eq!(
-                failure.current_context().kind,
-                ShardCommandErrorKind::Fenced
+                failure.current_context(),
+                &ShardCommandError::AppendEvent {
+                    event_id,
+                    kind: AppendFailureKind::Fenced,
+                },
+                "the failed proposal should identify its event and retry classification"
             );
             assert_eq!(
                 failure
@@ -2162,8 +2175,10 @@ mod tests {
                 .expect("queued proposal should join")
                 .expect_err("queued proposal should stop");
             assert_eq!(
-                stopped.current_context().kind,
-                ShardCommandErrorKind::Fenced
+                stopped.current_context(),
+                failure.current_context(),
+                "queued callers should receive the event ID and classification that stopped the \
+                 loop"
             );
             assert!(
                 format!("{stopped:?}").contains("command was queued"),
@@ -2174,7 +2189,11 @@ mod tests {
                 .await
                 .expect("loop task should join")
                 .expect_err("fencing should stop the loop");
-            assert_eq!(terminal.kind, ShardCommandErrorKind::Fenced);
+            assert_eq!(
+                &terminal,
+                failure.current_context(),
+                "the loop task should identify the event that stopped it"
+            );
         })
         .await
         .expect("terminal failure should release active and queued callers");
@@ -2211,13 +2230,16 @@ mod tests {
                 .await
                 .expect("loop task should join")
                 .expect_err("fencing should stop the loop after its caller disconnects");
-            assert_eq!(terminal.kind, ShardCommandErrorKind::Fenced);
+            assert_eq!(terminal.kind(), ShardCommandErrorKind::Fenced);
             let error = started
                 .handle
                 .propose(incremented("orders", 7))
                 .await
                 .expect_err("stopped loop should reject new proposals");
-            assert_eq!(error.current_context().kind, ShardCommandErrorKind::Closed);
+            assert_eq!(
+                error.current_context().kind(),
+                ShardCommandErrorKind::Closed
+            );
         })
         .await
         .expect("terminal failure should stop the loop without a waiting caller");
@@ -2252,7 +2274,7 @@ mod tests {
             .await
             .expect_err("the injected append failure should be returned");
         assert_eq!(
-            error.current_context().kind,
+            error.current_context().kind(),
             ShardCommandErrorKind::DefinitelyNotCommitted
         );
         let after_failure = handle
@@ -2616,12 +2638,19 @@ mod tests {
             .expect("capture should succeed")
             .expect("snapshot should be due")
             .into_record(Utc::now());
+        let (_, snapshot_through) =
+            Toy::snapshot_bounds(&snapshot).expect("captured snapshot should have valid bounds");
         journal.force_outcomes([outcome]);
         let error = started
             .handle
             .commit_snapshot(snapshot)
             .await
             .expect_err("injected snapshot failure should be returned");
+        assert!(
+            matches!(error.current_context(), ShardCommandError::AppendSnapshot { through_sequence, .. }
+                if *through_sequence == snapshot_through),
+            "snapshot append failure should identify the captured journal position"
+        );
         (journal, started, error)
     }
 
@@ -2635,7 +2664,7 @@ mod tests {
         ] {
             let (journal, started, error) = snapshot_failure(outcome).await;
             assert_eq!(
-                error.current_context().kind,
+                error.current_context().kind(),
                 ShardCommandErrorKind::CommitUnknown
             );
             let next = incremented("orders", 7);
@@ -2655,13 +2684,15 @@ mod tests {
                 .expect("state should remain readable");
             assert_eq!(totals.get("orders"), Some(&12));
             journal.force_outcomes([SimAppendOutcome::CommitUnknownLost]);
+            let record = incremented("orders", 9);
+            let event_id = record.event_id();
             let error = started
                 .handle
-                .propose(incremented("orders", 9))
+                .propose(record)
                 .await
                 .expect_err("uncertain event commit should still stop the shard");
             assert_eq!(
-                error.current_context().kind,
+                error.current_context().kind(),
                 ShardCommandErrorKind::CommitUnknown
             );
             assert_eq!(
@@ -2671,9 +2702,10 @@ mod tests {
                     .kind,
                 AppendFailureKind::CommitUnknown
             );
-            assert!(
-                format!("{error:?}").contains("acquiring a new lease"),
-                "report should retain the recovery condition"
+            assert_eq!(
+                error.current_context(),
+                &ShardCommandError::LeaseRequired { event_id },
+                "lease recovery should identify the uncertain event"
             );
             started
                 .task
@@ -2713,7 +2745,7 @@ mod tests {
     async fn snapshot_fenced_stops_shard() {
         let (_, started, error) = snapshot_failure(crate::sim::SimAppendOutcome::Fenced).await;
         assert_eq!(
-            error.current_context().kind,
+            error.current_context().kind(),
             crate::shard_log::ShardCommandErrorKind::Fenced
         );
         let terminal = started
@@ -2722,7 +2754,7 @@ mod tests {
             .expect("task should join")
             .expect_err("fencing should stop the shard");
         assert_eq!(
-            terminal.kind,
+            terminal.kind(),
             crate::shard_log::ShardCommandErrorKind::Fenced
         );
     }
@@ -2758,7 +2790,7 @@ mod tests {
             .await
             .expect_err("oversized snapshot should fail");
         assert_eq!(
-            error.current_context().kind,
+            error.current_context().kind(),
             ShardCommandErrorKind::InvalidCandidate
         );
         assert!(
