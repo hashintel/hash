@@ -8,6 +8,8 @@ import {
 import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { CopyDetailsButton } from "./toaster/copy-details-button";
+
 export const notificationsToaster = createToaster({
   gap: 8,
   offsets: "16px",
@@ -121,16 +123,9 @@ export const NotificationsToaster = () => (
             {dismissible && (
               <div className={toastActionsStyle}>
                 {detail && (
-                  <Button
-                    aria-label="Copy details"
+                  <CopyDetailsButton
                     className={toastActionStyle}
-                    iconName="copy"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(detail);
-                    }}
-                    size="xs"
-                    tooltip="Copy details"
-                    variant="ghost"
+                    detail={detail}
                   />
                 )}
                 <Toast.CloseTrigger asChild>
