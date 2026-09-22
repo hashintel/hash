@@ -5,7 +5,7 @@ import {
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
   isConstructionMutationName,
-  isHostRecordedCanonicalMutationName,
+  isHostRecordedCanonicalMutation,
   isMutatePetrinautNetToolName,
   type MutatePetrinetInput,
   parseClientToolResultMetadata,
@@ -213,10 +213,9 @@ const verifyCanonicalPetrinautDelivery = async (input: {
   binding: BrowserBinding;
   history: ReturnType<typeof clientToolHistoryFrom>;
 }): Promise<void> => {
-  // Only the host-recorded names carry a record. Every other canonical
-  // mutation is plain Petrinaut execution: the Ledger fold keeps it
-  // `unrecorded`, and delivery is checked for identity and duplication only.
-  if (isHostRecordedCanonicalMutationName(input.call.toolName)) {
+  // The plugin owns the exact input scope the host can observe. Every other
+  // canonical mutation stays `unrecorded`; only identity and duplication apply.
+  if (isHostRecordedCanonicalMutation(input.call.toolName, input.call.input)) {
     const record = parseClientToolResultMetadata(
       input.delivery.metadata,
     )?.canonicalMutationRecord;

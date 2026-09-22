@@ -21,6 +21,7 @@ export {
   hostRecordedCanonicalMutationNames,
   type HostRecordedCanonicalMutationName,
   isConstructionMutationName,
+  isHostRecordedCanonicalMutation,
   isHostRecordedCanonicalMutationName,
   observedMutationOutcome,
   type ClassifiedMutationOutcome,

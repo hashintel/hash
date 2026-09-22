@@ -1,6 +1,7 @@
 import {
   canonicalContent,
   hostRecordedCanonicalMutationNames,
+  isHostRecordedCanonicalMutation,
   isHostRecordedCanonicalMutationName,
   parseClientToolResultMetadata,
   verifyCanonicalMutationRecord,
@@ -129,9 +130,11 @@ export const deriveCanonicalPetrinautReplay = async (input: {
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
     for (const part of message.parts) {
+      if (part.type !== "dynamic-tool") continue;
       if (
-        part.type !== "dynamic-tool" ||
-        !canonicalReplayToolNames.has(part.toolName)
+        !canonicalReplayToolNames.has(part.toolName) ||
+        (isHostRecordedCanonicalMutationName(part.toolName) &&
+          !isHostRecordedCanonicalMutation(part.toolName, part.input))
       )
         continue;
       const prior = calls.get(part.toolCallId);
@@ -285,8 +288,15 @@ const requiresDiagnostics = (record: BrowserCanonicalMutationRecord) => {
   return false;
 };
 
+type CanonicalMutationExecution =
+  BrowserCanonicalMutationRecord extends infer Record
+    ? Record extends BrowserCanonicalMutationRecord
+      ? Pick<Record, "toolName" | "input">
+      : never
+    : never;
+
 const executeCanonicalMutation = (
-  record: BrowserCanonicalMutationRecord,
+  record: CanonicalMutationExecution,
   params: PetrinautAiAutomaticToolExecuteParams,
 ) => {
   if (record.toolName === "addPlace")
@@ -647,6 +657,11 @@ export const createCanonicalPetrinautHostTools = (
       );
       if (params.handle !== input.handle)
         throw new Error("The tool call is not bound to this browser document.");
+      if (!isHostRecordedCanonicalMutation(toolName, parsedInput))
+        return executeCanonicalMutation(
+          { toolName, input: parsedInput } as CanonicalMutationExecution,
+          params,
+        );
 
       const terminal = terminalMutations.get(params.toolCallId);
       if (terminal !== undefined) {

@@ -1260,12 +1260,7 @@ export const isConstructionMutationName = (
   isObservedStateMutation(name) ||
   isBatchedStateMutation(name);
 
-/**
- * The direct canonical mutations the browser host currently surrounds with a
- * host-owned mutation record. Every other canonical mutation executes as plain
- * Petrinaut and is delivered without a record, so servers must not demand one.
- * Widen this list only together with the browser host adapter.
- */
+/** The canonical mutation names for which some inputs are host-observable. */
 export const hostRecordedCanonicalMutationNames = [
   "addPlace",
   "addTransition",
@@ -1278,6 +1273,30 @@ export const isHostRecordedCanonicalMutationName = (
   name: string,
 ): name is HostRecordedCanonicalMutationName =>
   hostRecordedCanonicalMutationNames.some((entry) => entry === name);
+
+/**
+ * The exact canonical mutation scope surrounded by browser-host observation.
+ * The browser host and delivery verifier must both use this predicate: all
+ * other canonical mutations execute and deliver as unrecorded Petrinaut calls.
+ */
+export const isHostRecordedCanonicalMutation = (
+  toolName: string,
+  input: unknown,
+): boolean => {
+  if (!isHostRecordedCanonicalMutationName(toolName)) return false;
+  try {
+    if (toolName === "addArc") {
+      const parsedInput = mutationActionInputSchemas.addArc.parse(input);
+      return (
+        !parsedInput.targetSubnetId && typeof parsedInput.placeId === "string"
+      );
+    }
+    const parsedInput = mutationActionInputSchemas[toolName].parse(input);
+    return !parsedInput.targetSubnetId;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Verify a canonical one-call sidecar against the issued call and delivered

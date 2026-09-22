@@ -27,6 +27,8 @@ import {
   deriveLayoutEffects,
   deriveMutationEffects,
   expectedNodeDefinition,
+  isHostRecordedCanonicalMutation,
+  isHostRecordedCanonicalMutationName,
   observedMutationOutcome,
   parseClientToolResultMetadata,
   reconcileMutationAttempts,
@@ -119,6 +121,69 @@ const request: ArcMutationRequest = {
     type: "standard",
   },
 };
+test.each([
+  [
+    "root addPlace",
+    "addPlace",
+    { ...pre.places[0], targetSubnetId: null },
+    true,
+  ],
+  [
+    "nested addPlace",
+    "addPlace",
+    { ...pre.places[0], targetSubnetId: "subnet-1" },
+    false,
+  ],
+  [
+    "root addTransition",
+    "addTransition",
+    { ...pre.transitions[0], targetSubnetId: null },
+    true,
+  ],
+  [
+    "nested addTransition",
+    "addTransition",
+    { ...pre.transitions[0], targetSubnetId: "subnet-1" },
+    false,
+  ],
+  ["root addArc", "addArc", { ...request.input, targetSubnetId: null }, true],
+  [
+    "nested addArc",
+    "addArc",
+    { ...request.input, targetSubnetId: "subnet-1" },
+    false,
+  ],
+  [
+    "component-port addArc",
+    "addArc",
+    {
+      transitionId: "a3-transition",
+      arcDirection: "input",
+      endpoint: {
+        kind: "componentPort",
+        componentInstanceId: "component-1",
+        portPlaceId: "port-1",
+      },
+      weight: 1,
+      type: "standard",
+      targetSubnetId: null,
+    },
+    false,
+  ],
+  ["malformed recorded name", "addPlace", { id: "only-an-id" }, false],
+  ["non-recorded name", "addParameter", { malformed: true }, false],
+] as const)(
+  "classifies the exact host-observed scope: $0",
+  (_label, toolName, input, expected) => {
+    expect(isHostRecordedCanonicalMutation(toolName, input)).toBe(expected);
+  },
+);
+
+test("keeps the name-only host-recording predicate", () => {
+  expect(isHostRecordedCanonicalMutationName("addPlace")).toBe(true);
+  expect(isHostRecordedCanonicalMutationName("addParameter")).toBe(false);
+});
+
 const applied = (): ArcMutationAttempt => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
