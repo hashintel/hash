@@ -4,6 +4,7 @@ use core::{
 };
 
 use durable_kernel::{
+    DurableError,
     domain::{
         DomainEvent, EventRecord, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
         shard_of,
@@ -159,9 +160,12 @@ async fn oversized_submission_preserves_recovery() {
         matches!(error.downcast_ref::<CompatError>(), Some(CompatError::TooLarge { actual_bytes, max_bytes, .. }) if *actual_bytes == MAX_RECORD_BYTES + 1 && *max_bytes == MAX_RECORD_BYTES),
         "submission failure should retain the codec error"
     );
-    assert!(
-        format!("{error:?}").contains("encode durable shard record"),
-        "submission failure should retain the append attachment"
+    assert_eq!(
+        error.downcast_ref::<DurableError>(),
+        Some(&DurableError::EncodeRecord {
+            name: Payload::name()
+        }),
+        "submission failure should identify the record encoding operation"
     );
     assert_eq!(
         running

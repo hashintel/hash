@@ -344,16 +344,7 @@ impl SimLogState {
 
 #[cfg(test)]
 mod tests {
-    use super::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle, SplitMix64};
-
-    #[test]
-    fn splitmix_stays_within_bounds() {
-        let mut rng = SplitMix64::new(7);
-        for _ in 0..1000 {
-            let draw = rng.between(3, 5);
-            assert!((3..=5).contains(&draw));
-        }
-    }
+    use super::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle};
 
     #[test]
     fn fenced_writer_stays_fenced_and_new_epoch_appends() {

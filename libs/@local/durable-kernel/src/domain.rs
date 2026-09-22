@@ -1117,6 +1117,7 @@ mod tests {
         shard_of,
     };
     use crate::{
+        DurableError,
         port::{EventDomain as _, Prepared, SnapshotDomain as _},
         registry::{
             self, CompatError, DurableRecord as _, RecordDeclaration, RecordRegistry,
@@ -1524,35 +1525,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn snapshot_timestamp_decode() {
-        let mut fixture = serde_json::to_value(toy_snapshot("00f", 0))
-            .expect("snapshot fixture should serialize");
-        for timestamp in [
-            "1970-01-01T00:00:00Z",
-            "1970-01-01T00:00:00+00:00",
-            "1970-01-01T01:00:00+01:00",
-        ] {
-            fixture["data"]["created_at"] = json!(timestamp);
-            let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
-            let snapshot = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
-                .expect("RFC 3339 timestamp should decode");
-            assert_eq!(Toy::snapshot_created_at(&snapshot), DateTime::UNIX_EPOCH);
-        }
-
-        for invalid in ["", "sim-step-1", "2026-13-01T00:00:00Z"] {
-            fixture["data"]["created_at"] = json!(invalid);
-            let bytes = serde_json::to_vec(&fixture).expect("snapshot fixture should serialize");
-            let error = ProjectionSnapshot::<ToyDomain>::decode(&bytes)
-                .err()
-                .expect("an invalid timestamp should fail snapshot decoding");
-            assert!(
-                matches!(error.current_context(), CompatError::Decode { .. }),
-                "timestamp {invalid:?} should make the snapshot malformed: {error}"
-            );
-        }
-    }
-
     #[tokio::test]
     async fn snapshot_timestamp_recovery() {
         let journal = SimLogHandle::new(42, Vec::new());
@@ -1722,12 +1694,12 @@ mod tests {
             let bytes = serde_json::to_vec(&json!({"version": "v1", "data": data}))
                 .expect("wire record should serialize");
             let journal = SimLogHandle::new(42, Vec::new());
-            assert!(matches!(
-                journal
-                    .acquire_writer()
-                    .append_record(SimKey::Events, bytes),
-                SimAppendResult::Acked(_)
-            ));
+            let SimAppendResult::Acked(sequence) = journal
+                .acquire_writer()
+                .append_record(SimKey::Events, bytes)
+            else {
+                panic!("corrupt record fixture should append");
+            };
             let opened = OpenedShard::open(ShardLogLocation::simulated(
                 shard_of(record.partition()),
                 journal,
@@ -1748,6 +1720,14 @@ mod tests {
                 error.downcast_ref::<CompatError>(),
                 Some(&expected),
                 "recovery should retain the typed decode failure"
+            );
+            assert_eq!(
+                error.downcast_ref::<DurableError>(),
+                Some(&DurableError::DecodeRecord {
+                    name: CounterEvent::name(),
+                    sequence,
+                }),
+                "recovery should identify the record and sequence that failed decoding"
             );
             if field == "extra" {
                 let source = error

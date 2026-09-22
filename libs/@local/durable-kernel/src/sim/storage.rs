@@ -110,7 +110,9 @@ fn sim_key(key: &[u8]) -> Result<SimKey, Report<DurableError>> {
     match key {
         b"events" => Ok(SimKey::Events),
         b"projection-snapshots" => Ok(SimKey::Snapshots),
-        _ => Err(Report::new(DurableError).attach("unknown simulated journal key")),
+        _ => Err(Report::new(DurableError::UnsupportedJournalKey {
+            key: Bytes::copy_from_slice(key),
+        })),
     }
 }
 

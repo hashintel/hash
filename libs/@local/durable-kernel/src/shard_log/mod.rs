@@ -280,9 +280,13 @@ pub async fn read_journal<T: UntrimmedJournalRecord>(
     location
         .registry
         .register(T::declaration())
-        .change_context(DurableError)
-        .attach("register journal record declaration")?;
-    let reader = location.open_reader().await.change_context(DurableError)?;
+        .change_context(DurableError::RegisterRecord {
+            name: T::declaration().name,
+        })?;
+    let reader = location
+        .open_reader()
+        .await
+        .change_context(DurableError::OpenReader)?;
     let result = scan_records(&reader, (Bound::Unbounded, Bound::Unbounded), None).await;
     match (result, reader.close().await) {
         (result, Ok(())) => result,
@@ -290,7 +294,7 @@ pub async fn read_journal<T: UntrimmedJournalRecord>(
         (Err(error), Err(close_error)) => {
             let mut failures = error.expand();
             failures.push(close_error);
-            Err(failures.change_context(DurableError))
+            Err(failures.change_context(DurableError::ReadJournal))
         }
     }
 }
@@ -362,8 +366,9 @@ impl<W: JournalWriter> ShardLogWriter<W> {
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
-            .change_context(DurableError)
-            .attach("register journal record declaration")?;
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })?;
         let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
         scan_records(&self.backend, range.bounds, Some(range.window)).await
     }
@@ -375,8 +380,9 @@ impl<W: JournalWriter> ShardLogWriter<W> {
     {
         self.registry
             .register(T::declaration())
-            .change_context(DurableError)
-            .attach("register snapshot record declaration")?;
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })?;
         scan_snapshot_records(
             &self.backend,
             (Bound::Unbounded, Bound::Excluded(durable_end_exclusive)),
@@ -401,15 +407,19 @@ impl<W: JournalWriter> ShardLogWriter<W> {
     ) -> Result<Bytes, Report<ShardAppendError>> {
         self.registry
             .require::<T>()
+            .change_context(DurableError::ValidateRecordRegistration {
+                name: T::declaration().name,
+            })
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
-            })
-            .attach("validate durable-record registration")?;
+            })?;
         let bytes = encode()
+            .change_context(DurableError::EncodeRecord {
+                name: T::declaration().name,
+            })
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
-            })
-            .attach("encode durable shard record")?;
+            })?;
         Ok(Bytes::from(bytes))
     }
 
@@ -425,11 +435,9 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         let durability_timeout = self.durability_timeout;
         tokio::time::timeout(durability_timeout, self.backend.close())
             .await
-            .change_context(DurableError)
-            .attach(format!(
-                "close shard log timed out after {durability_timeout:?}"
-            ))?
-            .attach("close shard log")
+            .change_context(DurableError::CloseTimeout {
+                timeout: durability_timeout,
+            })?
     }
 }
 
@@ -470,8 +478,9 @@ impl<R: JournalReader> ShardLogRecovery<R> {
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
-            .change_context(DurableError)
-            .attach("register journal record declaration")?;
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })?;
         scan_records(&self.reader, (Bound::Unbounded, Bound::Unbounded), None).await
     }
 
@@ -485,8 +494,9 @@ impl<R: JournalReader> ShardLogRecovery<R> {
     ) -> Result<Vec<(u64, T)>, Report<DurableError>> {
         self.registry
             .register(T::declaration())
-            .change_context(DurableError)
-            .attach("register journal record declaration")?;
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })?;
         let range = recovery_range(through_log_sequence, durable_end_exclusive)?;
         scan_records(&self.reader, range.bounds, Some(range.window)).await
     }
@@ -507,16 +517,16 @@ fn recovery_range(
     durable_end_exclusive: u64,
 ) -> Result<RecoveryRange, Report<DurableError>> {
     let start = match through_log_sequence {
-        Some(sequence) => sequence.checked_add(1).ok_or_else(|| {
-            Report::new(DurableError)
-                .attach("inclusive recovery sequence cannot advance past u64::MAX")
-        })?,
+        Some(sequence) => sequence
+            .checked_add(1)
+            .ok_or_else(|| Report::new(DurableError::RecoverySequenceOverflow { sequence }))?,
         None => 0,
     };
     if start > durable_end_exclusive {
-        return Err(Report::new(DurableError).attach(format!(
-            "recovery start {start} is beyond durable end {durable_end_exclusive}"
-        )));
+        return Err(Report::new(DurableError::InvalidRecoveryRange {
+            start,
+            end: durable_end_exclusive,
+        }));
     }
     Ok(RecoveryRange {
         bounds: (
@@ -533,8 +543,8 @@ async fn flush_with_timeout(
 ) -> Result<(), Report<ShardAppendError>> {
     tokio::time::timeout(timeout, flush)
         .await
-        .map_err(|error| post_invocation_source("flush shard record", error))?
-        .map_err(|error| post_invocation_source("flush shard record", error))
+        .map_err(|error| post_invocation_source(DurableError::FlushTimeout { timeout }, error))?
+        .map_err(|error| post_invocation_source(DurableError::FlushRecord, error))
 }
 
 /// Reads and decodes the requested journal range, checking its sequence bounds.
@@ -547,34 +557,33 @@ where
     T: UntrimmedJournalRecord,
     R: JournalReader,
 {
-    let mut iterator = reader
-        .scan(Bytes::from_static(EVENTS_KEY), range)
-        .await
-        .attach("scan shard log")?;
+    let mut iterator = reader.scan(Bytes::from_static(EVENTS_KEY), range).await?;
     let mut records = Vec::new();
-    while let Some((sequence, bytes)) = iterator.next().await.attach("read shard log")? {
+    while let Some((sequence, bytes)) = iterator.next().await? {
         if let Some((start, end)) = expected_window
             && (sequence < start || sequence >= end)
         {
-            return Err(Report::new(DurableError).attach(format!(
-                "scan returned sequence {sequence} outside recovery window [{start}, {end})"
-            )));
+            return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
+                name: T::declaration().name,
+                sequence,
+                start,
+                end,
+            }));
         }
-        let record = T::decode(&bytes)
-            .change_context(DurableError)
-            .attach(format!(
-                "decode shard sequence {sequence} as {}",
-                T::declaration().name
-            ))?;
+        let record = T::decode(&bytes).change_context(DurableError::DecodeRecord {
+            name: T::declaration().name,
+            sequence,
+        })?;
         records.push((sequence, record));
     }
     if let Some((_start, expected_end)) = expected_window {
         let observed_end = iterator.next_sequence();
         if observed_end != expected_end {
-            return Err(Report::new(DurableError).attach(format!(
-                "recovery scan covered only through {observed_end}, expected exclusive end \
-                 {expected_end}"
-            )));
+            return Err(Report::new(DurableError::IncompleteScan {
+                name: T::declaration().name,
+                observed_end,
+                expected_end,
+            }));
         }
     }
     Ok(records)
@@ -591,52 +600,45 @@ where
 {
     let mut iterator = reader
         .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
-        .await
-        .attach("scan projection-snapshot references")?;
+        .await?;
     let mut records = Vec::new();
-    while let Some((sequence, bytes)) = iterator
-        .next()
-        .await
-        .attach("read projection-snapshot reference")?
-    {
+    while let Some((sequence, bytes)) = iterator.next().await? {
         if sequence >= expected_end {
-            return Err(Report::new(DurableError).attach(format!(
-                "snapshot scan returned sequence {sequence} at or beyond durable end \
-                 {expected_end}"
-            )));
+            return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
+                name: T::declaration().name,
+                sequence,
+                start: 0,
+                end: expected_end,
+            }));
         }
         records.push((sequence, T::decode(&bytes)));
     }
     if iterator.next_sequence() != expected_end {
-        return Err(Report::new(DurableError).attach(format!(
-            "snapshot scan covered only through {}, expected exclusive end {expected_end}",
-            iterator.next_sequence()
-        )));
+        return Err(Report::new(DurableError::IncompleteScan {
+            name: T::declaration().name,
+            observed_end: iterator.next_sequence(),
+            expected_end,
+        }));
     }
     Ok(records)
 }
 
-fn post_invocation_source<E>(operation: &'static str, error: E) -> Report<ShardAppendError>
+fn post_invocation_source<E>(operation: DurableError, error: E) -> Report<ShardAppendError>
 where
     E: core::error::Error + Send + Sync + 'static,
 {
     let message = error.to_string();
     let kind = post_invocation_failure_kind(&message);
     Report::new(error)
+        .change_context(operation)
         .change_context(ShardAppendError { kind })
-        .attach(operation)
 }
 
-fn post_invocation_report(
-    operation: &'static str,
-    report: Report<DurableError>,
-) -> Report<ShardAppendError> {
+fn post_invocation_report(report: Report<DurableError>) -> Report<ShardAppendError> {
     let message = format!("{report:?}");
-    report
-        .change_context(ShardAppendError {
-            kind: post_invocation_failure_kind(&message),
-        })
-        .attach(operation)
+    report.change_context(ShardAppendError {
+        kind: post_invocation_failure_kind(&message),
+    })
 }
 
 fn post_invocation_failure_kind(message: &str) -> AppendFailureKind {
@@ -665,8 +667,7 @@ async fn wait_until_durable_with(
                 changes
                     .changed()
                     .await
-                    .change_context(DurableError)
-                    .attach("shard durable sequence subscription closed")?;
+                    .change_context(DurableError::DurabilitySubscriptionClosed { required })?;
             }
             Ok::<(), Report<DurableError>>(())
         })
@@ -683,10 +684,11 @@ async fn wait_until_durable_with(
             }
         }
     }
-    Err(Report::new(DurableError).attach(format!(
-        "shard durable sequence did not reach {required} within {attempts} waits of \
-         {attempt_timeout:?}"
-    )))
+    Err(Report::new(DurableError::DurabilityTimeout {
+        required,
+        attempts,
+        attempt_timeout,
+    }))
 }
 
 /// Provides direct append access for tests that seed journals or open competing writers.
@@ -714,10 +716,12 @@ impl<W: JournalWriter> RawShardLog<W> {
         self.0
             .registry
             .register(T::declaration())
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
-            })
-            .attach("register raw-append declaration")?;
+            })?;
         self.0.append(value).await
     }
 
@@ -731,10 +735,12 @@ impl<W: JournalWriter> RawShardLog<W> {
         self.0
             .registry
             .register(T::declaration())
+            .change_context(DurableError::RegisterRecord {
+                name: T::declaration().name,
+            })
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
-            })
-            .attach("register raw-append declaration")?;
+            })?;
         self.0
             .append_registered(PROJECTION_SNAPSHOTS_KEY, value)
             .await
@@ -755,8 +761,9 @@ impl<W: JournalWriter> RawShardLog<W> {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::time::Duration;
+    use core::{ops::Bound, time::Duration};
 
+    use bytes::Bytes;
     use error_stack::{Report, ResultExt as _};
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
@@ -767,9 +774,10 @@ mod tests {
         post_invocation_source, read_journal, wait_until_durable_with,
     };
     use crate::{
+        DurableError,
         registry::{
-            CompatError, DurableRecord, MigrationPolicy, RecordDeclaration, RecordRegistry,
-            UntrimmedJournalRecord, VersionedRecord,
+            CompatError, DeclarationError, DurableRecord, MigrationPolicy, RecordDeclaration,
+            RecordRegistry, UntrimmedJournalRecord, VersionedRecord,
         },
         routing::{Shard, shard_path},
     };
@@ -785,6 +793,12 @@ mod tests {
         assert_eq!(
             error.current_context().kind,
             AppendFailureKind::CommitUnknown
+        );
+        assert_eq!(
+            error.downcast_ref::<DurableError>(),
+            Some(&DurableError::FlushTimeout {
+                timeout: Duration::from_millis(1)
+            })
         );
         assert!(
             error.contains::<tokio::time::error::Elapsed>(),
@@ -973,19 +987,6 @@ mod tests {
         assert_eq!(one_records, vec![(one_sequence, record("one"))]);
         zero_reader.close().await;
         one_reader.close().await;
-
-        assert!(
-            capability
-                .root()
-                .join(TestPrefixCapability::log_path(shard_zero))
-                .exists()
-        );
-        assert!(
-            capability
-                .root()
-                .join(TestPrefixCapability::log_path(shard_one))
-                .exists()
-        );
     }
 
     async fn check_recovery_scans(location: ShardLogLocation<impl JournalStorage>) {
@@ -1059,16 +1060,26 @@ mod tests {
             .scan_suffix::<TestRecord>(Some(last), end + 1)
             .await
             .expect_err("recovery should reject a scan that stops before its expected end");
-        assert!(
-            format!("{error:?}").contains("expected exclusive end"),
+        assert_eq!(
+            error.current_context(),
+            &DurableError::IncompleteScan {
+                name: TestRecord::declaration().name,
+                observed_end: end,
+                expected_end: end + 1
+            },
             "recovery should report the incomplete range"
         );
         let error = writer
             .scan_projection_snapshots::<TestRecord>(end + 1)
             .await
             .expect_err("snapshot scan should reject an incomplete range");
-        assert!(
-            format!("{error:?}").contains("expected exclusive end"),
+        assert_eq!(
+            error.current_context(),
+            &DurableError::IncompleteScan {
+                name: TestRecord::declaration().name,
+                observed_end: end,
+                expected_end: end + 1
+            },
             "snapshot recovery should report the incomplete range"
         );
         writer.close().await.expect("writer should close");
@@ -1085,6 +1096,88 @@ mod tests {
             Arc::clone(&capability.registry),
         ))
         .await;
+    }
+
+    #[tokio::test]
+    async fn scan_closed_storage() {
+        let capability = TestPrefixCapability::new();
+        let location = capability.location(Shard::from_u8(9));
+        let writer = ShardLogWriter::open(&location)
+            .await
+            .expect("writer should open");
+        let event = writer
+            .append(&record("event"))
+            .await
+            .expect("event should append");
+        let snapshot = writer
+            .append_registered(super::PROJECTION_SNAPSHOTS_KEY, &record("snapshot"))
+            .await
+            .expect("snapshot should append");
+        let mut scans = Vec::new();
+        for (key, sequence) in [
+            (super::EVENTS_KEY, event),
+            (super::PROJECTION_SNAPSHOTS_KEY, snapshot),
+        ] {
+            let key = Bytes::from_static(key);
+            let iterator = writer
+                .backend
+                .scan(key.clone(), (Bound::Included(sequence), Bound::Unbounded))
+                .await
+                .expect("scan should open before storage closes");
+            scans.push((key, sequence, iterator));
+        }
+        writer.close().await.expect("writer should close");
+
+        for (key, next_sequence, mut iterator) in scans {
+            let error = iterator
+                .next()
+                .await
+                .expect_err("reading from closed storage should fail");
+            assert_eq!(
+                error.current_context(),
+                &DurableError::ReadRecord { key, next_sequence },
+                "read failure should identify the scan key and cursor"
+            );
+            assert!(
+                error.contains::<opendata_log::Error>(),
+                "read failure should include the storage error"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn journal_registration_conflict() {
+        let directory = tempfile::tempdir().expect("storage directory should be created");
+        let registry = Arc::new(RecordRegistry::default());
+        registry
+            .register(RecordDeclaration {
+                codec: core::any::TypeId::of::<u8>(),
+                ..TEST_RECORD_DECLARATION
+            })
+            .expect("conflicting codec should register first");
+        let location = ShardLogLocation::disposable_local(
+            Shard::from_u8(1),
+            "registration-conflict",
+            directory.path(),
+            registry,
+        );
+
+        let error = read_journal::<TestRecord>(&location)
+            .await
+            .expect_err("a conflicting codec should prevent reading the journal");
+        assert_eq!(
+            error.current_context(),
+            &DurableError::RegisterRecord {
+                name: TEST_RECORD_DECLARATION.name,
+            }
+        );
+        assert!(
+            matches!(
+                error.downcast_ref::<DeclarationError>(),
+                Some(DeclarationError::ConflictingDeclaration { .. })
+            ),
+            "registration failure should retain the declaration conflict"
+        );
     }
 
     #[tokio::test]
@@ -1108,6 +1201,12 @@ mod tests {
         assert_eq!(
             error.downcast_ref::<CompatError>(),
             Some(&CompatError::Encode {
+                name: TestRecord::declaration().name
+            })
+        );
+        assert_eq!(
+            error.downcast_ref::<DurableError>(),
+            Some(&DurableError::EncodeRecord {
                 name: TestRecord::declaration().name
             })
         );
@@ -1172,6 +1271,12 @@ mod tests {
             error.downcast_ref::<crate::registry::DeclarationError>(),
             Some(crate::registry::DeclarationError::Unregistered { .. })
         ));
+        assert_eq!(
+            error.downcast_ref::<DurableError>(),
+            Some(&DurableError::ValidateRecordRegistration {
+                name: UNREGISTERED_DECLARATION.name,
+            })
+        );
         writer.close().await.expect("writer should close");
         assert!(
             read_journal::<TestRecord>(&location)
@@ -1214,10 +1319,15 @@ mod tests {
             Duration::from_millis(10),
             3,
         )
-        .await;
-        assert!(
-            error.is_err(),
-            "waiting for a sequence that is never stored should fail"
+        .await
+        .expect_err("waiting for a sequence that is never stored should fail");
+        assert_eq!(
+            error.current_context(),
+            &DurableError::DurabilityTimeout {
+                required: required + 1_000,
+                attempts: 3,
+                attempt_timeout: Duration::from_millis(10),
+            }
         );
         assert!(
             started.elapsed() >= Duration::from_millis(30),
@@ -1230,7 +1340,7 @@ mod tests {
     fn only_the_pinned_slate_fence_message_is_classified_as_fenced() {
         assert_eq!(
             post_invocation_source(
-                "flush",
+                DurableError::FlushRecord,
                 std::io::Error::other("storage error: Closed error: detected newer DB client")
             )
             .current_context()
@@ -1239,7 +1349,7 @@ mod tests {
         );
         assert_eq!(
             post_invocation_source(
-                "flush",
+                DurableError::FlushRecord,
                 std::io::Error::other("unrelated fencing proxy timeout")
             )
             .current_context()

@@ -112,19 +112,25 @@ pub struct StorageWriter {
 }
 
 /// A scan backed by opendata-log.
-pub struct StorageIterator(LogIterator);
+pub struct StorageIterator {
+    inner: LogIterator,
+    key: Bytes,
+}
 
 impl JournalIterator for StorageIterator {
     async fn next(&mut self) -> Result<Option<(u64, Bytes)>, Report<DurableError>> {
-        self.0
+        self.inner
             .next()
             .await
-            .change_context(DurableError)
+            .change_context_lazy(|| DurableError::ReadRecord {
+                key: self.key.clone(),
+                next_sequence: self.inner.next_sequence(),
+            })
             .map(|entry| entry.map(|entry| (entry.sequence, entry.value)))
     }
 
     fn next_sequence(&self) -> u64 {
-        self.0.next_sequence()
+        self.inner.next_sequence()
     }
 }
 
@@ -136,11 +142,15 @@ impl JournalReader for StorageReader {
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
     ) -> Result<Self::Iterator, Report<DurableError>> {
-        self.0
-            .scan(key, range)
+        let inner = self
+            .0
+            .scan(key.clone(), range)
             .await
-            .change_context(DurableError)
-            .map(StorageIterator)
+            .change_context_lazy(|| DurableError::Scan {
+                key: key.clone(),
+                range,
+            })?;
+        Ok(StorageIterator { inner, key })
     }
 
     async fn close(self) -> Result<(), Report<DurableError>> {
@@ -157,15 +167,22 @@ impl JournalReader for StorageWriter {
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
     ) -> Result<Self::Iterator, Report<DurableError>> {
-        self.log
-            .scan(key, range)
+        let inner = self
+            .log
+            .scan(key.clone(), range)
             .await
-            .change_context(DurableError)
-            .map(StorageIterator)
+            .change_context_lazy(|| DurableError::Scan {
+                key: key.clone(),
+                range,
+            })?;
+        Ok(StorageIterator { inner, key })
     }
 
     async fn close(self) -> Result<(), Report<DurableError>> {
-        self.log.close().await.change_context(DurableError)
+        self.log
+            .close()
+            .await
+            .change_context(DurableError::CloseJournal)
     }
 }
 
@@ -179,7 +196,7 @@ impl JournalWriter for StorageWriter {
             .log
             .append_timeout(vec![Record { key, value }], APPEND_TIMEOUT)
             .await
-            .map_err(|error| post_invocation_source("append shard record", error))?;
+            .map_err(|error| post_invocation_source(DurableError::AppendRecord, error))?;
         flush_with_timeout(self.log.flush(), self.durability_timeout).await?;
         wait_until_durable_with(
             &self.log,
@@ -188,7 +205,7 @@ impl JournalWriter for StorageWriter {
             DURABILITY_WAIT_ATTEMPTS,
         )
         .await
-        .map_err(|report| post_invocation_report("wait for durable shard record", report))?;
+        .map_err(post_invocation_report)?;
         Ok(output.start_sequence)
     }
 }
@@ -203,7 +220,7 @@ impl JournalStorage for StorageConfig {
             ..ReaderConfig::default()
         })
         .await
-        .change_context(DurableError)
+        .change_context(DurableError::OpenReader)
         .map(StorageReader)
     }
 
@@ -219,7 +236,7 @@ impl JournalStorage for StorageConfig {
             ..Config::default()
         })
         .await
-        .change_context(DurableError)?;
+        .change_context(DurableError::OpenWriter)?;
         Ok(StorageWriter {
             log,
             durability_timeout,
