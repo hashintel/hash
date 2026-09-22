@@ -2,12 +2,89 @@
   "extends": ["//"],
   "tasks": {
     "build:wasm": {
+      "command": [
+        "mise",
+        "exec",
+        "--env",
+        "prod",
+        "github:wasm-bindgen/wasm-pack",
+        "--",
+        "wasm-pack",
+        "build",
+        "--target",
+        "web",
+        "--out-name",
+        "type-system",
+        "--scope",
+        "blockprotocol",
+        "--release",
+        ".",
+        "--no-pack"
+      ],
       "dependsOn": ["^manifest"],
       "outputs": ["pkg/**"]
     },
     "build:types": {
+      "command": [
+        "env",
+        "INSTA_UPDATE=always",
+        "mise",
+        "exec",
+        "--env",
+        "dev",
+        "cargo:cargo-insta",
+        "--",
+        "cargo-insta",
+        "test",
+        "--features",
+        "codegen",
+        "--test",
+        "codegen"
+      ],
       "dependsOn": ["^manifest"],
       "outputs": ["types/**"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "type-system",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:unit": {
+      "command": [
+        "cargo",
+        "hack",
+        "nextest",
+        "run",
+        "--feature-powerset",
+        "--all-targets"
+      ],
+      "dependsOn": ["^manifest", "test:unit:doc"]
+    },
+    "test:unit:doc": {
+      "command": ["cargo", "test", "--all-features", "--doc"],
+      "dependsOn": ["^manifest"]
     }
   }
 }

@@ -1,0 +1,160 @@
+use core::num::NonZero;
+
+use aide::{
+    OperationOutput as _, generate,
+    openapi::{Operation, ParameterSchemaOrContent, ReferenceOr, Responses, StatusCode},
+    transform::TransformOperation,
+};
+use axum::{body::to_bytes, response::IntoResponse as _};
+use http::header::{CONTENT_TYPE, RETRY_AFTER};
+use serde_json::{Value, json};
+
+use crate::{authentication, rate_limit, rate_limit::TooManyRequests};
+
+#[tokio::test]
+async fn rate_limit_rejection_documents_runtime_response() {
+    let retry_after = NonZero::new(17).expect("should use a nonzero retry delay");
+    let runtime = TooManyRequests { retry_after }.into_response();
+    let status = runtime.status();
+    let headers = runtime.headers().clone();
+    let body: Value = serde_json::from_slice(
+        &to_bytes(runtime.into_body(), usize::MAX)
+            .await
+            .expect("should read the rejection body"),
+    )
+    .expect("should deserialize the rejection body");
+
+    assert_eq!(
+        body["status"],
+        json!(status.as_u16()),
+        "the runtime body should carry its response status"
+    );
+    for extract in [false, true] {
+        generate::reset_context();
+        generate::extract_schemas(extract);
+        generate::in_context(|context| {
+            let responses = TooManyRequests::inferred_responses(context, &mut Operation::default());
+            let [(inferred_status, documented)] = responses.as_slice() else {
+                panic!("should infer one rate-limit response");
+            };
+            assert_eq!(
+                *inferred_status,
+                Some(StatusCode::Code(status.as_u16())),
+                "should document the runtime HTTP status"
+            );
+            let content_type = headers
+                .get(CONTENT_TYPE)
+                .expect("should send a content type")
+                .to_str()
+                .expect("should send a valid content type");
+            let content = documented
+                .content
+                .get(content_type)
+                .expect("should document the runtime media type");
+            assert_eq!(
+                content.example.as_ref(),
+                Some(&body),
+                "should document the runtime body as the example"
+            );
+            let schema = &content
+                .schema
+                .as_ref()
+                .expect("should document the runtime body schema")
+                .json_schema;
+            assert_eq!(
+                schema.as_value()["properties"]["status"]["const"],
+                body["status"],
+                "should constrain the documented body to the runtime status"
+            );
+            let resolved = context.resolve_schema(schema).as_value();
+            let base = resolved
+                .get("allOf")
+                .and_then(Value::as_array)
+                .and_then(|schemas| schemas.first())
+                .unwrap_or(resolved);
+            for member in ["type", "title"] {
+                assert_eq!(
+                    base["properties"][member]["type"], "string",
+                    "should preserve the shared problem's {member} schema"
+                );
+            }
+
+            let retry_header = documented
+                .headers
+                .get("Retry-After")
+                .and_then(ReferenceOr::as_item)
+                .expect("should document the retry header inline");
+            assert!(
+                retry_header.required,
+                "should require the runtime retry header"
+            );
+            let ParameterSchemaOrContent::Schema(retry_schema) = &retry_header.format else {
+                panic!("should describe Retry-After using a schema");
+            };
+            let retry_schema = retry_schema.json_schema.as_value();
+            let runtime_delay = headers
+                .get(RETRY_AFTER)
+                .expect("should send a retry header")
+                .to_str()
+                .expect("should send a valid retry header")
+                .parse::<u64>()
+                .expect("should send whole seconds before retrying");
+            assert_eq!(
+                runtime_delay,
+                retry_after.get(),
+                "should send the rejection's retry delay"
+            );
+            assert!(
+                runtime_delay
+                    >= retry_schema["minimum"]
+                        .as_u64()
+                        .expect("should set a minimum delay"),
+                "should send a delay allowed by the documented header schema"
+            );
+        });
+    }
+}
+
+#[test]
+fn document_rejection_preserves_handler_responses() {
+    generate::reset_context();
+    let handler_response = ReferenceOr::ref_("#/components/responses/HandlerUnauthorized");
+    let mut operation = Operation {
+        responses: Some(Responses {
+            responses: [(StatusCode::Code(401), handler_response.clone())].into(),
+            ..Responses::default()
+        }),
+        ..Operation::default()
+    };
+    let _: TransformOperation<'_> =
+        authentication::document(TransformOperation::new(&mut operation));
+    let authentication_error = operation
+        .responses
+        .as_ref()
+        .expect("should add authentication responses")
+        .responses
+        .get(&StatusCode::Code(500))
+        .expect("should document an internal authentication error")
+        .clone();
+
+    let _: TransformOperation<'_> = rate_limit::document(TransformOperation::new(&mut operation));
+    let responses = &operation
+        .responses
+        .as_ref()
+        .expect("should document middleware responses")
+        .responses;
+    assert_eq!(
+        responses.get(&StatusCode::Code(401)),
+        Some(&handler_response),
+        "should preserve an explicit handler response"
+    );
+    assert_eq!(
+        responses.get(&StatusCode::Code(500)),
+        Some(&authentication_error),
+        "should preserve the first response for the status shared by both layers"
+    );
+    assert!(
+        responses.contains_key(&StatusCode::Code(429)),
+        "should add the rate-limit rejection beside authentication responses"
+    );
+}

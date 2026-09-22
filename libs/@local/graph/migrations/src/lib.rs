@@ -15,10 +15,7 @@ extern crate alloc;
 pub use ::hash_graph_migrations_macros::embed_migrations;
 
 pub use self::{
-    context::{
-        Context, ContextProvider, ContextTransaction, IsolationLevel, Transaction,
-        TransactionBuilder,
-    },
+    context::{Context, ContextProvider, ContextTransaction, Transaction},
     info::{Digest, InvalidMigrationFile, MigrationInfo},
     list::{MigrationError, MigrationList},
     migration::Migration,

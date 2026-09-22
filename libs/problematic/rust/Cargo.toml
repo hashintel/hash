@@ -1,13 +1,13 @@
 [package]
-name              = "problematic"
-version           = "0.0.0"
 authors.workspace = true
-edition.workspace = true
 description       = "HTTP Problem Details with typed extensions and JSON Schema support"
-license           = "MIT OR Apache-2.0"
 documentation     = "https://docs.rs/problematic"
+edition.workspace = true
+exclude           = ["turbo.json", "docs/task-dependencies.json"]
+license           = "MIT OR Apache-2.0"
+name              = "problematic"
 repository        = "https://github.com/hashintel/hash/tree/main/libs/problematic/rust"
-exclude           = ["package.json", "turbo.json", "docs/task-dependencies.json"]
+version           = "0.0.0"
 
 [dependencies]
 # Public workspace dependencies
@@ -17,6 +17,7 @@ error-stack = { workspace = true, public = true, optional = true }
 http = { workspace = true, public = true }
 
 # Public third-party dependencies (optional)
+aide       = { workspace = true, public = true, optional = true }
 schemars   = { workspace = true, public = true, optional = true }
 serde_core = { workspace = true, public = true, optional = true }
 
@@ -29,6 +30,10 @@ serde        = { workspace = true, optional = true, features = ["alloc", "derive
 [dev-dependencies]
 insta      = { workspace = true, features = ["json"] }
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
+
+[[test]]
+name              = "aide"
+required-features = ["aide"]
 
 [[test]]
 name              = "error_stack"
@@ -51,6 +56,7 @@ name              = "schema"
 required-features = ["schemars"]
 
 [features]
+aide        = ["dep:aide", "schemars"]
 error-stack = ["dep:error-stack", "dep:erased-serde", "serde"]
 schemars    = ["dep:schemars"]
 serde       = ["dep:serde_core", "dep:serde"]

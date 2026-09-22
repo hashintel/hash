@@ -153,7 +153,7 @@ impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
 ///
 /// Contains the operator, expected types, and actual values for diagnostic
 /// reporting when a binary operation receives operands of incorrect types.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BinaryTypeMismatch<'heap, A: Allocator> {
     /// The binary operator that was applied.
     pub op: BinOp,
@@ -171,7 +171,7 @@ pub struct BinaryTypeMismatch<'heap, A: Allocator> {
 ///
 /// Contains the operator, expected type, and actual value for diagnostic
 /// reporting when a unary operation receives an operand of incorrect type.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UnaryTypeMismatch<'heap, A: Allocator> {
     /// The unary operator that was applied.
     pub op: UnOp,
@@ -189,7 +189,7 @@ pub struct UnaryTypeMismatch<'heap, A: Allocator> {
 ///
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum RuntimeError<'heap, E, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///

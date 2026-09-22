@@ -307,21 +307,18 @@ pub(crate) trait Dataset {
     ///
     /// The `n`-th item occupies node row `n`. Every [`NodeRowId`] in the dataset must identify a
     /// row returned by this stream.
-    #[must_use]
     fn nodes(&self) -> Self::NodeStream<'_>;
 
     /// Streams the links between dataset nodes.
     ///
     /// The `n`-th item occupies edge row `n`. Both endpoints of every edge must belong to
     /// [`nodes`](Self::nodes). Links with an endpoint outside that stream never appear.
-    #[must_use]
     fn edges(&self) -> Self::EdgeStream<'_>;
 
     /// Streams the entity types referenced by the dataset.
     ///
     /// The `n`-th item occupies ontology row `n`. Resolve [`Ontology::parents`] only after reading
     /// the entire stream, since a parent can occur after its child.
-    #[must_use]
     fn ontology(&self) -> Self::OntologyStream<'_>;
 
     /// Fetches full canonical embeddings for selected nodes.
@@ -333,7 +330,6 @@ pub(crate) trait Dataset {
     /// Use this for bounded samples when evaluating the fitted map against exact neighbourhoods in
     /// the canonical embedding space. [`Node::embedding`] provides the reduced representation for
     /// fitting the full dataset.
-    #[must_use]
     fn canonical_node_embeddings<I: Iterator<Item = Self::NodeId>>(
         &self,
         nodes: I,
@@ -346,7 +342,6 @@ pub(crate) trait Dataset {
     /// request position.
     ///
     /// Use this for bounded samples when grouping quality measurements by type.
-    #[must_use]
     fn node_types<I: Iterator<Item = Self::NodeId>>(
         &self,
         nodes: I,
@@ -366,7 +361,6 @@ pub(crate) trait Dataset {
     ///
     /// Stream items report source failures with [`io::ErrorKind::Other`]. Stored facts that violate
     /// the card's rendering requirements produce [`io::ErrorKind::InvalidData`].
-    #[must_use]
     fn render_cards(&self) -> Self::CardStream<'_>;
 
     /// Streams the node display values.
@@ -374,7 +368,6 @@ pub(crate) trait Dataset {
     /// Yields exactly one owned payload per row from [`nodes`](Self::nodes), in matching order and
     /// from the same snapshot. A row without display information uses the payload type's empty
     /// value.
-    #[must_use]
     fn node_auxiliary_payload(&self) -> Self::NodeAuxiliaryPayloadStream<'_>;
 
     /// Streams the edge display values.
@@ -382,7 +375,6 @@ pub(crate) trait Dataset {
     /// Yields exactly one owned payload per row from [`edges`](Self::edges), in matching order and
     /// from the same snapshot. A row without display information uses the payload type's empty
     /// value.
-    #[must_use]
     fn edge_auxiliary_payload(&self) -> Self::EdgeAuxiliaryPayloadStream<'_>;
 
     /// Streams the entity-type display values.
@@ -390,6 +382,5 @@ pub(crate) trait Dataset {
     /// Yields exactly one owned payload per row from [`ontology`](Self::ontology), in matching
     /// order and from the same snapshot. A type without display information uses the payload type's
     /// empty value.
-    #[must_use]
     fn ontology_auxiliary_payload(&self) -> Self::OntologyAuxiliaryPayloadStream<'_>;
 }

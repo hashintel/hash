@@ -20,7 +20,11 @@ cargo run -p hash-graph -- \
   --annotations annotation-corpus.json
 ```
 
-Quality thresholds default to maximally permissive values, the admission check demanding evidence presence rather than fidelity. Impose measured bounds with `--quality-thresholds thresholds.json`:
+Placement trains with the corpus's relation attraction by default. Pass `--vacuous-placement-fallback` (or set `HASH_GRAPH_ATLAS_VACUOUS_PLACEMENT_FALLBACK=true`) to omit relation attraction when reviewed Proximal coverage is absent. Coverage requires a resolved Proximal verdict for an attraction group with retained edges, positive strength and positive Proximal weight. A reviewed type without such a group does not establish coverage.
+
+The fallback selects its objective before training. A vacuous objective retains semantic, protection and landmark-support terms, freezes no relation radius and preserves the published relation artifacts. Failures in the selected objective still fail the fit. Use `--vacuous-placement` to omit relation attraction regardless of coverage.
+
+Quality thresholds default to maximally permissive values and require evidence for metrics the population supports. Impose measured bounds with `--quality-thresholds thresholds.json`:
 
 ```json
 {
@@ -30,6 +34,12 @@ Quality thresholds default to maximally permissive values, the admission check d
 ```
 
 The fields are `minimum_recall`, `minimum_trustworthiness`, `minimum_continuity`, `maximum_intrusion_rate`, `minimum_triplet_agreement` (each in `[0, 1]`) and `maximum_density_spread` (finite, non-negative). Out-of-domain values and unknown fields refuse the run before it starts.
+
+Quality-probe anchor and comparison counts are upper bounds. Counts that fit stay unchanged. For a smaller population, the probe apportions disjoint samples in the requested ratio, rounding the anchor share down while reserving one anchor and two comparisons whenever at least three nodes exist. Neighbourhood sizes contract to half the comparison count, preserving their reporting order. The comparison budget must be at least two.
+
+Rank metrics and triplet agreement need at least three nodes. Density supports two-node populations at neighbourhood size one, retaining the single-anchor MAD convention (zero spread for a positive finite radius ratio). The JSON report records actual sample counts, neighbourhood sizes, readings and applied thresholds. The CLI derives the controls and prints their verdicts. An inconclusive metric permits admission without asserting a pass: `admits` can be true while `passes` is false.
+
+Missing canonical data, execution errors and measured failures still refuse admission. Probe inputs require finite squared map distances. Zero-radius anchors contribute no density ratio, and a neighbourhood with no contributing anchors refuses admission. Other anchors can still supply density evidence. Zero requested triplet draws also refuse. Fit input requirements, neighbour-recall admission and reviewed-Proximal requirements remain in effect.
 
 Success prints the fit's verdict and writes an admission report:
 
@@ -122,7 +132,7 @@ Flags have environment fallbacks, and absent flags read documented defaults. Eac
 | `--colored-type-ids`, `--edges-tiles`, `--edges`, `--translate-entity-ids`, `--locate-edges`, `--locate-properties`, `--locate-link-type-ids`, `--locate-link-properties` | `HASH_GRAPH_ATLAS_LIMIT_*`                                             | documented defaults | serving limits (request validation and response shaping)                                          |
 | `--generation-poll-interval`                                                                                                                                              | `HASH_GRAPH_ATLAS_GENERATION_POLL_INTERVAL`                            | `1` (seconds)       | how often maintenance re-reads `current` and advances its generation slots                        |
 | `--unlink-expired-generations`                                                                                                                                            | `HASH_GRAPH_ATLAS_UNLINK_EXPIRED_GENERATIONS`                          | off                 | remove an expired generation's directory once its feeds have joined                               |
-| `--download`, `--download-poll-interval`                                                                                                                                  | `HASH_GRAPH_ATLAS_DOWNLOAD`, `HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL` | off, `1` (seconds)  | acquire generations from a source prefix holding `generations/current` and `generations/active/`  |
+| `--download`, `--download-poll-interval`                                                                                                                                  | `HASH_GRAPH_ATLAS_DOWNLOAD`, `HASH_GRAPH_ATLAS_DOWNLOAD_POLL_INTERVAL` | off, `1` (seconds)  | acquire generations from a configured root holding `current` and `active/`                        |
 | `--no-delta`                                                                                                                                                              | `HASH_GRAPH_ATLAS_NO_DELTA`                                            | off                 | serve fit-time data alone, starting no ingest feed                                                |
 
 The delta flags - `--delta-poll-interval`, `--delta-safety-lag`, `--delta-retry-polls`, `--delta-placement-backlog`, `--delta-minimum-projection-interval` - tune the ingest feed's cadence, its read-behind window, and its placement backlog. `hash-graph atlas serve --help` lists every flag with the default serving reads for it.

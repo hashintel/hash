@@ -41,14 +41,14 @@ Those packages inside of [`@local`](./@local) are libraries used inside this rep
 
 The following list is a non-exhaustive list of packages in `@local`:
 
-| Package                                                                  | Language(s) | Docs URL      | Description                                                            |
-| ------------------------------------------------------------------------ | ----------- | ------------- | ---------------------------------------------------------------------- |
-| [@rust/hash-codec](@local/codec)                                         | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
-| [@rust/hash-graph-authorization](@local/graph/authorization)             | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
-| [@local/hash-graph-client](@local/graph/client/typescript)               | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
-| [@rust/hash-graph-types](@local/graph/types)                             | Rust        | Not hosted    | Types used inside of the Graph API                                     |
-| [@rust/hash-temporal-client](@local/temporal-client)                     | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
-| [@rust/hash-graph-temporal-versioning](@local/graph/temporal-versioning) | Rust        | Not hosted    | Implementation of temporal versioning                                  |
+| Package                                                            | Language(s) | Docs URL      | Description                                                            |
+| ------------------------------------------------------------------ | ----------- | ------------- | ---------------------------------------------------------------------- |
+| [hash-codec](@local/codec)                                         | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
+| [hash-graph-authorization](@local/graph/authorization)             | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
+| [@local/hash-graph-client](@local/graph/client/typescript)         | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
+| [hash-graph-types](@local/graph/types)                             | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [hash-temporal-client](@local/temporal-client)                     | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
+| [hash-graph-temporal-versioning](@local/graph/temporal-versioning) | Rust        | Not hosted    | Implementation of temporal versioning                                  |
 
 ## Contributing
 

@@ -116,7 +116,7 @@ mod tests {
 
         let result =
             topological_sort(&graph, EdgeKind::Any).expect("empty graph should not have cycles");
-        assert!(result.is_empty());
+        assert_eq!(result, [] as [usize; 0]);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! The quality report's rendered rows, applied thresholds, and verdict controls.
 
-use core::{mem::variant_count, num::NonZero};
+use core::{fmt, mem::variant_count, num::NonZero};
 
 use super::super::{
     QualityMetric,
@@ -8,7 +8,7 @@ use super::super::{
 };
 use crate::{
     identity::OntologyRowId,
-    math::{NonNegative, UnitFraction},
+    math::{DFinite, NonNegative, UnitFraction},
 };
 
 /// One aggregate's readings at one neighbourhood size.
@@ -60,10 +60,7 @@ impl MetricRow {
 pub(crate) struct DensityRow {
     /// The neighbourhood size both radii come from.
     pub neighbourhood: NonZero<usize>,
-    /// Anchors with positive radii contributing a log ratio.
-    ///
-    /// Finite radii give finite ratios, though positivity alone admits an overflowed infinite
-    /// radius.
+    /// Anchors with positive finite radii contributing a log ratio.
     pub anchors: usize,
     /// Anchors excluded for a zero radius.
     ///
@@ -72,11 +69,11 @@ pub(crate) struct DensityRow {
     /// components.
     pub degenerate: usize,
     /// The median log radius ratio, absent without contributing anchors.
-    pub median_log_ratio: Option<f64>,
+    pub median_log_ratio: Option<DFinite>,
     /// The median absolute deviation around the median, unscaled.
     ///
     /// Absent without contributing anchors.
-    pub spread: Option<f64>,
+    pub spread: Option<DFinite>,
 }
 
 /// One space pair's triplet-agreement reading.
@@ -220,17 +217,18 @@ pub(crate) struct SubgroupFlag {
 }
 
 /// The side of a control's threshold that admits.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum Bound {
     /// The reading must be at least the threshold.
-    Floor(f64),
+    Floor(DFinite),
     /// The reading must be at most the threshold.
-    Ceiling(f64),
+    Ceiling(DFinite),
 }
 
 impl Bound {
     /// Returns whether `reading` lies inside the bound.
-    const fn admits(self, reading: f64) -> bool {
+    const fn admits(self, reading: DFinite) -> bool {
         match self {
             Self::Floor(floor) => reading >= floor,
             Self::Ceiling(ceiling) => reading <= ceiling,
@@ -238,24 +236,90 @@ impl Bound {
     }
 }
 
-/// One metric reading paired with its inclusive admission bound.
-#[derive(Debug, Copy, Clone, PartialEq)]
+/// The reason a population cannot supply a measurement.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum InconclusiveReason {
+    /// Too few distinct rows exist for the metric's domain.
+    InsufficientData,
+}
+
+/// A metric's threshold verdict or inconclusive result.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum MetricEval {
+    /// A finite reading satisfies its bound.
+    Pass { reading: DFinite },
+    /// A reading violates its bound, or required evidence is missing.
+    Fail { reading: Option<DFinite> },
+    /// The population cannot define the measurement.
+    Inconclusive { reason: InconclusiveReason },
+}
+
+/// The evidence available for a metric before applying its threshold.
+///
+/// [`Inconclusive`](Self::Inconclusive) identifies a metric outside the population's supported
+/// domain. [`Missing`](Self::Missing) identifies absent evidence for a metric that requires it. The
+/// distinction determines whether [`Control`] permits admission.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
+pub(crate) enum MetricReading {
+    /// The population cannot define the measurement.
+    Inconclusive(InconclusiveReason),
+    /// A finite aggregate ready for threshold comparison.
+    Value(DFinite),
+    /// Required evidence is absent.
+    Missing,
+}
+
+const impl From<Option<DFinite>> for MetricReading {
+    fn from(value: Option<DFinite>) -> Self {
+        match value {
+            Some(value) => Self::Value(value),
+            None => Self::Missing,
+        }
+    }
+}
+
+/// One metric's outcome paired with its inclusive admission bound.
+#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize)]
 pub(crate) struct Control {
     /// The metric the control checks.
     pub metric: QualityMetric,
-    /// The reduced reading, absent when the control's presence check fails.
-    pub reading: Option<f64>,
     /// The applied threshold and the side of it that admits.
     pub bound: Bound,
+    /// The measured verdict or reason evaluation is unavailable.
+    pub eval: MetricEval,
 }
 
 impl Control {
-    /// Returns whether a reading is present and satisfies its inclusive bound.
-    ///
-    /// A NaN reading fails either bound.
-    pub(crate) fn admits(&self) -> bool {
-        self.reading
-            .is_some_and(|reading| self.bound.admits(reading))
+    /// Assesses evidence while keeping population insufficiency separate from missing readings.
+    const fn new(metric: QualityMetric, reading: MetricReading, bound: Bound) -> Self {
+        let eval = match reading {
+            MetricReading::Value(reading) if bound.admits(reading) => MetricEval::Pass { reading },
+            MetricReading::Value(reading) => MetricEval::Fail {
+                reading: Some(reading),
+            },
+            MetricReading::Inconclusive(reason) => MetricEval::Inconclusive { reason },
+            MetricReading::Missing => MetricEval::Fail { reading: None },
+        };
+
+        Self {
+            metric,
+            bound,
+            eval,
+        }
+    }
+
+    /// Returns the reduced observation, absent for missing or insufficient evidence.
+    pub(crate) const fn reading(&self) -> Option<DFinite> {
+        match self.eval {
+            MetricEval::Pass { reading } => Some(reading),
+            MetricEval::Fail { reading } => reading,
+            MetricEval::Inconclusive { .. } => None,
+        }
+    }
+
+    /// Returns whether this control permits admission, including population insufficiency.
+    pub(crate) const fn admits(&self) -> bool {
+        !matches!(self.eval, MetricEval::Fail { .. })
     }
 }
 
@@ -273,6 +337,8 @@ pub(crate) struct QualityReport {
     pub corpus_universe: usize,
     /// The comparison row count every sampled grid ranks over.
     pub comparisons: usize,
+    /// Requested pair draws. Zero disables triplets and refuses admission.
+    pub triplet_pairs_requested: usize,
     /// Corpus map-versus-representation readings, per neighbourhood size.
     ///
     /// The primary surface the verdict binds to.
@@ -321,41 +387,85 @@ pub(crate) struct QualityReport {
     pub minimum_subgroup_anchors: usize,
 }
 
+impl fmt::Display for QualityReport {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(fmt, "passes      {}", self.passes())?;
+        writeln!(fmt, "admits      {}", self.admits())?;
+        writeln!(
+            fmt,
+            "samples     {} anchors, {} comparisons",
+            self.anchors, self.comparisons
+        )?;
+
+        for control in self.controls() {
+            write!(fmt, "{}: ", control.metric.label())?;
+            match control.eval {
+                MetricEval::Pass { reading } => writeln!(fmt, "passed ({reading:.4})")?,
+                MetricEval::Fail {
+                    reading: Some(reading),
+                } => writeln!(fmt, "failed ({reading:.4})")?,
+                MetricEval::Fail { reading: None } => {
+                    writeln!(fmt, "failed (missing or non-finite evidence)")?;
+                }
+                MetricEval::Inconclusive { .. } => {
+                    writeln!(fmt, "not evaluated: insufficient data")?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl QualityReport {
     /// Returns the battery's controls, each carrying the reading its verdict turns on.
     ///
-    /// Neighbourhood floors use the lowest primary-grid reading and the intrusion ceiling uses the
-    /// highest. An empty primary grid yields absent readings. The density control is absent for an
-    /// empty density list or any row with no spread, otherwise it uses the maximum spread. Triplet
-    /// agreement is present only when its recorded triplet count is positive.
-    /// [`passes`](Self::passes) is the conjunction of these controls.
+    /// Populations below three cannot define the rank or triplet metrics. Density requires two
+    /// rows. These controls are inconclusive regardless of stored readings and permit admission.
+    /// Triplet agreement requires a positive requested draw count to qualify as inconclusive.
     ///
-    /// These reductions do not check metric-row query counts or alignment between metric and
-    /// density steps. Density spreads must be finite: [`f64::max`] ignores a NaN operand,
-    /// permitting a non-finite row to leave a finite maximum or the initial negative infinity. The
-    /// controls report which readings exist, not whether those readings are sound.
+    /// For supported metrics, neighbourhood floors use the lowest primary-grid reading and the
+    /// intrusion ceiling uses the highest. Density uses the maximum spread across all neighbourhood
+    /// sizes. An empty primary grid, an empty density list or any missing spread fails its
+    /// corresponding control. Triplet agreement requires a positive recorded triplet count.
     #[must_use]
     pub(crate) fn controls(&self) -> [Control; variant_count::<QualityMetric>()] {
-        let lowest = |read: fn(&MetricRow) -> UnitFraction| {
+        let population = self.anchors.saturating_add(self.corpus_universe);
+
+        let lowest = |read: fn(&MetricRow) -> UnitFraction, min_population: usize| {
+            if population < min_population {
+                return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
+            }
+
             self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::min)
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
-        let highest = |read: fn(&MetricRow) -> UnitFraction| {
+
+        let highest = |read: fn(&MetricRow) -> UnitFraction, min_population: usize| {
+            if population < min_population {
+                return MetricReading::Inconclusive(InconclusiveReason::InsufficientData);
+            }
+
             self.map_representation
                 .iter()
                 .map(read)
                 .reduce(UnitFraction::max)
+                .map_or(MetricReading::Missing, |value| {
+                    MetricReading::Value(value.into())
+                })
         };
 
-        // every density step must supply a spread; an absent step invalidates the whole control
         let spread = self
             .density
             .iter()
-            .try_fold(None::<f64>, |highest, row| {
+            .try_fold(None::<DFinite>, |highest, row| {
                 let spread = row.spread?;
-                let highest = highest.unwrap_or(f64::NEG_INFINITY);
+                let highest = highest.unwrap_or(spread);
 
                 Some(Some(highest.max(spread)))
             })
@@ -364,46 +474,63 @@ impl QualityReport {
         let triplets = &self.triplet_map_representation;
 
         [
-            Control {
-                metric: QualityMetric::Recall,
-                reading: lowest(|row| row.recall).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_recall.get()),
-            },
-            Control {
-                metric: QualityMetric::Trustworthiness,
-                reading: lowest(|row| row.trustworthiness).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_trustworthiness.get()),
-            },
-            Control {
-                metric: QualityMetric::Continuity,
-                reading: lowest(|row| row.continuity).map(UnitFraction::get),
-                bound: Bound::Floor(self.minimum_continuity.get()),
-            },
-            Control {
-                metric: QualityMetric::IntrusionRate,
-                reading: highest(|row| row.intrusion_rate).map(UnitFraction::get),
-                bound: Bound::Ceiling(self.maximum_intrusion_rate.get()),
-            },
-            Control {
-                metric: QualityMetric::DensitySpread,
-                reading: spread,
-                bound: Bound::Ceiling(f64::from(self.maximum_density_spread)),
-            },
-            Control {
-                metric: QualityMetric::TripletAgreement,
-                reading: (triplets.triplets > 0).then_some(triplets.agreement.get()),
-                bound: Bound::Floor(self.minimum_triplet_agreement.get()),
-            },
+            Control::new(
+                QualityMetric::Recall,
+                lowest(|row| row.recall, 3),
+                Bound::Floor(self.minimum_recall.into()),
+            ),
+            Control::new(
+                QualityMetric::Trustworthiness,
+                lowest(|row| row.trustworthiness, 3),
+                Bound::Floor(self.minimum_trustworthiness.into()),
+            ),
+            Control::new(
+                QualityMetric::Continuity,
+                lowest(|row| row.continuity, 3),
+                Bound::Floor(self.minimum_continuity.into()),
+            ),
+            Control::new(
+                QualityMetric::IntrusionRate,
+                highest(|row| row.intrusion_rate, 3),
+                Bound::Ceiling(self.maximum_intrusion_rate.into()),
+            ),
+            Control::new(
+                QualityMetric::DensitySpread,
+                if population < 2 {
+                    MetricReading::Inconclusive(InconclusiveReason::InsufficientData)
+                } else {
+                    MetricReading::from(spread)
+                },
+                Bound::Ceiling(self.maximum_density_spread.widen().into()),
+            ),
+            Control::new(
+                QualityMetric::TripletAgreement,
+                if population < 3 && self.triplet_pairs_requested > 0 {
+                    MetricReading::Inconclusive(InconclusiveReason::InsufficientData)
+                } else {
+                    MetricReading::from(
+                        (triplets.triplets > 0).then_some(triplets.agreement.into()),
+                    )
+                },
+                Bound::Floor(self.minimum_triplet_agreement.into()),
+            ),
         ]
     }
 
     /// Returns whether every reduced metric satisfies its admission bound.
     ///
-    /// True exactly when every [control](Self::controls) has a present reading inside its inclusive
-    /// bound. Subgroup flags and clump resolution never affect this verdict. The controls' presence
-    /// checks do not validate the report as a whole.
+    /// Population-insufficient metrics leave this false. Use [`admits`](Self::admits) for
+    /// permission to activate. Subgroup flags and clump resolution never affect either decision.
     #[must_use]
     pub(crate) fn passes(&self) -> bool {
+        self.controls()
+            .iter()
+            .all(|control| matches!(control.eval, MetricEval::Pass { .. }))
+    }
+
+    /// Returns whether the measured controls admit, allowing population-insufficient metrics.
+    #[must_use]
+    pub(crate) fn admits(&self) -> bool {
         self.controls().iter().all(Control::admits)
     }
 }

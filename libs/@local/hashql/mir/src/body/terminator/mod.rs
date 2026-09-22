@@ -176,7 +176,6 @@ impl<'heap> TerminatorKind<'heap> {
     /// The returned iterator yields the [`BasicBlockId`] of each block that control
     /// flow could transfer to from this terminator. For terminators with no successors
     /// (such as [`Return`] or [`Unreachable`](Self::Unreachable)), the iterator is empty.
-    #[must_use]
     pub fn successor_blocks(
         &self,
     ) -> impl DoubleEndedIterator<Item = BasicBlockId> + ExactSizeIterator + Clone {

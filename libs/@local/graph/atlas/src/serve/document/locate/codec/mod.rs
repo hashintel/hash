@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 use hashql_core::id::Id as _;
 use zerocopy::IntoBytes as _;

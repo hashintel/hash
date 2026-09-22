@@ -30,7 +30,7 @@ The first composed product is `process-sdcpn`: operational processes represented
 
 Petrinaut's stock assistant is the ordinary-document default. Brunch remains a configured, host-selected operational-process alternate available through the command palette; making it the default again requires a later owner decision. Stock mode retains its canonical frontend tools and separate history; Brunch uses its own projected or adapted tool surface. The host must not splice histories, reinterpret prior tool calls across modes or make stock behavior depend on Brunch.
 
-For live route and assistant-selection behavior, see [mission ownership constraints](MISSION.md#authority-and-ownership). Future deployment policy and remote switching are the [host-choice fork](#host-choice-and-continuity).
+For live route and assistant-selection behavior, see [mission ownership constraints][mission-7e-constraints]. Future deployment policy and remote switching are the [host-choice fork](#host-choice-and-continuity).
 
 The accepted naming target is:
 
@@ -70,7 +70,7 @@ A flagship proves one accepted product path. It does not prove every operational
 - [Mission 7c](docs/mission-archive/7c-browser-persona-construction.md) landed on `main` through [PR #9667](https://github.com/hashintel/hash/pull/9667), with browser-visible persona construction and verified repairs. The Inventory worked example remained unaccepted.
 - [Mission 7d](docs/mission-archive/7d-complete-worked-example-demo-and-configure-experiment.md) closed for engineering review at Lu's 2026-09-16 branch transition, with its implementation in [PR #9722](https://github.com/hashintel/hash/pull/9722). WP-A–F established one-upload Ledger settlement with text-cited evidence, model-only context projection, live tool visibility and a compaction-crossing construction run; connected-model usefulness, correction, explanation, reopen and experiment acceptance remained unadjudicated. Lu authorized FE-1573 reuse without a tracker state change.
 - The 7d tooling-context remediation is closed; the [projection contract and regression owners](docs/reference/architecture/flue-routing.md#model-context-projection) retain its lasting constraints. Its documentation-only stall side quest was consumed by the bounded settlement lifecycle in WP-F.4; the mechanical overdue-settlement remedy re-enters only if a later real-model run reproduces the stall.
-- [Mission 7e](MISSION.md) is re-closed as an engineering partial after WP-E acceptance. Brunch-owned expected `mutate_workpiece` validation is a typed non-applied result, with pending gold, applied green, correctable refusal compact neutral and thrown failure red; Lu confirmed the real local browser path. Pre-execution schema parsing remains a Flue/Pi error and no substrate patch was added. The abrupt-loss guard, net-read projection economy, bounded idle recovery and negative `run-1L2zTl` scalability disposition remain unchanged. Proportional workpiece operations with stable provenance still require a separate owner-accepted recut.
+- [Mission 7e][mission-7e] is re-closed as an engineering partial after WP-E acceptance. Brunch-owned expected `mutate_workpiece` validation is a typed non-applied result, with pending gold, applied green, correctable refusal compact neutral and thrown failure red; Lu confirmed the real local browser path. Pre-execution schema parsing remains a Flue/Pi error and no substrate patch was added. The abrupt-loss guard, net-read projection economy, bounded idle recovery and negative `run-1L2zTl` scalability disposition remain unchanged. Proportional workpiece operations with stable provenance still require a separate owner-accepted recut.
 - [Worked-example semantic close after 7e](#worked-example-semantic-close-after-7e) keeps Mission 7d's unadjudicated product bar. [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) owns broader cross-scenario quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle evaluation after a useful flagship exists.
 
 **7d cut audit, 2026-09-14:** compared the parent contract with its archive and the affected future drafts. The archived owner decisions and contract are unchanged except relative-link rebasing; open example gates transfer without acceptance, while distribution/breadth and wider lifecycle obligations retain their planning homes. Checked all 220 relative file/heading links across the nine changed Markdown files, required mission sections and whitespace. This verifies the documentation cut, not product behavior or upstream API suitability.
@@ -177,11 +177,11 @@ This register records product consequences, not every engineering idea. A scope 
 
 ### Decisions to report or confirm now
 
-- **Assistant scope — PM communication required:** communicate the accepted [product boundary](MISSION.md#product-boundary).
+- **Assistant scope — PM communication required:** communicate the accepted [product boundary][mission-7e-throughline].
 - **Assistant deployment policy — future owner decision:** resolve the [host-choice fork](#host-choice-and-continuity).
-- **Live exclusions:** [MISSION.md](MISSION.md#scope-boundary-and-external-owners) settles the current boundary; [distribution and breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) owns the deferred portfolio and bundle scope. These are not pending confirmations here.
+- **Live exclusions:** [Mission 7e constraints][mission-7e-constraints] settle the current boundary; [distribution and breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) owns the deferred portfolio and bundle scope. These are not pending confirmations here.
 - **Assumption-based preview — open PM decision:** evidence-first remains current policy. A provisional model while blocked would require explicit assent, assumptions distinguished from testimony and made confirmable, replaceable and rejectable, plus agreement on authorized assumptions, UI presentation and semantic acceptance. No general preview policy is authorized.
-- **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); the live mission's [claim discipline](MISSION.md#claim-discipline) determines its evidence tier.
+- **Behavioral evaluation:** use the [after-demo draft](docs/mission-drafts/7-explainable-construction.md); [Mission 7e claim discipline][mission-7e-claim-discipline] determines its evidence tier.
 
 ### Capability and lifecycle strains
 
@@ -220,7 +220,7 @@ Ordinary website documents select an assistant through the implemented host-loca
 
 Switching inside a remote worked-model document is deferred. Re-enter only after accepting a stock-history continuity contract that determines whether stock history on remote documents is local-only, remote, or absent.
 
-**Settings-dialog escape hatch — design accepted, implementation held (Lu, 2026-09-16).** Stakeholders want the existing palette switch also exposed in Petrinaut's Labs settings tab. Accepted: a host-supplied generic toggle slot in Petrinaut, host-owned state, no storage migration, and every Brunch affordance hidden while Stock is selected; the toggle stays disabled on the remote route. The [escape-hatch draft](docs/mission-drafts/stock-assistant-escape-hatch.md) is the one planning home for the assessment, the open net-preservation check and the cut obligations.
+**Settings-dialog controls — promoted to FE-1650 (Kostandin, 2026-09-20).** The existing assistant switch and a separate default-off Voice preference are now a live mission under [FE-1650](MISSION.md). The cut keeps state in the website, adds one optional React-node Labs slot, preserves the command-palette and immediate switching lifecycle, and adds no storage migration, settings DSL, or busy-state API.
 
 Resolve:
 
@@ -282,13 +282,13 @@ Retain the thin architecture unless observed product strain earns more. Do not i
 ## Detailed planning homes
 
 - [Worked-example distribution and portfolio breadth](docs/mission-drafts/worked-example-distribution-and-breadth.md) — deferred beyond the demo, with no automatic next-mission priority; consumes an accepted original example before delivering reusable copies and proving broader construction capability.
-- [Mission 7e](MISSION.md) — re-closed engineering partial after accepting WP-E typed Brunch-owned operation-refusal results and their visible tool presentation, alongside abrupt-loss protection, net-read economy and bounded idle recovery without product-scale Ledger or provenance acceptance. [Proportional Ledger operations](#section-keyed-ledger-operations-after-stage-1) own the successor mutation/evidence contract; [residual lifecycle and evaluation acceptance](#residual-lifecycle-and-evaluation-acceptance-after-7e) owns the remaining provider-idle recovery copy, cancellation-race and evidence-capture leaves.
+- [Mission 7e][mission-7e] — re-closed engineering partial after accepting WP-E typed Brunch-owned operation-refusal results and their visible tool presentation, alongside abrupt-loss protection, net-read economy and bounded idle recovery without product-scale Ledger or provenance acceptance. [Proportional Ledger operations](#section-keyed-ledger-operations-after-stage-1) own the successor mutation/evidence contract; [residual lifecycle and evaluation acceptance](#residual-lifecycle-and-evaluation-acceptance-after-7e) owns the remaining provider-idle recovery copy, cancellation-race and evidence-capture leaves.
 - [After-demo construction and explanation evaluation](docs/mission-drafts/7-explainable-construction.md) — cross-scenario acquisition/conservation/construction quality, behavioral correspondence, explanation usefulness, provenance stress and lifecycle breadth.
 - [Mission 9](docs/mission-drafts/9-traceable-projection.md) — repeat, change, retirement, concurrency, expanded schema classes and current-state explanation.
 - [Mission 10](docs/mission-drafts/10-bounded-reviewer-revision.md) — reviewer authority, attributed revision, conflict, qualification, bounded patching and refusal.
 - [Mission 8](docs/mission-drafts/8-experiment-configuration-from-the-ledger.md) — configure-then-user-runs experiment assistance: Petrinaut terrain, Ledger-to-experiment correspondence, design assessment, upstream delta list and pending owner input; ends before anything Mission 11 owns.
 - [Mission 11](docs/mission-drafts/11-optimisation-handoff.md) — consumer-accepted complete-model handoff and optimization experiment.
-- [Stock-assistant escape hatch](docs/mission-drafts/stock-assistant-escape-hatch.md) — small host-and-Petrinaut change exposing the existing assistant switch in the Labs settings tab and hiding Brunch affordances under Stock; design accepted, cut held pending the net-preservation check and its own issue and branch.
+- [FE-1650 settings controls](MISSION.md) — live mission exposing the existing assistant switch and a separate Voice opt-in under Settings → Labs through a narrow host slot.
 - [Mission-draft lifecycle and template](docs/mission-drafts/README.md) — rules for converting a provisional cluster into live authority.
 
 Open a detailed draft only when cutting or evaluating that branch. Re-read actual predecessor evidence at cut time; draft promises are not inherited proof.
@@ -326,3 +326,8 @@ Use these records for rationale without restoring their chronology to this spine
 Provenance uses Flue lineage, settled workpiece revisions, constructor-declared mutation basis and observed effects. Capture envelopes and retrospective hand-authored derivation records are not the product seam. The decision log and mini spec above preserve the migration rationale and rejected alternatives.
 
 The old six-beat FE-1476 presentation sequence and earlier delivery dates are historical framing, not current schedule or acceptance authority. The application image being published or returning HTTP 200 is not evidence that Brunch is deployed, durable or publicly safe.
+
+[mission-7e]: https://github.com/hashintel/hash/blob/91abcffdda2f5f9fa0b2091e686fbb6cf2284da7/libs/%40hashintel/brunch-agent/MISSION.md
+[mission-7e-claim-discipline]: https://github.com/hashintel/hash/blob/91abcffdda2f5f9fa0b2091e686fbb6cf2284da7/libs/%40hashintel/brunch-agent/MISSION.md#claim-discipline
+[mission-7e-constraints]: https://github.com/hashintel/hash/blob/91abcffdda2f5f9fa0b2091e686fbb6cf2284da7/libs/%40hashintel/brunch-agent/MISSION.md#constraints
+[mission-7e-throughline]: https://github.com/hashintel/hash/blob/91abcffdda2f5f9fa0b2091e686fbb6cf2284da7/libs/%40hashintel/brunch-agent/MISSION.md#throughline

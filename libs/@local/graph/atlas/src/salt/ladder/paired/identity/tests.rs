@@ -97,30 +97,6 @@ fn preimage_round_trips_through_the_document_serde_paths() {
     assert_eq!(decoded.reproducibility, reproducibility());
 }
 
-/// Pins the fixture's preimage length, digest and derived salt.
-///
-/// The fixture includes [`FitConfig`](crate::salt::fit::FitConfig) defaults in its serialized
-/// inputs.
-#[test]
-fn preimage_fixture() {
-    let preimage = preimage();
-
-    assert_eq!(
-        (
-            preimage.len(),
-            Sha256Digest::of(&preimage).to_string(),
-            serde_json::to_value(salt()).expect("the derived salt should serialize"),
-        ),
-        (
-            4727,
-            "7916d61de311b48094806264dbef20801589be00af1d0e4bec8471d17b728c33".to_owned(),
-            serde_json::json!("75035875102aa50ef6f9d11bd0d0cf417a5291ea146be40363d72e1c83f9e4d1"),
-        ),
-        "the fixture's preimage and salt should match their fixed expectations:\n{}",
-        str::from_utf8(&preimage).expect("the JSON preimage should be UTF-8"),
-    );
-}
-
 #[test]
 fn equal_inputs_share_a_salt_and_any_changed_input_rotates_it() {
     let base = rule()

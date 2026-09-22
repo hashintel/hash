@@ -1,5 +1,5 @@
 {
-  "package": "@rust/hashql-macros",
+  "package": "hashql-macros",
   "dependencies": [],
   "tasks": {
     "fix:clippy": {

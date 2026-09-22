@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "exact comparisons test the exactly representable results of the exact-fit fixtures"
-)]
-
 use hashql_core::id::IdSlice;
 use proptest::{property_test, strategy::Strategy};
 

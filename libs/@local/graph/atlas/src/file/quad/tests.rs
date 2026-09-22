@@ -214,7 +214,7 @@ fn empty_tree_reopens() {
     fs::write(&path, bytes).expect("the scratch file is writable");
 
     let file = QuadFile::open(&path).expect("the empty file reopens");
-    assert!(file.nodes().is_empty());
+    assert_eq!(file.nodes(), []);
 }
 
 #[test]

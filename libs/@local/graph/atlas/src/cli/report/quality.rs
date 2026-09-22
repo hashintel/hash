@@ -28,13 +28,13 @@ pub(crate) struct QualityArgs {
     #[arg(long, default_value_t = live::Options::default().seed)]
     seed: u64,
 
-    /// Sampled anchor rows.
+    /// Upper bound on sampled anchor rows.
     ///
     /// Defaults to the anchor count [`live::Options`] carries.
     #[arg(long, default_value_t = live::Options::default().anchors)]
     anchors: NonZero<usize>,
 
-    /// Sampled comparison rows.
+    /// Upper bound on sampled comparison rows.
     ///
     /// Defaults to the comparison count [`live::Options`] carries.
     #[arg(long, default_value_t = live::Options::default().comparisons)]
@@ -85,7 +85,8 @@ impl QualityArgs {
         .await
         .map_err(ReportError::Assess)?;
 
-        std::fs::write(&self.output, &assessment.report).map_err(ReportError::Io)?;
+        let report = serde_json::to_string_pretty(&assessment.report)?;
+        std::fs::write(&self.output, report).map_err(ReportError::Io)?;
 
         Ok(QualityVerdict {
             assessment,

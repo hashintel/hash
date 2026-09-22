@@ -62,9 +62,11 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
+import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
   stockChatEndpoint,
+  type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
 import {
@@ -98,6 +100,7 @@ import {
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
+import { useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
 import type { DocumentRecord } from "./documents/document-repository";
@@ -364,8 +367,13 @@ export const LocalStorageDemoApp = ({
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
-    setSelection: selectAssistant,
+    setSelection: setAssistantSelection,
   } = useAssistantSelection({ enabled: !remoteRouteSelected });
+  const {
+    enabled: voiceEnabled,
+    ready: voicePreferenceReady,
+    setEnabled: setVoiceEnabled,
+  } = useVoicePreference();
   const brunchSelected = remoteRouteSelected
     ? brunchPreviewConfig.isBrunchConfigured
     : assistantSelectionReady &&
@@ -375,7 +383,11 @@ export const LocalStorageDemoApp = ({
       );
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
-  >(() => (brunchSelected ? undefined : null));
+  >(undefined);
+  const selectAssistant = (selection: AssistantSelection) => {
+    setOpenAIVoiceConfig(selection === "brunch" ? undefined : null);
+    setAssistantSelection(selection);
+  };
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -438,6 +450,7 @@ export const LocalStorageDemoApp = ({
     }
 
     const abortController = new AbortController();
+    setOpenAIVoiceConfig(undefined);
     void loadOpenAIVoiceConfig(
       globalThis.fetch.bind(globalThis),
       abortController.signal,
@@ -677,7 +690,9 @@ export const LocalStorageDemoApp = ({
   const brunchVoiceMode = useMemo(
     () =>
       getBrunchVoiceMode(
-        brunchSelected ? openAIVoiceConfig : null,
+        brunchSelected && voicePreferenceReady && voiceEnabled
+          ? openAIVoiceConfig
+          : null,
         conversationTracker,
         flueHistory.settlements,
         flueHistory.snapshot,
@@ -688,6 +703,8 @@ export const LocalStorageDemoApp = ({
       flueHistory.settlements,
       flueHistory.snapshot,
       openAIVoiceConfig,
+      voiceEnabled,
+      voicePreferenceReady,
     ],
   );
   const transportClientPromise = flueClientPromise;
@@ -999,6 +1016,21 @@ export const LocalStorageDemoApp = ({
               navigation={navigation}
               readonly={false}
               setTitle={setTitle}
+              slots={{
+                settingsLabs: (
+                  <AssistantLabsSettings
+                    assistantReady={assistantSelectionReady}
+                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                    brunchSelected={brunchSelected}
+                    forceBrunch={remoteRouteSelected}
+                    openAIVoiceConfig={openAIVoiceConfig}
+                    selectAssistant={selectAssistant}
+                    setVoiceEnabled={setVoiceEnabled}
+                    voiceEnabled={voiceEnabled}
+                    voicePreferenceReady={voicePreferenceReady}
+                  />
+                ),
+              }}
               title={currentDocument.title}
               viewportActions={[sentryFeedbackAction]}
             />

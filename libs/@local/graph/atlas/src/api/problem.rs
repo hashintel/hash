@@ -466,7 +466,7 @@ impl From<RateLimitRejection> for ProblemResponse<'static> {
     fn from(error: RateLimitRejection) -> Self {
         match error {
             RateLimitRejection::TooManyRequests(too_many_requests) => too_many_requests.into(),
-            RateLimitRejection::InternalError => Problem::new(
+            RateLimitRejection::Misconfigured => Problem::new(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 ProblemType::InternalError,
                 "internal server error",
@@ -489,7 +489,7 @@ impl From<AuthenticationRejection> for ProblemResponse<'static> {
                 metrics: _,
                 recorded: _,
             } => Problem::from(report.current_context()).into(),
-            AuthenticationRejection::Misconfigured => Problem::internal_message(
+            AuthenticationRejection::Misconfigured { .. } => Problem::internal_message(
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
             )

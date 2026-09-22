@@ -71,10 +71,6 @@ fn representations(written: &TempFile) -> Representations {
 }
 
 #[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the fixture's exactly representable values round-trip through the mapped file"
-)]
 fn rows_read_at_the_projector_width() {
     let written = TempFile::representation_rows(&[1.0, 2.0], PROJECTOR_DIMENSIONS);
     let opened = representations(&written);

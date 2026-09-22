@@ -1,25 +1,42 @@
 {
-  "package": "@rust/error-stack",
-  "dependencies": [
-    "@rust/error-stack-macros"
-  ],
+  "package": "error-stack",
+  "dependencies": [],
   "tasks": {
     "fix:clippy": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "lint:clippy": {
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     },
     "test:miri": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
+      ]
+    },
+    "test:unit:bless": {
+      "dependsOn": [],
+      "cache": false,
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

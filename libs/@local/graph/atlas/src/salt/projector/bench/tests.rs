@@ -75,10 +75,6 @@ fn live_fixture_steps_every_phase() {
     let first = stepper.step(&batch);
     let second = stepper.step(&batch);
     assert!(first.is_finite() && second.is_finite());
-    #[expect(
-        clippy::float_cmp,
-        reason = "exact inequality is the point: the optimizer moved the parameters"
-    )]
     {
         assert_ne!(first, second, "the optimizer moved the parameters");
     }

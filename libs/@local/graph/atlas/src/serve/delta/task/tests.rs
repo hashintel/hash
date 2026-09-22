@@ -62,7 +62,7 @@ fn options() -> DeltaTaskOptions {
 ///
 /// Panics on failure during generation publication, world opening, store pool construction, or
 /// task initialization.
-async fn fixture(name: &str, placement: bool) -> Fixture {
+fn fixture(name: &str, placement: bool) -> Fixture {
     let generation = TamperFixture::publish(name);
     let world = Arc::new(
         World::open(generation.generation().clone(), &secret()).expect("should open the world"),
@@ -85,7 +85,6 @@ async fn fixture(name: &str, placement: bool) -> Fixture {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("should construct an unconnected pool"),
     );
     let weak = Arc::downgrade(&pool);
@@ -108,7 +107,7 @@ async fn fixture(name: &str, placement: bool) -> Fixture {
 /// Keeps the reader's supplied revision and world valid after its runner drops.
 #[tokio::test]
 async fn reader_initial() {
-    let fixture = fixture("delta-task-reader-initial", false).await;
+    let fixture = fixture("delta-task-reader-initial", false);
     let reader = fixture.task.reader();
     let world = Arc::clone(&fixture.task.previous.world);
     let epoch = reader.load();
@@ -128,7 +127,7 @@ async fn reader_initial() {
 /// Keeps a loaded epoch on its original revision after the reader advances.
 #[tokio::test]
 async fn reader_captured() {
-    let fixture = fixture("delta-task-reader-captured", false).await;
+    let fixture = fixture("delta-task-reader-captured", false);
     let reader = fixture.task.reader();
     let captured = reader.load();
     let mut next = fixture.task.previous.as_ref().clone();
@@ -149,7 +148,7 @@ async fn reader_captured() {
 /// Releases both workers and their completion receiver when an unpolled runner drops.
 #[tokio::test]
 async fn run_cancelled() {
-    let fixture = fixture("delta-task-run-cancelled", true).await;
+    let fixture = fixture("delta-task-run-cancelled", true);
     let reader = fixture.task.reader();
     let completed = fixture
         .task
@@ -168,7 +167,7 @@ async fn run_cancelled() {
 /// Closes the chain and joins worker siblings after publication failure.
 #[tokio::test]
 async fn run_publication_closed() {
-    let mut fixture = fixture("delta-task-publication-closed", true).await;
+    let mut fixture = fixture("delta-task-publication-closed", true);
     let reader = fixture.task.reader();
     let previous = fixture.task.previous.as_ref().clone();
     let captured = Epoch::from(Guard::from_inner(Arc::new(previous.clone())));
@@ -205,7 +204,7 @@ async fn run_publication_closed() {
 /// Starts no workers for pre-requested shutdown and keeps the reader usable.
 #[tokio::test]
 async fn run_shutdown_ready() {
-    let fixture = fixture("delta-task-shutdown-ready", true).await;
+    let fixture = fixture("delta-task-shutdown-ready", true);
     let reader = fixture.task.reader();
     let completed = fixture
         .task
@@ -227,7 +226,7 @@ async fn run_shutdown_ready() {
 /// Joins workers on owner shutdown without invalidating an earlier capture.
 #[tokio::test]
 async fn run_shutdown_active() {
-    let fixture = fixture("delta-task-shutdown-active", true).await;
+    let fixture = fixture("delta-task-shutdown-active", true);
     let reader = fixture.task.reader();
     let captured = reader.load();
     let completed = fixture
@@ -258,7 +257,7 @@ async fn run_shutdown_active() {
 /// Opens a usable static reader without a task when temporal axes are absent.
 #[tokio::test]
 async fn open_without_axes() {
-    let fixture = fixture("delta-task-open-without-axes", false).await;
+    let fixture = fixture("delta-task-open-without-axes", false);
     let (reader, task) = DeltaTask::open(
         fixture.task.previous.as_ref().clone(),
         fixture.pool.upgrade().expect("should retain the pool"),

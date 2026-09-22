@@ -19,7 +19,7 @@
 //! recording a slot offset at or past 4 GiB therefore panics rather than record a wrapped one.
 //! [`codec`] holds the envelope, column and CBOR writers they share.
 
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 use self::codec::Envelope;
 

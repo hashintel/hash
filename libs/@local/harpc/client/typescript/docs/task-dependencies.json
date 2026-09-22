@@ -28,13 +28,13 @@
     },
     "test:unit": {
       "dependsOn": [
-        "@rust/harpc-wire-protocol#build:cli"
+        "harpc-wire-protocol#build:cli"
       ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/harpc-wire-protocol"
+        "harpc-wire-protocol"
       ]
     }
   }

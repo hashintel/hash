@@ -55,7 +55,7 @@ use crate::{
     salt::{
         adjacency::{AdjacencyArchive, EdgeList},
         embedding::{CardEmbedder, EmbedderFingerprint},
-        fit::prepare::IdentityProvider as _,
+        fit::{VacuousProjectorPlacement, prepare::IdentityProvider as _},
         knn::{artifact::KnnArchive, recall::RecallAdmission, table::KnnView},
         ladder::{
             CanonicalError,
@@ -2169,7 +2169,8 @@ async fn vacuous_placement_trains_without_reviews() {
 
     let root = GenerationRoot::new(scratch("vacuous-trains")).expect("the root should open");
     let mut options = projector_options();
-    options.vacuous = true;
+    options.vacuous = Some(VacuousProjectorPlacement::Force);
+
     // The vacuous flag hands the trainer an empty attraction index, and
     // admission finds no force regardless of the schedule: one step
     // certifies the same orchestration a longer run would.

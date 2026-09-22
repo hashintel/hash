@@ -5,12 +5,6 @@
 //! the recovery fixture therefore asserts exact contracts. The finite-difference certificate uses
 //! a generic constellation and an f64 mirror of the closed form.
 
-#![expect(
-    clippy::float_cmp,
-    reason = "the exact fixtures produce exactly representable readings, and the asserted \
-              constants are exact contracts"
-)]
-
 use hashql_core::id::{Id as _, IdSlice};
 
 use super::{DuplicateClassId, GaugeAnchors, GaugeFit, GaugeOrdinal, GaugeRefusal, SpreadFloor};

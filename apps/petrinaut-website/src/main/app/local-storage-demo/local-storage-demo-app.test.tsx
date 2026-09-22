@@ -45,6 +45,7 @@ import {
   withLocalStorageDemoIdentity,
   type LocalStorageDemoSearch,
 } from "./local-storage-demo-search";
+import { voicePreferenceStorageKey } from "./voice-preference";
 
 import type {
   DocumentRecord,
@@ -137,7 +138,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
-    slots?: unknown;
+    slots?: { settingsLabs?: ReactNode };
     title?: string;
   } | null,
 }));
@@ -218,7 +219,10 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
     editorProps.current = props;
     renderedPetrinaut.aiAssistant = props.aiAssistant;
     renderedAssistants.push(props.aiAssistant as PetrinautAiAssistant);
-    return null;
+    return (
+      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
+      null
+    );
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
@@ -521,7 +525,9 @@ describe("local storage demo Brunch voice integration", () => {
     expect(
       aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
     ).toEqual(["draft_petrinaut_experiment"]);
-    expect(editorProps.current?.slots).toBeUndefined();
+    expect(editorProps.current?.slots).not.toHaveProperty(
+      "simulateModeIndicator",
+    );
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1926,12 +1932,20 @@ describe("assistant selection", () => {
   };
   const currentAssistant = () =>
     editorProps.current?.aiAssistant as PetrinautAiAssistant;
+  const currentVoiceCapability = () => {
+    const settingsLabs = editorProps.current?.slots?.settingsLabs;
+    if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
+      throw new Error("Expected the website Labs settings to render.");
+    }
+    return settingsLabs.props.openAIVoiceConfig;
+  };
 
   afterEach(() => {
     cleanup();
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
+    vi.unstubAllGlobals();
   });
 
   test("ordinary Stock is the default and never mounts Flue history", () => {
@@ -1953,6 +1967,58 @@ describe("assistant selection", () => {
     expect(flueClientOptions.current).toBeNull();
     expect(history).not.toHaveBeenCalled();
     expect(observe).not.toHaveBeenCalled();
+  });
+
+  test("persists and restores both rendered Labs choices", async () => {
+    const incarnationId = "labs-persistence-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(voicePreferenceStorageKey, "invalid");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+      ),
+    );
+
+    const firstView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    const firstBrunchToggle = await screen.findByRole("checkbox", {
+      name: "Use Brunch",
+    });
+    const firstVoiceToggle = screen.getByRole("checkbox", {
+      name: "Enable Voice",
+    });
+    await waitFor(() =>
+      expect(firstBrunchToggle).toHaveProperty("disabled", false),
+    );
+    expect(firstVoiceToggle).toHaveProperty("checked", false);
+
+    fireEvent.click(firstBrunchToggle);
+    await waitFor(() => {
+      expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
+      expect(firstVoiceToggle).toHaveProperty("disabled", false);
+    });
+    fireEvent.click(firstVoiceToggle);
+    await waitFor(() =>
+      expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true"),
+    );
+
+    firstView.unmount();
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    const restoredBrunchToggle = await screen.findByRole("checkbox", {
+      name: "Use Brunch",
+    });
+    const restoredVoiceToggle = screen.getByRole("checkbox", {
+      name: "Enable Voice",
+    });
+    await waitFor(() => {
+      expect(restoredBrunchToggle).toHaveProperty("checked", true);
+      expect(restoredVoiceToggle).toHaveProperty("checked", true);
+      expect(restoredVoiceToggle).toHaveProperty("disabled", false);
+    });
   });
 
   test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
@@ -1997,16 +2063,28 @@ describe("assistant selection", () => {
     fireEvent.keyDown(window, { key: "Escape" });
   });
 
-  test("removes Voice on the first stock-assistant render", async () => {
+  test("keeps Voice default-off and removes it on the first Stock render", async () => {
     seedStoredNet("voice-gating-incarnation");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient("voice-gating-incarnation");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: true, connectionTimeoutMs: 10_000 }),
-      ),
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
+    vi.stubGlobal("fetch", fetch);
+    const defaultOffView = render(
+      <LocalStorageDemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledOnce();
+      expect(currentVoiceCapability()).toEqual({
+        available: true,
+        connectionTimeoutMs: 10_000,
+      });
+    });
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+
+    defaultOffView.unmount();
+    localStorage.setItem(voicePreferenceStorageKey, "true");
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(currentAssistant().renderVoiceMode).toBeDefined(),
@@ -2021,6 +2099,65 @@ describe("assistant selection", () => {
         (assistant) => assistant.renderVoiceMode === undefined,
       ),
     ).toBe(true);
+  });
+
+  test("clears cached Voice capability during each Stock to Brunch check", async () => {
+    const incarnationId = "delayed-voice-capability-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "stock");
+    localStorage.setItem(voicePreferenceStorageKey, "true");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    const firstCapability = Promise.withResolvers<Response>();
+    const secondCapability = Promise.withResolvers<Response>();
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockReturnValueOnce(firstCapability.promise)
+      .mockReturnValueOnce(secondCapability.promise);
+    vi.stubGlobal("fetch", fetch);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    renderedAssistants.length = 0;
+    switchAssistant(/Use Brunch/);
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    expect(currentVoiceCapability()).toBeUndefined();
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(renderedAssistants.length).toBeGreaterThan(0);
+    expect(
+      renderedAssistants.every(
+        (assistant) => assistant.renderVoiceMode === undefined,
+      ),
+    ).toBe(true);
+
+    firstCapability.resolve(
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    );
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeDefined(),
+    );
+
+    switchAssistant(/Use the stock Petrinaut assistant/);
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeUndefined(),
+    );
+    renderedAssistants.length = 0;
+    switchAssistant(/Use Brunch/);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(currentVoiceCapability()).toBeUndefined();
+    expect(currentAssistant().renderVoiceMode).toBeUndefined();
+    expect(renderedAssistants.length).toBeGreaterThan(0);
+    expect(
+      renderedAssistants.every(
+        (assistant) => assistant.renderVoiceMode === undefined,
+      ),
+    ).toBe(true);
+
+    secondCapability.resolve(
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    );
+    await waitFor(() =>
+      expect(currentAssistant().renderVoiceMode).toBeDefined(),
+    );
   });
 
   test("each assistant keeps its own history: stock messages stay in the local store and are never handed to Brunch", async () => {

@@ -1,7 +1,7 @@
 #![expect(clippy::min_ident_chars, clippy::similar_names, reason = "tests")]
 
 use alloc::{alloc::Global, collections::BinaryHeap, vec};
-use core::{f32, fmt::Write as _};
+use core::fmt::Write as _;
 use std::path::PathBuf;
 
 use bstr::ByteVec as _;
@@ -471,7 +471,6 @@ fn inline_budget_exhaustion() {
 ///
 /// This is a regression test for a bug where the ordering was accidentally reversed.
 #[test]
-#[expect(clippy::float_cmp)]
 fn candidates_ordered_by_descending_score() {
     // Create callsites with different scores
     let callsite_low = CallSite {
@@ -602,7 +601,7 @@ fn analysis_cost_estimation() {
 
     let expected = config.rvalue_binary + config.basic_block + config.terminator_return;
     assert!(
-        (result.properties[DefId::new(0)].cost - expected).abs() < f32::EPSILON,
+        (result.properties[DefId::new(0)].cost - expected).abs() < <f32>::EPSILON,
         "expected cost {expected}, got {}",
         result.properties[DefId::new(0)].cost
     );
@@ -859,7 +858,7 @@ fn heuristics_leaf_bonus() {
     };
 
     let diff = h_leaf.score(callsite) - h_non_leaf.score(callsite);
-    assert!((diff - config.leaf_bonus).abs() < f32::EPSILON);
+    assert!((diff - config.leaf_bonus).abs() < <f32>::EPSILON);
 }
 
 #[test]
@@ -934,7 +933,7 @@ fn heuristics_loop_bonus() {
     };
 
     let diff = h_with_loops.score(callsite) - h_no_loops.score(callsite);
-    assert!((diff - config.loop_bonus).abs() < f32::EPSILON);
+    assert!((diff - config.loop_bonus).abs() < <f32>::EPSILON);
 }
 
 #[test]
@@ -1056,7 +1055,7 @@ fn heuristics_caller_bonuses() {
     };
 
     // 10 + 5 + 12 - 30 * 0.875 = 27.0 - 26.25 = 0.75
-    assert!((heuristics.score(default_callsite()) - 0.75).abs() <= f32::EPSILON);
+    assert!((heuristics.score(default_callsite()) - 0.75).abs() <= <f32>::EPSILON);
 }
 
 #[test]
@@ -1114,7 +1113,7 @@ fn heuristics_no_unique_callsite_bonus_multiple_calls() {
 
     // No unique_callsite_bonus because 2 callsites
     // 10 + 5 - 30 * 0.875 = 15.0 - 26.25 = -11.25
-    assert!((heuristics.score(default_callsite()) - (-11.25)).abs() < f32::EPSILON);
+    assert!((heuristics.score(default_callsite()) - (-11.25)).abs() < <f32>::EPSILON);
 }
 
 /// Two mutually recursive functions A and B, with a caller C.

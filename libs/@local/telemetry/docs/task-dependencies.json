@@ -1,16 +1,17 @@
 {
-  "package": "@rust/hash-telemetry",
+  "package": "hash-telemetry",
   "dependencies": [
-    "@rust/error-stack"
+    "error-stack"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores"
       ]
     },
     "fix:clippy": {
@@ -20,6 +21,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

@@ -2,17 +2,13 @@ use core::error::Error;
 
 use error_stack::ResultExt as _;
 
-use crate::{
-    sort_package_json::SortPackageJsonError, sync_turborepo::SyncTurborepoError,
-    task_dependencies::TaskDependenciesError,
-};
+use crate::{sort_package_json::SortPackageJsonError, task_dependencies::TaskDependenciesError};
 
 mod benches;
 mod completions;
 mod dependency_diagram;
 mod lcov;
 mod sort_package_json;
-mod sync_turborepo;
 mod task_dependencies;
 
 /// Subcommand for the program.
@@ -27,9 +23,6 @@ pub(super) enum Subcommand {
     DependencyDiagram(dependency_diagram::Args),
     /// Tooling around lcov reports for the repository.
     Lcov(lcov::Args),
-    /// Sync Cargo.toml metadata to package.json for Turborepo integration.
-    #[clap(name = "sync-turborepo")]
-    SyncTurborepo(sync_turborepo::Args),
     /// Sort package.json files to ensure consistent key ordering.
     #[clap(name = "sort-package-json")]
     SortPackageJson(sort_package_json::Args),
@@ -48,9 +41,6 @@ impl Subcommand {
             Self::Benches(args) => benches::run(args).await,
             Self::DependencyDiagram(args) => Ok(dependency_diagram::run(args)?),
             Self::Lcov(args) => args.run(),
-            Self::SyncTurborepo(args) => Ok(sync_turborepo::run(args)
-                .await
-                .change_context(SyncTurborepoError::UnableToSync)?),
             Self::SortPackageJson(args) => Ok(sort_package_json::run(args)
                 .await
                 .change_context(SortPackageJsonError::UnableToSort)?),
