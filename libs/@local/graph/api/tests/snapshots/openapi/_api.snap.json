@@ -321,7 +321,7 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/internal/authenticated-caller": {
+    "/_api/authenticated-caller": {
       "get": {
         "operationId": "getAuthenticatedCaller",
         "responses": {
@@ -372,7 +372,7 @@
         ]
       }
     },
-    "/internal/caller": {
+    "/_api/caller": {
       "get": {
         "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
         "operationId": "getCaller",

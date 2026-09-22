@@ -14,10 +14,11 @@ yarn build:openapi
 This will generate the OpenAPI specification in the `openapi/` directory, which can be used
 to generate client SDKs or to document the API.
 
-When the Graph is running locally, http://localhost:4000/ provides an interactive reference
-for Entities v1, Types v1, Internal, and Legacy. The Graph serves Scalar's JavaScript bundle locally.
-Each API has its own `openapi.json`; the legacy specification remains at
-http://localhost:4000/openapi.json.
+When the Graph is running locally, <http://localhost:4000/> provides an interactive reference for
+Entities v1 and Types v1, and <http://localhost:4000/_api> one for Internal and Legacy. Each
+reference serves Scalar's JavaScript bundle beneath itself. Each API has its own `openapi.json`
+under its route prefix; the legacy specification is at
+<http://localhost:4000/_api/legacy/openapi.json>, beside the schemas it references.
 
 OpenAPI snapshots for Entities v1, Types v1, and Internal are stored as JSON in
 [`tests/snapshots/openapi/`](tests/snapshots/openapi/). Each filename is the API's route prefix
