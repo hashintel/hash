@@ -404,6 +404,39 @@ test("reacquires a selected microphone when its track ends but the device remain
   harness.detach();
 });
 
+test("falls back to the default microphone when selected-device reacquire fails", async () => {
+  const harness = setup();
+  await harness.settings.setMicrophone("usb-mic");
+  const fallback = capture();
+  harness.devices.getUserMedia
+    .mockRejectedValueOnce(new Error("stale device list"))
+    .mockResolvedValueOnce(fallback.stream);
+  harness.replacement.track.readyState = "ended";
+
+  await harness.settings.refresh(true);
+
+  expect(harness.devices.getUserMedia).toHaveBeenNthCalledWith(2, {
+    audio: {
+      autoGainControl: true,
+      deviceId: { exact: "usb-mic" },
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+  expect(harness.devices.getUserMedia).toHaveBeenNthCalledWith(3, {
+    audio: {
+      autoGainControl: true,
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+  expect(harness.settings.getSnapshot().devices).toMatchObject({
+    microphoneId: "",
+    message: "Microphone disconnected. Switched to system default.",
+  });
+  harness.detach();
+});
+
 test("preserves a microphone recovery failure after speaker recovery succeeds", async () => {
   const harness = setup();
   await harness.settings.setMicrophone("usb-mic");
@@ -450,7 +483,7 @@ test("clears a disconnected microphone selection when fallback fails", async () 
   harness.detach();
 });
 
-test("clears a disconnected speaker selection when fallback fails", async () => {
+test("retries default speaker recovery after a transient failure", async () => {
   const harness = setup();
   await harness.settings.setSpeaker("headphones");
   harness.audio.setSinkId.mockRejectedValueOnce(new Error("closed"));
@@ -461,8 +494,14 @@ test("clears a disconnected speaker selection when fallback fails", async () => 
   await harness.settings.refresh(true);
 
   expect(harness.settings.getSnapshot().devices).toMatchObject({
-    speakerId: "",
+    speakerId: "headphones",
     message: "Could not switch speaker. Check the device and try again.",
+  });
+  await harness.settings.refresh(true);
+  expect(harness.audio.setSinkId).toHaveBeenNthCalledWith(3, "");
+  expect(harness.settings.getSnapshot().devices).toMatchObject({
+    speakerId: "",
+    message: "Speaker disconnected. Switched to system default.",
   });
   harness.detach();
 });

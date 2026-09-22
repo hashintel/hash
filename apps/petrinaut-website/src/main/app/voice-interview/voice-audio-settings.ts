@@ -294,8 +294,12 @@ export class VoiceAudioSettings {
         const microphoneEnded = this.#connection.stream
           .getAudioTracks()
           .some((track) => track.readyState === "ended");
-        if (!selectedMicrophoneAvailable) await this.setMicrophone("", true);
-        else if (microphoneEnded) await this.setMicrophone(microphoneId);
+        if (!selectedMicrophoneAvailable)
+          await this.setMicrophone("", { fallback: true });
+        else if (microphoneEnded)
+          await this.setMicrophone(microphoneId, {
+            fallbackToDefault: true,
+          });
         if (epoch !== this.#epoch) return;
         if (
           speakerId &&
@@ -312,24 +316,44 @@ export class VoiceAudioSettings {
     }
   }
 
-  async setMicrophone(deviceId: string, fallback = false) {
+  async setMicrophone(
+    deviceId: string,
+    {
+      fallback = false,
+      fallbackToDefault = false,
+    }: { fallback?: boolean; fallbackToDefault?: boolean } = {},
+  ) {
     const connection = this.#connection;
-    if (!connection || !this.mediaDevices || this.#state.devices.busy) return;
+    const mediaDevices = this.mediaDevices;
+    if (!connection || !mediaDevices || this.#state.devices.busy) return;
     const epoch = this.#epoch;
     this.#devices({
       busy: true,
       ...(fallback ? {} : { message: null }),
     });
     let replacement: MediaStream | undefined;
-    try {
-      replacement = await this.mediaDevices.getUserMedia({
+    let replacementDeviceId = deviceId;
+    let usedFallback = fallback;
+    const capture = (selectedDeviceId: string) =>
+      mediaDevices.getUserMedia({
         audio: {
           autoGainControl: true,
           echoCancellation: true,
           noiseSuppression: true,
-          ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+          ...(selectedDeviceId
+            ? { deviceId: { exact: selectedDeviceId } }
+            : {}),
         },
       });
+    try {
+      try {
+        replacement = await capture(replacementDeviceId);
+      } catch (error) {
+        if (!fallbackToDefault || !replacementDeviceId) throw error;
+        replacementDeviceId = "";
+        usedFallback = true;
+        replacement = await capture(replacementDeviceId);
+      }
       const track = replacement.getAudioTracks()[0];
       if (!track) throw new DOMException("No microphone", "NotFoundError");
       track.enabled = false;
@@ -354,8 +378,8 @@ export class VoiceAudioSettings {
       replacement = undefined;
       stopStream(previous);
       this.#devices({
-        microphoneId: deviceId,
-        message: fallback
+        microphoneId: replacementDeviceId,
+        message: usedFallback
           ? (this.#state.devices.message ??
             "Microphone disconnected. Switched to system default.")
           : null,
@@ -363,7 +387,7 @@ export class VoiceAudioSettings {
     } catch (error) {
       if (epoch === this.#epoch)
         this.#devices({
-          ...(fallback ? { microphoneId: "" } : {}),
+          ...(usedFallback ? { microphoneId: "" } : {}),
           message:
             error instanceof DOMException && error.name === "NotAllowedError"
               ? "Microphone access denied. Allow microphone access in browser settings, then try again."
@@ -406,7 +430,6 @@ export class VoiceAudioSettings {
     } catch (error) {
       if (epoch === this.#epoch)
         this.#devices({
-          ...(fallback ? { speakerId: "" } : {}),
           message:
             error instanceof DOMException && error.name === "NotAllowedError"
               ? "Speaker access denied. Choose an allowed speaker or use system default."
