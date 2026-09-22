@@ -13,7 +13,6 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { draftPetrinautExperimentInputSchema } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   createJsonDocHandle,
   createPetrinaut,
@@ -390,7 +389,7 @@ describe("BrunchDraftExperimentWidget", () => {
 
   it("blocks an unsupported hard restriction unless reporting-only exploration was explicitly accepted", async () => {
     const runExperiment = vi.fn();
-    const input = draftPetrinautExperimentInputSchema.parse({
+    const input = {
       ...makeInput(),
       unsupported: [
         {
@@ -398,7 +397,7 @@ describe("BrunchDraftExperimentWidget", () => {
           reason: "No constraint carriage.",
         },
       ],
-    });
+    } as unknown as DraftPetrinautExperimentInput;
     const { submit } = renderWidget({
       input,
       toolCallId: "hard-restriction",
@@ -572,6 +571,44 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
   });
 
+  it("retries preparation after the browser document becomes available", async () => {
+    const definition = createReadableStore(makeDefinition());
+    let browserDocument: SDCPN | undefined;
+    const instance = {
+      definition,
+      handle: {
+        doc: () => browserDocument,
+        revisionId: { get: () => "test-revision" },
+      },
+    } as unknown as Petrinaut;
+    const { submit } = renderWidget({
+      input: makeInput(),
+      toolCallId: "retry-browser-observation",
+      state: awaiting,
+      definition,
+      instance,
+      runExperiment: vi.fn(),
+    });
+
+    await waitFor(() =>
+      expect(heading()).toEqual(["Draft could not be prepared"]),
+    );
+    expect(
+      screen.getByText(/bound browser document is unavailable/u),
+    ).toBeTruthy();
+    expect(submit).not.toHaveBeenCalled();
+
+    browserDocument = makeDefinition();
+    fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(heading()).toEqual([
+        "Drafted — not run · not saved with the document",
+      ]),
+    );
+  });
+
   it("does not offer Run when optimization is unavailable", async () => {
     const runExperiment = vi.fn();
     const { submit } = renderWidget({
@@ -708,10 +745,11 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(runExperiment).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a run failure from the host", async () => {
-    const runExperiment = vi.fn(() =>
-      Promise.reject(new Error("Compilation failed")),
-    );
+  it("retries a run failure from the host", async () => {
+    const runExperiment = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Compilation failed"))
+      .mockResolvedValueOnce(finishedResult);
     const { submit } = renderWidget({
       input: makeInput(),
       toolCallId: "call_draft_fail",
@@ -725,6 +763,11 @@ describe("BrunchDraftExperimentWidget", () => {
 
     await waitFor(() => expect(heading()).toEqual(["Run failed"]));
     expect(screen.getByRole("alert").textContent).toBe("Compilation failed");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
+
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(heading()).toEqual(["Run complete"]));
   });
 
   it("requires fresh approval for each model change in simulation-only requests", async () => {

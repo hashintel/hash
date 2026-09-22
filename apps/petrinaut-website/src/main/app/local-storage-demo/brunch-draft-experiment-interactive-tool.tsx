@@ -160,6 +160,10 @@ type WidgetProps = PetrinautAiInteractiveToolWidgetProps<
   DraftPetrinautExperimentOutput
 >;
 
+const conditionBlocksRun = (
+  condition: DraftPetrinautExperimentInput["unsupported"][number],
+) => condition.blocksRun !== false;
+
 // Two stable snapshots rather than one fresh object: useSyncExternalStore
 // compares snapshots by identity and would re-render without end otherwise.
 const useSessionDraft = (
@@ -226,7 +230,10 @@ export const BrunchDraftExperimentWidget = ({
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [submissionAttempt, setSubmissionAttempt] = useState(0);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [preparationFailure, setPreparationFailure] = useState<{
+    kind: "prepare" | "submit";
+    message: string;
+  } | null>(null);
   const [submissionPending, setSubmissionPending] = useState(
     state === "awaiting" && submitAndWait !== undefined,
   );
@@ -242,11 +249,21 @@ export const BrunchDraftExperimentWidget = ({
     )
       return;
     preparedOnceRef.current = true;
-    setSubmissionError(null);
+    setPreparationFailure(null);
     setSubmissionPending(true);
     // The server hashes the handle snapshot; the readable store may normalize
     // its property order and therefore produce a different serialized hash.
-    const observation = observeBrowserDefinition(instance.handle);
+    let observation: ReturnType<typeof observeBrowserDefinition>;
+    try {
+      observation = observeBrowserDefinition(instance.handle);
+    } catch (caught) {
+      setPreparationFailure({
+        kind: "prepare",
+        message: caught instanceof Error ? caught.message : String(caught),
+      });
+      setSubmissionPending(false);
+      return;
+    }
     const definition = observation.definition;
     const outcome =
       observation.sha256 === input.observation.baseHash
@@ -283,7 +300,7 @@ export const BrunchDraftExperimentWidget = ({
             "No constraints or constraint policy are carried; nothing is enforced.",
             ...submissionDraft.input.unsupported.map(
               (condition) =>
-                `${condition.blocksRun ? "Run blocked" : "Not carried"}: ${condition.condition}`,
+                `${conditionBlocksRun(condition) ? "Run blocked" : "Not carried"}: ${condition.condition}`,
             ),
             ...(executionUnavailable === null
               ? []
@@ -299,9 +316,10 @@ export const BrunchDraftExperimentWidget = ({
       try {
         await submitAndWait(output);
       } catch (caught) {
-        setSubmissionError(
-          caught instanceof Error ? caught.message : String(caught),
-        );
+        setPreparationFailure({
+          kind: "submit",
+          message: caught instanceof Error ? caught.message : String(caught),
+        });
         setSubmissionPending(false);
         return;
       }
@@ -325,7 +343,7 @@ export const BrunchDraftExperimentWidget = ({
     reviewed?.definition ?? draft?.definition ?? instance.definition.get();
   const displayedPrepared = reviewed?.prepared ?? draft?.prepared ?? null;
   const request = displayedPrepared?.request ?? null;
-  const blocksRun = input.unsupported.some((condition) => condition.blocksRun);
+  const blocksRun = input.unsupported.some(conditionBlocksRun);
   const optimizationUnavailable =
     request?.execution.mode === "optimize" ? executionUnavailable : null;
 
@@ -338,8 +356,8 @@ export const BrunchDraftExperimentWidget = ({
       !pending?.prepared ||
       latest.currentToolCallId !== toolCallId ||
       pending.dismissed ||
-      pending.run.phase !== "idle" ||
-      pending.input.unsupported.some((condition) => condition.blocksRun) ||
+      (pending.run.phase !== "idle" && pending.run.phase !== "failed") ||
+      pending.input.unsupported.some(conditionBlocksRun) ||
       optimizationUnavailable !== null
     )
       return;
@@ -402,8 +420,10 @@ export const BrunchDraftExperimentWidget = ({
   const heading = !draft
     ? submissionPending
       ? "Preparing draft"
-      : submissionError
-        ? "Draft could not be submitted"
+      : preparationFailure
+        ? preparationFailure.kind === "prepare"
+          ? "Draft could not be prepared"
+          : "Draft could not be submitted"
         : "Not retained in this session"
     : draft.invalid !== null
       ? "Could not be prepared"
@@ -424,7 +444,7 @@ export const BrunchDraftExperimentWidget = ({
     draft.invalid === null &&
     !draft.dismissed &&
     isCurrent &&
-    draft.run.phase === "idle";
+    (draft.run.phase === "idle" || draft.run.phase === "failed");
   const canRun = canAct && optimizationUnavailable === null;
 
   return (
@@ -464,8 +484,10 @@ export const BrunchDraftExperimentWidget = ({
           {draft?.invalid ??
             (submissionPending
               ? "This experiment proposal is being prepared."
-              : submissionError
-                ? `The prepared proposal could not be submitted: ${submissionError}`
+              : preparationFailure
+                ? preparationFailure.kind === "prepare"
+                  ? `The experiment proposal could not be prepared: ${preparationFailure.message}`
+                  : `The prepared proposal could not be submitted: ${preparationFailure.message}`
                 : "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it.")}
         </p>
       )}
@@ -595,19 +617,25 @@ export const BrunchDraftExperimentWidget = ({
                 onClick={() => void onRun()}
                 type="button"
               >
-                {reviewed ? "Run against current model" : "Run"}
+                {draft.run.phase === "failed"
+                  ? reviewed
+                    ? "Retry against current model"
+                    : "Retry run"
+                  : reviewed
+                    ? "Run against current model"
+                    : "Run"}
               </button>
             )
           ) : null}
         </div>
       ) : null}
-      {!draft && submissionError && state === "awaiting" ? (
+      {!draft && preparationFailure && state === "awaiting" ? (
         <div className={actionsStyle}>
           <button
             className={primaryButtonStyle}
             onClick={() => {
               preparedOnceRef.current = false;
-              setSubmissionError(null);
+              setPreparationFailure(null);
               setSubmissionPending(true);
               setSubmissionAttempt((attempt) => attempt + 1);
             }}
