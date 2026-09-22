@@ -220,7 +220,10 @@ impl Executor<RelayDomain> for HttpDeliverer {
     type Effect = DeliveryAttempt;
     type Error = std::io::Error;
 
-    fn plan(&self, projection: &RelayQueue) -> Vec<DeliveryAttempt> {
+    fn plan<'a>(
+        &'a self,
+        projection: &'a RelayQueue,
+    ) -> impl IntoIterator<Item = DeliveryAttempt> + 'a {
         projection
             .pending
             .iter()
@@ -229,7 +232,6 @@ impl Executor<RelayDomain> for HttpDeliverer {
                 body: pending.body.clone(),
                 attempt: pending.failed_attempts + 1,
             })
-            .collect()
     }
 
     async fn execute(

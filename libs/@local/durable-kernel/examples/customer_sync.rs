@@ -198,7 +198,10 @@ impl Executor<CustomerDomain> for CrmSync {
     type Effect = UpsertCustomer;
     type Error = CrmRejected;
 
-    fn plan(&self, projection: &CustomerSync) -> Vec<UpsertCustomer> {
+    fn plan<'a>(
+        &'a self,
+        projection: &'a CustomerSync,
+    ) -> impl IntoIterator<Item = UpsertCustomer> + 'a {
         if projection.pending.len() + projection.synced.len() < CUSTOMERS.len() {
             return Vec::new();
         }
