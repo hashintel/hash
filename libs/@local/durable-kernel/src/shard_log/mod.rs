@@ -764,7 +764,7 @@ impl<W: JournalWriter> RawShardLog<W> {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::{ops::Bound, pin::pin, time::Duration};
+    use core::{pin::pin, time::Duration};
 
     use bytes::Bytes;
     use error_stack::{Report, ResultExt as _};
@@ -1015,10 +1015,7 @@ mod tests {
                 .backend
                 .scan(
                     bytes::Bytes::from_static(super::EVENTS_KEY),
-                    (
-                        core::ops::Bound::Included(end + 5),
-                        core::ops::Bound::Excluded(end + 10),
-                    ),
+                    end + 5..end + 10,
                 )
                 .await
                 .expect("a range beyond the durable end should scan")
@@ -1127,7 +1124,7 @@ mod tests {
             let key = Bytes::from_static(key);
             let stream = writer
                 .backend
-                .scan(key.clone(), (Bound::Included(sequence), Bound::Unbounded))
+                .scan(key.clone(), sequence..)
                 .await
                 .expect("scan should open before storage closes");
             scans.push((key, sequence, stream));
