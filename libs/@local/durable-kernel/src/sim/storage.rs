@@ -9,7 +9,7 @@ use core::{
     time::Duration,
 };
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use error_stack::{Report, ResultExt as _};
 use futures_core::Stream;
 use tokio::sync::Notify;
@@ -185,7 +185,13 @@ impl JournalWriter for SimWriter {
         self.handle.durable_end_exclusive()
     }
 
-    async fn append(&self, key: Bytes, value: Bytes) -> Result<u64, Report<ShardAppendError>> {
+    async fn append(
+        &self,
+        mut key: impl Buf + Send,
+        value: Bytes,
+    ) -> Result<u64, Report<ShardAppendError>> {
+        let remaining = key.remaining();
+        let key = key.copy_to_bytes(remaining);
         let key = sim_key(&key).change_context(ShardAppendError {
             kind: AppendFailureKind::DefinitelyNotCommitted,
         })?;
