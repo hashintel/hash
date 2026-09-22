@@ -13,7 +13,7 @@ export const cycleIr: PetriNetIr = {
   description: "One token alternates between two places.",
   kind: "plain",
   places: { A: null, B: null, C: { capacity: 3 } },
-  initial: { A: 1 },
+  marking: { A: 1 },
   transitions: {
     Go: { inputs: { A: null }, outputs: { B: { weight: 2 } } },
     Back: { inputs: { B: null }, outputs: { C: null } },
@@ -34,7 +34,7 @@ describe("renderPetriNetIr", () => {
         "  C:",
         "    capacity: 3",
         "",
-        "initial:",
+        "marking:",
         "  A: 1",
         "",
         "transitions:",
@@ -54,7 +54,7 @@ describe("renderPetriNetIr", () => {
     );
   });
 
-  it("leaves the initial section out when every place starts empty", () => {
+  it("leaves the marking section out when every place starts empty", () => {
     const rendered = renderPetriNetIr({
       name: "arrivals",
       kind: "stochastic",
@@ -72,8 +72,8 @@ describe("IR accessors", () => {
     expect(petriNetIrArcWeight(null)).toBe(1);
     expect(petriNetIrArcWeight({ weight: 3 })).toBe(3);
     expect(petriNetIrInitialTokens({}, "A")).toBe(0);
-    expect(petriNetIrInitialTokens({ initial: { A: 4 } }, "A")).toBe(4);
-    expect(petriNetIrInitialTokens({ initial: { A: 4 } }, "B")).toBe(0);
+    expect(petriNetIrInitialTokens({ marking: { A: 4 } }, "A")).toBe(4);
+    expect(petriNetIrInitialTokens({ marking: { A: 4 } }, "B")).toBe(0);
     expect(petriNetIrPlaceCapacity(null)).toBeUndefined();
     expect(petriNetIrPlaceCapacity({ capacity: 0 })).toBe(0);
   });

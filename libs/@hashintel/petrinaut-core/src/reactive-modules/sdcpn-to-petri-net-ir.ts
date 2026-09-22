@@ -454,7 +454,7 @@ export const sdcpnToPetriNetIr = (
     ),
   );
   const places: Record<string, PetriNetIrPlace> = {};
-  const initial: PetriNetIrMarking = {};
+  const marking: PetriNetIrMarking = {};
   for (const place of sdcpn.places) {
     const item: PetriNetIrDiagnosticItem = {
       kind: "place",
@@ -468,7 +468,7 @@ export const sdcpnToPetriNetIr = (
       diagnostics,
     );
     if (tokens > 0) {
-      initial[name] = tokens;
+      marking[name] = tokens;
     }
     const capacity =
       typeof place.capacity === "number" &&
@@ -511,7 +511,7 @@ export const sdcpnToPetriNetIr = (
         : { description }),
       kind,
       places,
-      ...(Object.keys(initial).length === 0 ? {} : { initial }),
+      ...(Object.keys(marking).length === 0 ? {} : { marking }),
       transitions,
     },
     warnings: diagnostics.warnings,

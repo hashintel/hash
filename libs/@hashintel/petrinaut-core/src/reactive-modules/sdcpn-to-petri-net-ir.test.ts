@@ -130,7 +130,7 @@ describe("sdcpnToPetriNetIr", () => {
         description: "One token alternates.",
         kind: "plain",
         places: { PlaceA: null, PlaceB: null, P3rd: { capacity: 3 } },
-        initial: { PlaceA: 1 },
+        marking: { PlaceA: 1 },
         transitions: {
           Go: { inputs: { PlaceA: null }, outputs: { PlaceB: { weight: 2 } } },
           Back: { inputs: { PlaceB: null }, outputs: { P3rd: null } },

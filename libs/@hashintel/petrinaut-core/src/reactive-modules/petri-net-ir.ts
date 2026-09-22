@@ -7,8 +7,8 @@ import { dump } from "js-yaml";
  * stable across Petrinaut file-format changes and small enough for another
  * tool to read.
  *
- * Places, transitions, the arcs of a transition and the initial marking are
- * records keyed by name. A name is UpperCamelCase, so it is unique within
+ * Places, transitions, the arcs of a transition and the marking are records
+ * keyed by name. A name is UpperCamelCase, so it is unique within
  * its record and usable as a variable name in generated code. A field at its
  * default is left out, and an entry with every field at its default is
  * `null`, which the YAML rendering writes as a bare key.
@@ -55,7 +55,7 @@ export type PetriNetIr = {
   kind: PetriNetIrKind;
   places: Record<string, PetriNetIrPlace>;
   /** The initial marking. Absent when every place starts empty. */
-  initial?: PetriNetIrMarking;
+  marking?: PetriNetIrMarking;
   /** Record order is the order a step sweeps the transitions in. */
   transitions: Record<string, PetriNetIrTransition>;
 };
@@ -64,9 +64,9 @@ export const petriNetIrArcWeight = (arc: PetriNetIrArc): number =>
   arc?.weight ?? 1;
 
 export const petriNetIrInitialTokens = (
-  ir: Pick<PetriNetIr, "initial">,
+  ir: Pick<PetriNetIr, "marking">,
   place: string,
-): number => ir.initial?.[place] ?? 0;
+): number => ir.marking?.[place] ?? 0;
 
 export const petriNetIrPlaceCapacity = (
   place: PetriNetIrPlace,
@@ -83,16 +83,16 @@ const renderSection = (section: object): string =>
 
 /**
  * Renders an IR as block-style YAML, one field per line, with a blank line
- * between the header and each of the `places`, `initial` and `transitions`
+ * between the header and each of the `places`, `marking` and `transitions`
  * sections. A `null` entry is written as a bare key: `B:` is a place with
  * every field at its default.
  */
 export const renderPetriNetIr = (ir: PetriNetIr): string => {
-  const { description, initial, kind, name, places, transitions } = ir;
+  const { description, kind, marking, name, places, transitions } = ir;
   const sections = [
     { name, ...(description === undefined ? {} : { description }), kind },
     { places },
-    ...(initial === undefined ? [] : [{ initial }]),
+    ...(marking === undefined ? [] : [{ marking }]),
     { transitions },
   ];
   return sections.map(renderSection).join("\n");
