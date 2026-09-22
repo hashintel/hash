@@ -358,7 +358,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
     pub async fn submit(
         &self,
         event: S::Event,
-    ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Rejection>, Report<KernelError>>
+    ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Error>, Report<KernelError>>
     {
         let record = EventRecordV1::new(event).change_context(KernelError::BuildEventRecord)?;
         let handle = self.handle_for(record.partition())?;
@@ -772,7 +772,7 @@ mod tests {
     }
 
     impl Fold<InvalidJsonEvent> for InvalidJsonDomain {
-        type Rejection = Infallible;
+        type Error = Infallible;
         type Validated = ();
 
         fn validate(&self, _: &InvalidJsonEvent) -> Result<(), Report<Infallible>> {
@@ -917,13 +917,13 @@ mod tests {
     struct RejectedCounter(String);
 
     impl Fold<RtEvent> for RtCounters {
-        type Rejection = CounterRejection;
+        type Error = CounterRejection;
         type Validated = RtEvent;
 
         fn validate(
             &self,
             event: &RtEvent,
-        ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
+        ) -> Result<Self::Validated, error_stack::Report<Self::Error>> {
             match event {
                 RtEvent::Incremented {
                     counter, amount: 0, ..
