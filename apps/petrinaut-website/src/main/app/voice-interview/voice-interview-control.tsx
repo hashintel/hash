@@ -21,6 +21,7 @@ import {
   type RealtimeBrunchAdmissionTarget,
   type VoiceSubmissionSettlement,
 } from "./realtime-brunch-bridge";
+import { VoiceAudioSettings } from "./voice-audio-settings";
 import { VoiceInterviewDisclosure } from "./voice-interview-disclosure";
 import { toVoiceSessionState } from "./voice-session-state";
 import {
@@ -321,7 +322,12 @@ const AvailableVoiceInterviewControl = ({
     let latestResolveInputSubmission = resolveInputSubmission;
     let latestSubscribeToAdmission = subscribeToAdmission;
     let latestSubscribeToAdmissionFailure = subscribeToAdmissionFailure;
+    const audioSettings = new VoiceAudioSettings(
+      "realtime",
+      navigator.mediaDevices,
+    );
     const session = new OpenAIRealtimeSession({
+      audioSettings,
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
       createAudioContext: () => new AudioContext(),
@@ -354,9 +360,29 @@ const AvailableVoiceInterviewControl = ({
     controller.setInterruptionBySpeaking(
       readInterruptionBySpeakingPreference(),
     );
+    let previewChatBusy = false;
+    const updatePreviewAvailability = () => {
+      const current = controller.getSnapshot();
+      audioSettings.setPreviewAvailability({
+        connected:
+          current.connection === "connected" && current.input !== "paused",
+        microphoneMuted: !current.microphoneEnabled,
+        busy:
+          previewChatBusy ||
+          current.input === "submitting" ||
+          current.lastAnswerDelivery === "pending" ||
+          (current.output !== "idle" && current.output !== "interrupted"),
+      });
+    };
+    controller.subscribe(updatePreviewAvailability);
     return {
+      audioSettings,
       bridge,
       controller,
+      setPreviewChatBusy: (busy: boolean) => {
+        previewChatBusy = busy;
+        updatePreviewAvailability();
+      },
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
@@ -381,6 +407,11 @@ const AvailableVoiceInterviewControl = ({
     store.subscribe,
     store.getSnapshot,
     store.getSnapshot,
+  );
+  const audioSettings = useSyncExternalStore(
+    store.audioSettings.subscribe,
+    store.audioSettings.getSnapshot,
+    store.audioSettings.getSnapshot,
   );
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [consented, setConsented] = useState(false);
@@ -416,6 +447,10 @@ const AvailableVoiceInterviewControl = ({
   );
 
   useLayoutEffect(() => {
+    store.setPreviewChatBusy(
+      !context.stopped &&
+        (context.status === "submitted" || context.status === "streaming"),
+    );
     store.updateSubmissionContext(
       context.submitVoiceInput,
       resolveInputSubmission,
@@ -458,6 +493,7 @@ const AvailableVoiceInterviewControl = ({
   useEffect(
     () =>
       registerVoiceModeControls({
+        audioSettings: store.audioSettings.actions,
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
         readFullResponse: () => store.controller.readFullResponse(),
@@ -527,8 +563,9 @@ const AvailableVoiceInterviewControl = ({
   // Petrinaut owns every live Voice surface, so this control only reports the
   // session's state and keeps the consent step to itself.
   useEffect(() => {
-    reportVoiceSessionState(toVoiceSessionState({ snapshot }));
-  }, [reportVoiceSessionState, snapshot]);
+    const state = toVoiceSessionState({ snapshot });
+    reportVoiceSessionState(state ? { ...state, audioSettings } : null);
+  }, [reportVoiceSessionState, snapshot, audioSettings]);
 
   useEffect(
     () => () => {

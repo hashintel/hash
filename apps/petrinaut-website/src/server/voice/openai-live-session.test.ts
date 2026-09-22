@@ -240,6 +240,55 @@ describe("Live configuration and session creation", () => {
     );
   });
 
+  test.each(["cedar", "not-a-voice"])(
+    "rejects the non-Live voice %s before contacting the provider",
+    async (voice) => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      const response = await createOpenAILiveSessionHandler({
+        environment,
+        fetch,
+      })(
+        request({
+          headers: {
+            origin: "https://petrinaut.test",
+            "content-type": "application/sdp",
+            "x-petrinaut-voice": voice,
+          },
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  test("forwards a selected Live voice", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({
+        session: { id: "session" },
+        transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+      }),
+    );
+    const response = await createOpenAILiveSessionHandler({
+      environment,
+      fetch,
+    })(
+      request({
+        headers: {
+          origin: "https://petrinaut.test",
+          "content-type": "application/sdp",
+          "x-petrinaut-voice": "quartz",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    const body = JSON.parse(fetch.mock.calls[0]?.[1]?.body as string) as {
+      session: { audio: { output: { voice: string } } };
+    };
+    expect(body.session.audio.output.voice).toBe("quartz");
+  });
+
   test("sanitizes provider failure and never retries", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () => new Response("server-only-secret", { status: 429 }),
