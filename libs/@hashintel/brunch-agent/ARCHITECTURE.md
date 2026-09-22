@@ -2,13 +2,15 @@
 
 This document describes the implementation as it exists. Detailed application operation and deployment configuration live in [`apps/brunch-agent/README.md`](../../../apps/brunch-agent/README.md).
 
-The current branch’s proposed target contract and unresolved construction-interface decision are recorded in the [Petrinaut tooling remediation replan](docs/refactoring/tooling-remediation-plan.md). The current-state description below is not authority to promote the Stock-over-Flue control into the product path.
+The current branch’s target contract and still-unresolved construction-interface decision are recorded in the [Petrinaut tooling remediation replan](docs/refactoring/tooling-remediation-plan.md).
 
 ## Runtime composition
 
-`apps/brunch-agent` is the Flue server and composition point. The product panel initializes `ChatAgent` in canonical Petrinaut mode, which returns Petrinaut's stock prompt and mounts the complete stock tool catalogue without Brunch workpiece, Ledger, elicitation, context-projection, or explanation contributions.
+`apps/brunch-agent` is the Flue server and composition point. When Brunch is selected, the product defaults to integrated mode: `ChatAgent` composes Brunch’s context projection, elicitation, Ledger, freshness, provenance, and explanation behavior with the SDCPN skill, Petrinaut-owned capability guidance, and the complete canonical `petrinautAiTools` catalogue.
 
-Two non-product composition boundaries remain. Batched construction combines `@hashintel/brunch-agent/flue`, `@hashintel/brunch-agent-plugin-sdcpn/flue`, and app-owned provenance and explanation tools for retained Ledger behavior. Validated construction mounts a smaller construct-only surface for the headless runbook evaluator.
+Three build-time evaluation modes are isolated by conversation identity and are not product UI choices. `F` is the exact Stock prompt and catalogue over Flue without Brunch or Ledger contributions. `A` adds `declare_petrinaut_projection` before direct canonical construction calls. `B` adds `apply_petrinaut_construction`, a bounded ordered browser operation, while retaining every canonical tool for reads, documentation, experiments, interactive layout, capabilities outside the carrier, and direct corrections. The native Stock assistant remains a separate panel choice.
+
+Two older non-product composition boundaries remain route-admissible. Batched construction retains the previous observed mutation protocol for historical tests and compatibility. Validated construction mounts a smaller construct-only surface for the headless runbook evaluator.
 
 `@hashintel/brunch-agent-transport-aisdk` projects a caller-provided Flue conversation into AI SDK streams and transcripts; it does not own server state. `apps/petrinaut-website` owns browser-local document state, document/conversation binding, and execution of browser tools.
 
@@ -20,7 +22,7 @@ Gherkin is packaged but currently unmounted. Dafny and Claims are unmounted expe
 
 Flue’s persisted conversation is the canonical conversation record. Browser-tool results return through the canonical Flue delivery path and correlate by tool-call ID. The ephemeral live-tool stream exists only to show pending work; it does not validate or execute tools and is not durable history.
 
-In the retained batched-construction boundary, the current workpiece is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
+In integrated Brunch modes, the current Ledger (still named `workpiece` in implementation symbols) is per-conversation persistent state. `mutate_workpiece` atomically replaces the complete Markdown revision with its tool outcome. Successful revisions can be reconstructed from canonical history by joining the submitted Markdown to the successful result and verifying the tool-call ID and SHA-256.
 
 Workpiece settlement enforces these invariants:
 
@@ -39,9 +41,13 @@ Workpiece settlement enforces these invariants:
 
 ## Tool boundary
 
-In the active product path, the plugin derives its mounted names, descriptions, and schemas directly from `petrinautAiTools`; Petrinaut's static panel handlers execute those tools against the open document. There is no parallel Brunch catalogue or browser wrapper.
+The plugin derives every canonical name, description, and schema directly from `petrinautAiTools`. Petrinaut retains canonical execution and model-visible output semantics. A schema-free Brunch catalogue classifies ownership and capability class; adding a Stock tool fails conformance until Brunch classifies the host mechanics it requires.
 
-The retained batched boundary additionally mounts Flue task and skill tools, core workpiece tools, custom observed net reads and mutations, and app-owned `ping` and `query_workpiece` server tools. In that boundary, a net mutation must cite a settled workpiece basis and a verified browser observation whose hash matches the submitted base.
+Integrated I/A/B modes install host adapters under exact canonical names for the bounded `addPlace → addTransition → addArc` tracer and canonical definition reads. The adapters serialize sibling mutations in invocation order, observe pre/post state, derive effects independently, await exact repository settlement, carry diagnostics, and retain verified sidecars in Flue history. Other canonical capabilities continue through Petrinaut’s static registry. Canonical `createExperiment` remains Petrinaut-owned; Brunch records its canonical request/result and the source document revision without duplicating progress state or treating the experiment as a document mutation.
+
+Interface A records semantic intent and host-resolved Ledger bases separately from direct calls, then recomputes ordered correlation from history. Interface B’s deep call resolves Ledger excerpts and document authority in the browser host, commits a successful/no-op prefix, leaves a failed or unknown suffix unattempted, settles each changed revision, reads diagnostics once after the prefix, and optionally applies verified layout. Both direct and deep calls recover terminal records from Flue history after remount and fail closed when history is missing, ambiguous, or unverifiable.
+
+The retained legacy batched boundary additionally mounts custom observed tools. Its model-authored observation and basis protocol is compatibility terrain, not the integrated product contract.
 
 ## Persistence
 

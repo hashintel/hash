@@ -1,9 +1,18 @@
 import { describe, expect, test, vi } from "vitest";
+import { z } from "zod";
 
 import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { mutatePetrinetInputSchema } from "../src/mutate-petrinet";
-import { createMutatePetrinetTool } from "../src/tools/mutate-petrinet";
+import {
+  applyPetrinautConstructionInputSchema,
+  applyPetrinautConstructionOutputSchema,
+  mutatePetrinetInputSchema,
+} from "../src/mutate-petrinet";
+import {
+  applyPetrinautConstructionTool,
+  createMutatePetrinetTool,
+} from "../src/tools/mutate-petrinet";
 
 import type { DefinitionObservation } from "../src/mutation-record";
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -670,5 +679,277 @@ describe("mutate_petrinet tool", () => {
     await expect(stale.run({ data: input } as never)).rejects.toThrow(
       /differs from the verified browser observation/u,
     );
+  });
+});
+
+const constructionOperation = {
+  operationId: "add-queue",
+  toolName: "addPlace" as const,
+  input: input.operations[0]!.input,
+  intendedEffect: "Represent waiting work.",
+  intendedTarget: "Queue",
+  expectedImpact: ["place:queue"],
+  evidence: {
+    excerpts: ["Queue work."],
+    rationale: "The Ledger names queue work.",
+  },
+};
+
+const collectPropertyNames = (value: unknown, names = new Set<string>()) => {
+  if (Array.isArray(value)) {
+    for (const item of value) collectPropertyNames(item, names);
+  } else if (typeof value === "object" && value !== null) {
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "properties" && typeof child === "object" && child !== null)
+        for (const propertyName of Object.keys(
+          child as Record<string, unknown>,
+        ))
+          names.add(propertyName);
+      collectPropertyNames(child, names);
+    }
+  }
+  return names;
+};
+
+describe("apply_petrinaut_construction tool", () => {
+  test("enforces the bounded dependency-ordered intent contract", () => {
+    const transition = {
+      ...constructionOperation,
+      operationId: "add-start",
+      toolName: "addTransition" as const,
+      input: {
+        id: "start",
+        name: "Start",
+        description: "Start work",
+        lambdaType: "stochastic" as const,
+        lambdaCode: "return 1;",
+        inputArcs: [],
+        outputArcs: [],
+        transitionKernelCode: "return {};",
+        x: 0,
+        y: 0,
+      },
+      expectedImpact: ["transition:start"],
+    };
+    const arc = {
+      ...constructionOperation,
+      operationId: "wire-start",
+      toolName: "addArc" as const,
+      input: {
+        transitionId: "start",
+        arcDirection: "input" as const,
+        endpoint: { kind: "place" as const, placeId: "queue" },
+        weight: 1,
+        type: "standard" as const,
+      },
+      expectedImpact: ["arc:queue-start"],
+      evidence: undefined,
+    };
+    const construction = {
+      operations: [constructionOperation, transition, arc],
+      layout: { requested: true as const },
+    };
+    expect(applyPetrinautConstructionInputSchema.parse(construction)).toEqual(
+      construction,
+    );
+    expect(() =>
+      applyPetrinautConstructionInputSchema.parse({
+        operations: [...construction.operations, arc],
+      }),
+    ).toThrow(/3|too big|maximum/iu);
+    expect(() =>
+      applyPetrinautConstructionInputSchema.parse({
+        operations: [transition, constructionOperation],
+      }),
+    ).toThrow(/ordered addPlace/iu);
+    expect(() =>
+      applyPetrinautConstructionInputSchema.parse({
+        operations: [constructionOperation, constructionOperation],
+      }),
+    ).toThrow(/operationId must be unique/u);
+    for (const changed of [
+      { expectedImpact: ["same", "same"] },
+      {
+        evidence: {
+          excerpts: ["same", "same"],
+          rationale: "Repeated.",
+        },
+      },
+    ])
+      expect(() =>
+        applyPetrinautConstructionInputSchema.parse({
+          operations: [{ ...constructionOperation, ...changed }],
+        }),
+      ).toThrow(/must be distinct/iu);
+  });
+
+  test("embeds exact canonical schemas without model-authored protocol fields", () => {
+    const root = applyPetrinautConstructionInputSchema.toJSONSchema({
+      io: "input",
+    }) as Record<string, unknown>;
+    const variants = variantsOf(property(root, "operations", root), root);
+    expect(variants).toHaveLength(3);
+    for (const toolName of ["addPlace", "addTransition", "addArc"] as const) {
+      const variant = variants.find(
+        (candidate) =>
+          property(candidate, "toolName", root)?.const === toolName,
+      );
+      const canonicalRoot = z
+        .strictObject({ input: petrinautAiTools[toolName].inputSchema })
+        .toJSONSchema({ io: "input" }) as Record<string, unknown>;
+      expect(property(variant, "input", root)).toEqual(
+        property(canonicalRoot, "input", canonicalRoot),
+      );
+    }
+    const forbidden = new Set([
+      "baseHash",
+      "basisId",
+      "binding",
+      "documentHash",
+      "documentRevision",
+      "locator",
+      "locators",
+      "observationId",
+      "observationToolCallId",
+      "revisionId",
+      "sha256",
+      "toolCallId",
+      "workpieceHash",
+    ]);
+    expect(
+      [...collectPropertyNames(root)].filter((name) => forbidden.has(name)),
+    ).toEqual([]);
+  });
+
+  test("describes complete, partial, unknown and pre-mutation refused results", () => {
+    const applied = {
+      index: 0,
+      operationId: "add-queue",
+      toolName: "addPlace" as const,
+      status: "applied" as const,
+      effects: [
+        {
+          kind: "derived" as const,
+          path: "/places/queue/hidden-derived-state",
+          before: null,
+          after: { retained: true },
+        },
+      ],
+    };
+    const observed = {
+      disposition: "observed" as const,
+      documentRevision: "document-revision-2",
+      definitionHash: "d".repeat(64),
+    };
+    const common = {
+      execution: "ordered-stop" as const,
+      finalObservation: observed,
+      diagnostics: { disposition: "settled" as const, diagnostics: [] },
+      layout: {
+        requested: true as const,
+        disposition: "not-relevant" as const,
+      },
+    };
+    const partial = {
+      ...common,
+      disposition: "partial" as const,
+      outcomes: [
+        applied,
+        {
+          index: 1,
+          operationId: "add-start",
+          toolName: "addTransition" as const,
+          status: "unknown" as const,
+          error: "Live state changed but persistence could not be verified.",
+        },
+        {
+          index: 2,
+          operationId: "wire-start",
+          toolName: "addArc" as const,
+          status: "unattempted" as const,
+        },
+      ],
+    };
+    expect(applyPetrinautConstructionOutputSchema.parse(partial)).toEqual(
+      partial,
+    );
+    const complete = {
+      ...common,
+      disposition: "complete" as const,
+      outcomes: [applied],
+      diagnostics: { disposition: "pending" as const },
+      layout: { requested: true as const, disposition: "declined" as const },
+    };
+    expect(applyPetrinautConstructionOutputSchema.parse(complete)).toEqual(
+      complete,
+    );
+    expect(
+      applyPetrinautConstructionOutputSchema.parse({
+        ...complete,
+        layout: { requested: true, disposition: "confirmation-required" },
+      }),
+    ).toMatchObject({
+      layout: { requested: true, disposition: "confirmation-required" },
+    });
+
+    const refused = {
+      execution: "ordered-stop" as const,
+      disposition: "refused" as const,
+      reason: "Immutable browser binding did not verify.",
+      outcomes: [
+        {
+          index: 0,
+          operationId: "add-queue",
+          toolName: "addPlace" as const,
+          status: "unattempted" as const,
+        },
+      ],
+      finalObservation: {
+        disposition: "unavailable" as const,
+        reason: "Immutable browser binding did not verify.",
+      },
+      diagnostics: { disposition: "not-required" as const },
+      layout: {
+        requested: false as const,
+        disposition: "not-requested" as const,
+      },
+    };
+    expect(applyPetrinautConstructionOutputSchema.parse(refused)).toEqual(
+      refused,
+    );
+    expect(
+      applyPetrinautConstructionOutputSchema.parse({
+        ...refused,
+        finalObservation: observed,
+      }),
+    ).toMatchObject({
+      disposition: "refused",
+      reason: "Immutable browser binding did not verify.",
+      finalObservation: { disposition: "observed" },
+    });
+    for (const invalid of [
+      { ...partial, disposition: "complete" },
+      { ...partial, disposition: "refused" },
+      { ...refused, reason: undefined },
+      { ...complete, reason: "Not permitted on complete results." },
+      {
+        ...partial,
+        finalObservation: {
+          disposition: "unavailable",
+          reason: "Missing observation.",
+        },
+      },
+    ])
+      expect(() =>
+        applyPetrinautConstructionOutputSchema.parse(invalid),
+      ).toThrow(/Disposition|final observation|reason/iu);
+  });
+
+  test("defers execution to the client", () => {
+    expect(
+      applyPetrinautConstructionTool.run({
+        data: { operations: [constructionOperation] },
+      } as never),
+    ).toEqual({ output: { awaiting: "client" }, terminate: true });
   });
 });

@@ -1,4 +1,11 @@
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
+
+import { defineTool } from "@flue/runtime";
+import * as v from "valibot";
 import { z } from "zod";
+
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type {
   WorkpieceEvidenceRelation,
@@ -70,6 +77,263 @@ export const declaredBasisSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export type DeclaredBasis = z.output<typeof declaredBasisSchema>;
+
+export const declarePetrinautProjectionToolName =
+  "declare_petrinaut_projection";
+
+export const DECLARED_PROJECTION_CANONICAL_TOOL_NAMES = [
+  "addPlace",
+  "addTransition",
+  "addArc",
+] as const satisfies readonly (keyof typeof petrinautAiTools)[];
+
+const declaredProjectionOperationSchema = z.strictObject({
+  operationId: nonempty
+    .max(128)
+    .describe(
+      "Stable semantic identity for this intended operation; reuse it when referring to the same intention.",
+    ),
+  toolName: z
+    .enum(DECLARED_PROJECTION_CANONICAL_TOOL_NAMES)
+    .describe(
+      "Canonical Petrinaut operation intended to realize this declaration later.",
+    ),
+  intendedEffect: nonempty
+    .max(1000)
+    .describe(
+      "The intended semantic change, stated as intention rather than an observed result.",
+    ),
+  intendedTarget: nonempty
+    .max(500)
+    .describe(
+      "The semantic thing this operation is intended to create or connect.",
+    ),
+  expectedImpact: z
+    .array(nonempty.max(500))
+    .min(1)
+    .max(8)
+    .superRefine((impacts, context) => {
+      const seen = new Set<string>();
+      for (const [index, impact] of impacts.entries()) {
+        if (seen.has(impact))
+          context.addIssue({
+            code: "custom",
+            path: [index],
+            message: "Expected impacts must be distinct",
+          });
+        seen.add(impact);
+      }
+    })
+    .describe(
+      "Frozen bounded set of semantic definitions expected to change if this operation is later applied. This is an expectation, not an observed effect.",
+    ),
+  evidence: z
+    .strictObject({
+      excerpts: z
+        .array(nonempty.max(4096))
+        .min(1)
+        .max(8)
+        .superRefine((excerpts, context) => {
+          const seen = new Set<string>();
+          for (const [index, excerpt] of excerpts.entries()) {
+            if (seen.has(excerpt))
+              context.addIssue({
+                code: "custom",
+                path: [index],
+                message: "Ledger excerpts must be distinct",
+              });
+            seen.add(excerpt);
+          }
+        })
+        .describe(
+          "Literal passages copied exactly from the current settled Ledger. Each passage must occur exactly once there.",
+        ),
+      rationale: nonempty
+        .max(2000)
+        .describe(
+          "Why these passages support the intended operation, without claiming that the operation happened.",
+        ),
+    })
+    .optional()
+    .describe(
+      "Optional current-Ledger support for this intention. Omit it when no exact passage supports the operation.",
+    ),
+});
+
+/** Model-authored semantics only; all authority and offsets are attached by the host. */
+export const declaredProjectionInputSchema = z
+  .strictObject({
+    operations: z
+      .array(declaredProjectionOperationSchema)
+      .min(1)
+      .max(3)
+      .describe(
+        "Bounded intended projection in dependency order. This declaration does not execute these operations.",
+      ),
+  })
+  .superRefine(({ operations }, context) => {
+    const operationIds = new Set<string>();
+    let previousToolRank = -1;
+    for (const [index, { operationId, toolName }] of operations.entries()) {
+      if (operationIds.has(operationId))
+        context.addIssue({
+          code: "custom",
+          path: ["operations", index, "operationId"],
+          message: "operationId must be unique",
+        });
+      operationIds.add(operationId);
+
+      const toolRank =
+        DECLARED_PROJECTION_CANONICAL_TOOL_NAMES.indexOf(toolName);
+      if (toolRank < previousToolRank)
+        context.addIssue({
+          code: "custom",
+          path: ["operations", index, "toolName"],
+          message:
+            "Operations must be ordered addPlace, then addTransition, then addArc",
+        });
+      previousToolRank = toolRank;
+    }
+  });
+
+export type DeclaredProjectionInput = z.output<
+  typeof declaredProjectionInputSchema
+>;
+
+export const declaredProjectionOutputSchema = v.strictObject({
+  standing: v.literal("intent-only"),
+  revision: v.strictObject({
+    revisionId: v.string(),
+    sha256: v.string(),
+    ordinal: v.number(),
+  }),
+  operations: v.array(
+    v.strictObject({
+      operationId: v.string(),
+      toolName: v.picklist(DECLARED_PROJECTION_CANONICAL_TOOL_NAMES),
+      intendedEffect: v.string(),
+      intendedTarget: v.string(),
+      expectedImpact: v.array(v.string()),
+      basis: v.union([
+        v.strictObject({
+          kind: v.literal("declared"),
+          revisionId: v.string(),
+          sha256: v.string(),
+          locators: v.array(
+            v.strictObject({ start: v.number(), end: v.number() }),
+          ),
+          rationale: v.string(),
+          scope: v.literal("operation"),
+        }),
+        v.strictObject({
+          kind: v.literal("absent"),
+          reason: v.string(),
+        }),
+      ]),
+    }),
+  ),
+});
+
+export type DeclaredProjectionOutput = v.InferOutput<
+  typeof declaredProjectionOutputSchema
+>;
+
+const resolveUniqueExcerpt = (markdown: string, excerpt: string) => {
+  const start = markdown.indexOf(excerpt);
+  if (start === -1)
+    throw new Error(
+      "A declared Ledger excerpt is missing from the current settled revision.",
+    );
+  if (markdown.indexOf(excerpt, start + 1) !== -1)
+    throw new Error(
+      "A declared Ledger excerpt is ambiguous in the current settled revision.",
+    );
+  return { start, end: start + excerpt.length };
+};
+
+const resolvedProjection = (
+  input: DeclaredProjectionInput,
+  currentRevision: WorkpieceRevision,
+): DeclaredProjectionOutput => ({
+  standing: "intent-only",
+  revision: {
+    revisionId: currentRevision.revisionId,
+    sha256: currentRevision.sha256,
+    ordinal: currentRevision.ordinal,
+  },
+  operations: input.operations.map(({ evidence, ...operation }) => ({
+    ...operation,
+    basis: evidence
+      ? {
+          kind: "declared" as const,
+          revisionId: currentRevision.revisionId,
+          sha256: currentRevision.sha256,
+          locators: evidence.excerpts.map((excerpt) =>
+            resolveUniqueExcerpt(currentRevision.markdown, excerpt),
+          ),
+          rationale: evidence.rationale,
+          scope: "operation" as const,
+        }
+      : {
+          kind: "absent" as const,
+          reason: "No Ledger excerpt was declared for this intended operation.",
+        },
+  })),
+});
+
+/** Re-derive and verify a recorded declaration from its issued semantics and then-current settled Ledger. */
+export const verifyDeclaredProjectionOutput = (input: {
+  issuedInput: unknown;
+  recordedOutput: unknown;
+  currentRevision: WorkpieceRevision;
+}): DeclaredProjectionOutput => {
+  const issuedInput = declaredProjectionInputSchema.parse(input.issuedInput);
+  const recordedOutput = v.parse(
+    declaredProjectionOutputSchema,
+    input.recordedOutput,
+  );
+  const currentSha256 = createHash("sha256")
+    .update(input.currentRevision.markdown, "utf8")
+    .digest("hex");
+  if (currentSha256 !== input.currentRevision.sha256)
+    throw new Error("Current Ledger revision hash does not match its content.");
+  const expected = resolvedProjection(issuedInput, input.currentRevision);
+  if (!isDeepStrictEqual(recordedOutput, expected))
+    throw new Error(
+      "Recorded Petrinaut projection does not match its issued semantics and current Ledger revision.",
+    );
+  return recordedOutput;
+};
+
+/** Server-owned declaration: records bounded intent and resolves current Ledger evidence, but executes and observes nothing. */
+export const createDeclarePetrinautProjectionTool = (
+  currentRevision: WorkpieceRevision | null,
+) =>
+  defineTool({
+    name: declarePetrinautProjectionToolName,
+    description:
+      "Declare one bounded intended Petrinaut projection before direct canonical mutation calls. The host binds it to the current settled Ledger and resolves any exact excerpts. This records intent only: it neither executes operations nor reports their effects.",
+    input: declaredProjectionInputSchema,
+    output: declaredProjectionOutputSchema,
+    run({ data }) {
+      if (!currentRevision)
+        throw new Error(
+          "Settle a current Ledger revision before declaring a projection.",
+        );
+      const currentSha256 = createHash("sha256")
+        .update(currentRevision.markdown, "utf8")
+        .digest("hex");
+      if (currentSha256 !== currentRevision.sha256)
+        throw new Error(
+          "Current Ledger revision hash does not match its content.",
+        );
+
+      return {
+        output: resolvedProjection(data, currentRevision),
+        terminate: false,
+      };
+    },
+  });
 
 /** Current state is authoritative; history is used only to resolve an explicit older citation. */
 export const validateDeclaredBasis = async (

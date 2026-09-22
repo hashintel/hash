@@ -1,7 +1,10 @@
-import type { MatchedParityConfiguration } from "./configuration.ts";
-import type { MatchedParityScenario } from "./scenarios.ts";
+import {
+  matchedParityArms,
+  type EvaluationArm,
+  type MatchedParityConfiguration,
+} from "./configuration.ts";
 
-export type EvaluationArm = "stock" | "brunch";
+import type { MatchedParityScenario } from "./scenarios.ts";
 
 export interface CapturedToolCall {
   readonly name: string;
@@ -10,7 +13,9 @@ export interface CapturedToolCall {
 }
 
 export interface MatchedParityArtifact {
+  readonly schemaVersion: 2;
   readonly arm: EvaluationArm;
+  readonly mode: EvaluationArm;
   readonly configuration: MatchedParityConfiguration;
   readonly diagnostics: unknown;
   readonly document: {
@@ -20,6 +25,10 @@ export interface MatchedParityArtifact {
   readonly elapsedMs: number;
   readonly modelStepCount?: number;
   readonly scenario: MatchedParityScenario;
+  readonly spend: {
+    /** Provider-reported catalogue cost, not an invoice. Null means unavailable. */
+    readonly observedUsd: number | null;
+  };
   readonly toolCalls: readonly CapturedToolCall[];
 }
 
@@ -96,9 +105,11 @@ export const deriveMechanicalSummary = (artifact: MatchedParityArtifact) => {
   );
   return {
     arm: artifact.arm,
+    mode: artifact.mode,
     scenarioId: artifact.scenario.id,
     elapsedMs: artifact.elapsedMs,
     modelStepCount: artifact.modelStepCount,
+    observedSpendUsd: artifact.spend.observedUsd,
     toolCallCount: artifact.toolCalls.length,
     toolCounts,
     title: artifact.document.title,
@@ -115,23 +126,66 @@ export const deriveMechanicalSummary = (artifact: MatchedParityArtifact) => {
   };
 };
 
+type MechanicalSummary = ReturnType<typeof deriveMechanicalSummary>;
+
+const delta = (from: MechanicalSummary, to: MechanicalSummary) => ({
+  elapsedMs: to.elapsedMs - from.elapsedMs,
+  metricCount: to.metricCount - from.metricCount,
+  modelStepCount:
+    from.modelStepCount === undefined || to.modelStepCount === undefined
+      ? null
+      : to.modelStepCount - from.modelStepCount,
+  placeCount: to.placeCount - from.placeCount,
+  toolCallCount: to.toolCallCount - from.toolCallCount,
+  transitionCount: to.transitionCount - from.transitionCount,
+  observedSpendUsd:
+    from.observedSpendUsd === null || to.observedSpendUsd === null
+      ? null
+      : to.observedSpendUsd - from.observedSpendUsd,
+});
+
 export const deriveComparison = (
-  stock: MatchedParityArtifact,
-  brunch: MatchedParityArtifact,
+  artifacts: Readonly<Record<EvaluationArm, MatchedParityArtifact>>,
 ) => {
-  if (stock.scenario.id !== brunch.scenario.id)
-    throw new Error("Cannot compare artifacts from different scenarios.");
-  if (stock.scenario.prompt !== brunch.scenario.prompt)
-    throw new Error(
-      "Cannot compare artifacts produced from different prompts.",
-    );
+  const reference = artifacts.S;
+  for (const arm of matchedParityArms) {
+    const candidate = artifacts[arm];
+    if (candidate.scenario.id !== reference.scenario.id)
+      throw new Error("Cannot compare artifacts from different scenarios.");
+    if (candidate.scenario.prompt !== reference.scenario.prompt)
+      throw new Error(
+        "Cannot compare artifacts produced from different prompts.",
+      );
+  }
+  const summaries = Object.fromEntries(
+    matchedParityArms.map((arm) => [
+      arm,
+      deriveMechanicalSummary(artifacts[arm]),
+    ]),
+  ) as Record<EvaluationArm, MechanicalSummary>;
   return {
     scenario: {
-      id: stock.scenario.id,
-      label: stock.scenario.label,
-      prompt: stock.scenario.prompt,
+      id: reference.scenario.id,
+      label: reference.scenario.label,
+      prompt: reference.scenario.prompt,
     },
-    stock: deriveMechanicalSummary(stock),
-    brunch: deriveMechanicalSummary(brunch),
+    arms: summaries,
+    effects: {
+      stockToFlueTransportDrag: {
+        from: "S",
+        to: "F",
+        delta: delta(summaries.S, summaries.F),
+      },
+      flueToIntegratedArchitectureDrag: {
+        from: "F",
+        to: "I",
+        delta: delta(summaries.F, summaries.I),
+      },
+      declaredVsDeepConstruction: {
+        from: "A",
+        to: "B",
+        delta: delta(summaries.A, summaries.B),
+      },
+    },
   };
 };

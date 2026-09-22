@@ -4,14 +4,23 @@ import { describe, expect, test, vi } from "vitest";
 import {
   parseClientToolResultMetadata,
   verifyCanonicalMutationRecord,
+  verifyExperimentRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import {
+  createExperimentToolName,
   createJsonDocHandle,
   createPetrinaut,
+  type PetrinautExperimentResult,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { createCanonicalPetrinautHostTools } from "./brunch-petrinaut-tools";
+import {
+  createCanonicalPetrinautHostTools,
+  deriveCanonicalPetrinautReplay,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplayReadiness,
+} from "./brunch-petrinaut-tools";
 import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
 
 import type {
@@ -52,6 +61,51 @@ const placeInput = {
   targetSubnetId: null,
 };
 
+const transitionInput = {
+  id: "serve",
+  name: "Serve",
+  inputArcs: [],
+  outputArcs: [],
+  lambdaType: "predicate" as const,
+  lambdaCode: "",
+  transitionKernelCode: "",
+  x: 100,
+  y: 0,
+  targetSubnetId: null,
+};
+
+const arcInput = {
+  transitionId: "serve",
+  arcDirection: "input" as const,
+  placeId: "queue",
+  weight: 1,
+  type: "standard" as const,
+  targetSubnetId: null,
+};
+
+const experimentInput = {
+  name: "Queue baseline",
+  scenarioId: "baseline",
+  scenarioParameterValues: {},
+  runCount: 10,
+  seed: 42,
+  dt: 0.1,
+  maxTime: 10,
+  metricIds: ["throughput"],
+  execution: { mode: "simulate" as const },
+};
+
+const experimentOutput = (
+  status: PetrinautExperimentResult["status"],
+): PetrinautExperimentResult => ({
+  status,
+  experimentId: status === "error" ? null : "experiment-1",
+  name: experimentInput.name,
+  ...(status === "complete" ? {} : { message: `${status} terminal result` }),
+  runsCompleted: status === "complete" ? 10 : 3,
+  metrics: [{ id: "throughput", label: "Throughput", value: 2 }],
+});
+
 const requireAddPlaceRecord = (
   record: BrowserToolRecord | undefined,
 ): BrowserAddPlaceRecord => {
@@ -60,7 +114,34 @@ const requireAddPlaceRecord = (
   return record;
 };
 
-const setup = () => {
+const loadServerMutationVerifier = async () => {
+  const modulePath =
+    "../../../../../brunch-agent/src/conversation/mutation-delivery.ts";
+  const loaded: unknown = await vi.importActual(modulePath);
+  if (
+    typeof loaded !== "object" ||
+    loaded === null ||
+    !("verifyMutationResults" in loaded) ||
+    typeof loaded.verifyMutationResults !== "function"
+  )
+    throw new Error("Missing Brunch mutation continuation verifier.");
+  return loaded.verifyMutationResults as (input: {
+    body: string;
+    snapshot: unknown;
+    binding: {
+      documentId: string;
+      incarnationId: string;
+      conversationId: string;
+    };
+  }) => Promise<void>;
+};
+
+const setup = (
+  replayReadiness: CanonicalPetrinautReplayReadiness = {
+    status: "ready",
+    replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  },
+) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: "document",
@@ -77,6 +158,7 @@ const setup = () => {
       conversationId: "conversation",
     },
     readTitle: () => "Untitled",
+    replayReadiness,
     settleRevision,
   });
   const tool = (name: string) => {
@@ -108,6 +190,8 @@ describe("canonical Petrinaut browser host tools", () => {
       "getLatestNetDefinition",
       "getNetCompilationErrors",
       "addPlace",
+      "addTransition",
+      "addArc",
     ]);
     const readOutput = tool("getLatestNetDefinition").execute(params({}));
     expect(readOutput).toEqual(
@@ -181,6 +265,228 @@ describe("canonical Petrinaut browser host tools", () => {
     expect(newMetadata.observation.sha256).not.toBe(
       firstMetadata.observation.sha256,
     );
+  });
+
+  test("records canonical experiment terminals against the source projected to Petrinaut", async () => {
+    for (const status of ["complete", "cancelled", "error"] as const) {
+      const { adapter, instance } = setup();
+      const toolCallId = `experiment-${status}`;
+      const projected = adapter.mapClientToolInput({
+        input: experimentInput,
+        toolCallId,
+        toolName: createExperimentToolName,
+      });
+      expect(projected).toBe(experimentInput);
+      const projectedRevision = instance.handle.revisionId.get();
+
+      instance.handle.change((draft) => {
+        draft.places.push({ ...placeInput, id: `later-${status}` });
+      });
+      const output = experimentOutput(status);
+      const metadata = adapter.clientToolResultMetadataFor(toolCallId, output);
+      const record = parseClientToolResultMetadata(metadata)?.experimentRecord;
+      expect(record?.source.revisionId).toBe(projectedRevision);
+      expect(record?.source.definition).toEqual(emptyNet);
+      expect(record?.source.definition).not.toEqual(instance.handle.doc());
+      expect(record?.input).toEqual(experimentInput);
+      expect(record?.output).toEqual(output);
+      await expect(
+        verifyExperimentRecord({
+          record,
+          toolCallId,
+          canonicalInput: experimentInput,
+          canonicalOutput: output,
+          binding: {
+            documentId: "document",
+            incarnationId: "incarnation",
+            conversationId: "conversation",
+          },
+        }),
+      ).resolves.toEqual(expect.objectContaining({ output }));
+    }
+  });
+
+  test("fails closed on conflicting experiment identities and never fabricates an unprojected record", () => {
+    const { adapter } = setup();
+    const call = {
+      input: experimentInput,
+      toolCallId: "experiment-call",
+      toolName: createExperimentToolName,
+    };
+    expect(adapter.mapClientToolInput(call)).toBe(experimentInput);
+    expect(adapter.mapClientToolInput(call)).toBe(experimentInput);
+    expect(() =>
+      adapter.mapClientToolInput({
+        ...call,
+        input: { ...experimentInput, runCount: 11 },
+      }),
+    ).toThrow("Conflicting duplicate experiment projection");
+
+    const sourceConflict = setup();
+    sourceConflict.adapter.mapClientToolInput(call);
+    sourceConflict.instance.handle.change((draft) => {
+      draft.places.push({ ...placeInput, id: "conflicting-source" });
+    });
+    expect(() => sourceConflict.adapter.mapClientToolInput(call)).toThrow(
+      "Conflicting duplicate experiment projection",
+    );
+
+    const output = experimentOutput("complete");
+    const first = adapter.clientToolResultMetadataFor(call.toolCallId, output);
+    expect(
+      adapter.clientToolResultMetadataFor(
+        call.toolCallId,
+        structuredClone(output),
+      ),
+    ).toEqual(first);
+    expect(() =>
+      adapter.clientToolResultMetadataFor(call.toolCallId, {
+        ...output,
+        runsCompleted: 9,
+      }),
+    ).toThrow("Conflicting duplicate experiment result");
+    expect(
+      adapter.clientToolResultMetadataFor("missing-projection", output),
+    ).toBeUndefined();
+    expect(
+      adapter.mapClientToolInput({
+        input: { untouched: true },
+        toolCallId: "other-call",
+        toolName: "otherCanonicalTool",
+      }),
+    ).toEqual({ untouched: true });
+  });
+
+  test("blocks pending and ambiguous experiment replay while verified terminals remain inert", async () => {
+    const pending = setup({ status: "pending" });
+    expect(() =>
+      pending.adapter.mapClientToolInput({
+        input: experimentInput,
+        toolCallId: "pending-experiment",
+        toolName: createExperimentToolName,
+      }),
+    ).toThrow(
+      "Canonical tool replay verification is not ready for this conversation",
+    );
+    expect(
+      pending.adapter.clientToolResultMetadataFor(
+        "pending-experiment",
+        experimentOutput("complete"),
+      ),
+    ).toBeUndefined();
+
+    const original = setup();
+    original.adapter.mapClientToolInput({
+      input: experimentInput,
+      toolCallId: "experiment-call",
+      toolName: createExperimentToolName,
+    });
+    const output = experimentOutput("complete");
+    const metadata = original.adapter.clientToolResultMetadataFor(
+      "experiment-call",
+      output,
+    );
+    const assistantCall = {
+      type: "dynamic-tool",
+      state: "output-available",
+      toolCallId: "experiment-call",
+      toolName: createExperimentToolName,
+      input: experimentInput,
+      output: { awaiting: AWAITING_CLIENT },
+    };
+    const result = {
+      toolCallId: "experiment-call",
+      toolName: createExperimentToolName,
+      output,
+      metadata,
+    };
+    const derive = (results: readonly unknown[]) =>
+      deriveCanonicalPetrinautReplay({
+        snapshot: {
+          messages: [
+            { role: "assistant", purpose: "assistant", parts: [assistantCall] },
+            {
+              role: "system",
+              purpose: "dispatch",
+              signal: { tagName: "client-tool-result" },
+              parts: [{ type: "text", text: JSON.stringify(results) }],
+            },
+          ],
+        } as never,
+        binding: {
+          documentId: "document",
+          incarnationId: "incarnation",
+          conversationId: "conversation",
+        },
+      });
+
+    const terminalReplay = await derive([result]);
+    expect(terminalReplay.terminalExperiments.has("experiment-call")).toBe(
+      true,
+    );
+    const terminal = setup({ status: "ready", replay: terminalReplay });
+    expect(() =>
+      terminal.adapter.mapClientToolInput({
+        input: experimentInput,
+        toolCallId: "experiment-call",
+        toolName: createExperimentToolName,
+      }),
+    ).toThrow("already has a verified terminal result");
+    expect(
+      terminal.adapter.clientToolResultMetadataFor("experiment-call", output),
+    ).toBeUndefined();
+
+    const experimentRecord = metadata?.experimentRecord;
+    if (experimentRecord === undefined)
+      throw new Error("Missing experiment replay fixture.");
+    for (const results of [
+      [],
+      [result, structuredClone(result)],
+      [{ ...result, toolName: "wrongExperimentName" }],
+      [{ ...result, output: { ...output, runsCompleted: 9 } }],
+      [
+        {
+          ...result,
+          metadata: {
+            experimentRecord: {
+              ...experimentRecord,
+              binding: {
+                ...experimentRecord.binding,
+                incarnationId: "wrong-incarnation",
+              },
+            },
+          },
+        },
+      ],
+      [
+        {
+          ...result,
+          metadata: {
+            experimentRecord: {
+              ...experimentRecord,
+              source: {
+                ...experimentRecord.source,
+                sha256: "0".repeat(64),
+              },
+            },
+          },
+        },
+      ],
+    ]) {
+      const blockedReplay = await derive(results);
+      expect(blockedReplay.blockedCalls.has("experiment-call")).toBe(true);
+      const blocked = setup({ status: "ready", replay: blockedReplay });
+      expect(() =>
+        blocked.adapter.mapClientToolInput({
+          input: experimentInput,
+          toolCallId: "experiment-call",
+          toolName: createExperimentToolName,
+        }),
+      ).toThrow();
+      expect(
+        blocked.adapter.clientToolResultMetadataFor("experiment-call", output),
+      ).toBeUndefined();
+    }
   });
 
   test("parses the canonical addPlace schema before executing", async () => {
@@ -299,6 +605,8 @@ describe("canonical Petrinaut browser host tools", () => {
     expect(record).toEqual(
       expect.objectContaining({ outcome: "no-op", output }),
     );
+    expect(record?.post?.revisionId).toBe(record?.pre.revisionId);
+    expect(record?.post?.sha256).toBe(record?.pre.sha256);
     await expect(
       verifyCanonicalMutationRecord({
         record,
@@ -323,6 +631,47 @@ describe("canonical Petrinaut browser host tools", () => {
     expect(
       requireAddPlaceRecord(adapter.metadataFor("call-1")).diagnostics,
     ).toEqual({ status: "not-required" });
+  });
+
+  test("runs diagnostics for code-bearing transitions but not plain transitions or arcs", async () => {
+    const { adapter, params, tool } = setup();
+    const transitionDiagnostics = vi.fn(async () => "transition diagnostics");
+    const plainDiagnostics = vi.fn(async () => "not read");
+    const arcDiagnostics = vi.fn(async () => "not read");
+
+    await tool("addPlace").execute(
+      params(placeInput, plainDiagnostics, "place-call"),
+    );
+    await tool("addTransition").execute(
+      params(
+        { ...transitionInput, id: "plain", name: "Plain" },
+        plainDiagnostics,
+        "plain-transition-call",
+      ),
+    );
+    await tool("addTransition").execute(
+      params(
+        { ...transitionInput, lambdaCode: "return true;" },
+        transitionDiagnostics,
+        "coded-transition-call",
+      ),
+    );
+    await tool("addArc").execute(params(arcInput, arcDiagnostics, "arc-call"));
+
+    expect(transitionDiagnostics).toHaveBeenCalledOnce();
+    expect(plainDiagnostics).not.toHaveBeenCalled();
+    expect(arcDiagnostics).not.toHaveBeenCalled();
+    expect(adapter.metadataFor("coded-transition-call")).toEqual(
+      expect.objectContaining({
+        diagnostics: {
+          status: "settled",
+          value: "transition diagnostics",
+        },
+      }),
+    );
+    expect(adapter.metadataFor("arc-call")).toEqual(
+      expect.objectContaining({ diagnostics: { status: "not-required" } }),
+    );
   });
 
   test("returns settlement refusal as an explicit terminal failure with a durable sidecar", async () => {
@@ -475,6 +824,160 @@ describe("canonical Petrinaut browser host tools", () => {
     );
   });
 
+  test("queues concurrent siblings in invocation order so addArc sees its endpoints", async () => {
+    const { adapter, instance, params, settleRevision, tool } = setup();
+    const firstSettlement = Promise.withResolvers<void>();
+    settleRevision.mockImplementationOnce(() => firstSettlement.promise);
+    const callbackOrder: string[] = [];
+    const originalAddPlace = instance.mutations.addPlace.bind(
+      instance.mutations,
+    );
+    vi.spyOn(instance.mutations, "addPlace").mockImplementation(
+      (mutationInput) => {
+        callbackOrder.push("addPlace");
+        originalAddPlace(mutationInput);
+      },
+    );
+    const originalAddTransition = instance.mutations.addTransition.bind(
+      instance.mutations,
+    );
+    vi.spyOn(instance.mutations, "addTransition").mockImplementation(
+      (mutationInput) => {
+        callbackOrder.push("addTransition");
+        originalAddTransition(mutationInput);
+      },
+    );
+    const originalAddArc = instance.mutations.addArc.bind(instance.mutations);
+    vi.spyOn(instance.mutations, "addArc").mockImplementation(
+      (mutationInput) => {
+        callbackOrder.push("addArc");
+        originalAddArc(mutationInput);
+      },
+    );
+
+    const placeExecution = tool("addPlace").execute(
+      params(placeInput, undefined, "place-call"),
+    );
+    const transitionExecution = tool("addTransition").execute(
+      params(transitionInput, undefined, "transition-call"),
+    );
+    const arcExecution = tool("addArc").execute(
+      params(arcInput, undefined, "arc-call"),
+    );
+    const duplicatePlaceExecution = tool("addPlace").execute(
+      params(placeInput, undefined, "place-call"),
+    );
+    await expect(
+      tool("addPlace").execute(
+        params({ ...placeInput, name: "Conflict" }, undefined, "place-call"),
+      ),
+    ).rejects.toThrow("Conflicting duplicate canonical tool call");
+
+    await vi.waitFor(() => expect(settleRevision).toHaveBeenCalledOnce());
+    expect(callbackOrder).toEqual(["addPlace"]);
+    expect(instance.handle.doc()?.transitions).toHaveLength(0);
+    firstSettlement.resolve();
+
+    const outputs = await Promise.all([
+      placeExecution,
+      transitionExecution,
+      arcExecution,
+      duplicatePlaceExecution,
+    ]);
+    expect(callbackOrder).toEqual(["addPlace", "addTransition", "addArc"]);
+    expect(outputs).toEqual([
+      expect.objectContaining({ applied: true }),
+      expect.objectContaining({ applied: true }),
+      expect.objectContaining({ applied: true }),
+      expect.objectContaining({ applied: true }),
+    ]);
+    expect(instance.handle.doc()?.transitions[0]?.inputArcs).toEqual([
+      { placeId: "queue", weight: 1, type: "standard" },
+    ]);
+    expect(settleRevision).toHaveBeenCalledTimes(3);
+    const calls = [
+      ["place-call", "addPlace", placeInput, outputs[0]],
+      ["transition-call", "addTransition", transitionInput, outputs[1]],
+      ["arc-call", "addArc", arcInput, outputs[2]],
+    ] as const;
+    for (const [
+      toolCallId,
+      toolName,
+      canonicalInput,
+      canonicalOutput,
+    ] of calls) {
+      const record = parseClientToolResultMetadata(
+        adapter.clientToolResultMetadataFor(toolCallId),
+      )?.canonicalMutationRecord;
+      expect(record).toEqual(expect.objectContaining({ outcome: "applied" }));
+      await expect(
+        verifyCanonicalMutationRecord({
+          record,
+          toolCallId,
+          toolName,
+          canonicalInput,
+          canonicalOutput,
+          binding: {
+            documentId: "document",
+            incarnationId: "incarnation",
+            conversationId: "conversation",
+          },
+        }),
+      ).resolves.toEqual(expect.objectContaining({ outcome: "applied" }));
+    }
+  });
+
+  test("continues later queued siblings after a late settlement failure", async () => {
+    const { adapter, instance, params, settleRevision, tool } = setup();
+    settleRevision
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("transition write refused"))
+      .mockResolvedValueOnce(undefined);
+
+    const independentPlaceInput = {
+      ...placeInput,
+      id: "independent",
+      name: "Independent",
+    };
+    const [placeOutput, transitionOutput, independentOutput] =
+      await Promise.all([
+        tool("addPlace").execute(params(placeInput, undefined, "place-call")),
+        tool("addTransition").execute(
+          params(transitionInput, undefined, "transition-call"),
+        ),
+        tool("addPlace").execute(
+          params(independentPlaceInput, undefined, "independent-call"),
+        ),
+      ]);
+
+    expect(placeOutput).toEqual(expect.objectContaining({ applied: true }));
+    expect(transitionOutput).toEqual({
+      applied: false,
+      reason: "The document revision was not settled: transition write refused",
+    });
+    expect(independentOutput).toEqual(
+      expect.objectContaining({ applied: true }),
+    );
+    expect(instance.handle.doc()?.places.map(({ id }) => id)).toEqual([
+      "queue",
+      "independent",
+    ]);
+    expect(instance.handle.doc()?.transitions).toHaveLength(1);
+    expect(adapter.metadataFor("place-call")).toEqual(
+      expect.objectContaining({ outcome: "applied" }),
+    );
+    const failedTransition = adapter.metadataFor("transition-call");
+    expect(failedTransition).toEqual(
+      expect.objectContaining({ outcome: "unknown" }),
+    );
+    if (failedTransition?.toolName !== "addTransition")
+      throw new Error("Missing transition metadata");
+    expect(failedTransition.settlement.status).toBe("failed");
+    expect(adapter.metadataFor("independent-call")).toEqual(
+      expect.objectContaining({ outcome: "applied" }),
+    );
+  });
+
   test("returns a retained terminal result for a duplicate identity without re-executing", async () => {
     const { adapter, instance, params, settleRevision, tool } = setup();
     const addPlace = vi.spyOn(instance.mutations, "addPlace");
@@ -493,5 +996,501 @@ describe("canonical Petrinaut browser host tools", () => {
       adapter.clientToolResultMetadataFor("call-1")?.canonicalMutationRecord
         ?.input,
     ).toEqual(placeInput);
+  });
+
+  test("derives and remounts read and I/A/B mutation terminals without observing or mutating again", async () => {
+    const original = setup();
+    const calls = [
+      {
+        toolCallId: "read-call",
+        toolName: "getLatestNetDefinition",
+        input: {},
+        output: original
+          .tool("getLatestNetDefinition")
+          .execute(original.params({}, undefined, "read-call")),
+      },
+      {
+        toolCallId: "place-call",
+        toolName: "addPlace",
+        input: placeInput,
+        output: await original
+          .tool("addPlace")
+          .execute(original.params(placeInput, undefined, "place-call")),
+      },
+      {
+        toolCallId: "transition-call",
+        toolName: "addTransition",
+        input: transitionInput,
+        output: await original
+          .tool("addTransition")
+          .execute(
+            original.params(transitionInput, undefined, "transition-call"),
+          ),
+      },
+      {
+        toolCallId: "arc-call",
+        toolName: "addArc",
+        input: arcInput,
+        output: await original
+          .tool("addArc")
+          .execute(original.params(arcInput, undefined, "arc-call")),
+      },
+    ] as const;
+    const messages = [
+      {
+        role: "assistant",
+        purpose: "assistant",
+        parts: calls.map((call) => ({
+          type: "dynamic-tool",
+          state: "output-available",
+          ...call,
+        })),
+      },
+      {
+        role: "system",
+        purpose: "dispatch",
+        signal: { tagName: "client-tool-result" },
+        parts: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              calls.map((call) => ({
+                toolCallId: call.toolCallId,
+                toolName: call.toolName,
+                output: call.output,
+                metadata: original.adapter.clientToolResultMetadataFor(
+                  call.toolCallId,
+                ),
+              })),
+            ),
+          },
+        ],
+      },
+    ];
+    const replay = await deriveCanonicalPetrinautReplay({
+      snapshot: { messages } as never,
+      binding: {
+        documentId: "document",
+        incarnationId: "incarnation",
+        conversationId: "conversation",
+      },
+    });
+    expect([...replay.terminalReads]).toHaveLength(1);
+    expect([...replay.terminalMutations]).toHaveLength(3);
+    expect([...replay.blockedCalls]).toHaveLength(0);
+
+    const remounted = setup({ status: "ready", replay });
+    const addPlace = vi.spyOn(remounted.instance.mutations, "addPlace");
+    const addTransition = vi.spyOn(
+      remounted.instance.mutations,
+      "addTransition",
+    );
+    const addArc = vi.spyOn(remounted.instance.mutations, "addArc");
+    remounted.instance.handle.change((draft) => {
+      draft.places.push({ ...placeInput, id: "live-only" });
+    });
+
+    expect(
+      remounted
+        .tool("getLatestNetDefinition")
+        .execute(remounted.params({}, undefined, "read-call")),
+    ).toEqual(calls[0].output);
+    await expect(
+      remounted
+        .tool("addPlace")
+        .execute(remounted.params(placeInput, undefined, "place-call")),
+    ).resolves.toEqual(calls[1].output);
+    await expect(
+      remounted
+        .tool("addTransition")
+        .execute(
+          remounted.params(transitionInput, undefined, "transition-call"),
+        ),
+    ).resolves.toEqual(calls[2].output);
+    await expect(
+      remounted
+        .tool("addArc")
+        .execute(remounted.params(arcInput, undefined, "arc-call")),
+    ).resolves.toEqual(calls[3].output);
+    expect(addPlace).not.toHaveBeenCalled();
+    expect(addTransition).not.toHaveBeenCalled();
+    expect(addArc).not.toHaveBeenCalled();
+    expect(remounted.settleRevision).not.toHaveBeenCalled();
+    expect(remounted.instance.handle.doc()?.places).toEqual([
+      expect.objectContaining({ id: "live-only" }),
+    ]);
+    expect(remounted.adapter.clientToolResultMetadataFor("read-call")).toEqual(
+      original.adapter.clientToolResultMetadataFor("read-call"),
+    );
+    expect(remounted.adapter.clientToolResultMetadataFor("arc-call")).toEqual(
+      original.adapter.clientToolResultMetadataFor("arc-call"),
+    );
+  });
+
+  test("blocks malformed, duplicate, missing, conflicting and mismatched history terminals", async () => {
+    const original = setup();
+    const output = await original
+      .tool("addPlace")
+      .execute(original.params(placeInput, undefined, "place-call"));
+    const metadata = original.adapter.clientToolResultMetadataFor("place-call");
+    const assistantCall = {
+      type: "dynamic-tool",
+      state: "output-available",
+      toolCallId: "place-call",
+      toolName: "addPlace",
+      input: placeInput,
+      output,
+    };
+    const result = {
+      toolCallId: "place-call",
+      toolName: "addPlace",
+      output,
+      metadata,
+    };
+    const derive = async (options?: {
+      calls?: readonly unknown[];
+      dispatchText?: string;
+      results?: readonly unknown[];
+    }) =>
+      deriveCanonicalPetrinautReplay({
+        snapshot: {
+          messages: [
+            {
+              role: "assistant",
+              purpose: "assistant",
+              parts: options?.calls ?? [assistantCall],
+            },
+            {
+              role: "system",
+              purpose: "dispatch",
+              signal: { tagName: "client-tool-result" },
+              parts: [
+                {
+                  type: "text",
+                  text:
+                    options?.dispatchText ??
+                    JSON.stringify(options?.results ?? [result]),
+                },
+              ],
+            },
+          ],
+        } as never,
+        binding: {
+          documentId: "document",
+          incarnationId: "incarnation",
+          conversationId: "conversation",
+        },
+      });
+    const mutationRecord = metadata?.canonicalMutationRecord;
+    if (mutationRecord === undefined)
+      throw new Error("Missing canonical mutation metadata");
+    const cases = [
+      { results: [result, structuredClone(result)] },
+      { results: [{ ...result, metadata: undefined }] },
+      { dispatchText: "not-json" },
+      {
+        results: [
+          {
+            ...result,
+            metadata: {
+              canonicalMutationRecord: {
+                ...mutationRecord,
+                binding: {
+                  ...mutationRecord.binding,
+                  incarnationId: "other-incarnation",
+                },
+              },
+            },
+          },
+        ],
+      },
+      {
+        calls: [
+          {
+            ...assistantCall,
+            input: { ...placeInput, name: "Mismatched input" },
+          },
+        ],
+      },
+      { results: [{ ...result, output: { applied: false, reason: "wrong" } }] },
+      {
+        calls: [
+          assistantCall,
+          {
+            ...assistantCall,
+            toolName: "addTransition",
+            input: transitionInput,
+          },
+        ],
+      },
+    ];
+    for (const historyCase of cases) {
+      const replay = await derive(historyCase);
+      expect(replay.terminalMutations.has("place-call")).toBe(false);
+      expect(replay.blockedCalls.has("place-call")).toBe(true);
+    }
+    const conflictingReplay = await derive({
+      results: [result, structuredClone(result)],
+    });
+    const conflicting = setup({ status: "ready", replay: conflictingReplay });
+    await expect(
+      conflicting
+        .tool("addPlace")
+        .execute(conflicting.params(placeInput, undefined, "place-call")),
+    ).rejects.toThrow("Conflicting duplicate canonical tool call");
+    expect(
+      conflicting.adapter.clientToolResultMetadataFor("place-call"),
+    ).toBeUndefined();
+    expect(conflicting.instance.handle.doc()?.places).toEqual([]);
+
+    const read = setup();
+    const readOutput = read
+      .tool("getLatestNetDefinition")
+      .execute(read.params({}, undefined, "read-call"));
+    const readMetadata = read.adapter.clientToolResultMetadataFor("read-call");
+    const readReplay = await deriveCanonicalPetrinautReplay({
+      snapshot: {
+        messages: [
+          {
+            role: "assistant",
+            purpose: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                state: "output-available",
+                toolCallId: "read-call",
+                toolName: "getLatestNetDefinition",
+                input: {},
+                output: readOutput,
+              },
+            ],
+          },
+          {
+            role: "system",
+            purpose: "dispatch",
+            signal: { tagName: "client-tool-result" },
+            parts: [
+              {
+                type: "text",
+                text: JSON.stringify([
+                  {
+                    toolCallId: "read-call",
+                    toolName: "getLatestNetDefinition",
+                    output: {
+                      ...(readOutput as Record<string, unknown>),
+                      definition: { places: [] },
+                    },
+                    metadata: readMetadata,
+                  },
+                ]),
+              },
+            ],
+          },
+        ],
+      } as never,
+      binding: {
+        documentId: "document",
+        incarnationId: "incarnation",
+        conversationId: "conversation",
+      },
+    });
+    expect(readReplay.terminalReads.has("read-call")).toBe(false);
+    expect(readReplay.blockedCalls.has("read-call")).toBe(true);
+  });
+
+  test("fails closed while replay is unresolved and for admitted calls without one valid terminal", async () => {
+    const pending = setup({ status: "pending" });
+    expect(() =>
+      pending
+        .tool("getLatestNetDefinition")
+        .execute(pending.params({}, undefined, "read-call")),
+    ).toThrow(
+      "Canonical tool replay verification is not ready for this conversation",
+    );
+    await expect(
+      pending
+        .tool("addPlace")
+        .execute(pending.params(placeInput, undefined, "place-call")),
+    ).resolves.toEqual({
+      applied: false,
+      reason:
+        "Canonical tool replay verification is not ready for this conversation.",
+    });
+    expect(pending.instance.handle.doc()?.places).toEqual([]);
+
+    const replay = await deriveCanonicalPetrinautReplay({
+      snapshot: {
+        messages: [
+          {
+            role: "assistant",
+            purpose: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                state: "input-available",
+                toolCallId: "read-call",
+                toolName: "getLatestNetDefinition",
+                input: {},
+              },
+              {
+                type: "dynamic-tool",
+                state: "input-available",
+                toolCallId: "place-call",
+                toolName: "addPlace",
+                input: placeInput,
+              },
+            ],
+          },
+        ],
+      } as never,
+      binding: {
+        documentId: "document",
+        incarnationId: "incarnation",
+        conversationId: "conversation",
+      },
+    });
+    expect([...replay.blockedCalls.keys()].toSorted()).toEqual([
+      "place-call",
+      "read-call",
+    ]);
+    const remounted = setup({ status: "ready", replay });
+    expect(() =>
+      remounted
+        .tool("getLatestNetDefinition")
+        .execute(remounted.params({}, undefined, "read-call")),
+    ).toThrow(
+      "This canonical read call was previously admitted without one verifiable terminal result",
+    );
+    const failedOutput = await remounted
+      .tool("addPlace")
+      .execute(remounted.params(placeInput, undefined, "place-call"));
+    expect(failedOutput).toEqual({
+      applied: false,
+      reason:
+        "This canonical mutation call was previously admitted without one verifiable terminal result.",
+    });
+    const failedRecord = parseClientToolResultMetadata(
+      remounted.adapter.clientToolResultMetadataFor("place-call"),
+    )?.canonicalMutationRecord;
+    const binding = {
+      documentId: "document",
+      incarnationId: "incarnation",
+      conversationId: "conversation",
+    };
+    await expect(
+      verifyCanonicalMutationRecord({
+        record: failedRecord,
+        toolCallId: "place-call",
+        toolName: "addPlace",
+        canonicalInput: placeInput,
+        canonicalOutput: failedOutput,
+        binding,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        outcome: "failed",
+        effects: { created: [], updated: [], deleted: [], derived: [] },
+        settlement: { status: "not-required" },
+        diagnostics: { status: "not-required" },
+      }),
+    );
+    const verifyMutationResults = await loadServerMutationVerifier();
+    await expect(
+      verifyMutationResults({
+        body: JSON.stringify([
+          {
+            toolCallId: "place-call",
+            toolName: "addPlace",
+            output: failedOutput,
+            metadata:
+              remounted.adapter.clientToolResultMetadataFor("place-call"),
+          },
+        ]),
+        snapshot: {
+          messages: [
+            {
+              role: "assistant",
+              purpose: "assistant",
+              parts: [
+                {
+                  type: "dynamic-tool",
+                  state: "output-available",
+                  toolCallId: "place-call",
+                  toolName: "addPlace",
+                  input: placeInput,
+                  output: { awaiting: AWAITING_CLIENT },
+                },
+              ],
+            },
+          ],
+        } as never,
+        binding,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      remounted
+        .tool("addTransition")
+        .execute(remounted.params(transitionInput, undefined, "place-call")),
+    ).rejects.toThrow("Conflicting duplicate canonical tool call");
+    expect(remounted.instance.handle.doc()?.places).toEqual([]);
+    expect(remounted.settleRevision).not.toHaveBeenCalled();
+
+    const terminalReplay = await deriveCanonicalPetrinautReplay({
+      snapshot: {
+        messages: [
+          {
+            role: "assistant",
+            purpose: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                state: "output-available",
+                toolCallId: "place-call",
+                toolName: "addPlace",
+                input: placeInput,
+                output: { disposition: "awaiting-client" },
+              },
+            ],
+          },
+          {
+            role: "system",
+            purpose: "dispatch",
+            signal: { tagName: "client-tool-result" },
+            parts: [
+              {
+                type: "text",
+                text: JSON.stringify([
+                  {
+                    toolCallId: "place-call",
+                    toolName: "addPlace",
+                    output: failedOutput,
+                    metadata:
+                      remounted.adapter.clientToolResultMetadataFor(
+                        "place-call",
+                      ),
+                  },
+                ]),
+              },
+            ],
+          },
+        ],
+      } as never,
+      binding: {
+        documentId: "document",
+        incarnationId: "incarnation",
+        conversationId: "conversation",
+      },
+    });
+    expect(terminalReplay.terminalMutations.has("place-call")).toBe(true);
+    const reloaded = setup({ status: "ready", replay: terminalReplay });
+    const addPlace = vi.spyOn(reloaded.instance.mutations, "addPlace");
+    await expect(
+      reloaded
+        .tool("addPlace")
+        .execute(reloaded.params(placeInput, undefined, "place-call")),
+    ).resolves.toEqual(failedOutput);
+    expect(addPlace).not.toHaveBeenCalled();
+    expect(reloaded.settleRevision).not.toHaveBeenCalled();
+    expect(reloaded.instance.handle.doc()?.places).toEqual([]);
   });
 });

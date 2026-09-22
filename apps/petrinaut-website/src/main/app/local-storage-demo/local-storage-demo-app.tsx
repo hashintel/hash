@@ -21,6 +21,10 @@ import {
 } from "react";
 
 import {
+  applyPetrinautConstructionToolName,
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
@@ -71,7 +75,10 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
-import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
+import {
+  canonicalPetrinautClientToolNames,
+  deepPetrinautClientToolNames,
+} from "./brunch-client-tools";
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
@@ -81,15 +88,31 @@ import {
   type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
-import { createCanonicalPetrinautHostTools } from "./brunch-petrinaut-tools";
+import {
+  createCanonicalPetrinautHostTools,
+  deriveCanonicalPetrinautReplay,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautReplay,
+  type CanonicalPetrinautReplayReadiness,
+} from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
-import { foldBrunchWorkpieceHistory } from "./brunch-workpiece-history";
+import {
+  foldBrunchWorkpieceHistory,
+  settledBrunchWorkpieceRevisionFrom,
+} from "./brunch-workpiece-history";
 import { BrunchWorkpiecePane } from "./brunch-workpiece-pane";
 import { useDocumentController } from "./documents/use-document-controller";
 import { readLiveDocumentHash } from "./live-document-hash";
 import { localStorageDemoRouteIdentity } from "./local-storage-demo-search";
+import {
+  createApplyPetrinautConstructionHostTool,
+  deriveDeepConstructionReplay,
+  type DeepConstructionReplay,
+  type DeepConstructionReplayReadiness,
+  type SettledLedgerRevision,
+} from "./mutate-petrinet-tool";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import { emptySDCPN } from "./use-local-storage-sdcpns";
@@ -101,6 +124,11 @@ import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
+
+const EMPTY_DEEP_CONSTRUCTION_REPLAY: DeepConstructionReplay = {
+  terminalRecords: new Map(),
+  blockedToolCallIds: new Set(),
+};
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -650,32 +678,169 @@ export const LocalStorageDemoApp = ({
     getObservedLiveHash,
     getServerObservedLiveHash,
   );
-  const canonicalHostTools = useMemo(() => {
-    if (!integratedConstructionBrowser || !activeHandle) return undefined;
-    return createCanonicalPetrinautHostTools({
-      handle: activeHandle.handle,
-      binding: integratedConstructionBrowser.binding,
-      readTitle: () => activeHandle.document.title,
-      settleRevision: (settlement) =>
-        source.repository.settleRevision(settlement),
-    });
-  }, [activeHandle, integratedConstructionBrowser, source.repository]);
-  const dynamicClientToolNames = useMemo(
+  const deepModeSelected =
+    brunchPreviewConfig.serverMode === BRUNCH_DEEP_CONSTRUCTION_MODE &&
+    integratedConstructionBrowser !== undefined &&
+    activeHandle !== null;
+  const dynamicClientToolNames = useMemo(() => {
+    if (integratedConstructionBrowser === undefined) return undefined;
+    const names = new Set([
+      "getLatestNetDefinition",
+      "getNetCompilationErrors",
+      "addPlace",
+      "addTransition",
+      "addArc",
+    ]);
+    if (deepModeSelected) names.add(applyPetrinautConstructionToolName);
+    return names;
+  }, [deepModeSelected, integratedConstructionBrowser]);
+  const validatedClientToolNames = useMemo(
     () =>
-      canonicalHostTools === undefined
-        ? undefined
-        : new Set(canonicalHostTools.tools.map(({ toolName }) => toolName)),
-    [canonicalHostTools],
+      deepModeSelected
+        ? new Set([applyPetrinautConstructionToolName])
+        : undefined,
+    [deepModeSelected],
   );
   const constructionClientTools = brunchSelected
-    ? canonicalPetrinautClientToolNames
+    ? deepModeSelected
+      ? deepPetrinautClientToolNames
+      : canonicalPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     constructionClientTools,
     dynamicClientToolNames,
+    validatedClientToolNames,
   );
+  const canonicalReplayKey = integratedConstructionBrowser
+    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}:${flueHistory.snapshot?.offset ?? flueHistory.phase ?? "loading"}`
+    : undefined;
+  const [canonicalReplayState, setCanonicalReplayState] = useState<{
+    readonly key: string;
+    readonly replay: CanonicalPetrinautReplay;
+  }>();
+  useEffect(() => {
+    const snapshot = flueHistory.snapshot;
+    if (
+      canonicalReplayKey === undefined ||
+      integratedConstructionBrowser === undefined ||
+      snapshot === undefined
+    )
+      return;
+    let cancelled = false;
+    const derive = async () => {
+      const replay = await deriveCanonicalPetrinautReplay({
+        snapshot,
+        binding: integratedConstructionBrowser.binding,
+      });
+      if (!cancelled)
+        setCanonicalReplayState({ key: canonicalReplayKey, replay });
+    };
+    void derive();
+    return () => {
+      cancelled = true;
+    };
+  }, [canonicalReplayKey, flueHistory.snapshot, integratedConstructionBrowser]);
+  const canonicalReplayReadiness = useMemo<CanonicalPetrinautReplayReadiness>(
+    () =>
+      flueHistory.phase === "absent"
+        ? { status: "ready", replay: EMPTY_CANONICAL_PETRINAUT_REPLAY }
+        : canonicalReplayKey !== undefined &&
+            canonicalReplayState?.key === canonicalReplayKey
+          ? { status: "ready", replay: canonicalReplayState.replay }
+          : { status: "pending" },
+    [canonicalReplayKey, canonicalReplayState, flueHistory.phase],
+  );
+  const canonicalHostTools = useMemo(() => {
+    if (!integratedConstructionBrowser || !activeHandle) return undefined;
+    return createCanonicalPetrinautHostTools({
+      handle: activeHandle.handle,
+      binding: integratedConstructionBrowser.binding,
+      readTitle: () => activeHandle.document.title,
+      replayReadiness: canonicalReplayReadiness,
+      settleRevision: (settlement) =>
+        source.repository.settleRevision(settlement),
+    });
+  }, [
+    activeHandle,
+    canonicalReplayReadiness,
+    integratedConstructionBrowser,
+    source.repository,
+  ]);
+  const currentLedger = useMemo<SettledLedgerRevision | undefined>(
+    () =>
+      integratedConstructionBrowser && flueHistory.snapshot
+        ? settledBrunchWorkpieceRevisionFrom(
+            foldBrunchWorkpieceHistory(
+              flueHistory.snapshot.messages,
+              integratedConstructionBrowser.binding,
+            ),
+          )
+        : undefined,
+    [integratedConstructionBrowser, flueHistory.snapshot],
+  );
+  const replayKey = deepModeSelected
+    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}:${flueHistory.snapshot?.offset ?? flueHistory.phase ?? "loading"}`
+    : undefined;
+  const [deepReplayState, setDeepReplayState] = useState<{
+    readonly key: string;
+    readonly replay: DeepConstructionReplay;
+  }>();
+  useEffect(() => {
+    const snapshot = flueHistory.snapshot;
+    if (
+      replayKey === undefined ||
+      integratedConstructionBrowser === undefined ||
+      snapshot === undefined
+    )
+      return;
+    let cancelled = false;
+    const derive = async () => {
+      const replay = await deriveDeepConstructionReplay({
+        snapshot,
+        binding: integratedConstructionBrowser.binding,
+      });
+      if (!cancelled) setDeepReplayState({ key: replayKey, replay });
+    };
+    void derive();
+    return () => {
+      cancelled = true;
+    };
+  }, [flueHistory.snapshot, integratedConstructionBrowser, replayKey]);
+  const deepReplayReadiness = useMemo<DeepConstructionReplayReadiness>(
+    () =>
+      flueHistory.phase === "absent"
+        ? { status: "ready", replay: EMPTY_DEEP_CONSTRUCTION_REPLAY }
+        : replayKey !== undefined && deepReplayState?.key === replayKey
+          ? { status: "ready", replay: deepReplayState.replay }
+          : { status: "pending" },
+    [deepReplayState, flueHistory.phase, replayKey],
+  );
+  const deepHostTool = useMemo(() => {
+    if (!deepModeSelected) return undefined;
+    return createApplyPetrinautConstructionHostTool({
+      handle: activeHandle.handle,
+      binding: integratedConstructionBrowser.binding,
+      initialLedger: currentLedger,
+      replayReadiness: deepReplayReadiness,
+      settleRevision: (settlement) =>
+        source.repository.settleRevision(settlement),
+    });
+  }, [
+    activeHandle,
+    currentLedger,
+    deepModeSelected,
+    deepReplayReadiness,
+    integratedConstructionBrowser,
+    source.repository,
+  ]);
+  useEffect(() => {
+    deepHostTool?.updateAuthority({
+      binding: integratedConstructionBrowser?.binding,
+      ledger: currentLedger,
+    });
+  }, [currentLedger, deepHostTool, integratedConstructionBrowser]);
   useEffect(() => {
     if (flueHistory.error === undefined) return;
     reportBrunchFailure("history", flueHistory.error, {
@@ -727,12 +892,33 @@ export const LocalStorageDemoApp = ({
             : {
                 clientToolNames: constructionClientTools,
                 dynamicClientToolNames,
+                validatedClientToolNames,
+                ...(canonicalHostTools === undefined &&
+                deepHostTool === undefined
+                  ? {}
+                  : {
+                      mapClientToolInput: (call) => {
+                        const canonicalInput =
+                          canonicalHostTools?.mapClientToolInput(call) ??
+                          call.input;
+                        return (
+                          deepHostTool?.mapClientToolInput({
+                            ...call,
+                            input: canonicalInput,
+                          }) ?? canonicalInput
+                        );
+                      },
+                    }),
               }),
-          ...(canonicalHostTools === undefined
+          ...(canonicalHostTools === undefined && deepHostTool === undefined
             ? {}
             : {
-                clientToolResultMetadata: ({ toolCallId }) =>
-                  canonicalHostTools.clientToolResultMetadataFor(toolCallId),
+                clientToolResultMetadata: ({ toolCallId, output }) =>
+                  deepHostTool?.clientToolResultMetadataFor(toolCallId) ??
+                  canonicalHostTools?.clientToolResultMetadataFor(
+                    toolCallId,
+                    output,
+                  ),
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -751,7 +937,9 @@ export const LocalStorageDemoApp = ({
     constructionClientTools,
     constructionBrowser,
     canonicalHostTools,
+    deepHostTool,
     dynamicClientToolNames,
+    validatedClientToolNames,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
@@ -795,7 +983,10 @@ export const LocalStorageDemoApp = ({
       canClearMessages: flueClientPromise === null,
       // These exact-name tools override the static registry only in integrated
       // modes. Every other canonical capability remains on Petrinaut's registry.
-      automaticTools: canonicalHostTools?.tools ?? [],
+      automaticTools: [
+        ...(canonicalHostTools?.tools ?? []),
+        ...(deepHostTool === undefined ? [] : [deepHostTool.tool]),
+      ],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
@@ -848,6 +1039,7 @@ export const LocalStorageDemoApp = ({
     brunchSelected,
     brunchVoiceMode,
     canonicalHostTools,
+    deepHostTool,
     observedLiveHash,
     integratedConstructionBrowser,
     conversationTracker,

@@ -12,6 +12,7 @@ import { Hono } from "hono";
 
 import {
   CANONICAL_PETRINAUT_TOOL_NAMES,
+  applyPetrinautConstructionToolName,
   layoutPetrinautNetToolName,
   mutatePetrinautNetToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
@@ -151,6 +152,7 @@ if (accounting) {
 // `convertTools`. See apps/brunch-agent/AGENTS.md.
 const browserToolNames = new Set([
   ...CANONICAL_PETRINAUT_TOOL_NAMES,
+  applyPetrinautConstructionToolName,
   readPetrinautNetToolName,
   readPetrinautDiagnosticsToolName,
   layoutPetrinautNetToolName,

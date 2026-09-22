@@ -1,4 +1,5 @@
 import {
+  applyPetrinautConstructionToolName,
   canonicalContent,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
@@ -20,6 +21,13 @@ export type BrunchWorkpieceHistoryMessage = {
   readonly purpose: string;
   readonly parts: readonly unknown[];
   readonly signal?: unknown;
+};
+
+export type SettledBrunchWorkpieceRevision = {
+  readonly revisionId: string;
+  readonly sha256: string;
+  readonly ordinal: number;
+  readonly markdown: string;
 };
 
 export type BrunchWorkpieceHistory = {
@@ -44,6 +52,26 @@ export type BrunchWorkpieceHistory = {
  * toolCallId`); failed, refused, pending or unbound inputs never become
  * state and do not mark the displayed Ledger newer.
  */
+export const settledBrunchWorkpieceRevisionFrom = (
+  history: BrunchWorkpieceHistory,
+): SettledBrunchWorkpieceRevision | undefined => {
+  const workpiece = history.report?.workpiece;
+  if (
+    workpiece === undefined ||
+    typeof workpiece.revisionId !== "string" ||
+    typeof workpiece.sha256 !== "string" ||
+    typeof workpiece.ordinal !== "number" ||
+    typeof workpiece.markdown !== "string"
+  )
+    return undefined;
+  return {
+    revisionId: workpiece.revisionId,
+    sha256: workpiece.sha256,
+    ordinal: workpiece.ordinal,
+    markdown: workpiece.markdown,
+  };
+};
+
 export const foldBrunchWorkpieceHistory = (
   messages: readonly BrunchWorkpieceHistoryMessage[],
   binding: {
@@ -85,9 +113,8 @@ export const foldBrunchWorkpieceHistory = (
         ({ toolCallId }) => toolCallId === part.toolCallId,
       );
       const delivery = deliveries[0];
-      const canonicalMutationRecord = parseClientToolResultMetadata(
-        delivery?.metadata,
-      )?.canonicalMutationRecord;
+      const resultMetadata = parseClientToolResultMetadata(delivery?.metadata);
+      const canonicalMutationRecord = resultMetadata?.canonicalMutationRecord;
       if (
         deliveries.length === 1 &&
         delivery !== undefined &&
@@ -100,6 +127,19 @@ export const foldBrunchWorkpieceHistory = (
           canonicalContent(part.input) &&
         canonicalContent(canonicalMutationRecord.output) ===
           canonicalContent(delivery.output)
+      ) {
+        activityIdentities.add(part.toolCallId);
+      }
+      const deepRecord = resultMetadata?.deepConstructionRecord;
+      if (
+        part.toolName === applyPetrinautConstructionToolName &&
+        deliveries.length === 1 &&
+        deepRecord !== undefined &&
+        deepRecord.toolCallId === part.toolCallId &&
+        canonicalContent(deepRecord.binding) === canonicalContent(binding) &&
+        canonicalContent(deepRecord.input) === canonicalContent(part.input) &&
+        canonicalContent(deepRecord.output) ===
+          canonicalContent(delivery?.output)
       ) {
         activityIdentities.add(part.toolCallId);
       }

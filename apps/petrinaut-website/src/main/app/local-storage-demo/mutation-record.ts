@@ -27,6 +27,11 @@ export interface BrowserDefinitionObservation {
   readonly revisionId: DocumentRevisionId;
 }
 
+export type CanonicalBrowserMutationName =
+  | "addPlace"
+  | "addTransition"
+  | "addArc";
+
 export type CanonicalMutationOutcome =
   | "applied"
   | "no-op"
@@ -49,10 +54,10 @@ export type BrowserSettlementRecord =
       readonly error: string;
     };
 
-export interface BrowserAddPlaceRecord {
+type BrowserMutationRecordFor<Name extends CanonicalBrowserMutationName> = {
   readonly toolCallId: string;
-  readonly toolName: "addPlace";
-  readonly input: PetrinautAiToolInput<"addPlace">;
+  readonly toolName: Name;
+  readonly input: PetrinautAiToolInput<Name>;
   readonly binding: BrowserToolBinding;
   readonly pre?: BrowserDefinitionObservation;
   readonly post?: BrowserDefinitionObservation;
@@ -62,7 +67,17 @@ export interface BrowserAddPlaceRecord {
   readonly diagnostics: BrowserDiagnosticsRecord;
   readonly output?: unknown;
   readonly error?: string;
-}
+};
+
+export type BrowserCanonicalMutationRecord = {
+  [Name in CanonicalBrowserMutationName]: BrowserMutationRecordFor<Name>;
+}[CanonicalBrowserMutationName];
+
+/** Retained for callers that specifically narrow addPlace records. */
+export type BrowserAddPlaceRecord = Extract<
+  BrowserCanonicalMutationRecord,
+  { readonly toolName: "addPlace" }
+>;
 
 export interface BrowserReadRecord {
   readonly toolCallId: string;
@@ -71,7 +86,9 @@ export interface BrowserReadRecord {
   readonly observation: BrowserDefinitionObservation;
 }
 
-export type BrowserToolRecord = BrowserAddPlaceRecord | BrowserReadRecord;
+export type BrowserToolRecord =
+  | BrowserCanonicalMutationRecord
+  | BrowserReadRecord;
 
 const errorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -93,12 +110,16 @@ export const observeBrowserDefinition = (
 };
 
 /** Plugin-owned complete diff partition plus the browser-observed outcome. */
-export const deriveAddPlaceEvidence = ({
+export const deriveCanonicalMutationEvidence = <
+  Name extends CanonicalBrowserMutationName,
+>({
+  toolName,
   input,
   pre,
   post,
 }: {
-  input: PetrinautAiToolInput<"addPlace">;
+  toolName: Name;
+  input: PetrinautAiToolInput<Name>;
   pre: BrowserDefinitionObservation;
   post: BrowserDefinitionObservation;
 }): {
@@ -110,13 +131,13 @@ export const deriveAddPlaceEvidence = ({
     incarnationId: "browser-observation",
     conversationId: "browser-observation",
   };
-  const request: ConstructionMutationRequest = {
+  const request = {
     toolCallId: "browser-observation",
-    toolName: "addPlace",
+    toolName,
     input,
     binding,
     requestedBaseHash: pre.sha256,
-  };
+  } as ConstructionMutationRequest;
   const effects = deriveMutationEffects(
     request,
     pre.definition,
@@ -139,6 +160,13 @@ export const deriveAddPlaceEvidence = ({
     effects,
   };
 };
+
+export const deriveAddPlaceEvidence = (
+  input: Omit<
+    Parameters<typeof deriveCanonicalMutationEvidence<"addPlace">>[0],
+    "toolName"
+  >,
+) => deriveCanonicalMutationEvidence({ toolName: "addPlace", ...input });
 
 /** Host-only retained records for one immutable document incarnation/conversation. */
 export const createBrowserMutationRecords = ({

@@ -14,7 +14,9 @@
  * here; projections must remain recomputable from canonical history.
  */
 import {
+  applyPetrinautConstructionToolName,
   canonicalContent,
+  declarePetrinautProjectionToolName,
   isConstructionMutationName,
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
@@ -24,14 +26,27 @@ import {
   mutatePetrinetInputSchema,
   parseClientToolResultMetadata,
   verifyCanonicalMutationRecord,
+  verifyDeepConstructionRecord,
+  verifyDeclaredProjectionOutput,
+  verifyExperimentRecord,
   verifyDefinitionObservation,
+  type DeclaredBasis,
+  type ConstructionMutationAttempt,
+  type DeclaredProjectionOutput,
   type DefinitionObservation,
+  type MutationEffects,
+  type VerifiedExperimentRecord,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
-import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
+import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
+import {
+  createExperimentToolName,
+  getLatestNetDefinitionToolName,
+} from "@hashintel/petrinaut-core";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import { verifyMutatePetrinetAttempts } from "./mutation-delivery.ts";
+import { retainedSettledRevision } from "./workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
@@ -63,6 +78,55 @@ export type NetLedgerEvent =
       readonly postHash: string;
       /** Absent only for retained pre-revision records. */
       readonly postRevisionId?: string;
+      /** Verified observations/effects are retained so why can locate the affected target. */
+      readonly pre?: DefinitionObservation;
+      readonly post?: DefinitionObservation;
+      readonly effects?: MutationEffects;
+      /** Present for verified direct canonical calls; legacy batches retain their own attempts. */
+      readonly attempt?: ConstructionMutationAttempt;
+      readonly provenance:
+        | {
+            readonly standing: "declared-projection";
+            readonly operationId: string;
+            readonly intendedEffect: string;
+            readonly intendedTarget: string;
+            readonly expectedImpact: readonly string[];
+            readonly basis: DeclaredBasis;
+            readonly impactAssessment: "owner-adjudication-required";
+          }
+        | {
+            readonly standing: "temporal/basis-absent";
+            readonly basis: Extract<DeclaredBasis, { kind: "absent" }>;
+          };
+    }
+  | {
+      /** One verified Interface B outer call; step identities are ordered positions, never invented calls. */
+      readonly kind: "construction";
+      readonly toolCallId: string;
+      readonly position: NetLedgerPosition;
+      readonly disposition: "complete" | "partial" | "refused";
+      readonly authority:
+        | { readonly status: "verified"; readonly base: DefinitionObservation }
+        | { readonly status: "refused"; readonly reason: string };
+      readonly steps: readonly {
+        readonly operationId: string;
+        readonly toolName: string;
+        readonly intendedEffect: string;
+        readonly intendedTarget: string;
+        readonly expectedImpact: readonly string[];
+        readonly impactAssessment: "owner-adjudication-required";
+        readonly basis: DeclaredBasis;
+        readonly attempt: ConstructionMutationAttempt;
+      }[];
+    }
+  | {
+      /** A terminal experiment over a verified immutable source revision; never a document change. */
+      readonly kind: "experiment";
+      readonly toolCallId: string;
+      readonly position: NetLedgerPosition;
+      readonly input: VerifiedExperimentRecord["input"];
+      readonly source: VerifiedExperimentRecord["source"];
+      readonly output: VerifiedExperimentRecord["output"];
     }
   | {
       readonly kind: "layout";
@@ -97,6 +161,7 @@ const isNetDefinitionReadTool = (name: string): boolean =>
 
 const isNonMutatingBrowserTool = (name: string): boolean =>
   isNetDefinitionReadTool(name) ||
+  name === createExperimentToolName ||
   isReadPetrinautDiagnosticsToolName(name) ||
   isReadPetrinautDocsToolName(name);
 
@@ -196,19 +261,89 @@ export const deriveNetLedger = async (
   const deliveriesFor = (toolCallId: string) =>
     results.filter((result) => result.toolCallId === toolCallId);
   const events: NetLedgerEvent[] = [];
+  let pendingDeclaration:
+    | { output: DeclaredProjectionOutput; nextOperation: number }
+    | undefined;
 
   for (const [messageIndex, message] of snapshot.messages.entries()) {
     if (message.role !== "assistant" || message.purpose !== "assistant")
       continue;
     for (const [partIndex, call] of message.parts.entries()) {
-      if (
-        call.type !== "dynamic-tool" ||
-        call.state !== "output-available" ||
-        !isAwaitingClient(call.output)
-      )
+      if (call.type !== "dynamic-tool") continue;
+      if (call.toolName === MUTATE_WORKPIECE_TOOL_NAME) {
+        pendingDeclaration = undefined;
+        continue;
+      }
+      if (call.toolName === declarePetrinautProjectionToolName) {
+        pendingDeclaration = undefined;
+        if (call.state !== "output-available") continue;
+        const revisionId = isRecord(call.output)
+          ? isRecord(call.output.revision) &&
+            typeof call.output.revision.revisionId === "string"
+            ? call.output.revision.revisionId
+            : undefined
+          : undefined;
+        if (revisionId === undefined) continue;
+        const beforeDeclaration: FlueConversationSnapshot = {
+          ...snapshot,
+          messages: [
+            ...snapshot.messages.slice(0, messageIndex),
+            { ...message, parts: message.parts.slice(0, partIndex) },
+          ],
+        };
+        const latestSettlementCall = beforeDeclaration.messages
+          .flatMap((entry) =>
+            entry.role === "assistant" && entry.purpose === "assistant"
+              ? entry.parts
+              : [],
+          )
+          .findLast(
+            (part) =>
+              part.type === "dynamic-tool" &&
+              part.toolName === MUTATE_WORKPIECE_TOOL_NAME &&
+              part.state === "output-available",
+          );
+        if (
+          latestSettlementCall?.type !== "dynamic-tool" ||
+          latestSettlementCall.toolCallId !== revisionId
+        )
+          continue;
+        const currentRevision = retainedSettledRevision(
+          beforeDeclaration,
+          revisionId,
+        );
+        if (currentRevision === undefined) continue;
+        try {
+          pendingDeclaration = {
+            output: verifyDeclaredProjectionOutput({
+              issuedInput: call.input,
+              recordedOutput: call.output,
+              currentRevision,
+            }),
+            nextOperation: 0,
+          };
+        } catch {
+          // An invalid declaration cannot lend provenance to a later call.
+        }
+        continue;
+      }
+      if (call.state !== "output-available" || !isAwaitingClient(call.output))
         continue;
       const position: NetLedgerPosition = { messageIndex, partIndex };
       const { toolCallId, toolName } = call;
+      const expectedDeclaration =
+        pendingDeclaration?.output.operations[pendingDeclaration.nextOperation];
+      const declarationForCall =
+        isConstructionMutationName(toolName) &&
+        expectedDeclaration?.toolName === toolName &&
+        pendingDeclaration
+          ? { pending: pendingDeclaration, operation: expectedDeclaration }
+          : undefined;
+      if (
+        isConstructionMutationName(toolName) ||
+        !isNonMutatingBrowserTool(toolName)
+      )
+        pendingDeclaration = undefined;
       const unrecorded = (reason: string): NetLedgerEvent => ({
         kind: "unrecorded",
         toolCallId,
@@ -231,7 +366,11 @@ export const deriveNetLedger = async (
         }
         continue;
       }
-      if (isNonMutatingBrowserTool(toolName)) continue;
+      if (
+        isNonMutatingBrowserTool(toolName) &&
+        toolName !== createExperimentToolName
+      )
+        continue;
 
       const deliveries = deliveriesFor(toolCallId);
       const first = deliveries[0];
@@ -261,6 +400,37 @@ export const deriveNetLedger = async (
         continue;
       }
       const metadata = parseClientToolResultMetadata(first.metadata);
+
+      if (toolName === createExperimentToolName) {
+        const record = metadata?.experimentRecord;
+        if (record === undefined) {
+          events.push(
+            unrecorded("The experiment result carries no experiment record."),
+          );
+          continue;
+        }
+        try {
+          // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
+          const verified = await verifyExperimentRecord({
+            record,
+            toolCallId,
+            canonicalInput: call.input,
+            canonicalOutput: first.output,
+            binding: browser.binding,
+          });
+          events.push({
+            kind: "experiment",
+            toolCallId,
+            position,
+            input: verified.input,
+            source: verified.source,
+            output: verified.output,
+          });
+        } catch (error) {
+          events.push(unrecorded(reasonOf(error)));
+        }
+        continue;
+      }
 
       if (isLayoutPetrinautNetToolName(toolName)) {
         const layout = metadata?.layoutRecord;
@@ -294,6 +464,97 @@ export const deriveNetLedger = async (
         continue;
       }
 
+      if (toolName === applyPetrinautConstructionToolName) {
+        const beforeCall: FlueConversationSnapshot = {
+          ...snapshot,
+          messages: [
+            ...snapshot.messages.slice(0, messageIndex),
+            { ...message, parts: message.parts.slice(0, partIndex) },
+          ],
+        };
+        const latestSettlement = beforeCall.messages
+          .flatMap((entry) =>
+            entry.role === "assistant" && entry.purpose === "assistant"
+              ? entry.parts
+              : [],
+          )
+          .findLast(
+            (part) =>
+              part.type === "dynamic-tool" &&
+              part.toolName === MUTATE_WORKPIECE_TOOL_NAME &&
+              part.state === "output-available" &&
+              retainedSettledRevision(beforeCall, part.toolCallId) !==
+                undefined,
+          );
+        const ledgerRevision =
+          latestSettlement?.type === "dynamic-tool"
+            ? retainedSettledRevision(beforeCall, latestSettlement.toolCallId)
+            : undefined;
+        const deepRecord = metadata?.deepConstructionRecord;
+        if (deepRecord === undefined) {
+          events.push(
+            unrecorded(
+              "The deep construction result carries no deep construction record.",
+            ),
+          );
+          continue;
+        }
+        try {
+          // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
+          const verified = await verifyDeepConstructionRecord({
+            record: deepRecord,
+            toolCallId,
+            canonicalInput: call.input,
+            canonicalOutput: first.output,
+            binding: browser.binding,
+            ledgerRevision,
+          });
+          events.push({
+            kind: "construction",
+            toolCallId,
+            position,
+            disposition: verified.output.disposition,
+            authority:
+              verified.authority.status === "verified"
+                ? {
+                    status: "verified",
+                    base: verified.authority.base,
+                  }
+                : {
+                    status: "refused",
+                    reason: verified.authority.reason,
+                  },
+            steps: verified.attempts.map(({ operation, basis, record }) => ({
+              operationId: operation.operationId,
+              toolName: operation.toolName,
+              intendedEffect: operation.intendedEffect,
+              intendedTarget: operation.intendedTarget,
+              expectedImpact: operation.expectedImpact,
+              impactAssessment: "owner-adjudication-required",
+              basis,
+              attempt: {
+                request: {
+                  toolCallId,
+                  toolName: record.toolName,
+                  input: record.input,
+                  binding: browser.binding,
+                  requestedBaseHash: record.pre.sha256,
+                },
+                binding: browser.binding,
+                pre: record.pre,
+                ...(record.post === undefined ? {} : { post: record.post }),
+                outcome: record.outcome,
+                effects: record.effects,
+                ...(record.error === undefined ? {} : { error: record.error }),
+              },
+            })),
+          });
+        } catch (error) {
+          events.push(unrecorded(reasonOf(error)));
+        }
+        continue;
+      }
+
       const canonicalRecord = metadata?.canonicalMutationRecord;
       if (isConstructionMutationName(toolName)) {
         if (canonicalRecord === undefined) {
@@ -321,6 +582,28 @@ export const deriveNetLedger = async (
             throw new Error(
               "The canonical mutation record cannot vouch for a durable post observation.",
             );
+          const matchedDeclaration = declarationForCall?.operation;
+          const provenance: Extract<
+            NetLedgerEvent,
+            { kind: "mutation" }
+          >["provenance"] = matchedDeclaration
+            ? {
+                standing: "declared-projection",
+                operationId: matchedDeclaration.operationId,
+                intendedEffect: matchedDeclaration.intendedEffect,
+                intendedTarget: matchedDeclaration.intendedTarget,
+                expectedImpact: matchedDeclaration.expectedImpact,
+                basis: matchedDeclaration.basis,
+                impactAssessment: "owner-adjudication-required",
+              }
+            : {
+                standing: "temporal/basis-absent",
+                basis: {
+                  kind: "absent",
+                  reason:
+                    "No verified declaration was correlated with this direct canonical call.",
+                },
+              };
           events.push({
             kind: "mutation",
             toolCallId,
@@ -331,13 +614,44 @@ export const deriveNetLedger = async (
             ...(verified.post.revisionId === undefined
               ? {}
               : { postRevisionId: verified.post.revisionId }),
+            pre: verified.pre,
+            post: verified.post,
+            effects: verified.effects,
+            attempt: {
+              request: {
+                toolCallId,
+                toolName: verified.toolName,
+                input: verified.input,
+                binding: browser.binding,
+                requestedBaseHash: verified.pre.sha256,
+              },
+              binding: browser.binding,
+              pre: verified.pre,
+              post: verified.post,
+              outcome: verified.outcome,
+              effects: verified.effects,
+              ...(verified.error === undefined
+                ? {}
+                : { error: verified.error }),
+            },
+            provenance,
           });
+          if (declarationForCall) {
+            declarationForCall.pending.nextOperation += 1;
+            if (
+              declarationForCall.pending.nextOperation <
+              declarationForCall.pending.output.operations.length
+            )
+              pendingDeclaration = declarationForCall.pending;
+          }
         } catch (error) {
+          pendingDeclaration = undefined;
           events.push(unrecorded(reasonOf(error)));
         }
         continue;
       }
 
+      if (!isNonMutatingBrowserTool(toolName)) pendingDeclaration = undefined;
       const record = metadata?.mutationRecord;
       if (record === undefined) {
         events.push(
@@ -379,6 +693,14 @@ export const deriveNetLedger = async (
             ...(post.revisionId === undefined
               ? {}
               : { postRevisionId: post.revisionId }),
+            provenance: {
+              standing: "temporal/basis-absent",
+              basis: {
+                kind: "absent",
+                reason:
+                  "Legacy batch provenance is carried by its operation records.",
+              },
+            },
           });
         } catch (error) {
           events.push(
@@ -409,6 +731,14 @@ export const deriveNetLedger = async (
         ...(post.revisionId === undefined
           ? {}
           : { postRevisionId: post.revisionId }),
+        provenance: {
+          standing: "temporal/basis-absent",
+          basis: {
+            kind: "absent",
+            reason:
+              "Legacy mutation provenance remains in its retained record.",
+          },
+        },
       });
     }
   }

@@ -47,5 +47,5 @@ export const matchedParityScenarios: readonly MatchedParityScenario[] = [
 ];
 
 export const scenariosForArm = (
-  _arm: "stock" | "brunch",
+  _arm: "S" | "F" | "I" | "A" | "B",
 ): readonly MatchedParityScenario[] => matchedParityScenarios;

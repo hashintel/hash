@@ -4,6 +4,7 @@ import {
   mutationActionInputSchemas,
   parameterSchema,
 } from "@hashintel/petrinaut-core";
+import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import { declaredBasisSchema, sha256Schema } from "./declared-basis";
 
@@ -557,3 +558,349 @@ export const mutatePetrinetOutputSchema = z
   });
 
 export type MutatePetrinetOutput = z.output<typeof mutatePetrinetOutputSchema>;
+
+/** Interface B's browser-executed, bounded construction carrier. */
+export const applyPetrinautConstructionToolName =
+  "apply_petrinaut_construction";
+
+export const APPLY_PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
+  "addPlace",
+  "addTransition",
+  "addArc",
+] as const satisfies readonly (keyof typeof petrinautAiTools)[];
+
+const constructionText = z.string().min(1);
+const constructionOperationFields = {
+  operationId: constructionText
+    .max(128)
+    .describe(
+      "Stable identity for this intended operation within this construction request.",
+    ),
+  intendedEffect: constructionText
+    .max(1000)
+    .describe(
+      "The intended semantic change, stated as intention rather than an observed result.",
+    ),
+  intendedTarget: constructionText
+    .max(500)
+    .describe(
+      "The semantic thing this operation is intended to create or connect.",
+    ),
+  expectedImpact: z
+    .array(constructionText.max(500))
+    .min(1)
+    .max(8)
+    .superRefine((impacts, context) => {
+      const seen = new Set<string>();
+      for (const [index, impact] of impacts.entries()) {
+        if (seen.has(impact))
+          context.addIssue({
+            code: "custom",
+            path: [index],
+            message: "Expected impacts must be distinct",
+          });
+        seen.add(impact);
+      }
+    })
+    .describe(
+      "Distinct, bounded semantic definitions expected to change. These are expectations, not observed effects.",
+    ),
+  evidence: z
+    .strictObject({
+      excerpts: z
+        .array(constructionText.max(4096))
+        .min(1)
+        .max(8)
+        .superRefine((excerpts, context) => {
+          const seen = new Set<string>();
+          for (const [index, excerpt] of excerpts.entries()) {
+            if (seen.has(excerpt))
+              context.addIssue({
+                code: "custom",
+                path: [index],
+                message: "Ledger excerpts must be distinct",
+              });
+            seen.add(excerpt);
+          }
+        })
+        .describe(
+          "Literal passages copied exactly from current Ledger history. The browser host resolves them against the current settled Ledger.",
+        ),
+      rationale: constructionText
+        .max(2000)
+        .describe(
+          "Why the literal passages support this intended operation, without claiming that it happened.",
+        ),
+    })
+    .optional()
+    .describe(
+      "Optional literal Ledger support. Omit this when no exact passage supports the intended operation.",
+    ),
+};
+
+const applyPetrinautConstructionOperationSchema = z.discriminatedUnion(
+  "toolName",
+  [
+    z.strictObject({
+      ...constructionOperationFields,
+      toolName: z.literal("addPlace"),
+      input: petrinautAiTools.addPlace.inputSchema,
+    }),
+    z.strictObject({
+      ...constructionOperationFields,
+      toolName: z.literal("addTransition"),
+      input: petrinautAiTools.addTransition.inputSchema,
+    }),
+    z.strictObject({
+      ...constructionOperationFields,
+      toolName: z.literal("addArc"),
+      input: petrinautAiTools.addArc.inputSchema,
+    }),
+  ],
+);
+
+/** Model-authored intent only; browser/document and Ledger protocol state is host-owned. */
+export const applyPetrinautConstructionInputSchema = z
+  .strictObject({
+    operations: z
+      .array(applyPetrinautConstructionOperationSchema)
+      .min(1)
+      .max(3)
+      .describe(
+        "One to three canonical Petrinaut operations in dependency order. The browser host executes them in this exact order and stops at the first failure.",
+      ),
+    layout: z
+      .strictObject({
+        requested: z
+          .literal(true)
+          .describe(
+            "Explicitly request automatic layout after the successful prefix, when its applied structural changes make layout relevant.",
+          ),
+      })
+      .optional()
+      .describe(
+        "Optional automatic-layout request. Omit it to leave layout unchanged; use the canonical layout tool when user confirmation is required.",
+      ),
+  })
+  .superRefine(({ operations }, context) => {
+    const operationIds = new Set<string>();
+    let previousToolRank = -1;
+    for (const [index, { operationId, toolName }] of operations.entries()) {
+      if (operationIds.has(operationId))
+        context.addIssue({
+          code: "custom",
+          path: ["operations", index, "operationId"],
+          message: "operationId must be unique",
+        });
+      operationIds.add(operationId);
+
+      const toolRank =
+        APPLY_PETRINAUT_CONSTRUCTION_TOOL_NAMES.indexOf(toolName);
+      if (toolRank < previousToolRank)
+        context.addIssue({
+          code: "custom",
+          path: ["operations", index, "toolName"],
+          message:
+            "Operations must be ordered addPlace, then addTransition, then addArc",
+        });
+      previousToolRank = toolRank;
+    }
+  });
+
+export type ApplyPetrinautConstructionInput = z.output<
+  typeof applyPetrinautConstructionInputSchema
+>;
+
+const constructionObservedEffectSchema = z.strictObject({
+  kind: z.enum(["created", "updated", "deleted", "derived"]),
+  path: z.string(),
+  before: z.unknown().optional(),
+  after: z.unknown().optional(),
+});
+
+const constructionOutcomeIdentity = {
+  index: z.number().int().nonnegative(),
+  operationId: constructionText,
+  toolName: z.enum(APPLY_PETRINAUT_CONSTRUCTION_TOOL_NAMES),
+};
+
+const applyPetrinautConstructionOutcomeSchema = z.discriminatedUnion("status", [
+  z.strictObject({
+    ...constructionOutcomeIdentity,
+    status: z.literal("applied"),
+    effects: z.array(constructionObservedEffectSchema),
+  }),
+  z.strictObject({
+    ...constructionOutcomeIdentity,
+    status: z.literal("no-op"),
+    effects: z.array(constructionObservedEffectSchema),
+  }),
+  z.strictObject({
+    ...constructionOutcomeIdentity,
+    status: z.literal("failed"),
+    error: z.string(),
+  }),
+  z.strictObject({
+    ...constructionOutcomeIdentity,
+    status: z
+      .literal("unknown")
+      .describe(
+        "The operation may have changed live document state, but durable or independently verifiable standing could not be established.",
+      ),
+    error: z.string(),
+  }),
+  z.strictObject({
+    ...constructionOutcomeIdentity,
+    status: z.literal("unattempted"),
+  }),
+]);
+
+const diagnosticsDispositionSchema = z.discriminatedUnion("disposition", [
+  z.strictObject({ disposition: z.literal("not-required") }),
+  z.strictObject({
+    disposition: z.literal("settled"),
+    diagnostics: z.array(z.unknown()),
+  }),
+  z.strictObject({ disposition: z.literal("pending") }),
+  z.strictObject({
+    disposition: z.literal("failed"),
+    error: z.string(),
+  }),
+]);
+
+const layoutDispositionSchema = z.discriminatedUnion("disposition", [
+  z.strictObject({
+    requested: z.literal(false),
+    disposition: z.literal("not-requested"),
+  }),
+  z.strictObject({
+    requested: z.literal(true),
+    disposition: z.literal("not-relevant"),
+  }),
+  z.strictObject({
+    requested: z.literal(true),
+    disposition: z.literal("applied"),
+    preHash: sha256Schema,
+    postHash: sha256Schema,
+  }),
+  z.strictObject({
+    requested: z.literal(true),
+    disposition: z.literal("confirmation-required"),
+  }),
+  z.strictObject({
+    requested: z.literal(true),
+    disposition: z.literal("declined"),
+  }),
+  z
+    .strictObject({
+      requested: z.literal(true),
+      disposition: z.literal("failed"),
+      error: z.string(),
+      preHash: sha256Schema.optional(),
+      postHash: sha256Schema.optional(),
+    })
+    .superRefine(({ preHash, postHash }, context) => {
+      if ((preHash === undefined) !== (postHash === undefined))
+        context.addIssue({
+          code: "custom",
+          path: [preHash === undefined ? "preHash" : "postHash"],
+          message:
+            "A failed layout must provide both hashes when it changed state, or neither when it did not",
+        });
+      if (preHash !== undefined && preHash === postHash)
+        context.addIssue({
+          code: "custom",
+          path: ["postHash"],
+          message: "A failed layout with hashes must identify changed state",
+        });
+    }),
+]);
+
+const finalObservationSchema = z.discriminatedUnion("disposition", [
+  z.strictObject({
+    disposition: z.literal("observed"),
+    documentRevision: z.string().min(1),
+    definitionHash: sha256Schema,
+  }),
+  z.strictObject({
+    disposition: z.literal("unavailable"),
+    reason: z.string().min(1),
+  }),
+]);
+
+/** Browser result contract; this module does not claim to implement execution. */
+export const applyPetrinautConstructionOutputSchema = z
+  .strictObject({
+    execution: z.literal("ordered-stop"),
+    disposition: z.enum(["complete", "partial", "refused"]),
+    reason: z.string().min(1).optional(),
+    outcomes: z.array(applyPetrinautConstructionOutcomeSchema).min(1).max(3),
+    finalObservation: finalObservationSchema,
+    diagnostics: diagnosticsDispositionSchema,
+    layout: layoutDispositionSchema,
+  })
+  .superRefine(
+    ({ disposition, finalObservation, outcomes, reason }, context) => {
+      outcomes.forEach(({ index }, position) => {
+        if (index !== position)
+          context.addIssue({
+            code: "custom",
+            path: ["outcomes", position, "index"],
+            message: "outcome indices must be complete and ordered",
+          });
+      });
+
+      const statuses = outcomes.map(({ status }) => status);
+      const terminalIndex = statuses.findIndex(
+        (status) => status === "failed" || status === "unknown",
+      );
+      const successful = (status: (typeof statuses)[number]) =>
+        status === "applied" || status === "no-op";
+      let validDisposition = false;
+      if (disposition === "refused") {
+        validDisposition = statuses.every((status) => status === "unattempted");
+      } else if (disposition === "complete") {
+        validDisposition = statuses.every(successful);
+      } else if (terminalIndex >= 0) {
+        validDisposition =
+          statuses.slice(0, terminalIndex).every(successful) &&
+          statuses
+            .slice(terminalIndex + 1)
+            .every((status) => status === "unattempted");
+      }
+      if (!validDisposition)
+        context.addIssue({
+          code: "custom",
+          path: ["disposition"],
+          message:
+            "Disposition must encode either a complete successful/no-op sequence, a refused wholly unattempted sequence, or a partial successful/no-op prefix followed by one failed or unknown operation and an unattempted suffix",
+        });
+
+      if (disposition === "refused" && reason === undefined)
+        context.addIssue({
+          code: "custom",
+          path: ["reason"],
+          message: "Refused results require a non-empty reason",
+        });
+      if (disposition !== "refused" && reason !== undefined)
+        context.addIssue({
+          code: "custom",
+          path: ["reason"],
+          message: "Only refused results may include a reason",
+        });
+
+      if (
+        disposition !== "refused" &&
+        finalObservation.disposition !== "observed"
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["finalObservation"],
+          message: "Complete and partial results require a final observation",
+        });
+    },
+  );
+
+export type ApplyPetrinautConstructionOutput = z.output<
+  typeof applyPetrinautConstructionOutputSchema
+>;
