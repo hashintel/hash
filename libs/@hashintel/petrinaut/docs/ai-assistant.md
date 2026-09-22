@@ -280,3 +280,7 @@ Whether the assistant is available, which additional composer controls or Voice 
 conversation is stored (in-memory, in your host app's database, or anywhere else), and the model
 behind it are all controlled by the host application that embeds Petrinaut. Read-only documents
 and the simulate-mode restrictions described above always apply when applicable.
+
+A host may place its assistant provider and Voice availability controls under
+**User settings → Labs**. Petrinaut displays that host-provided content after
+its built-in Labs groups; the host defines and saves those choices.
