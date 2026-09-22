@@ -450,6 +450,98 @@ test("returns a fixture-scoped mutation result through the same Flue client", as
   });
 });
 
+test("carries correlated host metadata without changing canonical output", async () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-metadata",
+    submissionId: "submission-metadata",
+    uid: "uid-metadata",
+  };
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {});
+  const metadata = {
+    observation: {
+      toolCallId: "read-1",
+      binding: {
+        conversationId: "conversation-stable",
+        documentId: "document-1",
+        incarnationId: "incarnation-1",
+      },
+      observed: { definition: { places: [] }, sha256: "a".repeat(64) },
+    },
+  };
+  const clientToolResultMetadata = vi.fn(({ toolCallId }) =>
+    toolCallId === "read-1" ? metadata : undefined,
+  );
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send, wait } as Pick<
+      FlueClient,
+      "send" | "wait"
+    > as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { clientToolResultMetadata },
+  );
+  const output = {
+    title: "Current",
+    definition: {
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    },
+    extensions: {
+      colors: true,
+      dynamics: true,
+      parameters: true,
+      stochasticity: true,
+      subnets: true,
+    },
+  };
+  const stream = await transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: "assistant-read",
+    messages: [
+      {
+        id: "assistant-read",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-getLatestNetDefinition",
+            toolCallId: "read-1",
+            state: "output-available",
+            input: {},
+            output,
+          },
+        ],
+      },
+    ],
+    abortSignal: undefined,
+  });
+  await stream.pipeTo(new WritableStream());
+
+  expect(clientToolResultMetadata).toHaveBeenCalledWith({
+    toolCallId: "read-1",
+    toolName: "getLatestNetDefinition",
+    output,
+  });
+  expect(send.mock.calls[0]?.[0].message).toEqual({
+    kind: "signal",
+    type: "client-tool-result",
+    tagName: "client-tool-result",
+    body: JSON.stringify([
+      {
+        toolCallId: "read-1",
+        toolName: "getLatestNetDefinition",
+        output,
+        metadata,
+      },
+    ]),
+    attributes: { toolCallIds: "read-1" },
+  });
+});
+
 test("returns multiple canonical stock-tool results in one correlated continuation", async () => {
   const admission: AgentSendResult = {
     streamUrl: "http://brunch.test/stream",
@@ -523,7 +615,7 @@ test("returns multiple canonical stock-tool results in one correlated continuati
   });
 });
 
-test("delivers automatic browser tools without a marker-specific stream filter", async () => {
+test("projects adapter names dynamically and untouched canonical names statically in the live stream", async () => {
   const admission: AgentSendResult = {
     streamUrl: "http://brunch.test/stream",
     offset: "offset-hidden",
@@ -541,8 +633,8 @@ test("delivers automatic browser tools without a marker-specific stream filter",
       position: { batch: 1, index: 0 },
     });
     for (const [index, toolName] of [
-      "layout_petrinaut_net",
-      "mutate_petrinaut_net",
+      "getLatestNetDefinition",
+      "readPetrinautDoc",
     ].entries()) {
       await options?.onEvent?.({
         type: "tool-input",
@@ -574,6 +666,10 @@ test("delivers automatic browser tools without a marker-specific stream filter",
       "send" | "wait"
     > as FlueClient),
     new BrunchPanelConversationTracker(),
+    {
+      clientToolNames: canonicalPetrinautClientToolNames,
+      dynamicClientToolNames: new Set(["getLatestNetDefinition"]),
+    },
   );
   const stream = await transport.sendMessages({
     trigger: "submit-message",
@@ -599,13 +695,20 @@ test("delivers automatic browser tools without a marker-specific stream filter",
   expect(chunks).toContainEqual(
     expect.objectContaining({
       type: "tool-input-available",
-      toolName: "mutate_petrinaut_net",
+      toolName: "getLatestNetDefinition",
+      dynamic: true,
     }),
   );
   expect(chunks).toContainEqual(
     expect.objectContaining({
       type: "tool-input-available",
-      toolName: "layout_petrinaut_net",
+      toolName: "readPetrinautDoc",
+    }),
+  );
+  expect(chunks).not.toContainEqual(
+    expect.objectContaining({
+      toolName: "readPetrinautDoc",
+      dynamic: true,
     }),
   );
 });

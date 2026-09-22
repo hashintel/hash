@@ -390,6 +390,96 @@ test("projects fixture client-tool results from canonical signal history", async
   expect(harness.refresh).toHaveBeenCalledTimes(1);
 });
 
+test("projects adapter overrides dynamically while untouched canonical tools stay static", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-tools",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "getLatestNetDefinition",
+              toolCallId: "read-1",
+              state: "output-available",
+              input: {},
+              output: { awaiting: "client" },
+            },
+            {
+              type: "dynamic-tool",
+              toolName: "readPetrinautDoc",
+              toolCallId: "docs-1",
+              state: "output-available",
+              input: { doc: "drawing-a-net" },
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "tool-results",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: "client-tool-result" },
+          parts: [
+            {
+              type: "text",
+              state: "done",
+              text: JSON.stringify([
+                {
+                  toolCallId: "read-1",
+                  toolName: "getLatestNetDefinition",
+                  output: { title: "Current" },
+                },
+                {
+                  toolCallId: "docs-1",
+                  toolName: "readPetrinautDoc",
+                  output: "Canonical docs",
+                },
+              ]),
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-tools",
+    phase: "live",
+    error: undefined,
+  });
+  const { result } = renderHook(() =>
+    useFlueChatHistory(
+      harness.clientPromise,
+      "conversation-1",
+      new Set(["getLatestNetDefinition", "readPetrinautDoc"]),
+      new Set(["getLatestNetDefinition"]),
+    ),
+  );
+
+  await waitFor(() => expect(result.current.ready).toBe(true));
+  expect(result.current.messages?.[0]?.parts).toEqual([
+    {
+      type: "dynamic-tool",
+      toolName: "getLatestNetDefinition",
+      toolCallId: "read-1",
+      state: "output-available",
+      input: {},
+      output: { title: "Current" },
+    },
+    {
+      type: "tool-readPetrinautDoc",
+      toolCallId: "docs-1",
+      state: "output-available",
+      input: { doc: "drawing-a-net" },
+      output: "Canonical docs",
+    },
+  ]);
+});
+
 test("keeps the server's current-net freshness marker out of the rendered history", async () => {
   const harness = createObservationHarness({
     conversation: {

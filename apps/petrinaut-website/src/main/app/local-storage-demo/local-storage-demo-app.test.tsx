@@ -19,7 +19,10 @@ import {
   type MockInstance,
 } from "vitest";
 
-import { CANONICAL_PETRINAUT_TOOLS_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  INTEGRATED_BRUNCH_MODE,
+  STOCK_OVER_FLUE_MODE,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
@@ -33,7 +36,10 @@ import {
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
-import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
+import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "./brunch-conversation-id";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
   getBrunchVoiceMode,
@@ -120,6 +126,8 @@ vi.mock("@flue/sdk", () => ({
 const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/chat",
   isBrunchConfigured: true,
+  evaluationMode: "I" as "F" | "I" | "A" | "B",
+  serverMode: "integrated-brunch-canonical",
 }));
 vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
@@ -530,8 +538,9 @@ describe("local storage demo Brunch voice integration", () => {
         ({ toolName }) => toolName === "brunch_ask",
       ),
     ).toBe(false);
-    // Petrinaut's canonical static registry owns browser tool execution.
-    expect(aiAssistant.automaticTools).toEqual([]);
+    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
+      ["getLatestNetDefinition", "getNetCompilationErrors", "addPlace"],
+    );
 
     rendered.unmount();
     vi.unstubAllGlobals();
@@ -1300,7 +1309,7 @@ describe("local storage demo Brunch controls", () => {
     },
   );
 
-  test("mounts the canonical stock catalogue on ordinary configured Brunch", async () => {
+  test("mounts integrated Brunch with canonical overrides and the complete static catalogue", async () => {
     const incarnationId = "ordinary-incarnation";
     seedStoredNet(incarnationId);
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -1331,14 +1340,18 @@ describe("local storage demo Brunch controls", () => {
         readonly construction?: { readonly binding?: unknown };
       };
       readonly clientToolNames?: ReadonlySet<string>;
+      readonly dynamicClientToolNames?: ReadonlySet<string>;
     };
 
-    expect(aiAssistant.conversationId).toBe(
+    const conversationId = brunchEvaluationConversationIdFrom(
       ordinaryConstructionConversationIdFrom(incarnationId),
+      "I",
     );
-    // Canonical static mutations use Petrinaut's stock direct path.
+    expect(aiAssistant.conversationId).toBe(conversationId);
     expect(aiAssistant.executeMutation).toBeUndefined();
-    expect(aiAssistant.automaticTools).toEqual([]);
+    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
+      ["getLatestNetDefinition", "getNetCompilationErrors", "addPlace"],
+    );
     expect(aiAssistant.primaryLabel).toBe("Chat");
     expect(aiAssistant.additionalTab?.label).toBe("Ledger");
     expect(
@@ -1350,17 +1363,22 @@ describe("local storage demo Brunch controls", () => {
         error: undefined,
       }),
     ).toBeUndefined();
-    expect(transportOptions.initialData?.mode).toBe(
-      CANONICAL_PETRINAUT_TOOLS_MODE,
-    );
+    expect(transportOptions.initialData?.mode).toBe(INTEGRATED_BRUNCH_MODE);
     expect(transportOptions.initialData?.construction?.binding).toEqual({
-      conversationId: ordinaryConstructionConversationIdFrom(incarnationId),
+      conversationId,
       documentId: "net-1",
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual(
       [...canonicalPetrinautClientToolNames].toSorted(),
     );
+    expect(
+      [...(transportOptions.dynamicClientToolNames ?? [])].toSorted(),
+    ).toEqual([
+      "addPlace",
+      "getLatestNetDefinition",
+      "getNetCompilationErrors",
+    ]);
   });
 });
 
@@ -1414,7 +1432,9 @@ describe("worked-model net-projection selection", () => {
     const assistant = editorProps.current?.aiAssistant as
       | PetrinautAiAssistant
       | undefined;
-    expect(assistant?.conversationId).toBe("bundle-conversation");
+    expect(assistant?.conversationId).toBe(
+      brunchEvaluationConversationIdFrom("bundle-conversation", "I"),
+    );
     expect(assistant?.executeMutation).toBeUndefined();
     const handle = editorProps.current?.handle as PetrinautDocHandle;
     expect(handle.revisionId.get()).toBe("bundle-revision");
@@ -1847,6 +1867,8 @@ describe("assistant selection", () => {
     editorProps.current = null;
     brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
+    brunchPreviewConfig.evaluationMode = "I";
+    brunchPreviewConfig.serverMode = INTEGRATED_BRUNCH_MODE;
   });
 
   test("ordinary Stock is the default and never mounts Flue history", () => {
@@ -1886,23 +1908,17 @@ describe("assistant selection", () => {
     await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
     const stock = currentAssistant();
     expect(stock.executeMutation).toBeUndefined();
-    // The stock assistant's own transport and endpoint, not Brunch's.
     expect(stock.transport).not.toBe(brunchTransport);
     expect((defaultTransportOptions.current as { api: string }).api).toBe(
       "/api/chat",
     );
-    // Nothing Brunch-owned is mounted: no batch executor, no client tools,
-    // no Workpiece pane, no Voice, no durable Stop; messages are the local
-    // store's and can be cleared locally.
     expect(stock.automaticTools).toEqual([]);
     expect(stock.additionalTab).toBeUndefined();
     expect(stock.renderVoiceMode).toBeUndefined();
     expect(stock.requestStop).toBeUndefined();
     expect(stock.followMessages).toBeUndefined();
     expect(stock.canClearMessages).toBe(true);
-    // The preference persists as the host's own key.
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
-    // Brunch demo affordances are gone with it.
     fireEvent.keyDown(window, { key: "k", metaKey: true });
     expect(
       screen.queryByRole("button", { name: /Toggle Brunch demo mode/ }),
@@ -1965,8 +1981,6 @@ describe("assistant selection", () => {
     await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
     const brunch = currentAssistant();
     expect(brunch.executeMutation).toBeUndefined();
-    // Brunch reads Flue history, which holds none of the stock turn; and a
-    // Brunch-side message write never reaches the local store.
     expect(brunch.messages ?? []).not.toContainEqual(stockMessage);
     act(() =>
       brunch.onMessages?.([
@@ -1982,8 +1996,47 @@ describe("assistant selection", () => {
     switchAssistant(/Use the stock Petrinaut assistant/);
     await waitFor(() => expect(currentAssistant().requestStop).toBeUndefined());
     expect(currentAssistant().executeMutation).toBeUndefined();
-    // The stock history is exactly as it was left.
     expect(currentAssistant().messages).toEqual([stockMessage]);
+  });
+
+  test("F is Stock-over-Flue with isolated identity, no adapter, and no Ledger", async () => {
+    brunchPreviewConfig.evaluationMode = "F";
+    brunchPreviewConfig.serverMode = STOCK_OVER_FLUE_MODE;
+    const incarnationId = "stock-over-flue-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
+    expect(currentAssistant().conversationId).toBe(
+      brunchEvaluationConversationIdFrom(
+        ordinaryConstructionConversationIdFrom(incarnationId),
+        "F",
+      ),
+    );
+    expect(currentAssistant().automaticTools).toEqual([]);
+    expect(currentAssistant().additionalTab).toBeUndefined();
+    expect(
+      (
+        brunchPanelTransportOptions.current as {
+          initialData?: { construction?: unknown; mode?: string };
+        }
+      ).initialData,
+    ).toEqual({
+      mode: STOCK_OVER_FLUE_MODE,
+      construction: {
+        binding: {
+          conversationId: brunchEvaluationConversationIdFrom(
+            ordinaryConstructionConversationIdFrom(incarnationId),
+            "F",
+          ),
+          documentId: "net-1",
+          incarnationId,
+        },
+      },
+    });
   });
 
   test("without a configured Brunch endpoint there is no choice to make", () => {

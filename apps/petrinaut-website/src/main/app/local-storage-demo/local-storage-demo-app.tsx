@@ -20,7 +20,6 @@ import {
   type RefObject,
 } from "react";
 
-import { CANONICAL_PETRINAUT_TOOLS_MODE } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -73,12 +72,16 @@ import {
   type ProcessAgentBinding,
 } from "./assistants/brunch/use-process-agent-binding";
 import { canonicalPetrinautClientToolNames } from "./brunch-client-tools";
-import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
+import {
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+} from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
   createBrunchPanelTransport,
 } from "./brunch-panel-transport";
+import { createCanonicalPetrinautHostTools } from "./brunch-petrinaut-tools";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { resolveBrunchToolPresentation } from "./brunch-tool-presentation";
@@ -101,6 +104,9 @@ const DEMO_CAPABILITIES = {
 
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+  (import.meta.env as unknown as Record<string, string | undefined>)[
+    "VITE_BRUNCH_EVALUATION_MODE"
+  ],
 );
 
 export const getBrunchVoiceMode = (
@@ -275,8 +281,8 @@ const createActiveHandle = (document: DocumentRecord): ActiveHandle => {
 };
 
 /**
- * The demo's own palette commands, registered beside Petrinaut's: one starts
- * a fresh net, one switches between Brunch and the stock assistant, one
+ * The demo's own palette commands, registered beside Petrinaut's.
+ * Evaluation modes are build-time-only and deliberately have no product UI.
  */
 const DemoCommands = ({
   createNewNet,
@@ -299,8 +305,6 @@ const DemoCommands = ({
     run: () =>
       createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
   });
-  // Only offered when there is a Brunch to select; without an endpoint the
-  // stock assistant is the only one and the choice would be a fiction.
   useCommand(
     {
       id: "demo.worked-model.fresh-net-projection",
@@ -350,9 +354,8 @@ export const LocalStorageDemoApp = ({
   const routeIdentity = localStorageDemoRouteIdentity(search);
   const remoteRouteSelected =
     routeIdentity === "worked-model-bundle" && search.bundle !== undefined;
-  // Stock is the default assistant; Brunch is the host-selected hidden alternate.
-  // Every Brunch-specific branch below keys off this, never off bare configuration,
-  // so selecting stock leaves no Brunch dependency behind.
+  // Stock-vs-Brunch remains the native product choice. F/I/A/B only select
+  // the internal composition of Brunch and are never exposed in product UI.
   const {
     ready: assistantSelectionReady,
     selection: assistantSelection,
@@ -365,6 +368,8 @@ export const LocalStorageDemoApp = ({
         brunchPreviewConfig.isBrunchConfigured,
         assistantSelection,
       );
+  const integratedBrunchSelected =
+    brunchSelected && brunchPreviewConfig.evaluationMode !== "F";
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
   >(() => (brunchSelected ? undefined : null));
@@ -397,7 +402,7 @@ export const LocalStorageDemoApp = ({
   const { aiMessagesByNetId, setAiMessagesByNetId } = useLocalStorageAiMessages(
     { enabled: !remoteRouteSelected },
   );
-  const productConstructionSelected = brunchSelected;
+  const productConstructionSelected = integratedBrunchSelected;
   const selectLocalRoute = useCallback(
     () =>
       onSearchChange(
@@ -556,26 +561,37 @@ export const LocalStorageDemoApp = ({
             documentId: currentDocument.documentId,
             title,
           });
-  const productConstructionConversationId =
-    currentDocument === null
+  const baseConstructionConversationId =
+    currentDocument === null || !brunchSelected
       ? undefined
-      : productConstructionSelected
-        ? ordinaryConstructionConversationIdFrom(currentDocument.incarnationId)
-        : undefined;
+      : ordinaryConstructionConversationIdFrom(currentDocument.incarnationId);
   const fixtureProcessAgentConfiguration = useMemo<
     FixtureProcessAgentConfiguration | undefined
   >(
     () =>
-      productConstructionConversationId === undefined
+      baseConstructionConversationId === undefined
         ? undefined
-        : { conversationId: productConstructionConversationId },
-    [productConstructionConversationId],
+        : { conversationId: baseConstructionConversationId },
+    [baseConstructionConversationId],
   );
-  const processAgentBinding = useProcessAgentBinding({
+  const baseProcessAgentBinding = useProcessAgentBinding({
     document: currentDocument,
     seed: source.processAgentSeed,
     fixture: fixtureProcessAgentConfiguration,
   });
+  const processAgentBinding = useMemo(
+    () =>
+      baseProcessAgentBinding === null
+        ? null
+        : {
+            ...baseProcessAgentBinding,
+            conversationId: brunchEvaluationConversationIdFrom(
+              baseProcessAgentBinding.conversationId,
+              brunchPreviewConfig.evaluationMode,
+            ),
+          },
+    [baseProcessAgentBinding],
+  );
   const conversationId = processAgentBinding?.conversationId ?? null;
   const processAgentSession = useProcessAgentSession({
     activeHandleRef,
@@ -603,28 +619,30 @@ export const LocalStorageDemoApp = ({
     if (
       !activeHandle ||
       processAgentBinding === null ||
-      activeHandle.document.documentId !== processAgentBinding.documentId
+      activeHandle.document.documentId !== processAgentBinding.documentId ||
+      activeHandle.document.incarnationId !== processAgentBinding.incarnationId
     )
       return undefined;
-    return productConstructionSelected
-      ? { binding: processAgentBinding }
-      : undefined;
-  }, [activeHandle, processAgentBinding, productConstructionSelected]);
+    return brunchSelected ? { binding: processAgentBinding } : undefined;
+  }, [activeHandle, brunchSelected, processAgentBinding]);
+  const integratedConstructionBrowser = productConstructionSelected
+    ? constructionBrowser
+    : undefined;
   // The handle mutates behind a stable identity. Subscribe to its real snapshot;
   // a render-time read alone can be memoized by React Compiler across hand edits.
   const subscribeToObservedLiveHash = useCallback(
     (changed: () => void) =>
-      constructionBrowser && activeHandle
+      integratedConstructionBrowser && activeHandle
         ? activeHandle.handle.subscribe(changed)
         : () => {},
-    [activeHandle, constructionBrowser],
+    [activeHandle, integratedConstructionBrowser],
   );
   const getObservedLiveHash = useCallback(
     () =>
-      constructionBrowser && activeHandle?.handle.doc()
+      integratedConstructionBrowser && activeHandle?.handle.doc()
         ? readLiveDocumentHash(activeHandle.handle)
         : undefined,
-    [activeHandle, constructionBrowser],
+    [activeHandle, integratedConstructionBrowser],
   );
   const getServerObservedLiveHash = useCallback(() => undefined, []);
   const observedLiveHash = useSyncExternalStore(
@@ -632,13 +650,31 @@ export const LocalStorageDemoApp = ({
     getObservedLiveHash,
     getServerObservedLiveHash,
   );
-  const constructionClientTools = productConstructionSelected
+  const canonicalHostTools = useMemo(() => {
+    if (!integratedConstructionBrowser || !activeHandle) return undefined;
+    return createCanonicalPetrinautHostTools({
+      handle: activeHandle.handle,
+      binding: integratedConstructionBrowser.binding,
+      readTitle: () => activeHandle.document.title,
+      settleRevision: (settlement) =>
+        source.repository.settleRevision(settlement),
+    });
+  }, [activeHandle, integratedConstructionBrowser, source.repository]);
+  const dynamicClientToolNames = useMemo(
+    () =>
+      canonicalHostTools === undefined
+        ? undefined
+        : new Set(canonicalHostTools.tools.map(({ toolName }) => toolName)),
+    [canonicalHostTools],
+  );
+  const constructionClientTools = brunchSelected
     ? canonicalPetrinautClientToolNames
     : undefined;
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
     constructionClientTools,
+    dynamicClientToolNames,
   );
   useEffect(() => {
     if (flueHistory.error === undefined) return;
@@ -669,14 +705,12 @@ export const LocalStorageDemoApp = ({
         transportClientPromise,
         conversationTracker,
         {
-          ...(productConstructionSelected && constructionBrowser
-            ? {
-                initialData: {
-                  mode: CANONICAL_PETRINAUT_TOOLS_MODE,
-                  construction: { binding: constructionBrowser.binding },
-                },
-              }
-            : {}),
+          initialData: {
+            mode: brunchPreviewConfig.serverMode,
+            ...(constructionBrowser
+              ? { construction: { binding: constructionBrowser.binding } }
+              : {}),
+          },
           ...(transportClientPromise === flueClientPromise &&
           conversationId !== null
             ? {
@@ -692,6 +726,13 @@ export const LocalStorageDemoApp = ({
             ? {}
             : {
                 clientToolNames: constructionClientTools,
+                dynamicClientToolNames,
+              }),
+          ...(canonicalHostTools === undefined
+            ? {}
+            : {
+                clientToolResultMetadata: ({ toolCallId }) =>
+                  canonicalHostTools.clientToolResultMetadataFor(toolCallId),
               }),
           onAdmission: flueHistory.refresh,
           onToolOutputError: (event) =>
@@ -708,8 +749,9 @@ export const LocalStorageDemoApp = ({
     conversationTracker,
     conversationId,
     constructionClientTools,
-    productConstructionSelected,
     constructionBrowser,
+    canonicalHostTools,
+    dynamicClientToolNames,
     flueClientPromise,
     flueHistory.refresh,
     reportBrunchFailure,
@@ -718,25 +760,25 @@ export const LocalStorageDemoApp = ({
 
   const aiAssistant = useMemo(() => {
     const activityIdentities =
-      constructionBrowser && flueHistory.ready
+      integratedConstructionBrowser && flueHistory.ready
         ? flueHistory.phase === "absent"
           ? []
           : flueHistory.snapshot === undefined
             ? undefined
             : foldBrunchWorkpieceHistory(
                 flueHistory.snapshot.messages,
-                constructionBrowser.binding,
+                integratedConstructionBrowser.binding,
               ).activityIdentities
         : undefined;
     return {
-      additionalTab: constructionBrowser
+      additionalTab: integratedConstructionBrowser
         ? {
             label: "Ledger",
             activityIdentities,
             content: (
               <BrunchWorkpiecePane
                 messages={flueHistory.snapshot?.messages ?? []}
-                binding={constructionBrowser.binding}
+                binding={integratedConstructionBrowser.binding}
                 liveHash={observedLiveHash}
               />
             ),
@@ -751,8 +793,9 @@ export const LocalStorageDemoApp = ({
         : {}),
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      // An empty host catalogue leaves Petrinaut's canonical static tools active.
-      automaticTools: [],
+      // These exact-name tools override the static registry only in integrated
+      // modes. Every other canonical capability remains on Petrinaut's registry.
+      automaticTools: canonicalHostTools?.tools ?? [],
       interactiveTools: [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
@@ -804,8 +847,9 @@ export const LocalStorageDemoApp = ({
     aiMessagesByNetId,
     brunchSelected,
     brunchVoiceMode,
+    canonicalHostTools,
     observedLiveHash,
-    constructionBrowser,
+    integratedConstructionBrowser,
     conversationTracker,
     conversationId,
     currentNetId,

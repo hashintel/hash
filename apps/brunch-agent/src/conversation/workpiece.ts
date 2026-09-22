@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import * as v from "valibot";
 
+import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   MUTATE_WORKPIECE_TOOL_NAME,
   updateWorkpieceInputSchema,
@@ -96,14 +97,24 @@ export const workpieceEvidenceSources = (
       "Current workpiece state is missing despite a settled revision; recovery is required before another settlement.",
     );
   // Flue's role and purpose unions are core's; a divergence fails here, at the producer.
-  return snapshot.messages.map((message) => ({
-    id: message.id,
-    role: message.role,
-    purpose: message.purpose,
-    text: message.parts
+  return snapshot.messages.flatMap((message) => {
+    const text = message.parts
       .flatMap((part) => (part.type === "text" ? [part.text] : []))
-      .join(""),
-  }));
+      .join("");
+    const evidenceText =
+      message.role === "user" && message.purpose === "user"
+        ? parsePetrinautUserMessageBody(text)
+        : undefined;
+    if (evidenceText?.kind === "invalid-contextual") return [];
+    return [
+      {
+        id: message.id,
+        role: message.role,
+        purpose: message.purpose,
+        text: evidenceText?.userText ?? text,
+      },
+    ];
+  });
 };
 
 const sha256 = (value: string): string =>

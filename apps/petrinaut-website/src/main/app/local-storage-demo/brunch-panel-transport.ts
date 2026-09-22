@@ -343,6 +343,9 @@ export const createBrunchPanelTransport = (
     readonly initialData?: FlueChatTransportOptions["initialData"];
     /** Browser tools executed by Petrinaut's static panel registry. */
     readonly clientToolNames?: ReadonlySet<string>;
+    readonly dynamicClientToolNames?: FlueChatTransportOptions["dynamicClientToolNames"];
+    readonly clientToolResultMetadata?: FlueChatTransportOptions["clientToolResultMetadata"];
+    readonly clientToolResultOutput?: FlueChatTransportOptions["clientToolResultOutput"];
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -360,6 +363,9 @@ export const createBrunchPanelTransport = (
             : { initialData: options.initialData }),
           clientToolNames:
             options?.clientToolNames ?? canonicalPetrinautClientToolNames,
+          dynamicClientToolNames: options?.dynamicClientToolNames,
+          clientToolResultMetadata: options?.clientToolResultMetadata,
+          clientToolResultOutput: options?.clientToolResultOutput,
           liveToolStream: options?.liveToolStream,
           onAdmission: (event) => {
             tracker.recordAdmission(event);

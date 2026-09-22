@@ -15,7 +15,7 @@
  */
 import {
   canonicalContent,
-  isDraftPetrinautExperimentToolName,
+  isConstructionMutationName,
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
   isReadPetrinautDocsToolName,
@@ -23,10 +23,12 @@ import {
   isReadPetrinautNetToolName,
   mutatePetrinetInputSchema,
   parseClientToolResultMetadata,
+  verifyCanonicalMutationRecord,
   verifyDefinitionObservation,
   type DefinitionObservation,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import { verifyMutatePetrinetAttempts } from "./mutation-delivery.ts";
@@ -90,11 +92,13 @@ const resultMessages = (snapshot: FlueConversationSnapshot) =>
   );
 
 /** Browser-executed tools that observe the net without changing it. */
+const isNetDefinitionReadTool = (name: string): boolean =>
+  isReadPetrinautNetToolName(name) || name === getLatestNetDefinitionToolName;
+
 const isNonMutatingBrowserTool = (name: string): boolean =>
-  isReadPetrinautNetToolName(name) ||
+  isNetDefinitionReadTool(name) ||
   isReadPetrinautDiagnosticsToolName(name) ||
-  isReadPetrinautDocsToolName(name) ||
-  isDraftPetrinautExperimentToolName(name);
+  isReadPetrinautDocsToolName(name);
 
 /** A model-selected ID selects a recorded browser observation, never a model-supplied hash. */
 export const recordedBrowserObservation = async (
@@ -115,7 +119,7 @@ export const recordedBrowserObservation = async (
   if (
     calls.length !== 1 ||
     call?.type !== "dynamic-tool" ||
-    !isReadPetrinautNetToolName(call.toolName) ||
+    !isNetDefinitionReadTool(call.toolName) ||
     call.state !== "output-available" ||
     !isAwaitingClient(call.output)
   )
@@ -213,7 +217,7 @@ export const deriveNetLedger = async (
         reason,
       });
 
-      if (isReadPetrinautNetToolName(toolName)) {
+      if (isNetDefinitionReadTool(toolName)) {
         try {
           // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
           const observation = await recordedBrowserObservation(
@@ -237,15 +241,22 @@ export const deriveNetLedger = async (
         );
         continue;
       }
-      if (
-        deliveries.some(
+      if (deliveries.length !== 1) {
+        const conflicting = deliveries.some(
           (delivery) => canonicalContent(delivery) !== canonicalContent(first),
-        )
-      ) {
+        );
         events.push(
           unrecorded(
-            "Conflicting browser results were delivered for this call.",
+            conflicting
+              ? "Conflicting browser results were delivered for this call."
+              : "Duplicate browser results were delivered for this call.",
           ),
+        );
+        continue;
+      }
+      if (first.toolName !== toolName) {
+        events.push(
+          unrecorded("The browser result names a different canonical call."),
         );
         continue;
       }
@@ -277,6 +288,50 @@ export const deriveNetLedger = async (
             verifyDefinitionObservation(layout.post),
           ]);
           events.push({ kind: "layout", toolCallId, position, pre, post });
+        } catch (error) {
+          events.push(unrecorded(reasonOf(error)));
+        }
+        continue;
+      }
+
+      const canonicalRecord = metadata?.canonicalMutationRecord;
+      if (isConstructionMutationName(toolName)) {
+        if (canonicalRecord === undefined) {
+          events.push(
+            unrecorded(
+              "The canonical mutation result carries no canonical mutation record.",
+            ),
+          );
+          continue;
+        }
+        try {
+          // eslint-disable-next-line no-await-in-loop -- History order is the fold order.
+          const verified = await verifyCanonicalMutationRecord({
+            record: canonicalRecord,
+            toolCallId,
+            toolName,
+            canonicalInput: call.input,
+            canonicalOutput: first.output,
+            binding: browser.binding,
+          });
+          if (
+            (verified.outcome !== "applied" && verified.outcome !== "no-op") ||
+            verified.post === undefined
+          )
+            throw new Error(
+              "The canonical mutation record cannot vouch for a durable post observation.",
+            );
+          events.push({
+            kind: "mutation",
+            toolCallId,
+            toolName,
+            position,
+            outcome: verified.outcome,
+            postHash: verified.post.sha256,
+            ...(verified.post.revisionId === undefined
+              ? {}
+              : { postRevisionId: verified.post.revisionId }),
+          });
         } catch (error) {
           events.push(unrecorded(reasonOf(error)));
         }

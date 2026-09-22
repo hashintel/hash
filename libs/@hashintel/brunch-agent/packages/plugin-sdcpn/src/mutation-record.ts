@@ -102,6 +102,63 @@ const mutationOutcomes = [
   "stale",
   "unknown",
 ] as const;
+const canonicalMutationOutcomes = [
+  "applied",
+  "no-op",
+  "failed",
+  "unknown",
+] as const;
+
+const definitionObservationSchema = v.object({
+  definition: v.unknown(),
+  sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+  revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
+});
+const mutationEffectsSchema = v.object({
+  created: v.array(v.unknown()),
+  updated: v.array(v.unknown()),
+  deleted: v.array(v.unknown()),
+  derived: v.array(v.unknown()),
+});
+const canonicalMutationRecordSchema = v.pipe(
+  v.object({
+    toolCallId: v.pipe(v.string(), v.minLength(1)),
+    toolName: v.pipe(v.string(), v.minLength(1)),
+    binding: browserBindingSchema,
+    input: v.unknown(),
+    pre: definitionObservationSchema,
+    post: v.optional(definitionObservationSchema),
+    outcome: v.picklist(canonicalMutationOutcomes),
+    effects: mutationEffectsSchema,
+    settlement: v.variant("status", [
+      v.object({ status: v.literal("not-required") }),
+      v.object({
+        status: v.literal("settled"),
+        revisionId: v.pipe(v.string(), v.minLength(1)),
+      }),
+      v.object({
+        status: v.literal("failed"),
+        revisionId: v.pipe(v.string(), v.minLength(1)),
+        error: v.optional(v.pipe(v.string(), v.minLength(1))),
+      }),
+    ]),
+    diagnostics: v.variant("status", [
+      v.object({ status: v.literal("not-required") }),
+      v.object({ status: v.literal("pending") }),
+      v.object({ status: v.literal("settled"), value: v.optional(v.string()) }),
+      v.object({
+        status: v.literal("failed"),
+        error: v.optional(v.pipe(v.string(), v.minLength(1))),
+      }),
+    ]),
+    output: v.unknown(),
+    error: v.optional(v.pipe(v.string(), v.minLength(1))),
+  }),
+  v.check(
+    (record) => Object.hasOwn(record, "output"),
+    "A terminal canonical mutation record requires its canonical output.",
+  ),
+);
 
 /**
  * Host-owned sidecar the browser attaches to a client-tool result. Parsing
@@ -114,11 +171,7 @@ export const clientToolResultMetadataSchema = v.object({
     v.object({
       toolCallId: v.pipe(v.string(), v.minLength(1)),
       binding: browserBindingSchema,
-      observed: v.object({
-        definition: v.unknown(),
-        sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
-        revisionId: v.optional(v.pipe(v.string(), v.minLength(1))),
-      }),
+      observed: definitionObservationSchema,
     }),
   ),
   mutationRecord: v.optional(
@@ -127,6 +180,8 @@ export const clientToolResultMetadataSchema = v.object({
       outcome: v.picklist(mutationOutcomes),
     }),
   ),
+  /** One canonical Petrinaut mutation, retained alongside the legacy batch carrier. */
+  canonicalMutationRecord: v.optional(canonicalMutationRecordSchema),
   /**
    * A separately recorded `layout_petrinaut_net` command: layout is a document
    * mutation with its own observed pre/post hashes and position effects, not
@@ -152,6 +207,9 @@ export const clientToolResultMetadataSchema = v.object({
 });
 export type ClientToolResultMetadata = v.InferOutput<
   typeof clientToolResultMetadataSchema
+>;
+export type CanonicalMutationRecord = v.InferOutput<
+  typeof canonicalMutationRecordSchema
 >;
 
 /** Read the sidecar off a delivered result; anything else is not a Brunch sidecar. */
@@ -1044,6 +1102,145 @@ export const verifyMutationAttempt = async <
     );
   }
   return attempt;
+};
+
+export type VerifiedCanonicalMutationRecord = Omit<
+  CanonicalMutationRecord,
+  "toolName" | "input" | "pre" | "post" | "effects"
+> & {
+  toolName: ConstructionMutationName;
+  input: ConstructionMutationRequest["input"];
+  pre: DefinitionObservation;
+  post?: DefinitionObservation;
+  effects: MutationEffects;
+};
+
+export const isConstructionMutationName = (
+  name: string,
+): name is ConstructionMutationName =>
+  isBatchedArcMutation(name) ||
+  isBatchedNodeMutation(name) ||
+  isObservedStateMutation(name) ||
+  isBatchedStateMutation(name);
+
+/**
+ * Verify a canonical one-call sidecar against the issued call and delivered
+ * canonical output. The returned outcome is always the browser's conservative
+ * outcome; verified observations are never used to promote it to `applied`.
+ */
+export const verifyCanonicalMutationRecord = async (input: {
+  record: unknown;
+  toolCallId: string;
+  toolName: string;
+  canonicalInput: unknown;
+  canonicalOutput: unknown;
+  binding: BrowserBinding;
+}): Promise<VerifiedCanonicalMutationRecord> => {
+  const parsed = v.parse(canonicalMutationRecordSchema, input.record);
+  if (
+    !isConstructionMutationName(parsed.toolName) ||
+    parsed.toolCallId !== input.toolCallId ||
+    parsed.toolName !== input.toolName ||
+    canonicalContent(parsed.binding) !== canonicalContent(input.binding)
+  )
+    throw new Error(
+      "The canonical mutation record does not match the issued call or document incarnation.",
+    );
+
+  const toolName = parsed.toolName;
+  const recordedInput = mutationActionInputSchemas[toolName].parse(
+    parsed.input,
+  ) as ConstructionMutationRequest["input"];
+  const issuedInput = mutationActionInputSchemas[toolName].parse(
+    input.canonicalInput,
+  ) as ConstructionMutationRequest["input"];
+  if (canonicalContent(recordedInput) !== canonicalContent(issuedInput))
+    throw new Error(
+      "The canonical mutation record input does not match the issued call.",
+    );
+  if (
+    canonicalContent(parsed.output) !== canonicalContent(input.canonicalOutput)
+  )
+    throw new Error(
+      "The canonical mutation record output does not match the delivered canonical output.",
+    );
+
+  const request: ConstructionMutationRequest = {
+    toolCallId: parsed.toolCallId,
+    toolName,
+    input: recordedInput,
+    binding: parsed.binding,
+    requestedBaseHash: parsed.pre.sha256,
+  };
+  const attempt: ConstructionMutationAttempt = {
+    request,
+    binding: parsed.binding,
+    pre: parsed.pre as DefinitionObservation,
+    ...(parsed.post === undefined
+      ? {}
+      : { post: parsed.post as DefinitionObservation }),
+    outcome: parsed.outcome,
+    effects: parsed.effects as MutationEffects,
+    ...(parsed.error === undefined ? {} : { error: parsed.error }),
+  };
+  const canonicalOutput = objectValue(parsed.output)
+    ? parsed.output
+    : undefined;
+  if (parsed.outcome === "no-op") {
+    await Promise.all(
+      [attempt.pre, attempt.post].map(async (observation) => {
+        if (observation) await verifyDefinitionObservation(observation);
+      }),
+    );
+    assertMutationEffects(attempt);
+    if (
+      attempt.post === undefined ||
+      canonicalContent(attempt.pre.definition) !==
+        canonicalContent(attempt.post.definition) ||
+      attempt.pre.sha256 !== attempt.post.sha256 ||
+      attempt.pre.revisionId !== attempt.post.revisionId ||
+      canonicalOutput?.applied !== false ||
+      parsed.error !== undefined ||
+      parsed.settlement.status !== "not-required"
+    )
+      throw new Error(
+        "The canonical no-op outcome is not supported by the same raw observation and terminal output.",
+      );
+  } else {
+    await verifyMutationAttempt(attempt);
+  }
+  if (parsed.outcome === "applied" && canonicalOutput?.applied === false)
+    throw new Error(
+      "The canonical mutation output contradicts an applied outcome.",
+    );
+
+  if (
+    parsed.settlement.status !== "not-required" &&
+    parsed.post?.revisionId !== undefined &&
+    parsed.settlement.revisionId !== parsed.post.revisionId
+  )
+    throw new Error(
+      "The canonical mutation settlement does not match its post revision.",
+    );
+  if (parsed.outcome === "applied" && parsed.settlement.status !== "settled")
+    throw new Error(
+      "An applied canonical mutation requires a settled document revision.",
+    );
+
+  return {
+    toolCallId: parsed.toolCallId,
+    toolName,
+    binding: parsed.binding,
+    input: recordedInput,
+    pre: attempt.pre,
+    ...(attempt.post === undefined ? {} : { post: attempt.post }),
+    outcome: parsed.outcome,
+    effects: attempt.effects,
+    settlement: parsed.settlement,
+    diagnostics: parsed.diagnostics,
+    output: parsed.output,
+    ...(parsed.error === undefined ? {} : { error: parsed.error }),
+  };
 };
 
 /** Inputs must first pass verifyMutationAttempt at an external receiving boundary. */

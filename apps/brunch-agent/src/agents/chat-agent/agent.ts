@@ -26,19 +26,23 @@ import {
   readPetrinautNetToolName,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
-  CANONICAL_PETRINAUT_TOOLS_MODE,
   SDCPN_MODELLING_SKILL_NAME,
+  STOCK_OVER_FLUE_MODE,
+  isIntegratedPetrinautMode,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
   type BrowserContext,
   type SdcpnInitialData,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { parseClientToolResults } from "@hashintel/brunch-agent-transport-aisdk";
+import { parseClientToolResultPayload } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createWorkpieceReadTool,
   useBrunchAgent,
 } from "@hashintel/brunch-agent/flue";
-import { petrinautAiPrompt } from "@hashintel/petrinaut-core";
+import {
+  getLatestNetDefinitionToolName,
+  petrinautAiPrompt,
+} from "@hashintel/petrinaut-core";
 
 import {
   selectChatModel,
@@ -90,7 +94,7 @@ const chatModelOptions =
           : { thinkingLevel: chatThinkingLevel }),
       };
 
-const useCanonicalPetrinautAgent = (): string => {
+const useStockOverFlueAgent = (): string => {
   useModel(CHAT_MODEL_SPECIFIER, chatModelOptions);
   useSdcpnPlugin();
   return petrinautAiPrompt;
@@ -98,11 +102,15 @@ const useCanonicalPetrinautAgent = (): string => {
 
 export function ChatAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
-  if (initialData?.mode === CANONICAL_PETRINAUT_TOOLS_MODE)
-    return useCanonicalPetrinautAgent();
+  if (initialData?.mode === STOCK_OVER_FLUE_MODE)
+    return useStockOverFlueAgent();
 
   useContextProjection(projectBrunchContext);
   const delivery = useDelivery();
+  const integratedCanonicalMode = isIntegratedPetrinautMode(initialData?.mode);
+  const netDefinitionReadToolName = integratedCanonicalMode
+    ? getLatestNetDefinitionToolName
+    : readPetrinautNetToolName;
   const browserContext: BrowserContext | undefined = initialData?.construction
     ? { binding: initialData.construction.binding }
     : undefined;
@@ -122,16 +130,22 @@ export function ChatAgent({ id }: AgentProps) {
   const activeObservationCallIds: string[] = [];
   const suppliedObservationCallIds: string[] = [];
   const isClientResultDelivery = isClientToolResultDelivery(delivery);
-  if (isClientResultDelivery) {
+  const clientResultPayload = isClientResultDelivery
+    ? parseClientToolResultPayload(delivery.body, (issue) =>
+        diagnostics.note("client-tool-result.parse", {
+          ...issue,
+          instanceId: id,
+        }),
+      )
+    : undefined;
+  if (clientResultPayload) {
     // Dropped members stay dropped; the drop itself must not be silent.
-    const results = parseClientToolResults(delivery.body, (issue) =>
-      diagnostics.note("client-tool-result.parse", {
-        ...issue,
-        instanceId: id,
-      }),
-    );
-    for (const result of results) {
-      if (!isReadPetrinautNetToolName(result.toolName)) continue;
+    for (const result of clientResultPayload.results) {
+      if (
+        !isReadPetrinautNetToolName(result.toolName) &&
+        result.toolName !== getLatestNetDefinitionToolName
+      )
+        continue;
       activeObservationCallIds.push(result.toolCallId);
       if (parseClientToolResultMetadata(result.metadata)?.observation)
         suppliedObservationCallIds.push(result.toolCallId);
@@ -234,23 +248,27 @@ export function ChatAgent({ id }: AgentProps) {
     }
   });
 
+  if (clientResultPayload?.context)
+    useInstruction(
+      `Host diagnostics for this client-result continuation (context only, never user testimony or semantic evidence):\n${clientResultPayload.context}`,
+    );
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
 Submit browser tool calls separately from server tools, and wait for their correlated client results before further browser work. Invalid proposals fail as a whole; do not rely on sibling execution order.
-A client-tool-result signal is JSON [{ toolCallId, toolName, output, metadata? }]. Treat output as the browser's canonical result for that call and continue helping the user once; never reapply a completed mutation.
+A client-tool-result signal carries canonical results as JSON [{ toolCallId, toolName, output, metadata? }], optionally inside a host envelope with transient diagnostics context. Treat output as the browser's canonical result for that call, keep host context distinct from user testimony and semantic evidence, and continue helping the user once; never reapply a completed mutation.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useInstruction(
     `
 For a joined root arc, metadata.mutationRecord contains verified observations and effects, not assistant prose or user testimony. Failed, stale, no-op and unknown attempts are not causes.
-A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${readPetrinautNetToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${readPetrinautNetToolName} result in this conversation is the current net.
+A ${NET_STALE_SIGNAL} signal at the start of a user turn means this conversation holds no verified read of the net now open in Petrinaut, or the net changed after your last verified read. When it is present, call ${netDefinitionReadToolName} in its own proposal and wait for its browser result before explaining, reviewing, interviewing about, or changing the model, and do not say the net is unavailable or ask for an upload or description. When it is absent, the most recent ${netDefinitionReadToolName} result in this conversation is the current net.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   if (browserContext)
     useInstruction(
       `
-When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified read_petrinaut_net result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls read_petrinaut_net and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece citing that read's toolCallId and the element the user named, resolved to its recorded name or ID, then answer in ordinary language from the returned standing, scope and basis. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
+When the user asks why a visible part of the net exists or is shaped as it is (a place, transition, arc, type, parameter or equation, named in their own words), do not answer from memory of this conversation. Use the latest verified ${netDefinitionReadToolName} result for the currently confirmed document revision. If ${NET_STALE_SIGNAL} is present or no current verified read exists, take two turns: turn one calls ${netDefinitionReadToolName} and nothing else, then ends; query_workpiece is a server tool and cannot share a proposal with it. Mutation success alone never establishes a current read or revision. With a current read available, call query_workpiece with the element the user named, resolved to its recorded name or ID; the host attaches the verified read's correlation rather than requiring you to copy a tool-call ID or hash. If the record has no basis for that element, or the element is not recorded, say so plainly. Your recollection of having built something is not a basis.
 `.replace(/^\s+|\s+$/gu, ""),
     );
   useTool(ping);

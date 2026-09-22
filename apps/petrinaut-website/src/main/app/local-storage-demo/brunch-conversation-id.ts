@@ -8,6 +8,12 @@ export const ordinaryConstructionConversationIdFrom = (
   incarnationId: string,
 ): string => `${ordinaryConstructionConversationIdPrefix}:${incarnationId}`;
 
+/** Evaluation mode is part of identity, so no mode can hydrate another's history. */
+export const brunchEvaluationConversationIdFrom = (
+  conversationId: string,
+  evaluationMode: "F" | "I" | "A" | "B",
+): string => `${conversationId}:evaluation-${evaluationMode}`;
+
 interface ConversationStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;

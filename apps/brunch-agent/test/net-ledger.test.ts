@@ -6,6 +6,7 @@ import {
   draftPetrinautExperimentToolName,
   layoutPetrinautNetToolName,
   deriveMutationEffects,
+  expectedNodeDefinition,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
   readPetrinautNetToolName,
@@ -13,6 +14,7 @@ import {
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 
 import { AWAITING_CLIENT } from "../src/conversation/client-tools.ts";
 import * as netLedger from "../src/conversation/net-ledger.ts";
@@ -227,6 +229,68 @@ const mutationTurn = (
   ];
 };
 
+const canonicalReadTurn = (
+  toolCallId: string,
+  definition: SDCPN,
+): FlueConversationMessage[] => [
+  assistantCall(toolCallId, getLatestNetDefinitionToolName),
+  resultDelivery(
+    toolCallId,
+    getLatestNetDefinitionToolName,
+    { title: "Net", definition },
+    {
+      observation: {
+        toolCallId,
+        binding,
+        observed: observationOf(definition),
+      },
+    },
+  ),
+];
+
+const canonicalMutationTurn = (toolCallId: string) => {
+  const canonicalInput = oneHopNet.places[0]!;
+  const request: ConstructionMutationRequest = {
+    toolCallId,
+    toolName: "addPlace",
+    input: canonicalInput,
+    binding,
+    requestedBaseHash: sha256Of(emptyNet),
+  };
+  const post = expectedNodeDefinition(request, emptyNet);
+  const preObservation = {
+    ...observationOf(emptyNet),
+    revisionId: "revision-1",
+  };
+  const postObservation = {
+    ...observationOf(post),
+    revisionId: "revision-2",
+  };
+  const record = {
+    toolCallId,
+    toolName: "addPlace",
+    binding,
+    input: canonicalInput,
+    pre: preObservation,
+    post: postObservation,
+    outcome: "applied" as const,
+    effects: deriveMutationEffects(request, emptyNet, post),
+    settlement: { status: "settled" as const, revisionId: "revision-2" },
+    diagnostics: { status: "not-required" as const },
+    output: { placeId: canonicalInput.id },
+  };
+  return {
+    post,
+    record,
+    messages: [
+      assistantCall(toolCallId, "addPlace", canonicalInput),
+      resultDelivery(toolCallId, "addPlace", record.output, {
+        canonicalMutationRecord: record,
+      }),
+    ] satisfies FlueConversationMessage[],
+  };
+};
+
 const layoutTurn = (
   toolCallId: string,
   pre: SDCPN,
@@ -315,6 +379,77 @@ describe("the net ledger is a projection over Flue history", () => {
       pre: { sha256: sha256Of(oneHopNet) },
       post: { sha256: sha256Of(movedNet) },
     });
+  });
+
+  test("recognizes canonical reads and verified canonical mutation records", async () => {
+    const mutation = canonicalMutationTurn("canonical-add");
+    const events = await deriveNetLedger(
+      snapshotOf([
+        ...canonicalReadTurn("canonical-read", emptyNet),
+        ...mutation.messages,
+      ]),
+      browser,
+    );
+    expect(events).toMatchObject([
+      {
+        kind: "read",
+        toolCallId: "canonical-read",
+        observation: { sha256: sha256Of(emptyNet) },
+      },
+      {
+        kind: "mutation",
+        toolCallId: "canonical-add",
+        toolName: "addPlace",
+        outcome: "applied",
+        postHash: sha256Of(mutation.post),
+        postRevisionId: "revision-2",
+      },
+    ]);
+  });
+
+  test("keeps duplicate, mismatched and tampered canonical deliveries unrecorded", async () => {
+    const mutation = canonicalMutationTurn("canonical-add");
+    const cases: FlueConversationMessage[][] = [
+      [...mutation.messages, mutation.messages[1]!],
+      [
+        mutation.messages[0]!,
+        resultDelivery("canonical-add", "addPlace", mutation.record.output, {
+          canonicalMutationRecord: {
+            ...mutation.record,
+            input: { ...mutation.record.input, name: "Different" },
+          },
+        }),
+      ],
+      [
+        mutation.messages[0]!,
+        resultDelivery(
+          "canonical-add",
+          "addPlace",
+          { placeId: "different-output" },
+          { canonicalMutationRecord: mutation.record },
+        ),
+      ],
+      [
+        mutation.messages[0]!,
+        resultDelivery("canonical-add", "addPlace", mutation.record.output, {
+          canonicalMutationRecord: {
+            ...mutation.record,
+            settlement: {
+              status: "failed",
+              revisionId: "revision-2",
+              error: "Persistence failed",
+            },
+          },
+        }),
+      ],
+    ];
+    for (const messages of cases) {
+      // eslint-disable-next-line no-await-in-loop -- Each independent history is one boundary case.
+      const events = await deriveNetLedger(snapshotOf(messages), browser);
+      expect(events).toMatchObject([
+        { kind: "unrecorded", toolCallId: "canonical-add" },
+      ]);
+    }
   });
 
   test("is recomputable: the same history yields the same events, and the module holds no state", async () => {

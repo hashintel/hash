@@ -6,7 +6,13 @@ import {
 } from "@flue/runtime";
 import * as v from "valibot";
 
-import { CANONICAL_PETRINAUT_TOOLS_MODE } from "./construction-mode";
+import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
+
+import {
+  INTEGRATED_PETRINAUT_MODES,
+  STOCK_OVER_FLUE_MODE,
+  isIntegratedPetrinautMode,
+} from "./construction-mode";
 import {
   READ_PETRINAUT_DOCS_TOOL_NAME,
   isReadPetrinautDocsToolName,
@@ -38,7 +44,16 @@ import {
 import { readPetrinautDocs } from "./tools/read-petrinaut-doc";
 
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
-export { CANONICAL_PETRINAUT_TOOLS_MODE } from "./construction-mode";
+export {
+  BRUNCH_DECLARED_PROJECTION_MODE,
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
+  CANONICAL_PETRINAUT_TOOLS_MODE,
+  INTEGRATED_BRUNCH_MODE,
+  STOCK_OVER_FLUE_MODE,
+  isIntegratedPetrinautMode,
+  type CanonicalPetrinautMode,
+  type IntegratedPetrinautMode,
+} from "./construction-mode";
 export {
   batchedConstructionMode,
   mutatePetrinautNetToolName,
@@ -49,7 +64,8 @@ export const sdcpnInitialDataSchema = v.optional(
     v.object({
       mode: v.picklist([
         VALIDATED_CONSTRUCTION_MODE,
-        CANONICAL_PETRINAUT_TOOLS_MODE,
+        STOCK_OVER_FLUE_MODE,
+        ...INTEGRATED_PETRINAUT_MODES,
         batchedConstructionMode,
       ]),
       construction: v.optional(
@@ -59,7 +75,8 @@ export const sdcpnInitialDataSchema = v.optional(
     v.check(
       (data) =>
         data.mode === batchedConstructionMode ||
-        data.mode === CANONICAL_PETRINAUT_TOOLS_MODE
+        data.mode === STOCK_OVER_FLUE_MODE ||
+        isIntegratedPetrinautMode(data.mode)
           ? data.construction !== undefined
           : data.construction === undefined,
       "Construction requires a distinct immutable binding and mode.",
@@ -83,13 +100,14 @@ export function useSdcpnPlugin(
 ): void {
   const initialData = useInitialData<SdcpnInitialData>();
 
-  if (initialData?.mode === CANONICAL_PETRINAUT_TOOLS_MODE) {
-    // Keep the stock construction briefing authoritative in parity mode. The
-    // plugin's older append and skill remain mounted in every older mode.
-    useInstruction(
-      `Use the mounted stock Petrinaut tools to inspect and modify the browser document. Browser tools terminate the proposal; wait for their correlated results before continuing.
-When the user says \`Surprise me\`, asks \`Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).\`, or makes an equivalent request to choose the domain and build a complete feature-rich model, treat it as authorization to choose a novel domain, state clearly labelled assistant-selected assumptions and defaults, and build the preview immediately. Do not interview, wait for answers, or seek assent before constructing it. Use any and all mounted Petrinaut capabilities that are supported by the document's active extensions where useful, including visualizers, scenarios and metrics, hierarchy, and other available features. Never claim that an unsupported or disabled capability was used.`,
-    );
+  if (initialData?.mode === STOCK_OVER_FLUE_MODE) {
+    for (const canonicalTool of canonicalPetrinautTools) {
+      useTool(canonicalTool);
+    }
+  } else if (isIntegratedPetrinautMode(initialData?.mode)) {
+    useInstruction(sdcpnAppend.trim());
+    useInstruction(petrinautAiCapabilityGuidance);
+    useSkill(sdcpnModellingSkill);
     for (const canonicalTool of canonicalPetrinautTools) {
       useTool(canonicalTool);
     }

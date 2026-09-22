@@ -31,10 +31,54 @@ export const constructionWhyInputSchema = z.union([
   ...rootStateWhyInputSchema.options,
 ]);
 
-/** Anthropic requires an object root; selector alternatives retain their full contracts inside it. */
+const [rootEntityWhyInputSchema, rootTypeElementWhyInputSchema] =
+  rootStateWhyInputSchema.options;
+const currentDefinitionReadDescription =
+  "Unique name or ID from the current mounted Petrinaut definition read.";
+const modelRootArcWhyInputSchema = rootArcWhyInputSchema
+  .omit({ observationToolCallId: true })
+  .extend({
+    transition: rootArcWhyInputSchema.shape.transition.describe(
+      currentDefinitionReadDescription,
+    ),
+    place: rootArcWhyInputSchema.shape.place.describe(
+      currentDefinitionReadDescription,
+    ),
+  });
+const modelRootNodeWhyInputSchema = rootNodeWhyInputSchema
+  .omit({ observationToolCallId: true })
+  .extend({
+    name: rootNodeWhyInputSchema.shape.name.describe(
+      currentDefinitionReadDescription,
+    ),
+  });
+const modelRootEntityWhyInputSchema = rootEntityWhyInputSchema
+  .omit({ observationToolCallId: true })
+  .extend({
+    name: rootEntityWhyInputSchema.shape.name.describe(
+      currentDefinitionReadDescription,
+    ),
+  });
+const modelRootTypeElementWhyInputSchema = rootTypeElementWhyInputSchema
+  .omit({ observationToolCallId: true })
+  .extend({
+    name: rootTypeElementWhyInputSchema.shape.name.describe(
+      currentDefinitionReadDescription,
+    ),
+  });
+const modelConstructionWhyInputSchema = z.union([
+  modelRootArcWhyInputSchema,
+  modelRootNodeWhyInputSchema,
+  modelRootEntityWhyInputSchema,
+  modelRootTypeElementWhyInputSchema,
+]);
+
+/** Model input selects semantics only; the host owns live-observation correlation. */
 export const queryWorkpieceInputSchema = (construction: boolean) =>
   z.strictObject({
-    selector: construction ? constructionWhyInputSchema : rootArcWhyInputSchema,
+    selector: construction
+      ? modelConstructionWhyInputSchema
+      : modelRootArcWhyInputSchema,
   });
 
 export const parseConstructionWhyInput = (input: unknown) =>
