@@ -23,10 +23,12 @@ export const toIrName = (display: string, prefix: string): string => {
 
 /** A lower_snake identifier for the net itself. */
 export const toIrNetName = (display: string): string => {
+  // Every run of separators is one underscore by now, so only a single one
+  // can lead or trail; matching one keeps the pass linear in the length.
   const cleaned = display
     .trim()
     .replace(/[^A-Za-z0-9]+/gu, "_")
-    .replace(/^_+|_+$/gu, "")
+    .replace(/^_|_$/gu, "")
     .toLowerCase();
   if (cleaned === "") {
     return "net";
