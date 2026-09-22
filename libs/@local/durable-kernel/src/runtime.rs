@@ -30,7 +30,7 @@ use tokio_util::{sync::CancellationToken, task::AbortOnDropHandle};
 
 use crate::{
     domain::{self, EventRecordV1, Executor, Hosted, PartitionKey, SimpleDomain, effect_id},
-    ids::EffectId,
+    ids::{EffectId, EventId},
     keyspace::{Keyspace, Namespace},
     registry::RecordRegistry,
     routing::Shard,
@@ -41,47 +41,72 @@ use crate::{
     },
 };
 
-#[derive(Debug, derive_more::Display, derive_more::Error)]
-#[error(ignore)]
+#[derive(Debug, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 /// A configuration, storage, or runtime failure returned in an [`error_stack::Report`].
 pub enum KernelError {
-    #[display("kernel configuration invalid: {_0}")]
-    Config(String),
-    #[display("kernel registration failed: {_0}")]
-    Registration(String),
-    #[display("kernel record invalid: {_0}")]
-    InvalidEvent(String),
-    #[display("kernel storage failed: {_0}")]
-    Storage(String),
+    #[display("at least one owned shard is required")]
+    NoOwnedShards,
+    #[display("could not register domain records")]
+    RegisterDomain,
+    #[display("could not construct event record")]
+    BuildEventRecord,
+    #[display("event validation failed")]
+    ValidateEvent,
+    #[display("event {event_id} was rejected")]
+    EventRejected { event_id: EventId },
+    #[display("invalid storage configuration for shard {}", shard.get())]
+    ConfigureStorage { shard: Shard },
     #[display("shard command failed")]
     Command,
-    #[display("partition routes to shard {shard}, which this kernel does not own")]
-    NotOwned { shard: u16 },
-    #[display("kernel internal failure: {_0}")]
-    Internal(String),
-}
-
-impl From<ShardCommandError> for Report<KernelError> {
-    fn from(error: ShardCommandError) -> Self {
-        Report::new(error).change_context(KernelError::Command)
-    }
+    #[display("partition routes to shard {}, which this kernel does not own", shard.get())]
+    NotOwned { shard: Shard },
+    #[display("could not join shard driver task")]
+    JoinShardDriver,
+    #[display("could not join shard command loop task")]
+    JoinCommandLoop,
+    #[display("could not join effect driver task")]
+    JoinEffectDriver,
+    #[display("driver for shard {} failed", shard.get())]
+    ShardDriver { shard: Shard },
+    #[display("effect {effect_id} task was cancelled")]
+    EffectTaskCancelled { effect_id: EffectId },
+    #[display("could not encode effect identity")]
+    EncodeEffectId,
+    #[display("could not construct completion event for effect {effect_id}")]
+    BuildCompletionEvent { effect_id: EffectId },
+    #[display("could not submit completion event {event_id} for effect {effect_id}")]
+    SubmitCompletionEvent {
+        effect_id: EffectId,
+        event_id: EventId,
+    },
+    #[display("completion event {event_id} for effect {effect_id} was rejected")]
+    CompletionEventRejected {
+        effect_id: EffectId,
+        event_id: EventId,
+    },
+    #[display("retry delay {delay:?} for effect {effect_id} is out of range")]
+    RetryDelayOutOfRange {
+        effect_id: EffectId,
+        delay: Duration,
+    },
 }
 
 impl<R: core::error::Error + Send + Sync + 'static> From<domain::FoldError<R>>
     for Report<KernelError>
 {
     fn from(error: domain::FoldError<R>) -> Self {
-        let context = KernelError::InvalidEvent("event validation failed".to_owned());
         match error {
-            domain::FoldError::InvalidRecord(error) => error.change_context(context),
+            domain::FoldError::InvalidRecord(error) => {
+                error.change_context(KernelError::ValidateEvent)
+            }
             domain::FoldError::Rejected {
                 event_id,
                 rejection,
-            } => rejection.change_context(context).attach(event_id),
+            } => rejection.change_context(KernelError::EventRejected { event_id }),
             error @ (domain::FoldError::ForeignShard { .. }
             | domain::FoldError::ConflictingReuse { .. }
             | domain::FoldError::NonIncreasingSequence { .. }) => {
-                Report::new(error).change_context(context)
+                Report::new(error).change_context(KernelError::ValidateEvent)
             }
         }
     }
@@ -176,11 +201,8 @@ impl Kernel {
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
-        let shard_capacity = NonZeroU64::new(shards.len() as u64).ok_or_else(|| {
-            Report::new(KernelError::Config(
-                "at least one owned shard is required".to_owned(),
-            ))
-        })?;
+        let shard_capacity =
+            NonZeroU64::new(shards.len() as u64).ok_or(KernelError::NoOwnedShards)?;
         Ok(Self {
             keyspace: Keyspace::new(config.name.clone()),
             config,
@@ -196,9 +218,7 @@ impl Kernel {
     ///
     /// Returns an error when the domain’s record declarations conflict with registered codecs.
     pub fn register<S: SimpleDomain>(self) -> Result<Self, Report<KernelError>> {
-        domain::register::<S>(&self.registry).change_context_lazy(|| {
-            KernelError::Registration("conflicting record declarations".to_owned())
-        })?;
+        domain::register::<S>(&self.registry).change_context(KernelError::RegisterDomain)?;
         Ok(self)
     }
 
@@ -212,9 +232,7 @@ impl Kernel {
         S: SimpleDomain,
         X: Executor<S>,
     {
-        domain::register::<S>(&self.registry).change_context_lazy(|| {
-            KernelError::Registration("conflicting record declarations".to_owned())
-        })?;
+        domain::register::<S>(&self.registry).change_context(KernelError::RegisterDomain)?;
         let executor = Arc::new(executor);
         let shutdown = CancellationToken::new();
         let storage = LogStorageOptions {
@@ -241,9 +259,7 @@ impl Kernel {
                     &storage,
                     Arc::clone(&self.registry),
                 )
-                .change_context_lazy(|| {
-                    KernelError::Storage("invalid storage configuration".to_owned())
-                })?;
+                .change_context(KernelError::ConfigureStorage { shard })?;
                 OpenedShard::open(location)
                     .await
                     .change_context(KernelError::Command)?
@@ -324,11 +340,9 @@ impl<S: SimpleDomain> RunningKernel<S> {
         key: &PartitionKey,
     ) -> Result<&ShardCommandHandle<Hosted<S>>, Report<KernelError>> {
         let shard = domain::shard_of(key);
-        self.shards.get(&shard.get()).ok_or_else(|| {
-            Report::new(KernelError::NotOwned {
-                shard: u16::from(shard.get()),
-            })
-        })
+        self.shards
+            .get(&shard.get())
+            .ok_or_else(|| Report::new(KernelError::NotOwned { shard }))
     }
 
     /// Submits an event and waits for it to become durable.
@@ -346,9 +360,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
         event: S::Event,
     ) -> Result<Submitted<<S::Projection as domain::Fold<S::Event>>::Rejection>, Report<KernelError>>
     {
-        let record = EventRecordV1::new(event).change_context_lazy(|| {
-            KernelError::InvalidEvent("event record construction failed".to_owned())
-        })?;
+        let record = EventRecordV1::new(event).change_context(KernelError::BuildEventRecord)?;
         let handle = self.handle_for(record.partition())?;
         match handle
             .propose(record)
@@ -401,38 +413,28 @@ impl<S: SimpleDomain> RunningKernel<S> {
         self.shutdown.cancel();
         let mut first_error = None;
         for driver in &mut self.drivers {
-            match driver.await {
-                Ok(Ok(())) => {}
-                Ok(Err(error)) => {
-                    first_error.get_or_insert(error);
-                }
-                Err(join_error) => {
-                    first_error.get_or_insert_with(|| {
-                        Report::new(join_error)
-                            .change_context(KernelError::Internal("runtime task failed".to_owned()))
-                    });
-                }
+            let result = driver
+                .await
+                .change_context(KernelError::JoinShardDriver)
+                .flatten();
+            if let Err(error) = result {
+                first_error.get_or_insert(error);
             }
         }
         for owner in self.owners.drain(..) {
             if let Err(error) = owner.shutdown().await
-                && error.current_context().kind != ShardCommandErrorKind::Closed
+                && error.current_context().kind() != ShardCommandErrorKind::Closed
             {
                 first_error.get_or_insert_with(|| error.change_context(KernelError::Command));
             }
         }
         for task in &mut self.loops {
-            match task.await {
-                Ok(Ok(())) => {}
-                Ok(Err(error)) => {
-                    first_error.get_or_insert_with(|| Report::from(error));
-                }
-                Err(join_error) => {
-                    first_error.get_or_insert_with(|| {
-                        Report::new(join_error)
-                            .change_context(KernelError::Internal("runtime task failed".to_owned()))
-                    });
-                }
+            let result = task
+                .await
+                .change_context(KernelError::JoinCommandLoop)
+                .and_then(|result| result.change_context(KernelError::Command));
+            if let Err(error) = result {
+                first_error.get_or_insert(error);
             }
         }
         first_error.map_or(Ok(()), Err)
@@ -474,23 +476,24 @@ where
     )));
     let result = driver
         .await
-        .unwrap_or_else(|error| {
-            Err(Report::new(error).change_context(KernelError::Internal(
-                "effect driver task failed".to_owned(),
-            )))
-        })
-        .attach_with(|| format!("shard: {}", handle.shard().get()));
+        .change_context(KernelError::JoinEffectDriver)
+        .flatten()
+        .change_context(KernelError::ShardDriver {
+            shard: handle.shard(),
+        });
     if let Err(error) = result {
         drop(owner);
         tracing::error!(?error, "effect driver failed; shard stopped");
         return Err(error);
     }
     if let Err(error) = owner.shutdown().await
-        && error.current_context().kind != ShardCommandErrorKind::Closed
+        && error.current_context().kind() != ShardCommandErrorKind::Closed
     {
-        return Err(error
-            .change_context(KernelError::Command)
-            .attach(format!("shard: {}", handle.shard().get())));
+        return Err(error.change_context(KernelError::Command).change_context(
+            KernelError::ShardDriver {
+                shard: handle.shard(),
+            },
+        ));
     }
     Ok(())
 }
@@ -537,8 +540,10 @@ where
                 after: None,
             }))
         }
-        Err(error) => Err(Report::new(error)
-            .change_context(KernelError::Internal("effect task cancelled".to_owned()))),
+        Err(error) => {
+            Err(Report::new(error)
+                .change_context(KernelError::EffectTaskCancelled { effect_id: *id }))
+        }
     }
 }
 
@@ -585,9 +590,7 @@ where
             .into_iter()
             .map(|effect| effect_id(&effect).map(|id| (id, effect)))
             .collect::<Result<Vec<_>, _>>()
-            .change_context_lazy(|| {
-                KernelError::Internal("effect identity serialization failed".to_owned())
-            })?;
+            .change_context(KernelError::EncodeEffectId)?;
         retain_planned_effects(&effects, &mut executed, &mut retries);
         let mut progressed = false;
         for (id, effect) in effects {
@@ -604,20 +607,30 @@ where
             match execute_effect::<S, X>(Arc::clone(&executor), effect, &id).await? {
                 Ok(events) => {
                     for event in events {
-                        let record = EventRecordV1::new(event).change_context_lazy(|| {
-                            KernelError::InvalidEvent("event record construction failed".to_owned())
-                        })?;
+                        let record = EventRecordV1::new(event)
+                            .change_context(KernelError::BuildCompletionEvent { effect_id: id })?;
+                        let event_id = record.event_id();
                         match handle.propose(record).await {
                             Ok(
                                 ShardCommandOutcome::Applied { .. }
                                 | ShardCommandOutcome::AlreadyDurable { .. },
                             ) => {}
                             Ok(ShardCommandOutcome::Rejected { rejection }) => {
-                                return Err(Report::from(rejection)
-                                    .attach("effect completion event was rejected")
-                                    .attach(format!("effect ID: {id}")));
+                                return Err(Report::<KernelError>::from(rejection).change_context(
+                                    KernelError::CompletionEventRejected {
+                                        effect_id: id,
+                                        event_id,
+                                    },
+                                ));
                             }
-                            Err(error) => return settle_driver_error(error, &shutdown),
+                            Err(error) => {
+                                return settle_driver_error(error, &shutdown).change_context(
+                                    KernelError::SubmitCompletionEvent {
+                                        effect_id: id,
+                                        event_id,
+                                    },
+                                );
+                            }
                         }
                     }
                     retries.remove(&id);
@@ -626,13 +639,15 @@ where
                 }
                 Err(retry) => {
                     tracing::debug!(reason = ?retry.reason, effect_id = %id, "effect execution retries later");
-                    let deadline = tokio::time::Instant::now()
-                        .checked_add(retry.after.unwrap_or(settings.poll_interval))
-                        .ok_or_else(|| {
-                            Report::new(KernelError::Internal(
-                                "effect retry delay is out of range".to_owned(),
-                            ))
-                        })?;
+                    let delay = retry.after.unwrap_or(settings.poll_interval);
+                    let Some(deadline) = tokio::time::Instant::now().checked_add(delay) else {
+                        return Err(retry.reason.change_context(
+                            KernelError::RetryDelayOutOfRange {
+                                effect_id: id,
+                                delay,
+                            },
+                        ));
+                    };
                     retries.insert(id, deadline);
                 }
             }
@@ -690,7 +705,10 @@ mod tests {
 
     use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted};
     use crate::{
-        domain::{self, DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain},
+        domain::{
+            self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
+            effect_id,
+        },
         keyspace::Namespace,
         registry::CompatError,
         routing::Shard,
@@ -753,7 +771,7 @@ mod tests {
 
         assert!(matches!(
             error.current_context(),
-            KernelError::InvalidEvent(_)
+            KernelError::BuildEventRecord
         ));
         assert!(matches!(
             error.downcast_ref::<CompatError>(),
@@ -1212,7 +1230,7 @@ mod tests {
         };
         assert!(matches!(
             report.current_context(),
-            KernelError::Config(message) if message == "at least one owned shard is required"
+            KernelError::NoOwnedShards
         ));
     }
 
@@ -1462,10 +1480,24 @@ mod tests {
             .shutdown()
             .await
             .expect_err("shutdown should report the rejected completion");
-        assert!(matches!(
+        assert_eq!(
             report.current_context(),
-            KernelError::InvalidEvent(_)
-        ));
+            &KernelError::ShardDriver {
+                shard: domain::shard_of(&key)
+            }
+        );
+        let expected_effect = effect_id(&()).expect("effect ID should encode");
+        let expected_event = EventRecordV1::new(increment("ready", 2, 0))
+            .expect("completion record should encode")
+            .event_id();
+        assert!(
+            report.frames().any(|frame| matches!(
+                frame.downcast_ref::<KernelError>(),
+                Some(KernelError::CompletionEventRejected { effect_id, event_id })
+                    if *effect_id == expected_effect && *event_id == expected_event
+            )),
+            "driver failure should identify the rejected completion event and its effect"
+        );
         assert!(
             matches!(report.downcast_ref::<CounterRejection>(), Some(CounterRejection::ZeroIncrement { counter }) if counter == "ready")
         );
@@ -1495,7 +1527,10 @@ mod tests {
             .err()
             .expect("a file at the storage root should prevent startup");
 
-        assert!(matches!(error.current_context(), KernelError::Storage(_)));
+        assert!(matches!(
+            error.current_context(),
+            KernelError::ConfigureStorage { .. }
+        ));
         assert!(matches!(
             error.downcast_ref::<StorageConfigError>(),
             Some(StorageConfigError::CreateLocalDirectory { path: failed_path }) if failed_path == &path

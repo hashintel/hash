@@ -41,8 +41,8 @@ pub use backend::{
 pub use command_loop::start_recovered;
 pub use command_loop::{
     ControlResolution, OpenedShard, RecoveredShard, ShardCommandConfig, ShardCommandError,
-    ShardCommandErrorKind, ShardCommandHandle, ShardCommandOutcome, ShardOwner, StartedShard,
-    StartupRecovery, StateChangeFeed,
+    ShardCommandErrorKind, ShardCommandHandle, ShardCommandKind, ShardCommandOutcome, ShardOwner,
+    StartedShard, StartupRecovery, StateChangeFeed,
 };
 
 const EVENTS_KEY: &[u8] = b"events";

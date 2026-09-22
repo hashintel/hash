@@ -146,7 +146,7 @@ async fn oversized_submission_preserves_recovery() {
         error
             .downcast_ref::<ShardCommandError>()
             .expect("submission failure should retain the command error")
-            .kind,
+            .kind(),
         ShardCommandErrorKind::DefinitelyNotCommitted
     );
     assert_eq!(
