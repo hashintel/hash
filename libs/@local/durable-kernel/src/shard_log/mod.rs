@@ -343,6 +343,7 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         })
     }
 
+    #[cfg(any(test, feature = "test-util"))]
     async fn append<T: UntrimmedJournalRecord + Sync>(
         &self,
         value: &T,
@@ -384,24 +385,32 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         .await
     }
 
+    #[cfg(any(test, feature = "test-util"))]
     async fn append_registered<T: DurableRecord + Sync>(
         &self,
         key: &'static [u8],
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
+        let bytes = self.encode_registered::<T>(|| value.encode())?;
+        self.append_encoded(key, bytes).await
+    }
+
+    fn encode_registered<T: DurableRecord>(
+        &self,
+        encode: impl FnOnce() -> Result<Vec<u8>, Report<crate::registry::CompatError>>,
+    ) -> Result<Bytes, Report<ShardAppendError>> {
         self.registry
             .require::<T>()
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
             .attach("validate durable-record registration")?;
-        let bytes = value
-            .encode()
+        let bytes = encode()
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })
             .attach("encode durable shard record")?;
-        self.append_encoded(key, Bytes::from(bytes)).await
+        Ok(Bytes::from(bytes))
     }
 
     async fn append_encoded(

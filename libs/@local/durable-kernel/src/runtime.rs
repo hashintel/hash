@@ -716,6 +716,10 @@ mod tests {
     impl SimpleDomain for InvalidJsonDomain {
         type Event = InvalidJsonEvent;
         type Projection = Self;
+
+        fn empty_projection() -> Self::Projection {
+            Self
+        }
     }
 
     impl Fold<InvalidJsonEvent> for InvalidJsonDomain {
@@ -898,6 +902,10 @@ mod tests {
     impl SimpleDomain for RtDomain {
         type Event = RtEvent;
         type Projection = RtCounters;
+
+        fn empty_projection() -> Self::Projection {
+            RtCounters::default()
+        }
     }
 
     #[derive(Debug, Clone, PartialEq, Serialize)]

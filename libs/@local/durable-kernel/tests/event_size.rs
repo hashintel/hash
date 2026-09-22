@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 const MAX_RECORD_BYTES: usize = 4 * 1024 * 1024;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Payload(String);
 
 impl DomainEvent for Payload {
@@ -31,7 +31,7 @@ impl DomainEvent for Payload {
     }
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct PayloadCount(usize);
 
 impl Fold<Payload> for PayloadCount {
@@ -56,6 +56,10 @@ struct PayloadDomain;
 impl SimpleDomain for PayloadDomain {
     type Event = Payload;
     type Projection = PayloadCount;
+
+    fn empty_projection() -> Self::Projection {
+        PayloadCount(0)
+    }
 }
 
 struct NoEffects;
@@ -91,7 +95,7 @@ fn payload_at_limit() -> Payload {
 #[test]
 fn record_size_boundary() {
     let payload = payload_at_limit();
-    let encoded = record(payload.clone())
+    let encoded = record(Payload(payload.0.clone()))
         .encode()
         .expect("record at the limit should encode");
     assert_eq!(encoded.len(), MAX_RECORD_BYTES);

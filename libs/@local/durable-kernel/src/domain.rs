@@ -2,7 +2,7 @@
 //!
 //! Implement [`DomainEvent`] for events, [`Fold`] for state updates, and [`Executor`] for
 //! external work. [`SimpleDomain`] connects the event and state types. The [`crate::runtime`]
-//! runs the executor. [`Hosted`] adapts these types to the lower-level [`Domain`] API.
+//! runs the executor. [`Hosted`] adapts these types to the lower-level [`crate::port`] API.
 //!
 //! The kernel handles event IDs, duplicate detection, journal sequencing, snapshots, and
 //! recovery. Submit events through [`crate::runtime::RunningKernel::submit`].
@@ -18,7 +18,7 @@ use sha2::{Digest as _, Sha256};
 
 use crate::{
     ids::{EffectId, EventId, JournalRecordDigest, content_digest_bytes},
-    port::{Domain, Prepared},
+    port::{ControlDomain, EventDomain, Prepared, QueryDomain, SnapshotDomain},
     registry::{
         AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
         MigrationPolicy, RecordDeclaration, RecordRegistry, UntrimmedJournalRecord,
@@ -59,7 +59,7 @@ pub trait DomainEvent {
 /// without rerunning admission rules. Both paths must be deterministic.
 ///
 /// State is serialized into snapshots. Its serialization must also be deterministic.
-pub trait Fold<E>: Default + Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
+pub trait Fold<E>: Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
     /// The application error reported when validation rejects an event.
     type Rejection: Error + Send + Sync + 'static;
 
@@ -80,8 +80,11 @@ pub trait Fold<E>: Default + Clone + Send + Sync + Serialize + DeserializeOwned 
 /// Pass an [`Executor`] to [`Kernel::start`](crate::runtime::Kernel::start) to run external
 /// operations.
 pub trait SimpleDomain: Send + Sync + 'static {
-    type Event: DomainEvent + Serialize + DeserializeOwned + Clone + Send + Sync + 'static;
+    type Event: DomainEvent + Serialize + DeserializeOwned + Send + 'static;
     type Projection: Fold<Self::Event>;
+
+    /// Creates the application state for an empty journal.
+    fn empty_projection() -> Self::Projection;
 }
 
 /// Plans and executes external operations from application state.
@@ -344,6 +347,28 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
         })
     }
 
+    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+        #[derive(Serialize)]
+        struct Envelope<'a, E> {
+            version: &'static str,
+            data: &'a EventRecordV1<E>,
+        }
+
+        let bytes = serde_json::to_vec(&Envelope {
+            version: "v1",
+            data: self,
+        })
+        .change_context(CompatError::Encode { name: E::name() })?;
+        if bytes.len() > MAX_EVENT_RECORD_BYTES {
+            return Err(Report::new(CompatError::TooLarge {
+                name: E::name(),
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_EVENT_RECORD_BYTES,
+            }));
+        }
+        Ok(bytes)
+    }
+
     fn digest(&self) -> Result<JournalRecordDigest, Report<CompatError>> {
         let event = serde_json::to_value(&self.event)
             .change_context(CompatError::Encode { name: E::name() })?;
@@ -385,16 +410,9 @@ impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> DurableRecord for 
     }
 
     fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
-        let bytes =
-            serde_json::to_vec(self).change_context(CompatError::Encode { name: E::name() })?;
-        if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: E::name(),
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_EVENT_RECORD_BYTES,
-            }));
+        match self {
+            Self::V1(record) => record.encode(),
         }
-        Ok(bytes)
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
@@ -678,7 +696,7 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     }
 }
 
-/// Adapts [`SimpleDomain`] to the [`Domain`] interface used by the command loop.
+/// Adapts [`SimpleDomain`] to the [`crate::port::Domain`] interface used by the command loop.
 pub struct Hosted<S>(PhantomData<fn() -> S>);
 
 impl<S> fmt::Debug for Hosted<S> {
@@ -751,24 +769,24 @@ pub enum RecoveryError {
     LostEvent { event_id: EventId },
 }
 
-impl<S: SimpleDomain> Domain for Hosted<S> {
-    type ControlOutcome = Never;
-    type ControlRejection = Never;
-    type ControlRequest = Never;
-    type ControlSnapshot = Never;
+impl<S: SimpleDomain> EventDomain for Hosted<S> {
     type Delta = PreparedEvent<S>;
     type FoldError = FoldError<<S::Projection as Fold<S::Event>>::Rejection>;
     type Projection = KernelProjection<S::Projection>;
-    type Query = ReadQuery<S::Projection>;
-    type QueryResult = ReadResult;
     type Record = EventRecord<S::Event>;
     type RecordCurrent = EventRecordV1<S::Event>;
     type RecoveryError = RecoveryError;
-    type Snapshot = ProjectionSnapshot<S>;
-    type SnapshotCapture = ProjectionSnapshotPayload<S>;
-    type SnapshotContext = ();
     type StateKey = PartitionKey;
     type WorkIntent = Never;
+
+    fn empty_projection() -> Self::Projection {
+        KernelProjection {
+            seen: BTreeMap::new(),
+            partitions: BTreeMap::new(),
+            through_log_sequence: None,
+            domain: S::empty_projection(),
+        }
+    }
 
     fn record_shard(record: &Self::RecordCurrent) -> Shard {
         shard_of(&record.partition)
@@ -789,8 +807,8 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
         record.partition.clone()
     }
 
-    fn wire(record: Self::RecordCurrent) -> Self::Record {
-        EventRecord::V1(record)
+    fn encode_record(record: &Self::RecordCurrent) -> Result<Vec<u8>, Report<CompatError>> {
+        record.encode()
     }
 
     fn prepare(
@@ -850,100 +868,6 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
 
     fn state_sequence(projection: &Self::Projection, key: &PartitionKey) -> Option<u64> {
         projection.partitions.get(key).copied()
-    }
-
-    fn answer(projection: &Self::Projection, query: Self::Query) -> Self::QueryResult {
-        (query.0)(projection)
-    }
-
-    fn control_shard(_request: &Never) -> Shard {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn describe_foreign_control(_request: &Never) -> String {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn inspect_control(
-        _projection: &Self::Projection,
-        _request: &Never,
-    ) -> Result<Never, Report<ShardCommandError>> {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn control_prior_outcome(_snapshot: &Never) -> Option<Never> {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn control_event_id(_request: &Never) -> EventId {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn build_control_record(
-        _projection: &Self::Projection,
-        _request: &Never,
-        _preflight_rejection: Option<Never>,
-    ) -> Result<Self::RecordCurrent, Self::FoldError> {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn control_outcome_after_append(
-        _projection: &Self::Projection,
-        _request: &Never,
-    ) -> Result<Never, Report<RecoveryError>> {
-        unreachable!("hosted domains have no control requests")
-    }
-
-    fn capture_snapshot(
-        shard: Shard,
-        projection: &Self::Projection,
-    ) -> Option<ProjectionSnapshotPayload<S>> {
-        let through_log_sequence = projection.through_log_sequence?;
-        Some(ProjectionSnapshotPayload {
-            shard,
-            through_log_sequence,
-            seen: projection.seen.clone(),
-            partitions: projection.partitions.clone(),
-            domain: projection.domain.clone(),
-        })
-    }
-
-    fn snapshot_bounds(
-        snapshot: &ProjectionSnapshot<S>,
-    ) -> Result<(Shard, u64), Report<RecoveryError>> {
-        let ProjectionSnapshot::V1(record) = snapshot;
-        let shard = record.shard;
-        Ok((shard, record.through_log_sequence))
-    }
-
-    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> DateTime<Utc> {
-        let ProjectionSnapshot::V1(record) = snapshot;
-        record.created_at
-    }
-
-    #[expect(
-        clippy::unused_async_trait_impl,
-        reason = "snapshot validation runs when the trait future is polled"
-    )]
-    async fn load_snapshot_projection(
-        _context: &(),
-        shard: Shard,
-        snapshot: &ProjectionSnapshot<S>,
-    ) -> Result<Self::Projection, Report<RecoveryError>> {
-        let ProjectionSnapshot::V1(record) = snapshot;
-        let snapshot_shard = record.shard;
-        if snapshot_shard != shard {
-            return Err(Report::new(RecoveryError::SnapshotShardMismatch {
-                expected: shard,
-                actual: snapshot_shard,
-            }));
-        }
-        Ok(KernelProjection {
-            seen: record.seen.clone(),
-            partitions: record.partitions.clone(),
-            through_log_sequence: Some(record.through_log_sequence),
-            domain: record.domain.clone(),
-        })
     }
 
     fn through_sequence(projection: &Self::Projection) -> Option<u64> {
@@ -1033,6 +957,118 @@ impl<S: SimpleDomain> Domain for Hosted<S> {
     }
 }
 
+impl<S: SimpleDomain> QueryDomain for Hosted<S> {
+    type Query = ReadQuery<S::Projection>;
+    type QueryResult = ReadResult;
+
+    fn answer(projection: &Self::Projection, query: Self::Query) -> Self::QueryResult {
+        (query.0)(projection)
+    }
+}
+
+impl<S: SimpleDomain> ControlDomain for Hosted<S> {
+    type ControlOutcome = Never;
+    type ControlRejection = Never;
+    type ControlRequest = Never;
+    type ControlSnapshot = Never;
+
+    fn control_shard(_request: &Never) -> Shard {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn describe_foreign_control(_request: &Never) -> String {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn inspect_control(
+        _projection: &Self::Projection,
+        _request: &Never,
+    ) -> Result<Never, Report<ShardCommandError>> {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn control_prior_outcome(_snapshot: &Never) -> Option<Never> {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn control_event_id(_request: &Never) -> EventId {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn build_control_record(
+        _projection: &Self::Projection,
+        _request: &Never,
+        _preflight_rejection: Option<Never>,
+    ) -> Result<Self::RecordCurrent, Self::FoldError> {
+        unreachable!("hosted domains have no control requests")
+    }
+
+    fn control_outcome_after_append(
+        _projection: &Self::Projection,
+        _request: &Never,
+    ) -> Result<Never, Report<RecoveryError>> {
+        unreachable!("hosted domains have no control requests")
+    }
+}
+
+impl<S: SimpleDomain> SnapshotDomain for Hosted<S> {
+    type Snapshot = ProjectionSnapshot<S>;
+    type SnapshotCapture = ProjectionSnapshotPayload<S>;
+    type SnapshotContext = ();
+
+    fn capture_snapshot(
+        shard: Shard,
+        projection: &Self::Projection,
+    ) -> Option<ProjectionSnapshotPayload<S>> {
+        let through_log_sequence = projection.through_log_sequence?;
+        Some(ProjectionSnapshotPayload {
+            shard,
+            through_log_sequence,
+            seen: projection.seen.clone(),
+            partitions: projection.partitions.clone(),
+            domain: projection.domain.clone(),
+        })
+    }
+
+    fn snapshot_bounds(
+        snapshot: &ProjectionSnapshot<S>,
+    ) -> Result<(Shard, u64), Report<RecoveryError>> {
+        let ProjectionSnapshot::V1(record) = snapshot;
+        let shard = record.shard;
+        Ok((shard, record.through_log_sequence))
+    }
+
+    fn snapshot_created_at(snapshot: &ProjectionSnapshot<S>) -> DateTime<Utc> {
+        let ProjectionSnapshot::V1(record) = snapshot;
+        record.created_at
+    }
+
+    #[expect(
+        clippy::unused_async_trait_impl,
+        reason = "snapshot validation runs when the trait future is polled"
+    )]
+    async fn load_snapshot_projection(
+        _context: &(),
+        shard: Shard,
+        snapshot: &ProjectionSnapshot<S>,
+    ) -> Result<Self::Projection, Report<RecoveryError>> {
+        let ProjectionSnapshot::V1(record) = snapshot;
+        let snapshot_shard = record.shard;
+        if snapshot_shard != shard {
+            return Err(Report::new(RecoveryError::SnapshotShardMismatch {
+                expected: shard,
+                actual: snapshot_shard,
+            }));
+        }
+        Ok(KernelProjection {
+            seen: record.seen.clone(),
+            partitions: record.partitions.clone(),
+            through_log_sequence: Some(record.through_log_sequence),
+            domain: record.domain.clone(),
+        })
+    }
+}
+
 impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
     /// Runs a closure against the shard’s state inside the command loop. The closure must not
     /// block.
@@ -1081,7 +1117,7 @@ mod tests {
         shard_of,
     };
     use crate::{
-        port::{Domain as _, Prepared},
+        port::{EventDomain as _, Prepared, SnapshotDomain as _},
         registry::{
             self, CompatError, DurableRecord as _, RecordDeclaration, RecordRegistry,
             VersionedRecord as _,
@@ -1224,6 +1260,10 @@ mod tests {
     impl SimpleDomain for ToyDomain {
         type Event = CounterEvent;
         type Projection = Counters;
+
+        fn empty_projection() -> Self::Projection {
+            Counters::default()
+        }
     }
 
     type Toy = Hosted<ToyDomain>;

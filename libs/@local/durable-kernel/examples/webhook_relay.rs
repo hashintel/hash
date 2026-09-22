@@ -40,7 +40,7 @@ use tokio::{
 const ENDPOINT: &str = "127.0.0.1:8929";
 const MAX_ATTEMPTS: u32 = 4;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum RelayEvent {
     Accepted { delivery: String, body: String },
@@ -197,6 +197,10 @@ struct RelayDomain;
 impl SimpleDomain for RelayDomain {
     type Event = RelayEvent;
     type Projection = RelayQueue;
+
+    fn empty_projection() -> Self::Projection {
+        RelayQueue::default()
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
