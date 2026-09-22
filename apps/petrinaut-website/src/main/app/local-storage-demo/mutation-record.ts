@@ -5,6 +5,7 @@ import {
   classifyMutationOutcome,
   deriveMutationEffects,
   type ConstructionMutationRequest,
+  type HostRecordedCanonicalMutationName,
   type MutationEffects,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -27,10 +28,8 @@ export interface BrowserDefinitionObservation {
   readonly revisionId: DocumentRevisionId;
 }
 
-export type CanonicalBrowserMutationName =
-  | "addPlace"
-  | "addTransition"
-  | "addArc";
+/** The plugin owns this list so the server demands records for exactly these names. */
+export type CanonicalBrowserMutationName = HostRecordedCanonicalMutationName;
 
 export type CanonicalMutationOutcome =
   | "applied"

@@ -1261,6 +1261,25 @@ export const isConstructionMutationName = (
   isBatchedStateMutation(name);
 
 /**
+ * The direct canonical mutations the browser host currently surrounds with a
+ * host-owned mutation record. Every other canonical mutation executes as plain
+ * Petrinaut and is delivered without a record, so servers must not demand one.
+ * Widen this list only together with the browser host adapter.
+ */
+export const hostRecordedCanonicalMutationNames = [
+  "addPlace",
+  "addTransition",
+  "addArc",
+] as const satisfies readonly ConstructionMutationName[];
+export type HostRecordedCanonicalMutationName =
+  (typeof hostRecordedCanonicalMutationNames)[number];
+
+export const isHostRecordedCanonicalMutationName = (
+  name: string,
+): name is HostRecordedCanonicalMutationName =>
+  hostRecordedCanonicalMutationNames.some((entry) => entry === name);
+
+/**
  * Verify a canonical one-call sidecar against the issued call and delivered
  * canonical output. The returned outcome is always the browser's conservative
  * outcome; verified observations are never used to promote it to `applied`.
