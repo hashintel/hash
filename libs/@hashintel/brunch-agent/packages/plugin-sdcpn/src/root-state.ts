@@ -16,6 +16,8 @@ export const observedStateMutationNames = [
   "updateTypeElement",
   "addScenario",
   "updateScenario",
+  "addMetric",
+  "updateMetric",
 ] as const;
 export type ObservedStateMutationName =
   (typeof observedStateMutationNames)[number];
@@ -37,10 +39,35 @@ const stateWhyFields = {
     ),
   observationToolCallId: rootArcWhyInputSchema.shape.observationToolCallId,
 };
+/** Root-level state collections addressed by kind; nested type elements are located through their parent type. */
+const rootStateCollections = {
+  parameter: "parameters",
+  "differential-equation": "differentialEquations",
+  type: "types",
+  scenario: "scenarios",
+  metric: "metrics",
+} as const;
+type RootStateCollectionKind = keyof typeof rootStateCollections;
+const rootStateEntries = (
+  definition: SDCPN,
+  kind: RootStateCollectionKind,
+): readonly { id: string; name: string }[] =>
+  kind === "scenario"
+    ? (definition.scenarios ?? [])
+    : kind === "metric"
+      ? (definition.metrics ?? [])
+      : definition[rootStateCollections[kind]];
+
 export const rootStateWhyInputSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     ...stateWhyFields,
-    kind: z.enum(["parameter", "differential-equation", "type", "scenario"]),
+    kind: z.enum([
+      "parameter",
+      "differential-equation",
+      "type",
+      "scenario",
+      "metric",
+    ]),
   }),
   z.strictObject({
     ...stateWhyFields,
@@ -73,13 +100,7 @@ export const locateRootState = (
   const entries =
     query.kind === "type-element"
       ? parent!.elements
-      : query.kind === "type"
-        ? definition.types
-        : query.kind === "parameter"
-          ? definition.parameters
-          : query.kind === "differential-equation"
-            ? definition.differentialEquations
-            : (definition.scenarios ?? []);
+      : rootStateEntries(definition, query.kind);
   const matches = entries.filter(
     (entry) =>
       ("elementId" in entry ? entry.elementId : entry.id) === query.name ||
@@ -92,7 +113,7 @@ export const locateRootState = (
   const nodePath =
     query.kind === "type-element"
       ? `/types/${definition.types.indexOf(parent!)}/elements/${index}`
-      : `/${query.kind === "type" ? "types" : query.kind === "parameter" ? "parameters" : query.kind === "differential-equation" ? "differentialEquations" : "scenarios"}/${index}`;
+      : `/${rootStateCollections[query.kind]}/${index}`;
   const fields =
     query.field === "entity"
       ? []
@@ -131,7 +152,11 @@ export const locateRootState = (
         ? "A net parameter has a concrete declared default. This record describes that definition, not an unobserved scenario or run override. The default alone establishes neither an operational quantity nor whether runtime input was provided. Compilation is not simulation."
         : query.kind === "differential-equation"
           ? "A differential equation defines real-valued token derivatives. Token evolution requires a matching typed place with that equation assigned, place dynamics enabled, and dynamics enabled for the run. This record describes the equation definition, not executed evolution or an established time policy. Compilation is not simulation."
-          : "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
+          : query.kind === "scenario"
+            ? "A scenario is a saved starting condition: initial tokens, parameter overrides and scenario parameters with declared defaults. A scenario parameter's default and type describe what a run may vary, not an operating range, a decision or an observed outcome. Compilation is not simulation."
+            : query.kind === "metric"
+              ? "A metric is a saved scalar computed from simulated state over time. Its code defines what a run reports, not what is minimised, maximised or enforced; an experiment must name it as an objective for it to become one. Compilation is not simulation."
+              : "Types define ordered token attributes. Scenario rows use that order; row/cell paths are positional values, not token identities or continuity. Structural element edits may coerce or default cells. Test initial conditions, canonical defaults and migrations are not observed operational facts. Compilation is not simulation.",
   };
 };
 
@@ -145,12 +170,15 @@ export const assertStateIdentity = (
   const input = petrinautAiTools[mutation.toolName].inputSchema.parse(
     mutation.input,
   );
+  const isMetricMutation =
+    mutation.toolName === "addMetric" || mutation.toolName === "updateMetric";
   if ("targetSubnetId" in input && input.targetSubnetId)
     throw new Error("Nested construction is unavailable.");
   // Migration searches root and subnet types/places. Do not admit an unearned nested footprint.
   if (
-    (current.subnets?.length ?? 0) ||
-    (current.componentInstances?.length ?? 0)
+    !isMetricMutation &&
+    ((current.subnets?.length ?? 0) ||
+      (current.componentInstances?.length ?? 0))
   )
     throw new Error(
       "Typed construction with nested nets/components is unavailable.",
@@ -163,6 +191,7 @@ export const assertStateIdentity = (
       ...definition.parameters,
       ...definition.differentialEquations,
       ...(definition.scenarios ?? []),
+      ...(definition.metrics ?? []),
       ...(definition.subnets ?? []),
       ...(definition.componentInstances ?? []),
     ].map((entry) => entry.id);
@@ -218,11 +247,37 @@ export const assertStateIdentity = (
       ids.filter((id) => id === input.elementId).length !== 1
     )
       throw new Error("Unknown or ambiguous nested element identity.");
+  } else if ("metricId" in input) {
+    if (
+      current.metrics?.filter((entry) => entry.id === input.metricId).length !==
+      1
+    )
+      throw new Error("Unknown or ambiguous metric identity.");
   } else if (
     current.scenarios?.filter((entry) => entry.id === input.scenarioId)
       .length !== 1
   )
     throw new Error("Unknown or ambiguous scenario identity.");
+  if (mutation.toolName === "addMetric") {
+    const metric = petrinautAiTools.addMetric.inputSchema.parse(mutation.input);
+    if (current.metrics?.some((entry) => entry.name === metric.name))
+      throw new Error("Duplicate metric name cannot be created.");
+    return;
+  }
+  if (mutation.toolName === "updateMetric") {
+    const update = petrinautAiTools.updateMetric.inputSchema.parse(
+      mutation.input,
+    );
+    if (
+      update.update.name !== undefined &&
+      current.metrics?.some(
+        (entry) =>
+          entry.id !== update.metricId && entry.name === update.update.name,
+      )
+    )
+      throw new Error("Duplicate metric name cannot be created.");
+    return;
+  }
   const scenario =
     "initialState" in input
       ? input
@@ -273,11 +328,13 @@ export const stateMutationTarget = (
       ? input.id
       : "scenarioId" in input
         ? input.scenarioId
-        : "element" in input
-          ? input.element.elementId
-          : "elementId" in input
-            ? input.elementId
-            : input.typeId;
+        : "metricId" in input
+          ? input.metricId
+          : "element" in input
+            ? input.element.elementId
+            : "elementId" in input
+              ? input.elementId
+              : input.typeId;
   const query = {
     name: id,
     field: "entity",
@@ -287,9 +344,11 @@ export const stateMutationTarget = (
         ? { kind: "differential-equation" as const }
         : request.toolName.includes("Scenario")
           ? { kind: "scenario" as const }
-          : "element" in input || "elementId" in input
-            ? { kind: "type-element" as const, type: input.typeId }
-            : { kind: "type" as const }),
+          : request.toolName.includes("Metric")
+            ? { kind: "metric" as const }
+            : "element" in input || "elementId" in input
+              ? { kind: "type-element" as const, type: input.typeId }
+              : { kind: "type" as const }),
   };
   const { kind } = query;
   const parent =
@@ -297,15 +356,9 @@ export const stateMutationTarget = (
       ? definition.types.find((entry) => entry.id === input.typeId)
       : undefined;
   const entries =
-    kind === "scenario"
-      ? (definition.scenarios ?? [])
-      : kind === "parameter"
-        ? definition.parameters
-        : kind === "differential-equation"
-          ? definition.differentialEquations
-          : kind === "type-element"
-            ? (parent?.elements ?? [])
-            : definition.types;
+    kind === "type-element"
+      ? (parent?.elements ?? [])
+      : rootStateEntries(definition, kind);
   const exists = entries.some(
     (entry) => ("elementId" in entry ? entry.elementId : entry.id) === id,
   );
@@ -315,7 +368,7 @@ export const stateMutationTarget = (
           nodePath:
             kind === "type-element"
               ? `/types/${definition.types.findIndex((entry) => entry === parent)}/elements/${entries.length}`
-              : `/${kind === "type" ? "types" : kind === "parameter" ? "parameters" : kind === "differential-equation" ? "differentialEquations" : "scenarios"}/${entries.length}`,
+              : `/${rootStateCollections[kind]}/${entries.length}`,
           value: undefined,
         }
       : locateRootState(definition, query);

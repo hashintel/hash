@@ -72,6 +72,14 @@ export {
 } from "./mutate-petrinet";
 export { validateDeclaredBasis, type DeclaredBasis } from "./declared-basis";
 export {
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentOutputSchema,
+  draftPetrinautExperimentToolName,
+  isDraftPetrinautExperimentToolName,
+  type DraftPetrinautExperimentInput,
+  type DraftPetrinautExperimentOutput,
+} from "./draft-experiment";
+export {
   constructionWhyInputSchema,
   queryWorkpieceInputSchema,
   parseConstructionWhyInput,

@@ -79,6 +79,7 @@ import {
   brunchPetrinautDynamicToolNames,
 } from "./brunch-client-tools";
 import { ordinaryConstructionConversationIdFrom } from "./brunch-conversation-id";
+import { createBrunchDraftExperimentInteractiveTool } from "./brunch-draft-experiment-interactive-tool";
 import {
   BrunchPanelConversationTracker,
   type BrunchPanelAdmissionTarget,
@@ -836,7 +837,17 @@ export const LocalStorageDemoApp = ({
                       }),
                   }),
             }),
-      interactiveTools: [],
+      // The drafted-experiment card is the one Brunch tool the person answers
+      // in the panel: it prepares against the live model, reports "drafted",
+      // and waits for Run or Dismiss. Session-only; nothing is persisted.
+      interactiveTools:
+        flueClientPromise === null
+          ? []
+          : [
+              createBrunchDraftExperimentInteractiveTool({
+                readTitle: () => currentNetTitle,
+              }),
+            ],
       transport: petrinautAiChatTransport,
       ...(mutationRecorder === undefined
         ? {}

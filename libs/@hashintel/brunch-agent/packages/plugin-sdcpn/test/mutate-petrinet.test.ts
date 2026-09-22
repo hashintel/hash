@@ -368,19 +368,112 @@ describe("mutate_petrinet tool", () => {
         type: "removeType",
         input: { typeId: "item" },
       },
+      // Saved scenarios and metrics: a count that an experiment may vary is
+      // an integer scenario parameter; the objective is a saved metric.
+      {
+        operationId: "add-peak",
+        basisId: "queue-basis",
+        type: "addScenario",
+        input: {
+          id: "peak-demand",
+          name: "Peak demand",
+          scenarioParameters: [
+            { identifier: "active_agents", type: "integer", default: 4 },
+          ],
+          initialState: {
+            type: "per_place",
+            content: { queue: "scenario.active_agents" },
+          },
+        },
+      },
+      {
+        operationId: "describe-peak",
+        basisId: "queue-basis",
+        type: "updateScenario",
+        input: {
+          scenarioId: "peak-demand",
+          update: { description: "Monday morning arrivals" },
+        },
+      },
+      {
+        operationId: "add-wait",
+        basisId: "queue-basis",
+        type: "addMetric",
+        input: {
+          id: "average-wait",
+          name: "Average wait",
+          code: "return state.places.Queue.count;",
+        },
+      },
+      {
+        operationId: "rename-wait",
+        basisId: "queue-basis",
+        type: "updateMetric",
+        input: {
+          metricId: "average-wait",
+          update: { name: "Average waiting time" },
+        },
+      },
+      {
+        operationId: "drop-wait",
+        basisId: "queue-basis",
+        type: "removeMetric",
+        input: { metricId: "average-wait" },
+      },
+      {
+        operationId: "drop-peak",
+        basisId: "queue-basis",
+        type: "removeScenario",
+        input: { scenarioId: "peak-demand" },
+      },
     ];
     expect(
       mutatePetrinetInputSchema
         .parse({ ...input, operations: edits })
         .operations.map(({ type }) => type),
     ).toEqual(edits.map(({ type }) => type));
+    // Scenario parameters keep the canonical primitive types; a count is not
+    // widened past `integer`, and an unknown identity field is refused.
+    expect(
+      mutatePetrinetInputSchema.safeParse({
+        ...input,
+        operations: [
+          {
+            operationId: "bad-type",
+            basisId: "queue-basis",
+            type: "addScenario",
+            input: {
+              id: "bad",
+              name: "Bad",
+              scenarioParameters: [
+                { identifier: "active_agents", type: "count", default: 4 },
+              ],
+              initialState: { type: "per_place", content: {} },
+            },
+          },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      mutatePetrinetInputSchema.safeParse({
+        ...input,
+        operations: [
+          {
+            operationId: "bad-key",
+            basisId: "queue-basis",
+            type: "removeMetric",
+            input: { scenarioId: "average-wait" },
+          },
+        ],
+      }).success,
+    ).toBe(false);
     // An unadmitted operation is refused at its own position with the admitted
     // list spelled out, so the model sees which operation was unsupported and
     // what it may send instead. Nothing is applied.
     for (const type of [
       "updatePlacePosition",
       "updateTransitionPosition",
-      "addScenario",
+      "addSubnet",
       "moveTypeElement",
     ]) {
       const refused = mutatePetrinetInputSchema.safeParse({
@@ -493,7 +586,7 @@ describe("mutate_petrinet tool", () => {
     );
     expect(property(bases, "items", root) ?? bases).toBeDefined();
     const variants = variantsOf(operations, root);
-    expect(variants.length).toBe(22);
+    expect(variants.length).toBe(28);
     for (const variant of variants) {
       expect(requiredOf(variant).sort()).toEqual(
         ["basisId", "input", "operationId", "type"].sort(),

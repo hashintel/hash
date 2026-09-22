@@ -234,6 +234,10 @@ When any experiment is **initializing** or **running**, the top bar shows an **A
 
 The popover hides itself again once nothing is in flight.
 
+On the Petrinaut website, a prepared Brunch draft is not active work: it shows
+only in chat, without a **Simulate** badge or an entry in this popover.
+Choose **Run** to start execution; the ordinary active indicator then appears.
+
 ## Experiments and single-run Play
 
 Experiments and the bottom-bar **Play** controls are independent systems:
