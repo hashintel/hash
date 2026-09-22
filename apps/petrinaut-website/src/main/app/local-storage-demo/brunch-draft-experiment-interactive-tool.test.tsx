@@ -455,17 +455,23 @@ describe("BrunchDraftExperimentWidget", () => {
       definitionHash(instance.definition.get()),
     );
 
+    const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
     const { submit } = renderWidget({
       input: makeInput(makeRequest(), [], definitionHash(observedDefinition!)),
       toolCallId: "metric-before-scenario",
       state: awaiting,
       definition: instance.definition,
       instance,
-      runExperiment: vi.fn(),
+      runExperiment,
     });
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+    fireEvent.click(screen.getByRole("button", { name: "Run" }));
+    await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByText(/model changed since this was drafted/u),
+    ).toBeNull();
     instance.dispose();
   });
 
