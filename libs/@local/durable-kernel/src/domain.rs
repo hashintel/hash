@@ -14,7 +14,7 @@ use std::io::{self, Write};
 use chrono::{DateTime, Utc};
 use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use serde_json::json;
+use serde_json::value::RawValue;
 use sha2::{Digest as _, Sha256};
 use tokio::sync::oneshot;
 
@@ -24,7 +24,7 @@ use crate::{
     registry::{
         AlgorithmVersion, CompatError, DeclarationError, DurabilityClass, DurableRecord,
         MigrationPolicy, RecordDeclaration, RecordRegistry, UntrimmedJournalRecord,
-        VersionedRecord, reject_unknown_fields,
+        VersionedRecord,
     },
     routing::Shard,
     shard_log::{ShardCommandError, ShardCommandHandle},
@@ -78,6 +78,37 @@ fn encode_json<T: Serialize>(
         }));
     }
     Ok(())
+}
+
+fn decode_v1_envelope<'de, T: Deserialize<'de>>(
+    bytes: &'de [u8],
+    name: &'static str,
+    max_bytes: usize,
+) -> Result<T, Report<CompatError>> {
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Envelope<'a> {
+        version: String,
+        #[serde(borrow)]
+        data: &'a RawValue,
+    }
+
+    if bytes.len() > max_bytes {
+        return Err(Report::new(CompatError::TooLarge {
+            name,
+            actual_bytes: bytes.len(),
+            max_bytes,
+        }));
+    }
+    let envelope: Envelope =
+        serde_json::from_slice(bytes).change_context(CompatError::Decode { name })?;
+    if envelope.version != "v1" {
+        return Err(Report::new(CompatError::UnsupportedVersion {
+            name,
+            version: envelope.version,
+        }));
+    }
+    serde_json::from_str(envelope.data.get()).change_context(CompatError::Decode { name })
 }
 
 /// An application event stored in the journal.
@@ -262,14 +293,8 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
 ///
 /// Records are stored under [`DomainEvent::name`], which must be unique to the event type.
 /// [`Self::decode_borrowed`] checks the stored ID and partition against the event.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(
-    tag = "version",
-    content = "data",
-    rename_all = "snake_case",
-    deny_unknown_fields,
-    bound(deserialize = "E: DomainEvent + Serialize + Deserialize<'de>")
-)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "version", content = "data", rename_all = "snake_case")]
 pub enum EventRecord<E> {
     V1(EventRecordV1<E>),
 }
@@ -285,22 +310,8 @@ impl<E: DomainEvent + Serialize> EventRecord<E> {
     where
         E: Deserialize<'de>,
     {
-        #[derive(Deserialize)]
-        #[serde(tag = "version", content = "data", deny_unknown_fields)]
-        enum Envelope<E> {
-            #[serde(rename = "v1")]
-            V1(EventRecordFields<E>),
-        }
-
-        if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: E::name(),
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_EVENT_RECORD_BYTES,
-            }));
-        }
-        let Envelope::V1(fields) = serde_json::from_slice(bytes)
-            .change_context(CompatError::Decode { name: E::name() })?;
+        let fields: EventRecordFields<E> =
+            decode_v1_envelope(bytes, E::name(), MAX_EVENT_RECORD_BYTES)?;
         EventRecordV1::from_parts(fields.event_id, fields.partition, fields.event).map(Self::V1)
     }
 }
@@ -337,14 +348,15 @@ fn derive_event_id<E: DomainEvent + Serialize>(
     partition: &PartitionKey,
     event: &E,
 ) -> Result<EventId, Report<CompatError>> {
-    let event =
-        serde_json::to_value(event).change_context(CompatError::Encode { name: E::name() })?;
-    content_digest_bytes(
-        "domain-event:v1",
-        &json!({ "partition": partition, "event": event }),
-    )
-    .map(EventId::from_bytes)
-    .change_context(CompatError::Encode { name: E::name() })
+    #[derive(Serialize)]
+    struct EventIdentity<'a, E> {
+        partition: &'a PartitionKey,
+        event: &'a E,
+    }
+
+    content_digest_bytes("domain-event:v1", &EventIdentity { partition, event })
+        .map(EventId::from_bytes)
+        .change_context(CompatError::Encode { name: E::name() })
 }
 
 impl<E> EventRecordV1<E> {
@@ -433,15 +445,20 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
     }
 
     fn digest(&self) -> Result<JournalRecordDigest, Report<CompatError>> {
-        let event = serde_json::to_value(&self.event)
-            .change_context(CompatError::Encode { name: E::name() })?;
+        #[derive(Serialize)]
+        struct RecordIdentity<'a, E> {
+            event_id: &'a EventId,
+            partition: &'a PartitionKey,
+            event: &'a E,
+        }
+
         content_digest_bytes(
             "domain-record:v1",
-            &json!({
-                "event_id": self.event_id,
-                "partition": self.partition,
-                "event": event,
-            }),
+            &RecordIdentity {
+                event_id: &self.event_id,
+                partition: &self.partition,
+                event: &self.event,
+            },
         )
         .map(JournalRecordDigest::from_bytes)
         .change_context(CompatError::Encode { name: E::name() })
@@ -679,7 +696,7 @@ const MAX_SNAPSHOT_BYTES: usize = 15 * 1024 * 1024;
 ///
 /// The state is stored inline, up to `MAX_SNAPSHOT_BYTES`. Larger states skip snapshotting.
 /// Recovery uses an earlier snapshot or replays the full journal.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[serde(
     tag = "version",
     content = "data",
@@ -741,41 +758,8 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
-        if bytes.len() > MAX_SNAPSHOT_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_SNAPSHOT_BYTES,
-            }));
-        }
-        let value: serde_json::Value =
-            serde_json::from_slice(bytes).change_context(CompatError::Decode {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-            })?;
-        reject_unknown_fields(
-            DOMAIN_SNAPSHOT_DECLARATION.name,
-            "",
-            &value,
-            &["version", "data"],
-        )?;
-        let version = value
-            .get("version")
-            .ok_or(CompatError::MissingVersion {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-            })?
-            .as_str()
-            .ok_or(CompatError::InvalidVersionType {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-            })?;
-        if version != "v1" {
-            return Err(Report::new(CompatError::UnsupportedVersion {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-                version: version.to_owned(),
-            }));
-        }
-        serde_json::from_value(value).change_context(CompatError::Decode {
-            name: DOMAIN_SNAPSHOT_DECLARATION.name,
-        })
+        decode_v1_envelope(bytes, DOMAIN_SNAPSHOT_DECLARATION.name, MAX_SNAPSHOT_BYTES)
+            .map(Self::V1)
     }
 }
 
@@ -1275,6 +1259,21 @@ mod tests {
         }
     }
 
+    #[derive(Serialize, Deserialize)]
+    struct U128Event {
+        amount: u128,
+    }
+
+    impl DomainEvent for U128Event {
+        fn name() -> &'static str {
+            "u128_event"
+        }
+
+        fn partition(&self) -> PartitionKey {
+            PartitionKey::parse("orders").expect("test partition should be valid")
+        }
+    }
+
     #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
     struct Counters {
         totals: BTreeMap<String, u64>,
@@ -1476,25 +1475,55 @@ mod tests {
     }
 
     #[test]
-    fn record_decode_envelope() {
-        for value in [
-            json!({"version": "v2", "data": {}}),
-            json!({"version": "v1", "data": {}, "extra": true}),
-        ] {
-            let bytes = serde_json::to_vec(&value).expect("fixture should encode");
-            let error = EventRecord::<CounterEvent>::decode_borrowed(&bytes)
-                .expect_err("invalid record envelope should be rejected");
-            assert_eq!(
-                error.current_context(),
-                &CompatError::Decode {
-                    name: CounterEvent::name()
-                }
-            );
-            assert!(
-                error.contains::<serde_json::Error>(),
-                "invalid envelopes should retain the serde error"
-            );
+    fn record_identity_and_decode_accept_u128() {
+        #[derive(Serialize)]
+        struct DataFirstEnvelope<'a, E> {
+            data: &'a EventRecordV1<E>,
+            version: &'static str,
         }
+
+        let event = U128Event { amount: u128::MAX };
+        let record = EventRecordV1::new(event).expect("u128 event should produce an ID");
+        record
+            .digest()
+            .expect("u128 event should produce a record digest");
+        let data_first = serde_json::to_vec(&DataFirstEnvelope {
+            data: &record,
+            version: "v1",
+        })
+        .expect("data-first record should encode");
+
+        let EventRecord::V1(decoded) = EventRecord::<U128Event>::decode_borrowed(&data_first)
+            .expect("data-first u128 event should decode");
+        assert_eq!(decoded.event().amount, u128::MAX);
+    }
+
+    #[test]
+    fn record_decode_envelope() {
+        let error = EventRecord::<CounterEvent>::decode_borrowed(br#"{"version":"v2","data":{}}"#)
+            .expect_err("unsupported record version should be rejected");
+        assert_eq!(
+            error.current_context(),
+            &CompatError::UnsupportedVersion {
+                name: CounterEvent::name(),
+                version: "v2".to_owned(),
+            }
+        );
+
+        let error = EventRecord::<CounterEvent>::decode_borrowed(
+            br#"{"version":"v1","data":{},"extra":true}"#,
+        )
+        .expect_err("unknown envelope field should be rejected");
+        assert_eq!(
+            error.current_context(),
+            &CompatError::Decode {
+                name: CounterEvent::name()
+            }
+        );
+        assert!(
+            error.contains::<serde_json::Error>(),
+            "unknown fields should retain the serde error"
+        );
     }
 
     #[test]
