@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
@@ -111,6 +111,16 @@ export const loadCompletedArm = async (input: {
     if (isMissing(error)) return undefined;
     throw error;
   }
+
+  const retainedFileNames = await readdir(input.directory);
+  if (
+    !retainedFileNames.some((fileName) =>
+      requiredArtifactFiles.includes(
+        fileName as (typeof requiredArtifactFiles)[number],
+      ),
+    )
+  )
+    return undefined;
 
   let artifactValue: unknown;
   let rawDocument: unknown;
