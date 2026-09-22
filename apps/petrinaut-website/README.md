@@ -128,18 +128,29 @@ from jsDelivr and Optuna from PyPI; later runs use the browser cache.
 
 ## Environment variables
 
-| Name                               | Required         | Used by          | Notes                                                                                         |
-| ---------------------------------- | ---------------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                            |
-| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                    |
-| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                       |
-| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` (default) or `live` (detached experiment). Invalid values disable Voice discovery. |
-| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                        |
-| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                    |
-| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.       |
-| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                     |
+| Name                               | Required         | Used by          | Notes                                                                                                            |
+| ---------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`                   | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.                                                               |
+| `OPENAI_VOICE_API_KEY`             | for voice        | voice API        | Dedicated OpenAI key used to create Voice WebRTC sessions.                                                       |
+| `PETRINAUT_OPENAI_VOICE_ENABLED`   | no               | voice API        | Set to `true` to enable voice, including in production.                                                          |
+| `PETRINAUT_VOICE_PROVIDER`         | no               | voice API        | `realtime` or `live`; see [provider defaults](#voice-provider-defaults). Invalid values disable Voice discovery. |
+| `PETRINAUT_AI_MODEL`               | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                                                                           |
+| `VITE_BRUNCH_CHAT_ENDPOINT`        | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                                                                       |
+| `VITE_PETRINAUT_DEFAULT_ASSISTANT` | no               | website          | Build/start fallback: `stock` (default) or `brunch`; explicit stored choices still win.                          |
+| `SENTRY_DSN`                       | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.                                                        |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
+
+### Voice provider defaults
+
+Without an explicit `PETRINAUT_VOICE_PROVIDER`, Vercel preview deployments
+(`VERCEL_ENV=preview`) default to `live` so testers exercise the Brunch-backed
+Live interview; production and local development default to `realtime`. An
+explicit value always wins, so set `PETRINAUT_VOICE_PROVIDER=realtime` in the
+Vercel preview environment to opt out. The default only selects the provider:
+Voice still requires `PETRINAUT_OPENAI_VOICE_ENABLED=true` and a dedicated
+`OPENAI_VOICE_API_KEY`, and Live sessions started from a voice-enabled preview
+are billed to that key.
 
 ### Experimental Brunch-backed Live interview (FE-1664)
 
@@ -200,7 +211,8 @@ PETRINAUT_OPENAI_VOICE_ENABLED=true PETRINAUT_VOICE_PROVIDER=realtime yarn dev:b
 ```
 
 Reload the page before starting a new session. Unsetting
-`PETRINAUT_VOICE_PROVIDER` also selects Realtime. Provider/config selection is
+`PETRINAUT_VOICE_PROVIDER` also selects Realtime locally (Vercel previews
+default to Live; see [provider defaults](#voice-provider-defaults)). Provider/config selection is
 pinned for the mounted conversation; there is no provider switching or input
 resubmission mid-session. The launcher sets the existing `/agents/chat` route;
 the ordinary website launcher still needs `VITE_BRUNCH_CHAT_ENDPOINT` configured
@@ -229,7 +241,7 @@ do not expose this local experiment publicly without addressing that boundary.
 
 ### Brunch Voice mode
 
-The following describes Realtime, the default provider. Voice mode is disabled by default. To enable it, configure a real
+The following describes Realtime, the default provider in production and local development. Voice mode is disabled by default. To enable it, configure a real
 `VITE_BRUNCH_CHAT_ENDPOINT`, set `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and
 provide a dedicated `OPENAI_VOICE_API_KEY`.
 
