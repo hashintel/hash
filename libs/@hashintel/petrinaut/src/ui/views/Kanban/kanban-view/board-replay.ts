@@ -16,7 +16,7 @@ export type BoardSnapshot = {
   conditionErrors: { count: number; firstMessage: string } | null;
 };
 
-export type GetFramesInRange = (
+type GetFramesInRange = (
   startIndex: number,
   endIndex: number,
 ) => Promise<SimulationFrameReader[]>;

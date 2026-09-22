@@ -55,7 +55,6 @@ export {
 export {
   statusLabelSchema,
   statusViewSchema,
-  type StatusViewSchema,
 } from "./schemas/status-view-schema";
 export {
   simulationMetricSchema as metricSchema,
@@ -619,8 +618,6 @@ export type DifferentialEquationInput = z.infer<
 export type ParameterInput = z.infer<typeof parameterSchema>;
 export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;
-export type IdentityInput = z.infer<typeof identitySchema>;
-export type StatusViewInput = z.infer<typeof statusViewSchema>;
 export type ComponentInstanceInput = z.infer<typeof componentInstanceSchema>;
 export type SubnetInput = z.infer<typeof subnetSchema>;
 export type NodePositionCommitInput = z.infer<typeof nodePositionCommitSchema>;

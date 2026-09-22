@@ -48,7 +48,6 @@ export type {
   ActualModeTimelinePointKind,
   ActualModeTokenColour,
   ActualModeTokenRecord,
-  ActualModeTokenValue,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
 } from "./types";

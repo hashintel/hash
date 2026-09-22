@@ -9,14 +9,11 @@ import {
   emptyExecutionFrameSource,
 } from "../../../../react/execution-frame/context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { makeFrame } from "../../shared/status-view.test-helpers";
 import { useStatusViewNodeStatuses } from "./use-status-view-node-statuses";
 
 import type { SDCPNContextValue } from "../../../../react/state/sdcpn-context";
-import type {
-  SDCPN,
-  SimulationFrameReader,
-  TokenRecord,
-} from "@hashintel/petrinaut-core";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const subnetPlace = {
   id: "inner-place",
@@ -98,24 +95,13 @@ const sdcpn: SDCPN = {
   ],
 };
 
-const makeFrame = (
-  tokensByPlaceId: Record<string, TokenRecord[]>,
-): SimulationFrameReader => ({
-  number: 0,
-  time: 0,
-  getPlaceTokenCount: (placeId) => tokensByPlaceId[placeId]?.length ?? 0,
-  getPlaceTokens: (place) => tokensByPlaceId[place.id] ?? [],
-  getTransitionState: () => null,
-  toFrameState: () => ({ number: 0, places: {} }),
-});
-
 const sdcpnContextValue = {
   petriNetDefinition: sdcpn,
 } as SDCPNContextValue;
 
 describe("useStatusViewNodeStatuses", () => {
   it("summarizes tracked tokens per component instance under scoped ids", () => {
-    const frame = makeFrame({
+    const frame = makeFrame(0, 0, {
       "instance-1::inner-place": [{ ticket_id: "a" }, { ticket_id: "b" }],
     });
 
@@ -198,7 +184,7 @@ describe("useStatusViewNodeStatuses", () => {
         },
       ],
     };
-    const frame = makeFrame({
+    const frame = makeFrame(0, 0, {
       "outer-1::instance-1::inner-place": [{ ticket_id: "a" }],
     });
 

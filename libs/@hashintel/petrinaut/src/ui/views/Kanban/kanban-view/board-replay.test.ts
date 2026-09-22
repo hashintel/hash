@@ -1,41 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  makeFrame,
+  makeTicketPlace,
+  ticketColor,
+} from "../../shared/status-view.test-helpers";
 import { createBoardReplay } from "./board-replay";
 
-import type {
-  Color,
-  Place,
-  SimulationFrameReader,
-  StatusView,
-  TokenRecord,
-} from "@hashintel/petrinaut-core";
+import type { StatusView } from "@hashintel/petrinaut-core";
 
-const ticketColor: Color = {
-  id: "type-ticket",
-  name: "Ticket",
-  iconSlug: "circle",
-  displayColor: "#0000FF",
-  elements: [
-    {
-      elementId: "ticket-id",
-      name: "ticket_id",
-      type: "string",
-      identityRef: "identity-ticket",
-    },
-  ],
-};
-
-const makePlace = (id: string, name: string): Place => ({
-  id,
-  name,
-  colorId: "type-ticket",
-  dynamicsEnabled: false,
-  differentialEquationId: null,
-  x: 0,
-  y: 0,
-});
-
-const places = [makePlace("todo", "Todo"), makePlace("doing", "Doing")];
+const places = [
+  makeTicketPlace("todo", "Todo"),
+  makeTicketPlace("doing", "Doing"),
+];
 
 const statusView: StatusView = {
   id: "view-1",
@@ -56,19 +33,6 @@ const statusView: StatusView = {
     },
   ],
 };
-
-const makeFrame = (
-  number: number,
-  timeSeconds: number,
-  tokensByPlaceId: Record<string, TokenRecord[]>,
-): SimulationFrameReader => ({
-  number,
-  time: timeSeconds,
-  getPlaceTokenCount: (placeId) => tokensByPlaceId[placeId]?.length ?? 0,
-  getPlaceTokens: (place) => tokensByPlaceId[place.id] ?? [],
-  getTransitionState: () => null,
-  toFrameState: () => ({ number, places: {} }),
-});
 
 const ticket = { ticket_id: "a" };
 // The ticket sits in todo for frames 0-1, moves to doing for frames 2+.

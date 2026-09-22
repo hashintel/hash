@@ -11,6 +11,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
+  identityKeyTypesMatch,
   validateDisplayName,
   type ColorElementType,
 } from "@hashintel/petrinaut-core";
@@ -328,12 +329,7 @@ const TypeMainContent: React.FC = () => {
         )
         .filter((candidate) => candidate.identityRef === identity.id)
         .map((candidate) => candidate.type);
-      return (
-        resultingKeyTypes.length === identity.keyElementTypes.length &&
-        resultingKeyTypes.every(
-          (keyType, index) => keyType === identity.keyElementTypes[index],
-        )
-      );
+      return identityKeyTypesMatch(resultingKeyTypes, identity);
     });
     return [
       { value: NO_IDENTITY_VALUE, text: "No identity" },

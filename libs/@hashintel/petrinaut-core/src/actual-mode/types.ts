@@ -15,7 +15,7 @@ export type ActualModeTokenColour = Record<string, number>;
  * The wire format is JSON, so `uuid` values are canonical lowercase strings,
  * as in documents.
  */
-export type ActualModeTokenValue = number | boolean | string;
+type ActualModeTokenValue = number | boolean | string;
 
 export type ActualModeTokenRecord = Record<string, ActualModeTokenValue>;
 

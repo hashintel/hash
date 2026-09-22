@@ -34,6 +34,7 @@ import {
   stripDisabledExtensionData,
   type PetrinautExtensionSettings,
 } from "./extensions";
+import { identityKeyTypesMatch } from "./identity-key-coherence";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 import { parseScopedId } from "./scoped-ids";
 import { resolveStatusViewLabelPlace } from "./status-view-scope";
@@ -407,12 +408,7 @@ const assertIdentityKeyElementCoherence = (sdcpn: SDCPN): void => {
         if (keyTypes.length === 0) {
           continue;
         }
-        const matches =
-          keyTypes.length === identity.keyElementTypes.length &&
-          keyTypes.every(
-            (keyType, index) => keyType === identity.keyElementTypes[index],
-          );
-        if (!matches) {
+        if (!identityKeyTypesMatch(keyTypes, identity)) {
           throw new Error(
             `Colour \`${type.name}\` carries key elements of types [${keyTypes.join(", ")}] for identity \`${identity.name}\`, which requires [${identity.keyElementTypes.join(", ")}] in this order.`,
           );

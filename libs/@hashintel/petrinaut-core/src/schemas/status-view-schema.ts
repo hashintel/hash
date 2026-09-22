@@ -132,5 +132,3 @@ export const statusViewSchema = statusViewObjectSchema
     description:
       "A user-defined mapping from net state to named statuses for the instances of one identity. Which label a tracked instance carries is derived from where its token sits (and the labels' token conditions) — status is never stored.",
   }) satisfies z.ZodType<StatusView>;
-
-export type StatusViewSchema = typeof statusViewSchema;

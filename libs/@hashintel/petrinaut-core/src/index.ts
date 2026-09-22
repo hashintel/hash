@@ -42,7 +42,6 @@ export type {
   ActualModeTimelinePointKind,
   ActualModeTokenColour,
   ActualModeTokenRecord,
-  ActualModeTokenValue,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
 } from "./actual-mode";
@@ -438,6 +437,7 @@ export {
   SCOPED_ID_SEPARATOR,
   type ParsedScopedId,
 } from "./scoped-ids";
+export { identityKeyTypesMatch } from "./identity-key-coherence";
 export {
   getStatusViewEvaluationScope,
   resolveStatusViewLabelPlace,
