@@ -156,6 +156,10 @@ pub struct DstDomain;
 impl SimpleDomain for DstDomain {
     type Event = DstEvent;
     type Projection = DstCounters;
+
+    fn empty_projection() -> Self::Projection {
+        DstCounters::default()
+    }
 }
 
 /// Archives a counter at a specific total and cycle. Its serialized contents determine its

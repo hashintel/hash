@@ -4,7 +4,7 @@
 //! [`runtime::Kernel`] to open storage and run the application. Each shard has one journal and
 //! one writer. [`domain::PartitionKey`] groups related events for routing to a shard.
 //!
-//! For custom record formats or scheduling, implement [`port::Domain`] and use the
+//! For custom record formats or scheduling, implement the traits in [`port`] and use the
 //! [`shard_log`] command loop. [`registry`] manages record formats, [`ids`] computes record
 //! identities, and [`keyspace`] defines storage paths.
 //!

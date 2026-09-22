@@ -5,7 +5,9 @@
 //! state updates through [`Domain`]. A prepared mutation changes the projection
 //! only after its record is durable.
 //!
-//! Use this trait with [`crate::shard_log::OpenedShard`] for custom runtimes. Application code
+//! [`EventDomain`] defines event handling. [`QueryDomain`], [`ControlDomain`], and
+//! [`SnapshotDomain`] add reads, control requests, and snapshot recovery. Implement all four
+//! to use [`crate::shard_log::OpenedShard`] for custom runtimes. Application code
 //! can instead implement [`crate::domain::SimpleDomain`], which supplies this adapter.
 
 use chrono::{DateTime, Utc};
@@ -13,20 +15,20 @@ use error_stack::Report;
 
 use crate::{
     ids::EventId,
-    registry::{DurableRecord, UntrimmedJournalRecord},
+    registry::{CompatError, DurableRecord, UntrimmedJournalRecord},
     routing::Shard,
     shard_log::ShardCommandError,
 };
 
-/// The result of [`Domain::prepare`]. A duplicate leaves state unchanged. A mutation is applied
-/// after the record becomes durable.
+/// The result of [`EventDomain::prepare`]. A duplicate leaves state unchanged. A mutation is
+/// applied after the record becomes durable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prepared<T> {
     Noop,
     Mutation(T),
 }
 
-/// Reports snapshot use and replay progress to [`Domain::note_snapshot_recovery`].
+/// Reports snapshot use and replay progress to [`SnapshotDomain::note_snapshot_recovery`].
 #[derive(Debug, Clone)]
 pub struct SnapshotRecoveryStats {
     pub replayed_events: u64,
@@ -35,20 +37,20 @@ pub struct SnapshotRecoveryStats {
     pub latest_snapshot_created_at: Option<DateTime<Utc>>,
 }
 
-/// Defines record validation, state updates, reads, and recovery for one shard.
+/// Defines record validation, state updates, and journal replay for one shard.
 ///
 /// [`prepare`](Self::prepare) must leave state unchanged. [`finalize`](Self::finalize) applies
 /// accepted changes after storage confirms the append. [`replay`](Self::replay) rebuilds the
 /// same state from stored records, and
-/// [`validate_recovered_prefix`](Self::validate_recovered_prefix) checks that recovery preserves
-/// acknowledged work.
-pub trait Domain: Send + Sync + 'static {
+/// [`validate_recovered_prefix`](Self::validate_recovered_prefix) checks that recovered state
+/// includes all acknowledged events.
+pub trait EventDomain: Send + Sync + 'static {
     /// The wire format, including every supported record version.
-    type Record: UntrimmedJournalRecord + Send + Sync;
+    type Record: UntrimmedJournalRecord + Send;
     /// The validated record type used for new submissions and state updates.
-    type RecordCurrent: Clone + Send;
-    /// Application state. [`Default`] must represent an empty journal.
-    type Projection: Default + Send + Sync;
+    type RecordCurrent: Send;
+    /// Application state after applying the durable journal.
+    type Projection: Send + Sync;
     /// Prepared mutation between `prepare` and `finalize`.
     type Delta: Send;
     /// An error from validating or applying a record. Proposal validation returns this value
@@ -58,30 +60,23 @@ pub trait Domain: Send + Sync + 'static {
     type RecoveryError: core::error::Error + Send + Sync + 'static;
     /// Identifies the state that changed, for notifications after an append.
     type StateKey: Clone + Send + core::fmt::Debug;
-    type Query: Send;
-    type QueryResult: Send;
-    type ControlRequest: Send;
-    /// Pre-append view of a control request against the projection.
-    type ControlSnapshot: Send;
-    type ControlOutcome: Clone + Send + core::fmt::Debug + PartialEq + Eq;
-    /// A rejection found before submitting the control request.
-    type ControlRejection: Send;
-    /// A snapshot stored through the same record registry and shard log as events.
-    type Snapshot: DurableRecord + Send + Sync;
-    /// State captured inside the command loop for a snapshot publisher to store.
-    type SnapshotCapture: Send;
-    /// Resources needed to load snapshot data, such as an artifact store. Use `()` when
-    /// snapshots contain all their data.
-    type SnapshotContext: Clone + Send + Sync + 'static;
     /// Work to resume after recovery.
     type WorkIntent: Clone + Send + core::fmt::Debug + PartialEq + Eq;
+
+    /// Creates the state for an empty journal.
+    fn empty_projection() -> Self::Projection;
 
     fn record_shard(record: &Self::RecordCurrent) -> Shard;
     /// Builds the error for a record submitted to the wrong shard.
     fn reject_foreign_shard(record: &Self::RecordCurrent) -> Self::FoldError;
     fn record_event_id(record: &Self::RecordCurrent) -> EventId;
     fn record_state_key(record: &Self::RecordCurrent) -> Self::StateKey;
-    fn wire(record: Self::RecordCurrent) -> Self::Record;
+    /// Encodes a submission in the format decoded by [`Self::Record`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the record cannot be encoded or exceeds the size limit.
+    fn encode_record(record: &Self::RecordCurrent) -> Result<Vec<u8>, Report<CompatError>>;
     /// # Errors
     ///
     /// Returns an error if the proposed record violates the domain’s validation rules.
@@ -103,7 +98,52 @@ pub trait Domain: Send + Sync + 'static {
 
     fn state_sequence(projection: &Self::Projection, key: &Self::StateKey) -> Option<u64>;
 
+    /// The last journal sequence applied to the projection.
+    fn through_sequence(projection: &Self::Projection) -> Option<u64>;
+    /// Validates and applies a stored record during startup or append recovery.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the record cannot be applied at this sequence. Recovery stops on
+    /// this error.
+    fn replay(
+        projection: &mut Self::Projection,
+        shard: Shard,
+        sequence: u64,
+        record: Self::Record,
+    ) -> Result<(), Report<Self::RecoveryError>>;
+    /// Checks that recovered state includes all acknowledged events.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if recovery loses or changes an acknowledged event, or moves the
+    /// sequence backwards.
+    fn validate_recovered_prefix(
+        previous: &Self::Projection,
+        recovered: &Self::Projection,
+    ) -> Result<(), Report<Self::RecoveryError>>;
+    /// Planned or blocked live work that the scheduler must resume.
+    fn live_work(projection: &Self::Projection) -> Vec<Self::WorkIntent>;
+    /// Keys whose state-change signal should fire once at startup.
+    fn initial_state_keys(projection: &Self::Projection) -> Vec<Self::StateKey>;
+}
+
+/// Reads state inside the command loop.
+pub trait QueryDomain: EventDomain {
+    type Query: Send;
+    type QueryResult: Send;
+
     fn answer(projection: &Self::Projection, query: Self::Query) -> Self::QueryResult;
+}
+
+/// Resolves control requests through journal records.
+pub trait ControlDomain: EventDomain {
+    type ControlRequest: Send;
+    /// Pre-append view of a control request against the projection.
+    type ControlSnapshot: Send;
+    type ControlOutcome: Clone + Send + core::fmt::Debug + PartialEq + Eq;
+    /// A rejection found before submitting the control request.
+    type ControlRejection: Send;
 
     fn control_shard(request: &Self::ControlRequest) -> Shard;
     /// Rejection message for a control request proposed to the wrong shard.
@@ -138,6 +178,17 @@ pub trait Domain: Send + Sync + 'static {
         projection: &Self::Projection,
         request: &Self::ControlRequest,
     ) -> Result<Self::ControlOutcome, Report<Self::RecoveryError>>;
+}
+
+/// Captures state and loads it during recovery.
+pub trait SnapshotDomain: EventDomain {
+    /// A snapshot stored through the same record registry and shard log as events.
+    type Snapshot: DurableRecord + Send + Sync;
+    /// State captured inside the command loop for a snapshot publisher to store.
+    type SnapshotCapture: Send;
+    /// Resources needed to load snapshot data, such as an artifact store. Use `()` when
+    /// snapshots contain all their data.
+    type SnapshotContext: Clone + Send + Sync + 'static;
 
     fn capture_snapshot(
         shard: Shard,
@@ -170,33 +221,11 @@ pub trait Domain: Send + Sync + 'static {
     fn note_snapshot_recovery(_context: &Self::SnapshotContext, _stats: &SnapshotRecoveryStats) {}
     /// Observes the loop stopping because its writer was fenced.
     fn note_fenced(_context: &Self::SnapshotContext) {}
-
-    /// The last journal sequence applied to the projection.
-    fn through_sequence(projection: &Self::Projection) -> Option<u64>;
-    /// Validates and applies a stored record during startup or append recovery.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the record cannot be applied at this sequence. Recovery stops on
-    /// this error.
-    fn replay(
-        projection: &mut Self::Projection,
-        shard: Shard,
-        sequence: u64,
-        record: Self::Record,
-    ) -> Result<(), Report<Self::RecoveryError>>;
-    /// Checks that recovered state preserves all acknowledged events.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if recovery loses or changes an acknowledged event, or moves the
-    /// sequence backwards.
-    fn validate_recovered_prefix(
-        previous: &Self::Projection,
-        recovered: &Self::Projection,
-    ) -> Result<(), Report<Self::RecoveryError>>;
-    /// Planned or blocked live work that the scheduler must resume.
-    fn live_work(projection: &Self::Projection) -> Vec<Self::WorkIntent>;
-    /// Keys whose state-change signal should fire once at startup.
-    fn initial_state_keys(projection: &Self::Projection) -> Vec<Self::StateKey>;
 }
+
+/// Combines the operations required by the shard command loop.
+///
+/// Implement [`EventDomain`], [`QueryDomain`], [`ControlDomain`], and [`SnapshotDomain`].
+pub trait Domain: QueryDomain + ControlDomain + SnapshotDomain {}
+
+impl<T: QueryDomain + ControlDomain + SnapshotDomain> Domain for T {}

@@ -19,7 +19,7 @@ use super::{
 };
 use crate::{
     ids::EventId,
-    port::{Domain, Prepared, SnapshotRecoveryStats},
+    port::{Domain, EventDomain, Prepared, SnapshotDomain, SnapshotRecoveryStats},
     registry::DurableRecord as _,
 };
 
@@ -923,7 +923,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                     message: "shard ownership was lost before append".to_owned(),
                 }));
             }
-            let append_result = self.append(&D::wire(record.clone())).await;
+            let append_result = self.append(&record).await;
             match append_result {
                 Ok(sequence) => {
                     if let Err(error) = D::finalize(&mut self.projection, delta, sequence) {
@@ -1068,17 +1068,27 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         }
     }
 
-    async fn append(
+    fn append(
         &self,
-        record: &D::Record,
-    ) -> Result<u64, error_stack::Report<ShardAppendError>> {
-        let writer = self.writer.as_ref().ok_or_else(|| {
-            error_stack::Report::new(ShardAppendError {
-                kind: AppendFailureKind::CommitUnknown,
+        record: &D::RecordCurrent,
+    ) -> impl core::future::Future<Output = Result<u64, Report<ShardAppendError>>> + Send {
+        let encoded = self
+            .writer
+            .as_ref()
+            .ok_or_else(|| {
+                Report::new(ShardAppendError {
+                    kind: AppendFailureKind::CommitUnknown,
+                })
+                .attach("shard writer is unavailable")
             })
-            .attach("shard writer is unavailable")
-        })?;
-        writer.append(record).await
+            .and_then(|writer| {
+                let bytes = writer.encode_registered::<D::Record>(|| D::encode_record(record))?;
+                Ok((writer, bytes))
+            });
+        async move {
+            let (writer, bytes) = encoded?;
+            writer.append_encoded(super::EVENTS_KEY, bytes).await
+        }
     }
 
     async fn recover_after_failure(
@@ -1175,7 +1185,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     }
 }
 
-struct RecoveredProjection<D: Domain> {
+struct RecoveredProjection<D: EventDomain> {
     projection: D::Projection,
     snapshot_through_log_sequence: Option<u64>,
     snapshot_created_at: Option<DateTime<Utc>>,
@@ -1187,7 +1197,7 @@ struct RecoveredProjection<D: Domain> {
     clippy::too_many_lines,
     reason = "recovery checks each snapshot before replaying the events after it"
 )]
-async fn replay_with_snapshots<D: Domain>(
+async fn replay_with_snapshots<D: SnapshotDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
@@ -1302,21 +1312,15 @@ async fn replay_with_snapshots<D: Domain>(
         })
 }
 
-async fn replay_durable_prefix<D: Domain>(
+async fn replay_durable_prefix<D: EventDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,
 ) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
-    replay_durable_suffix::<D>(
-        writer,
-        shard,
-        durable_end_exclusive,
-        D::Projection::default(),
-    )
-    .await
+    replay_durable_suffix::<D>(writer, shard, durable_end_exclusive, D::empty_projection()).await
 }
 
-async fn replay_durable_suffix<D: Domain>(
+async fn replay_durable_suffix<D: EventDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: u64,

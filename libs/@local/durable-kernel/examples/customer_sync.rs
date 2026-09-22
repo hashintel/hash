@@ -30,7 +30,7 @@ use durable_kernel::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum SyncEvent {
     CustomerQueued {
@@ -159,6 +159,10 @@ struct CustomerDomain;
 impl SimpleDomain for CustomerDomain {
     type Event = SyncEvent;
     type Projection = CustomerSync;
+
+    fn empty_projection() -> Self::Projection {
+        CustomerSync::default()
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
