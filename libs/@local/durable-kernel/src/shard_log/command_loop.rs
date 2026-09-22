@@ -18,6 +18,7 @@ use super::{
     ShardLogWriter,
 };
 use crate::{
+    DurableError,
     ids::EventId,
     port::{Domain, EventDomain, Prepared, SnapshotDomain, SnapshotRecoveryStats},
     registry::DurableRecord as _,
@@ -1076,10 +1077,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             .writer
             .as_ref()
             .ok_or_else(|| {
-                Report::new(ShardAppendError {
+                Report::new(DurableError::WriterUnavailable).change_context(ShardAppendError {
                     kind: AppendFailureKind::CommitUnknown,
                 })
-                .attach("shard writer is unavailable")
             })
             .and_then(|writer| {
                 let bytes = writer.encode_registered::<D::Record>(|| D::encode_record(record))?;
