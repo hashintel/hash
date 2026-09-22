@@ -178,8 +178,6 @@ pub enum ShardCommandError {
     ReadJournal,
     #[display("could not replay stored event at sequence {sequence}")]
     ReplayRecord { sequence: u64 },
-    #[display("read closure returned a value with an unexpected type, expected {expected}")]
-    UnexpectedQueryResult { expected: &'static str },
 }
 
 impl ShardCommandError {
@@ -228,8 +226,7 @@ impl ShardCommandError {
             | Self::ValidateRecoveredPrefix
             | Self::CloseWriter
             | Self::ReadJournal
-            | Self::ReplayRecord { .. }
-            | Self::UnexpectedQueryResult { .. } => ShardCommandErrorKind::Recovery,
+            | Self::ReplayRecord { .. } => ShardCommandErrorKind::Recovery,
         }
     }
 }

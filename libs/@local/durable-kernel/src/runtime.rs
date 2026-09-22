@@ -389,9 +389,32 @@ impl<S: SimpleDomain> RunningKernel<S> {
         R: Send + 'static,
         F: FnOnce(&S::Projection) -> R + Send + 'static,
     {
+        self.query(key, read).await
+    }
+
+    /// Runs `query` against the projection for the shard containing `key`.
+    ///
+    /// The query runs inside the command loop and must not block.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the partition’s shard is not owned or the command loop fails.
+    pub async fn query<Q>(
+        &self,
+        key: &PartitionKey,
+        query: Q,
+    ) -> Result<Q::Output, Report<KernelError>>
+    where
+        Q: domain::ProjectionQuery<S::Projection> + 'static,
+        Q::Output: 'static,
+    {
         let handle = self.handle_for(key)?;
         handle
-            .read(move |projection| read(projection.domain()))
+            .read_query(
+                move |projection: &domain::KernelProjection<S::Projection>| {
+                    query.answer(projection.domain())
+                },
+            )
             .await
             .change_context(KernelError::Command)
     }
@@ -714,8 +737,8 @@ mod tests {
     use super::{Kernel, KernelConfig, KernelError, RunningKernel, SnapshotPolicy, Submitted};
     use crate::{
         domain::{
-            self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, Retry, SimpleDomain,
-            effect_id,
+            self, DomainEvent, EventRecordV1, Executor, Fold, PartitionKey, ProjectionQuery, Retry,
+            SimpleDomain, effect_id,
         },
         keyspace::Namespace,
         registry::CompatError,
@@ -865,6 +888,16 @@ mod tests {
     struct RtCounters {
         totals: BTreeMap<String, u64>,
         archived: Vec<u64>,
+    }
+
+    struct ArchivedValues;
+
+    impl ProjectionQuery<RtCounters> for ArchivedValues {
+        type Output = Vec<u64>;
+
+        fn answer(self, projection: &RtCounters) -> Self::Output {
+            projection.archived.clone()
+        }
     }
 
     #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -1212,7 +1245,7 @@ mod tests {
         );
         assert_eq!(
             running
-                .read(&orders, |projection| projection.archived.clone())
+                .query(&orders, ArchivedValues)
                 .await
                 .expect("read after restart should succeed"),
             vec![11]
