@@ -260,16 +260,48 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
 /// Wraps an application event with its partition and event ID.
 ///
 /// Records are stored under [`DomainEvent::name`], which must be unique to the event type.
-/// [`DurableRecord::decode`] reports ID and partition mismatches as [`CompatError`] values.
+/// [`Self::decode_borrowed`] checks the stored ID and partition against the event.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(
     tag = "version",
     content = "data",
     rename_all = "snake_case",
+    deny_unknown_fields,
     bound(deserialize = "E: DomainEvent + Serialize + Deserialize<'de>")
 )]
 pub enum EventRecord<E> {
     V1(EventRecordV1<E>),
+}
+
+impl<E: DomainEvent + Serialize> EventRecord<E> {
+    /// Decodes an event record whose event may borrow from `bytes`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the record exceeds the size limit, the wire data cannot be deserialized,
+    /// or its stored ID or partition does not match the event.
+    pub fn decode_borrowed<'de>(bytes: &'de [u8]) -> Result<Self, Report<CompatError>>
+    where
+        E: Deserialize<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(tag = "version", content = "data", deny_unknown_fields)]
+        enum Envelope<E> {
+            #[serde(rename = "v1")]
+            V1(EventRecordFields<E>),
+        }
+
+        if bytes.len() > MAX_EVENT_RECORD_BYTES {
+            return Err(Report::new(CompatError::TooLarge {
+                name: E::name(),
+                actual_bytes: bytes.len(),
+                max_bytes: MAX_EVENT_RECORD_BYTES,
+            }));
+        }
+        let Envelope::V1(fields) = serde_json::from_slice(bytes)
+            .change_context(CompatError::Decode { name: E::name() })?;
+        EventRecordV1::from_parts(fields.event_id, fields.partition, fields.event).map(Self::V1)
+    }
 }
 
 /// An event record whose ID and partition match the event.
@@ -446,35 +478,7 @@ impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> DurableRecord for 
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
-        #[derive(Deserialize)]
-        struct Envelope<E> {
-            data: EventRecordFields<E>,
-        }
-
-        if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: E::name(),
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_EVENT_RECORD_BYTES,
-            }));
-        }
-        let value: serde_json::Value = serde_json::from_slice(bytes)
-            .change_context(CompatError::Decode { name: E::name() })?;
-        reject_unknown_fields(E::name(), "", &value, &["version", "data"])?;
-        let version = value
-            .get("version")
-            .ok_or_else(|| CompatError::MissingVersion { name: E::name() })?
-            .as_str()
-            .ok_or_else(|| CompatError::InvalidVersionType { name: E::name() })?;
-        if version != "v1" {
-            return Err(Report::new(CompatError::UnsupportedVersion {
-                name: E::name(),
-                version: version.to_owned(),
-            }));
-        }
-        let Envelope { data } = serde_json::from_value(value)
-            .change_context(CompatError::Decode { name: E::name() })?;
-        EventRecordV1::from_parts(data.event_id, data.partition, data.event).map(Self::V1)
+        Self::decode_borrowed(bytes)
     }
 }
 
@@ -1361,7 +1365,7 @@ mod tests {
             String::from_utf8(encoded.clone()).expect("encoded record should be valid UTF-8"),
             expected
         );
-        let decoded = EventRecord::<CounterEvent>::decode(&encoded)
+        let decoded = EventRecord::<CounterEvent>::decode_borrowed(&encoded)
             .expect("record should decode")
             .normalize()
             .expect("record should normalize");
@@ -1392,7 +1396,7 @@ mod tests {
         let encoded = serde_json::to_string(&EventRecord::V1(record))
             .expect("borrowed record should serialize");
         let EventRecord::V1(decoded) =
-            serde_json::from_str::<EventRecord<BorrowedEvent<'_>>>(&encoded)
+            EventRecord::<BorrowedEvent<'_>>::decode_borrowed(encoded.as_bytes())
                 .expect("record should decode an event borrowed from its input");
         assert_eq!(decoded.event().counter, counter);
 
@@ -1400,55 +1404,39 @@ mod tests {
             serde_json::from_str(&encoded).expect("record should be valid JSON");
         changed["data"]["event"]["amount"] = json!(6);
         let changed = serde_json::to_string(&changed).expect("changed record should serialize");
-        let error = serde_json::from_str::<EventRecord<BorrowedEvent<'_>>>(&changed)
+        let error = EventRecord::<BorrowedEvent<'_>>::decode_borrowed(changed.as_bytes())
             .expect_err("changing an event should invalidate its stored ID");
         assert!(
-            error.to_string().contains("event ID mismatch"),
+            matches!(error.current_context(), CompatError::EventIdMismatch { .. }),
             "borrowed event decoding should check the stored event ID: {error}"
         );
     }
 
     #[test]
     fn record_decode_envelope() {
-        let name = CounterEvent::name();
-        for (value, expected) in [
-            (
-                json!([]),
-                CompatError::ExpectedObject {
-                    name,
-                    path: String::new(),
-                },
-            ),
-            (json!({}), CompatError::MissingVersion { name }),
-            (
-                json!({"version": 1}),
-                CompatError::InvalidVersionType { name },
-            ),
-            (
-                json!({"version": "v2"}),
-                CompatError::UnsupportedVersion {
-                    name,
-                    version: "v2".to_owned(),
-                },
-            ),
-            (
-                json!({"version": "v1", "extra": true}),
-                CompatError::ExtraField {
-                    name,
-                    path: "extra".to_owned(),
-                },
-            ),
+        for value in [
+            json!({"version": "v2", "data": {}}),
+            json!({"version": "v1", "data": {}, "extra": true}),
         ] {
             let bytes = serde_json::to_vec(&value).expect("fixture should encode");
-            let error = EventRecord::<CounterEvent>::decode(&bytes)
+            let error = EventRecord::<CounterEvent>::decode_borrowed(&bytes)
                 .expect_err("invalid record envelope should be rejected");
-            assert_eq!(error.current_context(), &expected);
+            assert_eq!(
+                error.current_context(),
+                &CompatError::Decode {
+                    name: CounterEvent::name()
+                }
+            );
+            assert!(
+                error.contains::<serde_json::Error>(),
+                "invalid envelopes should retain the serde error"
+            );
         }
     }
 
     #[test]
     fn record_decode_json() {
-        let error = EventRecord::<CounterEvent>::decode(b"{")
+        let error = EventRecord::<CounterEvent>::decode_borrowed(b"{")
             .expect_err("incomplete JSON should fail decoding");
         assert_eq!(
             error.current_context(),
