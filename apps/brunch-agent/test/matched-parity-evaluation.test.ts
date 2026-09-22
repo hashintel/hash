@@ -280,6 +280,24 @@ describe("completed arm reuse", () => {
     ).rejects.toThrow(/incomplete retained arm artifact/u);
   });
 
+  test("treats a diagnosis-only failed arm as missing and rerunnable", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "matched-parity-failed-"));
+    temporaryDirectories.push(directory);
+    await writeFile(
+      join(directory, "failure.json"),
+      `${JSON.stringify({ arm: "I", error: "failed before artifact" })}\n`,
+    );
+    await expect(
+      loadCompletedArm({
+        arm: "I",
+        configuration,
+        directory,
+        resumeCompleted: true,
+        scenario: matchedParityScenarios[1]!,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   test("refuses an incomplete retained arm instead of rerunning it", async () => {
     const directory = await mkdtemp(join(tmpdir(), "matched-parity-partial-"));
     temporaryDirectories.push(directory);
