@@ -1,3 +1,5 @@
+import { loadOnce } from "../../../../lib/load-once";
+
 /**
  * Loads the YAML and Python grammars into Monaco.
  *
@@ -10,12 +12,10 @@
  * side effects, so a bundler drops a module imported for its side effects
  * alone, and this one with it.
  */
-let loading: Promise<void> | null = null;
-
-export const loadExportLanguages = (): Promise<void> => {
-  loading ??= Promise.all([
-    import("monaco-editor/esm/vs/basic-languages/python/python.contribution.js"),
-    import("monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution.js"),
-  ]).then(() => undefined);
-  return loading;
-};
+export const loadExportLanguages = loadOnce(
+  (): Promise<void> =>
+    Promise.all([
+      import("monaco-editor/esm/vs/basic-languages/python/python.contribution.js"),
+      import("monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution.js"),
+    ]).then(() => undefined),
+);

@@ -1,13 +1,15 @@
 import { use, useState } from "react";
 
 import { useCommand } from "../../../react/commands/command-registry";
+import { loadOnce } from "../../lib/load-once";
 import { definePetrinautPlugin } from "../plugin";
 import { PluginContributionBoundary } from "../plugin-boundary";
-import { loadOnce } from "./reactive-modules-plugin/load-once";
 
 import type { ReactiveModulesPanel } from "../../views/Editor/panels/reactive-modules-panel";
 
 const pluginId = "petrinaut.reactive-modules";
+
+type PanelModule = { ReactiveModulesPanel: typeof ReactiveModulesPanel };
 
 /**
  * The window and the compiler behind it load only when the window is first
@@ -15,12 +17,18 @@ const pluginId = "petrinaut.reactive-modules";
  * editor imports every built-in plugin eagerly.
  */
 const loadReactiveModulesPanel = loadOnce(
-  (): Promise<{ ReactiveModulesPanel: typeof ReactiveModulesPanel }> =>
+  (): Promise<PanelModule> =>
     import("../../views/Editor/panels/reactive-modules-panel"),
 );
 
-const LoadedReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
-  const { ReactiveModulesPanel: Panel } = use(loadReactiveModulesPanel());
+const LoadedReactiveModulesPanel = ({
+  panel,
+  onClose,
+}: {
+  panel: Promise<PanelModule>;
+  onClose: () => void;
+}) => {
+  const { ReactiveModulesPanel: Panel } = use(panel);
   return <Panel onClose={onClose} />;
 };
 
@@ -28,9 +36,15 @@ const LoadedReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
  * Owns the window's open state and its palette command. The command sits
  * outside the window's boundary, so a failed load or render closes only the
  * window; running the command again clears the failure and retries.
+ *
+ * The panel's import is held here, in a component that has committed, so the
+ * window reads one promise until it settles. Asking the loader in the
+ * window's own render would start a new import on every retry render after a
+ * failure, because a component that suspends before it commits keeps no
+ * state. A show after a failed load asks for a new import.
  */
 const ReactiveModulesWindow = () => {
-  const [isOpen, setOpen] = useState(false);
+  const [panel, setPanel] = useState<Promise<PanelModule> | null>(null);
   const [showRequests, setShowRequests] = useState(0);
 
   useCommand({
@@ -47,19 +61,22 @@ const ReactiveModulesWindow = () => {
       "ir",
     ],
     run: () => {
-      setOpen(true);
+      setPanel(loadReactiveModulesPanel());
       setShowRequests((count) => count + 1);
     },
   });
 
-  return isOpen ? (
+  return panel ? (
     <PluginContributionBoundary
       pluginId={pluginId}
       contributionId={`${pluginId}.window`}
       place="component"
       resetKey={showRequests}
     >
-      <LoadedReactiveModulesPanel onClose={() => setOpen(false)} />
+      <LoadedReactiveModulesPanel
+        panel={panel}
+        onClose={() => setPanel(null)}
+      />
     </PluginContributionBoundary>
   ) : null;
 };

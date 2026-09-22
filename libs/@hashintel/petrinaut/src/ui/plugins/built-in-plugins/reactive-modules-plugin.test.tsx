@@ -70,9 +70,7 @@ afterEach(cleanup);
 describe("reactiveModulesPlugin", () => {
   it("lists the command while installed", () => {
     const { registry, unmount } = renderEditorPlugins();
-    const command = registry
-      .list()
-      .find((entry) => entry.id === showCommandId);
+    const command = registry.list().find((entry) => entry.id === showCommandId);
     expect(command).toMatchObject({
       label: "Show Zeroth Reactive Modules",
       category: "Editor",

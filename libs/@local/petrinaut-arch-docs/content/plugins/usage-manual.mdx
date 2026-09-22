@@ -208,25 +208,25 @@ the command, and running it again retries:
 ```tsx
 const loadPanel = loadOnce(() => import("./reactive-modules-panel"));
 
-const LoadedPanel = ({ onClose }: { onClose: () => void }) => {
-  const { ReactiveModulesPanel } = use(loadPanel());
+const LoadedPanel = ({ panel, onClose }: LoadedPanelProps) => {
+  const { ReactiveModulesPanel } = use(panel);
   return <ReactiveModulesPanel onClose={onClose} />;
 };
 
 const ReactiveModulesWindow = () => {
-  const [isOpen, setOpen] = useState(false);
+  const [panel, setPanel] = useState<Promise<PanelModule> | null>(null);
   const [showRequests, setShowRequests] = useState(0);
   useCommand({
     id: "petrinaut.reactive-modules.show",
     label: "Show Zeroth Reactive Modules",
     run: () => {
-      setOpen(true);
+      setPanel(loadPanel());
       setShowRequests((count) => count + 1);
     },
   });
-  return isOpen ? (
+  return panel ? (
     <PluginContributionBoundary /* … */ resetKey={showRequests}>
-      <LoadedPanel onClose={() => setOpen(false)} />
+      <LoadedPanel panel={panel} onClose={() => setPanel(null)} />
     </PluginContributionBoundary>
   ) : null;
 };
@@ -238,9 +238,14 @@ export const reactiveModulesPlugin = definePetrinautPlugin({
 ```
 
 `loadOnce` shares one import and forgets a rejected one; `React.lazy` keeps a
-rejected import for good, so it cannot retry. `PluginContributionBoundary`
-is internal: a host plugin that wants the same behaviour brings its own error
-boundary.
+rejected import for good, so it cannot retry. The window takes the promise
+when the command runs and keeps it in state. Calling the loader in
+`LoadedPanel`'s render instead would start a new import on every retry render
+after a failure, because a component that suspends before it first commits
+keeps no state, and the error would never reach the boundary. Whether a new
+import fetches the chunk again depends on the host's bundler and browser.
+`loadOnce` and `PluginContributionBoundary` are internal: a host plugin that
+wants the same behaviour brings its own loader and error boundary.
 
 An edit view, which is how the built-in Definitions view is installed:
 
@@ -263,10 +268,10 @@ const demoPlugins = [sentryFeedbackPlugin, commandPalettePlugin];
 </PetrinautPluginsProvider>;
 ```
 
-- The editor installs `petrinautBuiltInPlugins` first, then the host's list:
-  `definitionsViewPlugin` and `reactiveModulesPlugin`. `builtInPlugins`
-  replaces that set: a subset drops a built-in, `[]` leaves only the host's
-  plugins.
+- The editor installs `petrinautBuiltInPlugins`, which are
+  `definitionsViewPlugin` and `reactiveModulesPlugin`, then the host's list.
+  `builtInPlugins` replaces that set: a subset drops a built-in, `[]` leaves
+  only the host's plugins.
 - Plugin commands need a command registry. The provider creates one when the
   host has not mounted its own `CommandRegistryProvider` above it; the
   [command registry manual](doc:commands/usage-manual) covers rendering a

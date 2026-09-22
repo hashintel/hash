@@ -174,8 +174,16 @@ const listStyle = css({
 });
 
 /** The active tab's text in Monaco, once its grammar is registered. */
-const ExportViewer = ({ tab, value }: { tab: TabId; value: string }) => {
-  use(loadExportLanguages());
+const ExportViewer = ({
+  languages,
+  tab,
+  value,
+}: {
+  languages: Promise<void>;
+  tab: TabId;
+  value: string;
+}) => {
+  use(languages);
   return (
     <CodeEditor
       viewer
@@ -218,6 +226,9 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
   const { initialMarking, parameterValues, dt } = use(SimulationContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
+  // One grammar load per window: a failure fails this window once, and the
+  // window mounted by the next show loads again.
+  const [languages] = useState(loadExportLanguages);
   const [width, setWidth] = useState(560);
   const { panelRef, handleProps, getResizeHandleProps, style } =
     useFloatingPanel<HTMLElement>({
@@ -336,7 +347,11 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
                     </div>
                   }
                 >
-                  <ExportViewer tab={activeTab} value={output} />
+                  <ExportViewer
+                    languages={languages}
+                    tab={activeTab}
+                    value={output}
+                  />
                 </Suspense>
               </div>
               {result.warnings.length > 0 ? (
