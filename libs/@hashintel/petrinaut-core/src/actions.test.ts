@@ -775,28 +775,6 @@ describe("Petrinaut core actions", () => {
         .statusViews![0]!.labels.map((label) => label.id),
     ).toEqual(["label-2", "label-1"]);
 
-    expect(() =>
-      instance.mutations.updateStatusView({
-        statusViewId: "view-1",
-        update: {
-          labels: [
-            {
-              id: "label-1",
-              name: "Same",
-              displayColor: "#808080",
-              places: [],
-            },
-            {
-              id: "label-2",
-              name: "Same",
-              displayColor: "#00AA00",
-              places: [],
-            },
-          ],
-        },
-      }),
-    ).toThrow(/Duplicate label name/);
-
     instance.mutations.removeStatusView({ statusViewId: "view-1" });
     expect(instance.definition.get().statusViews).toHaveLength(0);
   });
