@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 use core::{
     future::ready,
-    ops::{Bound, RangeBounds as _},
+    ops::{Bound, RangeBounds},
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
@@ -127,9 +127,10 @@ impl JournalReader for SimLogHandle {
     fn scan(
         &self,
         key: Bytes,
-        range: (Bound<u64>, Bound<u64>),
+        range: impl RangeBounds<u64> + Send,
     ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send {
         ready(sim_key(&key).map(|key| {
+            let range = (range.start_bound().cloned(), range.end_bound().cloned());
             let state = self.lock();
             let end_exclusive = match range.1 {
                 Bound::Included(end) => end.saturating_add(1),
@@ -169,7 +170,7 @@ impl JournalReader for SimWriter {
     async fn scan(
         &self,
         key: Bytes,
-        range: (Bound<u64>, Bound<u64>),
+        range: impl RangeBounds<u64> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
         JournalReader::scan(&self.handle, key, range).await
     }

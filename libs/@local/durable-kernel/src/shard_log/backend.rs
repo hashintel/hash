@@ -4,7 +4,7 @@
 //! and scan boundaries for each backend. [`StorageConfig`] opens the object-storage backend.
 
 use core::{
-    ops::Bound,
+    ops::RangeBounds,
     pin::Pin,
     task::{Context, Poll, ready},
     time::Duration,
@@ -50,7 +50,7 @@ pub trait JournalReader: Send + Sync + 'static {
     fn scan(
         &self,
         key: Bytes,
-        range: (Bound<u64>, Bound<u64>),
+        range: impl RangeBounds<u64> + Send,
     ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send;
 
     /// Releases the reader or writer's storage resources.
@@ -176,8 +176,9 @@ impl JournalReader for StorageReader {
     async fn scan(
         &self,
         key: Bytes,
-        range: (Bound<u64>, Bound<u64>),
+        range: impl RangeBounds<u64> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
+        let range = (range.start_bound().cloned(), range.end_bound().cloned());
         let inner = self
             .0
             .scan(key.clone(), range)
@@ -201,8 +202,9 @@ impl JournalReader for StorageWriter {
     async fn scan(
         &self,
         key: Bytes,
-        range: (Bound<u64>, Bound<u64>),
+        range: impl RangeBounds<u64> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
+        let range = (range.start_bound().cloned(), range.end_bound().cloned());
         let inner = self
             .log
             .scan(key.clone(), range)
