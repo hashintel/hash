@@ -102,13 +102,13 @@ pub enum CounterRejection {
 }
 
 impl Fold<DstEvent> for DstCounters {
-    type Rejection = CounterRejection;
+    type Error = CounterRejection;
     type Validated = DstEvent;
 
     fn validate(
         &self,
         event: &DstEvent,
-    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
+    ) -> Result<Self::Validated, error_stack::Report<Self::Error>> {
         match event {
             DstEvent::Increment { amount, .. } => {
                 if *amount == 0 {

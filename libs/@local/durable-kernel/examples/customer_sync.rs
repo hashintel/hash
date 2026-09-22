@@ -113,13 +113,13 @@ impl CustomerChange {
 }
 
 impl Fold<SyncEvent> for CustomerSync {
-    type Rejection = CustomerRejection;
+    type Error = CustomerRejection;
     type Validated = CustomerChange;
 
     fn validate(
         &self,
         event: &SyncEvent,
-    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
+    ) -> Result<Self::Validated, error_stack::Report<Self::Error>> {
         match event {
             SyncEvent::CustomerQueued { customer_id, .. }
                 if self.pending.contains_key(customer_id)

@@ -129,13 +129,13 @@ impl RelayQueue {
 }
 
 impl Fold<RelayEvent> for RelayQueue {
-    type Rejection = DeliveryRejection;
+    type Error = DeliveryRejection;
     type Validated = RelayChange;
 
     fn validate(
         &self,
         event: &RelayEvent,
-    ) -> Result<Self::Validated, error_stack::Report<Self::Rejection>> {
+    ) -> Result<Self::Validated, error_stack::Report<Self::Error>> {
         match event {
             RelayEvent::Accepted { delivery, .. }
                 if self.delivered.contains_key(delivery)

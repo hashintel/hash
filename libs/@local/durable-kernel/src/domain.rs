@@ -141,7 +141,7 @@ pub trait DomainEvent {
 /// State is serialized into snapshots. Its serialization must also be deterministic.
 pub trait Fold<E>: Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
     /// The application error reported when validation rejects an event.
-    type Rejection: Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// The state change prepared by validation and consumed after the event is durable.
     type Validated: Send;
@@ -149,7 +149,7 @@ pub trait Fold<E>: Clone + Send + Sync + Serialize + DeserializeOwned + 'static 
     /// # Errors
     ///
     /// Returns a rejection when the event violates the domain’s validation rules.
-    fn validate(&self, event: &E) -> Result<Self::Validated, Report<Self::Rejection>>;
+    fn validate(&self, event: &E) -> Result<Self::Validated, Report<Self::Error>>;
     fn apply(&mut self, validated: Self::Validated);
     /// Applies an accepted historical event without rerunning admission rules.
     fn replay(&mut self, event: &E);
@@ -838,7 +838,7 @@ pub enum RecoveryError {
 
 impl<S: SimpleDomain> EventDomain for Hosted<S> {
     type Delta = PreparedEvent<S>;
-    type FoldError = FoldError<<S::Projection as Fold<S::Event>>::Rejection>;
+    type FoldError = FoldError<<S::Projection as Fold<S::Event>>::Error>;
     type Projection = KernelProjection<S::Projection>;
     type Record = EventRecord<S::Event>;
     type RecordCurrent = EventRecordV1<S::Event>;
@@ -1312,13 +1312,10 @@ mod tests {
     }
 
     impl Fold<CounterEvent> for Counters {
-        type Rejection = CounterRejection;
+        type Error = CounterRejection;
         type Validated = CounterChange;
 
-        fn validate(
-            &self,
-            event: &CounterEvent,
-        ) -> Result<Self::Validated, Report<Self::Rejection>> {
+        fn validate(&self, event: &CounterEvent) -> Result<Self::Validated, Report<Self::Error>> {
             match event {
                 CounterEvent::Incremented { amount: 0, .. } => {
                     Err(Report::new(CounterRejection::ZeroIncrement))

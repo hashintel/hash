@@ -36,7 +36,7 @@ impl DomainEvent for Payload {
 struct PayloadCount(usize);
 
 impl Fold<Payload> for PayloadCount {
-    type Rejection = Infallible;
+    type Error = Infallible;
     type Validated = usize;
 
     fn validate(&self, _: &Payload) -> Result<Self::Validated, Report<Infallible>> {
