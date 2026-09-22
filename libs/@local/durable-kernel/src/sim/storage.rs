@@ -4,11 +4,14 @@ use alloc::sync::Arc;
 use core::{
     future::ready,
     ops::{Bound, RangeBounds as _},
+    pin::Pin,
+    task::{Context, Poll},
     time::Duration,
 };
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
+use futures_core::Stream;
 use tokio::sync::Notify;
 
 use super::{SimAppendResult, SimKey, SimLogHandle, SimWriter};
@@ -17,7 +20,7 @@ use crate::{
     registry::RecordRegistry,
     routing::Shard,
     shard_log::{
-        AppendFailureKind, JournalIterator, JournalReader, JournalStorage, JournalWriter,
+        AppendFailureKind, JournalReader, JournalStorage, JournalStream, JournalWriter,
         ShardAppendError, ShardLogLocation,
     },
 };
@@ -83,24 +86,26 @@ impl ShardLogLocation<SimLogHandle> {
 }
 
 /// A scan of the simulated journal's stored records.
-pub struct SimIterator {
+pub struct SimStream {
     entries: alloc::vec::IntoIter<(u64, Bytes)>,
     next_sequence: u64,
     end_exclusive: u64,
 }
 
-impl JournalIterator for SimIterator {
-    fn next(
-        &mut self,
-    ) -> impl Future<Output = Result<Option<(u64, Bytes)>, Report<DurableError>>> + Send {
+impl Stream for SimStream {
+    type Item = Result<(u64, Bytes), Report<DurableError>>;
+
+    fn poll_next(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let entry = self.entries.next();
         self.next_sequence = entry.as_ref().map_or_else(
             || self.next_sequence.max(self.end_exclusive),
             |(sequence, _)| sequence + 1,
         );
-        ready(Ok(entry))
+        Poll::Ready(entry.map(Ok))
     }
+}
 
+impl JournalStream for SimStream {
     fn next_sequence(&self) -> u64 {
         self.next_sequence
     }
@@ -117,13 +122,13 @@ fn sim_key(key: &[u8]) -> Result<SimKey, Report<DurableError>> {
 }
 
 impl JournalReader for SimLogHandle {
-    type Iterator = SimIterator;
+    type Stream = SimStream;
 
     fn scan(
         &self,
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
-    ) -> impl Future<Output = Result<Self::Iterator, Report<DurableError>>> + Send {
+    ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send {
         ready(sim_key(&key).map(|key| {
             let state = self.lock();
             let end_exclusive = match range.1 {
@@ -145,7 +150,7 @@ impl JournalReader for SimLogHandle {
                 Bound::Excluded(start) => start.saturating_add(1),
                 Bound::Unbounded => 0,
             };
-            SimIterator {
+            SimStream {
                 entries,
                 next_sequence,
                 end_exclusive,
@@ -159,13 +164,13 @@ impl JournalReader for SimLogHandle {
 }
 
 impl JournalReader for SimWriter {
-    type Iterator = SimIterator;
+    type Stream = SimStream;
 
     async fn scan(
         &self,
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
-    ) -> Result<Self::Iterator, Report<DurableError>> {
+    ) -> Result<Self::Stream, Report<DurableError>> {
         JournalReader::scan(&self.handle, key, range).await
     }
 

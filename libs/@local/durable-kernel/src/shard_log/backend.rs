@@ -3,14 +3,22 @@
 //! Implement [`JournalStorage`] to supply readers and writers. The kernel checks record formats
 //! and scan boundaries for each backend. [`StorageConfig`] opens the object-storage backend.
 
-use core::{ops::Bound, time::Duration};
+use core::{
+    ops::Bound,
+    pin::Pin,
+    task::{Context, Poll, ready},
+    time::Duration,
+};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
+use futures_core::Stream;
 use opendata_common::StorageConfig;
 use opendata_log::{
-    Config, LogDb, LogDbReader, LogIterator, LogRead as _, ReadVisibility, ReaderConfig, Record,
+    Config, LogDb, LogDbReader, LogEntry, LogIterator, LogRead as _, ReadVisibility, ReaderConfig,
+    Record,
 };
+use tokio_util::sync::ReusableBoxFuture;
 
 use super::{
     APPEND_TIMEOUT, DURABILITY_WAIT_ATTEMPTS, ShardAppendError, flush_with_timeout,
@@ -18,19 +26,13 @@ use super::{
 };
 use crate::DurableError;
 
-/// Reads stored bytes in increasing sequence order.
-pub trait JournalIterator: Send {
-    /// Returns the next durable record in the range, or `None` when the scan ends.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if storage cannot supply the next record.
-    fn next(
-        &mut self,
-    ) -> impl Future<Output = Result<Option<(u64, Bytes)>, Report<DurableError>>> + Send;
-
+/// Reads durable records as `(journal sequence, stored bytes)` in increasing sequence order.
+///
+/// Each sequence is a position assigned at append time across all keys in one journal. Positions
+/// can have gaps. A stream yields an error if storage cannot supply the next record.
+pub trait JournalStream: Stream<Item = Result<(u64, Bytes), Report<DurableError>>> + Send {
     /// Exclusive end of the range read, including positions with no record for the requested key.
-    /// After `next` returns `None`, this must report how far storage was read, even if the scan
+    /// After the stream returns `None`, this must report how far storage was read, even if the scan
     /// stopped before the requested end.
     fn next_sequence(&self) -> u64;
 }
@@ -38,7 +40,7 @@ pub trait JournalIterator: Send {
 /// Scans a journal without changing its contents.
 pub trait JournalReader: Send + Sync + 'static {
     /// A cursor over durable records for one key.
-    type Iterator: JournalIterator;
+    type Stream: JournalStream;
 
     /// Reads records in sequence order within `range`. Sequence gaps and empty ranges are valid.
     ///
@@ -49,7 +51,7 @@ pub trait JournalReader: Send + Sync + 'static {
         &self,
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
-    ) -> impl Future<Output = Result<Self::Iterator, Report<DurableError>>> + Send;
+    ) -> impl Future<Output = Result<Self::Stream, Report<DurableError>>> + Send;
 
     /// Releases the reader or writer's storage resources.
     ///
@@ -112,36 +114,70 @@ pub struct StorageWriter {
 }
 
 /// A scan backed by opendata-log.
-pub struct StorageIterator {
-    inner: LogIterator,
+pub struct StorageStream {
+    read: Option<ReusableBoxFuture<'static, (LogIterator, opendata_log::Result<Option<LogEntry>>)>>,
     key: Bytes,
+    next_sequence: u64,
 }
 
-impl JournalIterator for StorageIterator {
-    async fn next(&mut self) -> Result<Option<(u64, Bytes)>, Report<DurableError>> {
-        self.inner
-            .next()
-            .await
-            .change_context_lazy(|| DurableError::ReadRecord {
-                key: self.key.clone(),
-                next_sequence: self.inner.next_sequence(),
-            })
-            .map(|entry| entry.map(|entry| (entry.sequence, entry.value)))
+impl StorageStream {
+    fn new(inner: LogIterator, key: Bytes) -> Self {
+        Self {
+            next_sequence: inner.next_sequence(),
+            read: Some(ReusableBoxFuture::new(Self::read_next(inner))),
+            key,
+        }
     }
 
+    async fn read_next(
+        mut inner: LogIterator,
+    ) -> (LogIterator, opendata_log::Result<Option<LogEntry>>) {
+        let entry = inner.next().await;
+        (inner, entry)
+    }
+}
+
+impl Stream for StorageStream {
+    type Item = Result<(u64, Bytes), Report<DurableError>>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.get_mut();
+        let Some(read) = this.read.as_mut() else {
+            return Poll::Ready(None);
+        };
+        let (inner, entry) = ready!(read.poll(cx));
+        this.next_sequence = inner.next_sequence();
+        let entry = entry.change_context_lazy(|| DurableError::ReadRecord {
+            key: this.key.clone(),
+            next_sequence: this.next_sequence,
+        });
+        if matches!(entry, Ok(None)) {
+            this.read = None;
+        } else {
+            read.set(Self::read_next(inner));
+        }
+        Poll::Ready(
+            entry
+                .map(|entry| entry.map(|entry| (entry.sequence, entry.value)))
+                .transpose(),
+        )
+    }
+}
+
+impl JournalStream for StorageStream {
     fn next_sequence(&self) -> u64 {
-        self.inner.next_sequence()
+        self.next_sequence
     }
 }
 
 impl JournalReader for StorageReader {
-    type Iterator = StorageIterator;
+    type Stream = StorageStream;
 
     async fn scan(
         &self,
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
-    ) -> Result<Self::Iterator, Report<DurableError>> {
+    ) -> Result<Self::Stream, Report<DurableError>> {
         let inner = self
             .0
             .scan(key.clone(), range)
@@ -150,7 +186,7 @@ impl JournalReader for StorageReader {
                 key: key.clone(),
                 range,
             })?;
-        Ok(StorageIterator { inner, key })
+        Ok(StorageStream::new(inner, key))
     }
 
     async fn close(self) -> Result<(), Report<DurableError>> {
@@ -160,13 +196,13 @@ impl JournalReader for StorageReader {
 }
 
 impl JournalReader for StorageWriter {
-    type Iterator = StorageIterator;
+    type Stream = StorageStream;
 
     async fn scan(
         &self,
         key: Bytes,
         range: (Bound<u64>, Bound<u64>),
-    ) -> Result<Self::Iterator, Report<DurableError>> {
+    ) -> Result<Self::Stream, Report<DurableError>> {
         let inner = self
             .log
             .scan(key.clone(), range)
@@ -175,7 +211,7 @@ impl JournalReader for StorageWriter {
                 key: key.clone(),
                 range,
             })?;
-        Ok(StorageIterator { inner, key })
+        Ok(StorageStream::new(inner, key))
     }
 
     async fn close(self) -> Result<(), Report<DurableError>> {
