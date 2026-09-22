@@ -130,6 +130,94 @@ const EMPTY_DEEP_CONSTRUCTION_REPLAY: DeepConstructionReplay = {
   blockedToolCallIds: new Set(),
 };
 
+type ReplayReadiness<Replay> =
+  | { readonly status: "pending" }
+  | { readonly status: "ready"; readonly replay: Replay };
+
+type ReplayBaseline<Snapshot, Replay> = {
+  readonly key: string;
+  readonly snapshot: Snapshot | undefined;
+  readonly readiness: ReplayReadiness<Replay>;
+};
+
+/**
+ * Captures the first authoritative history state for one mounted binding. An
+ * absent history becomes an empty baseline during render; an existing history
+ * is captured once and stays fail-closed until its asynchronous verification
+ * completes. Later observation offsets cannot alter the ready baseline.
+ */
+const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
+  readonly bindingKey: string | undefined;
+  readonly emptyReplay: Replay;
+  readonly historyPhase: string | undefined;
+  readonly snapshot: Snapshot | undefined;
+  readonly derive: (snapshot: Snapshot) => Promise<Replay>;
+}): ReplayReadiness<Replay> => {
+  const [storedBaseline, setStoredBaseline] = useState<
+    ReplayBaseline<Snapshot, Replay> | undefined
+  >(undefined);
+  let baseline = storedBaseline;
+
+  if (input.bindingKey === undefined) {
+    if (baseline !== undefined) setStoredBaseline(undefined);
+    baseline = undefined;
+  } else if (baseline === undefined || baseline.key !== input.bindingKey) {
+    baseline = {
+      key: input.bindingKey,
+      snapshot: input.snapshot,
+      readiness:
+        input.historyPhase === "absent"
+          ? { status: "ready", replay: input.emptyReplay }
+          : { status: "pending" },
+    };
+    setStoredBaseline(baseline);
+  } else if (
+    baseline.readiness.status === "pending" &&
+    baseline.snapshot === undefined &&
+    (input.historyPhase === "absent" || input.snapshot !== undefined)
+  ) {
+    baseline = {
+      ...baseline,
+      snapshot: input.snapshot,
+      readiness:
+        input.historyPhase === "absent"
+          ? { status: "ready", replay: input.emptyReplay }
+          : baseline.readiness,
+    };
+    setStoredBaseline(baseline);
+  }
+
+  const derive = input.derive;
+  useEffect(() => {
+    const capturedSnapshot = baseline?.snapshot;
+    if (
+      baseline === undefined ||
+      baseline.readiness.status === "ready" ||
+      capturedSnapshot === undefined
+    )
+      return;
+    let cancelled = false;
+    const capturedBaseline = baseline;
+    void derive(capturedSnapshot).then((replay) => {
+      if (!cancelled) {
+        setStoredBaseline((current) =>
+          current === capturedBaseline
+            ? {
+                ...capturedBaseline,
+                readiness: { status: "ready", replay },
+              }
+            : current,
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [baseline, derive]);
+
+  return baseline?.readiness ?? { status: "pending" };
+};
+
 const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
   (import.meta.env as unknown as Record<string, string | undefined>)[
@@ -713,45 +801,34 @@ export const LocalStorageDemoApp = ({
     dynamicClientToolNames,
     validatedClientToolNames,
   );
-  const canonicalReplayKey = integratedConstructionBrowser
-    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}:${flueHistory.snapshot?.offset ?? flueHistory.phase ?? "loading"}`
+  const replayBindingKey = integratedConstructionBrowser
+    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}`
     : undefined;
-  const [canonicalReplayState, setCanonicalReplayState] = useState<{
-    readonly key: string;
-    readonly replay: CanonicalPetrinautReplay;
-  }>();
-  useEffect(() => {
-    const snapshot = flueHistory.snapshot;
-    if (
-      canonicalReplayKey === undefined ||
-      integratedConstructionBrowser === undefined ||
-      snapshot === undefined
-    )
-      return;
-    let cancelled = false;
-    const derive = async () => {
-      const replay = await deriveCanonicalPetrinautReplay({
+  const deriveCanonicalReplay = useCallback(
+    async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
+      if (integratedConstructionBrowser === undefined)
+        return EMPTY_CANONICAL_PETRINAUT_REPLAY;
+      return deriveCanonicalPetrinautReplay({
         snapshot,
         binding: integratedConstructionBrowser.binding,
       });
-      if (!cancelled)
-        setCanonicalReplayState({ key: canonicalReplayKey, replay });
-    };
-    void derive();
-    return () => {
-      cancelled = true;
-    };
-  }, [canonicalReplayKey, flueHistory.snapshot, integratedConstructionBrowser]);
-  const canonicalReplayReadiness = useMemo<CanonicalPetrinautReplayReadiness>(
-    () =>
-      flueHistory.phase === "absent"
-        ? { status: "ready", replay: EMPTY_CANONICAL_PETRINAUT_REPLAY }
-        : canonicalReplayKey !== undefined &&
-            canonicalReplayState?.key === canonicalReplayKey
-          ? { status: "ready", replay: canonicalReplayState.replay }
-          : { status: "pending" },
-    [canonicalReplayKey, canonicalReplayState, flueHistory.phase],
+    },
+    [integratedConstructionBrowser],
   );
+  const canonicalReplayReadiness = useImmutableReplayBaseline<
+    NonNullable<typeof flueHistory.snapshot>,
+    CanonicalPetrinautReplay
+  >({
+    bindingKey: replayBindingKey,
+    emptyReplay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
+    historyPhase: flueHistory.phase,
+    snapshot: flueHistory.snapshot,
+    derive: deriveCanonicalReplay,
+  }) satisfies CanonicalPetrinautReplayReadiness;
+  // Repository facades may be reprojected when history changes; their action
+  // function is the stable production boundary the adapters need.
+  // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
+  const settleConstructionRevision = source.repository.settleRevision;
   const canonicalHostTools = useMemo(() => {
     if (!integratedConstructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -759,14 +836,13 @@ export const LocalStorageDemoApp = ({
       binding: integratedConstructionBrowser.binding,
       readTitle: () => activeHandle.document.title,
       replayReadiness: canonicalReplayReadiness,
-      settleRevision: (settlement) =>
-        source.repository.settleRevision(settlement),
+      settleRevision: settleConstructionRevision,
     });
   }, [
     activeHandle,
     canonicalReplayReadiness,
     integratedConstructionBrowser,
-    source.repository,
+    settleConstructionRevision,
   ]);
   const currentLedger = useMemo<SettledLedgerRevision | undefined>(
     () =>
@@ -780,60 +856,44 @@ export const LocalStorageDemoApp = ({
         : undefined,
     [integratedConstructionBrowser, flueHistory.snapshot],
   );
-  const replayKey = deepModeSelected
-    ? `${integratedConstructionBrowser.binding.documentId}:${integratedConstructionBrowser.binding.incarnationId}:${integratedConstructionBrowser.binding.conversationId}:${flueHistory.snapshot?.offset ?? flueHistory.phase ?? "loading"}`
-    : undefined;
-  const [deepReplayState, setDeepReplayState] = useState<{
-    readonly key: string;
-    readonly replay: DeepConstructionReplay;
-  }>();
-  useEffect(() => {
-    const snapshot = flueHistory.snapshot;
-    if (
-      replayKey === undefined ||
-      integratedConstructionBrowser === undefined ||
-      snapshot === undefined
-    )
-      return;
-    let cancelled = false;
-    const derive = async () => {
-      const replay = await deriveDeepConstructionReplay({
+  const deriveDeepReplay = useCallback(
+    async (snapshot: NonNullable<typeof flueHistory.snapshot>) => {
+      if (integratedConstructionBrowser === undefined)
+        return EMPTY_DEEP_CONSTRUCTION_REPLAY;
+      return deriveDeepConstructionReplay({
         snapshot,
         binding: integratedConstructionBrowser.binding,
       });
-      if (!cancelled) setDeepReplayState({ key: replayKey, replay });
-    };
-    void derive();
-    return () => {
-      cancelled = true;
-    };
-  }, [flueHistory.snapshot, integratedConstructionBrowser, replayKey]);
-  const deepReplayReadiness = useMemo<DeepConstructionReplayReadiness>(
-    () =>
-      flueHistory.phase === "absent"
-        ? { status: "ready", replay: EMPTY_DEEP_CONSTRUCTION_REPLAY }
-        : replayKey !== undefined && deepReplayState?.key === replayKey
-          ? { status: "ready", replay: deepReplayState.replay }
-          : { status: "pending" },
-    [deepReplayState, flueHistory.phase, replayKey],
+    },
+    [integratedConstructionBrowser],
   );
+  const deepReplayReadiness = useImmutableReplayBaseline<
+    NonNullable<typeof flueHistory.snapshot>,
+    DeepConstructionReplay
+  >({
+    bindingKey: deepModeSelected ? replayBindingKey : undefined,
+    emptyReplay: EMPTY_DEEP_CONSTRUCTION_REPLAY,
+    historyPhase: flueHistory.phase,
+    snapshot: flueHistory.snapshot,
+    derive: deriveDeepReplay,
+  }) satisfies DeepConstructionReplayReadiness;
   const deepHostTool = useMemo(() => {
     if (!deepModeSelected) return undefined;
     return createApplyPetrinautConstructionHostTool({
       handle: activeHandle.handle,
       binding: integratedConstructionBrowser.binding,
-      initialLedger: currentLedger,
+      // Live authority is updated below without rebuilding the adapter. Replay
+      // authority comes from the immutable replay baseline.
+      initialLedger: undefined,
       replayReadiness: deepReplayReadiness,
-      settleRevision: (settlement) =>
-        source.repository.settleRevision(settlement),
+      settleRevision: settleConstructionRevision,
     });
   }, [
     activeHandle,
-    currentLedger,
     deepModeSelected,
     deepReplayReadiness,
     integratedConstructionBrowser,
-    source.repository,
+    settleConstructionRevision,
   ]);
   useEffect(() => {
     deepHostTool?.updateAuthority({
