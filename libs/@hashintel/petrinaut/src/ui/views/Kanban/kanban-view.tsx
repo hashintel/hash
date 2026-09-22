@@ -17,8 +17,8 @@ import { ExecutionFrameSourceContext } from "../../../react/execution-frame/cont
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
+import { useCanvasInsets } from "../../hooks/use-canvas-insets";
 import { formatDwellMs } from "../shared/format-dwell";
-import { getBoardInsets } from "./kanban-view/board-insets";
 import {
   createBoardReplay,
   type BoardSnapshot,
@@ -26,8 +26,9 @@ import {
 
 /**
  * Fills the canvas container like the net canvas does. The left, right, and
- * bottom edges are set inline from the overlay panels' current sizes so the
- * board only ever occupies the visible region between them.
+ * bottom edges are set inline from the same insets the canvas controls keep
+ * clear of, so the board only ever occupies the visible region between the
+ * overlay panels.
  */
 const rootStyle = css({
   position: "absolute",
@@ -360,17 +361,7 @@ export const KanbanView = ({
   toolbarStart?: ReactNode;
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const {
-    clearSelection,
-    isLeftSidebarOpen,
-    isSearchOpen,
-    leftSidebarWidth,
-    hasSelection,
-    propertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const { clearSelection, isPanelAnimating } = use(EditorContext);
   const statusViews = petriNetDefinition.statusViews ?? [];
   const [selectedStatusViewId, setSelectedStatusViewId] = useState<
     string | null
@@ -393,15 +384,7 @@ export const KanbanView = ({
     }
     clearSelection();
   };
-  const insets = getBoardInsets({
-    isLeftSidebarOpen,
-    isSearchOpen,
-    leftSidebarWidth,
-    hasSelection,
-    propertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-  });
+  const insets = useCanvasInsets();
 
   if (!statusView) {
     return (
