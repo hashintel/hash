@@ -803,6 +803,53 @@ describe("the net ledger is a projection over Flue history", () => {
     ).rejects.toThrow(/already has a result delivery/iu);
   });
 
+  test("accepts unrecorded canonical mutations outside the host-recorded names and keeps them unrecorded in the ledger", async () => {
+    const parameterInput = {
+      id: "bloom-rate",
+      name: "Bloom rate",
+      value: 0.4,
+    };
+    const output = { parameterId: parameterInput.id };
+    const messages = [
+      assistantCall("parameter-1", "addParameter", parameterInput),
+      resultDelivery("parameter-1", "addParameter", output),
+    ];
+    const snapshot = snapshotOf(messages);
+    const deliveryText = messages[1]?.parts[0];
+    if (deliveryText?.type !== "text")
+      throw new Error("Missing delivery fixture.");
+
+    await expect(
+      verifyMutationResults({ body: deliveryText.text, snapshot, binding }),
+    ).resolves.toBeUndefined();
+    await expect(deriveNetLedger(snapshot, browser)).resolves.toMatchObject([
+      { kind: "unrecorded", toolCallId: "parameter-1" },
+    ]);
+    await expect(
+      verifyMutationResults({
+        body: deliveryText.text,
+        snapshot: snapshotOf([...messages, messages[1]!]),
+        binding,
+      }),
+    ).rejects.toThrow(/already has a result delivery/iu);
+
+    const placeInput = oneHopNet.places[0]!;
+    const unrecordedPlace = [
+      assistantCall("place-1", "addPlace", placeInput),
+      resultDelivery("place-1", "addPlace", { placeId: placeInput.id }),
+    ];
+    const placeText = unrecordedPlace[1]?.parts[0];
+    if (placeText?.type !== "text")
+      throw new Error("Missing delivery fixture.");
+    await expect(
+      verifyMutationResults({
+        body: placeText.text,
+        snapshot: snapshotOf(unrecordedPlace),
+        binding,
+      }),
+    ).rejects.toThrow(/requires a canonical mutation record/iu);
+  });
+
   test("does not consume or break a pending mutation declaration", async () => {
     const mutation = canonicalMutationTurn("after-experiment");
     const events = await deriveNetLedger(

@@ -5,6 +5,7 @@ import {
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
   isConstructionMutationName,
+  isHostRecordedCanonicalMutationName,
   isMutatePetrinautNetToolName,
   type MutatePetrinetInput,
   parseClientToolResultMetadata,
@@ -212,21 +213,26 @@ const verifyCanonicalPetrinautDelivery = async (input: {
   binding: BrowserBinding;
   history: ReturnType<typeof clientToolHistoryFrom>;
 }): Promise<void> => {
-  const record = parseClientToolResultMetadata(
-    input.delivery.metadata,
-  )?.canonicalMutationRecord;
-  if (record === undefined)
-    throw new Error(
-      "The canonical mutation result requires a canonical mutation record.",
-    );
-  await verifyCanonicalMutationRecord({
-    record,
-    toolCallId: input.call.toolCallId,
-    toolName: input.call.toolName,
-    canonicalInput: input.call.input,
-    canonicalOutput: input.delivery.output,
-    binding: input.binding,
-  });
+  // Only the host-recorded names carry a record. Every other canonical
+  // mutation is plain Petrinaut execution: the Ledger fold keeps it
+  // `unrecorded`, and delivery is checked for identity and duplication only.
+  if (isHostRecordedCanonicalMutationName(input.call.toolName)) {
+    const record = parseClientToolResultMetadata(
+      input.delivery.metadata,
+    )?.canonicalMutationRecord;
+    if (record === undefined)
+      throw new Error(
+        "The canonical mutation result requires a canonical mutation record.",
+      );
+    await verifyCanonicalMutationRecord({
+      record,
+      toolCallId: input.call.toolCallId,
+      toolName: input.call.toolName,
+      canonicalInput: input.call.input,
+      canonicalOutput: input.delivery.output,
+      binding: input.binding,
+    });
+  }
   const earlier = input.history.results.filter(
     (result) => result.toolCallId === input.call.toolCallId,
   );

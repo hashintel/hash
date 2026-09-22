@@ -1,5 +1,7 @@
 import {
   canonicalContent,
+  hostRecordedCanonicalMutationNames,
+  isHostRecordedCanonicalMutationName,
   parseClientToolResultMetadata,
   verifyCanonicalMutationRecord,
   verifyDefinitionObservation,
@@ -109,17 +111,13 @@ const sameInput = (left: unknown, right: unknown) =>
 const canonicalReplayToolNames = new Set<string>([
   createExperimentToolName,
   getLatestNetDefinitionToolName,
-  "addPlace",
-  "addTransition",
-  "addArc",
+  ...hostRecordedCanonicalMutationNames,
 ]);
 
 const isCanonicalMutationName = (
   toolName: string,
 ): toolName is CanonicalBrowserMutationName =>
-  toolName === "addPlace" ||
-  toolName === "addTransition" ||
-  toolName === "addArc";
+  isHostRecordedCanonicalMutationName(toolName);
 
 /** Derive reload idempotency from admitted calls and their one dispatch terminal. */
 export const deriveCanonicalPetrinautReplay = async (input: {
