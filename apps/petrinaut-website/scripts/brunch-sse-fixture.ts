@@ -26,6 +26,8 @@ import http, { type ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
+import { ACTUAL_MODE_RECORDING_VERSION } from "@hashintel/petrinaut-core";
+
 import type {
   BrunchNetDefinitionInput,
   BrunchTransitionInput,
@@ -34,7 +36,6 @@ import type {
   ActualModeReceivedEvent,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
-  ActualModeTransitionFiringWire,
 } from "@hashintel/petrinaut-core";
 
 type NumericMarking = Record<string, number>;
@@ -53,7 +54,7 @@ type RecordingReplay = {
   events: ActualModeReceivedEvent[];
   initialState: NumericMarking;
   path: string;
-  transitionFirings: ActualModeTransitionFiringWire[];
+  transitionFirings: ActualModeTransitionFiring[];
 };
 
 type ParsedArgs = {
@@ -194,24 +195,6 @@ const parseNumericMarking = (data: unknown, label: string): NumericMarking => {
   return marking;
 };
 
-const parseTokenCounts = (data: unknown, label: string): NumericMarking => {
-  if (!isRecord(data)) {
-    throw new Error(`Recording ${label} must be an object.`);
-  }
-
-  const counts: NumericMarking = {};
-
-  for (const [placeId, value] of Object.entries(data)) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      throw new Error(`Recording ${label}.${placeId} must be a finite number.`);
-    }
-
-    counts[placeId] = value;
-  }
-
-  return counts;
-};
-
 const parseTokenValues = (
   data: unknown,
   label: string,
@@ -238,7 +221,7 @@ const parseTokenValues = (
 const parseTransitionFiring = (
   data: unknown,
   label: string,
-): ActualModeTransitionFiringWire => {
+): ActualModeTransitionFiring => {
   if (!isRecord(data)) {
     throw new Error(`Recording ${label} must be an object.`);
   }
@@ -253,41 +236,10 @@ const parseTransitionFiring = (
     throw new Error(`Recording ${label}.ts must be a valid timestamp.`);
   }
 
-  if (
-    data.input === undefined &&
-    data.output === undefined &&
-    data.inputTokens === undefined &&
-    data.outputTokens === undefined
-  ) {
-    throw new Error(
-      `Recording ${label} must carry inputTokens/outputTokens or input/output.`,
-    );
-  }
-
   return {
     transitionId: data.transitionId,
-    ...(data.input === undefined
-      ? {}
-      : { input: parseTokenCounts(data.input, `${label}.input`) }),
-    ...(data.output === undefined
-      ? {}
-      : { output: parseTokenCounts(data.output, `${label}.output`) }),
-    ...(data.inputTokens === undefined
-      ? {}
-      : {
-          inputTokens: parseTokenValues(
-            data.inputTokens,
-            `${label}.inputTokens`,
-          ),
-        }),
-    ...(data.outputTokens === undefined
-      ? {}
-      : {
-          outputTokens: parseTokenValues(
-            data.outputTokens,
-            `${label}.outputTokens`,
-          ),
-        }),
+    inputTokens: parseTokenValues(data.inputTokens, `${label}.inputTokens`),
+    outputTokens: parseTokenValues(data.outputTokens, `${label}.outputTokens`),
     ts: data.ts,
   };
 };
@@ -466,6 +418,12 @@ const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
     throw new Error("Recording root must be an object.");
   }
 
+  if (data.version !== ACTUAL_MODE_RECORDING_VERSION) {
+    throw new Error(
+      `Recording version must be ${ACTUAL_MODE_RECORDING_VERSION}, got ${String(data.version)}.`,
+    );
+  }
+
   if ("events" in data) {
     return parseReceivedEventsRecording(data);
   }
@@ -479,7 +437,7 @@ const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
   }
 
   throw new Error(
-    "Recording must be an Actual Events export with `events` or an older normalized recording.",
+    "Recording must be an Actual Events export with `events` or a normalized recording with `transitionFirings`.",
   );
 };
 
@@ -566,33 +524,16 @@ const createTimedReplayFrames = (
   });
 };
 
-/** Tokens moved per place: the count map when recorded, else the token records. */
-const countTokensPerPlace = (
-  counts: NumericMarking | undefined,
-  tokenValues: ActualModeTokenValues | undefined,
-): NumericMarking =>
-  counts ??
-  Object.fromEntries(
-    Object.entries(tokenValues ?? {}).map(([placeId, tokens]) => [
-      placeId,
-      tokens.length,
-    ]),
-  );
-
 const applyFiringToMarking = (
   marking: NumericMarking,
-  firing: ActualModeTransitionFiringWire,
+  firing: ActualModeTransitionFiring,
 ): void => {
-  for (const [placeId, value] of Object.entries(
-    countTokensPerPlace(firing.input, firing.inputTokens),
-  )) {
-    marking[placeId] = (marking[placeId] ?? 0) - value;
+  for (const [placeId, tokens] of Object.entries(firing.inputTokens)) {
+    marking[placeId] = (marking[placeId] ?? 0) - tokens.length;
   }
 
-  for (const [placeId, value] of Object.entries(
-    countTokensPerPlace(firing.output, firing.outputTokens),
-  )) {
-    marking[placeId] = (marking[placeId] ?? 0) + value;
+  for (const [placeId, tokens] of Object.entries(firing.outputTokens)) {
+    marking[placeId] = (marking[placeId] ?? 0) + tokens.length;
   }
 };
 
@@ -718,7 +659,7 @@ const applyTransition = (
 };
 
 const currentMarking = cloneMarking(initialState);
-const transitionFirings: ActualModeTransitionFiringWire[] = recordingReplay
+const transitionFirings: ActualModeTransitionFiring[] = recordingReplay
   ? recordingReplay.transitionFirings.map((firing) => ({ ...firing }))
   : [];
 const replayFrames: SseFrame[] = [

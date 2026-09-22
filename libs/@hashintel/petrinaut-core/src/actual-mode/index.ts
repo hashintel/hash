@@ -1,13 +1,8 @@
 export {
   ACTUAL_MODE_RECORDING_VERSION,
   ACTUAL_MODE_TIMELINE_TICK_MS,
-  SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,
 } from "./constants";
 export { unavailableActualMode } from "./context";
-export {
-  normalizeActualModeTokenValues,
-  normalizeActualModeTransitionFiring,
-} from "./firing";
 export {
   applyActualModeTransitionFiring,
   getActualModeMarkingAtTransitionFiringIndex,
@@ -35,10 +30,6 @@ export {
   getActualModeTransitionFiringTimesMs,
   type ActualModeFrameReplay,
 } from "./timeline";
-export type {
-  ActualModeLegacyTokenCounts,
-  ActualModeTransitionFiringWire,
-} from "./firing";
 export type {
   ActualModeContextValue,
   ActualModeMarking,

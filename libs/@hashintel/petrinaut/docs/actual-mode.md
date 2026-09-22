@@ -37,8 +37,6 @@ For Brunch, the export is a JSON object with an `events` array. Each item stores
 }
 ```
 
-Petrinaut also accepts the count-only form, `"input": { "queued": 1 }` and `"output": { "implementing": 1 }`, and treats each count as that many tokens with no attribute values.
-
 The stream export is an event-stream artifact for tooling that can serve the Brunch SSE protocol. The demo website does not replay the file directly.
 
 ## Current limits

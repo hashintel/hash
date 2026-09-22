@@ -1,5 +1,5 @@
 import type { SDCPN } from "../types/sdcpn";
-import type { SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS } from "./constants";
+import type { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 
 /**
  * Host-provided live execution state for Petrinaut's Actual mode.
@@ -53,8 +53,7 @@ export type ActualModeSource = {
   runId?: string;
 };
 
-export type ActualModeRecordingVersion =
-  (typeof SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS)[number];
+export type ActualModeRecordingVersion = typeof ACTUAL_MODE_RECORDING_VERSION;
 
 export type ActualModeRecording = {
   version: ActualModeRecordingVersion;

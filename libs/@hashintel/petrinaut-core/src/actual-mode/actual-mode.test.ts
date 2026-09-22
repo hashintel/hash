@@ -9,7 +9,6 @@ import {
   extendActualModeTransitionFiringTimesMs,
   getActualModeMarkingAtTransitionFiringIndex,
   getActualModeTransitionFiringTimesMs,
-  normalizeActualModeTransitionFiring,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from ".";
@@ -104,101 +103,10 @@ describe("Actual mode recordings", () => {
     expect(parseActualModeRecording(recording)).toEqual(recording);
   });
 
-  it("loads version-1 recordings by turning counts into attribute-less tokens", () => {
-    const parsed = parseActualModeRecording({
-      version: 1,
-      exportedAt: "2026-06-05T10:01:00.000Z",
-      title: "Replay",
-      source: null,
-      definition,
-      initialState: { queued: 2 },
-      transitionFirings: [
-        {
-          transitionId: "start",
-          input: { queued: 2 },
-          output: { implementing: 1 },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-      ],
-    });
-
-    expect(parsed.version).toBe(1);
-    expect(parsed.transitionFirings).toEqual([
-      {
-        transitionId: "start",
-        inputTokens: { queued: [{}, {}] },
-        outputTokens: { implementing: [{}] },
-        ts: "2026-06-05T10:00:00.000Z",
-      },
-    ]);
-  });
-
-  it("loads version-2 recordings by fitting recorded values to the counts", () => {
-    const parsed = parseActualModeRecording({
-      version: 2,
-      exportedAt: "2026-06-05T10:01:00.000Z",
-      title: "Replay",
-      source: null,
-      definition,
-      initialState: { queued: 3 },
-      transitionFirings: [
-        {
-          transitionId: "start",
-          input: { queued: 2 },
-          output: { implementing: 1, done: 0 },
-          inputTokens: { queued: [{ ticket_id: "a" }] },
-          outputTokens: {
-            implementing: [{ ticket_id: "a" }, { ticket_id: "extra" }],
-            done: [{ ticket_id: "dropped" }],
-          },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-      ],
-    });
-
-    expect(parsed.transitionFirings).toEqual([
-      {
-        transitionId: "start",
-        inputTokens: { queued: [{ ticket_id: "a" }, {}] },
-        outputTokens: { implementing: [{ ticket_id: "a" }], done: [] },
-        ts: "2026-06-05T10:00:00.000Z",
-      },
-    ]);
-  });
-
-  it("normalizes count-only firings the same way outside recordings", () => {
-    expect(
-      normalizeActualModeTransitionFiring({
-        transitionId: "start",
-        input: { queued: 1 },
-        output: { implementing: 1 },
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toEqual({
-      transitionId: "start",
-      inputTokens: { queued: [{}] },
-      outputTokens: { implementing: [{}] },
-      ts: "2026-06-05T10:00:00.000Z",
-    });
-    expect(
-      actualModeTransitionFiringSchema.parse({
-        transitionId: "start",
-        inputTokens: { queued: [{ ticket_id: "a" }] },
-        output: {},
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toEqual({
-      transitionId: "start",
-      inputTokens: { queued: [{ ticket_id: "a" }] },
-      outputTokens: {},
-      ts: "2026-06-05T10:00:00.000Z",
-    });
-  });
-
-  it("rejects unsupported recording versions", () => {
+  it.each([1, 2, 4])("rejects recording version %i", (version) => {
     expect(() =>
       parseActualModeRecording({
-        version: 4,
+        version,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -245,7 +153,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with extra fields", () => {
     expect(() =>
       parseActualModeRecording({
-        version: 1,
+        version: 3,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -265,26 +173,45 @@ describe("Actual mode recordings", () => {
   });
 
   it("rejects transition firings that name no consumed or produced tokens", () => {
-    expect(() =>
-      actualModeTransitionFiringSchema.parse({
-        transitionId: "start",
-        inputTokens: { queued: [{}] },
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toThrow(/`outputTokens` or `output`/);
-    expect(() =>
-      actualModeTransitionFiringSchema.parse({
-        transitionId: "start",
-        output: { done: 1 },
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toThrow(/`inputTokens` or `input`/);
+    const missingOutput = actualModeTransitionFiringSchema.safeParse({
+      transitionId: "start",
+      inputTokens: { queued: [{}] },
+      ts: "2026-06-05T10:00:00.000Z",
+    });
+    const missingInput = actualModeTransitionFiringSchema.safeParse({
+      transitionId: "start",
+      outputTokens: { done: [{}] },
+      ts: "2026-06-05T10:00:00.000Z",
+    });
+
+    expect(missingOutput.error?.issues.map((issue) => issue.path)).toEqual([
+      ["outputTokens"],
+    ]);
+    expect(missingInput.error?.issues.map((issue) => issue.path)).toEqual([
+      ["inputTokens"],
+    ]);
   });
 
-  it("rejects legacy count maps with non-count values", () => {
+  it("rejects count-form firings", () => {
+    expect(() =>
+      actualModeTransitionFiringSchema.parse({
+        transitionId: "start",
+        input: { queued: 1 },
+        output: { implementing: 1 },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toThrow();
+    expect(() =>
+      actualModeTransitionFiringSchema.parse({
+        transitionId: "start",
+        inputTokens: { queued: [{ ticket_id: "a" }] },
+        output: { implementing: 1 },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toThrow();
     expect(() =>
       parseActualModeRecording({
-        version: 1,
+        version: 3,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -293,8 +220,8 @@ describe("Actual mode recordings", () => {
         transitionFirings: [
           {
             transitionId: "finish",
-            input: { queued: 1 },
-            output: { done: [{}] },
+            inputTokens: { queued: 1 },
+            outputTokens: { done: [{}] },
             ts: "2026-06-05T10:00:00.000Z",
           },
         ],

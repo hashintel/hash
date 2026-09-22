@@ -1,8 +1,7 @@
 import { z } from "zod";
 
 import { sdcpnSchema } from "../file-format/types";
-import { SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS } from "./constants";
-import { normalizeActualModeTransitionFiring } from "./firing";
+import { ACTUAL_MODE_RECORDING_VERSION } from "./constants";
 
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -53,40 +52,21 @@ export const actualModeMarkingSchema = z.record(
   actualModeMarkingValueSchema,
 ) satisfies z.ZodType<ActualModeMarking>;
 
-const actualModeLegacyTokenCountsSchema = z.record(z.string(), z.number());
-
 /**
  * Root schema for Actual Mode transition events.
  *
  * A `transition_firing` payload names the transition and the tokens it
  * consumed (`inputTokens`) and produced (`outputTokens`), keyed by place id;
- * neither field is a full before or after marking. Count-only payloads with
- * `input`/`output` count maps, as older emitters and version-1 and version-2
- * recordings carry, parse to the same shape through
- * `normalizeActualModeTransitionFiring`.
+ * neither field is a full before or after marking.
  */
 export const actualModeTransitionFiringSchema = z
   .object({
     transitionId: z.string(),
-    input: actualModeLegacyTokenCountsSchema.optional(),
-    output: actualModeLegacyTokenCountsSchema.optional(),
-    inputTokens: actualModeTokenValuesSchema.optional(),
-    outputTokens: actualModeTokenValuesSchema.optional(),
+    inputTokens: actualModeTokenValuesSchema,
+    outputTokens: actualModeTokenValuesSchema,
     ts: z.string(),
   })
-  .strict()
-  .refine(
-    (firing) => firing.inputTokens !== undefined || firing.input !== undefined,
-    { message: "A transition firing needs `inputTokens` or `input`." },
-  )
-  .refine(
-    (firing) =>
-      firing.outputTokens !== undefined || firing.output !== undefined,
-    { message: "A transition firing needs `outputTokens` or `output`." },
-  )
-  .transform(
-    normalizeActualModeTransitionFiring,
-  ) satisfies z.ZodType<ActualModeTransitionFiring>;
+  .strict() satisfies z.ZodType<ActualModeTransitionFiring>;
 
 export const actualModeSourceSchema = z
   .object({
@@ -104,13 +84,11 @@ export const actualModeReceivedEventSchema = z
   .strict() satisfies z.ZodType<ActualModeReceivedEvent>;
 
 /**
- * Accepts every supported recording version, so an unsupported version fails
- * here rather than as a nested error. Firings from every version parse
- * through `actualModeTransitionFiringSchema`, which normalizes the count-only
- * forms of versions 1 and 2.
+ * A recording with any other version fails here rather than as a nested
+ * firing error.
  */
 const actualModeRecordingVersionSchema = z.literal(
-  SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,
+  ACTUAL_MODE_RECORDING_VERSION,
 );
 
 const actualModeRecordingDefinitionSchema = z.custom<SDCPN>(

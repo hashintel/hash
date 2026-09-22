@@ -67,10 +67,9 @@ strings, and an attribute-less record (`{}`) is one token about which nothing
 is known. Place keys may be scoped ids (`instanceId::placeId`) when a firing
 touches a componentInstance's copy of a subnet place.
 
-Count-only payloads, `{ "input": { "queued": 1 }, "output": { … } }`, parse
-too: `normalizeActualModeTransitionFiring` turns each count into that many
-`{}` records. A payload carrying both a count map and token values keeps the
-recorded values up to the count and pads the rest with `{}` records.
+The schema rejects any other firing shape. The Brunch server emits
+`{ "input": { "queued": 1 }, "output": { … } }` count maps, so it needs
+updating to emit token values before the demo route can render its stream.
 
 Marking reconstruction consumes tokens by value:
 
@@ -85,9 +84,8 @@ Marking reconstruction consumes tokens by value:
   until the stream and the reconstruction re-converge.
 - Produced tokens are appended as recorded.
 
-Recordings are written with version 3. Version-1 recordings (count-only
-firings) and version-2 recordings (counts plus optional token values) load
-through the same normalization.
+Recordings are written and read with version 3; a recording with any other
+version fails to parse.
 
 The transition-firing log is retained unbounded for the life of a stream, and
 token-value records multiply the per-firing size, so a long-running stream
@@ -99,7 +97,6 @@ checkpoint marking plus the last N firings) is the known follow-up.
 - `constants.ts`: shared Actual Mode constants.
 - `types.ts`: transport-neutral Actual Mode types and context shape.
 - `schemas.ts`: Zod schemas for core Actual Mode payloads and recordings.
-- `firing.ts`: normalization of count-only firings to token values.
 - `context.ts`: unavailable/default context value.
 - `marking.ts`: marking reconstruction helpers.
 - `timeline.ts`: live timeline point generation and frame-reader adapter.

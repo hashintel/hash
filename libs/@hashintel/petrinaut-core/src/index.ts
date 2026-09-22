@@ -13,7 +13,6 @@
 export {
   ACTUAL_MODE_RECORDING_VERSION,
   ACTUAL_MODE_TIMELINE_TICK_MS,
-  SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,
   actualModeMarkingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
@@ -35,7 +34,6 @@ export {
 export type {
   ActualModeContextValue,
   ActualModeFrameReplay,
-  ActualModeLegacyTokenCounts,
   ActualModeMarking,
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
@@ -48,7 +46,6 @@ export type {
   ActualModeTokenRecord,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
-  ActualModeTransitionFiringWire,
 } from "./actual-mode";
 export {
   createJsonDocHandle,
