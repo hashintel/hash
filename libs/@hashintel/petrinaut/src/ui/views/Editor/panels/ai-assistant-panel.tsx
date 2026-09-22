@@ -827,6 +827,10 @@ const ConversationAiAssistantPanel = ({
     typeof setTimeout
   > | null>(null);
   const suppressedAutomaticSendsRef = useRef(0);
+  // Host-owned widgets can submit before their response stream settles. Keep
+  // their calls here until the explicit ready-state continuation begins so
+  // AI SDK's later stream-end auto-send is suppressed as well.
+  const explicitContinuationToolCallIdsRef = useRef(new Set<string>());
   const addToolOutputRef = useRef<
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"] | null
   >(null);
@@ -837,6 +841,7 @@ const ConversationAiAssistantPanel = ({
   // Flue had nothing left to abort once that step settled, so withholding the
   // follow-up is what makes the Stop real.
   const withholdContinuationForStop = () => {
+    explicitContinuationToolCallIdsRef.current.clear();
     stopRequestedRef.current = false;
     setContinuationPending(false);
     setStreamError(null);
@@ -1199,8 +1204,9 @@ const ConversationAiAssistantPanel = ({
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
     transport: diagnosticsTransport,
-    // Interactive tools retain AI SDK's native continuation; static tools
-    // suppress it while addAutomaticToolOutput owns the explicit chain.
+    // Built-in interactive commands retain AI SDK's native continuation.
+    // Automatic tools and host-owned dynamic widgets coordinate an explicit
+    // continuation below so stream settlement cannot duplicate their send.
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       if (
         suppressedAutomaticSendsRef.current !== 0 ||
@@ -1211,6 +1217,9 @@ const ConversationAiAssistantPanel = ({
         return false;
       }
       if (automaticToolTurnIsTerminated(submissionGenerationRef.current)) {
+        return false;
+      }
+      if (explicitContinuationToolCallIdsRef.current.size !== 0) {
         return false;
       }
       if (!stopRequestedRef.current) {
@@ -1348,6 +1357,7 @@ const ConversationAiAssistantPanel = ({
         return;
       }
       const sendContinuation = sendAutomaticToolContinuationRef.current;
+      explicitContinuationToolCallIdsRef.current.clear();
       if (sendContinuation === null) {
         setContinuationPending(false);
         const hostError = new Error("The AI assistant tool host is not ready.");
@@ -1403,6 +1413,7 @@ const ConversationAiAssistantPanel = ({
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
     abortAutomaticTools();
+    explicitContinuationToolCallIdsRef.current.clear();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
@@ -1859,6 +1870,7 @@ const ConversationAiAssistantPanel = ({
       setStopped(false);
       stopRequestedRef.current = false;
       abortAutomaticTools();
+      explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
       await submitMessage({
         id: messageId,
@@ -2235,6 +2247,7 @@ const ConversationAiAssistantPanel = ({
           controller.abort();
         experimentControllersRef.current.clear();
         setExperimentStates({});
+        explicitContinuationToolCallIdsRef.current.clear();
         submissionGenerationRef.current += 1;
         // Clearing aborts any in-flight response too, which fires `onFinish`
         // with `isAbort`. Drop the stop flag first so that handler treats this
@@ -2281,11 +2294,23 @@ const ConversationAiAssistantPanel = ({
             throw new Error(`Unknown AI tool: ${toolName}`);
           }
 
+          // Retain suppression through stream settlement: addToolOutput skips
+          // its own continuation while streaming, but AI SDK checks again when
+          // the stream reaches ready. The ready-state effect owns the one send.
+          explicitContinuationToolCallIdsRef.current.add(toolCallId);
           return addDynamicToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
             output,
-          });
+          }).then(
+            () => {
+              setContinuationPending(true);
+            },
+            (caught: unknown) => {
+              explicitContinuationToolCallIdsRef.current.delete(toolCallId);
+              throw caught;
+            },
+          );
         }
 
         const petrinautOutput = output as AiToolOutput;

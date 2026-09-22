@@ -172,6 +172,7 @@ const createHarness = (optimize = false) => {
     validate: vi.fn(async () => {}),
     experiments,
     optimizations,
+    optimizationUnavailableReason: null,
     actions,
   };
   return {
@@ -459,6 +460,26 @@ describe("runExperiment", () => {
     expect(harness.actions.createExperiment).not.toHaveBeenCalled();
   });
 
+  it("does not create an experiment when optimization is unavailable", async () => {
+    const harness = createHarness(true);
+    Object.assign(harness.dependencies, {
+      optimizationUnavailableReason: "Optimization is unavailable",
+    });
+    harness.actions.createOptimization = vi.fn(async () => {
+      throw new Error("Optimization is unavailable");
+    });
+
+    expect(
+      await runExperiment(harness.dependencies, makeRequest(true)),
+    ).toMatchObject({
+      status: "error",
+      experimentId: null,
+      message: "Optimization is unavailable",
+    });
+    expect(harness.actions.createExperiment).not.toHaveBeenCalled();
+    expect(harness.actions.createOptimization).not.toHaveBeenCalled();
+  });
+
   it("returns the metric compile error when no optimization trial produces a value", async () => {
     const harness = createHarness(true);
     const pending = runExperiment(harness.dependencies, makeRequest(true));
@@ -512,6 +533,21 @@ describe("runExperiment", () => {
     });
     validation.resolve();
     expect(harness.actions.createExperiment).not.toHaveBeenCalled();
+  });
+
+  it("treats an omitted availability reason from a legacy context as available", async () => {
+    const harness = createHarness(true);
+    const {
+      optimizationUnavailableReason: _optimizationUnavailableReason,
+      ...legacyDependencies
+    } = harness.dependencies;
+    const pending = runExperiment(legacyDependencies, makeRequest(true));
+
+    await vi.waitFor(() =>
+      expect(harness.actions.createOptimization).toHaveBeenCalledOnce(),
+    );
+    harness.createOptions?.ownership?.cancel();
+    expect((await pending).status).toBe("cancelled");
   });
 
   it.each<Partial<PetrinautExperimentRequest>>([

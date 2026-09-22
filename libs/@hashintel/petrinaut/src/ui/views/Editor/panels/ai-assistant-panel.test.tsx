@@ -48,7 +48,10 @@ import {
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
 import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
-import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-tool";
+import {
+  definePetrinautAiInteractiveTool,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "../../../types/ai-interactive-tool";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
@@ -1107,18 +1110,39 @@ describe("AiAssistantPanel composer submissions", () => {
 
   test("following refuses external interactive widget completion on arrival and reload", async () => {
     const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>();
+    const ExternalQuestion = ({
+      submitAndWait,
+    }: PetrinautAiInteractiveToolWidgetProps<
+      { question: string },
+      { answer: string }
+    >) => {
+      const [completion, setCompletion] = useState("pending");
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              if (!submitAndWait) {
+                setCompletion("unavailable");
+                return;
+              }
+              void submitAndWait({ answer: "Must not submit" }).then(
+                () => setCompletion("authorized"),
+                () => setCompletion("rejected"),
+              );
+            }}
+          >
+            Complete external question
+          </button>
+          <span>{completion}</span>
+        </>
+      );
+    };
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
       inputSchema: { parse: (raw: unknown) => raw as { question: string } },
       outputSchema: { parse: (raw: unknown) => raw as { answer: string } },
-      component: ({ submit }) => (
-        <button
-          type="button"
-          onClick={() => submit({ answer: "Must not submit" })}
-        >
-          Complete external question
-        </button>
-      ),
+      component: ExternalQuestion,
     });
     const config: PetrinautAiAssistant = {
       conversationId: "external-widget",
@@ -1151,6 +1175,7 @@ describe("AiAssistantPanel composer submissions", () => {
         screen.getByRole("button", { name: "Complete external question" }),
       );
     });
+    expect(screen.getByText("rejected")).not.toBeNull();
     expect(sendMessages).not.toHaveBeenCalled();
     mounted.unmount();
     renderTestPanel({ aiAssistant: config });
@@ -1160,6 +1185,7 @@ describe("AiAssistantPanel composer submissions", () => {
         screen.getByRole("button", { name: "Complete external question" }),
       );
     });
+    expect(screen.getByText("rejected")).not.toBeNull();
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
