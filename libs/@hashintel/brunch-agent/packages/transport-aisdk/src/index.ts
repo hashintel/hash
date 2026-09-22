@@ -2,6 +2,7 @@ import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
 import {
+  CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
   clientToolResultSignal,
   type ClientToolResult,
 } from "./client-tool-result";
@@ -35,13 +36,16 @@ export {
 } from "./client-tool-history";
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
 export {
+  CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH,
   CLIENT_TOOL_RESULT_SIGNAL,
   clientToolResultSignal,
   isClientToolResult,
   isClientToolResultDelivery,
+  parseClientToolResultPayload,
   parseClientToolResults,
   type ClientToolResult,
   type ClientToolResultParseIssue,
+  type ClientToolResultPayload,
 } from "./client-tool-result";
 export {
   agentOwnershipHeaders,
@@ -67,6 +71,100 @@ export {
   type LiveToolStreamEvent,
   type LiveToolStreamOptions,
 } from "./live-tool-stream";
+
+export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
+  "petrinaut-contextual-user-message:v1\n";
+export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
+export const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
+
+export interface PetrinautContextualUserMessagePayload {
+  readonly userText: string;
+  readonly diagnosticsContext: string;
+}
+
+export type PetrinautUserMessageBody =
+  | ({ readonly kind: "ordinary" } & Pick<
+      PetrinautContextualUserMessagePayload,
+      "userText"
+    >)
+  | ({ readonly kind: "contextual" } & PetrinautContextualUserMessagePayload)
+  | { readonly kind: "invalid-contextual" };
+
+const hasExactKeys = (
+  record: Record<string, unknown>,
+  expectedKeys: readonly string[],
+): boolean => {
+  const keys = Object.keys(record).toSorted();
+  return (
+    keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index])
+  );
+};
+
+/** Build the bounded, provenance-preserving body used for a contextual user admission. */
+export const petrinautContextualUserMessageBody = (
+  payload: PetrinautContextualUserMessagePayload,
+): string => {
+  if (
+    payload.userText.length === 0 ||
+    Array.from(payload.userText).length >
+      PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH ||
+    payload.diagnosticsContext.length === 0 ||
+    Array.from(payload.diagnosticsContext).length >
+      CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
+  ) {
+    throw new Error(
+      "The contextual user message payload is invalid or too long.",
+    );
+  }
+  const body = `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
+  if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
+    throw new Error("The contextual user message body is too long.");
+  }
+  return body;
+};
+
+/** Separate human evidence from host diagnostics while leaving ordinary bodies untouched. */
+export const parsePetrinautUserMessageBody = (
+  body: string,
+): PetrinautUserMessageBody => {
+  if (!body.startsWith(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX)) {
+    return { kind: "ordinary", userText: body };
+  }
+  if (Array.from(body).length > PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH) {
+    return { kind: "invalid-contextual" };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      body.slice(PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX.length),
+    );
+  } catch {
+    return { kind: "invalid-contextual" };
+  }
+  const payload = asRecord(parsed);
+  if (
+    payload === null ||
+    !hasExactKeys(payload, ["diagnosticsContext", "userText"]) ||
+    typeof payload.userText !== "string" ||
+    typeof payload.diagnosticsContext !== "string"
+  ) {
+    return { kind: "invalid-contextual" };
+  }
+  try {
+    petrinautContextualUserMessageBody({
+      userText: payload.userText,
+      diagnosticsContext: payload.diagnosticsContext,
+    });
+  } catch {
+    return { kind: "invalid-contextual" };
+  }
+  return {
+    kind: "contextual",
+    userText: payload.userText,
+    diagnosticsContext: payload.diagnosticsContext,
+  };
+};
 
 export interface FlueChatResponseMessageEvent {
   readonly messageId: string;
@@ -232,15 +330,43 @@ const completedClientToolResults = (
   });
 };
 
+const diagnosticsContextMessageId = "petrinaut-diagnostics-context";
+
+const submittedDiagnosticsContext = (
+  messages: readonly UIMessage[],
+): string | undefined => {
+  const diagnosticsMessages = messages.filter(
+    ({ id }) => id === diagnosticsContextMessageId,
+  );
+  if (diagnosticsMessages.length === 0) return undefined;
+  if (diagnosticsMessages.length !== 1) {
+    throw new Error("The submission has duplicate diagnostics context.");
+  }
+  const message = diagnosticsMessages[0]!;
+  const part = message.parts[0];
+  if (
+    message !== messages.at(-1) ||
+    message.role !== "user" ||
+    message.parts.length !== 1 ||
+    part?.type !== "text" ||
+    part.text.length === 0 ||
+    Array.from(part.text).length > CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
+  ) {
+    throw new Error("The submission has invalid or stale diagnostics context.");
+  }
+  return part.text;
+};
+
 const finalUserMessage = (
   messages: readonly UIMessage[],
 ): { readonly id: string; readonly text: string } | undefined => {
-  const message = messages.at(-1);
+  const message = messages.findLast(
+    ({ id }) => id !== diagnosticsContextMessageId,
+  );
   if (
     message === undefined ||
     message.role !== "user" ||
-    message.id.length === 0 ||
-    message.id === "petrinaut-diagnostics-context"
+    message.id.length === 0
   ) {
     return undefined;
   }
@@ -493,6 +619,7 @@ export const createFlueChatTransport = <
                   ? 1
                   : 0,
             );
+    const diagnosticsContext = submittedDiagnosticsContext(messages);
     const userMessage =
       messageId === undefined ? finalUserMessage(messages) : undefined;
     const message: DeliveredMessage =
@@ -501,7 +628,16 @@ export const createFlueChatTransport = <
             if (userMessage === undefined) {
               throw new Error("The submitted user message has no text.");
             }
-            return { kind: "user", body: userMessage.text };
+            return {
+              kind: "user",
+              body:
+                diagnosticsContext === undefined
+                  ? userMessage.text
+                  : petrinautContextualUserMessageBody({
+                      userText: userMessage.text,
+                      diagnosticsContext,
+                    }),
+            };
           })()
         : (() => {
             if (toolResults.length === 0) {
@@ -509,7 +645,7 @@ export const createFlueChatTransport = <
                 "The client-tool follow-up has no completed result.",
               );
             }
-            return clientToolResultSignal(toolResults);
+            return clientToolResultSignal(toolResults, diagnosticsContext);
           })();
     const idempotencyKey =
       messageId === undefined

@@ -156,30 +156,79 @@ describe("the authored sdcpn-modelling skill directory", () => {
     });
   });
 
-  test("names the mounted construction read tool", () => {
+  test("routes construction through the mounted canonical definition read", () => {
     const construction = readSkillFile("references/pn-construction.md");
-    expect(construction).toContain("read_petrinaut_net");
+    expect(construction).toContain("canonical definition-read tool");
+    expect(construction).not.toContain("read_petrinaut_net");
   });
 
-  test("reuses settlement carriage and limits settled locator reads to spans the settlement did not return", () => {
+  test("keeps protocol correlation host-owned and canonical calls honest", () => {
     const instructions = sdcpnModellingSkill.instructions;
     const construction = readSkillFile("references/pn-construction.md");
 
-    expect(instructions).toContain(
-      "returned `revisionId`, `sha256` and `evidence[]` locators as authoritative",
-    );
     for (const text of [instructions, construction]) {
-      expect(text).toContain("evidence by literal text");
-      expect(text).toContain(
-        "Only when a basis needs a span that output did not return",
-      );
+      expect(text).toMatch(/canonical/u);
       expect(text).not.toMatch(
-        /includeSources|candidate Markdown|unsettled candidate|useful stretch/u,
+        /mutate_petrinaut_net|baseHash|net-read-1|aaaaaaaa|bbbbbbbb/u,
       );
     }
-    expect(construction).not.toContain(
-      "obtain the settled revision/hash and relevant passage spans",
+    expect(instructions).toContain("The host owns protocol correlation");
+    expect(construction).toContain(
+      "The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment",
     );
+    expect(instructions).toContain(
+      "do not make up or copy an observation call ID or hash",
+    );
+    expect(instructions).toContain(
+      "current `query_workpiece` schema still requires `observationToolCallId`",
+    );
+  });
+
+  test("preserves explicit default authorization without copying the prompt-chip request", () => {
+    const append = readFileSync(
+      new URL("../src/prompts/APPEND_SYSTEM.md", import.meta.url),
+      "utf8",
+    );
+    const instructions = sdcpnModellingSkill.instructions;
+    const construction = readSkillFile("references/pn-construction.md");
+
+    for (const text of [instructions, construction]) {
+      expect(text).toMatch(/sensible defaults/u);
+      expect(text).toMatch(/label/iu);
+    }
+    for (const text of [append, instructions, construction]) {
+      expect(text).not.toContain(
+        "Pick an interesting domain and build a small but complete SDCPN end-to-end",
+      );
+    }
+  });
+
+  test("preserves the detailed modelling, evidence, and delivery constraints", () => {
+    const instructions = sdcpnModellingSkill.instructions;
+    const construction = readSkillFile("references/pn-construction.md");
+
+    expect(construction).toContain(
+      "success, failure, cancellation, or recovery returns them when the workpiece says they become available",
+    );
+    expect(construction).toContain(
+      "syntactic convenience does not override operational meaning",
+    );
+    expect(construction).toContain(
+      "filling an empty workpiece concern from generic operations knowledge",
+    );
+    expect(construction).toContain(
+      "treating a posted rule as practiced behavior",
+    );
+    expect(construction).toContain(
+      "inventing release, recovery, retry, or branch semantics",
+    );
+    expect(instructions).toContain(
+      "Mechanically verified linkage is not a full-support, relevance, template-completeness, semantic-fidelity or useful-explanation verdict",
+    );
+    expect(instructions).toContain(
+      "Deliver the current workpiece in every branch",
+    );
+    expect(instructions).toContain("serialization-equivalent");
   });
 
   test("the always-on append routes to the job skill and stays compact", () => {

@@ -22,11 +22,14 @@ import {
 } from "../src/mutate-petrinet";
 import {
   assertMutationEffects,
+  canonicalContent,
   classifyMutationOutcome,
   deriveLayoutEffects,
   deriveMutationEffects,
   observedMutationOutcome,
+  parseClientToolResultMetadata,
   reconcileMutationAttempts,
+  verifyCanonicalMutationRecord,
   verifyMutationAttempt,
   type ArcMutationRequest,
   type ArcMutationAttempt,
@@ -795,6 +798,186 @@ describe("root addArc transition semantics", () => {
         { ...attempt, request: { ...request, toolCallId: "another-call" } },
       ]),
     ).toThrow(/different tool calls/u);
+  });
+});
+
+describe("canonical single-mutation sidecars", () => {
+  const canonicalRecord = () => {
+    const attempt = applied();
+    attempt.pre.revisionId = "revision-1";
+    attempt.post!.revisionId = "revision-2";
+    return {
+      toolCallId: request.toolCallId,
+      toolName: request.toolName,
+      binding: request.binding,
+      input: request.input,
+      pre: attempt.pre,
+      post: attempt.post,
+      outcome: "applied" as const,
+      effects: attempt.effects,
+      settlement: { status: "settled" as const, revisionId: "revision-2" },
+      diagnostics: { status: "not-required" as const },
+      output: { success: true },
+    };
+  };
+  const verify = (
+    record: unknown,
+    overrides: Partial<{
+      toolCallId: string;
+      toolName: string;
+      canonicalInput: unknown;
+      canonicalOutput: unknown;
+    }> = {},
+  ) =>
+    verifyCanonicalMutationRecord({
+      record,
+      toolCallId: overrides.toolCallId ?? request.toolCallId,
+      toolName: overrides.toolName ?? request.toolName,
+      canonicalInput: overrides.canonicalInput ?? request.input,
+      canonicalOutput: overrides.canonicalOutput ?? { success: true },
+      binding: request.binding,
+    });
+
+  test("verifies applied and conservative no-op records without replacing the legacy batch sidecar", async () => {
+    await expect(verify(canonicalRecord())).resolves.toMatchObject({
+      outcome: "applied",
+      post: { revisionId: "revision-2" },
+    });
+
+    const addPlaceInput = structuredClone(pre.places[0]!);
+    const noOpRequest: ConstructionMutationRequest = {
+      toolCallId: "canonical-add-place-no-op",
+      toolName: "addPlace",
+      binding: request.binding,
+      input: addPlaceInput,
+      requestedBaseHash: observe(pre).sha256,
+    };
+    const unchanged = { ...observe(pre), revisionId: "revision-1" };
+    const noOpOutput = { applied: false, reason: "The place already exists." };
+    const noOpRecord = {
+      toolCallId: noOpRequest.toolCallId,
+      toolName: noOpRequest.toolName,
+      binding: noOpRequest.binding,
+      input: noOpRequest.input,
+      pre: unchanged,
+      post: unchanged,
+      outcome: "no-op" as const,
+      effects: deriveMutationEffects(noOpRequest, pre, pre),
+      settlement: { status: "not-required" as const },
+      diagnostics: { status: "not-required" as const },
+      output: noOpOutput,
+    };
+    const noOpVerification = {
+      toolCallId: noOpRequest.toolCallId,
+      toolName: noOpRequest.toolName,
+      canonicalInput: noOpRequest.input,
+      canonicalOutput: noOpOutput,
+    };
+    await expect(verify(noOpRecord, noOpVerification)).resolves.toMatchObject({
+      outcome: "no-op",
+    });
+
+    const reserialized: SDCPN = {
+      transitions: structuredClone(pre.transitions),
+      places: structuredClone(pre.places),
+      parameters: structuredClone(pre.parameters),
+      differentialEquations: structuredClone(pre.differentialEquations),
+      types: structuredClone(pre.types),
+    };
+    expect(canonicalContent(reserialized)).toBe(canonicalContent(pre));
+    expect(observe(reserialized).sha256).not.toBe(unchanged.sha256);
+    await expect(
+      verify(
+        {
+          ...noOpRecord,
+          post: { ...observe(reserialized), revisionId: "revision-1" },
+        },
+        noOpVerification,
+      ),
+    ).rejects.toThrow(/same raw observation/u);
+    await expect(
+      verify(
+        {
+          ...noOpRecord,
+          post: { ...unchanged, revisionId: "revision-2" },
+        },
+        noOpVerification,
+      ),
+    ).rejects.toThrow(/same raw observation/u);
+
+    const legacy = { attempts: [applied()], outcome: "applied" as const };
+    expect(
+      parseClientToolResultMetadata({
+        mutationRecord: legacy,
+        canonicalMutationRecord: canonicalRecord(),
+      }),
+    ).toMatchObject({ mutationRecord: legacy });
+  });
+
+  test("rejects mismatched identity, canonical input and canonical output", async () => {
+    const record = canonicalRecord();
+    await expect(verify(record, { toolName: "removeArc" })).rejects.toThrow(
+      /issued call/u,
+    );
+    await expect(
+      verify(record, {
+        canonicalInput: { ...request.input, weight: 2 },
+      }),
+    ).rejects.toThrow(/input/u);
+    await expect(
+      verify(record, { canonicalOutput: { success: false } }),
+    ).rejects.toThrow(/output/u);
+    await expect(
+      verify({
+        ...record,
+        binding: { ...record.binding, documentId: "other" },
+      }),
+    ).rejects.toThrow(/incarnation/u);
+  });
+
+  test("does not turn applied:false with a changed document into a no-op", async () => {
+    const record = canonicalRecord();
+    const terminalOutput = { applied: false, reason: "Not applied." };
+    await expect(
+      verify(
+        {
+          ...record,
+          outcome: "no-op",
+          settlement: { status: "not-required" },
+          output: terminalOutput,
+        },
+        { canonicalOutput: terminalOutput },
+      ),
+    ).rejects.toThrow(/no-op outcome/u);
+    await expect(
+      verify(
+        { ...record, output: terminalOutput },
+        { canonicalOutput: terminalOutput },
+      ),
+    ).rejects.toThrow(/contradicts an applied outcome/u);
+  });
+
+  test("re-hashes observations, re-derives effects and refuses failed settlement as durable applied", async () => {
+    const record = canonicalRecord();
+    await expect(
+      verify({ ...record, post: { ...record.post!, sha256: "0".repeat(64) } }),
+    ).rejects.toThrow(/hash/u);
+    await expect(
+      verify({
+        ...record,
+        effects: { ...record.effects, created: [] },
+      }),
+    ).rejects.toThrow(/complete canonical diff/u);
+    await expect(
+      verify({
+        ...record,
+        settlement: {
+          status: "failed",
+          revisionId: "revision-2",
+          error: "Persistence failed",
+        },
+      }),
+    ).rejects.toThrow(/requires a settled/u);
   });
 });
 

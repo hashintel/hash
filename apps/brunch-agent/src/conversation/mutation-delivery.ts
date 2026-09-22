@@ -3,6 +3,7 @@ import {
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
   mutatePetrinetOutputSchema,
+  isConstructionMutationName,
   isMutatePetrinautNetToolName,
   type MutatePetrinetInput,
   parseClientToolResultMetadata,
@@ -10,6 +11,7 @@ import {
   type ConstructionMutationAttempt,
   type DefinitionObservation,
   reconcileMutationAttempts,
+  verifyCanonicalMutationRecord,
   verifyMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
@@ -172,6 +174,36 @@ export const verifyMutatePetrinetAttempts = async (input: {
   return verified;
 };
 
+const verifyCanonicalPetrinautDelivery = async (input: {
+  delivery: ReturnType<typeof parseBrowserResults>[number];
+  call: { toolCallId: string; toolName: string; input: unknown };
+  binding: BrowserBinding;
+  history: ReturnType<typeof clientToolHistoryFrom>;
+}): Promise<void> => {
+  const record = parseClientToolResultMetadata(
+    input.delivery.metadata,
+  )?.canonicalMutationRecord;
+  if (record === undefined)
+    throw new Error(
+      "The canonical mutation result requires a canonical mutation record.",
+    );
+  await verifyCanonicalMutationRecord({
+    record,
+    toolCallId: input.call.toolCallId,
+    toolName: input.call.toolName,
+    canonicalInput: input.call.input,
+    canonicalOutput: input.delivery.output,
+    binding: input.binding,
+  });
+  const earlier = input.history.results.filter(
+    (result) => result.toolCallId === input.call.toolCallId,
+  );
+  if (earlier.length > 1)
+    throw new Error(
+      "This browser call already has a result delivery; do not continue or reapply it.",
+    );
+};
+
 const verifyMutatePetrinetDelivery = async (input: {
   delivery: ReturnType<typeof parseBrowserResults>[number];
   call: {
@@ -259,6 +291,14 @@ export const verifyMutationResults = async (input: {
           history,
         });
         return;
+      }
+      if (isConstructionMutationName(call.toolName)) {
+        await verifyCanonicalPetrinautDelivery({
+          delivery,
+          call,
+          binding: input.binding,
+          history,
+        });
       }
       return;
     }),

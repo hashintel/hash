@@ -2,13 +2,13 @@
 
 Read this only when constructing, revising, or checking a net. Consume the current process-model workpiece; do not reread the transcript as the primary model.
 
-Construction translates recorded operational meaning into SDCPN structure. It may choose a representation, introduce a visibly named approximation, or report a loss. It may not invent operational facts to make the net complete.
+Construction translates recorded operational meaning into SDCPN structure. It may choose a representation, introduce a visibly named approximation, or report a loss. It may not invent operational facts to make the net complete unless the person explicitly authorizes purpose-bounded assumptions; label every authorized assumption rather than presenting it as elicited evidence.
 
 ## Construction boundary
 
 Before constructing a fragment, confirm that the workpiece states the model's purpose and supports an activity with an adjacent state or relationship. Check the flow, ordering, enabling conditions, resource use and quantities that determine that fragment's meaning. The whole process's admission, outcomes and exception paths need not yet be known.
 
-If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them.
+If a missing operational distinction would materially change this fragment, formulate the smallest resolving question. Ask it only when interactive elicitation is available; in construct-only execution, report it as the required re-entry and stop the unsupported path. Continue with independently supported fragments. Keep unresolved boundaries explicit; never invent a trigger, source, sink, release rule or numeric default to close them without explicit authorization to use sensible defaults, decide on the person's behalf, make up a suitable example, or equivalent. Any authorized default must remain purpose-bounded and labelled.
 
 When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition are the authority for payload fields and net state. Use the tools for every net change; do not emit free-form net JSON. When tools are absent, leave construction-ready notes and do not claim a loadable net.
 
@@ -31,56 +31,17 @@ A physical location becomes target structure only through its recorded operation
 
 ## Petrinaut tool sequence
 
-When `mutate_petrinaut_net` is mounted, names such as `addPlace` and `addArc` are operation types inside that tool's `operations` array, not separate tools. Use this sequence, waiting for each proposal's results before the next:
+Use the exact mounted schemas and wait for results before depending on them. In integrated canonical modes, call canonical Petrinaut tools directly; do not translate them into a legacy or invented batch envelope. The host owns immutable binding, protocol correlation, document-base checks, persistence, and record attachment. The model must not copy document hashes, workpiece revisions, observation call IDs, or Ledger locators into canonical tool inputs.
 
-1. Settle the supported account with one `mutate_workpiece` call that declares its evidence by literal text, and reuse the submitted Markdown with the returned `revisionId`, `sha256` and `evidence[]` locators; do not reread the body. Only when a basis needs a span that output did not return, call `read_workpiece` with `includeContent: false` and `locateTexts` against the settled revision. Complete required skill-resource reads here, before browser tools.
-2. Call only `read_petrinaut_net`. Copy `output.observation.toolCallId` and `output.observation.sha256` into the next batch's `observation`. Inspect `extensions` before authoring extension-specific content.
-3. Call only `mutate_petrinaut_net` with a bounded, ordered chunk for the next supported connected fragment. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Each operation has its own `operationId` and references an entry in `bases` by `basisId`. Several operations may share one supported basis.
-4. After code or code-dependency changes, call only `read_petrinaut_diagnostics`. Repeat a pending read until settled; repair reported errors from a fresh net observation. Structural acceptance is not compiler success.
-5. After adding or restructuring nodes, call only `layout_petrinaut_net` once diagnostics are settled. Use `askUserFirst: false` only if this conversation built the net from an empty canvas; otherwise request confirmation. Type/parameter/dynamics-only changes do not need layout.
-6. Read the net again before another mutation or a live explanation, and at delivery. A failed batch may have committed a prefix: inspect its outcomes and the current net, then submit only the needed repair and unattempted work against the new observation. Do not replay the whole batch.
+1. Settle the supported account with one `mutate_workpiece` call that declares its evidence by literal text. Wait for the result and reuse the submitted Markdown as the authoritative account for that settlement. Complete required skill-resource reads before browser tools.
+2. Call the mounted canonical definition-read tool before changes that depend on current structure. Inspect its `title`, complete definition, and `extensions` before authoring extension-specific content.
+3. Apply one bounded connected fragment with canonical mutation calls. Include only the types, parameters and differential equations that fragment needs, before their dependants; places and transitions before arcs. Dependency ordering applies within the fragment, not to a separate whole-model catalogue-building phase. Use stable IDs and the exact canonical input schemas.
+4. After code or code-dependency changes, call the canonical diagnostics tool. Repeat a pending read until settled; repair reported errors after inspecting current state. Structural acceptance is not compiler success.
+5. After adding or restructuring nodes, call canonical layout once diagnostics are settled. Use `askUserFirst: false` only if this conversation built the net from an empty canvas; otherwise request confirmation. Type/parameter/dynamics-only changes do not need layout.
+6. Read the net again before another state-dependent mutation or a live explanation, and at delivery. After a failed or no-op call, inspect its outcome and current state, then submit only the needed correction; do not replay already successful work.
+7. Use canonical hierarchy, scenarios, metrics, documentation, title, and experiment tools directly when the task requires them and the active extensions support them.
 
-If a different runtime mounts individual mutation tools instead, use those exact mounted schemas with the same dependency ordering and available checks. Do not translate the batch envelope into invented tool names.
-
-### Minimal batch example
-
-Illustrative values only: suppose the settled account says “Items wait until processing consumes them.” `mutate_workpiece` returned revision `workpiece-1`, hash `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb`, and span `[0,42)`. A subsequent browser read returned call `net-read-1` and hash `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`. The flat batch shape is:
-
-```json
-{
-  "observation": {
-    "toolCallId": "net-read-1",
-    "baseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-  },
-  "bases": [{
-    "basisId": "waiting",
-    "basis": {
-      "kind": "declared",
-      "revisionId": "workpiece-1",
-      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "locators": [{ "start": 0, "end": 42 }],
-      "rationale": "Represent the recorded waiting state and its processing handoff.",
-      "scope": "operation"
-    }
-  }],
-  "operations": [
-    {
-      "operationId": "waiting-place", "basisId": "waiting", "type": "addPlace",
-      "input": { "id": "waiting", "name": "Waiting", "colorId": null, "dynamicsEnabled": false, "differentialEquationId": null, "x": 0, "y": 0 }
-    },
-    {
-      "operationId": "processing-transition", "basisId": "waiting", "type": "addTransition",
-      "input": { "id": "process", "name": "Process", "inputArcs": [], "outputArcs": [], "lambdaType": "predicate", "lambdaCode": "", "transitionKernelCode": "", "x": 200, "y": 0 }
-    },
-    {
-      "operationId": "waiting-input", "basisId": "waiting", "type": "addArc",
-      "input": { "transitionId": "process", "arcDirection": "input", "placeId": "waiting", "weight": 1, "type": "standard" }
-    }
-  ]
-}
-```
-
-Use actual returned IDs, hashes and locators in live calls, and an account that supports every operation; this shape example supplies no operational evidence or initial marking.
+Keep browser calls separate from server tools when the host requires separate proposals. Several canonical browser calls may share a proposal only when the runtime permits it and no sibling depends on an unreturned result. Host-owned correlation is not a modelling input and must never be guessed.
 
 ### Keep incidental choices small
 

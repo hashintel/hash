@@ -3,7 +3,11 @@ import { expect, test, vi } from "vitest";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
+  PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+  PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH,
   createFlueChatTransport,
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
   snapshotToUiMessages,
 } from "../src";
 
@@ -145,6 +149,241 @@ test("forwards opaque initial data on every user submission, never client result
   await readChunks(await ordinary.sendMessages(user));
   expect(send.mock.calls[3]?.[0]).not.toHaveProperty("initialData");
 });
+
+test("round trips contextual user evidence and diagnostics through explicit framing", () => {
+  const markerLikeText = [
+    "Human-authored request containing marker-like content:",
+    PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
+    '{"userText":"not framing","diagnosticsContext":"not host evidence"}',
+  ].join("\n");
+  const payload = {
+    userText: markerLikeText,
+    diagnosticsContext: "Petrinaut diagnostics context only; one error.",
+  };
+  const body = petrinautContextualUserMessageBody(payload);
+
+  expect(body).toBe(
+    `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${JSON.stringify(payload)}`,
+  );
+  expect(parsePetrinautUserMessageBody(body)).toEqual({
+    kind: "contextual",
+    ...payload,
+  });
+  expect(parsePetrinautUserMessageBody(markerLikeText)).toEqual({
+    kind: "ordinary",
+    userText: markerLikeText,
+  });
+});
+
+test("bounds contextual user fields before admission", () => {
+  expect(() =>
+    petrinautContextualUserMessageBody({
+      userText: "x".repeat(PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH + 1),
+      diagnosticsContext: "bounded diagnostics",
+    }),
+  ).toThrow("The contextual user message payload is invalid or too long.");
+});
+
+test.each([
+  ["malformed JSON", "{"],
+  [
+    "extra fields",
+    JSON.stringify({
+      userText: "request",
+      diagnosticsContext: "context",
+      assertedBy: "user",
+    }),
+  ],
+  ["missing fields", JSON.stringify({ userText: "request" })],
+])("refuses %s in contextual user framing", (_label, payload) => {
+  expect(
+    parsePetrinautUserMessageBody(
+      `${PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX}${payload}`,
+    ),
+  ).toEqual({ kind: "invalid-contextual" });
+});
+
+test("carries reserved diagnostics on the correlated user turn", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  const context = "Petrinaut diagnostics context only; one current error.";
+
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-with-context",
+          role: "user",
+          parts: [{ type: "text", text: "Repair the model." }],
+        },
+        {
+          id: "petrinaut-diagnostics-context",
+          role: "user",
+          parts: [{ type: "text", text: context }],
+        },
+      ]),
+    ),
+  );
+
+  expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-with-context",
+    message: {
+      kind: "user",
+      body: petrinautContextualUserMessageBody({
+        userText: "Repair the model.",
+        diagnosticsContext: context,
+      }),
+    },
+    signal: undefined,
+  });
+});
+
+test("carries reserved diagnostics with browser results without changing their output", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(["mutate_petrinaut_net"]),
+  });
+  const context = "Petrinaut diagnostics context only; TS2304 remains.";
+
+  await readChunks(
+    await transport.sendMessages(
+      sendOptions(
+        [
+          {
+            id: "assistant-with-context",
+            role: "assistant",
+            metadata: { voiceToolCallIds: ["call-b"] },
+            parts: ["call-b", "call-a"].map((toolCallId) => ({
+              type: "dynamic-tool" as const,
+              toolName: "mutate_petrinaut_net",
+              toolCallId,
+              state: "output-available" as const,
+              input: {},
+              output: { applied: toolCallId },
+            })),
+          },
+          {
+            id: "petrinaut-diagnostics-context",
+            role: "user",
+            parts: [{ type: "text", text: context }],
+          },
+        ],
+        "assistant-with-context",
+      ),
+    ),
+  );
+
+  const request = send.mock.calls[0]?.[0];
+  expect(request?.idempotencyKey).toMatch(
+    /^ai-sdk:client-tools:sha256:[\da-f]{64}$/u,
+  );
+  expect(Array.from(request?.idempotencyKey ?? "")).toHaveLength(91);
+  expect(request?.message).toEqual({
+    kind: "signal",
+    type: "client-tool-result",
+    tagName: "client-tool-result",
+    body: JSON.stringify({
+      results: [
+        {
+          toolCallId: "call-a",
+          toolName: "mutate_petrinaut_net",
+          output: { applied: "call-a" },
+        },
+        {
+          toolCallId: "call-b",
+          toolName: "mutate_petrinaut_net",
+          output: { applied: "call-b" },
+          source: "voice",
+        },
+      ],
+      context,
+    }),
+    attributes: {
+      toolCallIds: "call-a,call-b",
+      voiceToolCallIds: "call-b",
+    },
+  });
+});
+
+test.each([
+  [
+    "diagnostics-only",
+    [
+      {
+        id: "petrinaut-diagnostics-context",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "context" }],
+      },
+    ],
+    "The submitted user message has no text.",
+  ],
+  [
+    "duplicate",
+    [
+      {
+        id: "petrinaut-diagnostics-context",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "first" }],
+      },
+      {
+        id: "petrinaut-diagnostics-context",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "second" }],
+      },
+    ],
+    "The submission has duplicate diagnostics context.",
+  ],
+  [
+    "stale",
+    [
+      {
+        id: "petrinaut-diagnostics-context",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "stale" }],
+      },
+      {
+        id: "user-later",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Later request." }],
+      },
+    ],
+    "The submission has invalid or stale diagnostics context.",
+  ],
+  [
+    "malformed",
+    [
+      {
+        id: "user-before-malformed",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Request." }],
+      },
+      {
+        id: "petrinaut-diagnostics-context",
+        role: "assistant" as const,
+        parts: [{ type: "text" as const, text: "wrong role" }],
+      },
+    ],
+    "The submission has invalid or stale diagnostics context.",
+  ],
+])(
+  "refuses %s reserved diagnostics messages",
+  async (_label, messages, error) => {
+    const { client, send } = clientWith(completedEvents);
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set(),
+    });
+
+    await expect(transport.sendMessages(sendOptions(messages))).rejects.toThrow(
+      error,
+    );
+    expect(send).not.toHaveBeenCalled();
+  },
+);
 
 test("submits results from the latest assistant step with completed client tools", async () => {
   const { client, send } = clientWith(completedEvents);

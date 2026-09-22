@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 import { describe, expect, test, vi } from "vitest";
 
 import { mutationActionInputSchemas } from "@hashintel/petrinaut-core";
@@ -109,21 +107,6 @@ const requiredOf = (schema: Record<string, unknown>): string[] =>
     : [];
 
 describe("mutate_petrinet tool", () => {
-  test("the construction resource's batch example is an accepted payload", () => {
-    const resource = readFileSync(
-      new URL(
-        "../src/skills/sdcpn-modelling/references/pn-construction.md",
-        import.meta.url,
-      ),
-      "utf8",
-    );
-    const example = /```json\n([\s\S]*?)\n```/u.exec(resource)?.[1];
-    if (!example) throw new Error("Missing batch example");
-    expect(() =>
-      mutatePetrinetInputSchema.parse(JSON.parse(example)),
-    ).not.toThrow();
-  });
-
   test("admits the provisional 30-operation boundary and refuses 31", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
@@ -144,7 +127,7 @@ describe("mutate_petrinet tool", () => {
     ).toThrow(/30|too big|maximum/iu);
   });
 
-  test("admits only unique root operations with declared bases", () => {
+  test("accepts the typed fixture and admits only unique root operations with declared bases", () => {
     const firstOperation = input.operations[0];
     if (!firstOperation) throw new Error("Missing test operation");
     expect(mutatePetrinetInputSchema.parse(input)).toEqual(input);

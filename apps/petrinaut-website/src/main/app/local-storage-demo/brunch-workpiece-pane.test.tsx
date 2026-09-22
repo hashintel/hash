@@ -260,6 +260,79 @@ test("folds unique validated settlement identities without treating queries as a
   expect(history.report?.source).toBe("query");
 });
 
+test("folds a correlated canonical mutation sidecar into Ledger activity", () => {
+  const input = { id: "queue" };
+  const canonicalOutput = { applied: true };
+  const call = {
+    role: "assistant",
+    purpose: "assistant",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "addPlace",
+        toolCallId: "canonical-call",
+        state: "output-available",
+        input,
+        output: { disposition: "awaiting-client" },
+      },
+    ],
+  };
+  const result = {
+    role: "system",
+    purpose: "dispatch",
+    signal: { tagName: "client-tool-result" },
+    parts: [
+      {
+        type: "text",
+        text: JSON.stringify([
+          {
+            toolCallId: "canonical-call",
+            toolName: "addPlace",
+            output: canonicalOutput,
+            metadata: {
+              canonicalMutationRecord: {
+                toolCallId: "canonical-call",
+                toolName: "addPlace",
+                binding,
+                input,
+                pre: { definition: {}, sha256: "a".repeat(64) },
+                post: { definition: {}, sha256: "a".repeat(64) },
+                outcome: "no-op",
+                effects: {
+                  created: [],
+                  updated: [],
+                  deleted: [],
+                  derived: [],
+                },
+                settlement: { status: "not-required" },
+                diagnostics: { status: "not-required" },
+                output: canonicalOutput,
+              },
+            },
+          },
+        ]),
+      },
+    ],
+  };
+
+  expect(
+    foldBrunchWorkpieceHistory([call, result], binding).activityIdentities,
+  ).toEqual(["canonical-call"]);
+  const malformed = structuredClone(result);
+  const text = malformed.parts[0];
+  if (text?.type !== "text") throw new Error("Missing result fixture");
+  const deliveries = JSON.parse(text.text) as Record<string, unknown>[];
+  const delivery = deliveries[0];
+  if (!delivery) throw new Error("Missing result delivery");
+  delivery.metadata = {
+    canonicalMutationRecord: { toolCallId: "canonical-call" },
+  };
+  text.text = JSON.stringify(deliveries);
+  expect(
+    foldBrunchWorkpieceHistory([call, malformed], binding).activityIdentities,
+  ).toEqual([]);
+});
+
 test("does not count unbound settlement pointers as activity", () => {
   const history = foldBrunchWorkpieceHistory(
     [settlementMessage("pointer-only", "# Unbound", "other-call")],

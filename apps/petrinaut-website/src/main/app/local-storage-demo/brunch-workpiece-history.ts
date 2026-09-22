@@ -1,4 +1,8 @@
-import { canonicalContent } from "@hashintel/brunch-agent-plugin-sdcpn";
+import {
+  canonicalContent,
+  parseClientToolResultMetadata,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -15,6 +19,7 @@ export type BrunchWorkpieceHistoryMessage = {
   readonly role: string;
   readonly purpose: string;
   readonly parts: readonly unknown[];
+  readonly signal?: unknown;
 };
 
 export type BrunchWorkpieceHistory = {
@@ -52,6 +57,15 @@ export const foldBrunchWorkpieceHistory = (
   let whyPredatesSettlement = false;
   let stateChangedSinceReport = false;
   const activityIdentities = new Set<string>();
+  let clientToolResults: ReturnType<typeof clientToolHistoryFrom>["results"] =
+    [];
+  try {
+    clientToolResults = clientToolHistoryFrom(
+      messages as unknown as Parameters<typeof clientToolHistoryFrom>[0],
+    ).results;
+  } catch {
+    // Malformed or legacy dispatch messages are not repaired into activity.
+  }
 
   for (const message of messages) {
     if (message.role !== "assistant" || message.purpose !== "assistant") {
@@ -66,6 +80,28 @@ export const foldBrunchWorkpieceHistory = (
         typeof part.toolName !== "string"
       ) {
         continue;
+      }
+      const deliveries = clientToolResults.filter(
+        ({ toolCallId }) => toolCallId === part.toolCallId,
+      );
+      const delivery = deliveries[0];
+      const canonicalMutationRecord = parseClientToolResultMetadata(
+        delivery?.metadata,
+      )?.canonicalMutationRecord;
+      if (
+        deliveries.length === 1 &&
+        delivery !== undefined &&
+        canonicalMutationRecord !== undefined &&
+        canonicalMutationRecord.toolCallId === part.toolCallId &&
+        canonicalMutationRecord.toolName === part.toolName &&
+        canonicalContent(canonicalMutationRecord.binding) ===
+          canonicalContent(binding) &&
+        canonicalContent(canonicalMutationRecord.input) ===
+          canonicalContent(part.input) &&
+        canonicalContent(canonicalMutationRecord.output) ===
+          canonicalContent(delivery.output)
+      ) {
+        activityIdentities.add(part.toolCallId);
       }
       if (workpieceMutationToolNames.has(part.toolName)) {
         if (

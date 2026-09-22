@@ -3,6 +3,9 @@ import type { DeliveredMessage } from "@flue/sdk";
 /** Signal type and tag under which completed browser results return to the agent. */
 export const CLIENT_TOOL_RESULT_SIGNAL = "client-tool-result";
 
+/** Keep transient model context comfortably below Flue's delivered-message limit. */
+export const CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH = 32_000;
+
 /** One browser-executed tool result as delivered back to the agent. */
 export interface ClientToolResult {
   readonly toolCallId: string;
@@ -32,38 +35,72 @@ export const isClientToolResult = (value: unknown): value is ClientToolResult =>
 export type ClientToolResultParseIssue =
   | { readonly kind: "invalid-json" }
   | { readonly kind: "not-array" }
+  | { readonly kind: "invalid-context" }
   | {
       readonly kind: "dropped-members";
       readonly dropped: number;
       readonly total: number;
     };
 
-/** Parse a delivered signal body; malformed bodies and members are dropped, never repaired. */
-export const parseClientToolResults = (
+export interface ClientToolResultPayload {
+  readonly results: readonly ClientToolResult[];
+  /** Transient context correlated with this result batch, not canonical tool output. */
+  readonly context?: string;
+}
+
+const isBoundedContext = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length > 0 &&
+  Array.from(value).length <= CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH;
+
+/** Parse a delivered signal body, including its optional correlated context. */
+export const parseClientToolResultPayload = (
   body: string,
   onIssue?: (issue: ClientToolResultParseIssue) => void,
-): readonly ClientToolResult[] => {
+): ClientToolResultPayload => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(body);
   } catch {
     onIssue?.({ kind: "invalid-json" });
-    return [];
+    return { results: [] };
   }
-  if (!Array.isArray(parsed)) {
-    onIssue?.({ kind: "not-array" });
-    return [];
+
+  let members: unknown[];
+  let context: string | undefined;
+  if (Array.isArray(parsed)) {
+    members = parsed;
+  } else {
+    const envelope = isRecord(parsed) ? parsed : null;
+    if (!Array.isArray(envelope?.results)) {
+      onIssue?.({ kind: "not-array" });
+      return { results: [] };
+    }
+    if (!isBoundedContext(envelope.context)) {
+      onIssue?.({ kind: "invalid-context" });
+      return { results: [] };
+    }
+    members = envelope.results;
+    context = envelope.context;
   }
-  const results = parsed.filter(isClientToolResult);
-  if (results.length !== parsed.length) {
+
+  const results = members.filter(isClientToolResult);
+  if (results.length !== members.length) {
     onIssue?.({
       kind: "dropped-members",
-      dropped: parsed.length - results.length,
-      total: parsed.length,
+      dropped: members.length - results.length,
+      total: members.length,
     });
   }
-  return results;
+  return { results, ...(context === undefined ? {} : { context }) };
 };
+
+/** Parse results from either the original array wire shape or a contextual envelope. */
+export const parseClientToolResults = (
+  body: string,
+  onIssue?: (issue: ClientToolResultParseIssue) => void,
+): readonly ClientToolResult[] =>
+  parseClientToolResultPayload(body, onIssue).results;
 
 /** Require the protocol's machine identity and its model-visible rendering tag. */
 export const isClientToolResultDelivery = (
@@ -76,7 +113,11 @@ export const isClientToolResultDelivery = (
 /** The signal that carries completed client-tool results back into the conversation. */
 export const clientToolResultSignal = (
   results: readonly ClientToolResult[],
+  context?: string,
 ): Extract<DeliveredMessage, { kind: "signal" }> => {
+  if (context !== undefined && !isBoundedContext(context)) {
+    throw new Error("The client-tool result context is invalid or too long.");
+  }
   const voiceToolCallIds = results
     .filter(({ source }) => source === "voice")
     .map(({ toolCallId }) => toolCallId);
@@ -84,7 +125,9 @@ export const clientToolResultSignal = (
     kind: "signal",
     type: CLIENT_TOOL_RESULT_SIGNAL,
     tagName: CLIENT_TOOL_RESULT_SIGNAL,
-    body: JSON.stringify(results),
+    body: JSON.stringify(
+      context === undefined ? results : { results, context },
+    ),
     attributes: {
       toolCallIds: results.map((result) => result.toolCallId).join(","),
       ...(voiceToolCallIds.length > 0

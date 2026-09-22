@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
+
 const mounting = vi.hoisted(() => ({
   initialData: undefined as unknown,
   instructions: [] as string[],
@@ -19,7 +21,10 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
 }));
 
 import {
-  CANONICAL_PETRINAUT_TOOLS_MODE,
+  BRUNCH_DECLARED_PROJECTION_MODE,
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
+  INTEGRATED_BRUNCH_MODE,
+  STOCK_OVER_FLUE_MODE,
   batchedConstructionMode,
   canonicalPetrinautTools,
   readPetrinautDocs,
@@ -27,12 +32,10 @@ import {
 } from "../src/flue";
 import { sdcpnModellingSkill } from "../src/skills/sdcpn-modelling/skill";
 
-const legacyAppend = readFileSync(
+const pluginAppend = readFileSync(
   new URL("../src/prompts/APPEND_SYSTEM.md", import.meta.url),
   "utf8",
 ).trim();
-const surpriseMeRequest =
-  "Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).";
 
 beforeEach(() => {
   mounting.initialData = undefined;
@@ -42,40 +45,38 @@ beforeEach(() => {
 });
 
 describe("SDCPN prompt and tool mounting", () => {
-  test("canonical parity mode scopes Surprise me authorization without duplicating the agent prompt", () => {
-    mounting.initialData = { mode: CANONICAL_PETRINAUT_TOOLS_MODE };
+  test("Stock-over-Flue mounts the canonical catalogue without plugin prompt or skill contributions", () => {
+    mounting.initialData = { mode: STOCK_OVER_FLUE_MODE };
 
     useSdcpnPlugin();
 
-    expect(mounting.instructions).toHaveLength(1);
-    expect(mounting.instructions).not.toContain(legacyAppend);
-    expect(mounting.skills).not.toContain(sdcpnModellingSkill);
+    expect(mounting.instructions).toEqual([]);
+    expect(mounting.skills).toEqual([]);
     expect(mounting.tools).toEqual(canonicalPetrinautTools);
-
-    const authorization = mounting.instructions[0];
-    expect(authorization).toContain("`Surprise me`");
-    expect(authorization).toContain(`\`${surpriseMeRequest}\``);
-    expect(authorization).toMatch(/equivalent request/u);
-    expect(authorization).toMatch(/choose a novel domain/u);
-    expect(authorization).toMatch(
-      /assistant-selected assumptions and defaults/u,
-    );
-    expect(authorization).toMatch(/build the preview immediately/u);
-    expect(authorization).toMatch(
-      /Do not interview, wait for answers, or seek assent/u,
-    );
-    expect(authorization).toMatch(
-      /visualizers, scenarios and metrics, hierarchy/u,
-    );
-    expect(authorization).toMatch(
-      /supported by the document's active extensions/u,
-    );
-    expect(authorization).toMatch(
-      /Never claim that an unsupported or disabled capability was used/u,
-    );
   });
 
-  test("the older batched mode retains its plugin append, skill, and construction choreography", () => {
+  test.each([
+    INTEGRATED_BRUNCH_MODE,
+    BRUNCH_DECLARED_PROJECTION_MODE,
+    BRUNCH_DEEP_CONSTRUCTION_MODE,
+  ])(
+    "%s inherits the integrated prompt, skill, guidance, and canonical catalogue",
+    (mode) => {
+      mounting.initialData = { mode };
+
+      useSdcpnPlugin();
+
+      expect(mounting.instructions).toEqual([
+        pluginAppend,
+        petrinautAiCapabilityGuidance,
+      ]);
+      expect(mounting.skills).toEqual([sdcpnModellingSkill]);
+      expect(mounting.tools).toEqual(canonicalPetrinautTools);
+      expect(mounting.tools).not.toContain(readPetrinautDocs);
+    },
+  );
+
+  test("the retained batched mode keeps its plugin append, skill, and custom choreography", () => {
     mounting.initialData = {
       mode: batchedConstructionMode,
       construction: {
@@ -93,13 +94,11 @@ describe("SDCPN prompt and tool mounting", () => {
       observationFor: async () => undefined as never,
     });
 
-    expect(mounting.instructions[0]).toBe(legacyAppend);
+    expect(mounting.instructions[0]).toBe(pluginAppend);
     expect(mounting.skills).toContain(sdcpnModellingSkill);
     expect(mounting.tools).toContain(readPetrinautDocs);
-    const legacyInstructions = mounting.instructions.join("\n");
-    expect(legacyInstructions).toContain(
+    expect(mounting.instructions.join("\n")).toContain(
       "Construction uses strictly separate proposals.",
     );
-    expect(legacyInstructions).not.toContain(surpriseMeRequest);
   });
 });

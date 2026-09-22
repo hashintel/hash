@@ -6,7 +6,12 @@ import {
   deriveMutationEffects,
   expectedNodeDefinition,
 } from "../src/mutation-record";
-import { assertNodeIdentity, locateRootNode } from "../src/root-node";
+import {
+  assertNodeIdentity,
+  locateRootNode,
+  parseConstructionWhyInput,
+  queryWorkpieceInputSchema,
+} from "../src/root-node";
 import {
   constructionRequest as request,
   emptyDefinition as empty,
@@ -33,6 +38,37 @@ const transition = {
   x: 100,
   y: 0,
 } satisfies SDCPN["transitions"][number];
+
+describe("query workpiece input", () => {
+  test("keeps protocol correlation host-owned while retaining legacy parsing", () => {
+    const selector = {
+      kind: "place" as const,
+      name: "Waiting",
+      observationToolCallId: "legacy-read-call",
+    };
+
+    expect(
+      queryWorkpieceInputSchema(true).safeParse({
+        selector: { kind: "place", name: "Waiting" },
+      }).success,
+    ).toBe(true);
+    expect(
+      queryWorkpieceInputSchema(true).safeParse({ selector }).success,
+    ).toBe(false);
+    expect(parseConstructionWhyInput(selector).observationToolCallId).toBe(
+      "legacy-read-call",
+    );
+    const modelSchema = JSON.stringify(
+      queryWorkpieceInputSchema(true)["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    expect(modelSchema).not.toContain("observationToolCallId");
+    expect(modelSchema).not.toMatch(/baseHash|sha256/u);
+    expect(modelSchema).not.toContain("read_petrinaut_net");
+    expect(modelSchema).toContain("current mounted Petrinaut definition read");
+  });
+});
 
 describe("native root node construction", () => {
   test("refuses existing, cross-class, retired, unknown and ambiguous identities", () => {
