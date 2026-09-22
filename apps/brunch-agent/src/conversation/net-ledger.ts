@@ -315,7 +315,8 @@ export const deriveNetLedger = async (
         if (currentRevision === undefined) continue;
         try {
           pendingDeclaration = {
-            output: verifyDeclaredProjectionOutput({
+            // eslint-disable-next-line no-await-in-loop -- Declaration authority is folded in canonical history order.
+            output: await verifyDeclaredProjectionOutput({
               issuedInput: call.input,
               recordedOutput: call.output,
               currentRevision,

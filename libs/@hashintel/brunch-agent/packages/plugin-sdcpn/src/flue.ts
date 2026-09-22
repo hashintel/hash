@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+
 import {
+  defineTool,
   useInitialData,
   useInstruction,
   useSkill,
@@ -22,8 +25,10 @@ import {
   readPetrinautNetToolName,
 } from "./construction-tool-names";
 import {
-  createDeclarePetrinautProjectionTool,
   declarePetrinautProjectionToolName,
+  declaredProjectionInputSchema,
+  declaredProjectionOutputSchema,
+  resolveDeclaredProjectionOutput,
 } from "./declared-basis";
 import { batchedConstructionMode } from "./mutate-petrinet";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
@@ -98,6 +103,35 @@ export type BrowserContext = NonNullable<
   SdcpnInitialDataFields["construction"]
 >;
 
+const createDeclarePetrinautProjectionTool = (
+  currentRevision: WorkpieceAuthorityOptions["currentRevision"],
+) =>
+  defineTool({
+    name: declarePetrinautProjectionToolName,
+    description:
+      "Declare one bounded intended Petrinaut projection before direct canonical mutation calls. The host binds it to the current settled Ledger and resolves any exact excerpts. This records intent only: it neither executes operations nor reports their effects.",
+    input: declaredProjectionInputSchema,
+    output: declaredProjectionOutputSchema,
+    run({ data }) {
+      if (!currentRevision)
+        throw new Error(
+          "Settle a current Ledger revision before declaring a projection.",
+        );
+      if (
+        createHash("sha256")
+          .update(currentRevision.markdown, "utf8")
+          .digest("hex") !== currentRevision.sha256
+      )
+        throw new Error(
+          "Current Ledger revision hash does not match its content.",
+        );
+      return {
+        output: resolveDeclaredProjectionOutput(data, currentRevision),
+        terminate: false,
+      };
+    },
+  });
+
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
 export function useSdcpnPlugin(
   options?: WorkpieceAuthorityOptions &
@@ -170,7 +204,11 @@ export {
   readPetrinautDocs,
   readPetrinautNetToolName,
 };
-export { declarePetrinautProjectionToolName, SDCPN_MODELLING_SKILL_NAME };
+export {
+  createDeclarePetrinautProjectionTool,
+  declarePetrinautProjectionToolName,
+  SDCPN_MODELLING_SKILL_NAME,
+};
 export {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalPetrinautTools,

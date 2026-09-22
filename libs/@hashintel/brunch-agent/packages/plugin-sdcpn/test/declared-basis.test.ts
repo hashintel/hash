@@ -3,11 +3,11 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
 
 import {
-  createDeclarePetrinautProjectionTool,
   declaredProjectionInputSchema,
   validateDeclaredBasis,
   verifyDeclaredProjectionOutput,
 } from "../src/declared-basis";
+import { createDeclarePetrinautProjectionTool } from "../src/flue";
 
 import type { WorkpieceRevision } from "@hashintel/brunch-agent/workpiece";
 
@@ -100,14 +100,14 @@ describe("declared projection", () => {
 
   test("recomputes a recorded result from issued semantics and host state", async () => {
     const recordedOutput = (await runDeclaration(current, projection)).output;
-    expect(
+    await expect(
       verifyDeclaredProjectionOutput({
         issuedInput: projection,
         recordedOutput,
         currentRevision: current,
       }),
-    ).toEqual(recordedOutput);
-    expect(() =>
+    ).resolves.toEqual(recordedOutput);
+    await expect(
       verifyDeclaredProjectionOutput({
         issuedInput: projection,
         recordedOutput: {
@@ -121,7 +121,7 @@ describe("declared projection", () => {
         },
         currentRevision: current,
       }),
-    ).toThrow(/does not match/iu);
+    ).rejects.toThrow(/does not match/iu);
   });
 
   test("requires a current settled revision and permits intent without an excerpt", () => {

@@ -1,7 +1,3 @@
-import { createHash } from "node:crypto";
-import { isDeepStrictEqual } from "node:util";
-
-import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 import { z } from "zod";
 
@@ -251,7 +247,7 @@ const resolveUniqueExcerpt = (markdown: string, excerpt: string) => {
   return { start, end: start + excerpt.length };
 };
 
-const resolvedProjection = (
+export const resolveDeclaredProjectionOutput = (
   input: DeclaredProjectionInput,
   currentRevision: WorkpieceRevision,
 ): DeclaredProjectionOutput => ({
@@ -281,59 +277,58 @@ const resolvedProjection = (
   })),
 });
 
+const canonicalJson = (value: unknown): string => {
+  const normalize = (entry: unknown): unknown => {
+    if (Array.isArray(entry)) return entry.map(normalize);
+    if (typeof entry === "object" && entry !== null) {
+      const record = entry as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.keys(record)
+          .sort()
+          .map((key) => [key, normalize(record[key])]),
+      );
+    }
+    return entry;
+  };
+  return JSON.stringify(normalize(value));
+};
+
+const sha256Text = async (value: string): Promise<string> => {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+};
+
 /** Re-derive and verify a recorded declaration from its issued semantics and then-current settled Ledger. */
-export const verifyDeclaredProjectionOutput = (input: {
+export const verifyDeclaredProjectionOutput = async (input: {
   issuedInput: unknown;
   recordedOutput: unknown;
   currentRevision: WorkpieceRevision;
-}): DeclaredProjectionOutput => {
+}): Promise<DeclaredProjectionOutput> => {
   const issuedInput = declaredProjectionInputSchema.parse(input.issuedInput);
   const recordedOutput = v.parse(
     declaredProjectionOutputSchema,
     input.recordedOutput,
   );
-  const currentSha256 = createHash("sha256")
-    .update(input.currentRevision.markdown, "utf8")
-    .digest("hex");
-  if (currentSha256 !== input.currentRevision.sha256)
+  if (
+    (await sha256Text(input.currentRevision.markdown)) !==
+    input.currentRevision.sha256
+  )
     throw new Error("Current Ledger revision hash does not match its content.");
-  const expected = resolvedProjection(issuedInput, input.currentRevision);
-  if (!isDeepStrictEqual(recordedOutput, expected))
+  const expected = resolveDeclaredProjectionOutput(
+    issuedInput,
+    input.currentRevision,
+  );
+  if (canonicalJson(recordedOutput) !== canonicalJson(expected))
     throw new Error(
       "Recorded Petrinaut projection does not match its issued semantics and current Ledger revision.",
     );
   return recordedOutput;
 };
-
-/** Server-owned declaration: records bounded intent and resolves current Ledger evidence, but executes and observes nothing. */
-export const createDeclarePetrinautProjectionTool = (
-  currentRevision: WorkpieceRevision | null,
-) =>
-  defineTool({
-    name: declarePetrinautProjectionToolName,
-    description:
-      "Declare one bounded intended Petrinaut projection before direct canonical mutation calls. The host binds it to the current settled Ledger and resolves any exact excerpts. This records intent only: it neither executes operations nor reports their effects.",
-    input: declaredProjectionInputSchema,
-    output: declaredProjectionOutputSchema,
-    run({ data }) {
-      if (!currentRevision)
-        throw new Error(
-          "Settle a current Ledger revision before declaring a projection.",
-        );
-      const currentSha256 = createHash("sha256")
-        .update(currentRevision.markdown, "utf8")
-        .digest("hex");
-      if (currentSha256 !== currentRevision.sha256)
-        throw new Error(
-          "Current Ledger revision hash does not match its content.",
-        );
-
-      return {
-        output: resolvedProjection(data, currentRevision),
-        terminate: false,
-      };
-    },
-  });
 
 /** Current state is authoritative; history is used only to resolve an explicit older citation. */
 export const validateDeclaredBasis = async (

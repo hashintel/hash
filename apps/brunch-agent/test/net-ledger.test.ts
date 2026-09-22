@@ -4,7 +4,6 @@ import { describe, expect, test } from "vitest";
 
 import {
   applyPetrinautConstructionToolName,
-  createDeclarePetrinautProjectionTool,
   declarePetrinautProjectionToolName,
   layoutPetrinautNetToolName,
   deriveMutationEffects,
@@ -16,6 +15,7 @@ import {
   type ConstructionMutationName,
   type ConstructionMutationRequest,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
+import { createDeclarePetrinautProjectionTool } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createExperimentToolName,

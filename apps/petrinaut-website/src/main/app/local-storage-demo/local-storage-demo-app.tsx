@@ -23,7 +23,7 @@ import {
 import {
   applyPetrinautConstructionToolName,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
