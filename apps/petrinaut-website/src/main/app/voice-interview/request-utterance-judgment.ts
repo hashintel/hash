@@ -5,8 +5,8 @@ import type {
   UtteranceJudgmentState,
 } from "../../../shared/live-utterance-judgment";
 
-/** Provisional measurement bound, not an admission timer. Tune only after real traces. */
-const utteranceJudgmentTimeoutMs = 1_000;
+/** Log-only measurement window for the latency tail, not an enforcement deadline. */
+const utteranceJudgmentTimeoutMs = 10_000;
 
 /** One request, no retry. Failure affects the diagnostic only, never Brunch. */
 export const createUtteranceJudgmentRequester =
