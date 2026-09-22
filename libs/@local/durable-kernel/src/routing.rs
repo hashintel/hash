@@ -1,10 +1,7 @@
-//! Validates shard IDs in the fixed range `0..256`.
+//! One-byte shard IDs for routing-v1.
 //!
-//! [`Shard`] checks numeric IDs and [`shard_path`] formats them for storage paths. Application
-//! domains route partition keys through [`crate::domain::shard_of`].
-
-pub const SHARD_COUNT: core::num::NonZeroU16 =
-    core::num::NonZeroU16::new(256).expect("shard count should be nonzero");
+//! Each namespace has 256 shard addresses, and a process can own any subset.
+//! [`crate::domain::shard_of`] assigns a shard to each partition key.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Shard(u8);
@@ -15,7 +12,6 @@ impl Shard {
         self.0
     }
 
-    /// Every `u8` is a valid shard because the routing range is exactly `0..256`.
     #[must_use]
     pub const fn from_u8(value: u8) -> Self {
         Self(value)
@@ -34,7 +30,7 @@ impl TryFrom<u16> for Shard {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-#[display("shard {value} is outside routing-v1 range 0..{SHARD_COUNT}")]
+#[display("shard {value} does not fit in a routing-v1 one-byte ID")]
 pub struct InvalidShard {
     pub value: u16,
 }
