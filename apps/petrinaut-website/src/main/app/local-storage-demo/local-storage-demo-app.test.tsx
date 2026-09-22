@@ -20,16 +20,14 @@ import {
 } from "vitest";
 
 import {
-  parseClientToolResultMetadata,
-  verifyCanonicalMutationRecord,
-} from "@hashintel/brunch-agent-plugin-sdcpn";
-import {
   applyPetrinautConstructionToolName,
   BRUNCH_DECLARED_PROJECTION_MODE,
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+  parseClientToolResultMetadata,
+  verifyCanonicalMutationRecord,
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { BRUNCH_DOCUMENT_REVISION_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";

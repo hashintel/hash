@@ -5,7 +5,7 @@ import {
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
-} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+} from "@hashintel/brunch-agent-plugin-sdcpn";
 
 import {
   createBrunchPreviewConversationId,

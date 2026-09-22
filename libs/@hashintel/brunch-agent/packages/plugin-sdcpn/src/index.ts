@@ -60,7 +60,16 @@ export {
   type ObservedArcMutationName,
   type RootArcWhyInput,
 } from "./root-arc";
-export { CANONICAL_PETRINAUT_TOOLS_MODE } from "./construction-mode";
+export {
+  BRUNCH_DECLARED_PROJECTION_MODE,
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
+  CANONICAL_PETRINAUT_TOOLS_MODE,
+  INTEGRATED_BRUNCH_MODE,
+  STOCK_OVER_FLUE_MODE,
+  isIntegratedPetrinautMode,
+  type CanonicalPetrinautMode,
+  type IntegratedPetrinautMode,
+} from "./construction-mode";
 export {
   isLayoutPetrinautNetToolName,
   isReadPetrinautDocsToolName,
@@ -90,7 +99,6 @@ export {
   type MutatePetrinetOutput,
 } from "./mutate-petrinet";
 export {
-  createDeclarePetrinautProjectionTool,
   declarePetrinautProjectionToolName,
   declaredProjectionInputSchema,
   declaredProjectionOutputSchema,
