@@ -1,6 +1,6 @@
 # Petrinaut tooling remediation replan
 
-**Status:** proposed branch planning authority for `ln/pn-tooling-remediation`; implementation remains paused pending owner acceptance of this text.
+**Status:** accepted branch planning authority for `ln/pn-tooling-remediation`; implementation remains paused pending owner acceptance of the final topology amendments below.
 
 **Imperative:** Restore Brunch as the product assistant over Petrinaut’s complete canonical capability surface, preserve invocable controls that isolate transport and prompt-architecture effects, and use matched evidence to decide whether Brunch construction needs a model-visible deep tool.
 
@@ -11,6 +11,14 @@ The branch’s first canonical mode was intended to isolate whether Petrinaut’
 The canonical tracer established schema carriage, real browser execution, and multi-call suspension and continuation. It did not establish completed task parity, comparable latency, automatic diagnostics carriage, effective integration of Stock capability guidance into Brunch, or that a model-visible construction tool is unnecessary.
 
 This plan separates controls from the product and restores the unresolved interface decision as an evidence gate.
+
+## Restoration and merge strategy
+
+Do not replace the deleted browser path with an unrelated new topology. Treat the file tree removed by `47f410d51d` as the first source of candidate seams: selectively restore the modules whose responsibilities remain valid, then rewrite them in place around canonical Petrinaut tools and the contract in this plan. Do not restore obsolete model-facing aliases, model-copied protocol identities, or the old batch contract merely because their former files are available.
+
+The first tracer is expected to add no new production module paths. A genuinely new production file requires a stop and re-decision that identifies the responsibility no restored or retained module can own. Tests and evidence artifacts may be added when no existing path fits them.
+
+Keep the high-conflict `local-storage-demo-app.tsx` patch to composition only: imports, mode selection, adapter construction, and existing `aiAssistant` slots. Put browser execution, recording, settlement, and result shaping in the selectively restored modules. Preserve Voice’s existing transport, Stop, history, source attribution, and UI composition; no source file under `voice-interview/` is an expected implementation target.
 
 ## Terminology
 
@@ -23,11 +31,11 @@ This plan separates controls from the product and restores the unresolved interf
 3. **Stock capability guidance must be integrated into Brunch.** The exact Stock prompt is a control input and capability reference, not the product prompt. Relevant guidance must live in the appropriate Brunch core prompt, SDCPN plugin prompt, modelling skill, or Petrinaut-owned runtime reference and must be proven with the complete capability surface.
 4. **Petrinaut owns capability schemas and execution semantics.** Brunch imports or mechanically derives canonical names and schemas and executes through Petrinaut-owned handlers. Brunch does not maintain copied field catalogues.
 5. **Brunch owns its mechanics.** Binding, deterministic ordering, persistence settlement, diagnostics carriage, result correlation, record-keeping, provenance, Ledger projection, recovery, and explanation surround canonical execution.
-6. **Stock-over-Flue remains an invocable control.** It uses the exact Stock prompt and canonical catalogue over Flue, with separate history and without Brunch or Ledger claims. It proves Flue and library mechanics, not the product prompt architecture.
+6. **Stock-over-Flue remains a minimal invocable control for this decision.** It uses the exact Stock prompt and canonical catalogue over Flue, with separate history and without Brunch or Ledger claims. It proves Flue and library mechanics, not the product prompt architecture. It gets no dedicated product UI or parallel host adapter and may be removed after the matched proofs if it no longer answers a live diagnostic question.
 7. **Ledger architecture stops at the existing interface.** This branch restores the current Ledger contract behind the current `workpiece` symbols but does not redesign its domain model or UX. A child branch may do so later.
 8. **Experiments remain in the product capability set.** `createExperiment` executes through Brunch session and record-keeping mechanics, binds to its source document revision, keeps progress correlated and visible, and durably records cancellation, failure, and terminal result. It is not treated as a document mutation when it does not mutate the document.
 9. **Deletion follows integrated proof.** Import-graph disuse is insufficient evidence that a product responsibility has been replaced.
-10. **Paid inference requires fresh authorization.** Deterministic and local product-boundary gates precede any paid matched run.
+10. **Paid inference has a standing testing allowance.** Assume USD 50 is available for each matched set of runs after deterministic and local product-boundary gates pass. Do not block on renewed authorization within that allowance. Estimate or track spend, warn proactively when the remaining allowance may be insufficient, and ask before materially exceeding it.
 
 ## Prompt and skill integration baseline
 
@@ -42,6 +50,162 @@ Before choosing a construction interface, Brunch must mount the complete canonic
 The integration must preserve the policy that an explicit “use sensible defaults,” “you decide,” “make it up,” or equivalent authorization permits purpose-bounded, labelled assumptions without further interviewing. It must not depend on a duplicated literal copy of one prompt-chip sentence.
 
 This integrated Brunch canonical baseline proves that all Stock capabilities remain usable after adding Brunch prompts, skills, session behavior, and Ledger mechanics. It does not decide the construction interface.
+
+## Expected implementation topology
+
+Legend: `[M]` modifies a retained file; `[R]` selectively restores the deleted path and rewrites it in place; `[=]` reuses the current seam without an expected change; `[V]` verifies a merge-sensitive boundary and changes it only if the real test exposes a contract gap.
+
+```text
+libs/@hashintel/petrinaut-core/
+└── src/
+    ├── ai.ts                                                     [M]
+    │   Split the current Stock prompt into a Stock behavioral frame and a
+    │   composable Petrinaut capability/runtime reference; retain one Stock prompt.
+    └── ai.test.ts                                                [M]
+        Pin prompt composition and capability/catalogue alignment.
+
+libs/@hashintel/brunch-agent/packages/
+├── core/src/
+│   ├── prompts/SYSTEM.md                                         [=]
+│   └── skills/elicitation/                                       [=]
+│       Keep universal Ledger/evidence/default-authorization ownership here;
+│       change only if an observed integration gap belongs to every plugin.
+├── plugin-sdcpn/
+│   ├── src/
+│   │   ├── construction-mode.ts                                  [M]
+│   │   │   Name the minimal Stock-over-Flue control, integrated baseline,
+│   │   │   Interface A tracer, and Interface B tracer.
+│   │   ├── flue.ts                                               [M]
+│   │   │   Compose exact Stock only in the control; compose Brunch plus the
+│   │   │   canonical catalogue and Petrinaut runtime reference in I/A/B.
+│   │   ├── prompts/APPEND_SYSTEM.md                               [M]
+│   │   ├── skills/sdcpn-modelling/SKILL.md                        [M]
+│   │   ├── skills/sdcpn-modelling/references/pn-construction.md   [M]
+│   │   │   Replace obsolete custom-tool choreography with mode-aware guidance.
+│   │   ├── tools/petrinaut-construction.ts                        [M]
+│   │   │   Continue mechanically deriving every canonical tool schema.
+│   │   ├── declared-basis.ts                                     [M]
+│   │   │   Host-resolved Ledger basis and the smallest Interface A declaration.
+│   │   ├── mutate-petrinet.ts                                    [M]
+│   │   ├── tools/mutate-petrinet.ts                              [M]
+│   │   └── mutation-record.ts                                    [M]
+│   │       Retain the ordered batch and record types only for the bounded B tracer;
+│   │       remove model-copied hashes, revisions, observations, and locators.
+│   └── test/
+│       ├── flue-mounting.test.ts                                 [M]
+│       ├── construction-tools.test.ts                            [M]
+│       ├── declared-basis.test.ts                                [M]
+│       ├── mutate-petrinet.test.ts                               [M]
+│       ├── mutation-record.test.ts                               [M]
+│       └── sdcpn-modelling-skill.test.ts                         [M]
+└── transport-aisdk/
+    ├── src/
+    │   ├── index.ts                                               [M]
+    │   │   Carry Petrinaut's automatic diagnostics context with the correlated
+    │   │   client-tool continuation instead of dropping the reserved message.
+    │   ├── client-tool-result.ts                                  [M]
+    │   │   Carry bounded host metadata without changing canonical tool output.
+    │   ├── transcript.ts                                         [=]
+    │   └── ui-stream.ts                                          [=]
+    │       Reuse retained dynamic-tool, validation, and input-mapping support.
+    └── test/
+        ├── chat-transport.test.ts                                [M]
+        └── client-tool-result.test.ts                            [M]
+
+apps/brunch-agent/
+├── src/
+│   ├── agents/chat-agent/
+│   │   ├── agent.ts                                              [M]
+│   │   │   Remove the product early return; compose F separately from I/A/B.
+│   │   └── tool-catalogue.ts                                     [R]
+│   │       Restore the ownership/conformance map, rewritten for mode-specific
+│   │       canonical tools and host capability classifications, not copied schemas.
+│   ├── conversation/
+│   │   ├── mutation-delivery.ts                                  [M]
+│   │   ├── net-ledger.ts                                         [M]
+│   │   ├── net-freshness.ts                                      [=]
+│   │   ├── reported-document-revision.ts                         [=]
+│   │   ├── workpiece.ts                                          [=]
+│   │   └── why.ts                                                [M]
+│   │       Reconcile canonical host records into the existing Ledger/history seam;
+│   │       do not add a second record store or redesign Ledger symbols here.
+│   └── evaluations/matched-parity/
+│       ├── configuration.ts                                      [M]
+│       ├── scenarios.ts                                          [M]
+│       ├── browser-run.ts                                        [M]
+│       ├── run.ts                                                [M]
+│       ├── artifacts.ts                                          [M]
+│       ├── summary.ts                                            [M]
+│       ├── resume.ts                                             [M]
+│       └── README.md                                             [M]
+│           Extend the existing evaluator to S/F/I/A/B, USD 50 allowance tracking,
+│           deterministic prerequisites, verified resume, and comparison output.
+└── test/
+    ├── chat-agent-mode.test.ts                                   [M]
+    ├── integration/native-schema-carriage.integration.ts         [M]
+    ├── anthropic-tool-preflight.ts                               [M]
+    └── matched-parity-evaluation.test.ts                         [M]
+
+apps/petrinaut-website/src/main/app/local-storage-demo/
+├── brunch-petrinaut-tools.ts                                     [R]
+│   Restore this as the shared canonical browser execution adapter: bind, validate,
+│   order, observe, settle, diagnose, correlate, retain, and return canonical output.
+├── brunch-petrinaut-tools.test.ts                                [R]
+├── mutation-record.ts                                            [R]
+│   Restore observation/effect/reconciliation machinery, rewritten for canonical
+│   calls and honest declared/temporal/absent/external provenance.
+├── mutation-record.test.ts                                       [R]
+├── mutate-petrinet-tool.ts                                       [R]
+│   Restore only when implementing the three-operation Interface B tracer; rewrite
+│   it around host-attached base and the retained canonical selected-batch executor.
+├── mutate-petrinet-tool.test.ts                                  [R]
+│   Recover focused ordering, prefix/suffix, settlement, and effect cases rather
+│   than restoring the former 943-line suite wholesale.
+├── brunch-client-tools.ts                                        [M]
+├── brunch-client-tools.test.ts                                   [M]
+│   Derive mode catalogues and adapter policy from petrinautAiTools.
+├── brunch-panel-transport.ts                                     [M]
+├── brunch-panel-transport.test.ts                                [M]
+├── use-flue-chat-history.ts                                      [M]
+├── use-flue-chat-history.test.ts                                 [M]
+│   Restore metadata/input/result hooks already retained by transport-aisdk.
+├── brunch-preview-config.ts                                      [M]
+├── brunch-preview-config.test.ts                                 [M]
+│   Admit a non-product evaluation mode override; add no product-facing selector.
+├── brunch-conversation-id.ts                                     [M]
+├── brunch-conversation-id.test.ts                                [M]
+│   Keep F/I/A/B histories distinct without multiplying storage systems.
+├── live-document-hash.ts                                         [=]
+├── documents/document-repository.ts                              [=]
+│   Reuse live observation and repository settleRevision; do not replace them.
+├── brunch-workpiece-history.ts                                   [M]
+├── brunch-workpiece-pane.tsx                                     [=]
+│   Feed current Ledger UI from canonical history without redesigning it.
+├── local-storage-demo-app.tsx                                    [M]
+├── local-storage-demo-app.test.tsx                               [M]
+│   Limit the production patch to mode, adapter, automaticTools, transport hooks,
+│   settlement callback, and existing Ledger-tab composition.
+├── voice-history-continuity.integration.test.tsx                 [V]
+└── production-voice-availability.integration.test.tsx            [V]
+    Prove Voice continuity, Stop/reload behavior, and source attribution without
+    changing Voice implementation files merely to accommodate the adapter.
+
+apps/petrinaut-website/src/main/app/voice-interview/               [V]
+└── voice-browser-tools.integration.test.tsx                      [V]
+    This is a protected parallel-work boundary: no expected Voice source changes.
+```
+
+The following deleted files do not return: `brunch-ask-interactive-tool.tsx`, `brunch-ask-mapping.ts`, and their tests. Elicitation remains prompt/skill behavior and ordinary conversation, not a custom browser question widget. The old contents of the three restored browser modules are evidence and test-vector sources, not authoritative implementations; obsolete Brunch aliases and model-authored protocol bookkeeping must not reappear.
+
+### Merge-compatible implementation order
+
+1. Split Petrinaut’s existing `ai.ts` prompt content and repair server composition without touching the website shell.
+2. Restore and rewrite the browser adapter and record modules, with their focused tests, while they are still unwired.
+3. Restack or merge the latest Voice work before the composition commit.
+4. Make one narrow `local-storage-demo-app.tsx` wiring change and run the existing Voice history, availability, browser-tool, Stop, and reload integration tests.
+5. Add the A and B three-operation tracers behind evaluation-only modes; do not broaden the production file tree before adjudication.
+
+If Voice work changes the panel composition seam while steps 1–2 are underway, preserve both sides and re-derive the narrow wiring patch against the landed Voice topology rather than treating either branch as automatically authoritative.
 
 ## Open construction-interface decision
 
@@ -127,7 +291,7 @@ S and F must use the same provider, model, reasoning setting, scenario, and effe
 10. **Run deterministic A/B probes.** Include duplicate delivery, reload between call and result, hand edit between observation and mutation, persistence refusal, pending diagnostics, partial failure, document-incarnation switch, and experiment cancellation.
 11. **Adjudicate the interface.** Compare correctness, provenance honesty, schema carriage, model steps, tool calls, repair count, latency, context growth, history size, and semantic quality. Select B only if it materially improves an observed obligation; select A if it meets the obligations without that extra interface.
 12. **Broaden after selection.** Mechanically admit the remaining canonical mutation classes and rerun schema-alignment and product-boundary gates.
-13. **Request paid-run authorization.** Run S, F, I, A, and B only under a stated provider, model, reasoning level, call bound, timeout, and spend ceiling.
+13. **Run within the standing testing allowance.** Run S, F, I, A, and B under a stated provider, model, reasoning level, call bound, timeout, and USD 50 matched-set allowance. Warn before launch if estimated remaining cost may exceed the allowance and pause only to approve the excess or revise the set.
 14. **Delete from evidence.** Remove losing or superseded mechanisms only after the integrated Brunch path completes and its downstream obligations have named owners.
 
 ## Deterministic decision probes
@@ -186,7 +350,7 @@ Stop before implementation broadens if:
 - a browser result reports durable success before persistence settles;
 - experiment execution lacks a source revision or durable terminal disposition;
 - Interface B is broadened before the three-operation comparison demonstrates a benefit;
-- a paid arm is retried without verified completion state and renewed authorization;
+- a paid arm is retried without verified completion state, or the matched set is likely to exceed its USD 50 allowance without a proactive warning;
 - FE-1438, FE-1394, FE-1334, or FE-1503 acceptance is inferred from tool-call success; or
 - the FE-1503 consumer contract is inferred from current Petrinaut or optimizer code.
 
