@@ -849,14 +849,30 @@ export const createCanonicalPetrinautHostTools = (
           },
         });
       }
+      if (record === undefined) return undefined;
       if (
-        record === undefined ||
         record.pre === undefined ||
         record.outcome === undefined ||
         record.effects === undefined ||
         record.output === undefined ||
         record.settlement.status === "pending"
       ) {
+        // A host-recorded call without a deliverable record is a host defect;
+        // surface exactly which evidence is missing rather than failing silently.
+        // eslint-disable-next-line no-console -- host-defect diagnostic captured by the evaluator's console listener
+        console.error(
+          `[brunch] ${record.toolName} ${record.toolCallId} has no deliverable canonical mutation record: ${JSON.stringify(
+            {
+              pre: record.pre !== undefined,
+              post: record.post !== undefined,
+              outcome: record.outcome,
+              effects: record.effects !== undefined,
+              output: record.output !== undefined,
+              settlement: record.settlement.status,
+              error: record.error,
+            },
+          )}`,
+        );
         return undefined;
       }
       return parseClientToolResultMetadata({

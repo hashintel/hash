@@ -14,13 +14,14 @@ import {
 } from "../../http/local-origins.ts";
 import {
   writeArmArtifacts,
+  writeArmFailure,
   writeManifest,
   writeRunRecord,
   writeScenarioComparison,
   type ArmExecutionAction,
   type ArmExecutionRecord,
 } from "./artifacts.ts";
-import { runBrowserArm } from "./browser-run.ts";
+import { BrowserArmFailure, runBrowserArm } from "./browser-run.ts";
 import {
   evaluationEnvironment,
   matchedParityArms,
@@ -323,13 +324,28 @@ const executePaidEvaluation = async (
             );
             const context = await browser.newContext();
             try {
-              result = await runBrowserArm({
-                arm,
-                configuration,
-                context,
-                origin: panelOrigin,
-                scenario,
-              });
+              try {
+                result = await runBrowserArm({
+                  arm,
+                  configuration,
+                  context,
+                  origin: panelOrigin,
+                  scenario,
+                });
+              } catch (error) {
+                if (error instanceof BrowserArmFailure) {
+                  const path = await writeArmFailure(
+                    armArtifactDirectory(
+                      configuration.outputRoot,
+                      scenario.id,
+                      arm,
+                    ),
+                    error.report,
+                  );
+                  report(`${scenario.id}/${arm}: failed (diagnosis ${path})`);
+                }
+                throw error;
+              }
               await writeArmArtifacts(
                 armArtifactDirectory(
                   configuration.outputRoot,

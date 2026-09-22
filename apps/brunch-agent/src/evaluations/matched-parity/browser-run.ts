@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { checkDefinition } from "@hashintel/petrinaut-core/diagnostics";
 
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
+import { PersonaBrowserTurnError } from "../persona/browser-turn.ts";
 import { openPersonaConversation } from "../persona/launch/browser.ts";
 
 import type {
@@ -213,6 +214,42 @@ export interface BrowserArmResult {
 }
 
 /** One isolated product run. Callers create and close contexts serially. */
+const describeError = (error: unknown): unknown =>
+  error instanceof Error
+    ? {
+        name: error.name,
+        message: error.message,
+        ...(error.cause === undefined
+          ? {}
+          : { cause: describeError(error.cause) }),
+      }
+    : error;
+
+export interface BrowserArmFailureReport {
+  readonly arm: EvaluationArm;
+  readonly scenarioId: string;
+  readonly failedAt: string;
+  readonly elapsedMs: number;
+  readonly error: unknown;
+  readonly browserFailures: readonly string[];
+  readonly visibleState: string;
+  readonly documents?: unknown;
+  readonly flueSnapshot?: FlueConversationSnapshot;
+}
+
+/** A failed arm keeps everything observable about the failure for a diagnosis artifact. */
+export class BrowserArmFailure extends Error {
+  readonly report: BrowserArmFailureReport;
+  constructor(
+    message: string,
+    options: { cause: unknown; report: BrowserArmFailureReport },
+  ) {
+    super(message, { cause: options.cause });
+    this.name = "BrowserArmFailure";
+    this.report = options.report;
+  }
+}
+
 export const runBrowserArm = async (input: {
   readonly arm: EvaluationArm;
   readonly configuration: MatchedParityConfiguration;
@@ -268,14 +305,30 @@ export const runBrowserArm = async (input: {
       .locator("body")
       .innerText()
       .catch(() => "Browser body unavailable");
-    throw new Error(
+    const browserState = await readBrowserState(page).catch(() => undefined);
+    throw new BrowserArmFailure(
       [
         `${arm} browser arm failed.`,
         ...browserFailures,
         "Visible browser state:",
         visibleState.slice(-4_000),
       ].join("\n"),
-      { cause: error },
+      {
+        cause: error,
+        report: {
+          arm,
+          scenarioId: scenario.id,
+          failedAt: new Date().toISOString(),
+          elapsedMs: Math.round(performance.now() - started),
+          error: describeError(error),
+          browserFailures,
+          visibleState,
+          documents: browserState?.documents,
+          ...(error instanceof PersonaBrowserTurnError
+            ? { flueSnapshot: error.snapshot }
+            : {}),
+        },
+      },
     );
   }
   const elapsedMs = Math.round(performance.now() - started);
