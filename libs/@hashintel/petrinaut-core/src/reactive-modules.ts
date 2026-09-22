@@ -18,11 +18,12 @@ export {
   type PetriNetIrArc,
   type PetriNetIrArcs,
   type PetriNetIrKind,
+  type PetriNetIrMarking,
   type PetriNetIrPlace,
   type PetriNetIrTransition,
   petriNetIrArcWeight,
+  petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
-  petriNetIrPlaceInitial,
   renderPetriNetIr,
 } from "./reactive-modules/petri-net-ir";
 export {

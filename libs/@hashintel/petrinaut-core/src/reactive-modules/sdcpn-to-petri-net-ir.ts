@@ -22,6 +22,7 @@ import type {
   PetriNetIr,
   PetriNetIrArcs,
   PetriNetIrKind,
+  PetriNetIrMarking,
   PetriNetIrPlace,
   PetriNetIrTransition,
 } from "./petri-net-ir";
@@ -453,29 +454,29 @@ export const sdcpnToPetriNetIr = (
     ),
   );
   const places: Record<string, PetriNetIrPlace> = {};
+  const initial: PetriNetIrMarking = {};
   for (const place of sdcpn.places) {
     const item: PetriNetIrDiagnosticItem = {
       kind: "place",
       id: place.id,
       name: place.name,
     };
-    const initial = initialTokens(
+    const name = placeNames.get(place.id) ?? place.id;
+    const tokens = initialTokens(
       getOwn(input.initialMarking, place.id),
       item,
       diagnostics,
     );
+    if (tokens > 0) {
+      initial[name] = tokens;
+    }
     const capacity =
       typeof place.capacity === "number" &&
       Number.isInteger(place.capacity) &&
       place.capacity >= 0
         ? place.capacity
         : undefined;
-    const entry: NonNullable<PetriNetIrPlace> = {
-      ...(initial === 0 ? {} : { initial }),
-      ...(capacity === undefined ? {} : { capacity }),
-    };
-    places[placeNames.get(place.id) ?? place.id] =
-      Object.keys(entry).length === 0 ? null : entry;
+    places[name] = capacity === undefined ? null : { capacity };
   }
 
   const transitions: Record<string, PetriNetIrTransition> = {};
@@ -510,6 +511,7 @@ export const sdcpnToPetriNetIr = (
         : { description }),
       kind,
       places,
+      ...(Object.keys(initial).length === 0 ? {} : { initial }),
       transitions,
     },
     warnings: diagnostics.warnings,

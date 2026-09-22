@@ -14,7 +14,7 @@ The window cannot dock into a side panel yet.
 
 ## The two tabs
 
-**Petri Net IR** is a YAML document that describes the net and nothing else: its places with their initial token count and capacity, its transitions with their weighted arcs, and for a stochastic net one `rate` per transition. Keys are UpperCamelCase names derived from your place and transition names, and a field at its default is left out, so an empty, unbounded place is a bare `Name:` line. Transitions appear in the order a simulation step sweeps them.
+**Petri Net IR** is a YAML document that describes the net and nothing else, in three sections: `places`, each with its capacity when it has one; `initial`, the tokens each place starts with; and `transitions`, each with its weighted arcs and, for a stochastic net, its `rate`. Keys are UpperCamelCase names derived from your place and transition names, and a field at its default is left out, so an unbounded place is a bare `Name:` line and a place that starts empty is absent from `initial`. Transitions appear in the order a simulation step sweeps them.
 
 **Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: one module variable per place, the initial marking as `init`, and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so the module and a Petrinaut run agree step for step.
 

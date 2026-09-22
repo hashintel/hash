@@ -64,7 +64,7 @@ describe("compileReactiveModuleExport", () => {
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
     expect(result.ir).toBe(
-      "name: arrivals\ndescription: Customers arrive.\nkind: stochastic\nplaces:\n  Arrived:\ntransitions:\n  Arrive:\n    outputs:\n      Arrived:\n    rate: 2\n",
+      "name: arrivals\ndescription: Customers arrive.\nkind: stochastic\n\nplaces:\n  Arrived:\n\ntransitions:\n  Arrive:\n    outputs:\n      Arrived:\n    rate: 2\n",
     );
     expect(result.python).toContain(
       `fire_Arrive = X(u_Arrive) >= ${Math.exp(-2)}  # Arrive: nothing -> Arrived`,

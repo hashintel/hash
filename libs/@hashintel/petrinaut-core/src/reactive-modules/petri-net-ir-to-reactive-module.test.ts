@@ -7,7 +7,8 @@ import type { PetriNetIr } from "./petri-net-ir";
 const cycle: PetriNetIr = {
   name: "cycle",
   kind: "plain",
-  places: { A: { initial: 1 }, B: null },
+  places: { A: null, B: null },
+  initial: { A: 1 },
   transitions: {
     Go: { inputs: { A: null }, outputs: { B: null } },
     Back: { inputs: { B: null }, outputs: { A: null } },
@@ -18,11 +19,12 @@ const capacity: PetriNetIr = {
   name: "capacity",
   kind: "plain",
   places: {
-    LeftSource: { initial: 5 },
-    RightSource: { initial: 5 },
+    LeftSource: null,
+    RightSource: null,
     Buffer: { capacity: 2 },
     Sink: null,
   },
+  initial: { LeftSource: 5, RightSource: 5 },
   transitions: {
     PutLeft: { inputs: { LeftSource: null }, outputs: { Buffer: null } },
     PutRight: { inputs: { RightSource: null }, outputs: { Buffer: null } },

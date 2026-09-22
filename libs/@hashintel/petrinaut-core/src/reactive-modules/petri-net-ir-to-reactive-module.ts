@@ -2,8 +2,8 @@ import {
   type PetriNetIr,
   type PetriNetIrTransition,
   petriNetIrArcWeight,
+  petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
-  petriNetIrPlaceInitial,
 } from "./petri-net-ir";
 
 /**
@@ -280,9 +280,9 @@ const lower = (ir: PetriNetIr, dt: number): LoweredModule => {
     className: pascal(ir.name),
     stochastic,
     dt,
-    variables: places.map(([name, place]) => ({
+    variables: places.map(([name]) => ({
       name,
-      initial: petriNetIrPlaceInitial(place),
+      initial: petriNetIrInitialTokens(ir, name),
     })),
     inputs: stochastic
       ? transitions.map(([name]) => ({
