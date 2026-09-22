@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState, type ReactNode } from "react";
+import { Activity, lazy, Suspense, use, useState, type ReactNode } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -79,6 +79,14 @@ import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
+
+// The export window and the compiler behind it load only when the window is
+// first shown; most sessions never open it.
+const DeferredReactiveModulesPanel = lazy(async () => {
+  const { ReactiveModulesPanel } =
+    await import("./panels/reactive-modules-panel");
+  return { default: ReactiveModulesPanel };
+});
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -227,6 +235,7 @@ const EditorViewContent = ({
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [offerStartPosture, setOfferStartPosture] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
+  const [isReactiveModulesOpen, setReactiveModulesOpen] = useState(false);
 
   const {
     brunchDemoMode,
@@ -566,6 +575,7 @@ const EditorViewContent = ({
     >
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
+        onShowReactiveModules={() => setReactiveModulesOpen(true)}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
       <UserSettings settingsLabs={settingsLabs} />
@@ -703,6 +713,13 @@ const EditorViewContent = ({
                 setPendingAiInteractionMode(null)
               }
             />
+          )}
+          {isReactiveModulesOpen && (
+            <Suspense fallback={null}>
+              <DeferredReactiveModulesPanel
+                onClose={() => setReactiveModulesOpen(false)}
+              />
+            </Suspense>
           )}
           {/* Plugin components mount here, inside the editor's providers and
               the workspace row, so their overlays position against the row as
