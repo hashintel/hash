@@ -4262,6 +4262,8 @@ dependencies = [
  "chrono",
  "derive_more",
  "error-stack",
+ "futures-core",
+ "futures-util",
  "hex",
  "opendata-common",
  "opendata-log",

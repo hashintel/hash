@@ -10,11 +10,12 @@
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
 //! Implement [`JournalStorage`] to use another backend with the same command and recovery checks.
 use alloc::sync::Arc;
-use core::{num::NonZeroU64, ops::Bound, time::Duration};
+use core::{num::NonZeroU64, ops::Bound, pin::pin, time::Duration};
 use std::path::PathBuf;
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt as _};
+use futures_util::TryStreamExt as _;
 use opendata_common::{
     StorageConfig,
     storage::config::{
@@ -34,7 +35,7 @@ mod backend;
 mod command_loop;
 
 pub use backend::{
-    JournalIterator, JournalReader, JournalStorage, JournalWriter, StorageIterator, StorageReader,
+    JournalReader, JournalStorage, JournalStream, JournalWriter, StorageReader, StorageStream,
     StorageWriter,
 };
 #[cfg(any(test, feature = "test-util"))]
@@ -557,9 +558,9 @@ where
     T: UntrimmedJournalRecord,
     R: JournalReader,
 {
-    let mut iterator = reader.scan(Bytes::from_static(EVENTS_KEY), range).await?;
+    let mut stream = pin!(reader.scan(Bytes::from_static(EVENTS_KEY), range).await?);
     let mut records = Vec::new();
-    while let Some((sequence, bytes)) = iterator.next().await? {
+    while let Some((sequence, bytes)) = stream.try_next().await? {
         if let Some((start, end)) = expected_window
             && (sequence < start || sequence >= end)
         {
@@ -577,7 +578,7 @@ where
         records.push((sequence, record));
     }
     if let Some((_start, expected_end)) = expected_window {
-        let observed_end = iterator.next_sequence();
+        let observed_end = stream.next_sequence();
         if observed_end != expected_end {
             return Err(Report::new(DurableError::IncompleteScan {
                 name: T::declaration().name,
@@ -598,11 +599,13 @@ where
     T: DurableRecord,
     R: JournalReader,
 {
-    let mut iterator = reader
-        .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
-        .await?;
+    let mut stream = pin!(
+        reader
+            .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
+            .await?
+    );
     let mut records = Vec::new();
-    while let Some((sequence, bytes)) = iterator.next().await? {
+    while let Some((sequence, bytes)) = stream.try_next().await? {
         if sequence >= expected_end {
             return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
                 name: T::declaration().name,
@@ -613,10 +616,10 @@ where
         }
         records.push((sequence, T::decode(&bytes)));
     }
-    if iterator.next_sequence() != expected_end {
+    if stream.next_sequence() != expected_end {
         return Err(Report::new(DurableError::IncompleteScan {
             name: T::declaration().name,
-            observed_end: iterator.next_sequence(),
+            observed_end: stream.next_sequence(),
             expected_end,
         }));
     }
@@ -761,15 +764,16 @@ impl<W: JournalWriter> RawShardLog<W> {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::{ops::Bound, time::Duration};
+    use core::{ops::Bound, pin::pin, time::Duration};
 
     use bytes::Bytes;
     use error_stack::{Report, ResultExt as _};
+    use futures_util::TryStreamExt as _;
     use serde::{Deserialize, Serialize};
     use tempfile::TempDir;
 
     use super::{
-        AppendFailureKind, JournalIterator as _, JournalReader as _, JournalStorage, OpenedShard,
+        AppendFailureKind, JournalReader as _, JournalStorage, JournalStream as _, OpenedShard,
         ShardLogLocation, ShardLogOpenError, ShardLogRecovery, ShardLogWriter,
         post_invocation_source, read_journal, wait_until_durable_with,
     };
@@ -1006,20 +1010,22 @@ mod tests {
             .await
             .expect("event should append");
         let end = writer.durable_end_exclusive();
-        let mut beyond_end = writer
-            .backend
-            .scan(
-                bytes::Bytes::from_static(super::EVENTS_KEY),
-                (
-                    core::ops::Bound::Included(end + 5),
-                    core::ops::Bound::Excluded(end + 10),
-                ),
-            )
-            .await
-            .expect("a range beyond the durable end should scan");
+        let mut beyond_end = pin!(
+            writer
+                .backend
+                .scan(
+                    bytes::Bytes::from_static(super::EVENTS_KEY),
+                    (
+                        core::ops::Bound::Included(end + 5),
+                        core::ops::Bound::Excluded(end + 10),
+                    ),
+                )
+                .await
+                .expect("a range beyond the durable end should scan")
+        );
         assert!(
             beyond_end
-                .next()
+                .try_next()
                 .await
                 .expect("empty scan should finish")
                 .is_none()
@@ -1119,29 +1125,34 @@ mod tests {
             (super::PROJECTION_SNAPSHOTS_KEY, snapshot),
         ] {
             let key = Bytes::from_static(key);
-            let iterator = writer
+            let stream = writer
                 .backend
                 .scan(key.clone(), (Bound::Included(sequence), Bound::Unbounded))
                 .await
                 .expect("scan should open before storage closes");
-            scans.push((key, sequence, iterator));
+            scans.push((key, sequence, stream));
         }
         writer.close().await.expect("writer should close");
 
-        for (key, next_sequence, mut iterator) in scans {
-            let error = iterator
-                .next()
-                .await
-                .expect_err("reading from closed storage should fail");
-            assert_eq!(
-                error.current_context(),
-                &DurableError::ReadRecord { key, next_sequence },
-                "read failure should identify the scan key and cursor"
-            );
-            assert!(
-                error.contains::<opendata_log::Error>(),
-                "read failure should include the storage error"
-            );
+        for (key, next_sequence, mut stream) in scans {
+            for _ in 0..2 {
+                let error = stream
+                    .try_next()
+                    .await
+                    .expect_err("reading from closed storage should fail on each attempt");
+                assert_eq!(
+                    error.current_context(),
+                    &DurableError::ReadRecord {
+                        key: key.clone(),
+                        next_sequence
+                    },
+                    "read failure should identify the scan key and cursor"
+                );
+                assert!(
+                    error.contains::<opendata_log::Error>(),
+                    "read failure should include the storage error"
+                );
+            }
         }
     }
 

@@ -21,7 +21,7 @@ pub use harness::{
     DstCounters, DstDomain, DstEffect, DstEvent, PlannedAction, ScheduleCoverage, SchedulePlan,
     ScheduleReport, derive_plan, run_plan,
 };
-pub use storage::{SimIterator, SimPause};
+pub use storage::{SimPause, SimStream};
 
 /// A deterministic generator for test schedules. Unsuitable for cryptographic use.
 #[derive(Debug, Clone)]
