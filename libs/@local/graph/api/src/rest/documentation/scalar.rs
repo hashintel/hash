@@ -7,7 +7,7 @@ use serde_json::{Map, Value};
 
 use crate::rest::Api;
 
-/// One document the Scalar reference lists.
+/// One document a Scalar reference lists.
 #[derive(Serialize)]
 pub(super) struct Source {
     pub title: String,
@@ -25,7 +25,7 @@ impl From<&Api> for Source {
     }
 }
 
-fn render(configuration: &str, sources: Value) -> Result<Bytes, serde_json::Error> {
+fn render(configuration: &str, sources: Value, bundle: &str) -> Result<Bytes, serde_json::Error> {
     let mut configuration: Map<String, Value> = serde_json::from_str(configuration)?;
     configuration.insert("sources".to_owned(), sources);
     configuration.insert(
@@ -35,10 +35,7 @@ fn render(configuration: &str, sources: Value) -> Result<Bytes, serde_json::Erro
     let configuration = Value::Object(configuration)
         .to_string()
         .replace('<', "\\u003c");
-    Ok(Bytes::from(render_scalar(
-        &configuration,
-        Some("/openapi/scalar.js"),
-    )))
+    Ok(Bytes::from(render_scalar(&configuration, Some(bundle))))
 }
 
 /// The Scalar bundle with the optional-authentication correction applied.
@@ -70,23 +67,33 @@ static JAVASCRIPT: LazyLock<Bytes> = LazyLock::new(|| {
     Bytes::from(javascript)
 });
 
-pub(super) fn routes(sources: &[Source]) -> Router {
+/// Serves a reference over `sources` at `path`, with the bundle it loads underneath.
+pub(super) fn routes(path: &str, sources: &[Source]) -> Router {
     let sources = serde_json::to_value(sources).expect("the document sources should serialize");
+    let bundle = format!("{}/openapi/scalar.js", path.trim_end_matches('/'));
     LazyLock::force(&JAVASCRIPT);
 
     let reference = {
-        let html = render(include_str!("scalar.json"), sources)
+        let html = render(include_str!("scalar.json"), sources, &bundle)
             .expect("the Scalar configuration should be a JSON object");
         get(move || core::future::ready(Html(html.clone())))
     };
 
-    Router::new().route("/", reference).route(
-        "/openapi/scalar.js",
+    let router = Router::new().route(path, reference.clone()).route(
+        &bundle,
         get(|| {
             core::future::ready((
                 [(CONTENT_TYPE, "application/javascript")],
                 JAVASCRIPT.clone(),
             ))
         }),
-    )
+    );
+
+    // Axum matches a trailing slash as its own path, so a prefixed reference needs both spellings;
+    // the root has no second one.
+    if path == "/" {
+        router
+    } else {
+        router.route(&format!("{path}/"), reference)
+    }
 }

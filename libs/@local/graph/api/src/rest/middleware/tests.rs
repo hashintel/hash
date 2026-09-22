@@ -22,7 +22,7 @@ use uuid::Uuid;
 
 use super::Middleware;
 use crate::rest::{
-    documentation,
+    documentation, internal,
     test_utils::{self, apis, echo_caller, response_json},
 };
 
@@ -104,9 +104,14 @@ async fn documentation_skips_authentication() {
     .assemble(Router::new(), apis, documentation);
 
     for path in [
-        "/openapi.json",
+        "/",
+        "/openapi/scalar.js",
+        "/_api",
+        "/_api/",
+        "/_api/openapi/scalar.js",
+        "/_api/legacy/openapi.json",
         "/entities/v1/openapi.json",
-        "/internal/openapi.json",
+        "/_api/openapi.json",
     ] {
         assert_eq!(
             send(&router, path).await.status(),
@@ -114,6 +119,26 @@ async fn documentation_skips_authentication() {
             "{path} should be served without consulting the provider, which is unreachable here"
         );
     }
+}
+
+#[tokio::test]
+async fn internal_api_answers_beside_its_reference() {
+    let actor = ActorId::new(Uuid::from_u128(1), ActorType::User);
+    let apis = apis();
+    let documentation = documentation::routes(&apis);
+    let router = middleware(
+        &config(10, 10),
+        StaticAuthenticationProvider::Verified(actor),
+        StaticAuthenticationProvider::Verified(actor),
+    )
+    .assemble(Router::new(), apis, documentation);
+
+    let path = format!("{}/caller", internal::PREFIX);
+    assert_eq!(
+        send(&router, &path).await.status(),
+        StatusCode::OK,
+        "{path} should answer beside the reference occupying its prefix"
+    );
 }
 
 #[tokio::test]
@@ -128,7 +153,7 @@ async fn documentation_draws_on_address_gate() {
     .assemble(Router::new(), apis, documentation);
 
     assert_eq!(
-        send(&router, "/openapi.json").await.status(),
+        send(&router, "/_api/legacy/openapi.json").await.status(),
         StatusCode::OK,
         "the first document request should pass the gate"
     );
