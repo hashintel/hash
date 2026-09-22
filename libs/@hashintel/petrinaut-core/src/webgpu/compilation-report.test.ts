@@ -91,11 +91,10 @@ describe("analyzeCompilation", () => {
     // With derived capacities, calibrated histogram windows, forwarded
     // kernel tokens, and the tiling-aware state gate, the GPU declines only
     // two examples. Ticket Processing's tokens carry a \`string\` identity key
-    // so Kanban cards read as tickets, and WebGPU integers are 32-bit, so
-    // that attribute cannot be represented. Production Machines keys its
-    // machines by integer, so eligibility accepts it, but its \`Start Repair\`
-    // consumes typed tokens from two places, a cross-product enumeration
-    // the shader does not scan yet.
+    // so Kanban cards read as tickets, and the shader has no string
+    // attributes. Production Machines passes eligibility, but its
+    // \`Start Repair\` consumes typed tokens from two places, a cross-product
+    // enumeration the shader does not scan yet.
     // Deliberately exhaustive over the examples namespace: adding an example
     // MUST extend this matrix, so its GPU verdict is a decision, not an
     // accident.

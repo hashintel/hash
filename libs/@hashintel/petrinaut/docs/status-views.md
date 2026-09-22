@@ -41,4 +41,4 @@ In Actual mode, the Events tab gains a **Status changes** column when the net de
 
 ## Examples
 
-The **Ticket Processing** example ships a complete status view over a ticket workflow, including a review loop and an archived exit label. **Production with Machine Failure** carries a status view too, tracking machines across two token types.
+The **Ticket Processing** example ships a complete status view over a ticket workflow, including a review loop and an archived exit label.
