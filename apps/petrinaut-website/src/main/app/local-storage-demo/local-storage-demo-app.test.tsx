@@ -2312,6 +2312,231 @@ describe("assistant selection", () => {
     );
   });
 
+  test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
+    brunchPreviewConfig.evaluationMode = "B";
+    brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
+    const incarnationId = "live-baseline-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    let snapshot: AgentConversationObservationSnapshot = {
+      conversation: undefined,
+      offset: undefined,
+      phase: "absent",
+      error: undefined,
+    };
+    const subscribers = new Set<() => void>();
+    const refresh = vi.fn(() => {
+      for (const subscriber of subscribers) subscriber();
+    });
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => snapshot,
+        refresh,
+        subscribe: (subscriber: () => void) => {
+          subscribers.add(subscriber);
+          return () => subscribers.delete(subscriber);
+        },
+      }),
+    };
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
+    const initialTools = currentAssistant().automaticTools;
+    const canonicalInput = {
+      id: "canonical-live",
+      name: "CanonicalLive",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+      targetSubnetId: null,
+    };
+    const conversationId = currentAssistant().conversationId ?? "";
+    snapshot = {
+      conversation: {
+        conversationId,
+        settlements: [],
+        messages: [
+          {
+            role: "assistant",
+            purpose: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "query_workpiece",
+                toolCallId: "ledger-query",
+                state: "output-available",
+                input: {},
+                output: {
+                  binding: {
+                    conversationId,
+                    documentId: "net-1",
+                    incarnationId,
+                  },
+                  currentWorkpiece: {
+                    revisionId: "ledger-revision",
+                    sha256:
+                      "8c954ded63ba039cfdeb901d054e300ceb9314e4a16cd1d7a5e413c0d59c1e87",
+                    ordinal: 1,
+                    markdown: "# Ledger",
+                  },
+                },
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "getLatestNetDefinition",
+                toolCallId: "live-read",
+                state: "input-available",
+                input: {},
+              },
+              {
+                type: "dynamic-tool",
+                toolName: "addPlace",
+                toolCallId: "live-mutation",
+                state: "input-available",
+                input: canonicalInput,
+              },
+              {
+                type: "dynamic-tool",
+                toolName: applyPetrinautConstructionToolName,
+                toolCallId: "live-deep",
+                state: "input-available",
+                input: deepConstructionInput,
+              },
+            ],
+          },
+        ] as never,
+      },
+      offset: "admitted-offset",
+      phase: "live",
+      error: undefined,
+    };
+
+    act(() => {
+      (
+        brunchPanelTransportOptions.current as { onAdmission?: () => void }
+      ).onAdmission?.();
+    });
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+
+    for (const initialTool of initialTools ?? []) {
+      expect(
+        currentAssistant().automaticTools?.find(
+          ({ toolName }) => toolName === initialTool.toolName,
+        ),
+      ).toBe(initialTool);
+    }
+    const readOutput = executeCurrentReadCall("live-read");
+    expect(
+      typeof readOutput === "object" &&
+        readOutput !== null &&
+        "definition" in readOutput,
+    ).toBe(true);
+    const canonicalOutput = (await executeCurrentCanonicalMutation(
+      "live-mutation",
+      "addPlace",
+      canonicalInput,
+    )) as { applied?: boolean; reason?: string } | undefined;
+    expect(canonicalOutput?.applied).toBe(false);
+    expect(canonicalOutput?.reason).not.toContain("previously admitted");
+    const deepOutput = (await executeCurrentDeepCall("live-deep")) as
+      | {
+          disposition?: string;
+          outcomes?: { error?: string; status?: string }[];
+        }
+      | undefined;
+    expect(deepOutput?.disposition).toBe("partial");
+    expect(deepOutput?.outcomes?.[0]?.status).toBe("failed");
+    expect(deepOutput?.outcomes?.[0]?.error).not.toContain(
+      "previously admitted",
+    );
+    const handle = editorProps.current?.handle as
+      | PetrinautDocHandle
+      | undefined;
+    expect(handle?.doc()?.places).toHaveLength(0);
+
+    const toolsAfterCalls = currentAssistant().automaticTools;
+    snapshot = { ...snapshot, offset: "terminal-offset" };
+    act(() => refresh());
+    for (const retainedTool of toolsAfterCalls ?? []) {
+      expect(
+        currentAssistant().automaticTools?.find(
+          ({ toolName }) => toolName === retainedTool.toolName,
+        ),
+      ).toBe(retainedTool);
+    }
+    expect(executeCurrentReadCall("live-read")).toEqual(readOutput);
+    await expect(
+      executeCurrentCanonicalMutation(
+        "live-mutation",
+        "addPlace",
+        canonicalInput,
+      ),
+    ).resolves.toEqual(canonicalOutput);
+    await expect(executeCurrentDeepCall("live-deep")).resolves.toEqual(
+      deepOutput,
+    );
+  });
+
+  test("a document incarnation change resets the replay baseline and live-call adapter", async () => {
+    seedStoredNet("first-incarnation");
+    const stored = JSON.parse(
+      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+    ) as Record<string, unknown>;
+    stored["net-2"] = storedNet({
+      id: "net-2",
+      incarnationId: "second-incarnation",
+      lastUpdated: "2019-01-01T00:00:00.000Z",
+      title: "Second net",
+    });
+    localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    flueClientMock.current = flueHistoryClient("first-incarnation");
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => expect(currentAssistant().requestStop).toBeDefined());
+    const firstMutation = currentAssistant().automaticTools?.find(
+      ({ toolName }) => toolName === "addPlace",
+    );
+    const firstInput = {
+      ...deepConstructionInput.operations[0]?.input,
+      id: "first-place",
+      name: "FirstPlace",
+    };
+    const firstOutput = (await executeCurrentCanonicalMutation(
+      "reused-call",
+      "addPlace",
+      firstInput,
+    )) as { reason?: string } | undefined;
+    expect(firstOutput?.reason).not.toContain("Conflicting duplicate");
+
+    const loadPetriNet = editorProps.current?.loadPetriNet as
+      | ((id: string) => void)
+      | undefined;
+    expect(loadPetriNet).toBeDefined();
+    act(() => loadPetriNet?.("net-2"));
+    await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
+    await waitFor(() => {
+      expect(
+        currentAssistant().automaticTools?.find(
+          ({ toolName }) => toolName === "addPlace",
+        ),
+      ).not.toBe(firstMutation);
+    });
+    const secondOutput = (await executeCurrentCanonicalMutation(
+      "reused-call",
+      "addPlace",
+      {
+        ...deepConstructionInput.operations[0]?.input,
+        id: "second-place",
+        name: "SecondPlace",
+      },
+    )) as { reason?: string } | undefined;
+    expect(secondOutput?.reason).not.toContain("Conflicting duplicate");
+  });
+
   test("loading B history refuses a submitted deep call without mutation", async () => {
     brunchPreviewConfig.evaluationMode = "B";
     brunchPreviewConfig.serverMode = BRUNCH_DEEP_CONSTRUCTION_MODE;
@@ -2550,6 +2775,20 @@ describe("assistant selection", () => {
                 parts: [
                   {
                     type: "dynamic-tool",
+                    toolName: "getLatestNetDefinition",
+                    toolCallId: "pending-read",
+                    state: "input-available",
+                    input: {},
+                  },
+                  {
+                    type: "dynamic-tool",
+                    toolName: "addPlace",
+                    toolCallId: "pending-mutation",
+                    state: "input-available",
+                    input: deepConstructionInput.operations[0]?.input,
+                  },
+                  {
+                    type: "dynamic-tool",
                     toolName: applyPetrinautConstructionToolName,
                     toolCallId: "pending-call",
                     state: "input-available",
@@ -2569,6 +2808,24 @@ describe("assistant selection", () => {
     };
 
     render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() => {
+      expect(() => executeCurrentReadCall("pending-read")).toThrow(
+        "This canonical read call was previously admitted",
+      );
+    });
+    await expect(
+      executeCurrentCanonicalMutation(
+        "pending-mutation",
+        "addPlace",
+        deepConstructionInput.operations[0]?.input,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        applied: false,
+        reason:
+          "This canonical mutation call was previously admitted without one verifiable terminal result.",
+      }),
+    );
     await waitFor(async () => {
       await expect(executeCurrentDeepCall("pending-call")).resolves.toEqual(
         expect.objectContaining({
