@@ -557,6 +557,14 @@ fn retain_planned_effects<E>(
     retries.retain(|id, _| planned_ids.contains(id));
 }
 
+fn collect_plan<S, X>(executor: &X, projection: &S::Projection) -> Vec<X::Effect>
+where
+    S: SimpleDomain,
+    X: Executor<S>,
+{
+    executor.plan(projection).into_iter().collect()
+}
+
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "tokio select uses modulo to choose its polling order"
@@ -580,7 +588,7 @@ where
         }
         let planner = Arc::clone(&executor);
         let effects = match handle
-            .read(move |projection| planner.plan(projection.domain()))
+            .read(move |projection| collect_plan(planner.as_ref(), projection.domain()))
             .await
         {
             Ok(effects) => effects,
@@ -942,7 +950,10 @@ mod tests {
         type Effect = ArchiveEffect;
         type Error = Infallible;
 
-        fn plan(&self, projection: &RtCounters) -> Vec<ArchiveEffect> {
+        fn plan<'a>(
+            &'a self,
+            projection: &'a RtCounters,
+        ) -> impl IntoIterator<Item = ArchiveEffect> + 'a {
             projection
                 .totals
                 .iter()
@@ -951,7 +962,6 @@ mod tests {
                     counter: counter.clone(),
                     total,
                 })
-                .collect()
         }
 
         #[expect(
@@ -1343,7 +1353,7 @@ mod tests {
             type Effect = u8;
             type Error = DestinationUnavailable;
 
-            fn plan(&self, projection: &RtCounters) -> Vec<u8> {
+            fn plan<'a>(&'a self, projection: &'a RtCounters) -> impl IntoIterator<Item = u8> + 'a {
                 match projection.totals.get("ready") {
                     None => vec![1, 2],
                     Some(1) => vec![1],
@@ -1427,12 +1437,8 @@ mod tests {
             type Effect = ();
             type Error = Infallible;
 
-            fn plan(&self, projection: &RtCounters) -> Vec<()> {
-                if projection.totals.contains_key("ready") {
-                    vec![()]
-                } else {
-                    Vec::new()
-                }
+            fn plan<'a>(&'a self, projection: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
+                projection.totals.contains_key("ready").then_some(())
             }
 
             fn execute(
@@ -1552,9 +1558,9 @@ mod tests {
             type Effect = ();
             type Error = Infallible;
 
-            fn plan(&self, _: &RtCounters) -> Vec<()> {
+            fn plan<'a>(&'a self, _: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
                 self.0.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
-                Vec::new()
+                core::iter::empty()
             }
 
             async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry<Self::Error>> {
@@ -1609,8 +1615,8 @@ mod tests {
             type Effect = ();
             type Error = Infallible;
 
-            fn plan(&self, _: &RtCounters) -> Vec<()> {
-                vec![()]
+            fn plan<'a>(&'a self, _: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
+                core::iter::once(())
             }
 
             async fn execute(&self, (): &()) -> Result<Vec<RtEvent>, Retry<Self::Error>> {

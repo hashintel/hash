@@ -69,8 +69,8 @@ impl Executor<PayloadDomain> for NoEffects {
     type Effect = ();
     type Error = Infallible;
 
-    fn plan(&self, _: &PayloadCount) -> Vec<()> {
-        Vec::new()
+    fn plan<'a>(&'a self, _: &'a PayloadCount) -> impl IntoIterator<Item = ()> + 'a {
+        core::iter::empty()
     }
 
     fn execute(

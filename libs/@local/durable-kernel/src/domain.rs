@@ -100,7 +100,10 @@ pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     type Effect: Serialize + Clone + Send + Sync + 'static;
     type Error: Error + Send + Sync + 'static;
 
-    fn plan(&self, projection: &S::Projection) -> Vec<Self::Effect>;
+    fn plan<'a>(
+        &'a self,
+        projection: &'a S::Projection,
+    ) -> impl IntoIterator<Item = Self::Effect> + 'a;
 
     /// Runs one external operation and returns the events that record its result.
     ///
