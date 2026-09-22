@@ -29,13 +29,13 @@ Open the **Simulate** mode and pick the **Status views** tab, then **Create**. A
 
 ## Kanban board
 
-When the net has at least one status view, the view switcher at the top left of the workspace gains a **Kanban** option beside Canvas and Definitions (Canvas and Kanban in Actual mode). The **Kanban board** keeps the side and bottom panels of the canvas. Columns are the selected view's labels in order, with the exit label last. Each card is one tracked instance, showing its key value, the time it has spent in its current status, and — when it has entered the status more than once, e.g. through a review loop — the entry count.
+When the net has at least one status view, the view switcher at the top left of the workspace gains a **Kanban** option beside Canvas and Definitions (Canvas and Kanban in Actual mode). The **Kanban board** keeps the side and bottom panels of the canvas. Columns are the selected view's labels in order, with the exit label last. Each card is one tracked instance, showing its key value, the time it has spent in its current stay, and — when it has entered the status more than once, e.g. through a review loop — the total time across stays and the number of stays.
 
 The board reads the same frames as the canvas: simulation playback in Edit mode, or the live stream in Actual mode. Scrub the timeline and the board follows.
 
 ## Timing
 
-All durations derive from the firing history — the recorded wall-clock timestamps in Actual mode, simulated time otherwise. Because a token can re-enter a status, time-in-status is a set of intervals; displays show the total plus the entry count.
+All durations derive from the firing history — the recorded wall-clock timestamps in Actual mode, simulated time otherwise. Because a token can re-enter a status, time-in-status is a set of intervals; a card shows the current stay, and the total across stays with the number of stays once there is more than one.
 
 In Actual mode, the Events tab gains a **Status changes** column when the net declares a status view and the stream's firings carry token values: each row lists which instances changed status and how long they spent in the previous one.
 

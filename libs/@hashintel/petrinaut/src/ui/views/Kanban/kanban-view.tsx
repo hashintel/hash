@@ -8,6 +8,7 @@ import { Select } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getStatusViewEvaluationScope,
+  summarizeStatusIntervals,
   type InstanceStatus,
   type StatusLabel,
   type StatusView,
@@ -175,16 +176,20 @@ const KanbanCard = ({
   labelId: string;
   nowMs: number;
 }) => {
-  const entryCount = instance.intervals.filter(
-    (interval) => interval.labelId === labelId,
-  ).length;
-  const dwellMs = nowMs - instance.enteredCurrentAtMs;
+  const { totalMs, entryCount } = summarizeStatusIntervals(
+    instance.intervals,
+    labelId,
+    nowMs,
+  );
+  const currentStayMs = nowMs - instance.enteredCurrentAtMs;
   return (
     <div className={cardStyle} data-kanban-interactive="">
       <div className={cardKeyStyle}>{instance.keyValues.join(", ")}</div>
       <div className={cardMetaStyle}>
-        {formatDwellMs(dwellMs)} in this status
-        {entryCount > 1 ? ` · entered ×${entryCount}` : ""}
+        {formatDwellMs(currentStayMs)} in this status
+        {entryCount > 1
+          ? ` · ${formatDwellMs(totalMs)} over ${entryCount} stays`
+          : ""}
       </div>
     </div>
   );
@@ -351,8 +356,8 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
  * Kanban projection of one status view over the current frame source
  * (simulation playback or an actual-mode stream): one column per label in
  * array order with the exit label last, and one card per tracked instance
- * showing its raw key values, time in the current status, and the entry
- * count when it has entered the status more than once.
+ * showing its raw key values, time in the current stay, and the total time
+ * and entry count when it has entered the status more than once.
  */
 export const KanbanView = ({
   toolbarStart,

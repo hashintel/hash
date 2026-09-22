@@ -12,7 +12,7 @@ import type {
 /**
  * One stay of an instance in a label. Loops make time-in-state
  * multi-interval — a ticket can enter In Review several times — so displays
- * show the sum plus the entry count.
+ * show the current stay and, past the first, the sum plus the entry count.
  */
 export type StatusInterval = {
   labelId: ID;
