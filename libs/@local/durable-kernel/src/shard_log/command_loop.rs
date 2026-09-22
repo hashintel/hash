@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use error_stack::{Report, ResultExt as _};
 use opendata_common::StorageConfig;
 use tokio::sync::{mpsc, oneshot};
-use tokio_util::sync::CancellationToken;
+use tokio_util::sync::{CancellationToken, DropGuard};
 
 use super::{
     AppendFailureKind, JournalStorage, JournalWriter, ShardAppendError, ShardLogLocation,
@@ -424,9 +424,10 @@ impl<D: Domain> ShardCommandHandle<D> {
 /// before closing.
 #[derive(Debug)]
 pub struct ShardOwner<D: Domain> {
+    // Cancel ownership before closing the command channel.
+    _ownership: DropGuard,
     sender: mpsc::Sender<Command<D>>,
     admission_closed: CancellationToken,
-    ownership_lost: CancellationToken,
 }
 
 impl<D: Domain> ShardOwner<D> {
@@ -454,12 +455,6 @@ impl<D: Domain> ShardOwner<D> {
             .change_context(ShardCommandError::ReplyDropped {
                 command: ShardCommandKind::Shutdown,
             })?
-    }
-}
-
-impl<D: Domain> Drop for ShardOwner<D> {
-    fn drop(&mut self) {
-        self.ownership_lost.cancel();
     }
 }
 
@@ -770,9 +765,9 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
         let ownership_lost = CancellationToken::new();
         let admission_closed = ownership_lost.child_token();
         let owner = ShardOwner {
+            _ownership: ownership_lost.clone().drop_guard(),
             sender: sender.clone(),
             admission_closed: admission_closed.clone(),
-            ownership_lost: ownership_lost.clone(),
         };
         let handle = ShardCommandHandle {
             sender,
