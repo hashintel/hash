@@ -6,6 +6,7 @@ import {
   createFlueClient,
   FlueExecutionError,
   type AgentSendResult,
+  type FlueConversationSnapshot,
 } from "@flue/sdk";
 
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent-transport-aisdk";
@@ -18,6 +19,19 @@ import {
 } from "../../conversation/identity.ts";
 
 import type { Page, Response as BrowserResponse } from "@playwright/test";
+
+/** A failed persona turn that still carries the admitted conversation's history. */
+export class PersonaBrowserTurnError extends Error {
+  readonly snapshot: FlueConversationSnapshot;
+  constructor(
+    message: string,
+    options: { cause: unknown; snapshot: FlueConversationSnapshot },
+  ) {
+    super(message, { cause: options.cause });
+    this.name = "PersonaBrowserTurnError";
+    this.snapshot = options.snapshot;
+  }
+}
 
 export interface PersonaBrowserSession {
   readonly url: string;
@@ -64,6 +78,7 @@ export const submitPersonaBrowserTurn = async (
     response.request().method() === "POST" &&
     /^\/agents\/chat\/[^/]+$/u.test(new URL(response.url()).pathname);
   let admissionSession: PersonaBrowserSession | undefined;
+  let client: ReturnType<typeof createFlueClient> | undefined;
   const continuationAdmissionTasks: Promise<void>[] = [];
   const collect = (response: BrowserResponse) => {
     if (!isAdmission(response)) return;
@@ -153,7 +168,7 @@ export const submitPersonaBrowserTurn = async (
         );
     }
     admissionSession = session;
-    const client = createFlueClient({
+    client = createFlueClient({
       url: session.url,
       headers: agentOwnershipHeaders(session),
     });
@@ -285,6 +300,14 @@ export const submitPersonaBrowserTurn = async (
       cancel();
       await stopTask;
     }
+    // Keep the admitted conversation's history with the failure so a failed
+    // arm can be diagnosed from what was actually delivered.
+    const history = await client?.history().catch(() => undefined);
+    if (history !== undefined)
+      throw new PersonaBrowserTurnError(
+        error instanceof Error ? error.message : String(error),
+        { cause: error, snapshot: history },
+      );
     throw error;
   } finally {
     page.off("response", collect);

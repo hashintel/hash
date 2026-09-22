@@ -6,7 +6,10 @@ import { writeProofArtifacts } from "../persona/proof-artifacts.ts";
 import { matchedParityArms } from "./configuration.ts";
 import { deriveComparison } from "./summary.ts";
 
-import type { BrowserArmResult } from "./browser-run.ts";
+import type {
+  BrowserArmFailureReport,
+  BrowserArmResult,
+} from "./browser-run.ts";
 import type {
   EvaluationArm,
   MatchedParityConfiguration,
@@ -32,6 +35,20 @@ export interface ArmExecutionRecord {
   readonly observedSpendUsd: number | null;
   readonly scenarioId: string;
 }
+
+/**
+ * A failed arm is never a completed artifact; its diagnosis lives beside where
+ * the artifact would have been. Resume ignores it because `artifact.json` is
+ * absent.
+ */
+export const writeArmFailure = async (
+  directory: string,
+  report: BrowserArmFailureReport,
+) => {
+  await mkdir(directory, { recursive: true });
+  await atomicWrite(join(directory, "failure.json"), json(report));
+  return join(directory, "failure.json");
+};
 
 export const writeArmArtifacts = async (
   directory: string,

@@ -219,10 +219,18 @@ const verifyCanonicalPetrinautDelivery = async (input: {
     const record = parseClientToolResultMetadata(
       input.delivery.metadata,
     )?.canonicalMutationRecord;
-    if (record === undefined)
+    if (record === undefined) {
+      const delivered =
+        input.delivery.metadata === undefined
+          ? "no metadata"
+          : typeof input.delivery.metadata === "object" &&
+              input.delivery.metadata !== null
+            ? `metadata keys ${JSON.stringify(Object.keys(input.delivery.metadata))}`
+            : `metadata of type ${typeof input.delivery.metadata}`;
       throw new Error(
-        "The canonical mutation result requires a canonical mutation record.",
+        `The canonical mutation result requires a canonical mutation record (${input.call.toolName} ${input.call.toolCallId} delivered ${delivered}).`,
       );
+    }
     await verifyCanonicalMutationRecord({
       record,
       toolCallId: input.call.toolCallId,
