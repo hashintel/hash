@@ -883,6 +883,16 @@ const server = http.createServer((request, response) => {
   );
 });
 
+const producedTokensPerPlace = (
+  outputTokens: ActualModeTokenValues,
+): Record<string, number> =>
+  Object.fromEntries(
+    Object.entries(outputTokens).map(([placeId, tokens]) => [
+      placeId,
+      tokens.length,
+    ]),
+  );
+
 const broadcastLiveFiring = (): void => {
   const firing = nextLiveFiring();
 
@@ -896,7 +906,7 @@ const broadcastLiveFiring = (): void => {
 
   console.log(
     `[${firing.ts}] transition_firing ${firing.transitionId} -> ${JSON.stringify(
-      countTokensPerPlace(undefined, firing.outputTokens),
+      producedTokensPerPlace(firing.outputTokens),
     )}`,
   );
 };

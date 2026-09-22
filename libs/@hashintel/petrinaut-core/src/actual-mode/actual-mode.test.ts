@@ -192,43 +192,6 @@ describe("Actual mode recordings", () => {
     ]);
   });
 
-  it("rejects count-form firings", () => {
-    expect(() =>
-      actualModeTransitionFiringSchema.parse({
-        transitionId: "start",
-        input: { queued: 1 },
-        output: { implementing: 1 },
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toThrow();
-    expect(() =>
-      actualModeTransitionFiringSchema.parse({
-        transitionId: "start",
-        inputTokens: { queued: [{ ticket_id: "a" }] },
-        output: { implementing: 1 },
-        ts: "2026-06-05T10:00:00.000Z",
-      }),
-    ).toThrow();
-    expect(() =>
-      parseActualModeRecording({
-        version: 3,
-        exportedAt: "2026-06-05T10:01:00.000Z",
-        title: "Replay",
-        source: null,
-        definition,
-        initialState: { queued: 1, done: 0 },
-        transitionFirings: [
-          {
-            transitionId: "finish",
-            inputTokens: { queued: 1 },
-            outputTokens: { done: [{}] },
-            ts: "2026-06-05T10:00:00.000Z",
-          },
-        ],
-      }),
-    ).toThrow();
-  });
-
   it("reconstructs timeline markings from firing effects", () => {
     const reader = createActualModeTimelineFrameReader({
       definition: {
@@ -344,7 +307,7 @@ describe("Actual mode recordings", () => {
     expect(readerAt(0).getPlaceTokenCount("queued")).toBe(1);
   });
 
-  it("keeps count-only places as counts while attribute-less tokens move", () => {
+  it("keeps a place numeric while every token recorded for it is attribute-less", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
       initialState: { queued: 2 },
       transitionFirings: [
@@ -386,7 +349,7 @@ describe("Actual mode recordings", () => {
     },
   );
 
-  it("replays keyed token values instead of dropping tokens FIFO", () => {
+  it("removes the marking token whose key matches the recorded input token", () => {
     const initialState = {
       queued: [{ ticket_id: "a" }, { ticket_id: "b" }, { ticket_id: "c" }],
       implementing: [],

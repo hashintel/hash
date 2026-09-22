@@ -107,8 +107,8 @@ const removeConsumedTokens = (
 };
 
 /**
- * A place stays a token count while nothing recorded about it carries
- * attributes, so count-only streams reconstruct as counts.
+ * A place stays a token count while every token recorded for it is
+ * attribute-less; the first attribute-carrying token turns it into an array.
  */
 export const applyActualModeTransitionFiring = (
   marking: ActualModeMarking,

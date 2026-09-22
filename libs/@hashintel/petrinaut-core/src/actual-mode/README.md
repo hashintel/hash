@@ -67,14 +67,10 @@ strings, and an attribute-less record (`{}`) is one token about which nothing
 is known. Place keys may be scoped ids (`instanceId::placeId`) when a firing
 touches a componentInstance's copy of a subnet place.
 
-The schema rejects any other firing shape. The Brunch server emits
-`{ "input": { "queued": 1 }, "output": { … } }` count maps, so it needs
-updating to emit token values before the demo route can render its stream.
-
 Marking reconstruction consumes tokens by value:
 
-- A place stays a token count while nothing recorded about it carries
-  attributes, so count-only streams reconstruct as counts.
+- A place stays a token count while every token recorded for it is
+  attribute-less; the first attribute-carrying token turns it into an array.
 - A recorded input token removes the first token in the reconstructed place
   that agrees on every attribute the record carries; a `{}` record removes the
   oldest token.
@@ -84,13 +80,12 @@ Marking reconstruction consumes tokens by value:
   until the stream and the reconstruction re-converge.
 - Produced tokens are appended as recorded.
 
-Recordings are written and read with version 3; a recording with any other
-version fails to parse.
+Recordings carry `version: 3`.
 
 The transition-firing log is retained unbounded for the life of a stream, and
-token-value records multiply the per-firing size, so a long-running stream
-retains markedly more memory than a count-only one. Windowed retention (a
-checkpoint marking plus the last N firings) is the known follow-up.
+each firing holds one record per token moved, so a long-running stream's
+memory grows with the number of tokens moved. Windowed retention (a checkpoint
+marking plus the last N firings) is the known follow-up.
 
 ## File Map
 

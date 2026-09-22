@@ -83,10 +83,6 @@ export const actualModeReceivedEventSchema = z
   })
   .strict() satisfies z.ZodType<ActualModeReceivedEvent>;
 
-/**
- * A recording with any other version fails here rather than as a nested
- * firing error.
- */
 const actualModeRecordingVersionSchema = z.literal(
   ACTUAL_MODE_RECORDING_VERSION,
 );
