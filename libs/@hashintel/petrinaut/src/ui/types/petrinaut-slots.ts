@@ -10,8 +10,9 @@
  * using a different styling system (e.g. MUI, Emotion) should ensure their
  * styles are scoped — or just use `@hashintel/ds-components` directly.
  *
- * @deprecated Install a plugin with `buttons` or `topBarItems` through
- * `PetrinautPluginsProvider` instead.
+ * @deprecated Install a plugin with `buttons` or `topBarItems` for the top
+ * bar, or a `settingsGroups` entry for Labs, through `PetrinautPluginsProvider`
+ * instead.
  */
 export type PetrinautSlots = {
   /**

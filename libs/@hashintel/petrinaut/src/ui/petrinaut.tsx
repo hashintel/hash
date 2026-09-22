@@ -20,10 +20,7 @@ import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { petrinautBuiltInPlugins } from "./plugins/built-in-plugins";
-import {
-  InstalledPlugins,
-  InstalledPluginsProvider,
-} from "./plugins/installed-plugins";
+import { InstalledPluginsProvider } from "./plugins/installed-plugins";
 import { resolveInstalledPlugins } from "./plugins/plugin";
 import { usePetrinautPluginsConfiguration } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
@@ -179,8 +176,8 @@ export type PetrinautProps = {
    */
   viewportActions?: ViewportAction[];
   /**
-   * @deprecated Install a plugin with top-bar buttons or items through
-   * `PetrinautPluginsProvider` instead.
+   * @deprecated Install a plugin with top-bar buttons or items, or a Labs
+   * settings group, through `PetrinautPluginsProvider` instead.
    */
   slots?: PetrinautSlots;
   /**
@@ -291,7 +288,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                   titleEditable={titleEditable}
                   viewportActions={viewportActions}
                 />
-                <InstalledPlugins />
               </Stack>
             </MonacoProvider>
           </PetrinautPresentationProvider>

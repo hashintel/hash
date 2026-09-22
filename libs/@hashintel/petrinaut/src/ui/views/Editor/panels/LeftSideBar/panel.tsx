@@ -12,8 +12,7 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
 } from "../../../../constants/ui";
 import { LEFT_SIDEBAR_SUBVIEWS } from "../../../../constants/ui-subviews";
-import { useInstalledPlugins } from "../../../../plugins/installed-plugins";
-import { selectPluginSubViews } from "../../../../plugins/plugin";
+import { usePluginSubViews } from "../../../../plugins/plugin-sub-views";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { searchSubView } from "./subviews/search-panel";
 
@@ -114,10 +113,7 @@ export const LeftSideBar: React.FC = () => {
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  const pluginSubViews = selectPluginSubViews(
-    useInstalledPlugins(),
-    "left-sidebar",
-  );
+  const pluginSubViews = usePluginSubViews("left-sidebar");
   const sidebarSubViews = [
     ...LEFT_SIDEBAR_SUBVIEWS.filter((subView) =>
       subView.id === "nets-list"

@@ -47,8 +47,12 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
-import { useInstalledPlugins } from "../../plugins/installed-plugins";
+import {
+  InstalledPlugins,
+  useInstalledPlugins,
+} from "../../plugins/installed-plugins";
 import { selectPluginEditViews } from "../../plugins/plugin";
+import { PluginContributionBoundary } from "../../plugins/plugin-boundary";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -227,7 +231,8 @@ const EditorViewContent = ({
   // The Canvas and the Definitions view are built in; plugins contribute the
   // other edit views. A view the location names but nothing provides falls
   // back to the Canvas, so a stale URL still shows the net.
-  const pluginEditViews = selectPluginEditViews(useInstalledPlugins());
+  const installedEditViews = selectPluginEditViews(useInstalledPlugins());
+  const pluginEditViews = installedEditViews.map(({ view }) => view);
   const activeEditView =
     globalMode === "edit"
       ? pluginEditViews.find((view) => view.id === editViewMode)
@@ -685,7 +690,7 @@ const EditorViewContent = ({
                     }
                   />
                 </Activity>
-                {pluginEditViews.map((view) => {
+                {installedEditViews.map(({ pluginId, view }) => {
                   const EditView = view.component;
                   return (
                     <Activity
@@ -694,7 +699,13 @@ const EditorViewContent = ({
                         activeEditView?.id === view.id ? "visible" : "hidden"
                       }
                     >
-                      <EditView />
+                      <PluginContributionBoundary
+                        pluginId={pluginId}
+                        contributionId={view.id}
+                        place="edit-view"
+                      >
+                        <EditView />
+                      </PluginContributionBoundary>
                     </Activity>
                   );
                 })}
@@ -731,6 +742,10 @@ const EditorViewContent = ({
               }
             />
           )}
+          {/* Plugin components mount here, inside the editor's providers and
+              the workspace row, so their overlays position against the row as
+              the editor's own floating windows do. */}
+          <InstalledPlugins />
         </Stack>
       </VoiceSessionProvider>
     </ExperimentalIconProvider>

@@ -1,7 +1,7 @@
-import { createContext, use, useEffect, type ReactNode } from "react";
+import { createContext, Fragment, use, type ReactNode } from "react";
 
-import { useCommandRegistry } from "../../react/commands/command-registry";
-import { PluginErrorBoundary } from "./installed-plugins/plugin-error-boundary";
+import { useCommand } from "../../react/commands/command-registry";
+import { PluginContributionBoundary } from "./plugin-boundary";
 
 import type { PetrinautPlugin } from "./plugin";
 import type { Command } from "@hashintel/petrinaut-core";
@@ -25,37 +25,49 @@ export const InstalledPluginsProvider = ({
 export const useInstalledPlugins = (): readonly PetrinautPlugin[] =>
   use(InstalledPluginsContext);
 
-/** Registers a plugin's declared commands while it is installed. */
-const PluginCommands = ({ commands }: { commands: readonly Command[] }) => {
-  const registry = useCommandRegistry();
-  useEffect(() => {
-    if (!registry) {
-      return;
-    }
-    const disposers = commands.map((command) => registry.register(command));
-    return () => {
-      for (const dispose of disposers) {
-        dispose();
-      }
-    };
-  }, [registry, commands]);
+/**
+ * One declared command, registered like a `useCommand` declaration: it is
+ * replaced only when its id, label, category, keywords or shortcut change, so
+ * a plugin rebuilt with equal commands does not notify the palette.
+ */
+const PluginCommand = ({ command }: { command: Command }) => {
+  useCommand(command);
   return null;
 };
 
 /**
  * Mounts the stateful side of every installed plugin: its declared commands
- * and its component, each behind its own error boundary. Rendered once,
- * inside the editor's providers.
+ * and its component, each behind its own boundary so that a failing component
+ * does not take the plugin's commands with it. Rendered once per editor,
+ * inside its providers.
  */
 export const InstalledPlugins = () => {
   const plugins = useInstalledPlugins();
   return plugins.map((plugin) => {
     const PluginComponent = plugin.component;
     return (
-      <PluginErrorBoundary key={plugin.id} pluginId={plugin.id}>
-        {plugin.commands ? <PluginCommands commands={plugin.commands} /> : null}
-        {PluginComponent ? <PluginComponent /> : null}
-      </PluginErrorBoundary>
+      <Fragment key={plugin.id}>
+        {plugin.commands !== undefined && plugin.commands.length > 0 ? (
+          <PluginContributionBoundary
+            pluginId={plugin.id}
+            contributionId="commands"
+            place="commands"
+          >
+            {plugin.commands.map((command) => (
+              <PluginCommand key={command.id} command={command} />
+            ))}
+          </PluginContributionBoundary>
+        ) : null}
+        {PluginComponent ? (
+          <PluginContributionBoundary
+            pluginId={plugin.id}
+            contributionId="component"
+            place="component"
+          >
+            <PluginComponent />
+          </PluginContributionBoundary>
+        ) : null}
+      </Fragment>
     );
   });
 };

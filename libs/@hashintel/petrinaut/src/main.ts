@@ -32,6 +32,8 @@ export type {
   PetrinautPluginButton,
   PetrinautPluginButtonPlacement,
   PetrinautPluginEditView,
+  PetrinautPluginSettingsGroup,
+  PetrinautPluginSettingsSection,
   PetrinautPluginSubView,
   PetrinautPluginSubViewPlacement,
   PetrinautPluginTopBarItem,

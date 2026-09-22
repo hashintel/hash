@@ -7,6 +7,7 @@ import {
   type PetrinautPluginButtonPlacement,
   selectPluginToolbarItems,
 } from "./plugin";
+import { PluginContributionBoundary } from "./plugin-boundary";
 
 const buttonPropsByPlacement = {
   "top-bar-start": { size: "sm", variant: "ghost" },
@@ -41,7 +42,16 @@ export const PluginToolbarItems = ({
   return items.map((item) => {
     if (item.kind === "custom") {
       const Item = item.item.component;
-      return <Item key={item.item.id} />;
+      return (
+        <PluginContributionBoundary
+          key={item.item.id}
+          pluginId={item.pluginId}
+          contributionId={item.item.id}
+          place={placement}
+        >
+          <Item />
+        </PluginContributionBoundary>
+      );
     }
     const { button } = item;
     return (

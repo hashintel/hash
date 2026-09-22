@@ -24,8 +24,7 @@ import {
   COMPILATION_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { useInstalledPlugins } from "../../../../plugins/installed-plugins";
-import { selectPluginSubViews } from "../../../../plugins/plugin";
+import { usePluginSubViews } from "../../../../plugins/plugin-sub-views";
 
 import type { SubView } from "../../../../components/sub-view/types";
 
@@ -137,10 +136,7 @@ export const BottomPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { keepPanelsMounted, showCompilationOutput } = use(UserSettingsContext);
-  const pluginSubViews = selectPluginSubViews(
-    useInstalledPlugins(),
-    "bottom-panel",
-  );
+  const pluginSubViews = usePluginSubViews("bottom-panel");
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);

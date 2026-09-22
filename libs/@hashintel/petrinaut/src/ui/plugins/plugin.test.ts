@@ -4,6 +4,7 @@ import {
   definePetrinautPlugin,
   resolveInstalledPlugins,
   selectPluginEditViews,
+  selectPluginSettingsGroups,
   selectPluginSubViews,
   selectPluginToolbarItems,
 } from "./plugin";
@@ -44,6 +45,14 @@ const chrome = definePetrinautPlugin({
     },
   ],
   editViews: [{ id: "test-view", label: "Test view", component: Empty }],
+  settingsGroups: [
+    {
+      id: "test.chrome.labs",
+      section: "labs",
+      title: "Chrome",
+      component: Empty,
+    },
+  ],
 });
 
 const other = definePetrinautPlugin({
@@ -70,6 +79,48 @@ describe("resolveInstalledPlugins", () => {
       /"test.chrome" is installed twice/,
     );
   });
+
+  it("refuses two contributions with one id at one place", () => {
+    const clash = definePetrinautPlugin({
+      id: "test.clash",
+      subViews: [
+        {
+          id: "test.chrome.tab",
+          title: "Clash",
+          placement: "bottom-panel",
+          component: Empty,
+        },
+      ],
+    });
+    expect(() => resolveInstalledPlugins([chrome], [clash])).toThrow(
+      /"test.clash" contributes bottom-panel "test.chrome.tab", which plugin "test.chrome" already contributes/,
+    );
+  });
+
+  it("allows one id at different places", () => {
+    const elsewhere = definePetrinautPlugin({
+      id: "test.elsewhere",
+      subViews: [
+        {
+          id: "test.chrome.tab",
+          title: "Sidebar",
+          placement: "left-sidebar",
+          component: Empty,
+        },
+      ],
+    });
+    expect(() => resolveInstalledPlugins([other], [elsewhere])).not.toThrow();
+  });
+
+  it("refuses an edit view that would hide the Canvas", () => {
+    const canvas = definePetrinautPlugin({
+      id: "test.canvas",
+      editViews: [{ id: "canvas", label: "Canvas", component: Empty }],
+    });
+    expect(() => resolveInstalledPlugins([], [canvas])).toThrow(
+      /edit view "canvas", which is a built-in edit view/,
+    );
+  });
 });
 
 describe("contribution selectors", () => {
@@ -85,19 +136,26 @@ describe("contribution selectors", () => {
     );
   });
 
-  it("strips the placement from a subview before the panel renders it", () => {
+  it("keeps a subview's own object and the plugin that contributed it", () => {
     const [tab] = selectPluginSubViews([chrome], "bottom-panel");
-    expect(tab).toEqual({
-      id: "test.chrome.tab",
-      title: "Tab",
-      component: Empty,
-    });
+    expect(tab?.pluginId).toBe("test.chrome");
+    expect(tab?.subView).toBe(chrome.subViews?.[0]);
     expect(selectPluginSubViews([chrome], "left-sidebar")).toHaveLength(1);
   });
 
   it("collects edit views across plugins", () => {
     expect(
-      selectPluginEditViews([chrome, other]).map((view) => view.id),
-    ).toEqual(["test-view"]);
+      selectPluginEditViews([chrome, other]).map(
+        ({ pluginId, view }) => `${pluginId}/${view.id}`,
+      ),
+    ).toEqual(["test.chrome/test-view"]);
+  });
+
+  it("lists one settings section's groups", () => {
+    expect(
+      selectPluginSettingsGroups([chrome, other], "labs").map(
+        ({ group }) => group.id,
+      ),
+    ).toEqual(["test.chrome.labs"]);
   });
 });
