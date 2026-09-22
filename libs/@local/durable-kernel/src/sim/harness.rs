@@ -24,7 +24,7 @@ use crate::{
     },
     ids::{EffectId, EventId},
     properties::{self, CoverageSink, Property, PropertyClass},
-    registry::{DurableRecord as _, RecordRegistry, VersionedRecord as _},
+    registry::{RecordRegistry, VersionedRecord as _},
     shard_log::{
         OpenedShard, ShardCommandConfig, ShardCommandErrorKind, ShardCommandHandle,
         ShardCommandOutcome, ShardLogLocation, StartedShard,
@@ -678,7 +678,7 @@ impl Driver<'_> {
     fn reference_fold(&self) -> ReferenceState {
         let mut reference = ReferenceState::default();
         for (_sequence, bytes) in self.journal.durable_entries(SimKey::Events) {
-            let record = EventRecord::<DstEvent>::decode(&bytes)
+            let record = EventRecord::<DstEvent>::decode_borrowed(&bytes)
                 .expect("durable simulation entries should decode")
                 .normalize()
                 .expect("durable simulation entries should normalize");

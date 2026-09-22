@@ -10,7 +10,7 @@ use durable_kernel::{
         shard_of,
     },
     keyspace::Namespace,
-    registry::{CompatError, DurableRecord as _},
+    registry::CompatError,
     runtime::{Kernel, KernelConfig, SnapshotPolicy, Submitted},
     shard_log::{AppendFailureKind, ShardAppendError, ShardCommandError, ShardCommandErrorKind},
 };
@@ -106,8 +106,8 @@ fn record_size_boundary() {
     let encoded =
         encode(&record(Payload(payload.0.clone()))).expect("record at the limit should encode");
     assert_eq!(encoded.len(), MAX_RECORD_BYTES);
-    let EventRecord::V1(decoded) =
-        EventRecord::<Payload>::decode(&encoded).expect("record at the limit should decode");
+    let EventRecord::V1(decoded) = EventRecord::<Payload>::decode_borrowed(&encoded)
+        .expect("record at the limit should decode");
     assert_eq!(decoded.event(), &payload);
 
     let oversized = record(Payload(format!("{}x", payload.0)));
@@ -121,7 +121,7 @@ fn record_size_boundary() {
     assert_eq!(error.current_context(), &expected);
     let bytes = serde_json::to_vec(&oversized).expect("oversized fixture should serialize");
     assert_eq!(bytes.len(), MAX_RECORD_BYTES + 1);
-    let error = EventRecord::<Payload>::decode(&bytes)
+    let error = EventRecord::<Payload>::decode_borrowed(&bytes)
         .expect_err("record one byte over the limit should fail decoding");
     assert_eq!(error.current_context(), &expected);
 }
