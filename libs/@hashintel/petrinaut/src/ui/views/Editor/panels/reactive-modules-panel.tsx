@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -9,11 +9,14 @@ import { SimulationContext } from "../../../../react/simulation/context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { HorizontalTabsHeader } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
 import { ExperimentalIcon } from "../../../experimental-icons";
+import { CodeEditor } from "../../../monaco/code-editor";
 import { FloatingResizeHandles } from "../shared/floating-resize-handles";
 import { useFloatingPanel } from "../shared/use-floating-panel";
+import { loadExportLanguages } from "./reactive-modules-panel/monaco-languages";
 import { useLambdaHir } from "./reactive-modules-panel/use-lambda-hir";
 
 import type { HorizontalTabView } from "../../../components/sub-view/horizontal/horizontal-tabs-container";
+import type { CodeEditorProps } from "../../../monaco/code-editor";
 import type { PetriNetIrDiagnostic } from "@hashintel/petrinaut-core/reactive-modules";
 
 const PANEL_LABEL = "Zeroth Reactive Modules";
@@ -24,6 +27,31 @@ const TABS: (HorizontalTabView & { id: TabId })[] = [
   { id: "ir", title: "Petri Net IR" },
   { id: "python", title: "Python Reactive Module" },
 ];
+
+/**
+ * One Monaco model per tab, so each keeps its own scroll position and
+ * collapsed regions while the other is shown. The scheme keeps them apart from the language
+ * server's documents.
+ */
+const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
+  ir: {
+    language: "yaml",
+    path: "petrinaut-reactive-modules://export/net.pn.yaml",
+  },
+  python: {
+    language: "python",
+    path: "petrinaut-reactive-modules://export/net.py",
+  },
+};
+
+const VIEWER_OPTIONS: CodeEditorProps["options"] = {
+  readOnly: true,
+  domReadOnly: true,
+  lineNumbers: "on",
+  renderLineHighlight: "none",
+  showFoldingControls: "always",
+  scrollbar: { alwaysConsumeMouseWheel: false },
+};
 
 const shellStyle = css({
   position: "absolute",
@@ -91,23 +119,35 @@ const headerButtonStyle = css({
 const bodyStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
   flex: "[1]",
   minHeight: "[0]",
-  overflow: "auto",
-  padding: "3",
 });
 
-// The workspace disables text selection; the output is there to be copied.
-const outputStyle = css({
-  margin: "[0]",
-  fontFamily: "mono",
-  fontSize: "[12px]",
-  lineHeight: "[1.5]",
-  whiteSpace: "pre",
-  color: "neutral.s115",
+// The editor owns the whole tab area; the workspace's text-selection lock
+// stops at its boundary so the output can be copied.
+const editorBoxStyle = css({
+  flex: "[1]",
+  minHeight: "[0]",
   userSelect: "text",
-  cursor: "text",
+});
+
+const notesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  padding: "3",
+  overflow: "auto",
+});
+
+const footerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  padding: "3",
+  borderTop: "[1px solid {colors.neutral.bd.subtle}]",
+  flexShrink: 0,
+  maxHeight: "[40%]",
+  overflow: "auto",
 });
 
 const mutedStyle = css({
@@ -132,6 +172,21 @@ const listStyle = css({
   fontSize: "xs",
   color: "neutral.s115",
 });
+
+/** The active tab's text in Monaco, once its grammar is registered. */
+const ExportViewer = ({ tab, value }: { tab: TabId; value: string }) => {
+  use(loadExportLanguages());
+  return (
+    <CodeEditor
+      viewer
+      path={TAB_MODELS[tab].path}
+      language={TAB_MODELS[tab].language}
+      value={value}
+      height="100%"
+      options={VIEWER_OPTIONS}
+    />
+  );
+};
 
 const describeItem = (item: PetriNetIrDiagnostic["item"]): string =>
   item.kind === "net" ? "The net" : `${item.kind} ${item.name}`;
@@ -198,6 +253,13 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
         ? "Compiling…"
         : null;
 
+  const output =
+    result === null || result.errors.length > 0
+      ? null
+      : activeTab === "ir"
+        ? result.ir
+        : result.python;
+
   return (
     <aside
       ref={panelRef}
@@ -248,28 +310,40 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
           aria-labelledby={`tab-${activeTab}`}
         >
           {lambdaHir.status === "error" ? (
-            <p className={messageStyle}>
-              The net&apos;s code could not be compiled: {lambdaHir.error}
-            </p>
+            <div className={notesStyle}>
+              <p className={messageStyle}>
+                The net&apos;s code could not be compiled: {lambdaHir.error}
+              </p>
+            </div>
           ) : result === null ? (
-            <p className={mutedStyle}>Compiling…</p>
-          ) : result.errors.length > 0 ? (
-            <>
+            <div className={notesStyle}>
+              <p className={mutedStyle}>Compiling…</p>
+            </div>
+          ) : output === null ? (
+            <div className={notesStyle}>
               <p className={messageStyle}>
                 This net cannot be compiled to a reactive module yet.
               </p>
               <DiagnosticList diagnostics={result.errors} />
-            </>
+            </div>
           ) : (
             <>
-              <pre className={outputStyle}>
-                {activeTab === "ir" ? result.ir : result.python}
-              </pre>
+              <div className={editorBoxStyle}>
+                <Suspense
+                  fallback={
+                    <div className={notesStyle}>
+                      <p className={mutedStyle}>Loading editor…</p>
+                    </div>
+                  }
+                >
+                  <ExportViewer tab={activeTab} value={output} />
+                </Suspense>
+              </div>
               {result.warnings.length > 0 ? (
-                <>
+                <div className={footerStyle}>
                   <p className={mutedStyle}>Left out of the net:</p>
                   <DiagnosticList diagnostics={result.warnings} />
-                </>
+                </div>
               ) : null}
             </>
           )}

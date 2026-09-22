@@ -18,7 +18,7 @@ The window cannot dock into a side panel yet.
 
 **Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: one module variable per place, the initial marking as `init`, and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so the module and a Petrinaut run agree step for step.
 
-Both tabs are plain text you can select and copy.
+Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
 
 ## What it compiles from
 
