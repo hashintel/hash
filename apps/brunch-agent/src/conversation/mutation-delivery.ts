@@ -1,4 +1,5 @@
 import {
+  applyPetrinautConstructionToolName,
   canonicalContent,
   mutatePetrinetAttemptOperationId,
   mutatePetrinetInputSchema,
@@ -12,14 +13,19 @@ import {
   type DefinitionObservation,
   reconcileMutationAttempts,
   verifyCanonicalMutationRecord,
+  verifyDeepConstructionRecord,
+  verifyExperimentRecord,
   verifyMutationAttempt,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
   isClientToolResult,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
+import { createExperimentToolName } from "@hashintel/petrinaut-core";
 
 import { isAwaitingClient } from "./client-tools.ts";
+import { retainedSettledRevision } from "./workpiece.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
@@ -174,6 +180,33 @@ export const verifyMutatePetrinetAttempts = async (input: {
   return verified;
 };
 
+const verifyExperimentDelivery = async (input: {
+  delivery: ReturnType<typeof parseBrowserResults>[number];
+  call: { toolCallId: string; toolName: string; input: unknown };
+  binding: BrowserBinding;
+  history: ReturnType<typeof clientToolHistoryFrom>;
+}): Promise<void> => {
+  const record = parseClientToolResultMetadata(
+    input.delivery.metadata,
+  )?.experimentRecord;
+  if (record === undefined)
+    throw new Error("The experiment result requires an experiment record.");
+  await verifyExperimentRecord({
+    record,
+    toolCallId: input.call.toolCallId,
+    canonicalInput: input.call.input,
+    canonicalOutput: input.delivery.output,
+    binding: input.binding,
+  });
+  const earlier = input.history.results.filter(
+    (result) => result.toolCallId === input.call.toolCallId,
+  );
+  if (earlier.length > 1)
+    throw new Error(
+      "This browser call already has a result delivery; do not continue or rerun it.",
+    );
+};
+
 const verifyCanonicalPetrinautDelivery = async (input: {
   delivery: ReturnType<typeof parseBrowserResults>[number];
   call: { toolCallId: string; toolName: string; input: unknown };
@@ -194,6 +227,55 @@ const verifyCanonicalPetrinautDelivery = async (input: {
     canonicalInput: input.call.input,
     canonicalOutput: input.delivery.output,
     binding: input.binding,
+  });
+  const earlier = input.history.results.filter(
+    (result) => result.toolCallId === input.call.toolCallId,
+  );
+  if (earlier.length > 1)
+    throw new Error(
+      "This browser call already has a result delivery; do not continue or reapply it.",
+    );
+};
+
+const verifyDeepConstructionDelivery = async (input: {
+  delivery: ReturnType<typeof parseBrowserResults>[number];
+  call: { toolCallId: string; toolName: string; input: unknown };
+  binding: BrowserBinding;
+  beforeCall: FlueConversationSnapshot;
+  history: ReturnType<typeof clientToolHistoryFrom>;
+}): Promise<void> => {
+  const record = parseClientToolResultMetadata(
+    input.delivery.metadata,
+  )?.deepConstructionRecord;
+  if (record === undefined)
+    throw new Error(
+      "The deep construction result requires a deep construction record.",
+    );
+  const latestSettlement = input.beforeCall.messages
+    .flatMap((message) =>
+      message.role === "assistant" && message.purpose === "assistant"
+        ? message.parts
+        : [],
+    )
+    .findLast(
+      (part) =>
+        part.type === "dynamic-tool" &&
+        part.toolName === MUTATE_WORKPIECE_TOOL_NAME &&
+        part.state === "output-available" &&
+        retainedSettledRevision(input.beforeCall, part.toolCallId) !==
+          undefined,
+    );
+  const ledgerRevision =
+    latestSettlement?.type === "dynamic-tool"
+      ? retainedSettledRevision(input.beforeCall, latestSettlement.toolCallId)
+      : undefined;
+  await verifyDeepConstructionRecord({
+    record,
+    toolCallId: input.call.toolCallId,
+    canonicalInput: input.call.input,
+    canonicalOutput: input.delivery.output,
+    binding: input.binding,
+    ledgerRevision,
   });
   const earlier = input.history.results.filter(
     (result) => result.toolCallId === input.call.toolCallId,
@@ -282,6 +364,40 @@ export const verifyMutationResults = async (input: {
         throw new Error(
           "The browser result has no matching admitted canonical call.",
         );
+      if (call.toolName === createExperimentToolName) {
+        await verifyExperimentDelivery({
+          delivery,
+          call,
+          binding: input.binding,
+          history,
+        });
+        return;
+      }
+      if (call.toolName === applyPetrinautConstructionToolName) {
+        const messageIndex = input.snapshot.messages.findIndex((message) =>
+          message.parts.includes(call),
+        );
+        const callMessage = input.snapshot.messages[messageIndex];
+        const partIndex = callMessage?.parts.indexOf(call) ?? -1;
+        if (messageIndex < 0 || callMessage === undefined || partIndex < 0)
+          throw new Error(
+            "The deep construction call position is unavailable.",
+          );
+        await verifyDeepConstructionDelivery({
+          delivery,
+          call,
+          binding: input.binding,
+          beforeCall: {
+            ...input.snapshot,
+            messages: [
+              ...input.snapshot.messages.slice(0, messageIndex),
+              { ...callMessage, parts: callMessage.parts.slice(0, partIndex) },
+            ],
+          },
+          history,
+        });
+        return;
+      }
       if (isMutatePetrinautNetToolName(call.toolName)) {
         await verifyMutatePetrinetDelivery({
           delivery,

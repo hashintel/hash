@@ -333,6 +333,56 @@ test("folds a correlated canonical mutation sidecar into Ledger activity", () =>
   ).toEqual([]);
 });
 
+test("counts a correlated deep construction host record as Ledger activity", () => {
+  const input = { operations: [{ operationId: "queue" }] };
+  const deepOutput = { execution: "ordered-stop", disposition: "complete" };
+  const call = {
+    role: "assistant",
+    purpose: "assistant",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "apply_petrinaut_construction",
+        toolCallId: "deep-call",
+        state: "output-available",
+        input,
+        output: { awaiting: "client" },
+      },
+    ],
+  };
+  const result = {
+    role: "system",
+    purpose: "dispatch",
+    signal: { tagName: "client-tool-result" },
+    parts: [
+      {
+        type: "text",
+        text: JSON.stringify([
+          {
+            toolCallId: "deep-call",
+            toolName: "apply_petrinaut_construction",
+            output: deepOutput,
+            metadata: {
+              deepConstructionRecord: {
+                toolCallId: "deep-call",
+                binding,
+                input,
+                authority: { status: "refused", reason: "fixture" },
+                attempts: [],
+                output: deepOutput,
+              },
+            },
+          },
+        ]),
+      },
+    ],
+  };
+
+  expect(
+    foldBrunchWorkpieceHistory([call, result], binding).activityIdentities,
+  ).toEqual(["deep-call"]);
+});
+
 test("does not count unbound settlement pointers as activity", () => {
   const history = foldBrunchWorkpieceHistory(
     [settlementMessage("pointer-only", "# Unbound", "other-call")],

@@ -21,12 +21,17 @@ import { createFlueClient } from "@flue/sdk";
 
 import {
   CANONICAL_PETRINAUT_TOOLS_MODE,
+  applyPetrinautConstructionInputSchema,
+  applyPetrinautConstructionToolName,
   queryWorkpieceInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
   parseConstructionWhyInput,
 } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { batchedConstructionMode } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
+  batchedConstructionMode,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
@@ -149,6 +154,77 @@ try {
       assert.equal(issuedType.state, "output-available");
       assert.deepEqual(issuedType.input, nested);
       assert.deepEqual(issuedType.output, { awaiting: "client" });
+
+      const deepIdentity = {
+        ...identity,
+        conversationId: `${identity.conversationId}-deep`,
+      };
+      const deepClient = createFlueClient({
+        url: `http://brunch.local/agents/chat/${flueConversationIdFrom(deepIdentity)}`,
+        headers: agentOwnershipHeaders(deepIdentity),
+        fetch: async (input, init) =>
+          mounted.fetch(
+            input instanceof Request ? input : new Request(input, init),
+          ),
+      });
+      faux.setResponses([
+        fauxAssistantMessage(
+          [
+            fauxToolCall(
+              applyPetrinautConstructionToolName,
+              {
+                operations: [
+                  {
+                    operationId: "add-waiting",
+                    toolName: "addPlace",
+                    input: {
+                      id: "waiting",
+                      name: "Waiting",
+                      colorId: null,
+                      dynamicsEnabled: false,
+                      differentialEquationId: null,
+                      x: 0,
+                      y: 0,
+                    },
+                    intendedEffect: "Represent waiting work.",
+                    intendedTarget: "Waiting work",
+                    expectedImpact: ["place:waiting"],
+                  },
+                ],
+              },
+              { id: `${method}-deep-apply` },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
+      ]);
+      await deepClient.wait(
+        await deepClient.send({
+          initialData: {
+            mode: BRUNCH_DEEP_CONSTRUCTION_MODE,
+            construction: {
+              binding: {
+                conversationId: deepIdentity.conversationId,
+                documentId: "synthetic-deep-document",
+                incarnationId: "synthetic-deep-incarnation",
+              },
+            },
+          },
+          message: { kind: "user", body: "Synthetic deep schema control." },
+        }),
+      );
+      const deepHistory = await deepClient.history();
+      histories.push(deepHistory);
+      const deepCall = deepHistory.messages
+        .flatMap((message) => message.parts)
+        .find(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === `${method}-deep-apply`,
+        );
+      assert(deepCall?.type === "dynamic-tool");
+      assert.equal(deepCall.state, "output-available");
+      assert.deepEqual(deepCall.output, { awaiting: "client" });
 
       for (const mode of [batchedConstructionMode]) {
         const batchIdentity = {
@@ -297,6 +373,36 @@ try {
         `${method} flattened nested canonical schema for ${toolName}`,
       );
     }
+    const deepRequest = requests.find((request) =>
+      request.serialized.tools.some(
+        (tool) => tool.name === applyPetrinautConstructionToolName,
+      ),
+    );
+    assert(deepRequest, `${method} must carry the deep construction tool`);
+    const deepTool = deepRequest.serialized.tools.find(
+      (tool) => tool.name === applyPetrinautConstructionToolName,
+    );
+    assert(deepTool);
+    assert.deepEqual(
+      deepTool.input_schema,
+      applyPetrinautConstructionInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    for (const forbidden of [
+      "baseHash",
+      "basisId",
+      "binding",
+      "documentRevision",
+      "locators",
+      "observationToolCallId",
+      "revisionId",
+      "sha256",
+      "toolCallId",
+    ]) {
+      assert(!JSON.stringify(deepTool.input_schema).includes(`"${forbidden}"`));
+    }
+
     const ordinaryRequest = requests.find((request) =>
       request.serialized.tools.some(
         (tool) => tool.name === mutatePetrinautNetToolName,

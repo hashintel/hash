@@ -26,10 +26,13 @@ import {
   classifyMutationOutcome,
   deriveLayoutEffects,
   deriveMutationEffects,
+  expectedNodeDefinition,
   observedMutationOutcome,
   parseClientToolResultMetadata,
   reconcileMutationAttempts,
   verifyCanonicalMutationRecord,
+  verifyDeepConstructionRecord,
+  verifyExperimentRecord,
   verifyMutationAttempt,
   type ArcMutationRequest,
   type ArcMutationAttempt,
@@ -801,6 +804,97 @@ describe("root addArc transition semantics", () => {
   });
 });
 
+describe("canonical experiment sidecars", () => {
+  const input = {
+    name: "Baseline",
+    scenarioId: "scenario-1",
+    scenarioParameterValues: {},
+    runCount: 10,
+    seed: 42,
+    dt: 0.1,
+    maxTime: 10,
+    metricIds: ["throughput"],
+    execution: { mode: "simulate" as const },
+  };
+  const source = { ...observe(pre), revisionId: "source-revision" };
+  const result = (status: "complete" | "cancelled" | "error") => ({
+    status,
+    experimentId: status === "error" ? null : "experiment-1",
+    name: input.name,
+    ...(status === "complete" ? {} : { message: `${status} terminal result` }),
+    runsCompleted: status === "complete" ? 10 : 3,
+    metrics: [
+      {
+        id: "throughput",
+        label: "Throughput",
+        value: status === "complete" ? 4 : null,
+      },
+    ],
+  });
+  const record = (status: "complete" | "cancelled" | "error") => ({
+    toolCallId: "experiment-call",
+    binding: request.binding,
+    input,
+    source,
+    output: result(status),
+  });
+  const verify = (candidate: unknown, canonicalOutput: unknown) =>
+    verifyExperimentRecord({
+      record: candidate,
+      toolCallId: "experiment-call",
+      canonicalInput: input,
+      canonicalOutput,
+      binding: request.binding,
+    });
+
+  test.each(["complete", "cancelled", "error"] as const)(
+    "verifies the canonical %s terminal result over the frozen source revision",
+    async (status) => {
+      await expect(
+        verify(record(status), result(status)),
+      ).resolves.toMatchObject({
+        source: { revisionId: "source-revision", sha256: source.sha256 },
+        output: { status },
+      });
+    },
+  );
+
+  test("rejects source, request, result, call and binding mismatches", async () => {
+    const valid = record("complete");
+    const cases = [
+      { ...valid, toolCallId: "another-call" },
+      {
+        ...valid,
+        binding: { ...valid.binding, documentId: "another-document" },
+      },
+      { ...valid, input: { ...valid.input, runCount: 11 } },
+      { ...valid, output: { ...valid.output, runsCompleted: 9 } },
+      { ...valid, source: { ...valid.source, sha256: "0".repeat(64) } },
+      { ...valid, source: { ...valid.source, revisionId: "" } },
+    ];
+    for (const candidate of cases) {
+      // eslint-disable-next-line no-await-in-loop -- Each candidate is an independent boundary case.
+      await expect(verify(candidate, result("complete"))).rejects.toThrow(/./u);
+    }
+    await expect(
+      verify(valid, { ...result("complete"), runsCompleted: 9 }),
+    ).rejects.toThrow(/output/u);
+  });
+
+  test("rejects non-terminal progress and non-canonical dispositions", async () => {
+    const valid = record("complete");
+    await expect(
+      verify(
+        { ...valid, output: { ...valid.output, status: "running" } },
+        {
+          ...valid.output,
+          status: "running",
+        },
+      ),
+    ).rejects.toThrow(/./u);
+  });
+});
+
 describe("canonical single-mutation sidecars", () => {
   const canonicalRecord = () => {
     const attempt = applied();
@@ -978,6 +1072,578 @@ describe("canonical single-mutation sidecars", () => {
         },
       }),
     ).rejects.toThrow(/requires a settled/u);
+  });
+});
+
+describe("deep construction sidecars", () => {
+  const ledger = {
+    revisionId: "deep-ledger",
+    markdown: "Create a receiving queue.",
+    sha256: createHash("sha256")
+      .update("Create a receiving queue.")
+      .digest("hex"),
+    ordinal: 1,
+  };
+  const deepInput = {
+    // eslint-disable-next-line oxc/no-map-spread -- Frozen fixtures differ by optional evidence.
+    operations: ["one", "two", "three"].map((id, index) => ({
+      operationId: id,
+      toolName: "addPlace" as const,
+      intendedEffect: `Create ${id}.`,
+      intendedTarget: id,
+      expectedImpact: [`place:${id}`],
+      ...(index === 0
+        ? {
+            evidence: {
+              excerpts: ["receiving queue"],
+              rationale: "The settled Ledger names the queue.",
+            },
+          }
+        : {}),
+      input: {
+        ...pre.places[0]!,
+        id,
+        name: `Place${index + 1}`,
+        x: index * 20,
+      },
+    })),
+  };
+  const deepFixture = () => {
+    let current: SDCPN = {
+      places: [],
+      transitions: [],
+      types: [],
+      parameters: [],
+      differentialEquations: [],
+    };
+    const base = { ...observe(current), revisionId: "deep-base" };
+    const attempts = deepInput.operations.map((operation, index) => {
+      const preObservation = {
+        ...observe(current),
+        revisionId: index === 0 ? "deep-base" : `deep-post-${index}`,
+      };
+      const operationRequest: ConstructionMutationRequest = {
+        toolCallId: "deep-call",
+        toolName: operation.toolName,
+        input: operation.input,
+        binding: request.binding,
+        requestedBaseHash: preObservation.sha256,
+      };
+      const next = expectedNodeDefinition(operationRequest, current);
+      const post = { ...observe(next), revisionId: `deep-post-${index + 1}` };
+      const effects = deriveMutationEffects(operationRequest, current, next);
+      current = next;
+      return {
+        toolCallId: "deep-call",
+        toolName: operation.toolName,
+        binding: request.binding,
+        input: operation.input,
+        pre: preObservation,
+        post,
+        outcome: "applied" as const,
+        effects,
+        settlement: { status: "settled" as const, revisionId: post.revisionId },
+        diagnostics: { status: "not-required" as const },
+        output: { applied: true, target: operation.input.id },
+      };
+    });
+    const output = {
+      execution: "ordered-stop" as const,
+      disposition: "complete" as const,
+      outcomes: attempts.map((attempt, index) => ({
+        index,
+        operationId: deepInput.operations[index]!.operationId,
+        toolName: "addPlace" as const,
+        status: "applied" as const,
+        effects: [
+          ...attempt.effects.created,
+          ...attempt.effects.updated,
+          ...attempt.effects.deleted,
+          ...attempt.effects.derived,
+        ],
+      })),
+      finalObservation: {
+        disposition: "observed" as const,
+        documentRevision: "deep-post-3",
+        definitionHash: observe(current).sha256,
+      },
+      diagnostics: { disposition: "not-required" as const },
+      layout: {
+        requested: false as const,
+        disposition: "not-requested" as const,
+      },
+    };
+    return {
+      output,
+      record: {
+        toolCallId: "deep-call",
+        binding: request.binding,
+        input: deepInput,
+        authority: {
+          status: "verified" as const,
+          base,
+          ledger: {
+            revisionId: ledger.revisionId,
+            sha256: ledger.sha256,
+            ordinal: ledger.ordinal,
+          },
+          bases: [
+            {
+              kind: "declared" as const,
+              revisionId: ledger.revisionId,
+              sha256: ledger.sha256,
+              locators: [{ start: 9, end: 24 }],
+              rationale: "The settled Ledger names the queue.",
+              scope: "operation" as const,
+            },
+            {
+              kind: "absent" as const,
+              reason:
+                "No exact Ledger excerpt was supplied for this operation.",
+            },
+            {
+              kind: "absent" as const,
+              reason:
+                "No exact Ledger excerpt was supplied for this operation.",
+            },
+          ],
+        },
+        attempts,
+        output,
+      },
+    };
+  };
+  const verifyDeep = (record: unknown, output: unknown) =>
+    verifyDeepConstructionRecord({
+      record,
+      toolCallId: "deep-call",
+      canonicalInput: deepInput,
+      canonicalOutput: output,
+      binding: request.binding,
+      ledgerRevision: ledger,
+    });
+
+  test("verifies a complete ordered three-step record with frozen declared and absent bases", async () => {
+    const fixture = deepFixture();
+    await expect(
+      verifyDeep(fixture.record, fixture.output),
+    ).resolves.toMatchObject({
+      attempts: [
+        { basis: { kind: "declared" }, record: { outcome: "applied" } },
+        { basis: { kind: "absent" } },
+        { basis: { kind: "absent" } },
+      ],
+    });
+  });
+
+  test("verifies applied layout against host-owned observations, effects, hashes and settlement", async () => {
+    const fixture = deepFixture();
+    const preLayout = structuredClone(fixture.record.attempts.at(-1)!.post);
+    const laidOut = structuredClone(preLayout.definition);
+    laidOut.places[0]!.x = 240;
+    laidOut.places[1]!.y = 120;
+    const postLayout = { ...observe(laidOut), revisionId: "deep-layout-post" };
+    const effects = deriveLayoutEffects(preLayout.definition, laidOut);
+    const output = {
+      ...fixture.output,
+      finalObservation: {
+        disposition: "observed" as const,
+        documentRevision: postLayout.revisionId,
+        definitionHash: postLayout.sha256,
+      },
+      layout: {
+        requested: true as const,
+        disposition: "applied" as const,
+        preHash: preLayout.sha256,
+        postHash: postLayout.sha256,
+      },
+    };
+    const record = {
+      ...fixture.record,
+      input: { ...deepInput, layout: { requested: true as const } },
+      layout: {
+        pre: preLayout,
+        post: postLayout,
+        effects,
+        settlement: {
+          status: "settled" as const,
+          revisionId: postLayout.revisionId,
+        },
+      },
+      output,
+    };
+    const verifyLayout = (candidateRecord: unknown, candidateOutput: unknown) =>
+      verifyDeepConstructionRecord({
+        record: candidateRecord,
+        toolCallId: "deep-call",
+        canonicalInput: record.input,
+        canonicalOutput: candidateOutput,
+        binding: request.binding,
+        ledgerRevision: ledger,
+      });
+
+    await expect(verifyLayout(record, output)).resolves.toMatchObject({
+      layout: {
+        pre: { sha256: preLayout.sha256 },
+        post: { sha256: postLayout.sha256 },
+        effects,
+      },
+      output: { finalObservation: { definitionHash: postLayout.sha256 } },
+    });
+    await expect(
+      verifyLayout(
+        {
+          ...record,
+          layout: {
+            ...record.layout,
+            settlement: {
+              status: "failed",
+              revisionId: postLayout.revisionId,
+              error: "Persistence refused.",
+            },
+          },
+        },
+        output,
+      ),
+    ).rejects.toThrow(/settlement|failure/u);
+
+    for (const tamper of [
+      (candidate: typeof record, candidateOutput: typeof output) => {
+        const mutableRecord = candidate;
+        const mutableOutput = candidateOutput;
+        mutableRecord.layout.pre = structuredClone(
+          mutableRecord.authority.base,
+        );
+        mutableRecord.layout.pre.revisionId = "deep-base";
+        mutableOutput.layout.preHash = mutableRecord.layout.pre.sha256;
+        mutableRecord.output.layout.preHash = mutableRecord.layout.pre.sha256;
+      },
+      (candidate: typeof record, candidateOutput: typeof output) => {
+        const mutableRecord = candidate;
+        mutableRecord.layout.effects = [];
+        void candidateOutput;
+      },
+      (candidate: typeof record, candidateOutput: typeof output) => {
+        const mutableRecord = candidate;
+        const mutableOutput = candidateOutput;
+        mutableOutput.layout.postHash = "0".repeat(64);
+        mutableRecord.output.layout.postHash = "0".repeat(64);
+      },
+      (candidate: typeof record, candidateOutput: typeof output) => {
+        const mutableRecord = candidate;
+        const mutableOutput = candidateOutput;
+        mutableOutput.finalObservation.definitionHash = "0".repeat(64);
+        mutableRecord.output.finalObservation.definitionHash = "0".repeat(64);
+      },
+    ]) {
+      const candidate = structuredClone(record);
+      const candidateOutput = structuredClone(output);
+      tamper(candidate, candidateOutput);
+      // eslint-disable-next-line no-await-in-loop -- Independent adversarial layout records.
+      await expect(verifyLayout(candidate, candidateOutput)).rejects.toThrow(
+        /.+/u,
+      );
+    }
+  });
+
+  test("verifies failed layout without state change and changed state only with recorded evidence", async () => {
+    const fixture = deepFixture();
+    const unchangedOutput = {
+      ...fixture.output,
+      layout: {
+        requested: true as const,
+        disposition: "failed" as const,
+        error: "Layout failed before mutation.",
+      },
+    };
+    const unchangedRecord = {
+      ...fixture.record,
+      input: { ...deepInput, layout: { requested: true as const } },
+      output: unchangedOutput,
+    };
+    await expect(
+      verifyDeepConstructionRecord({
+        record: unchangedRecord,
+        toolCallId: "deep-call",
+        canonicalInput: unchangedRecord.input,
+        canonicalOutput: unchangedOutput,
+        binding: request.binding,
+        ledgerRevision: ledger,
+      }),
+    ).resolves.not.toHaveProperty("layout");
+
+    const preLayout = structuredClone(fixture.record.attempts.at(-1)!.post);
+    const laidOut = structuredClone(preLayout.definition);
+    laidOut.places[0]!.x = 80;
+    const postLayout = {
+      ...observe(laidOut),
+      revisionId: "failed-layout-post",
+    };
+    const changedOutput = {
+      ...unchangedOutput,
+      finalObservation: {
+        disposition: "observed" as const,
+        documentRevision: postLayout.revisionId,
+        definitionHash: postLayout.sha256,
+      },
+      layout: {
+        ...unchangedOutput.layout,
+        preHash: preLayout.sha256,
+        postHash: postLayout.sha256,
+      },
+    };
+    const changedRecord = {
+      ...unchangedRecord,
+      layout: {
+        pre: preLayout,
+        post: postLayout,
+        effects: deriveLayoutEffects(preLayout.definition, laidOut),
+        settlement: {
+          status: "failed" as const,
+          revisionId: postLayout.revisionId,
+          error: changedOutput.layout.error,
+        },
+      },
+      output: changedOutput,
+    };
+    const verifyChangedFailure = (
+      candidateRecord: unknown,
+      candidateOutput: unknown,
+    ) =>
+      verifyDeepConstructionRecord({
+        record: candidateRecord,
+        toolCallId: "deep-call",
+        canonicalInput: changedRecord.input,
+        canonicalOutput: candidateOutput,
+        binding: request.binding,
+        ledgerRevision: ledger,
+      });
+    await expect(
+      verifyChangedFailure(changedRecord, changedOutput),
+    ).resolves.toMatchObject({
+      layout: {
+        post: { sha256: postLayout.sha256 },
+        settlement: {
+          status: "failed",
+          error: changedOutput.layout.error,
+        },
+      },
+      output: { layout: { disposition: "failed" } },
+    });
+
+    for (const contradiction of [
+      (
+        candidate: typeof changedRecord,
+        candidateOutput: typeof changedOutput,
+      ) => {
+        const mutableRecord = candidate;
+        mutableRecord.layout.settlement.revisionId = "wrong-revision";
+        void candidateOutput;
+      },
+      (
+        candidate: typeof changedRecord,
+        candidateOutput: typeof changedOutput,
+      ) => {
+        const mutableRecord = candidate;
+        mutableRecord.layout.settlement.error = "Different failure.";
+        void candidateOutput;
+      },
+      (
+        candidate: typeof changedRecord,
+        candidateOutput: typeof changedOutput,
+      ) => {
+        const mutableRecord = candidate;
+        const mutableOutput = candidateOutput;
+        mutableRecord.output.layout.postHash = "0".repeat(64);
+        mutableOutput.layout.postHash = "0".repeat(64);
+      },
+    ]) {
+      const candidate = structuredClone(changedRecord);
+      const candidateOutput = structuredClone(changedOutput);
+      contradiction(candidate, candidateOutput);
+      // eslint-disable-next-line no-await-in-loop -- Independent failed-settlement contradictions.
+      await expect(
+        verifyChangedFailure(candidate, candidateOutput),
+      ).rejects.toThrow(/.+/u);
+    }
+  });
+
+  test("verifies a no-op prefix against the current base before later applied steps", async () => {
+    const fixture = deepFixture();
+    const first = fixture.record.attempts[0]!;
+    const existing = structuredClone(first.post);
+    const noOp = {
+      ...first,
+      pre: existing,
+      post: existing,
+      outcome: "no-op" as const,
+      effects: { created: [], updated: [], deleted: [], derived: [] },
+      settlement: { status: "not-required" as const },
+      output: { applied: false, target: first.input.id },
+    };
+    fixture.record.authority.base = existing;
+    fixture.record.attempts[0] = noOp as unknown as typeof first;
+    const output = {
+      ...fixture.output,
+      outcomes: [
+        {
+          ...fixture.output.outcomes[0]!,
+          status: "no-op" as const,
+          effects: [],
+        },
+        ...fixture.output.outcomes.slice(1),
+      ],
+    };
+    fixture.record.output = output as unknown as typeof fixture.record.output;
+    const verified = await verifyDeep(fixture.record, output);
+    expect(verified.attempts.map(({ record }) => record.outcome)).toEqual([
+      "no-op",
+      "applied",
+      "applied",
+    ]);
+  });
+
+  test("rejects stale authority, tampered steps, effects, final hashes and outer output", async () => {
+    const cases = [
+      (fixture: ReturnType<typeof deepFixture>) => {
+        // eslint-disable-next-line no-param-reassign -- Adversarial fixture mutation.
+        fixture.record.authority.ledger.sha256 = "0".repeat(64);
+      },
+      (fixture: ReturnType<typeof deepFixture>) => {
+        // eslint-disable-next-line no-param-reassign -- Adversarial fixture mutation.
+        fixture.record.attempts[0]!.input = {
+          ...fixture.record.attempts[0]!.input,
+          name: "tampered",
+        };
+      },
+      (fixture: ReturnType<typeof deepFixture>) => {
+        // eslint-disable-next-line no-param-reassign -- Adversarial fixture mutation.
+        fixture.record.output.outcomes[0]!.effects = [];
+        // eslint-disable-next-line no-param-reassign -- Keep delivered output equal while tampering effects.
+        fixture.output.outcomes[0]!.effects = [];
+      },
+      (fixture: ReturnType<typeof deepFixture>) => {
+        // eslint-disable-next-line no-param-reassign -- Adversarial fixture mutation.
+        fixture.record.output.finalObservation.definitionHash = "0".repeat(64);
+        // eslint-disable-next-line no-param-reassign -- Keep delivered output equal while tampering its hash.
+        fixture.output.finalObservation.definitionHash = "0".repeat(64);
+      },
+    ];
+    for (const tamper of cases) {
+      const fixture = deepFixture();
+      tamper(fixture);
+      // eslint-disable-next-line no-await-in-loop -- Independent adversarial records.
+      await expect(verifyDeep(fixture.record, fixture.output)).rejects.toThrow(
+        /.+/u,
+      );
+    }
+    const fixture = deepFixture();
+    await expect(
+      verifyDeep(fixture.record, {
+        ...fixture.output,
+        diagnostics: { disposition: "pending" },
+      }),
+    ).rejects.toThrow(/output/u);
+  });
+
+  test("verifies failed and unknown partial prefixes and leaves the suffix unattempted", async () => {
+    for (const status of ["failed", "unknown"] as const) {
+      const fixture = deepFixture();
+      const appliedSecond = fixture.record.attempts[1]!;
+      const second =
+        status === "failed"
+          ? {
+              ...appliedSecond,
+              post: structuredClone(appliedSecond.pre),
+              outcome: "failed" as const,
+              effects: { created: [], updated: [], deleted: [], derived: [] },
+              settlement: { status: "not-required" as const },
+              error: "Rejected.",
+              output: { applied: false, error: "Rejected." },
+            }
+          : {
+              ...appliedSecond,
+              outcome: "unknown" as const,
+              error: "Settlement standing is unknown.",
+            };
+      fixture.record.attempts[1] = second as unknown as typeof appliedSecond;
+      const terminalObservation = second.post;
+      const output = {
+        ...fixture.output,
+        disposition: "partial" as const,
+        outcomes: [
+          fixture.output.outcomes[0]!,
+          {
+            index: 1,
+            operationId: "two",
+            toolName: "addPlace" as const,
+            status,
+            error:
+              status === "failed"
+                ? "Rejected."
+                : "Settlement standing is unknown.",
+          },
+          {
+            index: 2,
+            operationId: "three",
+            toolName: "addPlace" as const,
+            status: "unattempted" as const,
+          },
+        ],
+        finalObservation: {
+          disposition: "observed" as const,
+          documentRevision: terminalObservation.revisionId!,
+          definitionHash: terminalObservation.sha256,
+        },
+      };
+      const record = {
+        ...fixture.record,
+        attempts: fixture.record.attempts.slice(0, 2),
+        output,
+      };
+      // eslint-disable-next-line no-await-in-loop -- Both terminal standings cross the full verifier.
+      await expect(verifyDeep(record, output)).resolves.toMatchObject({
+        output: { disposition: "partial" },
+        attempts: [{}, { record: { outcome: status } }],
+      });
+    }
+  });
+
+  test("accepts a refused result only with refused authority and zero attempts", async () => {
+    const fixture = deepFixture();
+    const output = {
+      ...fixture.output,
+      disposition: "refused" as const,
+      reason: "Ledger unavailable.",
+      outcomes: deepInput.operations.map((operation, index) => ({
+        index,
+        operationId: operation.operationId,
+        toolName: operation.toolName,
+        status: "unattempted" as const,
+      })),
+      finalObservation: {
+        disposition: "observed" as const,
+        documentRevision: "deep-base",
+        definitionHash: fixture.record.authority.base.sha256,
+      },
+    };
+    const record = {
+      ...fixture.record,
+      authority: {
+        status: "refused" as const,
+        reason: "Ledger unavailable.",
+        base: fixture.record.authority.base,
+      },
+      attempts: [],
+      output,
+    };
+    await expect(verifyDeep(record, output)).resolves.toMatchObject({
+      authority: { status: "refused" },
+      attempts: [],
+    });
+    await expect(
+      verifyDeep({ ...record, attempts: [fixture.record.attempts[0]] }, output),
+    ).rejects.toThrow(/zero attempts/u);
   });
 });
 

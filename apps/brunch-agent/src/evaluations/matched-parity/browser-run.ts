@@ -5,13 +5,12 @@ import { checkDefinition } from "@hashintel/petrinaut-core/diagnostics";
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
 import { openPersonaConversation } from "../persona/launch/browser.ts";
 
-import type { MatchedParityConfiguration } from "./configuration.ts";
-import type { MatchedParityScenario } from "./scenarios.ts";
 import type {
-  CapturedToolCall,
   EvaluationArm,
-  MatchedParityArtifact,
-} from "./summary.ts";
+  MatchedParityConfiguration,
+} from "./configuration.ts";
+import type { MatchedParityScenario } from "./scenarios.ts";
+import type { CapturedToolCall, MatchedParityArtifact } from "./summary.ts";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { BrowserContext, Page, Request } from "@playwright/test";
@@ -179,6 +178,32 @@ const flueMessages = (snapshot: FlueConversationSnapshot): readonly unknown[] =>
     role: message.purpose === "assistant" ? "assistant" : message.purpose,
   }));
 
+const usageCost = (message: unknown): number | undefined => {
+  if (!record(message)) return undefined;
+  const metadata = record(message.metadata) ? message.metadata : undefined;
+  const usage = record(message.usage)
+    ? message.usage
+    : metadata !== undefined && record(metadata.usage)
+      ? metadata.usage
+      : undefined;
+  if (usage === undefined || !record(usage.cost)) return undefined;
+  const total = usage.cost.total;
+  return typeof total === "number" && Number.isFinite(total) && total >= 0
+    ? total
+    : undefined;
+};
+
+/** Sum only explicit provider-reported catalogue costs; absence stays unknown. */
+export const observedSpendFromMessages = (
+  messages: readonly unknown[],
+): number | null => {
+  const costs = messages.flatMap((message) => {
+    const cost = usageCost(message);
+    return cost === undefined ? [] : [cost];
+  });
+  return costs.length === 0 ? null : costs.reduce((sum, cost) => sum + cost, 0);
+};
+
 export interface BrowserArmResult {
   readonly artifact: MatchedParityArtifact;
   readonly rawDocument: unknown;
@@ -196,9 +221,10 @@ export const runBrowserArm = async (input: {
   readonly scenario: MatchedParityScenario;
 }): Promise<BrowserArmResult> => {
   const { arm, configuration, context, origin, scenario } = input;
+  const armConfiguration = configuration.arms[arm];
   await context.addInitScript(
     ({ key, value }) => localStorage.setItem(key, value),
-    { key: assistantStorageKey, value: arm },
+    { key: assistantStorageKey, value: armConfiguration.assistant },
   );
   const page = await context.newPage();
   const browserFailures: string[] = [];
@@ -217,7 +243,7 @@ export const runBrowserArm = async (input: {
   let modelStepCount: number;
 
   try {
-    if (arm === "brunch") {
+    if (armConfiguration.assistant === "brunch") {
       const result = await openPersonaConversation(
         page,
         origin,
@@ -261,7 +287,9 @@ export const runBrowserArm = async (input: {
       : flueMessages(flueSnapshot);
   const diagnostics = captureDiagnostics(rawDocument.sdcpn);
   const artifact: MatchedParityArtifact = {
+    schemaVersion: 2,
     arm,
+    mode: arm,
     configuration,
     diagnostics,
     document: {
@@ -271,6 +299,7 @@ export const runBrowserArm = async (input: {
     elapsedMs,
     modelStepCount,
     scenario,
+    spend: { observedUsd: observedSpendFromMessages(messages) },
     toolCalls: toolCallsFromMessages(messages),
   };
   return {

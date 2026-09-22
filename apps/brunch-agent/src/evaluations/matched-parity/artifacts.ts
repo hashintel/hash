@@ -3,10 +3,14 @@ import { mkdir, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import { writeProofArtifacts } from "../persona/proof-artifacts.ts";
+import { matchedParityArms } from "./configuration.ts";
 import { deriveComparison } from "./summary.ts";
 
 import type { BrowserArmResult } from "./browser-run.ts";
-import type { MatchedParityConfiguration } from "./configuration.ts";
+import type {
+  EvaluationArm,
+  MatchedParityConfiguration,
+} from "./configuration.ts";
 import type { MatchedParityScenario } from "./scenarios.ts";
 
 const atomicWrite = async (path: string, content: string) => {
@@ -23,7 +27,9 @@ const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 export type ArmExecutionAction = "executed" | "reused";
 export interface ArmExecutionRecord {
   readonly action: ArmExecutionAction;
-  readonly arm: "stock" | "brunch";
+  readonly arm: EvaluationArm;
+  readonly mode: EvaluationArm;
+  readonly observedSpendUsd: number | null;
   readonly scenarioId: string;
 }
 
@@ -57,15 +63,14 @@ export const writeArmArtifacts = async (
 
 export const writeScenarioComparison = async (
   directory: string,
-  stock: BrowserArmResult,
-  brunch: BrowserArmResult,
-  execution: {
-    readonly stock: ArmExecutionAction;
-    readonly brunch: ArmExecutionAction;
-  },
+  results: Readonly<Record<EvaluationArm, BrowserArmResult>>,
+  execution: Readonly<Record<EvaluationArm, ArmExecutionAction>>,
 ) => {
+  const artifacts = Object.fromEntries(
+    matchedParityArms.map((arm) => [arm, results[arm].artifact]),
+  ) as Record<EvaluationArm, BrowserArmResult["artifact"]>;
   const comparison = {
-    ...deriveComparison(stock.artifact, brunch.artifact),
+    ...deriveComparison(artifacts),
     execution,
   };
   await atomicWrite(join(directory, "comparison.json"), json(comparison));
@@ -74,16 +79,18 @@ export const writeScenarioComparison = async (
     [
       `# ${comparison.scenario.label}`,
       "",
-      "Mechanical checks only; inspect both raw transcripts and documents for quality.",
+      "Mechanical checks only; inspect every raw transcript and document for quality.",
       "",
-      `Execution: Stock ${execution.stock}; Brunch ${execution.brunch}.`,
+      `Execution: ${matchedParityArms.map((arm) => `${arm} ${execution[arm]}`).join("; ")}.`,
       "",
-      "| Arm | Elapsed ms | Model steps | Tool calls | Places | Transitions | Scenarios | Metrics | Complete |",
-      "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
-      ...([comparison.stock, comparison.brunch] as const).map(
-        (summary) =>
-          `| ${summary.arm} | ${summary.elapsedMs} | ${summary.modelStepCount ?? "unknown"} | ${summary.toolCallCount} | ${summary.placeCount} | ${summary.transitionCount} | ${summary.scenarioCount} | ${summary.metricCount} | ${summary.mechanicallyComplete ? "yes" : "no"} |`,
-      ),
+      "| Arm | Elapsed ms | Model steps | Observed USD | Tool calls | Places | Transitions | Scenarios | Metrics | Complete |",
+      "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+      ...matchedParityArms.map((arm) => {
+        const summary = comparison.arms[arm];
+        return `| ${arm} | ${summary.elapsedMs} | ${summary.modelStepCount ?? "unknown"} | ${summary.observedSpendUsd ?? "unknown"} | ${summary.toolCallCount} | ${summary.placeCount} | ${summary.transitionCount} | ${summary.scenarioCount} | ${summary.metricCount} | ${summary.mechanicallyComplete ? "yes" : "no"} |`;
+      }),
+      "",
+      "Contrasts: S→F transport drag; F→I Brunch architecture drag; A↔B construction effects. Null deltas mean provider spend was unavailable.",
       "",
     ].join("\n"),
   );
@@ -99,6 +106,13 @@ export const writeRunRecord = async (
   },
 ) => {
   await mkdir(outputRoot, { recursive: true });
+  const knownObservedSpendUsd = metadata.arms.reduce(
+    (sum, arm) => sum + (arm.observedSpendUsd ?? 0),
+    0,
+  );
+  const unknownSpendArmCount = metadata.arms.filter(
+    ({ observedSpendUsd }) => observedSpendUsd === null,
+  ).length;
   await atomicWrite(
     join(outputRoot, "run.json"),
     json({
@@ -106,6 +120,14 @@ export const writeRunRecord = async (
       scenarios,
       startedAt: metadata.startedAt,
       arms: metadata.arms,
+      spend: {
+        budgetUsd: configuration.budgetUsd,
+        estimatedTotalUsd: null,
+        knownObservedSpendUsd,
+        remainingKnownAllowanceUsd:
+          configuration.budgetUsd - knownObservedSpendUsd,
+        unknownSpendArmCount,
+      },
     }),
   );
 };

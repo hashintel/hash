@@ -4,11 +4,23 @@ import {
   mutationActionInputSchemas,
   createPetrinautActions,
   parseSDCPNFile,
+  petrinautExperimentRequestSchema,
+  petrinautExperimentResultSchema,
   type DocumentRevisionId,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { sha256Pattern } from "./declared-basis";
+import {
+  sha256Pattern,
+  validateDeclaredBasis,
+  type DeclaredBasis,
+} from "./declared-basis";
+import {
+  applyPetrinautConstructionInputSchema,
+  applyPetrinautConstructionOutputSchema,
+  type ApplyPetrinautConstructionInput,
+  type ApplyPetrinautConstructionOutput,
+} from "./mutate-petrinet";
 import {
   browserBindingSchema,
   type BatchedArcMutationName,
@@ -120,6 +132,63 @@ const mutationEffectsSchema = v.object({
   deleted: v.array(v.unknown()),
   derived: v.array(v.unknown()),
 });
+const ledgerIdentitySchema = v.strictObject({
+  revisionId: v.pipe(v.string(), v.minLength(1)),
+  sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+  ordinal: v.pipe(v.number(), v.integer(), v.minValue(1)),
+});
+const deepLayoutRecordSchema = v.strictObject({
+  pre: definitionObservationSchema,
+  post: definitionObservationSchema,
+  effects: v.array(v.unknown()),
+  settlement: v.variant("status", [
+    v.strictObject({
+      status: v.literal("settled"),
+      revisionId: v.pipe(v.string(), v.minLength(1)),
+    }),
+    v.strictObject({
+      status: v.literal("failed"),
+      revisionId: v.pipe(v.string(), v.minLength(1)),
+      error: v.pipe(v.string(), v.minLength(1)),
+    }),
+  ]),
+});
+
+const deepConstructionRecordSchema = v.strictObject({
+  toolCallId: v.pipe(v.string(), v.minLength(1)),
+  binding: browserBindingSchema,
+  input: v.unknown(),
+  authority: v.variant("status", [
+    v.strictObject({
+      status: v.literal("verified"),
+      base: definitionObservationSchema,
+      ledger: ledgerIdentitySchema,
+      bases: v.array(v.unknown()),
+    }),
+    v.strictObject({
+      status: v.literal("refused"),
+      reason: v.pipe(v.string(), v.minLength(1)),
+      base: v.optional(definitionObservationSchema),
+    }),
+  ]),
+  attempts: v.array(v.unknown()),
+  /** Host-owned evidence for layout performed inside this bounded construction. */
+  layout: v.optional(deepLayoutRecordSchema),
+  output: v.unknown(),
+});
+
+const experimentRecordSchema = v.strictObject({
+  toolCallId: v.pipe(v.string(), v.minLength(1)),
+  binding: browserBindingSchema,
+  input: v.unknown(),
+  source: v.strictObject({
+    definition: v.unknown(),
+    sha256: v.pipe(v.string(), v.regex(sha256Pattern)),
+    revisionId: v.pipe(v.string(), v.minLength(1)),
+  }),
+  output: v.unknown(),
+});
+
 const canonicalMutationRecordSchema = v.pipe(
   v.object({
     toolCallId: v.pipe(v.string(), v.minLength(1)),
@@ -180,8 +249,12 @@ export const clientToolResultMetadataSchema = v.object({
       outcome: v.picklist(mutationOutcomes),
     }),
   ),
+  /** One terminal canonical experiment and the immutable source revision it ran against. */
+  experimentRecord: v.optional(experimentRecordSchema),
   /** One canonical Petrinaut mutation, retained alongside the legacy batch carrier. */
   canonicalMutationRecord: v.optional(canonicalMutationRecordSchema),
+  /** Interface B's bounded outer call, authority and ordered canonical step records. */
+  deepConstructionRecord: v.optional(deepConstructionRecordSchema),
   /**
    * A separately recorded `layout_petrinaut_net` command: layout is a document
    * mutation with its own observed pre/post hashes and position effects, not
@@ -208,8 +281,12 @@ export const clientToolResultMetadataSchema = v.object({
 export type ClientToolResultMetadata = v.InferOutput<
   typeof clientToolResultMetadataSchema
 >;
+export type ExperimentRecord = v.InferOutput<typeof experimentRecordSchema>;
 export type CanonicalMutationRecord = v.InferOutput<
   typeof canonicalMutationRecordSchema
+>;
+export type DeepConstructionRecord = v.InferOutput<
+  typeof deepConstructionRecordSchema
 >;
 
 /** Read the sidecar off a delivered result; anything else is not a Brunch sidecar. */
@@ -1104,6 +1181,66 @@ export const verifyMutationAttempt = async <
   return attempt;
 };
 
+export type VerifiedExperimentRecord = Omit<
+  ExperimentRecord,
+  "input" | "source" | "output"
+> & {
+  readonly input: ReturnType<typeof petrinautExperimentRequestSchema.parse>;
+  readonly source: DefinitionObservation & { readonly revisionId: string };
+  readonly output: ReturnType<typeof petrinautExperimentResultSchema.parse>;
+};
+
+/** Verify a terminal experiment sidecar against its issued call and delivered result. */
+export const verifyExperimentRecord = async (input: {
+  record: unknown;
+  toolCallId: string;
+  canonicalInput: unknown;
+  canonicalOutput: unknown;
+  binding: BrowserBinding;
+}): Promise<VerifiedExperimentRecord> => {
+  const parsed = v.parse(experimentRecordSchema, input.record);
+  if (
+    parsed.toolCallId !== input.toolCallId ||
+    canonicalContent(parsed.binding) !== canonicalContent(input.binding)
+  )
+    throw new Error(
+      "The experiment record does not match the issued call or document incarnation.",
+    );
+
+  const recordedInput = petrinautExperimentRequestSchema.parse(parsed.input);
+  const issuedInput = petrinautExperimentRequestSchema.parse(
+    input.canonicalInput,
+  );
+  if (canonicalContent(recordedInput) !== canonicalContent(issuedInput))
+    throw new Error(
+      "The experiment record input does not match the issued canonical request.",
+    );
+
+  const recordedOutput = petrinautExperimentResultSchema.parse(parsed.output);
+  const deliveredOutput = petrinautExperimentResultSchema.parse(
+    input.canonicalOutput,
+  );
+  if (canonicalContent(recordedOutput) !== canonicalContent(deliveredOutput))
+    throw new Error(
+      "The experiment record output does not match the delivered terminal result.",
+    );
+  if (recordedOutput.name !== recordedInput.name)
+    throw new Error(
+      "The experiment terminal result does not belong to the issued request.",
+    );
+
+  const source = await verifyDefinitionObservation(parsed.source);
+  if (source.revisionId === undefined)
+    throw new Error("The experiment source requires a document revision.");
+  return {
+    toolCallId: parsed.toolCallId,
+    binding: parsed.binding,
+    input: recordedInput,
+    source: { ...source, revisionId: source.revisionId },
+    output: recordedOutput,
+  };
+};
+
 export type VerifiedCanonicalMutationRecord = Omit<
   CanonicalMutationRecord,
   "toolName" | "input" | "pre" | "post" | "effects"
@@ -1240,6 +1377,354 @@ export const verifyCanonicalMutationRecord = async (input: {
     diagnostics: parsed.diagnostics,
     output: parsed.output,
     ...(parsed.error === undefined ? {} : { error: parsed.error }),
+  };
+};
+
+export type VerifiedDeepConstructionStep = {
+  readonly operation: ApplyPetrinautConstructionInput["operations"][number];
+  readonly basis: DeclaredBasis;
+  readonly record: VerifiedCanonicalMutationRecord;
+};
+
+export type VerifiedDeepLayoutRecord = {
+  readonly pre: DefinitionObservation;
+  readonly post: DefinitionObservation;
+  readonly effects: readonly DefinitionChange[];
+  readonly settlement:
+    | {
+        readonly status: "settled";
+        readonly revisionId: string;
+      }
+    | {
+        readonly status: "failed";
+        readonly revisionId: string;
+        readonly error: string;
+      };
+};
+
+export type VerifiedDeepConstructionRecord = Omit<
+  DeepConstructionRecord,
+  "input" | "authority" | "attempts" | "layout" | "output"
+> & {
+  readonly input: ApplyPetrinautConstructionInput;
+  readonly output: ApplyPetrinautConstructionOutput;
+  readonly authority:
+    | {
+        readonly status: "verified";
+        readonly base: DefinitionObservation;
+        readonly ledger: {
+          readonly revisionId: string;
+          readonly sha256: string;
+          readonly ordinal: number;
+        };
+        readonly bases: readonly DeclaredBasis[];
+      }
+    | {
+        readonly status: "refused";
+        readonly reason: string;
+        readonly base?: DefinitionObservation;
+      };
+  readonly attempts: readonly VerifiedDeepConstructionStep[];
+  readonly layout?: VerifiedDeepLayoutRecord;
+};
+
+const sha256Text = async (value: string): Promise<string> => {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+};
+
+const deepObservedEffects = (effects: MutationEffects) => [
+  ...effects.created,
+  ...effects.updated,
+  ...effects.deleted,
+  ...effects.derived,
+];
+
+/**
+ * Verify Interface B's outer call, frozen authority and ordered canonical
+ * sidecars. Expected-impact strings remain model-authored expectations: this
+ * boundary retains them exactly and never promotes them to observed effects.
+ */
+export const verifyDeepConstructionRecord = async (input: {
+  record: unknown;
+  toolCallId: string;
+  canonicalInput: unknown;
+  canonicalOutput: unknown;
+  binding: BrowserBinding;
+  /** The latest retained settled Ledger revision immediately before the call. */
+  ledgerRevision?: {
+    readonly revisionId: string;
+    readonly sha256: string;
+    readonly ordinal: number;
+    readonly markdown: string;
+  };
+}): Promise<VerifiedDeepConstructionRecord> => {
+  const parsed = v.parse(deepConstructionRecordSchema, input.record);
+  const issuedInput = applyPetrinautConstructionInputSchema.parse(
+    input.canonicalInput,
+  );
+  const recordedInput = applyPetrinautConstructionInputSchema.parse(
+    parsed.input,
+  );
+  const deliveredOutput = applyPetrinautConstructionOutputSchema.parse(
+    input.canonicalOutput,
+  );
+  const recordedOutput = applyPetrinautConstructionOutputSchema.parse(
+    parsed.output,
+  );
+  if (
+    parsed.toolCallId !== input.toolCallId ||
+    canonicalContent(parsed.binding) !== canonicalContent(input.binding) ||
+    canonicalContent(recordedInput) !== canonicalContent(issuedInput)
+  )
+    throw new Error(
+      "The deep construction record does not match the issued call or document incarnation.",
+    );
+  if (canonicalContent(recordedOutput) !== canonicalContent(deliveredOutput))
+    throw new Error(
+      "The deep construction record output does not match the delivered deep output.",
+    );
+  const layoutRequested = recordedInput.layout?.requested === true;
+  if (recordedOutput.layout.requested !== layoutRequested)
+    throw new Error(
+      "The deep construction layout disposition does not match the issued request.",
+    );
+
+  if (parsed.authority.status === "refused") {
+    if (
+      recordedOutput.disposition !== "refused" ||
+      recordedOutput.reason !== parsed.authority.reason ||
+      parsed.attempts.length !== 0 ||
+      parsed.layout !== undefined
+    )
+      throw new Error(
+        "A refused deep construction record requires matching refused authority and zero attempts.",
+      );
+    const base = parsed.authority.base
+      ? await verifyDefinitionObservation(parsed.authority.base)
+      : undefined;
+    if (
+      base !== undefined &&
+      recordedOutput.finalObservation.disposition === "observed" &&
+      (recordedOutput.finalObservation.definitionHash !== base.sha256 ||
+        recordedOutput.finalObservation.documentRevision !== base.revisionId)
+    )
+      throw new Error(
+        "The refused deep construction final observation does not match its verified base.",
+      );
+    return {
+      toolCallId: parsed.toolCallId,
+      binding: parsed.binding,
+      input: recordedInput,
+      authority: {
+        status: "refused",
+        reason: parsed.authority.reason,
+        ...(base === undefined ? {} : { base }),
+      },
+      attempts: [],
+      output: recordedOutput,
+    };
+  }
+
+  if (
+    recordedOutput.disposition === "refused" ||
+    input.ledgerRevision === undefined
+  )
+    throw new Error(
+      "A complete or partial deep construction requires verified mapped authority.",
+    );
+  const ledger = input.ledgerRevision;
+  if (
+    (await sha256Text(ledger.markdown)) !== ledger.sha256 ||
+    canonicalContent(parsed.authority.ledger) !==
+      canonicalContent({
+        revisionId: ledger.revisionId,
+        sha256: ledger.sha256,
+        ordinal: ledger.ordinal,
+      })
+  )
+    throw new Error(
+      "The deep construction record does not match the latest settled Ledger revision.",
+    );
+
+  const base = await verifyDefinitionObservation(parsed.authority.base);
+  if (parsed.authority.bases.length !== recordedInput.operations.length)
+    throw new Error(
+      "The deep construction record requires one resolved basis per operation.",
+    );
+  const bases: DeclaredBasis[] = [];
+  for (const [index, operation] of recordedInput.operations.entries()) {
+    const rawBasis = parsed.authority.bases[index];
+    // eslint-disable-next-line no-await-in-loop -- Bases are checked in operation order.
+    const basis = await validateDeclaredBasis(
+      rawBasis,
+      ledger,
+      async () => undefined,
+    );
+    const expected = operation.evidence
+      ? {
+          kind: "declared" as const,
+          revisionId: ledger.revisionId,
+          sha256: ledger.sha256,
+          locators: operation.evidence.excerpts.map((excerpt) => {
+            const start = ledger.markdown.indexOf(excerpt);
+            if (start < 0 || ledger.markdown.indexOf(excerpt, start + 1) !== -1)
+              throw new Error(
+                "A declared deep construction excerpt is missing or ambiguous in its settled Ledger revision.",
+              );
+            return { start, end: start + excerpt.length };
+          }),
+          rationale: operation.evidence.rationale,
+          scope: "operation" as const,
+        }
+      : {
+          kind: "absent" as const,
+          reason: "No exact Ledger excerpt was supplied for this operation.",
+        };
+    if (canonicalContent(basis) !== canonicalContent(expected))
+      throw new Error(
+        "A deep construction operation basis does not match its frozen model input and settled Ledger.",
+      );
+    bases.push(basis);
+  }
+
+  const attemptedOutcomes = recordedOutput.outcomes.filter(
+    ({ status }) => status !== "unattempted",
+  );
+  if (parsed.attempts.length !== attemptedOutcomes.length)
+    throw new Error(
+      "The deep construction attempts do not match the attempted output prefix.",
+    );
+  const attempts: VerifiedDeepConstructionStep[] = [];
+  let current = base;
+  for (const [index, attemptRecord] of parsed.attempts.entries()) {
+    const operation = recordedInput.operations[index];
+    const outcome = recordedOutput.outcomes[index];
+    if (
+      operation === undefined ||
+      outcome === undefined ||
+      outcome.status === "unattempted" ||
+      outcome.index !== index ||
+      outcome.operationId !== operation.operationId ||
+      outcome.toolName !== operation.toolName ||
+      !objectValue(attemptRecord) ||
+      !Object.hasOwn(attemptRecord, "output")
+    )
+      throw new Error(
+        "The deep construction attempts do not match the ordered operation prefix.",
+      );
+    // eslint-disable-next-line no-await-in-loop -- Each verified post is the next step's base.
+    const record = await verifyCanonicalMutationRecord({
+      record: attemptRecord,
+      toolCallId: input.toolCallId,
+      toolName: operation.toolName,
+      canonicalInput: operation.input,
+      canonicalOutput: attemptRecord.output,
+      binding: input.binding,
+    });
+    if (
+      record.outcome !== outcome.status ||
+      canonicalContent(record.pre) !== canonicalContent(current)
+    )
+      throw new Error(
+        "A deep construction canonical step does not match its status or current verified base.",
+      );
+    if (
+      (outcome.status === "applied" || outcome.status === "no-op") &&
+      canonicalContent(outcome.effects) !==
+        canonicalContent(deepObservedEffects(record.effects))
+    )
+      throw new Error(
+        "A deep construction output does not match its independently verified canonical effects.",
+      );
+    current = record.post ?? current;
+    attempts.push({ operation, basis: bases[index]!, record });
+  }
+
+  const verifyLayout = async (): Promise<VerifiedDeepLayoutRecord> => {
+    if (parsed.layout === undefined)
+      throw new Error(
+        "The deep construction layout disposition requires a layout record.",
+      );
+    const [pre, post] = await Promise.all([
+      verifyDefinitionObservation(parsed.layout.pre),
+      verifyDefinitionObservation(parsed.layout.post),
+    ]);
+    if (canonicalContent(pre) !== canonicalContent(current))
+      throw new Error(
+        "The deep construction layout pre observation does not match the last verified step or mapped base.",
+      );
+    const effects = deriveLayoutEffects(pre.definition, post.definition);
+    if (canonicalContent(effects) !== canonicalContent(parsed.layout.effects))
+      throw new Error(
+        "The deep construction layout effects do not match the independently derived position changes.",
+      );
+    const layoutOutput = recordedOutput.layout;
+    if (
+      (layoutOutput.disposition !== "applied" &&
+        layoutOutput.disposition !== "failed") ||
+      parsed.layout.settlement.revisionId !== post.revisionId ||
+      layoutOutput.preHash !== pre.sha256 ||
+      layoutOutput.postHash !== post.sha256 ||
+      (layoutOutput.disposition === "applied" &&
+        parsed.layout.settlement.status !== "settled") ||
+      (parsed.layout.settlement.status === "failed" &&
+        (layoutOutput.disposition !== "failed" ||
+          layoutOutput.error !== parsed.layout.settlement.error))
+    )
+      throw new Error(
+        "The deep construction layout hashes, settlement or failure do not match its verified observations and output.",
+      );
+    current = post;
+    return {
+      pre,
+      post,
+      effects,
+      settlement: parsed.layout.settlement,
+    };
+  };
+
+  let layout: VerifiedDeepLayoutRecord | undefined;
+  if (recordedOutput.layout.disposition === "applied") {
+    layout = await verifyLayout();
+  } else if (
+    recordedOutput.layout.disposition === "failed" &&
+    recordedOutput.layout.preHash !== undefined
+  ) {
+    layout = await verifyLayout();
+  } else if (parsed.layout !== undefined) {
+    throw new Error(
+      "The deep construction layout record is only valid for applied or state-changing failed layout.",
+    );
+  }
+
+  if (
+    recordedOutput.finalObservation.disposition !== "observed" ||
+    recordedOutput.finalObservation.definitionHash !== current.sha256 ||
+    recordedOutput.finalObservation.documentRevision !== current.revisionId
+  )
+    throw new Error(
+      "The deep construction final observation does not match the last verified post, layout post or mapped base.",
+    );
+
+  return {
+    toolCallId: parsed.toolCallId,
+    binding: parsed.binding,
+    input: recordedInput,
+    authority: {
+      status: "verified",
+      base,
+      ledger: parsed.authority.ledger,
+      bases,
+    },
+    attempts,
+    ...(layout === undefined ? {} : { layout }),
+    output: recordedOutput,
   };
 };
 

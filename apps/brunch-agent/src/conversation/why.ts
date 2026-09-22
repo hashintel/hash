@@ -32,7 +32,7 @@ import {
 import { diagnostics } from "../runtime-diagnostics.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
 import { verifyMutatePetrinetAttempts } from "./mutation-delivery.ts";
-import { recordedBrowserObservation } from "./net-ledger.ts";
+import { deriveNetLedger, recordedBrowserObservation } from "./net-ledger.ts";
 import {
   retainedSettledRevision,
   workpieceEvidenceSources,
@@ -119,6 +119,13 @@ export interface RootArcExplanation {
     petrinautRevisionId?: string;
     operation: string;
     basis: DeclaredBasis;
+    declaration?: {
+      operationId: string;
+      intendedEffect: string;
+      intendedTarget: string;
+      expectedImpact: readonly string[];
+      impactAssessment: "owner-adjudication-required";
+    };
   }[];
   recordedChange?: {
     toolCallId: string;
@@ -216,6 +223,13 @@ export const queryWorkpiece = async (input: {
       basis: DeclaredBasis;
       callIndex: number;
       partIndex: number;
+      declaration?: {
+        operationId: string;
+        intendedEffect: string;
+        intendedTarget: string;
+        expectedImpact: readonly string[];
+        impactAssessment: "owner-adjudication-required";
+      };
     }[] = [];
     let lastRecorded: DefinitionObservation | undefined;
     let lastRecordedCallId: string | undefined;
@@ -330,6 +344,86 @@ export const queryWorkpiece = async (input: {
         }
       }
     }
+    const ledger = await deriveNetLedger(snapshot, browser);
+    for (const event of ledger) {
+      if (event.kind === "construction") {
+        for (const step of event.steps) {
+          answer.attempts.push({
+            toolCallId: event.toolCallId,
+            outcome: step.attempt.outcome,
+          });
+          // Failed, unknown, no-op and unattempted operations are observations,
+          // never causes in the why projection.
+          if (step.attempt.outcome !== "applied" || !step.attempt.post)
+            continue;
+          changes.push({
+            callId: event.toolCallId,
+            attempt: step.attempt,
+            basis: step.basis,
+            callIndex: event.position.messageIndex,
+            partIndex: event.position.partIndex,
+            declaration: {
+              operationId: step.operationId,
+              intendedEffect: step.intendedEffect,
+              intendedTarget: step.intendedTarget,
+              expectedImpact: step.expectedImpact,
+              impactAssessment: step.impactAssessment,
+            },
+          });
+        }
+        continue;
+      }
+      if (
+        event.kind !== "mutation" ||
+        event.attempt === undefined ||
+        event.outcome !== "applied" ||
+        event.post === undefined
+      )
+        continue;
+      answer.attempts.push({
+        toolCallId: event.toolCallId,
+        outcome: event.attempt.outcome,
+      });
+      changes.push({
+        callId: event.toolCallId,
+        attempt: event.attempt,
+        basis: event.provenance.basis,
+        callIndex: event.position.messageIndex,
+        partIndex: event.position.partIndex,
+        ...(event.provenance.standing === "declared-projection"
+          ? {
+              declaration: {
+                operationId: event.provenance.operationId,
+                intendedEffect: event.provenance.intendedEffect,
+                intendedTarget: event.provenance.intendedTarget,
+                expectedImpact: event.provenance.expectedImpact,
+                impactAssessment: event.provenance.impactAssessment,
+              },
+            }
+          : {}),
+      });
+    }
+    changes.sort(
+      (left, right) =>
+        left.callIndex - right.callIndex || left.partIndex - right.partIndex,
+    );
+    lastRecorded = undefined;
+    lastRecordedCallId = undefined;
+    for (const change of changes) {
+      if (
+        lastRecorded &&
+        canonicalContent(lastRecorded.definition) !==
+          canonicalContent(change.attempt.pre.definition)
+      )
+        throw new Error(
+          "Unrecorded intervening content changes prevent construction attribution; field reconciliation is unavailable.",
+        );
+      lastRecorded ??= change.attempt.pre;
+      lastRecordedCallId ??= change.callId;
+      lastRecorded = change.attempt.post;
+      lastRecordedCallId = change.callId;
+    }
+
     let observed: DefinitionObservation | undefined;
     if (query.observationToolCallId)
       observed = await recordedQueryObservation(
@@ -494,6 +588,9 @@ export const queryWorkpiece = async (input: {
         : { petrinautRevisionId: change.attempt.post.revisionId }),
       operation: change.attempt.request.toolName,
       basis: change.basis,
+      ...(change.declaration === undefined
+        ? {}
+        : { declaration: change.declaration }),
     }));
     answer.targetMutationAttemptIds = targetChanges.map(
       (change) => change.attempt.request.toolCallId,

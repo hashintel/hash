@@ -354,8 +354,16 @@ Stop before implementation broadens if:
 - FE-1438, FE-1394, FE-1334, or FE-1503 acceptance is inferred from tool-call success; or
 - the FE-1503 consumer contract is inferred from current Petrinaut or optimizer code.
 
-## Current branch state
+## Implementation checkpoint
 
-At commit `47f410d51d`, the product selects the Stock-over-Flue-like canonical path, while the passive Ledger tab remains visible without active Ledger producers. Automatic diagnostics are computed by Petrinaut but dropped by the Flue continuation projection. Canonical mutations do not await repository settlement, independently verify intended effects, or carry declared basis. The retained batched and validated server modes have no first-party product launcher; the current browser cannot execute the retained batched protocol.
+The branch now separates native Stock, Stock-over-Flue, integrated Brunch, Interface A, and Interface B with isolated conversation identities. Integrated Brunch is the Brunch product default. Petrinaut’s exact Stock prompt is preserved by a source hash, its capability guidance is composable, and catalogue conformance fails on an unclassified new canonical tool.
 
-These are starting observations, not accepted target architecture.
+The shared host boundary is proven for canonical reads and the bounded `addPlace → addTransition → addArc` tracer: deterministic ordering, exact persistence settlement, independently verified effects, diagnostics carriage, contextual-user evidence separation, durable result replay, stale/refusal behavior, and history-derived Ledger events. Canonical experiments retain their source document observation and terminal complete/cancelled/error result without replacing Petrinaut’s progress or cancellation implementation.
+
+Interface A records host-resolved semantic declarations and correlates them to verified direct canonical calls while leaving expected-impact satisfaction unassessed. Interface B executes the same bounded operations through one deep browser tool with host-resolved Ledger/document authority, successful-prefix/unattempted-suffix semantics, one post-prefix diagnostics read, verified layout, persistence-failure evidence, and reload-safe replay. No interface has been selected and no paid S/F/I/A/B matched run has yet been executed.
+
+## Starting branch state
+
+At commit `47f410d51d`, the product selected the Stock-over-Flue-like canonical path, while the passive Ledger tab remained visible without active Ledger producers. Automatic diagnostics are computed by Petrinaut but dropped by the Flue continuation projection. Canonical mutations do not await repository settlement, independently verify intended effects, or carry declared basis. The retained batched and validated server modes have no first-party product launcher; the current browser cannot execute the retained batched protocol.
+
+Those were starting observations, not accepted target architecture.

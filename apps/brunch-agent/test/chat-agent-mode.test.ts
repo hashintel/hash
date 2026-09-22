@@ -9,6 +9,8 @@ import {
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
+  applyPetrinautConstructionToolName,
+  declarePetrinautProjectionToolName,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
@@ -140,6 +142,18 @@ test.each([
     "model-required observationToolCallId",
   );
   expect(integratedInstructions).not.toContain("any correlation field");
+
+  const declarationIndex = mounted.tools.indexOf(
+    declarePetrinautProjectionToolName,
+  );
+  const expectedDeclarationIndex =
+    mode === BRUNCH_DECLARED_PROJECTION_MODE
+      ? mounted.tools.indexOf("addPlace") - 1
+      : -1;
+  expect(declarationIndex).toBe(expectedDeclarationIndex);
+  expect(mounted.tools.includes(applyPetrinautConstructionToolName)).toBe(
+    mode === BRUNCH_DEEP_CONSTRUCTION_MODE,
+  );
 });
 
 test("query workpiece description is mode-neutral and host-correlated", () => {
@@ -312,12 +326,59 @@ test("catalogues classify every canonical tool per mode and reject an unclassifi
       expect.arrayContaining(canonicalNames),
     );
   }
-  expect(toolCatalogueByMode[BRUNCH_DECLARED_PROJECTION_MODE]).toBe(
-    toolCatalogueByMode[INTEGRATED_BRUNCH_MODE],
+  const declaration = toolCatalogueByMode[BRUNCH_DECLARED_PROJECTION_MODE].find(
+    ({ name }) => name === declarePetrinautProjectionToolName,
   );
-  expect(toolCatalogueByMode[BRUNCH_DEEP_CONSTRUCTION_MODE]).toBe(
-    toolCatalogueByMode[INTEGRATED_BRUNCH_MODE],
-  );
+  expect(declaration).toEqual({
+    name: declarePetrinautProjectionToolName,
+    definitionOwner: "sdcpn-plugin",
+    executionOwner: "brunch-app",
+    capability: "petrinaut-declaration",
+  });
+  expect(
+    toolCatalogueByMode[BRUNCH_DECLARED_PROJECTION_MODE].map(
+      ({ name }) => name,
+    ),
+  ).toEqual([
+    ...toolCatalogueByMode[INTEGRATED_BRUNCH_MODE]
+      .map(({ name }) => name)
+      .slice(0, -canonicalNames.length),
+    declarePetrinautProjectionToolName,
+    ...canonicalNames,
+  ]);
+  for (const mode of [
+    STOCK_OVER_FLUE_MODE,
+    INTEGRATED_BRUNCH_MODE,
+    BRUNCH_DEEP_CONSTRUCTION_MODE,
+  ] as const) {
+    expect(toolCatalogueByMode[mode].map(({ name }) => name)).not.toContain(
+      declarePetrinautProjectionToolName,
+    );
+  }
+  const deepConstruction = toolCatalogueByMode[
+    BRUNCH_DEEP_CONSTRUCTION_MODE
+  ].find(({ name }) => name === applyPetrinautConstructionToolName);
+  expect(deepConstruction).toEqual({
+    name: applyPetrinautConstructionToolName,
+    definitionOwner: "sdcpn-plugin",
+    executionOwner: "petrinaut-website",
+    capability: "petrinaut-mutation",
+  });
+  expect(
+    toolCatalogueByMode[BRUNCH_DEEP_CONSTRUCTION_MODE].map(({ name }) => name),
+  ).toEqual([
+    ...toolCatalogueByMode[INTEGRATED_BRUNCH_MODE].map(({ name }) => name),
+    applyPetrinautConstructionToolName,
+  ]);
+  for (const mode of [
+    STOCK_OVER_FLUE_MODE,
+    INTEGRATED_BRUNCH_MODE,
+    BRUNCH_DECLARED_PROJECTION_MODE,
+  ] as const) {
+    expect(toolCatalogueByMode[mode].map(({ name }) => name)).not.toContain(
+      applyPetrinautConstructionToolName,
+    );
+  }
   expect(() =>
     assertPetrinautToolCatalogueConformance([
       ...canonicalNames,

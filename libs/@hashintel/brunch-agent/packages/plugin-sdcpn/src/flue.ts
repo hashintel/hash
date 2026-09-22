@@ -9,6 +9,8 @@ import * as v from "valibot";
 import { petrinautAiCapabilityGuidance } from "@hashintel/petrinaut-core/ai";
 
 import {
+  BRUNCH_DECLARED_PROJECTION_MODE,
+  BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_PETRINAUT_MODES,
   STOCK_OVER_FLUE_MODE,
   isIntegratedPetrinautMode,
@@ -20,9 +22,9 @@ import {
   readPetrinautNetToolName,
 } from "./construction-tool-names";
 import {
-  draftPetrinautExperimentToolName,
-  isDraftPetrinautExperimentToolName,
-} from "./draft-experiment";
+  createDeclarePetrinautProjectionTool,
+  declarePetrinautProjectionToolName,
+} from "./declared-basis";
 import { batchedConstructionMode } from "./mutate-petrinet";
 import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import { browserBindingSchema } from "./root-arc";
@@ -30,8 +32,10 @@ import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnModellingSkill,
 } from "./skills/sdcpn-modelling/skill";
-import { createDraftExperimentTool } from "./tools/draft-experiment";
-import { createMutatePetrinetTool } from "./tools/mutate-petrinet";
+import {
+  applyPetrinautConstructionTool,
+  createMutatePetrinetTool,
+} from "./tools/mutate-petrinet";
 import {
   observedDefinitionReadTool,
   observedCompilationReadTool,
@@ -55,6 +59,7 @@ export {
   type IntegratedPetrinautMode,
 } from "./construction-mode";
 export {
+  applyPetrinautConstructionToolName,
   batchedConstructionMode,
   mutatePetrinautNetToolName,
 } from "./mutate-petrinet";
@@ -108,8 +113,22 @@ export function useSdcpnPlugin(
     useInstruction(sdcpnAppend.trim());
     useInstruction(petrinautAiCapabilityGuidance);
     useSkill(sdcpnModellingSkill);
+    if (initialData.mode === BRUNCH_DECLARED_PROJECTION_MODE) {
+      useInstruction(
+        "Before bounded direct addPlace, addTransition, or addArc construction, call declare_petrinaut_projection in its own server-tool proposal and wait for its result. Then issue the matching canonical browser calls in declaration order. Use other canonical tools directly for reads, documentation, experiments, layout, and capabilities outside this bounded tracer.",
+      );
+      useTool(
+        createDeclarePetrinautProjectionTool(options?.currentRevision ?? null),
+      );
+    }
     for (const canonicalTool of canonicalPetrinautTools) {
       useTool(canonicalTool);
+    }
+    if (initialData.mode === BRUNCH_DEEP_CONSTRUCTION_MODE) {
+      useInstruction(
+        "For a bounded connected fragment of up to three addPlace, addTransition, and addArc operations, use apply_petrinaut_construction instead of orchestrating those sibling mutation calls directly. Use canonical tools directly for reads, documentation, experiments, interactive layout, capabilities outside that bounded carrier, and later fine-grained corrections.",
+      );
+      useTool(applyPetrinautConstructionTool);
     }
   } else {
     useInstruction(sdcpnAppend.trim());
@@ -121,19 +140,13 @@ export function useSdcpnPlugin(
     if (!initialData.construction || !options?.observationFor)
       throw new Error("Batched construction requires authorized observations.");
     useInstruction(
-      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only read_petrinaut_net; wait for its browser result. Proposal 3 contains only mutate_petrinaut_net; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain read_petrinaut_diagnostics in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. mutate_petrinaut_net carries root-net operations only: adds (addPlace, addTransition, addArc, addType, addTypeElement, addParameter, addDifferentialEquation), edits to existing parts by ID (updatePlace, updateTransition, updateArcWeight, updateArcType, updateType, updateTypeElement, updateParameter, updateDifferentialEquation) and removals (removePlace, removeTransition, removeArc, removeType, removeTypeElement, removeParameter, removeDifferentialEquation), and the saved scenarios and metrics a run or experiment names (addScenario, updateScenario, removeScenario, addMetric, updateMetric, removeMetric); a scenario's initialState is per_place and each scenario parameter carries its type. Correct an existing part by editing it; do not remove and re-add it. removePlace also removes connected arcs; removing a type, element, parameter or equation that code still reads leaves that code dirty until repaired. Canvas positions are not operations; layout owns them. A read_petrinaut_diagnostics result that reports diagnostics as still pending is not a result: repeat the read before any compiler claim. Operations commit in order; failure leaves the later suffix unattempted. After a batch that added or restructured places or transitions, and once diagnostics are settled, call layout_petrinaut_net in its own proposal; pass askUserFirst false only when this conversation built the net from an empty canvas, otherwise true so the user can decline. Do not lay out after a batch that only changed types, parameters or dynamics. Layout is recorded separately with its own pre and post hash; the post hash is the base for any later observation. draft_petrinaut_experiment is a separate proposal of its own, called only after the skill's experiment-configuration reference judges the settled workpiece and the current net ready; it cites the same observation shape and a declared basis, drafts for this session without running, and is never a substitute for construction or a way to run.",
+      "Construction uses strictly separate proposals. Proposal 1 contains only required skill-resource reads and other server tools; wait for every result. Proposal 2 contains only read_petrinaut_net; wait for its browser result. Proposal 3 contains only mutate_petrinaut_net; wait for its browser result. After a batch that writes code or changes a dependency of code, obtain read_petrinaut_diagnostics in its own proposal and wait for the browser result. A structurally applied mutation is not compiler-clean; pending or missing diagnostics are not clean. Use one bounded ordered construction chunk and do not call individual mutation tools. Cite the exact observation tool-call ID and base hash. Deduplicate settled bases, assign each a basisId, and put a mandatory basisId on every operation as a sibling of operationId, type and input. Give every operation a unique operationId. mutate_petrinaut_net carries root-net operations only: adds (addPlace, addTransition, addArc, addType, addTypeElement, addParameter, addDifferentialEquation), edits to existing parts by ID (updatePlace, updateTransition, updateArcWeight, updateArcType, updateType, updateTypeElement, updateParameter, updateDifferentialEquation) and removals (removePlace, removeTransition, removeArc, removeType, removeTypeElement, removeParameter, removeDifferentialEquation). Correct an existing part by editing it; do not remove and re-add it. removePlace also removes connected arcs; removing a type, element, parameter or equation that code still reads leaves that code dirty until repaired. Canvas positions are not operations; layout owns them. A read_petrinaut_diagnostics result that reports diagnostics as still pending is not a result: repeat the read before any compiler claim. Operations commit in order; failure leaves the later suffix unattempted. After a batch that added or restructured places or transitions, and once diagnostics are settled, call layout_petrinaut_net in its own proposal; pass askUserFirst false only when this conversation built the net from an empty canvas, otherwise true so the user can decline. Do not lay out after a batch that only changed types, parameters or dynamics. Layout is recorded separately with its own pre and post hash; the post hash is the base for any later observation.",
     );
     useTool(observedDefinitionReadTool);
     useTool(observedCompilationReadTool);
     useTool(observedLayoutCommandTool);
     useTool(
       createMutatePetrinetTool({
-        ...options,
-        observationFor: options.observationFor,
-      }),
-    );
-    useTool(
-      createDraftExperimentTool({
         ...options,
         observationFor: options.observationFor,
       }),
@@ -151,15 +164,13 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
 }
 
 export {
-  draftPetrinautExperimentToolName,
-  isDraftPetrinautExperimentToolName,
   isReadPetrinautDocsToolName,
   READ_PETRINAUT_DOCS_TOOL_NAME,
   readPetrinautDiagnosticsToolName,
   readPetrinautDocs,
   readPetrinautNetToolName,
 };
-export { SDCPN_MODELLING_SKILL_NAME };
+export { declarePetrinautProjectionToolName, SDCPN_MODELLING_SKILL_NAME };
 export {
   CANONICAL_PETRINAUT_TOOL_NAMES,
   canonicalPetrinautTools,

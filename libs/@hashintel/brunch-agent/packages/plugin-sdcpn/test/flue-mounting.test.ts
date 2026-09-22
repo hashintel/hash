@@ -25,8 +25,10 @@ import {
   BRUNCH_DEEP_CONSTRUCTION_MODE,
   INTEGRATED_BRUNCH_MODE,
   STOCK_OVER_FLUE_MODE,
+  applyPetrinautConstructionToolName,
   batchedConstructionMode,
   canonicalPetrinautTools,
+  declarePetrinautProjectionToolName,
   readPetrinautDocs,
   useSdcpnPlugin,
 } from "../src/flue";
@@ -55,26 +57,61 @@ describe("SDCPN prompt and tool mounting", () => {
     expect(mounting.tools).toEqual(canonicalPetrinautTools);
   });
 
-  test.each([
-    INTEGRATED_BRUNCH_MODE,
-    BRUNCH_DECLARED_PROJECTION_MODE,
-    BRUNCH_DEEP_CONSTRUCTION_MODE,
-  ])(
-    "%s inherits the integrated prompt, skill, guidance, and canonical catalogue",
-    (mode) => {
-      mounting.initialData = { mode };
+  test("integrated mode inherits the prompt, skill, guidance, and canonical catalogue", () => {
+    mounting.initialData = { mode: INTEGRATED_BRUNCH_MODE };
 
-      useSdcpnPlugin();
+    useSdcpnPlugin();
 
-      expect(mounting.instructions).toEqual([
-        pluginAppend,
-        petrinautAiCapabilityGuidance,
-      ]);
-      expect(mounting.skills).toEqual([sdcpnModellingSkill]);
-      expect(mounting.tools).toEqual(canonicalPetrinautTools);
-      expect(mounting.tools).not.toContain(readPetrinautDocs);
-    },
-  );
+    expect(mounting.instructions).toEqual([
+      pluginAppend,
+      petrinautAiCapabilityGuidance,
+    ]);
+    expect(mounting.skills).toEqual([sdcpnModellingSkill]);
+    expect(mounting.tools).toEqual(canonicalPetrinautTools);
+    expect(mounting.tools).not.toContain(readPetrinautDocs);
+  });
+
+  test("deep construction alone adds Interface B after the complete canonical catalogue", () => {
+    mounting.initialData = { mode: BRUNCH_DEEP_CONSTRUCTION_MODE };
+
+    useSdcpnPlugin();
+
+    expect(
+      mounting.tools.map((tool) => (tool as { name: string }).name),
+    ).toEqual([
+      ...canonicalPetrinautTools.map(({ name }) => name),
+      applyPetrinautConstructionToolName,
+    ]);
+    expect(mounting.instructions.slice(0, 2)).toEqual([
+      pluginAppend,
+      petrinautAiCapabilityGuidance,
+    ]);
+    expect(mounting.instructions[2]).toContain(
+      "use apply_petrinaut_construction",
+    );
+    expect(mounting.instructions[2]).toContain("fine-grained corrections");
+  });
+
+  test("declared projection mounts one server declaration before the canonical catalogue", () => {
+    mounting.initialData = { mode: BRUNCH_DECLARED_PROJECTION_MODE };
+
+    useSdcpnPlugin();
+
+    expect(
+      mounting.tools.map((tool) => (tool as { name: string }).name),
+    ).toEqual([
+      declarePetrinautProjectionToolName,
+      ...canonicalPetrinautTools.map(({ name }) => name),
+    ]);
+    expect(mounting.instructions.slice(0, 2)).toEqual([
+      pluginAppend,
+      petrinautAiCapabilityGuidance,
+    ]);
+    expect(mounting.instructions[2]).toContain(
+      "call declare_petrinaut_projection",
+    );
+    expect(mounting.instructions[2]).toContain("declaration order");
+  });
 
   test("the retained batched mode keeps its plugin append, skill, and custom choreography", () => {
     mounting.initialData = {

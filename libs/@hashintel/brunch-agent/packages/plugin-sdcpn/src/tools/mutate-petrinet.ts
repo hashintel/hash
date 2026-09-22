@@ -5,11 +5,25 @@ import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 
 import { validateDeclaredBasis } from "../declared-basis";
 import {
+  applyPetrinautConstructionInputSchema,
+  applyPetrinautConstructionToolName,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
 } from "../mutate-petrinet";
 
 import type { ObservedConstructionOptions } from "./petrinaut-construction";
+
+/** Interface B is executed entirely by the bound browser host. */
+export const applyPetrinautConstructionTool = defineTool({
+  name: applyPetrinautConstructionToolName,
+  description:
+    "Apply one bounded construction of one to three canonical Petrinaut operations in dependency order (addPlace, then addTransition, then addArc). Each operation carries model-authored intent and expected impact, with optional literal Ledger excerpts; the browser host resolves current Ledger attribution and document authority, executes the successful prefix, settles, diagnoses relevant changes, and performs explicitly requested relevant layout. Do not copy hashes, revisions, observation identities, locators, bindings, or other protocol bookkeeping. This is a browser call: submit it separately from server tools. Canonical tools remain available for reads, documentation, experiments, interactive layout, and direct corrections.",
+  input: applyPetrinautConstructionInputSchema,
+  output: v.object({ awaiting: v.literal(AWAITING_CLIENT) }),
+  run() {
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
+  },
+});
 
 export const createMutatePetrinetTool = (
   options: ObservedConstructionOptions,
