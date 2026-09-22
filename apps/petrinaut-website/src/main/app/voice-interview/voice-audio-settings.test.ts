@@ -380,6 +380,30 @@ test("recovers both unplugged devices to default and does not switch back on rec
   harness.detach();
 });
 
+test("reacquires a selected microphone when its track ends but the device remains", async () => {
+  const harness = setup();
+  await harness.settings.setMicrophone("usb-mic");
+  const recovered = capture();
+  harness.devices.getUserMedia.mockResolvedValueOnce(recovered.stream);
+  harness.replacement.track.readyState = "ended";
+
+  await harness.settings.refresh(true);
+
+  expect(harness.devices.getUserMedia).toHaveBeenLastCalledWith({
+    audio: {
+      autoGainControl: true,
+      deviceId: { exact: "usb-mic" },
+      echoCancellation: true,
+      noiseSuppression: true,
+    },
+  });
+  expect(harness.settings.getSnapshot().devices).toMatchObject({
+    microphoneId: "usb-mic",
+    message: null,
+  });
+  harness.detach();
+});
+
 test("preserves a microphone recovery failure after speaker recovery succeeds", async () => {
   const harness = setup();
   await harness.settings.setMicrophone("usb-mic");
@@ -423,6 +447,23 @@ test("clears a disconnected microphone selection when fallback fails", async () 
   expect(harness.settings.getSnapshot().devices.message).toContain(
     "Could not switch microphone",
   );
+  harness.detach();
+});
+
+test("clears a disconnected speaker selection when fallback fails", async () => {
+  const harness = setup();
+  await harness.settings.setSpeaker("headphones");
+  harness.audio.setSinkId.mockRejectedValueOnce(new Error("closed"));
+  harness.devices.enumerateDevices.mockResolvedValue([
+    device("audioinput", "built-in"),
+  ]);
+
+  await harness.settings.refresh(true);
+
+  expect(harness.settings.getSnapshot().devices).toMatchObject({
+    speakerId: "",
+    message: "Could not switch speaker. Check the device and try again.",
+  });
   harness.detach();
 });
 
