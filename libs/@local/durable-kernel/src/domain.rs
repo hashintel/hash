@@ -8,7 +8,7 @@
 //! recovery. Submit events through [`crate::runtime::RunningKernel::submit`].
 
 use alloc::collections::BTreeMap;
-use core::{any::Any, error::Error, fmt, marker::PhantomData};
+use core::{error::Error, fmt, marker::PhantomData};
 use std::io::{self, Write};
 
 use chrono::{DateTime, Utc};
@@ -16,6 +16,7 @@ use error_stack::{Report, ResultExt as _};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
+use tokio::sync::oneshot;
 
 use crate::{
     ids::{EffectId, EventId, JournalRecordDigest, content_digest_bytes},
@@ -588,12 +589,65 @@ impl<R> From<Report<CompatError>> for FoldError<R> {
     }
 }
 
-/// A read-only closure executed against the projection inside the command loop.
-pub struct ReadQuery<P>(BoxedRead<P>);
+/// A typed read from a projection.
+///
+/// Closures also implement this trait.
+pub trait ProjectionQuery<P>: Send {
+    /// The returned value.
+    type Output: Send;
 
-type BoxedRead<P> = Box<dyn for<'a> FnOnce(&'a KernelProjection<P>) -> Box<dyn Any + Send> + Send>;
+    /// Returns a value from `projection`.
+    fn answer(self, projection: &P) -> Self::Output;
+}
 
-pub type ReadResult = Box<dyn Any + Send>;
+impl<P, F, R> ProjectionQuery<P> for F
+where
+    F: FnOnce(&P) -> R + Send,
+    R: Send,
+{
+    type Output = R;
+
+    fn answer(self, projection: &P) -> Self::Output {
+        self(projection)
+    }
+}
+
+trait ErasedQuery<P>: Send {
+    fn answer(self: Box<Self>, projection: &KernelProjection<P>);
+}
+
+struct QueryRequest<Q, R> {
+    query: Q,
+    reply: oneshot::Sender<R>,
+}
+
+impl<P, Q, R> ErasedQuery<P> for QueryRequest<Q, R>
+where
+    Q: ProjectionQuery<KernelProjection<P>, Output = R>,
+    R: Send,
+{
+    fn answer(self: Box<Self>, projection: &KernelProjection<P>) {
+        let Self { query, reply } = *self;
+        drop(reply.send(query.answer(projection)));
+    }
+}
+
+#[doc(hidden)]
+pub struct HostedQuery<P>(Box<dyn ErasedQuery<P>>);
+
+impl<P> HostedQuery<P> {
+    fn new<Q>(query: Q, reply: oneshot::Sender<Q::Output>) -> Self
+    where
+        Q: ProjectionQuery<KernelProjection<P>> + 'static,
+        Q::Output: 'static,
+    {
+        Self(Box::new(QueryRequest { query, reply }))
+    }
+
+    fn answer(self, projection: &KernelProjection<P>) {
+        self.0.answer(projection);
+    }
+}
 
 /// An uninhabited type for control requests and work items that [`Hosted`] does not produce.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -990,11 +1044,11 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
 }
 
 impl<S: SimpleDomain> QueryDomain for Hosted<S> {
-    type Query = ReadQuery<S::Projection>;
-    type QueryResult = ReadResult;
+    type Query = HostedQuery<S::Projection>;
+    type QueryResult = ();
 
     fn answer(projection: &Self::Projection, query: Self::Query) -> Self::QueryResult {
-        (query.0)(projection)
+        query.answer(projection);
     }
 }
 
@@ -1107,24 +1161,33 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
     ///
     /// # Errors
     ///
-    /// Returns an error if the loop closes or the read result has an unexpected type.
+    /// Returns an error if the loop closes before returning the result.
     pub async fn read<R, F>(&self, read: F) -> Result<R, Report<ShardCommandError>>
     where
         R: Send + 'static,
         F: for<'a> FnOnce(&'a KernelProjection<S::Projection>) -> R + Send + 'static,
     {
-        let result = self
-            .query(ReadQuery(Box::new(move |projection| {
-                Box::new(read(projection)) as Box<dyn Any + Send>
-            })))
-            .await?;
-        result
-            .downcast::<R>()
-            .map(|value| *value)
-            .map_err(|_value| {
-                Report::new(ShardCommandError::UnexpectedQueryResult {
-                    expected: core::any::type_name::<R>(),
-                })
+        self.read_query(read).await
+    }
+
+    /// Reads the shard’s state with `query`.
+    ///
+    /// The query runs inside the command loop and must not block.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the loop closes before returning the result.
+    pub async fn read_query<Q>(&self, query: Q) -> Result<Q::Output, Report<ShardCommandError>>
+    where
+        Q: ProjectionQuery<KernelProjection<S::Projection>> + 'static,
+        Q::Output: 'static,
+    {
+        let (reply, response) = oneshot::channel();
+        self.query(HostedQuery::new(query, reply)).await?;
+        response
+            .await
+            .change_context(ShardCommandError::ReplyDropped {
+                command: crate::shard_log::ShardCommandKind::Query,
             })
     }
 }
