@@ -5,6 +5,10 @@ export {
 } from "./constants";
 export { unavailableActualMode } from "./context";
 export {
+  normalizeActualModeTokenValues,
+  normalizeActualModeTransitionFiring,
+} from "./firing";
+export {
   applyActualModeTransitionFiring,
   getActualModeMarkingAtTransitionFiringIndex,
 } from "./marking";
@@ -21,7 +25,6 @@ export {
   actualModeRecordingSchema,
   actualModeSourceSchema,
   actualModeTokenValuesSchema,
-  actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
 } from "./schemas";
 export {
@@ -29,6 +32,10 @@ export {
   createActualModeTimelineFrameReader,
   getActualModeTransitionFiringTimesMs,
 } from "./timeline";
+export type {
+  ActualModeLegacyTokenCounts,
+  ActualModeTransitionFiringWire,
+} from "./firing";
 export type {
   ActualModeContextValue,
   ActualModeMarking,
@@ -43,6 +50,5 @@ export type {
   ActualModeTokenRecord,
   ActualModeTokenValue,
   ActualModeTokenValues,
-  ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./types";

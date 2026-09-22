@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  actualModeTransitionFiringSchema,
   createActualModeReceivedEventsRecording,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
   getActualModeMarkingAtTransitionFiringIndex,
+  normalizeActualModeTransitionFiring,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
 } from ".";
@@ -44,14 +46,15 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 1 },
-          output: {},
+          inputTokens: { queued: [{}] },
+          outputTokens: {},
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
+    expect(recording.version).toBe(3);
     expect(parseActualModeRecording(recording)).toEqual(recording);
   });
 
@@ -70,7 +73,7 @@ describe("Actual mode recordings", () => {
     });
 
     expect(recording).toEqual({
-      version: 2,
+      version: 3,
       exportedAt: "2026-06-05T10:01:00.000Z",
       title: "Replay",
       source: null,
@@ -87,8 +90,6 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 1 },
-          output: { implementing: 1 },
           inputTokens: { queued: [{ ticket_id: "a" }] },
           outputTokens: { implementing: [{ ticket_id: "a", attempts: 1 }] },
           ts: "2026-06-05T10:00:00.000Z",
@@ -97,35 +98,103 @@ describe("Actual mode recordings", () => {
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
-    expect(recording.version).toBe(2);
     expect(parseActualModeRecording(recording)).toEqual(recording);
   });
 
-  it("still parses version-1 recordings without token values", () => {
+  it("loads version-1 recordings by turning counts into attribute-less tokens", () => {
     const parsed = parseActualModeRecording({
       version: 1,
       exportedAt: "2026-06-05T10:01:00.000Z",
       title: "Replay",
       source: null,
       definition,
-      initialState: { queued: 1 },
+      initialState: { queued: 2 },
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 1 },
-          output: {},
+          input: { queued: 2 },
+          output: { implementing: 1 },
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
     });
 
     expect(parsed.version).toBe(1);
+    expect(parsed.transitionFirings).toEqual([
+      {
+        transitionId: "start",
+        inputTokens: { queued: [{}, {}] },
+        outputTokens: { implementing: [{}] },
+        ts: "2026-06-05T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("loads version-2 recordings by fitting recorded values to the counts", () => {
+    const parsed = parseActualModeRecording({
+      version: 2,
+      exportedAt: "2026-06-05T10:01:00.000Z",
+      title: "Replay",
+      source: null,
+      definition,
+      initialState: { queued: 3 },
+      transitionFirings: [
+        {
+          transitionId: "start",
+          input: { queued: 2 },
+          output: { implementing: 1, done: 0 },
+          inputTokens: { queued: [{ ticket_id: "a" }] },
+          outputTokens: {
+            implementing: [{ ticket_id: "a" }, { ticket_id: "extra" }],
+            done: [{ ticket_id: "dropped" }],
+          },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(parsed.transitionFirings).toEqual([
+      {
+        transitionId: "start",
+        inputTokens: { queued: [{ ticket_id: "a" }, {}] },
+        outputTokens: { implementing: [{ ticket_id: "a" }], done: [] },
+        ts: "2026-06-05T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("normalizes count-only firings the same way outside recordings", () => {
+    expect(
+      normalizeActualModeTransitionFiring({
+        transitionId: "start",
+        input: { queued: 1 },
+        output: { implementing: 1 },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toEqual({
+      transitionId: "start",
+      inputTokens: { queued: [{}] },
+      outputTokens: { implementing: [{}] },
+      ts: "2026-06-05T10:00:00.000Z",
+    });
+    expect(
+      actualModeTransitionFiringSchema.parse({
+        transitionId: "start",
+        inputTokens: { queued: [{ ticket_id: "a" }] },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toEqual({
+      transitionId: "start",
+      inputTokens: { queued: [{ ticket_id: "a" }] },
+      outputTokens: {},
+      ts: "2026-06-05T10:00:00.000Z",
+    });
   });
 
   it("rejects unsupported recording versions", () => {
     expect(() =>
       parseActualModeRecording({
-        version: 3,
+        version: 4,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -145,14 +214,14 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "first",
-          input: { queued: 1 },
-          output: {},
+          inputTokens: { queued: [{}] },
+          outputTokens: {},
           ts: "2026-06-05T10:00:00.000Z",
         },
         {
           transitionId: "second",
-          input: { queued: 1 },
-          output: {},
+          inputTokens: { queued: [{}] },
+          outputTokens: {},
           ts: "2026-06-05T10:00:03.250Z",
         },
       ],
@@ -181,8 +250,8 @@ describe("Actual mode recordings", () => {
         transitionFirings: [
           {
             transitionId: "finish",
-            input: { queued: 1 },
-            output: { done: 1 },
+            inputTokens: { queued: [{}] },
+            outputTokens: { done: [{}] },
             unsupported: { done: 1 },
             ts: "2026-06-05T10:00:00.000Z",
           },
@@ -191,7 +260,7 @@ describe("Actual mode recordings", () => {
     ).toThrow();
   });
 
-  it("rejects transition firings with non-count effect values", () => {
+  it("rejects legacy count maps with non-count values", () => {
     expect(() =>
       parseActualModeRecording({
         version: 1,
@@ -233,8 +302,8 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "finish",
-          input: { queued: 1 },
-          output: { done: 1 },
+          inputTokens: { queued: [{}] },
+          outputTokens: { done: [{}] },
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
@@ -251,6 +320,23 @@ describe("Actual mode recordings", () => {
       queued: { tokenCount: 1 },
       done: { tokenCount: 1 },
     });
+  });
+
+  it("keeps count-only places as counts while attribute-less tokens move", () => {
+    const marking = getActualModeMarkingAtTransitionFiringIndex({
+      initialState: { queued: 2 },
+      transitionFirings: [
+        {
+          transitionId: "finish",
+          inputTokens: { queued: [{}] },
+          outputTokens: { done: [{}, {}] },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+      transitionFiringIndex: 0,
+    });
+
+    expect(marking).toEqual({ queued: 1, done: 2 });
   });
 
   it.each([
@@ -288,8 +374,6 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 1 },
-          output: { implementing: 1 },
           inputTokens: { queued: [{ ticket_id: "b" }] },
           outputTokens: { implementing: [{ ticket_id: "b" }] },
           ts: "2026-06-05T10:00:00.000Z",
@@ -308,9 +392,8 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 1 },
-          output: {},
           inputTokens: { queued: [{ ticket_id: "missing" }] },
+          outputTokens: {},
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
@@ -320,7 +403,7 @@ describe("Actual mode recordings", () => {
     expect(marking.queued).toEqual([{ ticket_id: "a" }, { ticket_id: "b" }]);
   });
 
-  it("falls back to FIFO for consumption beyond the recorded input tokens", () => {
+  it("removes the oldest token for an attribute-less record", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
       initialState: {
         queued: [{ ticket_id: "a" }, { ticket_id: "b" }, { ticket_id: "c" }],
@@ -328,9 +411,8 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "start",
-          input: { queued: 2 },
-          output: {},
-          inputTokens: { queued: [{ ticket_id: "b" }] },
+          inputTokens: { queued: [{ ticket_id: "b" }, {}] },
+          outputTokens: {},
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
@@ -340,40 +422,21 @@ describe("Actual mode recordings", () => {
     expect(marking.queued).toEqual([{ ticket_id: "c" }]);
   });
 
-  it("ignores recorded input tokens beyond the firing's input count", () => {
-    const marking = getActualModeMarkingAtTransitionFiringIndex({
-      initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
-      transitionFirings: [
-        {
-          transitionId: "start",
-          input: { queued: 1 },
-          output: {},
-          inputTokens: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-      ],
-      transitionFiringIndex: 0,
-    });
-
-    expect(marking.queued).toEqual([{ ticket_id: "b" }]);
-  });
-
-  it("pads recorded output tokens up to the firing's output count", () => {
+  it("appends produced tokens as recorded", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
       initialState: { queued: [] },
       transitionFirings: [
         {
           transitionId: "create",
-          input: {},
-          output: { queued: 3 },
-          outputTokens: { queued: [{ ticket_id: "a" }] },
+          inputTokens: {},
+          outputTokens: { queued: [{ ticket_id: "a" }, {}] },
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
       transitionFiringIndex: 0,
     });
 
-    expect(marking.queued).toEqual([{ ticket_id: "a" }, {}, {}]);
+    expect(marking.queued).toEqual([{ ticket_id: "a" }, {}]);
   });
 
   it("exposes recorded token values through the frame reader", () => {
@@ -407,8 +470,7 @@ describe("Actual mode recordings", () => {
       transitionFirings: [
         {
           transitionId: "create",
-          input: {},
-          output: { queued: 1 },
+          inputTokens: {},
           outputTokens: { queued: [{ ticket_id: "X-1234" }] },
           ts: "2026-06-05T10:00:00.000Z",
         },

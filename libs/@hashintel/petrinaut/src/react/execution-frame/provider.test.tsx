@@ -67,8 +67,8 @@ const availableActualMode: ActualModeContextValue = {
   transitionFirings: [
     {
       transitionId: "finish",
-      input: { queued: 1 },
-      output: { done: 1 },
+      inputTokens: { queued: [{}] },
+      outputTokens: { done: [{}] },
       ts: "2026-06-05T10:00:00.000Z",
     },
   ],

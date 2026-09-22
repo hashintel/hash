@@ -74,24 +74,20 @@ describe("createActualEventStatusDeriver", () => {
     const changes = deriver.deriveUpTo([
       {
         transitionId: "create",
-        input: {},
-        output: { todo: 1 },
+        inputTokens: {},
         outputTokens: { todo: [{ ticket_id: "a" }] },
         ts: "2026-06-05T10:00:00.000Z",
       },
       {
         transitionId: "start",
-        input: { todo: 1 },
-        output: { doing: 1 },
         inputTokens: { todo: [{ ticket_id: "a" }] },
         outputTokens: { doing: [{ ticket_id: "a" }] },
         ts: "2026-06-05T10:00:04.000Z",
       },
       {
         transitionId: "archive",
-        input: { doing: 1 },
-        output: {},
         inputTokens: { doing: [{ ticket_id: "a" }] },
+        outputTokens: {},
         ts: "2026-06-05T10:00:10.000Z",
       },
     ]);
@@ -132,8 +128,6 @@ describe("createActualEventStatusDeriver", () => {
     });
     const firstFiring = {
       transitionId: "start",
-      input: { todo: 1 },
-      output: { doing: 1 },
       inputTokens: { todo: [{ ticket_id: "a" }] },
       outputTokens: { doing: [{ ticket_id: "a" }] },
       ts: "2026-06-05T10:00:05.000Z",
@@ -157,8 +151,6 @@ describe("createActualEventStatusDeriver", () => {
       firstFiring,
       {
         transitionId: "finish",
-        input: { doing: 1 },
-        output: { done: 1 },
         inputTokens: { doing: [{ ticket_id: "a" }] },
         outputTokens: { done: [{ ticket_id: "a" }] },
         ts: "2026-06-05T10:00:08.000Z",
@@ -205,15 +197,12 @@ describe("createActualEventStatusDeriver", () => {
     const changes = deriver.deriveUpTo([
       {
         transitionId: "start",
-        input: {},
-        output: { doing: 1 },
+        inputTokens: {},
         outputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:00.000Z",
       },
       {
         transitionId: "retry",
-        input: { doing: 1 },
-        output: { doing: 1 },
         inputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
         outputTokens: { doing: [{ ticket_id: "a", attempts: 1 }] },
         ts: "2026-06-05T10:00:03.000Z",
@@ -297,8 +286,7 @@ describe("createActualEventStatusDeriver", () => {
     const changes = deriver.deriveUpTo([
       {
         transitionId: "instance-1::start",
-        input: {},
-        output: { "instance-1::inner-doing": 1 },
+        inputTokens: {},
         outputTokens: { "instance-1::inner-doing": [{ ticket_id: "a" }] },
         ts: "2026-06-05T10:00:00.000Z",
       },
@@ -316,7 +304,7 @@ describe("createActualEventStatusDeriver", () => {
     ]);
   });
 
-  it("emits nothing for firings without token values", () => {
+  it("emits nothing for firings whose tokens carry no attributes", () => {
     const deriver = createActualEventStatusDeriver({
       statusView,
       definition,
@@ -325,8 +313,8 @@ describe("createActualEventStatusDeriver", () => {
     const changes = deriver.deriveUpTo([
       {
         transitionId: "start",
-        input: { todo: 1 },
-        output: { doing: 1 },
+        inputTokens: { todo: [{}] },
+        outputTokens: { doing: [{}] },
         ts: "2026-06-05T10:00:00.000Z",
       },
     ]);

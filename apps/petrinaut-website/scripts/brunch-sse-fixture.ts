@@ -32,10 +32,25 @@ import type {
 } from "../src/main/app/brunch-demo/brunch-protocol";
 import type {
   ActualModeReceivedEvent,
+  ActualModeTokenValues,
   ActualModeTransitionFiring,
 } from "@hashintel/petrinaut-core";
 
 type NumericMarking = Record<string, number>;
+
+/**
+ * A recorded firing as either the token-value form or the count-only form
+ * older recordings carry. Replay forwards it as recorded; Petrinaut
+ * normalizes both forms on receipt.
+ */
+type RecordedTransitionFiring = {
+  transitionId: string;
+  input?: NumericMarking;
+  output?: NumericMarking;
+  inputTokens?: ActualModeTokenValues;
+  outputTokens?: ActualModeTokenValues;
+  ts: string;
+};
 
 type SseFrame = {
   data: unknown;
@@ -51,7 +66,7 @@ type RecordingReplay = {
   events: ActualModeReceivedEvent[];
   initialState: NumericMarking;
   path: string;
-  transitionFirings: ActualModeTransitionFiring[];
+  transitionFirings: RecordedTransitionFiring[];
 };
 
 type ParsedArgs = {
@@ -192,31 +207,51 @@ const parseNumericMarking = (data: unknown, label: string): NumericMarking => {
   return marking;
 };
 
-const parseTransitionEffect = (
-  data: unknown,
-  label: string,
-): ActualModeTransitionFiring["input"] => {
+const parseTokenCounts = (data: unknown, label: string): NumericMarking => {
   if (!isRecord(data)) {
     throw new Error(`Recording ${label} must be an object.`);
   }
 
-  const effect: ActualModeTransitionFiring["input"] = {};
+  const counts: NumericMarking = {};
 
   for (const [placeId, value] of Object.entries(data)) {
     if (typeof value !== "number" || !Number.isFinite(value)) {
       throw new Error(`Recording ${label}.${placeId} must be a finite number.`);
     }
 
-    effect[placeId] = value;
+    counts[placeId] = value;
   }
 
-  return effect;
+  return counts;
+};
+
+const parseTokenValues = (
+  data: unknown,
+  label: string,
+): ActualModeTokenValues => {
+  if (!isRecord(data)) {
+    throw new Error(`Recording ${label} must be an object.`);
+  }
+
+  const tokenValues: ActualModeTokenValues = {};
+
+  for (const [placeId, tokens] of Object.entries(data)) {
+    if (!Array.isArray(tokens) || !tokens.every(isRecord)) {
+      throw new Error(
+        `Recording ${label}.${placeId} must be an array of token records.`,
+      );
+    }
+
+    tokenValues[placeId] = tokens as ActualModeTokenValues[string];
+  }
+
+  return tokenValues;
 };
 
 const parseTransitionFiring = (
   data: unknown,
   label: string,
-): ActualModeTransitionFiring => {
+): RecordedTransitionFiring => {
   if (!isRecord(data)) {
     throw new Error(`Recording ${label} must be an object.`);
   }
@@ -231,10 +266,41 @@ const parseTransitionFiring = (
     throw new Error(`Recording ${label}.ts must be a valid timestamp.`);
   }
 
+  if (
+    data.input === undefined &&
+    data.output === undefined &&
+    data.inputTokens === undefined &&
+    data.outputTokens === undefined
+  ) {
+    throw new Error(
+      `Recording ${label} must carry inputTokens/outputTokens or input/output.`,
+    );
+  }
+
   return {
     transitionId: data.transitionId,
-    input: parseTransitionEffect(data.input, `${label}.input`),
-    output: parseTransitionEffect(data.output, `${label}.output`),
+    ...(data.input === undefined
+      ? {}
+      : { input: parseTokenCounts(data.input, `${label}.input`) }),
+    ...(data.output === undefined
+      ? {}
+      : { output: parseTokenCounts(data.output, `${label}.output`) }),
+    ...(data.inputTokens === undefined
+      ? {}
+      : {
+          inputTokens: parseTokenValues(
+            data.inputTokens,
+            `${label}.inputTokens`,
+          ),
+        }),
+    ...(data.outputTokens === undefined
+      ? {}
+      : {
+          outputTokens: parseTokenValues(
+            data.outputTokens,
+            `${label}.outputTokens`,
+          ),
+        }),
     ts: data.ts,
   };
 };
@@ -513,15 +579,32 @@ const createTimedReplayFrames = (
   });
 };
 
+/** Tokens moved per place: the count map when recorded, else the token records. */
+const countTokensPerPlace = (
+  counts: NumericMarking | undefined,
+  tokenValues: ActualModeTokenValues | undefined,
+): NumericMarking =>
+  counts ??
+  Object.fromEntries(
+    Object.entries(tokenValues ?? {}).map(([placeId, tokens]) => [
+      placeId,
+      tokens.length,
+    ]),
+  );
+
 const applyFiringToMarking = (
   marking: NumericMarking,
-  firing: ActualModeTransitionFiring,
+  firing: RecordedTransitionFiring,
 ): void => {
-  for (const [placeId, value] of Object.entries(firing.input)) {
+  for (const [placeId, value] of Object.entries(
+    countTokensPerPlace(firing.input, firing.inputTokens),
+  )) {
     marking[placeId] = (marking[placeId] ?? 0) - value;
   }
 
-  for (const [placeId, value] of Object.entries(firing.output)) {
+  for (const [placeId, value] of Object.entries(
+    countTokensPerPlace(firing.output, firing.outputTokens),
+  )) {
     marking[placeId] = (marking[placeId] ?? 0) + value;
   }
 };
@@ -609,38 +692,46 @@ const canFire = (marking: NumericMarking, transitionId: string): boolean => {
   );
 };
 
+/** The fixture's places are uncoloured, so each moved token is an empty record. */
+const emptyTokens = (count: number): ActualModeTokenValues[string] =>
+  Array.from({ length: count }, () => ({}));
+
 const applyTransition = (
   marking: NumericMarking,
   transitionId: string,
 ): ActualModeTransitionFiring => {
   const transition = getTransition(transitionId);
-  const input: ActualModeTransitionFiring["input"] = {};
-  const output: ActualModeTransitionFiring["output"] = {};
+  const inputTokens: ActualModeTokenValues = {};
+  const outputTokens: ActualModeTokenValues = {};
 
   for (const arc of transition.inputArcs) {
     if ((arc.type ?? "standard") !== "standard") {
       continue;
     }
 
-    input[arc.placeId] = (input[arc.placeId] ?? 0) + arc.weight;
+    inputTokens[arc.placeId] = (inputTokens[arc.placeId] ?? []).concat(
+      emptyTokens(arc.weight),
+    );
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) - arc.weight;
   }
 
   for (const arc of transition.outputArcs) {
-    output[arc.placeId] = (output[arc.placeId] ?? 0) + arc.weight;
+    outputTokens[arc.placeId] = (outputTokens[arc.placeId] ?? []).concat(
+      emptyTokens(arc.weight),
+    );
     marking[arc.placeId] = (marking[arc.placeId] ?? 0) + arc.weight;
   }
 
   return {
     transitionId,
-    input,
-    output,
+    inputTokens,
+    outputTokens,
     ts: new Date().toISOString(),
   };
 };
 
 const currentMarking = cloneMarking(initialState);
-const transitionFirings: ActualModeTransitionFiring[] = recordingReplay
+const transitionFirings: RecordedTransitionFiring[] = recordingReplay
   ? recordingReplay.transitionFirings.map((firing) => ({ ...firing }))
   : [];
 const replayFrames: SseFrame[] = [
@@ -877,7 +968,7 @@ const broadcastLiveFiring = (): void => {
 
   console.log(
     `[${firing.ts}] transition_firing ${firing.transitionId} -> ${JSON.stringify(
-      firing.output,
+      countTokensPerPlace(undefined, firing.outputTokens),
     )}`,
   );
 };

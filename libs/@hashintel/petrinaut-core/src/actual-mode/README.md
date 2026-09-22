@@ -26,8 +26,8 @@ Petrinaut teams standardize that contract.
 Core currently owns only the pieces that are useful independently of React and
 independently of how a host transports events:
 
-- the transition firing effect shape used by Petrinaut's timeline
-- marking reconstruction from an initial state plus transition effects
+- the transition firing shape used by Petrinaut's timeline
+- marking reconstruction from an initial state plus transition firings
 - timeline point generation for a live or completed external execution
 - a `SimulationFrameReader` adapter so existing visualizer/timeline code can
   inspect Actual Mode frames
@@ -46,47 +46,48 @@ The current demo path is:
    Petrinaut extensions disabled.
 5. `@hashintel/petrinaut` receives `ActualModeContext`.
 6. Core reconstructs markings and timeline frames from the initial state and
-   transition firing effects.
+   transition firings.
 
-The currently accepted transition firing shape is:
+The transition firing shape is:
 
 ```json
 {
   "transitionId": "start_implementation",
-  "input": { "queued": 1 },
-  "output": { "implementing": 1 },
   "inputTokens": { "queued": [{ "ticket_id": "…" }] },
   "outputTokens": { "implementing": [{ "ticket_id": "…" }] },
   "ts": "2026-06-05T17:17:27.866Z"
 }
 ```
 
-`input` and `output` are transition-local token count maps. They are not full
-before/after markings. The optional `inputTokens` and `outputTokens` carry the
-attribute values of the consumed and produced tokens, keyed like
-`input`/`output`; a token record may carry a subset of the colour's attributes
-(at least the identity key elements), and `uuid` values are canonical
-lowercase strings. Place keys may be scoped ids (`instanceId::placeId`) when a
-firing touches a componentInstance's copy of a subnet place.
+`inputTokens` and `outputTokens` list the tokens the firing consumed and
+produced, one record per token, keyed by place id. They are not full
+before/after markings. A record may carry a subset of the colour's attributes
+(at least the identity key elements), `uuid` values are canonical lowercase
+strings, and an attribute-less record (`{}`) is one token about which nothing
+is known. Place keys may be scoped ids (`instanceId::placeId`) when a firing
+touches a componentInstance's copy of a subnet place.
 
-Marking reconstruction treats the `input`/`output` counts as authoritative and
-the token-value records as enrichment:
+Count-only payloads, `{ "input": { "queued": 1 }, "output": { … } }`, still
+parse: `normalizeActualModeTransitionFiring` turns each count into that many
+`{}` records. A payload carrying both a count map and token values keeps the
+recorded values up to the count and pads the rest with `{}` records.
 
-- A recorded input token is removed by value: the first token in the
-  reconstructed place that agrees on every attribute the record carries.
+Marking reconstruction consumes tokens by value:
+
+- A place stays a token count while nothing recorded about it carries
+  attributes, so count-only streams reconstruct as counts.
+- A recorded input token removes the first token in the reconstructed place
+  that agrees on every attribute the record carries; a `{}` record removes the
+  oldest token.
 - A recorded input token that matches nothing removes nothing. Keeping a
   divergent token beats removing another instance's token, so after a
-  malformed or out-of-order event a place's reconstructed count can exceed
-  the count-only projection until the stream and the reconstruction
-  re-converge.
-- At most `input`-count tokens are removed per place; recorded input tokens
-  beyond the count are ignored, and consumption beyond the recorded values
-  falls back to FIFO.
-- Produced tokens take the recorded output values first and pad up to the
-  `output` count with attribute-less tokens.
+  malformed or out-of-order event a place can hold more tokens than the source
+  until the stream and the reconstruction re-converge.
+- Produced tokens are appended as recorded.
 
-Recordings are written with version 2; version-1 recordings (which predate
-per-firing token values) still parse.
+Recordings are written with version 3. Version-1 recordings (count-only
+firings) and version-2 recordings (counts plus optional token values) load
+through the same normalization.
 
 The transition-firing log is retained unbounded for the life of a stream, and
 token-value records multiply the per-firing size, so a long-running stream
@@ -98,6 +99,7 @@ checkpoint marking plus the last N firings) is the known follow-up.
 - `constants.ts`: shared Actual Mode constants.
 - `types.ts`: transport-neutral Actual Mode types and context shape.
 - `schemas.ts`: Zod schemas for core Actual Mode payloads and recordings.
+- `firing.ts`: normalization of count-only firings to token values.
 - `context.ts`: unavailable/default context value.
 - `marking.ts`: marking reconstruction helpers.
 - `timeline.ts`: live timeline point generation and frame-reader adapter.

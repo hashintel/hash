@@ -79,29 +79,23 @@ const tokenMatchesRecordedValues = (
       token[attributeName] === attributeValue,
   );
 
+const hasAttributes = (token: ActualModeTokenRecord): boolean =>
+  Object.keys(token).length > 0;
+
 /**
- * Removes the consumed tokens from a place's token array. The firing's
- * `input` count is authoritative: at most `inputCount` tokens are removed
- * (recorded values beyond it are ignored), and consumption beyond the
- * recorded values falls back to FIFO. Recorded tokens are removed by value;
- * a recorded token with no match in the reconstructed marking removes
- * nothing — keeping a divergent token beats corrupting another instance —
- * so the place's count can exceed the count-only projection until stream
- * and reconstruction re-converge. See `actual-mode/README.md`.
+ * Removes the consumed tokens from a place's token array. Each recorded token
+ * removes the first marking token that agrees on every attribute it carries,
+ * so an attribute-less record removes the oldest token. A recorded token with
+ * no match removes nothing: keeping a divergent token beats removing another
+ * instance's token. See `actual-mode/README.md`.
  */
 const removeConsumedTokens = (
   currentTokens: ActualModeTokenRecord[],
-  inputCount: number,
-  recordedInputTokens: ActualModeTokenRecord[] | undefined,
+  consumedTokens: readonly ActualModeTokenRecord[],
 ): ActualModeTokenRecord[] => {
-  if (!recordedInputTokens || recordedInputTokens.length === 0) {
-    return currentTokens.slice(inputCount);
-  }
-
   const remaining = [...currentTokens];
-  const consumedRecords = recordedInputTokens.slice(0, inputCount);
-  for (const recordedToken of consumedRecords) {
-    const recordedAttributes = Object.entries(recordedToken);
+  for (const consumedToken of consumedTokens) {
+    const recordedAttributes = Object.entries(consumedToken);
     const matchIndex = remaining.findIndex((token) =>
       tokenMatchesRecordedValues(token, recordedAttributes),
     );
@@ -109,63 +103,42 @@ const removeConsumedTokens = (
       remaining.splice(matchIndex, 1);
     }
   }
-
-  const unrecordedConsumed = inputCount - consumedRecords.length;
-  return unrecordedConsumed > 0
-    ? remaining.slice(unrecordedConsumed)
-    : remaining;
+  return remaining;
 };
 
+/**
+ * A place stays a token count while nothing recorded about it carries
+ * attributes, so count-only streams reconstruct as counts.
+ */
 export const applyActualModeTransitionFiring = (
   marking: ActualModeMarking,
   firing: ActualModeTransitionFiring,
 ): ActualModeMarking => {
   const next = cloneMarking(marking);
   const placeIds = new Set([
-    ...Object.keys(next),
-    ...Object.keys(firing.input),
-    ...Object.keys(firing.output),
-    ...Object.keys(firing.inputTokens ?? {}),
-    ...Object.keys(firing.outputTokens ?? {}),
+    ...Object.keys(firing.inputTokens),
+    ...Object.keys(firing.outputTokens),
   ]);
 
   for (const placeId of placeIds) {
     const currentValue = next[placeId];
-    const inputValue = firing.input[placeId];
-    const outputValue = firing.output[placeId];
-    const recordedInputTokens = firing.inputTokens?.[placeId];
-    const recordedOutputTokens = firing.outputTokens?.[placeId];
+    const consumedTokens = firing.inputTokens[placeId] ?? [];
+    const producedTokens = firing.outputTokens[placeId] ?? [];
 
     if (
-      Array.isArray(currentValue) ||
-      Array.isArray(inputValue) ||
-      Array.isArray(outputValue) ||
-      recordedInputTokens !== undefined ||
-      recordedOutputTokens !== undefined
+      !Array.isArray(currentValue) &&
+      !consumedTokens.some(hasAttributes) &&
+      !producedTokens.some(hasAttributes)
     ) {
-      const currentTokens = toTokenArray(currentValue);
-      const inputCount = getActualModePlaceMarkingTokenCount(inputValue);
-      const remainingTokens = removeConsumedTokens(
-        currentTokens,
-        inputCount,
-        recordedInputTokens,
-      );
-      // The `output` count is authoritative for how many tokens appear:
-      // recorded values fill the first slots and the rest are padded with
-      // attribute-less tokens, so partial recordings keep counts consistent.
-      const outputCount = getActualModePlaceMarkingTokenCount(outputValue);
-      const producedTokens =
-        recordedOutputTokens && recordedOutputTokens.length > 0
-          ? recordedOutputTokens
-              .map((token) => cloneTokenRecord(token))
-              .concat(emptyTokens(outputCount - recordedOutputTokens.length))
-          : toTokenArray(outputValue);
-      next[placeId] = remainingTokens.concat(producedTokens);
+      next[placeId] =
+        (currentValue ?? 0) - consumedTokens.length + producedTokens.length;
       continue;
     }
 
-    next[placeId] =
-      (currentValue ?? 0) - (inputValue ?? 0) + (outputValue ?? 0);
+    next[placeId] = removeConsumedTokens(
+      toTokenArray(currentValue),
+      consumedTokens,
+    ).concat(producedTokens.map((token) => cloneTokenRecord(token)));
   }
 
   return next;

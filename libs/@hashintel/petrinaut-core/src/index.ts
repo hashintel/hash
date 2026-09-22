@@ -18,7 +18,6 @@ export {
   actualModeRecordingSchema,
   actualModeSourceSchema,
   actualModeTokenValuesSchema,
-  actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
   applyActualModeTransitionFiring,
   buildActualModeTimelinePoints,
@@ -45,7 +44,6 @@ export type {
   ActualModeTokenRecord,
   ActualModeTokenValue,
   ActualModeTokenValues,
-  ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./actual-mode";
 export {

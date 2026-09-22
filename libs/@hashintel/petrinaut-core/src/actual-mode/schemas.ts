@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { sdcpnSchema } from "../file-format/types";
 import { SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS } from "./constants";
+import { normalizeActualModeTransitionFiring } from "./firing";
 
 import type { SDCPN } from "../types/sdcpn";
 import type {
@@ -11,7 +12,6 @@ import type {
   ActualModeRecording,
   ActualModeSource,
   ActualModeTokenValues,
-  ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./types";
 
@@ -32,10 +32,10 @@ const actualModeTokenRecordSchema = z.record(
 );
 
 /**
- * Attribute values of the tokens a firing consumed or produced, keyed like
- * `input`/`output`. A record may carry a subset of the colour's attributes —
- * at least the identity key elements — and the wire format is JSON, so
- * `uuid` values are canonical lowercase strings.
+ * Attribute values of the tokens a firing consumed or produced, keyed by
+ * place id. A record may carry a subset of the colour's attributes — at least
+ * the identity key elements — and the wire format is JSON, so `uuid` values
+ * are canonical lowercase strings.
  */
 export const actualModeTokenValuesSchema = z.record(
   z.string(),
@@ -45,48 +45,39 @@ export const actualModeTokenValuesSchema = z.record(
 /**
  * Root schema for an Actual Mode marking.
  *
- * This validates `initial_state` stream frames and recording snapshots. Places
- * can currently be represented by a numeric token count or by token-colour
- * arrays for future coloured-token support.
+ * This validates `initial_state` stream frames and recording snapshots. A
+ * place is either a token count or an array of token records.
  */
 export const actualModeMarkingSchema = z.record(
   z.string(),
   actualModeMarkingValueSchema,
 ) satisfies z.ZodType<ActualModeMarking>;
 
-/**
- * Root schema for a transition-local token effect.
- *
- * This is intentionally not a full marking: keys are only the places affected
- * by a transition, and values are the token counts consumed or produced there.
- */
-export const actualModeTransitionEffectSchema = z.record(
-  z.string(),
-  z.number(),
-) satisfies z.ZodType<ActualModeTransitionEffect>;
-
-const actualModeTransitionFiringEffectSchema = z
-  .object({
-    transitionId: z.string(),
-    input: actualModeTransitionEffectSchema,
-    output: actualModeTransitionEffectSchema,
-    inputTokens: actualModeTokenValuesSchema.optional(),
-    outputTokens: actualModeTokenValuesSchema.optional(),
-    ts: z.string(),
-  })
-  .strict();
+const actualModeLegacyTokenCountsSchema = z.record(z.string(), z.number());
 
 /**
  * Root schema for Actual Mode transition events.
  *
- * This is the only accepted `transition_firing` payload shape: `input`
- * contains consumed token counts, `output` contains produced token counts,
- * and neither field carries a full before or after marking. The optional
- * `inputTokens`/`outputTokens` carry the attribute values of the consumed
- * and produced tokens, keyed like `input`/`output`.
+ * A `transition_firing` payload names the transition and the tokens it
+ * consumed (`inputTokens`) and produced (`outputTokens`), keyed by place id;
+ * neither field is a full before or after marking. Count-only payloads with
+ * `input`/`output` count maps, as older emitters and version-1 and version-2
+ * recordings carry, parse to the same shape through
+ * `normalizeActualModeTransitionFiring`.
  */
-export const actualModeTransitionFiringSchema =
-  actualModeTransitionFiringEffectSchema satisfies z.ZodType<ActualModeTransitionFiring>;
+export const actualModeTransitionFiringSchema = z
+  .object({
+    transitionId: z.string(),
+    input: actualModeLegacyTokenCountsSchema.optional(),
+    output: actualModeLegacyTokenCountsSchema.optional(),
+    inputTokens: actualModeTokenValuesSchema.optional(),
+    outputTokens: actualModeTokenValuesSchema.optional(),
+    ts: z.string(),
+  })
+  .strict()
+  .transform(
+    normalizeActualModeTransitionFiring,
+  ) satisfies z.ZodType<ActualModeTransitionFiring>;
 
 export const actualModeSourceSchema = z
   .object({
@@ -104,9 +95,10 @@ export const actualModeReceivedEventSchema = z
   .strict() satisfies z.ZodType<ActualModeReceivedEvent>;
 
 /**
- * Accepts every supported recording version: version-1 recordings carry no
- * per-firing token values, and version-2 recordings may. An unsupported
- * version fails here explicitly rather than as a confusing nested error.
+ * Accepts every supported recording version, so an unsupported version fails
+ * here rather than as a nested error. Firings from every version parse
+ * through `actualModeTransitionFiringSchema`, which normalizes the count-only
+ * forms of versions 1 and 2.
  */
 const actualModeRecordingVersionSchema = z.literal(
   SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,

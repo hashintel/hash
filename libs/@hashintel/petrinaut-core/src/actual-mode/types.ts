@@ -24,24 +24,21 @@ export type ActualModeMarking = Record<
   number | ActualModeTokenRecord[]
 >;
 
-export type ActualModeTransitionEffect = Record<string, number>;
-
 /**
- * Attribute values of the tokens a firing consumed or produced, keyed like
- * `input`/`output`: placeId, or `instanceId::placeId` for a
- * componentInstance's copy of a subnet place (see `scoped-ids.ts`). A record
- * may carry a subset of the colour's attributes — at least the identity key
- * elements — and missing attributes resolve to type defaults on replay.
+ * Attribute values of the tokens a firing consumed or produced, keyed by
+ * placeId, or `instanceId::placeId` for a componentInstance's copy of a subnet
+ * place (see `scoped-ids.ts`). A record may carry a subset of the colour's
+ * attributes — at least the identity key elements — and missing attributes
+ * resolve to type defaults on replay. An attribute-less record (`{}`) is one
+ * token about which nothing is known.
  */
 export type ActualModeTokenValues = Record<string, ActualModeTokenRecord[]>;
 
 export type ActualModeTransitionFiring = {
   /** Scoped id (`instanceId::transitionId`) when inside a component instance. */
   transitionId: string;
-  input: ActualModeTransitionEffect;
-  output: ActualModeTransitionEffect;
-  inputTokens?: ActualModeTokenValues;
-  outputTokens?: ActualModeTokenValues;
+  inputTokens: ActualModeTokenValues;
+  outputTokens: ActualModeTokenValues;
   ts: string;
 };
 

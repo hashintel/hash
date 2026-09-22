@@ -330,10 +330,10 @@ const EventRow: React.FC<{
         markingCellStyle,
       )}
     >
-      {formatMarking(firing.input)}
+      {formatMarking(firing.inputTokens)}
     </td>
     <td className={cx(cellStyle, singleLineCellStyle, markingCellStyle)}>
-      {formatMarking(firing.output)}
+      {formatMarking(firing.outputTokens)}
     </td>
     {statusChanges && (
       <td className={cx(cellStyle, statusColumnStyle, statusChangeCellStyle)}>

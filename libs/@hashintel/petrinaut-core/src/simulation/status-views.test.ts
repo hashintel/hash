@@ -516,16 +516,12 @@ describe("status view derivation", () => {
     const transitionFirings: ActualModeTransitionFiring[] = [
       {
         transitionId: "start",
-        input: { todo: 1 },
-        output: { doing: 1 },
         inputTokens: { todo: [{ ticket_id: "a" }] },
         outputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:00.000Z",
       },
       {
         transitionId: "finish",
-        input: { doing: 1 },
-        output: { done: 1 },
         inputTokens: { doing: [{ ticket_id: "a" }] },
         outputTokens: { done: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:05.000Z",
