@@ -225,6 +225,8 @@ export const BrunchDraftExperimentWidget = ({
   } | null>(null);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
+  const [submissionAttempt, setSubmissionAttempt] = useState(0);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionPending, setSubmissionPending] = useState(
     state === "awaiting" && submitAndWait !== undefined,
   );
@@ -240,6 +242,8 @@ export const BrunchDraftExperimentWidget = ({
     )
       return;
     preparedOnceRef.current = true;
+    setSubmissionError(null);
+    setSubmissionPending(true);
     // The server hashes the handle snapshot; the readable store may normalize
     // its property order and therefore produce a different serialized hash.
     const observation = observeBrowserDefinition(instance.handle);
@@ -294,7 +298,11 @@ export const BrunchDraftExperimentWidget = ({
     const submitAndRegister = async () => {
       try {
         await submitAndWait(output);
-      } catch {
+      } catch (caught) {
+        preparedOnceRef.current = false;
+        setSubmissionError(
+          caught instanceof Error ? caught.message : String(caught),
+        );
         setSubmissionPending(false);
         return;
       }
@@ -309,6 +317,7 @@ export const BrunchDraftExperimentWidget = ({
     readTitle,
     sessionDrafts,
     state,
+    submissionAttempt,
     submitAndWait,
     toolCallId,
   ]);
@@ -394,7 +403,9 @@ export const BrunchDraftExperimentWidget = ({
   const heading = !draft
     ? submissionPending
       ? "Preparing draft"
-      : "Not retained in this session"
+      : submissionError
+        ? "Draft could not be submitted"
+        : "Not retained in this session"
     : draft.invalid !== null
       ? "Could not be prepared"
       : draft.dismissed
@@ -454,7 +465,9 @@ export const BrunchDraftExperimentWidget = ({
           {draft?.invalid ??
             (submissionPending
               ? "This experiment proposal is being prepared."
-              : "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it.")}
+              : submissionError
+                ? `The prepared proposal could not be submitted: ${submissionError}`
+                : "This draft was prepared in an earlier session. Ask Brunch to draft it again to run it.")}
         </p>
       )}
       <p className={sectionLabelStyle}>Declared</p>
@@ -587,6 +600,21 @@ export const BrunchDraftExperimentWidget = ({
               </button>
             )
           ) : null}
+        </div>
+      ) : null}
+      {!draft && submissionError && state === "awaiting" ? (
+        <div className={actionsStyle}>
+          <button
+            className={primaryButtonStyle}
+            onClick={() => {
+              setSubmissionError(null);
+              setSubmissionPending(true);
+              setSubmissionAttempt((attempt) => attempt + 1);
+            }}
+            type="button"
+          >
+            Retry preparation
+          </button>
         </div>
       ) : null}
       {draft?.run.phase === "running" ? (

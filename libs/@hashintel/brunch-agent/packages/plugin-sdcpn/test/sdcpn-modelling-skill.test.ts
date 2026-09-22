@@ -51,7 +51,7 @@ describe("the authored sdcpn-modelling skill directory", () => {
     expect(construction).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(checks).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(experiment).not.toMatch(
-      /Vestera|truck fleet|semiconductor|support desk|support operation|agents on duty/iu,
+      /Vestera|truck fleet|semiconductor|support desk|support operation|agents on duty|\bvans?\b|\bparcels?\b|\bSaturday\b|\bdepot\b/iu,
     );
   });
 
@@ -127,7 +127,17 @@ describe("the authored sdcpn-modelling skill directory", () => {
       );
       expect(experiment).toContain("you never call a run");
       expect(experiment).toContain("## Once, not repeatedly");
-      expect(experiment).toContain('an explicit "do not run" is authoritative');
+      expect(experiment).toContain('Treat an explicit "do not run"');
+      expect(experiment).toContain("as authoritative");
+      expect(experiment).toContain(
+        "Run and Dismiss happen later in the card and are not reported",
+      );
+      expect(experiment).toContain(
+        "do not infer any of those events or describe them as observed",
+      );
+      expect(experiment).not.toMatch(
+        /After the person declines|experiment has completed/iu,
+      );
       expect(experiment).toContain(
         "Do not apply a winning configuration to the model on your own",
       );

@@ -523,24 +523,36 @@ describe("BrunchDraftExperimentWidget", () => {
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
   });
 
-  it("does not retain an awaiting draft when the host rejects its submission", async () => {
-    const rejection = Promise.reject(
-      new Error("This observed AI tool is display-only."),
-    );
-    void rejection.catch(() => {});
+  it("retries preparation after the host rejects its first submission", async () => {
+    const submitOutput = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Output was not accepted"))
+      .mockResolvedValueOnce(undefined);
     const { submit } = renderWidget({
       input: makeInput(),
-      toolCallId: "display-only-draft",
+      toolCallId: "retry-draft",
       state: awaiting,
       definition: createReadableStore(makeDefinition()),
       runExperiment: vi.fn(),
-      submitOutput: () => rejection,
+      submitOutput,
     });
 
-    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-    await act(async () => {});
-    expect(heading()).toEqual(["Not retained in this session"]);
+    await waitFor(() =>
+      expect(heading()).toEqual(["Draft could not be submitted"]),
+    );
+    expect(submit).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(heading()).toEqual([
+        "Drafted — not run · not saved with the document",
+      ]),
+    );
+    expect(submitOutput).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "Run" })).toBeTruthy();
   });
 
   it("does not offer Run when optimization is unavailable", async () => {
