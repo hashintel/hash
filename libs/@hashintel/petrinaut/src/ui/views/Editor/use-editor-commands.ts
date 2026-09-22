@@ -16,11 +16,9 @@ export const autoLayoutShortcut = "mod+shift+l";
  */
 const useEditorCommands = ({
   applyAutoLayoutAndFrame,
-  onShowReactiveModules,
   onToggleAiAssistant,
 }: {
   applyAutoLayoutAndFrame?: () => Promise<unknown>;
-  onShowReactiveModules?: () => void;
   onToggleAiAssistant?: () => void;
 }): void => {
   const {
@@ -199,24 +197,6 @@ const useEditorCommands = ({
     keywords: ["timeline", "settings"],
     run: () => toggleBottomPanel(),
   });
-  useCommand(
-    {
-      id: "petrinaut.reactive-modules.show",
-      label: "Show Zeroth Reactive Modules",
-      category: "Editor",
-      keywords: [
-        "zeroth",
-        "reactive",
-        "module",
-        "export",
-        "compile",
-        "python",
-        "ir",
-      ],
-      run: () => onShowReactiveModules?.(),
-    },
-    { when: onShowReactiveModules !== undefined },
-  );
 };
 
 /**
@@ -226,17 +206,8 @@ const useEditorCommands = ({
  */
 export const EditorCommands: React.FC<{
   applyAutoLayoutAndFrame?: () => Promise<unknown>;
-  onShowReactiveModules?: () => void;
   onToggleAiAssistant?: () => void;
-}> = ({
-  applyAutoLayoutAndFrame,
-  onShowReactiveModules,
-  onToggleAiAssistant,
-}) => {
-  useEditorCommands({
-    applyAutoLayoutAndFrame,
-    onShowReactiveModules,
-    onToggleAiAssistant,
-  });
+}> = ({ applyAutoLayoutAndFrame, onToggleAiAssistant }) => {
+  useEditorCommands({ applyAutoLayoutAndFrame, onToggleAiAssistant });
   return null;
 };
