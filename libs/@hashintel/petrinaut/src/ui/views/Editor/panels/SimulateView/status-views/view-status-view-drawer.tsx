@@ -1,23 +1,21 @@
-import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button, Drawer } from "@hashintel/ds-components";
+import { Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { statusViewSchema, type StatusView } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { DrawerErrorDisplay } from "../drawer-error-display";
+import { StatusViewDrawerFooter } from "./status-view-drawer-footer";
 import {
   StatusViewFormBody,
   useStatusViewForm,
-  type StatusViewFormInstance,
   type StatusViewFormState,
 } from "./status-view-form";
-import { validateStatusViewCompiles } from "./status-view-lsp";
 import { buildStatusViewFromFormState } from "./status-view-mapping";
 import { getStatusViewPlaceOptions } from "./status-view-place-options";
+import { validateStatusViewSubmit } from "./validate-status-view-submit";
 
 function buildDefaultsFromStatusView(
   statusView: StatusView,
@@ -36,61 +34,6 @@ function buildDefaultsFromStatusView(
     })),
   };
 }
-
-const ViewStatusViewFooter = ({
-  form,
-  onDelete,
-  onClose,
-}: {
-  form: StatusViewFormInstance;
-  onDelete: () => void;
-  onClose: () => void;
-}) => {
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
-  const isDefaultValue = useStore(form.store, (state) => state.isDefaultValue);
-  const formErrors = useStore(form.store, (state) => state.errors);
-
-  const formError = formErrors.find((error) => typeof error === "string") as
-    | string
-    | undefined;
-  const canSave = canSubmit && !formError && !isSubmitting && !isDefaultValue;
-
-  return (
-    <Drawer.Footer
-      secondaryActions={
-        <DrawerErrorDisplay
-          count={formError ? 1 : 0}
-          firstMessage={formError}
-        />
-      }
-      actions={
-        <>
-          <Button variant="subtle" tone="error" size="sm" onClick={onDelete}>
-            Delete
-          </Button>
-          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-            Close
-          </Button>
-          <Button
-            variant="solid"
-            tone="neutral"
-            size="sm"
-            disabled={!canSave}
-            tooltip={
-              formError ?? (isDefaultValue ? "No changes to save." : undefined)
-            }
-            onClick={() => {
-              void form.handleSubmit();
-            }}
-          >
-            Save
-          </Button>
-        </>
-      }
-    />
-  );
-};
 
 const ViewStatusViewContent = ({
   statusView,
@@ -134,22 +77,14 @@ const ViewStatusViewContent = ({
     {
       existingStatusViewNames,
       knownPlaceIds: new Set(placeOptions.map((option) => option.value)),
-      validateOnSubmit: async (value) => {
-        const parsed = statusViewSchema.safeParse(
-          buildStatusViewFromFormState(value, statusView.id),
-        );
-        if (!parsed.success) {
-          return (
-            parsed.error.issues[0]?.message ?? "The status view is invalid."
-          );
-        }
-        return await validateStatusViewCompiles({
-          requestHirArtifacts,
+      validateOnSubmit: (value) =>
+        validateStatusViewSubmit({
+          value,
+          statusViewId: statusView.id,
           sdcpn: petriNetDefinition,
           extensions,
-          statusView: parsed.data,
-        });
-      },
+          requestHirArtifacts,
+        }),
     },
   );
 
@@ -168,10 +103,13 @@ const ViewStatusViewContent = ({
           placeOptions={placeOptions}
         />
       </Drawer.Body>
-      <ViewStatusViewFooter
+      <StatusViewDrawerFooter
         form={form}
-        onDelete={handleDelete}
         onClose={onClose}
+        onDelete={handleDelete}
+        closeLabel="Close"
+        submitLabel="Save"
+        unchangedTooltip="No changes to save."
       />
     </Drawer>
   );

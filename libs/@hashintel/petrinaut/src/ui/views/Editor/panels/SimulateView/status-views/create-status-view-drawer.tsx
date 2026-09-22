@@ -1,74 +1,18 @@
-import { useStore } from "@tanstack/react-form";
 import { use, useState } from "react";
 
-import { Button, Drawer } from "@hashintel/ds-components";
+import { Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { statusViewSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { DrawerErrorDisplay } from "../drawer-error-display";
-import {
-  StatusViewFormBody,
-  useStatusViewForm,
-  type StatusViewFormInstance,
-} from "./status-view-form";
+import { StatusViewDrawerFooter } from "./status-view-drawer-footer";
+import { StatusViewFormBody, useStatusViewForm } from "./status-view-form";
 import { makeEmptyStatusViewFormState } from "./status-view-form-defaults";
-import { validateStatusViewCompiles } from "./status-view-lsp";
 import { buildStatusViewFromFormState } from "./status-view-mapping";
 import { getStatusViewPlaceOptions } from "./status-view-place-options";
-
-const CreateStatusViewFooter = ({
-  form,
-  onClose,
-}: {
-  form: StatusViewFormInstance;
-  onClose: () => void;
-}) => {
-  const canSubmit = useStore(form.store, (state) => state.canSubmit);
-  const isSubmitting = useStore(form.store, (state) => state.isSubmitting);
-  const isDefaultValue = useStore(form.store, (state) => state.isDefaultValue);
-  const formErrors = useStore(form.store, (state) => state.errors);
-
-  const formError = formErrors.find((error) => typeof error === "string") as
-    | string
-    | undefined;
-  const canSave = canSubmit && !formError && !isSubmitting && !isDefaultValue;
-
-  return (
-    <Drawer.Footer
-      secondaryActions={
-        <DrawerErrorDisplay
-          count={formError ? 1 : 0}
-          firstMessage={formError}
-        />
-      }
-      actions={
-        <>
-          <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="solid"
-            tone="neutral"
-            size="sm"
-            disabled={!canSave}
-            tooltip={
-              formError ??
-              (isDefaultValue ? "Make changes to enable creation." : undefined)
-            }
-            onClick={() => {
-              void form.handleSubmit();
-            }}
-          >
-            Create
-          </Button>
-        </>
-      }
-    />
-  );
-};
+import { validateStatusViewSubmit } from "./validate-status-view-submit";
 
 const CreateStatusViewContent = ({ onClose }: { onClose: () => void }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
@@ -96,22 +40,14 @@ const CreateStatusViewContent = ({ onClose }: { onClose: () => void }) => {
     {
       existingStatusViewNames,
       knownPlaceIds: new Set(placeOptions.map((option) => option.value)),
-      validateOnSubmit: async (value) => {
-        const parsed = statusViewSchema.safeParse(
-          buildStatusViewFromFormState(value, "status-view-submit-validation"),
-        );
-        if (!parsed.success) {
-          return (
-            parsed.error.issues[0]?.message ?? "The status view is invalid."
-          );
-        }
-        return await validateStatusViewCompiles({
-          requestHirArtifacts,
+      validateOnSubmit: (value) =>
+        validateStatusViewSubmit({
+          value,
+          statusViewId: "status-view-submit-validation",
           sdcpn: petriNetDefinition,
           extensions,
-          statusView: parsed.data,
-        });
-      },
+          requestHirArtifacts,
+        }),
     },
   );
 
@@ -128,7 +64,13 @@ const CreateStatusViewContent = ({ onClose }: { onClose: () => void }) => {
           placeOptions={placeOptions}
         />
       </Drawer.Body>
-      <CreateStatusViewFooter form={form} onClose={onClose} />
+      <StatusViewDrawerFooter
+        form={form}
+        onClose={onClose}
+        closeLabel="Cancel"
+        submitLabel="Create"
+        unchangedTooltip="Make changes to enable creation."
+      />
     </Drawer>
   );
 };
