@@ -17,7 +17,6 @@ use std::{
 
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::{domain::PartitionKey, ids::EventId};
 
@@ -223,14 +222,6 @@ pub trait RebuildableRecord: DurableRecord {}
 pub enum CompatError {
     #[display("unsupported {name} version {version:?}")]
     UnsupportedVersion { name: &'static str, version: String },
-    #[display("{name} contains undeclared field {path:?}")]
-    ExtraField { name: &'static str, path: String },
-    #[display("{name} field {path:?} must be an object")]
-    ExpectedObject { name: &'static str, path: String },
-    #[display("{name} is missing its version")]
-    MissingVersion { name: &'static str },
-    #[display("{name} version must be a string")]
-    InvalidVersionType { name: &'static str },
     #[display("{name} could not be encoded")]
     Encode { name: &'static str },
     #[display("{name} could not be decoded")]
@@ -253,38 +244,6 @@ pub enum CompatError {
         expected: EventId,
         actual: EventId,
     },
-}
-
-/// Checks a JSON object against an explicit set of field names.
-///
-/// Check the outer object and each nested object before deserializing.
-///
-/// # Errors
-///
-/// Returns an error if the value is not an object or contains an undeclared field.
-pub fn reject_unknown_fields(
-    name: &'static str,
-    path: &str,
-    value: &Value,
-    allowed: &[&str],
-) -> Result<(), CompatError> {
-    let object = value
-        .as_object()
-        .ok_or_else(|| CompatError::ExpectedObject {
-            name,
-            path: path.to_owned(),
-        })?;
-    for key in object.keys() {
-        if !allowed.contains(&key.as_str()) {
-            let path = if path.is_empty() {
-                key.clone()
-            } else {
-                format!("{path}.{key}")
-            };
-            return Err(CompatError::ExtraField { name, path });
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]
