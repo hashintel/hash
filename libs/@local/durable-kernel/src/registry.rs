@@ -10,7 +10,10 @@
 //! records implement [`DurableRecord`] and register through [`RecordRegistry::register`].
 
 use alloc::collections::BTreeMap;
-use std::sync::{PoisonError, RwLock};
+use std::{
+    io::Write,
+    sync::{PoisonError, RwLock},
+};
 
 use error_stack::Report;
 use serde::{Deserialize, Serialize};
@@ -164,7 +167,7 @@ pub trait DurableRecord: Sized {
     /// # Errors
     ///
     /// Returns an error when the record cannot be encoded under its declared format.
-    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>>;
+    fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>>;
 
     /// Decodes bytes into a supported wire record.
     ///
@@ -286,6 +289,8 @@ pub fn reject_unknown_fields(
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use error_stack::Report;
 
     use super::{
@@ -325,8 +330,8 @@ mod tests {
             }
         }
 
-        fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
-            Ok(Vec::new())
+        fn encode<W: Write>(&self, _writer: W) -> Result<(), Report<CompatError>> {
+            Ok(())
         }
 
         fn decode(_bytes: &[u8]) -> Result<Self, Report<CompatError>> {

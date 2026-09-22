@@ -1135,11 +1135,11 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             .change_context_lazy(|| ShardCommandError::ValidateSnapshotRegistration {
                 name: D::Snapshot::declaration().name,
             })?;
-        let bytes = bytes::Bytes::from(
-            snapshot
-                .encode()
-                .change_context(ShardCommandError::EncodeSnapshot)?,
-        );
+        let mut bytes = Vec::new();
+        snapshot
+            .encode(&mut bytes)
+            .change_context(ShardCommandError::EncodeSnapshot)?;
+        let bytes = bytes::Bytes::from(bytes);
         let mut safe_failures = 0_u32;
         loop {
             if self.ownership_lost.is_cancelled() {
@@ -1200,7 +1200,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                 })
             })
             .and_then(|writer| {
-                let bytes = writer.encode_registered::<D::Record>(|| D::encode_record(record))?;
+                let bytes = writer
+                    .encode_registered::<D::Record>(|output| D::encode_record(record, output))?;
                 Ok((writer, bytes))
             });
         async move {

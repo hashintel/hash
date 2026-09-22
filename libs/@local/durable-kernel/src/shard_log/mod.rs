@@ -398,13 +398,13 @@ impl<W: JournalWriter> ShardLogWriter<W> {
         key: &'static [u8],
         value: &T,
     ) -> Result<u64, Report<ShardAppendError>> {
-        let bytes = self.encode_registered::<T>(|| value.encode())?;
+        let bytes = self.encode_registered::<T>(|writer| value.encode(writer))?;
         self.append_encoded(key, bytes).await
     }
 
     fn encode_registered<T: DurableRecord>(
         &self,
-        encode: impl FnOnce() -> Result<Vec<u8>, Report<crate::registry::CompatError>>,
+        encode: impl FnOnce(&mut Vec<u8>) -> Result<(), Report<crate::registry::CompatError>>,
     ) -> Result<Bytes, Report<ShardAppendError>> {
         self.registry
             .require::<T>()
@@ -414,7 +414,8 @@ impl<W: JournalWriter> ShardLogWriter<W> {
             .change_context(ShardAppendError {
                 kind: AppendFailureKind::DefinitelyNotCommitted,
             })?;
-        let bytes = encode()
+        let mut bytes = Vec::new();
+        encode(&mut bytes)
             .change_context(DurableError::EncodeRecord {
                 name: T::declaration().name,
             })
@@ -765,6 +766,7 @@ impl<W: JournalWriter> RawShardLog<W> {
 mod tests {
     use alloc::sync::Arc;
     use core::{pin::pin, time::Duration};
+    use std::io::Write;
 
     use bytes::Bytes;
     use error_stack::{Report, ResultExt as _};
@@ -835,14 +837,14 @@ mod tests {
             TEST_RECORD_DECLARATION
         }
 
-        fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+        fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>> {
             if self.fail_encode {
                 return Err(Report::new(CompatError::Encode {
                     name: Self::declaration().name,
                 })
                 .attach("injected encode failure"));
             }
-            serde_json::to_vec(self).change_context(CompatError::Encode {
+            serde_json::to_writer(writer, self).change_context(CompatError::Encode {
                 name: Self::declaration().name,
             })
         }
@@ -1238,8 +1240,8 @@ mod tests {
                 UNREGISTERED_DECLARATION
             }
 
-            fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
-                Ok(Vec::new())
+            fn encode<W: Write>(&self, _writer: W) -> Result<(), Report<CompatError>> {
+                Ok(())
             }
 
             fn decode(_bytes: &[u8]) -> Result<Self, Report<CompatError>> {

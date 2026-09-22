@@ -9,6 +9,7 @@
 
 use alloc::collections::BTreeMap;
 use core::{any::Any, error::Error, fmt, marker::PhantomData};
+use std::io::{self, Write};
 
 use chrono::{DateTime, Utc};
 use error_stack::{Report, ResultExt as _};
@@ -30,6 +31,53 @@ use crate::{
 
 pub const MAX_PARTITION_KEY_BYTES: usize = 1024;
 const MAX_EVENT_RECORD_BYTES: usize = 4 * 1024 * 1024;
+
+struct BoundedWriter<W> {
+    inner: W,
+    max_bytes: usize,
+    encoded_bytes: usize,
+}
+
+impl<W: Write> BoundedWriter<W> {
+    const fn new(inner: W, max_bytes: usize) -> Self {
+        Self {
+            inner,
+            max_bytes,
+            encoded_bytes: 0,
+        }
+    }
+}
+
+impl<W: Write> Write for BoundedWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let remaining = self.max_bytes.saturating_sub(self.encoded_bytes);
+        self.inner.write_all(buf.get(..remaining).unwrap_or(buf))?;
+        self.encoded_bytes = self.encoded_bytes.saturating_add(buf.len());
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+fn encode_json<T: Serialize>(
+    value: &T,
+    writer: impl Write,
+    name: &'static str,
+    max_bytes: usize,
+) -> Result<(), Report<CompatError>> {
+    let mut writer = BoundedWriter::new(writer, max_bytes);
+    serde_json::to_writer(&mut writer, value).change_context(CompatError::Encode { name })?;
+    if writer.encoded_bytes > max_bytes {
+        return Err(Report::new(CompatError::TooLarge {
+            name,
+            actual_bytes: writer.encoded_bytes,
+            max_bytes,
+        }));
+    }
+    Ok(())
+}
 
 /// An application event stored in the journal.
 ///
@@ -350,26 +398,22 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
         })
     }
 
-    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+    fn encode(&self, writer: impl Write) -> Result<(), Report<CompatError>> {
         #[derive(Serialize)]
         struct Envelope<'a, E> {
             version: &'static str,
             data: &'a EventRecordV1<E>,
         }
 
-        let bytes = serde_json::to_vec(&Envelope {
-            version: "v1",
-            data: self,
-        })
-        .change_context(CompatError::Encode { name: E::name() })?;
-        if bytes.len() > MAX_EVENT_RECORD_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: E::name(),
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_EVENT_RECORD_BYTES,
-            }));
-        }
-        Ok(bytes)
+        encode_json(
+            &Envelope {
+                version: "v1",
+                data: self,
+            },
+            writer,
+            E::name(),
+            MAX_EVENT_RECORD_BYTES,
+        )
     }
 
     fn digest(&self) -> Result<JournalRecordDigest, Report<CompatError>> {
@@ -412,9 +456,9 @@ impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> DurableRecord for 
         event_declaration::<E>()
     }
 
-    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
+    fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>> {
         match self {
-            Self::V1(record) => record.encode(),
+            Self::V1(record) => record.encode(writer),
         }
     }
 
@@ -646,18 +690,13 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
         snapshot_declaration::<S>()
     }
 
-    fn encode(&self) -> Result<Vec<u8>, Report<CompatError>> {
-        let bytes = serde_json::to_vec(self).change_context(CompatError::Encode {
-            name: DOMAIN_SNAPSHOT_DECLARATION.name,
-        })?;
-        if bytes.len() > MAX_SNAPSHOT_BYTES {
-            return Err(Report::new(CompatError::TooLarge {
-                name: DOMAIN_SNAPSHOT_DECLARATION.name,
-                actual_bytes: bytes.len(),
-                max_bytes: MAX_SNAPSHOT_BYTES,
-            }));
-        }
-        Ok(bytes)
+    fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>> {
+        encode_json(
+            self,
+            writer,
+            DOMAIN_SNAPSHOT_DECLARATION.name,
+            MAX_SNAPSHOT_BYTES,
+        )
     }
 
     fn decode(bytes: &[u8]) -> Result<Self, Report<CompatError>> {
@@ -810,8 +849,11 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         record.partition.clone()
     }
 
-    fn encode_record(record: &Self::RecordCurrent) -> Result<Vec<u8>, Report<CompatError>> {
-        record.encode()
+    fn encode_record<W: Write>(
+        record: &Self::RecordCurrent,
+        writer: W,
+    ) -> Result<(), Report<CompatError>> {
+        record.encode(writer)
     }
 
     fn prepare(
@@ -1134,6 +1176,12 @@ mod tests {
         sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
     };
 
+    fn encode(record: &impl registry::DurableRecord) -> Result<Vec<u8>, Report<CompatError>> {
+        let mut bytes = Vec::new();
+        record.encode(&mut bytes)?;
+        Ok(bytes)
+    }
+
     #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
     #[serde(tag = "kind", rename_all = "snake_case")]
     enum CounterEvent {
@@ -1321,9 +1369,7 @@ mod tests {
             record.event_id.to_string(),
             "06ccc9f5d9b454676b6d0fc90cdc732d917cf17c8bb3f1427be236ff896f2d10"
         );
-        let encoded = EventRecord::V1(record.clone())
-            .encode()
-            .expect("record should encode");
+        let encoded = encode(&EventRecord::V1(record.clone())).expect("record should encode");
         let expected = format!(
             r#"{{"version":"v1","data":{{"event_id":"{}","partition":"orders","event":{{"kind":"incremented","counter":"orders","amount":5}}}}}}"#,
             record.event_id
@@ -1441,20 +1487,17 @@ mod tests {
 
     #[test]
     fn snapshots_encode_and_decode_at_the_size_boundary() {
-        let base = toy_snapshot("00f", 0)
-            .encode()
+        let base = encode(&toy_snapshot("00f", 0))
             .expect("snapshot without padding should encode")
             .len();
 
-        let encoded = toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base)
-            .encode()
+        let encoded = encode(&toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base))
             .expect("a snapshot of exactly the maximum should encode");
         assert_eq!(encoded.len(), MAX_SNAPSHOT_BYTES);
         ProjectionSnapshot::<ToyDomain>::decode(&encoded)
             .expect("maximum-size snapshot should decode");
 
-        let error = toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base + 1)
-            .encode()
+        let error = encode(&toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base + 1))
             .expect_err("an oversized snapshot should be refused at encode");
         assert_eq!(
             error.current_context(),
@@ -1494,7 +1537,7 @@ mod tests {
             (Shard::from_u8(15), 0)
         );
         assert_eq!(
-            snapshot.encode().expect("snapshot should encode"),
+            encode(&snapshot).expect("snapshot should encode"),
             bytes,
             "typed shard should preserve the stored snapshot format"
         );
@@ -1746,9 +1789,7 @@ mod tests {
         let actual = shard_of(record.partition());
         let expected = Shard::from_u8(actual.get().wrapping_add(1));
         let journal = SimLogHandle::new(42, Vec::new());
-        let bytes = EventRecord::V1(record)
-            .encode()
-            .expect("record should encode");
+        let bytes = encode(&EventRecord::V1(record)).expect("record should encode");
         let SimAppendResult::Acked(sequence) = journal
             .acquire_writer()
             .append_record(SimKey::Events, bytes)
