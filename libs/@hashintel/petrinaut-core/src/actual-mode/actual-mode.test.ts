@@ -184,6 +184,7 @@ describe("Actual mode recordings", () => {
       actualModeTransitionFiringSchema.parse({
         transitionId: "start",
         inputTokens: { queued: [{ ticket_id: "a" }] },
+        output: {},
         ts: "2026-06-05T10:00:00.000Z",
       }),
     ).toEqual({
@@ -261,6 +262,23 @@ describe("Actual mode recordings", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("rejects transition firings that name no consumed or produced tokens", () => {
+    expect(() =>
+      actualModeTransitionFiringSchema.parse({
+        transitionId: "start",
+        inputTokens: { queued: [{}] },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toThrow(/`outputTokens` or `output`/);
+    expect(() =>
+      actualModeTransitionFiringSchema.parse({
+        transitionId: "start",
+        output: { done: 1 },
+        ts: "2026-06-05T10:00:00.000Z",
+      }),
+    ).toThrow(/`inputTokens` or `input`/);
   });
 
   it("rejects legacy count maps with non-count values", () => {

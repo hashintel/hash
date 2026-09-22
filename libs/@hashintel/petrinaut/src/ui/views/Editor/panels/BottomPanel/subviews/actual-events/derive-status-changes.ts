@@ -88,6 +88,7 @@ export function createActualEventStatusDeriver(args: {
     initialState,
   });
   let previousLabelStates = new Map<InstanceKey, InstanceLabelState>();
+  let initialStateObserved = false;
   let transitionFiringTimesMs: readonly number[] = [];
   let processedCount = 0;
   let lastProcessedFiring: ActualModeTransitionFiring | null = null;
@@ -105,6 +106,7 @@ export function createActualEventStatusDeriver(args: {
       }),
     );
     previousLabelStates = tracker.getInstanceLabelStates();
+    initialStateObserved = true;
   };
 
   return {
@@ -119,6 +121,7 @@ export function createActualEventStatusDeriver(args: {
           definition: readerDefinition,
           initialState,
         });
+        initialStateObserved = false;
         transitionFiringTimesMs = [];
         processedCount = 0;
         lastProcessedFiring = null;
@@ -132,7 +135,7 @@ export function createActualEventStatusDeriver(args: {
         null,
       );
 
-      if (processedCount === 0) {
+      if (!initialStateObserved) {
         observeInitialState(transitionFirings);
       }
 

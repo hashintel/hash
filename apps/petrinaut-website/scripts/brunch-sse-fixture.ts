@@ -34,23 +34,10 @@ import type {
   ActualModeReceivedEvent,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
+  ActualModeTransitionFiringWire,
 } from "@hashintel/petrinaut-core";
 
 type NumericMarking = Record<string, number>;
-
-/**
- * A recorded firing as either the token-value form or the count-only form
- * older recordings carry. Replay forwards it as recorded; Petrinaut
- * normalizes both forms on receipt.
- */
-type RecordedTransitionFiring = {
-  transitionId: string;
-  input?: NumericMarking;
-  output?: NumericMarking;
-  inputTokens?: ActualModeTokenValues;
-  outputTokens?: ActualModeTokenValues;
-  ts: string;
-};
 
 type SseFrame = {
   data: unknown;
@@ -66,7 +53,7 @@ type RecordingReplay = {
   events: ActualModeReceivedEvent[];
   initialState: NumericMarking;
   path: string;
-  transitionFirings: RecordedTransitionFiring[];
+  transitionFirings: ActualModeTransitionFiringWire[];
 };
 
 type ParsedArgs = {
@@ -251,7 +238,7 @@ const parseTokenValues = (
 const parseTransitionFiring = (
   data: unknown,
   label: string,
-): RecordedTransitionFiring => {
+): ActualModeTransitionFiringWire => {
   if (!isRecord(data)) {
     throw new Error(`Recording ${label} must be an object.`);
   }
@@ -594,7 +581,7 @@ const countTokensPerPlace = (
 
 const applyFiringToMarking = (
   marking: NumericMarking,
-  firing: RecordedTransitionFiring,
+  firing: ActualModeTransitionFiringWire,
 ): void => {
   for (const [placeId, value] of Object.entries(
     countTokensPerPlace(firing.input, firing.inputTokens),
@@ -731,7 +718,7 @@ const applyTransition = (
 };
 
 const currentMarking = cloneMarking(initialState);
-const transitionFirings: RecordedTransitionFiring[] = recordingReplay
+const transitionFirings: ActualModeTransitionFiringWire[] = recordingReplay
   ? recordingReplay.transitionFirings.map((firing) => ({ ...firing }))
   : [];
 const replayFrames: SseFrame[] = [

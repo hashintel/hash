@@ -35,6 +35,7 @@ export {
 export type {
   ActualModeContextValue,
   ActualModeFrameReplay,
+  ActualModeLegacyTokenCounts,
   ActualModeMarking,
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
@@ -47,6 +48,7 @@ export type {
   ActualModeTokenRecord,
   ActualModeTokenValues,
   ActualModeTransitionFiring,
+  ActualModeTransitionFiringWire,
 } from "./actual-mode";
 export {
   createJsonDocHandle,

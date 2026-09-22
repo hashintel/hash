@@ -75,6 +75,15 @@ export const actualModeTransitionFiringSchema = z
     ts: z.string(),
   })
   .strict()
+  .refine(
+    (firing) => firing.inputTokens !== undefined || firing.input !== undefined,
+    { message: "A transition firing needs `inputTokens` or `input`." },
+  )
+  .refine(
+    (firing) =>
+      firing.outputTokens !== undefined || firing.output !== undefined,
+    { message: "A transition firing needs `outputTokens` or `output`." },
+  )
   .transform(
     normalizeActualModeTransitionFiring,
   ) satisfies z.ZodType<ActualModeTransitionFiring>;

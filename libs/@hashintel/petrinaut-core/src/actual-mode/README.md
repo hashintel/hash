@@ -67,8 +67,8 @@ strings, and an attribute-less record (`{}`) is one token about which nothing
 is known. Place keys may be scoped ids (`instanceId::placeId`) when a firing
 touches a componentInstance's copy of a subnet place.
 
-Count-only payloads, `{ "input": { "queued": 1 }, "output": { … } }`, still
-parse: `normalizeActualModeTransitionFiring` turns each count into that many
+Count-only payloads, `{ "input": { "queued": 1 }, "output": { … } }`, parse
+too: `normalizeActualModeTransitionFiring` turns each count into that many
 `{}` records. A payload carrying both a count map and token values keeps the
 recorded values up to the count and pads the rest with `{}` records.
 
