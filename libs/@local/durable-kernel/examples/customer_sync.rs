@@ -25,21 +25,32 @@ use std::path::{Path, PathBuf};
 
 use durable_kernel::{
     domain::{DomainEvent, Executor, Fold, PartitionKey, Retry, SimpleDomain, effect_id, shard_of},
+    ids::EffectId,
     keyspace::Namespace,
     runtime::{Kernel, KernelConfig, RunningKernel, Submitted},
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, derive_more::Display,
+)]
+#[serde(transparent)]
+struct CustomerId(String);
+
+#[derive(Debug, Clone, Serialize, Deserialize, derive_more::Display)]
+#[serde(transparent)]
+struct RemoteId(String);
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum SyncEvent {
     CustomerQueued {
-        customer_id: String,
+        customer_id: CustomerId,
         name: String,
     },
     CustomerSynced {
-        customer_id: String,
-        remote_id: String,
+        customer_id: CustomerId,
+        remote_id: RemoteId,
     },
 }
 
@@ -60,26 +71,26 @@ struct Customer {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct CustomerSync {
-    pending: BTreeMap<String, Customer>,
-    synced: BTreeMap<String, String>,
+    pending: BTreeMap<CustomerId, Customer>,
+    synced: BTreeMap<CustomerId, RemoteId>,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum CustomerRejection {
     #[display("customer {customer_id} is already known")]
-    AlreadyKnown { customer_id: String },
+    AlreadyKnown { customer_id: CustomerId },
     #[display("customer {customer_id} is not pending")]
-    NotPending { customer_id: String },
+    NotPending { customer_id: CustomerId },
 }
 
 enum CustomerChange {
     Queue {
-        customer_id: String,
+        customer_id: CustomerId,
         customer: Customer,
     },
     Sync {
-        customer_id: String,
-        remote_id: String,
+        customer_id: CustomerId,
+        remote_id: RemoteId,
     },
 }
 
@@ -167,19 +178,20 @@ impl SimpleDomain for CustomerDomain {
 
 #[derive(Debug, Clone, Serialize)]
 struct UpsertCustomer {
-    customer_id: String,
+    customer_id: CustomerId,
     name: String,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("CRM rejected {customer_id} before creating a record")]
 struct CrmRejected {
-    customer_id: String,
+    customer_id: CustomerId,
 }
 
 struct CrmSync {
-    reject_customer_three: bool,
-    crash_after_customer: Option<&'static str>,
+    last_customer: CustomerId,
+    reject_last: bool,
+    crash_after_last: bool,
 }
 
 impl Executor<CustomerDomain> for CrmSync {
@@ -198,7 +210,7 @@ impl Executor<CustomerDomain> for CrmSync {
                 name: customer.name.clone(),
             })
             .collect();
-        effects.sort_by_key(|effect| effect.customer_id == "customer-3");
+        effects.sort_by_key(|effect| effect.customer_id == self.last_customer);
         effects
     }
 
@@ -207,8 +219,11 @@ impl Executor<CustomerDomain> for CrmSync {
         reason = "CRM side effects run when the executor future is polled"
     )]
     async fn execute(&self, effect: &UpsertCustomer) -> Result<Vec<SyncEvent>, Retry<Self::Error>> {
-        if effect.customer_id == "customer-3" && self.reject_customer_three {
-            println!("CRM rejected customer-3 before creating a record. It will retry later.");
+        if effect.customer_id == self.last_customer && self.reject_last {
+            println!(
+                "CRM rejected {} before creating a record. It will retry later.",
+                effect.customer_id
+            );
             return Err(Retry {
                 reason: error_stack::Report::new(CrmRejected {
                     customer_id: effect.customer_id.clone(),
@@ -217,10 +232,8 @@ impl Executor<CustomerDomain> for CrmSync {
             });
         }
 
-        let key = effect_id(effect)
-            .expect("effect should serialize")
-            .to_string();
-        let outcome = upsert_crm(&key, effect).expect("CRM write should succeed");
+        let key = effect_id(effect).expect("effect should serialize");
+        let outcome = upsert_crm(key, effect).expect("CRM write should succeed");
 
         if outcome.duplicate {
             println!(
@@ -234,7 +247,7 @@ impl Executor<CustomerDomain> for CrmSync {
             );
         }
 
-        if self.crash_after_customer == Some(effect.customer_id.as_str()) && !outcome.duplicate {
+        if self.crash_after_last && effect.customer_id == self.last_customer && !outcome.duplicate {
             println!(
                 "\nThe CRM accepted {}, but CustomerSynced did not reach the journal.",
                 effect.customer_id
@@ -252,38 +265,41 @@ impl Executor<CustomerDomain> for CrmSync {
 
 #[derive(Default, Serialize, Deserialize)]
 struct CrmState {
-    by_idempotency_key: BTreeMap<String, CrmRecord>,
+    by_idempotency_key: BTreeMap<EffectId, CrmRecord>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 struct CrmRecord {
-    customer_id: String,
+    customer_id: CustomerId,
     name: String,
-    remote_id: String,
+    remote_id: RemoteId,
 }
 
 struct UpsertOutcome {
-    remote_id: String,
+    remote_id: RemoteId,
     duplicate: bool,
 }
 
-fn upsert_crm(idempotency_key: &str, effect: &UpsertCustomer) -> std::io::Result<UpsertOutcome> {
+fn upsert_crm(
+    idempotency_key: EffectId,
+    effect: &UpsertCustomer,
+) -> std::io::Result<UpsertOutcome> {
     let path = state_dir().join("crm.json");
     let mut crm: CrmState = std::fs::read(&path)
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
 
-    if let Some(existing) = crm.by_idempotency_key.get(idempotency_key) {
+    if let Some(existing) = crm.by_idempotency_key.get(&idempotency_key) {
         return Ok(UpsertOutcome {
             remote_id: existing.remote_id.clone(),
             duplicate: true,
         });
     }
 
-    let remote_id = format!("crm-{}", effect.customer_id);
+    let remote_id = RemoteId(format!("crm-{}", effect.customer_id));
     crm.by_idempotency_key.insert(
-        idempotency_key.to_owned(),
+        idempotency_key,
         CrmRecord {
             customer_id: effect.customer_id.clone(),
             name: effect.name.clone(),
@@ -354,8 +370,9 @@ async fn main() {
         .register::<CustomerDomain>()
         .expect("customer domain should register")
         .start(CrmSync {
-            reject_customer_three: mode == "defer",
-            crash_after_customer: (mode == "crash").then_some("customer-3"),
+            last_customer: CustomerId("customer-3".to_owned()),
+            reject_last: mode == "defer",
+            crash_after_last: mode == "crash",
         })
         .await
         .expect("kernel should start");
@@ -366,7 +383,7 @@ async fn main() {
     let mut already_durable = 0;
     for (customer_id, name) in CUSTOMERS {
         let event = SyncEvent::CustomerQueued {
-            customer_id: customer_id.to_owned(),
+            customer_id: CustomerId(customer_id.to_owned()),
             name: name.to_owned(),
         };
         match running.submit(event).await {

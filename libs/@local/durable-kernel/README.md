@@ -106,14 +106,17 @@ restores the pending customer and retries its write.
 `CustomerQueued` requests a CRM write. `CustomerSynced` records its result.
 
 ```rust
+struct CustomerId(String);
+struct RemoteId(String);
+
 enum SyncEvent {
     CustomerQueued {
-        customer_id: String,
+        customer_id: CustomerId,
         name: String,
     },
     CustomerSynced {
-        customer_id: String,
-        remote_id: String,
+        customer_id: CustomerId,
+        remote_id: RemoteId,
     },
 }
 ```
