@@ -834,6 +834,39 @@ describe("the net ledger is a projection over Flue history", () => {
     ).rejects.toThrow(/already has a result delivery/iu);
 
     const placeInput = oneHopNet.places[0]!;
+    const nestedPlaceInput = {
+      ...placeInput,
+      targetSubnetId: "subnet-1",
+    };
+    const nestedPlace = [
+      assistantCall("nested-place-1", "addPlace", nestedPlaceInput),
+      resultDelivery("nested-place-1", "addPlace", {
+        placeId: nestedPlaceInput.id,
+      }),
+    ];
+    const nestedPlaceText = nestedPlace[1]?.parts[0];
+    if (nestedPlaceText?.type !== "text")
+      throw new Error("Missing delivery fixture.");
+    await expect(
+      verifyMutationResults({
+        body: nestedPlaceText.text,
+        snapshot: snapshotOf(nestedPlace),
+        binding,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      deriveNetLedger(snapshotOf(nestedPlace), browser),
+    ).resolves.toMatchObject([
+      { kind: "unrecorded", toolCallId: "nested-place-1" },
+    ]);
+    await expect(
+      verifyMutationResults({
+        body: nestedPlaceText.text,
+        snapshot: snapshotOf([...nestedPlace, nestedPlace[1]!]),
+        binding,
+      }),
+    ).rejects.toThrow(/already has a result delivery/iu);
+
     const unrecordedPlace = [
       assistantCall("place-1", "addPlace", placeInput),
       resultDelivery("place-1", "addPlace", { placeId: placeInput.id }),

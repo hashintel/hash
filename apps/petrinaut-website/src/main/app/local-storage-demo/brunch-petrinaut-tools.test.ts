@@ -141,11 +141,12 @@ const setup = (
     status: "ready",
     replay: EMPTY_CANONICAL_PETRINAUT_REPLAY,
   },
+  initial: SDCPN = emptyNet,
 ) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: "document",
-      initial: structuredClone(emptyNet),
+      initial: structuredClone(initial),
       capabilities: { disabledExtensions: [] },
     }),
   });
@@ -496,6 +497,76 @@ describe("canonical Petrinaut browser host tools", () => {
       tool("addPlace").execute(params({ id: "incomplete" })),
     ).rejects.toThrow();
     expect(addPlace).not.toHaveBeenCalled();
+  });
+
+  test("executes nested addPlace without host recording and ignores it during replay", async () => {
+    const subnetId = "subnet-1";
+    const nestedInput = { ...placeInput, targetSubnetId: subnetId };
+    const initial: SDCPN = {
+      ...emptyNet,
+      subnets: [
+        {
+          id: subnetId,
+          name: "Reusable subnet",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    };
+    const { adapter, instance, params, settleRevision, tool } = setup(
+      undefined,
+      initial,
+    );
+    const output = await tool("addPlace").execute(
+      params(nestedInput, undefined, "nested-place"),
+    );
+
+    expect(output).toEqual({
+      applied: true,
+      title: "Added place Queue",
+      target: { kind: "selection", item: { type: "place", id: "queue" } },
+    });
+    expect(instance.handle.doc()?.places).toEqual([]);
+    expect(instance.handle.doc()?.subnets?.[0]?.places).toEqual([
+      expect.objectContaining({ id: "queue", name: "Queue" }),
+    ]);
+    expect(adapter.metadataFor("nested-place")).toBeUndefined();
+    expect(
+      adapter.clientToolResultMetadataFor("nested-place", output),
+    ).toBeUndefined();
+    expect(settleRevision).not.toHaveBeenCalled();
+
+    const replay = await deriveCanonicalPetrinautReplay({
+      snapshot: {
+        messages: [
+          {
+            role: "assistant",
+            purpose: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                state: "output-available",
+                toolCallId: "nested-place",
+                toolName: "addPlace",
+                input: nestedInput,
+                output: { awaiting: AWAITING_CLIENT },
+              },
+            ],
+          },
+        ],
+      } as never,
+      binding: {
+        documentId: "document",
+        incarnationId: "incarnation",
+        conversationId: "conversation",
+      },
+    });
+    expect(replay.terminalMutations.size).toBe(0);
+    expect(replay.blockedCalls.size).toBe(0);
   });
 
   test("waits for the exact repository revision and required diagnostics before success", async () => {
@@ -1208,7 +1279,7 @@ describe("canonical Petrinaut browser host tools", () => {
         calls: [
           {
             ...assistantCall,
-            input: { ...placeInput, name: "Mismatched input" },
+            input: { ...placeInput, name: "Other" },
           },
         ],
       },
@@ -1224,10 +1295,16 @@ describe("canonical Petrinaut browser host tools", () => {
         ],
       },
     ];
-    for (const historyCase of cases) {
+    for (const [caseIndex, historyCase] of cases.entries()) {
       const replay = await derive(historyCase);
-      expect(replay.terminalMutations.has("place-call")).toBe(false);
-      expect(replay.blockedCalls.has("place-call")).toBe(true);
+      expect(
+        replay.terminalMutations.has("place-call"),
+        `history case ${caseIndex}`,
+      ).toBe(false);
+      expect(
+        replay.blockedCalls.has("place-call"),
+        `history case ${caseIndex}`,
+      ).toBe(true);
     }
     const conflictingReplay = await derive({
       results: [result, structuredClone(result)],
