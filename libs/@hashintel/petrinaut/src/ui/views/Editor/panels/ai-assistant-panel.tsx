@@ -81,7 +81,10 @@ import type {
   PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { FrameSceneResult } from "../../SDCPN/canvas-renderer";
-import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiTransport,
+} from "./ai-assistant-panel/types";
 
 export type {
   PetrinautAiMessage,
@@ -513,9 +516,9 @@ const ConversationAiAssistantPanel = ({
   onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: AiAssistantPanelProps) => {
-  // The wrapped AI transport reads the latest language client through a ref
-  // when `sendMessages` eventually runs. React
-  // Compiler can't prove those reads happen off-render, so we opt out here.
+  // The wrapped AI transport and language client read their latest host values
+  // through refs when `sendMessages` eventually runs. React Compiler can't
+  // prove those reads happen off-render, so we opt out here.
   "use no memo";
 
   const instance = use(PetrinautInstanceContext);
@@ -642,18 +645,29 @@ const ConversationAiAssistantPanel = ({
     return readCurrentDiagnostics(instance, requestDiagnosticsRef.current);
   }, [instance, requestDiagnosticsRef]);
 
-  // The wrapper is render-derived from the host transport. Delaying this to an
-  // effect leaves useChat on the previous host for one committed render.
-  // Timing stays outside diagnostics so it tags receipt of the response chunks.
+  // AI SDK retains the transport that existed when a conversation ID first
+  // mounted. Delegate through a stable identity so host mechanics that become
+  // ready later (binding, replay and provenance) apply to the next send without
+  // discarding that conversation. Timing stays outside diagnostics so it tags
+  // receipt of the response chunks.
+  const hostTransportRef = useLatest(aiAssistant.transport);
+  const liveHostTransport = useMemo<PetrinautAiTransport>(
+    () => ({
+      sendMessages: (options) => hostTransportRef.current.sendMessages(options),
+      reconnectToStream: (options) =>
+        hostTransportRef.current.reconnectToStream(options),
+    }),
+    [hostTransportRef],
+  );
   const diagnosticsTransport = useMemo(
     () =>
       createReasoningTimingAwareAiTransport(
         createDiagnosticsAwareAiTransport({
           readDiagnosticsContext,
-          transport: aiAssistant.transport,
+          transport: liveHostTransport,
         }),
       ),
-    [aiAssistant.transport, readDiagnosticsContext],
+    [liveHostTransport, readDiagnosticsContext],
   );
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
