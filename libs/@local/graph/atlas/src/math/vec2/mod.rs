@@ -150,7 +150,7 @@ impl Vec2 {
     #[inline]
     #[must_use]
     pub const fn dot(self, other: Self) -> f32 {
-        self.x() * other.x() + self.y() * other.y()
+        self.y().mul_add(other.y(), self.x() * other.x())
     }
 
     /// Returns the perpendicular dot product, the `z` component of the 3D cross product.
@@ -161,7 +161,7 @@ impl Vec2 {
     #[inline]
     #[must_use]
     pub const fn perp_dot(self, other: Self) -> f32 {
-        self.x() * other.y() - self.y() * other.x()
+        self.y().mul_add(-other.x(), self.x() * other.y())
     }
 
     /// Returns the squared length of the vector.

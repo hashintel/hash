@@ -122,8 +122,8 @@ impl Rotation {
     #[must_use]
     pub(crate) const fn then(self, next: Self) -> Self {
         Self(Vec2::new(
-            self.cos() * next.cos() - self.sin() * next.sin(),
-            self.sin() * next.cos() + self.cos() * next.sin(),
+            self.sin().mul_add(-next.sin(), self.cos() * next.cos()),
+            self.cos().mul_add(next.sin(), self.sin() * next.cos()),
         ))
     }
 
@@ -166,8 +166,8 @@ impl Rotation {
     #[must_use]
     pub(crate) const fn apply(self, vec: Vec2) -> Vec2 {
         Vec2::new(
-            self.cos() * vec.x() - self.sin() * vec.y(),
-            self.sin() * vec.x() + self.cos() * vec.y(),
+            self.sin().mul_add(-vec.y(), self.cos() * vec.x()),
+            self.cos().mul_add(vec.y(), self.sin() * vec.x()),
         )
     }
 

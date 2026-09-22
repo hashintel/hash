@@ -294,8 +294,8 @@ impl Transform {
     #[inline]
     const fn apply_linear(self, vec: Vec2) -> Vec2 {
         Vec2::new(
-            self.x_axis.x() * vec.x() + self.y_axis.x() * vec.y(),
-            self.x_axis.y() * vec.x() + self.y_axis.y() * vec.y(),
+            self.y_axis.x().mul_add(vec.y(), self.x_axis.x() * vec.x()),
+            self.y_axis.y().mul_add(vec.y(), self.x_axis.y() * vec.x()),
         )
     }
 }

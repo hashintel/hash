@@ -121,7 +121,7 @@ impl DVec2 {
         let dx = self.x() - other.x();
         let dy = self.y() - other.y();
 
-        dx * dx + dy * dy
+        dy.mul_add(dy, dx * dx)
     }
 
     /// Returns `self * factor + accumulator` with one rounding per component.
