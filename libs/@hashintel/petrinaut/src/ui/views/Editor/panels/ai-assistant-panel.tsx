@@ -718,6 +718,9 @@ const ConversationAiAssistantPanel = ({
     (controls: PetrinautAiVoiceModeSessionControls) => {
       voiceModeControlsRef.current = controls;
       voiceSessionStore.setActions({
+        ...(controls.audioSettings
+          ? { audioSettings: controls.audioSettings }
+          : {}),
         // Ending returns the composer to text, which is also the path that
         // invalidates the host's active generation.
         end: () => requestInputMode("text"),

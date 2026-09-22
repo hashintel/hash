@@ -1,9 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are the point: single-element identities, asymptotes over \
-              exactly-representable values, and round-trip narrowing are exact contracts"
-)]
-
 use crate::math::{PositiveUnitFraction, UnitFraction};
 
 /// Deserialising refuses exactly what the constructors refuse (`0` for the positive unit fraction,

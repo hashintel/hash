@@ -14,11 +14,8 @@
 //! Input order is the final deterministic tie-break throughout. Selection returns the chosen
 //! examples grouped in group declaration order, matching the canonical card renderer's order.
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
-};
-use core::num::NonZero;
+use alloc::{alloc::Global, borrow::Cow};
+use core::{alloc::Allocator, num::NonZero};
 use std::collections::HashSet;
 
 use crate::math::nz;

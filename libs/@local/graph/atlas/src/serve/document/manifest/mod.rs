@@ -3,8 +3,7 @@
 //! Route limits come from request configuration. Scope metadata comes from the bound schedule that
 //! supplies document rows.
 
-use alloc::alloc::Allocator;
-use core::fmt;
+use core::{alloc::Allocator, fmt};
 
 use error_stack::Report;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp};

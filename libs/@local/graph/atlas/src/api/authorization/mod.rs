@@ -79,7 +79,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Actor {
 
         match resolution {
             Ok(actor) => Ok(actor),
-            Err(AuthenticationRejection::Misconfigured) => Err(Problem::internal_message(
+            Err(AuthenticationRejection::Misconfigured { .. }) => Err(Problem::internal_message(
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
             )),

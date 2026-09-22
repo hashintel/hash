@@ -1,13 +1,15 @@
 //! Rate limiting for HTTP request handling.
 //!
-//! Two middlewares share the limiter state in `RateLimiters`. [`IpGateLayer`] runs ahead of the
-//! authentication layer and throttles each client address before credential verification.
-//! [`PrincipalLimitLayer`] runs behind it and budgets requests by the resolved principal: the
-//! actor for authenticated requests, counted across every address it connects from, and the
-//! client address for anonymous ones.
+//! [`IpGateLayer`] runs ahead of the authentication layer and throttles each client address before
+//! credential verification. [`CallerLimitLayer`] runs behind it and budgets requests by the
+//! resolved caller: the actor for authenticated requests, counted across every address it
+//! connects from, and the client address for anonymous ones. [`RateLimiters::start`] holds the
+//! address gate and one set of caller budgets; [`RateLimiters::with_caller_limits`] adds
+//! further caller budgets that share the gate, which the state `start` returned keeps charging,
+//! maintaining, and gauging.
 //!
 //! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
-//! [`AuthenticationLayer`] have to share one secret: the principal limiter treats a stored
+//! [`AuthenticationLayer`] have to share one secret: the caller limiter treats a stored
 //! authentication error as unreachable because the requests it could arise from passed by secret
 //! above.
 //!
@@ -15,22 +17,26 @@
 //!
 //! A request over its budget receives `429 Too Many Requests` with an `application/problem+json`
 //! body and `Retry-After` in [`RateLimitMode::Enforce`], the default. The problem type is
-//! `about:blank`, and `Retry-After` gives the delay in seconds before retrying. HASH treats
-//! replacing `about:blank` with a specific problem type URI as a non-breaking API change.
+//! `about:blank`, and `Retry-After` gives the delay in seconds before retrying.
 //! In [`RateLimitMode::Observe`], requests are served unchanged; the `would_deny` outcome of the
 //! decisions metric records requests that enforcement would have denied.
 //!
-//! Every budget decision, unchecked pass, address fallback, and maintenance run is counted on
-//! the meter the state is built with, and the keys each limiter store holds are gauged. Denials
-//! and address fallbacks also log at debug, carrying the key and header detail too wide for a
-//! metric label.
+//! Budget decisions, unchecked passes, misconfigurations, address fallbacks, maintenance runs,
+//! evicted keys, and denial waits are recorded on the meter the state is built with, and the keys
+//! each limiter store holds are gauged. Every instrument carries a `scope` attribute naming the set
+//! of caller budgets it belongs to. Denials and address fallbacks also log at debug, carrying
+//! the key and header detail too wide for a metric label.
 //!
 //! Limiter state lives in process memory, so enforcement is per instance: a deployment with N
 //! instances admits up to N times the configured rates, and a rolling release starts every budget
 //! over.
 
 mod address;
+#[cfg(feature = "aide")]
+mod aide;
 mod config;
+#[cfg(feature = "aide")]
+pub use self::aide::document;
 #[cfg(test)]
 mod tests;
 
@@ -55,7 +61,7 @@ use problematic::{NoExtensions, Problem, ProblemDetails};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
-pub use self::config::{ClientIpSource, RateLimitConfig, RateLimitMode};
+pub use self::config::{CallerRateLimitConfig, ClientIpSource, RateLimitConfig, RateLimitMode};
 use crate::{
     authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
     response::{problem_response, problem_response_body, status_problem},
@@ -131,14 +137,14 @@ impl RateLimitMode {
 #[derive(Clone, Copy)]
 enum Stage {
     Gate,
-    Principal,
+    Caller,
 }
 
 impl Stage {
     const fn as_str(self) -> &'static str {
         match self {
             Self::Gate => "gate",
-            Self::Principal => "principal",
+            Self::Caller => "caller",
         }
     }
 }
@@ -159,7 +165,7 @@ impl UncheckedReason {
     }
 }
 
-/// A route wired so the principal limiter cannot budget it.
+/// A route wired so the caller limiter cannot budget it.
 #[derive(Clone, Copy)]
 enum Misconfiguration {
     MissingAuthentication,
@@ -179,6 +185,7 @@ impl Misconfiguration {
 
 /// Instruments recording what the limiter decides and what passes it unchecked.
 struct RateLimitMetrics {
+    scope: KeyValue,
     decisions: Counter<u64>,
     unchecked: Counter<u64>,
     misconfigurations: Counter<u64>,
@@ -189,13 +196,15 @@ struct RateLimitMetrics {
 }
 
 impl RateLimitMetrics {
-    fn new(meter: &Meter, mode: RateLimitMode) -> Self {
+    fn new(meter: &Meter, mode: RateLimitMode, scope: &'static str) -> Self {
+        let scope = KeyValue::new("scope", scope);
         meter
             .u64_gauge("hash.rate_limit.mode")
             .with_description("One at the mode the limiter runs in")
             .build()
-            .record(1, &[KeyValue::new("mode", mode.as_str())]);
+            .record(1, &[scope.clone(), KeyValue::new("mode", mode.as_str())]);
         Self {
+            scope,
             decisions: meter
                 .u64_counter("hash.rate_limit.decisions")
                 .with_description("Budget decisions by limiter and outcome")
@@ -210,7 +219,7 @@ impl RateLimitMetrics {
                 .u64_counter("hash.rate_limit.misconfigurations")
                 .with_description(
                     "Requests answered with an internal error because the route is wired without \
-                     the middleware the principal limiter builds on",
+                     the middleware the caller limiter builds on",
                 )
                 .with_unit("{request}")
                 .build(),
@@ -232,7 +241,7 @@ impl RateLimitMetrics {
                 .with_unit("{key}")
                 .build(),
             // The boundaries span the sub-second waits of the per-second gate quota and the
-            // hour-scale waits of the principal quotas; the defaults are sized for milliseconds
+            // hour-scale waits of the caller quotas; the defaults are sized for milliseconds
             // and would put every wait in one bucket.
             denial_wait: meter
                 .f64_histogram("hash.rate_limit.denial_wait")
@@ -249,6 +258,7 @@ impl RateLimitMetrics {
         self.decisions.add(
             1,
             &[
+                self.scope.clone(),
                 KeyValue::new("limiter", budget.as_str()),
                 KeyValue::new("outcome", outcome.as_str()),
             ],
@@ -261,6 +271,7 @@ impl RateLimitMetrics {
         self.denial_wait.record(
             wait.as_secs_f64(),
             &[
+                self.scope.clone(),
                 KeyValue::new("limiter", budget.as_str()),
                 KeyValue::new("outcome", outcome.as_str()),
             ],
@@ -271,6 +282,7 @@ impl RateLimitMetrics {
         self.unchecked.add(
             1,
             &[
+                self.scope.clone(),
                 KeyValue::new("stage", stage.as_str()),
                 KeyValue::new("reason", reason.as_str()),
             ],
@@ -278,8 +290,10 @@ impl RateLimitMetrics {
     }
 
     fn misconfiguration(&self, reason: Misconfiguration) {
-        self.misconfigurations
-            .add(1, &[KeyValue::new("reason", reason.as_str())]);
+        self.misconfigurations.add(
+            1,
+            &[self.scope.clone(), KeyValue::new("reason", reason.as_str())],
+        );
     }
 }
 
@@ -313,16 +327,16 @@ impl IntoResponse for TooManyRequests {
     }
 }
 
-/// The response a request the principal limiter cannot serve is answered with.
+/// The response a request the caller limiter cannot serve is answered with.
 ///
-/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the principal limiter, building
+/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the caller limiter, building
 /// on the layers above it, can find a route miswired.
 pub enum RateLimitRejection {
     /// The request is over its budget.
     TooManyRequests(TooManyRequests),
-    /// The route is wired without the middleware the principal limiter builds on, answered as
+    /// The route is wired without the middleware the caller limiter builds on, answered as
     /// an internal error.
-    InternalError,
+    Misconfigured,
 }
 
 impl From<TooManyRequests> for RateLimitRejection {
@@ -337,7 +351,7 @@ impl Problem for RateLimitRejection {
     fn details(&self) -> ProblemDetails<'_, Self::Extensions<'_>> {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.details(),
-            Self::InternalError => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
+            Self::Misconfigured => status_problem(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
 }
@@ -346,7 +360,7 @@ impl IntoResponse for RateLimitRejection {
     fn into_response(self) -> Response {
         match self {
             Self::TooManyRequests(too_many_requests) => too_many_requests.into_response(),
-            Self::InternalError => problem_response(&self.details()),
+            Self::Misconfigured => problem_response(&self.details()),
         }
     }
 }
@@ -375,14 +389,18 @@ impl Denial {
 
 /// The shared limiter state both rate-limiting middlewares charge against.
 ///
-/// [`start`] one per router from the configuration and hand it to [`IpGateLayer`] and
-/// [`PrincipalLimitLayer`]; it maintains itself for as long as it is held.
+/// [`start`] creates the address gate and caller budgets. [`with_caller_limits`] creates
+/// separate caller budgets for a route group while sharing the gate. Each state maintains
+/// itself for as long as it is held.
 ///
 /// [`start`]: Self::start
+/// [`with_caller_limits`]: Self::with_caller_limits
 pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
-    gate: KeyedLimiter<BucketKey>,
+    gate: Arc<KeyedLimiter<BucketKey>>,
+    // The parent owns maintenance and metrics for the shared gate.
+    parent: Option<Arc<Self>>,
     anonymous: KeyedLimiter<BucketKey>,
     actor: KeyedLimiter<ActorId>,
     metrics: RateLimitMetrics,
@@ -414,11 +432,14 @@ impl RateLimiters {
         let this = Arc::new(Self {
             mode: config.rate_limit_mode,
             client_ip_source: config.client_ip_source,
-            gate: RateLimiter::keyed(
-                Quota::per_second(config.rate_limit_gate_per_second)
-                    .allow_burst(config.rate_limit_gate_burst),
-            )
-            .with_middleware(),
+            gate: Arc::new(
+                RateLimiter::keyed(
+                    Quota::per_second(config.rate_limit_gate_per_second)
+                        .allow_burst(config.rate_limit_gate_burst),
+                )
+                .with_middleware(),
+            ),
+            parent: None,
             anonymous: RateLimiter::keyed(
                 Quota::per_hour(config.rate_limit_anonymous_per_hour)
                     .allow_burst(config.rate_limit_anonymous_burst),
@@ -429,31 +450,81 @@ impl RateLimiters {
                     .allow_burst(config.rate_limit_actor_burst),
             )
             .with_middleware(),
-            metrics: RateLimitMetrics::new(meter, config.rate_limit_mode),
+            metrics: RateLimitMetrics::new(meter, config.rate_limit_mode, "global"),
         });
 
+        this.start_maintenance(meter);
+        this
+    }
+
+    /// Creates independent caller budgets while sharing this limiter's address gate.
+    ///
+    /// The new state inherits the enforcement mode and client-address source. `scope` identifies
+    /// the route group in metrics and must be distinct for each set of caller budgets.
+    ///
+    /// # Panics
+    ///
+    /// Panics when called outside a Tokio runtime.
+    #[must_use]
+    pub fn with_caller_limits(
+        self: &Arc<Self>,
+        config: &CallerRateLimitConfig,
+        scope: &'static str,
+        meter: &Meter,
+    ) -> Arc<Self> {
+        let this = Arc::new(Self {
+            mode: self.mode,
+            client_ip_source: self.client_ip_source,
+            gate: Arc::clone(&self.gate),
+            parent: Some(Arc::clone(self)),
+            anonymous: RateLimiter::keyed(
+                Quota::per_hour(config.anonymous_per_hour).allow_burst(config.anonymous_burst),
+            )
+            .with_middleware(),
+            actor: RateLimiter::keyed(
+                Quota::per_hour(config.actor_per_hour).allow_burst(config.actor_burst),
+            )
+            .with_middleware(),
+            metrics: RateLimitMetrics::new(meter, self.mode, scope),
+        });
+        this.start_maintenance(meter);
+        this
+    }
+
+    fn start_maintenance(self: &Arc<Self>, meter: &Meter) {
         meter
             .u64_observable_gauge("hash.rate_limit.tracked_keys")
             .with_description("Keys currently held by each limiter store")
             .with_unit("{key}")
             .with_callback({
-                let limiters = Arc::downgrade(&this);
+                let limiters = Arc::downgrade(self);
                 move |observer| {
                     let Some(limiters) = limiters.upgrade() else {
                         return;
                     };
                     for (limiter, keys) in [
-                        (Budget::GATE, limiters.gate.len()),
-                        (Budget::ANONYMOUS, limiters.anonymous.len()),
-                        (Budget::ACTOR, limiters.actor.len()),
+                        (
+                            Budget::GATE,
+                            limiters.parent.is_none().then(|| limiters.gate.len()),
+                        ),
+                        (Budget::ANONYMOUS, Some(limiters.anonymous.len())),
+                        (Budget::ACTOR, Some(limiters.actor.len())),
                     ] {
-                        observer.observe(keys as u64, &[KeyValue::new("limiter", limiter)]);
+                        if let Some(keys) = keys {
+                            observer.observe(
+                                keys as u64,
+                                &[
+                                    limiters.metrics.scope.clone(),
+                                    KeyValue::new("limiter", limiter),
+                                ],
+                            );
+                        }
                     }
                 }
             })
             .build();
 
-        let limiters = Arc::downgrade(&this);
+        let limiters = Arc::downgrade(self);
         let maintenance = tokio::spawn(async move {
             let mut interval = tokio::time::interval(MAINTENANCE_INTERVAL);
             loop {
@@ -473,8 +544,6 @@ impl RateLimiters {
                 );
             }
         });
-
-        this
     }
 
     /// Reads the budget key of a request from the configured source.
@@ -489,9 +558,13 @@ impl RateLimiters {
         match address::from_header(request, header) {
             Ok(key) => Some(key),
             Err(fallback) => {
-                self.metrics
-                    .address_fallbacks
-                    .add(1, &[KeyValue::new("reason", fallback.as_str())]);
+                self.metrics.address_fallbacks.add(
+                    1,
+                    &[
+                        self.metrics.scope.clone(),
+                        KeyValue::new("reason", fallback.as_str()),
+                    ],
+                );
                 tracing::debug!(
                     reason = fallback.as_str(),
                     header = %header,
@@ -523,18 +596,30 @@ impl RateLimiters {
     /// until this runs.
     fn maintain(&self) {
         for (limiter, evicted) in [
-            (Budget::GATE, release(&self.gate)),
-            (Budget::ANONYMOUS, release(&self.anonymous)),
-            (Budget::ACTOR, release(&self.actor)),
+            (
+                Budget::GATE,
+                self.parent.is_none().then(|| release(&self.gate)),
+            ),
+            (Budget::ANONYMOUS, Some(release(&self.anonymous))),
+            (Budget::ACTOR, Some(release(&self.actor))),
         ] {
-            self.metrics
-                .evicted_keys
-                .add(evicted as u64, &[KeyValue::new("limiter", limiter)]);
+            if let Some(evicted) = evicted {
+                self.metrics.evicted_keys.add(
+                    evicted as u64,
+                    &[
+                        self.metrics.scope.clone(),
+                        KeyValue::new("limiter", limiter),
+                    ],
+                );
+            }
         }
-        self.metrics.maintenance_runs.add(1, &[]);
+        self.metrics
+            .maintenance_runs
+            .add(1, core::slice::from_ref(&self.metrics.scope));
 
         tracing::debug!(
-            gate_keys = self.gate.len(),
+            scope = %self.metrics.scope.value,
+            gate_keys = self.parent.is_none().then(|| self.gate.len()),
             anonymous_keys = self.anonymous.len(),
             actor_keys = self.actor.len(),
             "rate limiter maintenance run"
@@ -544,7 +629,10 @@ impl RateLimiters {
     /// Charges one request against the store the budget names.
     fn charge(&self, budget: Budget) -> Result<(), Denial> {
         match budget {
-            Budget::Gate(key) => self.charge_key(budget, &self.gate, &key),
+            Budget::Gate(key) => self.parent.as_ref().map_or_else(
+                || self.charge_key(budget, &self.gate, &key),
+                |parent| parent.charge(budget),
+            ),
             Budget::Anonymous(key) => self.charge_key(budget, &self.anonymous, &key),
             Budget::Actor(actor) => self.charge_key(budget, &self.actor, &actor),
         }
@@ -708,7 +796,7 @@ where
     }
 }
 
-/// Budgets requests by the principal the authentication middleware resolved.
+/// Budgets requests by the caller the authentication middleware resolved.
 ///
 /// Requests presenting the service secret pass unchecked, as does an anonymous request whose
 /// client address the gate could not determine. A route reached without the authentication
@@ -731,7 +819,7 @@ where
 /// # };
 /// # use http::HeaderMap;
 /// # use type_system::principal::actor::ActorId;
-/// use hash_middleware::rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimiters};
+/// use hash_middleware::rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters};
 /// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
 ///
 /// # struct Verifier;
@@ -764,7 +852,7 @@ where
 ///
 /// let router: Router = Router::new()
 ///     .route("/entities", get(async || "ok"))
-///     .route_layer(PrincipalLimitLayer {
+///     .route_layer(CallerLimitLayer {
 ///         limiters: Arc::clone(&limiters),
 ///         service_secret: Arc::clone(&service_secret),
 ///     })
@@ -782,18 +870,18 @@ where
 /// # }
 /// ```
 #[derive(Clone)]
-pub struct PrincipalLimitLayer {
+pub struct CallerLimitLayer {
     /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
     /// The secret whose presenters pass unchecked.
     pub service_secret: Arc<str>,
 }
 
-impl<S> tower::Layer<S> for PrincipalLimitLayer {
-    type Service = PrincipalLimitService<S>;
+impl<S> tower::Layer<S> for CallerLimitLayer {
+    type Service = CallerLimitService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        PrincipalLimitService {
+        CallerLimitService {
             inner,
             limiters: Arc::clone(&self.limiters),
             service_secret: Arc::clone(&self.service_secret),
@@ -801,16 +889,16 @@ impl<S> tower::Layer<S> for PrincipalLimitLayer {
     }
 }
 
-/// The service [`PrincipalLimitLayer`] wraps its inner service into.
+/// The service [`CallerLimitLayer`] wraps its inner service into.
 #[derive(Clone)]
-pub struct PrincipalLimitService<S> {
+pub struct CallerLimitService<S> {
     inner: S,
 
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
 }
 
-impl<B, S> tower::Service<http::Request<B>> for PrincipalLimitService<S>
+impl<B, S> tower::Service<http::Request<B>> for CallerLimitService<S>
 where
     S: tower::Service<http::Request<B>>,
 {
@@ -827,20 +915,21 @@ where
         if presents_service_secret(req.headers(), &self.service_secret) {
             self.limiters
                 .metrics
-                .unchecked(Stage::Principal, UncheckedReason::ServiceSecret);
+                .unchecked(Stage::Caller, UncheckedReason::ServiceSecret);
             return Either::Right(self.inner.call(req).map_ok(Ok));
         }
 
         let Some(resolved) = req.extensions().get::<ResolvedAuthentication>() else {
             tracing::error!(
+                method = %req.method(),
                 path = req.uri().path(),
-                "`PrincipalLimitLayer` ran on a route without authentication middleware"
+                "`CallerLimitLayer` ran on a route without authentication middleware"
             );
 
             self.limiters
                 .metrics
                 .misconfiguration(Misconfiguration::MissingAuthentication);
-            return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+            return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
         };
 
         let actor = match resolved.outcome() {
@@ -851,12 +940,17 @@ where
                 // arm means the middleware order broke, so the report's attachments are the only
                 // account of what the provider saw: `Display` would print the first context and
                 // drop them.
-                tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
+                tracing::error!(
+                    method = %req.method(),
+                    path = req.uri().path(),
+                    error = ?error,
+                    "authentication error reached the rate limiter unrejected"
+                );
 
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
             }
         };
 
@@ -865,20 +959,21 @@ where
         } else {
             let Some(resolved) = req.extensions().get::<ResolvedClientAddress>() else {
                 tracing::error!(
+                    method = %req.method(),
                     path = req.uri().path(),
-                    "`PrincipalLimitLayer` ran on a route without the address gate"
+                    "`CallerLimitLayer` ran on a route without the address gate"
                 );
                 self.limiters
                     .metrics
                     .misconfiguration(Misconfiguration::MissingAddressGate);
-                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::Misconfigured))));
             };
             let Some(key) = resolved.key() else {
                 // Counted per stage, so the gate's count of this address does not stand in for the
-                // principal stage.
+                // caller stage.
                 self.limiters
                     .metrics
-                    .unchecked(Stage::Principal, UncheckedReason::UnknownAddress);
+                    .unchecked(Stage::Caller, UncheckedReason::UnknownAddress);
                 return Either::Right(self.inner.call(req).map_ok(Ok));
             };
             Budget::Anonymous(key)

@@ -2,7 +2,7 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
+    alloc::{Allocator, AllocatorClone},
     cmp,
     fmt::{self, Display},
 };
@@ -33,7 +33,7 @@ use super::Value;
 /// assert_eq!(opaque.name().as_str(), "UserId");
 /// assert_eq!(opaque.value(), &Value::Integer(42.into()));
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Opaque<'heap, A: Allocator> {
     name: Symbol<'heap>,
     value: Rc<Value<'heap, A>, A>,
@@ -132,7 +132,7 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     #[must_use]
     pub fn value_mut(&mut self) -> &mut Value<'heap, A>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         Rc::make_mut(&mut self.value)
     }
@@ -156,7 +156,7 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
     /// ```
     pub fn into_value(self) -> Value<'heap, A>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         Rc::unwrap_or_clone(self.value)
     }
@@ -200,6 +200,27 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
 
             Ok(())
         })
+    }
+}
+
+impl<A> Clone for Opaque<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name,
+            value: Rc::clone(&self.value),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { name, value } = self;
+
+        *name = source.name;
+        value.clone_from(&source.value);
     }
 }
 

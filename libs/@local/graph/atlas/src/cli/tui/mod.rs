@@ -42,7 +42,7 @@ use tracing_subscriber::fmt::MakeWriter;
 
 use self::state::{KnnActivity, Observation, RunState};
 use crate::{
-    math::Vec2,
+    math::{DFinite, Vec2},
     progress::{Batch, DescentIteration, Progress, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
@@ -237,7 +237,7 @@ impl Progress for Observer {
         });
     }
 
-    fn quality_probe(&self, metric: QualityMetric, value: f64) {
+    fn quality_probe(&self, metric: QualityMetric, value: DFinite) {
         self.report(Observation::QualityProbe {
             metric,
             reading: value,
@@ -402,7 +402,7 @@ mod tests {
 
     use super::{LogSink, Observation, Observer, RunState, absorb};
     use crate::{
-        math::Vec2,
+        math::{Vec2, d_finite},
         progress::{Progress as _, Stage},
         salt::quality::QualityMetric,
     };
@@ -426,7 +426,7 @@ mod tests {
     }
 
     #[test]
-    fn an_observation_lands_in_the_state_the_renderer_draws() {
+    fn observation_reaches_state() {
         let (observations, arrived) = channel();
         let observer = Observer { observations };
 
@@ -436,7 +436,7 @@ mod tests {
     }
 
     #[test]
-    fn observations_are_folded_in_the_order_they_were_reported() {
+    fn observations_preserve_order() {
         let (observations, arrived) = channel();
         let observer = Observer { observations };
 
@@ -457,22 +457,22 @@ mod tests {
     ///
     /// The readings outlive the stage that reported them.
     #[test]
-    fn the_admission_batterys_readings_reach_the_state_the_renderer_draws() {
+    fn admission_readings() {
         let (observations, arrived) = channel();
         let observer = Observer { observations };
 
         // The runner reports every control that has a reading, in one
         // burst, immediately before the stage completes.
-        observer.quality_probe(QualityMetric::Recall, 0.9021);
-        observer.quality_probe(QualityMetric::Trustworthiness, 0.8712);
+        observer.quality_probe(QualityMetric::Recall, d_finite!(0.9021));
+        observer.quality_probe(QualityMetric::Trustworthiness, d_finite!(0.8712));
         observer.stage_completed(Stage::Admission);
 
         let state = absorbed(&arrived);
         assert_eq!(
             state.quality().collect::<Vec<_>>(),
             [
-                (QualityMetric::Recall, 0.9021),
-                (QualityMetric::Trustworthiness, 0.8712),
+                (QualityMetric::Recall, d_finite!(0.9021)),
+                (QualityMetric::Trustworthiness, d_finite!(0.8712)),
             ]
         );
         // The readings outlive the stage that reported them, and the
@@ -481,7 +481,7 @@ mod tests {
     }
 
     #[test]
-    fn a_run_outliving_its_dashboard_keeps_reporting_into_nothing() {
+    fn reporting_without_dashboard() {
         let (observations, arrived) = channel();
         let observer = Observer { observations };
         drop(arrived);
@@ -494,7 +494,7 @@ mod tests {
     ///
     /// The snapshot returned for it reaches the model with its rows and landmark prefix intact.
     #[test]
-    fn the_dashboard_asks_for_a_sample_and_draws_what_comes_back() {
+    fn dashboard_sample() {
         let (observations, arrived) = channel();
         let observer = Observer { observations };
 
@@ -515,7 +515,7 @@ mod tests {
     ///
     /// The line carries its level, its message and its fields.
     #[test]
-    fn log_records_become_pane_lines() {
+    fn log_record_lines() {
         let (observations, arrived) = channel();
         let subscriber = tracing_subscriber::fmt()
             .with_writer(LogSink { observations })
@@ -542,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn a_record_appears_only_once_its_line_is_whole() {
+    fn complete_record_once() {
         let (observations, arrived) = channel();
         let sink = LogSink { observations };
         let mut writer = sink.make_writer();
@@ -553,7 +553,7 @@ mod tests {
             .write_all(b"INFO the run is ")
             .expect("should accept bytes");
         writer.flush().expect("should flush");
-        assert!(lines(&arrived).is_empty());
+        assert_eq!(lines(&arrived), [] as [String; 0]);
 
         writer
             .write_all(b"halfway\nWARN and then some\n")

@@ -2,7 +2,7 @@
 
 use alloc::rc::Rc;
 use core::{
-    alloc::Allocator,
+    alloc::{Allocator, AllocatorClone},
     cmp,
     fmt::{self, Display},
     num::NonZero,
@@ -38,7 +38,7 @@ use crate::body::place::FieldIndex;
 /// ```
 ///
 /// [`Value::Unit`]: super::Value::Unit
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Tuple<'heap, A: Allocator> {
     values: Rc<[Value<'heap, A>], A>,
 }
@@ -177,7 +177,7 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
     #[must_use]
     pub fn get_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
     where
-        A: Clone,
+        A: AllocatorClone,
     {
         let values = Rc::make_mut(&mut self.values);
         values.get_mut(index.as_usize())
@@ -222,6 +222,25 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
 
             fmt.write_str(")")
         })
+    }
+}
+
+impl<A> Clone for Tuple<'_, A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            values: Rc::clone(&self.values),
+        }
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self { values } = self;
+
+        values.clone_from(&source.values);
     }
 }
 

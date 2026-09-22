@@ -87,6 +87,7 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![recursion_limit = "256"]
 #![feature(
     // Language Features
     async_fn_traits,
@@ -96,7 +97,6 @@
     f128,
     impl_restriction,
     macro_metavar_expr_concat,
-    never_type,
     macro_metavar_expr,
 
     // Library Features

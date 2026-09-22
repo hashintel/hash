@@ -2,7 +2,7 @@ mod cbor;
 mod column;
 mod envelope;
 
-use alloc::alloc::Allocator;
+use core::alloc::Allocator;
 
 pub(super) use self::column::ColumnWriter;
 pub(crate) use self::{

@@ -2,13 +2,11 @@
   "extends": ["//"],
   "tasks": {
     "doc:architecture": {
-      // Not cached. Turborepo hashes a task's own package plus its dependencies'
-      // task *outputs*, and the annotations this reads are plain source comments
-      // in `@hashintel/petrinaut`, `petrinaut-core`, and `petrinaut-cli`, which
-      // are not any task's output.
-      // A cached result would therefore survive an annotation change and go
-      // quietly stale, which is the exact failure this package exists to prevent.
-      // The run takes a few seconds; correctness is worth more here.
+      // The annotations this reads are source comments in the packages it depends
+      // on; `^manifest` carries their sources into the hash.
+      "dependsOn": ["^manifest"],
+      // Not cached: with `PETRINAUT_ARCH_DOCS_DIFF_BASE` the build annotates the
+      // difference to a git ref whose content the hash cannot see.
       "cache": false,
       // Declared so consumers can depend on this task rather than on the
       // directory existing, and so `turbo run` prunes it on a clean.

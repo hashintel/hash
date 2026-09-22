@@ -4,7 +4,6 @@
 #![feature(
     // Language Features
     impl_trait_in_assoc_type,
-    never_type,
     return_type_notation,
 
     // Library Features
@@ -16,6 +15,10 @@ extern crate alloc;
 
 pub(crate) mod email_subscription;
 pub(crate) mod identity_provider;
-pub mod legacy;
 pub(crate) mod oauth_provider;
+pub mod rest;
 pub mod rpc;
+
+#[cfg(test)]
+#[path = "../tests/openapi/mod.rs"]
+mod openapi_tests;

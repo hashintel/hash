@@ -1,7 +1,7 @@
 //! Paired endpoint constraints: each source type's allowed target types and cardinality.
 
-use alloc::alloc::{Allocator, Global};
-use core::{fmt, fmt::Display};
+use alloc::alloc::Global;
+use core::{alloc::Allocator, fmt, fmt::Display};
 
 use super::phrase::Phrase;
 

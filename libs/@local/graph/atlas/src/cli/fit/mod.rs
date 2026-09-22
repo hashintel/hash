@@ -18,6 +18,7 @@ use crate::{
     },
     progress::{NoProgress, Progress},
     salt::{
+        fit::VacuousProjectorPlacement,
         knn::recall::RecallAdmission,
         runner::operator::{ClassifierSource, Options, Placement, Summary, live, offline},
     },
@@ -55,13 +56,13 @@ pub struct FitArgs {
     #[arg(long)]
     fresh: bool,
 
-    /// Sampled anchor rows of the admission probe.
+    /// Upper bound on sampled anchor rows of the admission probe.
     ///
     /// Defaults to `1024`.
     #[arg(long, default_value = "1024")]
     anchors: NonZero<usize>,
 
-    /// Sampled comparison rows of the admission probe.
+    /// Upper bound on sampled comparison rows of the admission probe.
     ///
     /// Defaults to `4096`.
     #[arg(long, default_value = "4096")]
@@ -112,10 +113,28 @@ pub struct FitArgs {
 
     /// Train the full placement with the relation evidence withheld.
     ///
-    /// No reviewed verdicts or radius needed, every other objective term trains. The unblocking
-    /// flag for corpora without reviewed-Proximal coverage.
-    #[arg(long, conflicts_with = "baseline")]
+    /// Off by default. Every other objective term trains, without requiring reviewed verdicts or a
+    /// relation radius. Published relation artifacts retain the corpus's evidence.
+    #[arg(
+        long,
+        conflicts_with = "baseline",
+        conflicts_with = "vacuous_placement_fallback"
+    )]
     vacuous_placement: bool,
+
+    /// Disable relation attraction only when reviewed Proximal coverage is absent.
+    ///
+    /// Off by default. Coverage requires a resolved Proximal verdict for an attraction group with
+    /// retained edges, positive strength and positive Proximal weight. Selects the objective
+    /// before training and propagates failures from that objective.
+    #[arg(
+        long,
+        env = "HASH_GRAPH_ATLAS_VACUOUS_PLACEMENT_FALLBACK",
+        conflicts_with = "baseline",
+        conflicts_with = "vacuous_placement",
+        default_value_t = false
+    )]
+    vacuous_placement_fallback: bool,
 
     /// Construct the k-NN lists by NN-Descent instead of the HNSW backend.
     ///
@@ -129,15 +148,19 @@ pub struct FitArgs {
     #[arg(long, default_value = "admission-report.json", value_hint = ValueHint::FilePath)]
     report: Utf8PathBuf,
 
-    /// Destination prefix for generated artifacts. No upload runs by default.
+    /// Destination generations root for generated artifacts.
+    ///
+    /// Publication paths and selection pointers are relative to this root. No upload runs by
+    /// default.
     #[arg(long, env = "HASH_GRAPH_ATLAS_UPLOAD")]
     upload: Option<FilePath>,
 
-    /// Source prefix for a live fit's prior generation. No download runs by default.
+    /// Source generations root for a live fit's prior generation.
     ///
-    /// Use the parent of the `generations/` namespace. Acquisition verifies the selected
-    /// generation before replacing local current. An absent remote pointer preserves local
-    /// current. The `--fresh` flag still prevents the fit from reusing the acquired prior.
+    /// The root contains `current` and `active/`. No download runs by default. Acquisition
+    /// verifies the selected generation before replacing local current. An absent remote pointer
+    /// preserves local current. The `--fresh` flag still prevents the fit from reusing the
+    /// acquired prior.
     #[arg(long, env = "HASH_GRAPH_ATLAS_DOWNLOAD")]
     download: Option<FilePath>,
 
@@ -184,7 +207,7 @@ impl fmt::Display for FitVerdict {
             "cards       {} reused, {} embedded",
             self.summary.reused, self.summary.embedded
         )?;
-        writeln!(fmt, "passes      {}", self.summary.passes)?;
+        write!(fmt, "{}", self.summary.report)?;
         writeln!(fmt, "activated   {}", self.summary.activated)?;
         writeln!(fmt, "report      {}", self.report)?;
         write!(fmt, "wall        {:.1}s", self.elapsed.as_secs_f64())
@@ -439,7 +462,13 @@ impl FitCommand<NoProgress> {
         } else {
             Placement::Projector {
                 steps: args.projector_steps,
-                vacuous: args.vacuous_placement,
+                vacuous: if args.vacuous_placement {
+                    Some(VacuousProjectorPlacement::Force)
+                } else if args.vacuous_placement_fallback {
+                    Some(VacuousProjectorPlacement::Fallback)
+                } else {
+                    None
+                },
             }
         };
 

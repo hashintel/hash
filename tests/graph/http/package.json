@@ -1,5 +1,5 @@
 {
-  "name": "@rust/hash-graph-http-tests",
+  "name": "@tests/hash-graph-http",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
@@ -8,7 +8,6 @@
     "test:integration": "sh test.sh"
   },
   "devDependencies": {
-    "@apps/hash-graph": "workspace:*",
     "httpyac": "6.16.7"
   }
 }

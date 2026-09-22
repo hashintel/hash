@@ -14,8 +14,8 @@ use hash_graph_authorization::policies::{
     store::{PolicyCreationParams, PolicyStore as _},
 };
 use hash_graph_postgres_store::store::{
-    AsClient as _, Context as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType,
-    PostgresStorePool, PostgresStoreSettings, Transaction as _,
+    AsClient as _, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
+    PostgresStoreSettings,
 };
 use hash_graph_store::{migration::StoreMigration as _, pool::StorePool as _};
 use hash_middleware::{
@@ -97,7 +97,6 @@ async fn pool(database: &str) -> Arc<PostgresStorePool> {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("should create the test database pool"),
     );
 

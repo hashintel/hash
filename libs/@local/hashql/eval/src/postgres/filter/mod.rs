@@ -872,7 +872,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         }
 
         let result = results.pop().expect("no result produced");
-        debug_assert!(results.is_empty());
+        debug_assert_eq!(results, [] as [Expression; 0]);
 
         result
     }

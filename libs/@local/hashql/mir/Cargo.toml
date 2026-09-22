@@ -1,8 +1,8 @@
 [package]
-name              = "hashql-mir"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "hashql-mir"
 publish.workspace = true
 version.workspace = true
 
@@ -32,22 +32,17 @@ insta                     = { workspace = true }
 workspace = true
 
 [[test]]
+harness = false
 name    = "compiletest"
-harness = false
 
 [[bench]]
+harness = false
 name    = "transform"
-harness = false
 
 [[bench]]
+harness = false
 name    = "interpret"
-harness = false
 
 [[bench]]
-name    = "execution"
 harness = false
-
-[package.metadata.sync.turborepo]
-ignore-dev-dependencies = [
-    "hashql-compiletest",
-]
+name    = "execution"

@@ -1,16 +1,17 @@
 {
-  "package": "@rust/hash-status",
-  "dependencies": [
-    "@local/status"
-  ],
+  "package": "hash-status",
+  "dependencies": [],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack",
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {

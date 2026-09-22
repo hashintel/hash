@@ -19,7 +19,7 @@ pub use self::{
     error::ConstraintError,
     null::{NullSchema, NullTypeTag},
     number::{NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError},
-    object::{ObjectConstraints, ObjectSchema, ObjectTypeTag, ObjectValidationError},
+    object::{ObjectConstraints, ObjectSchema, ObjectTypeTag},
     string::{
         StringConstraints, StringFormat, StringFormatError, StringSchema, StringTypeTag,
         StringValidationError,

@@ -36,9 +36,12 @@
         "@blockprotocol/graph#build"
       ]
     },
+    // The tests drive the running frontend and API. `^start:test:healthcheck` only waits
+    // for them; `^manifest` carries their sources.
     "test:integration": {
       "dependsOn": [
         "codegen",
+        "^manifest",
         "@apps/plugin-browser#build:test",
         "^start:test:healthcheck"
       ],

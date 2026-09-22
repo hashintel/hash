@@ -1,18 +1,16 @@
 {
-  "package": "@rust/hash-graph-http-tests",
-  "dependencies": [
-    "@apps/hash-graph"
-  ],
+  "package": "@tests/hash-graph-http",
+  "dependencies": [],
   "tasks": {
     "test:integration": {
       "dependsOn": [
-        "@apps/hash-graph#start:test:healthcheck"
+        "hash-graph#start:test:healthcheck"
       ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "@rust/darwin-kperf-codegen"
+        "hash-graph"
       ]
     }
   }

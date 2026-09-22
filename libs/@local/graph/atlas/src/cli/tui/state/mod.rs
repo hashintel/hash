@@ -12,13 +12,16 @@ use core::time::Duration;
 use std::time::Instant;
 
 use crate::{
-    math::Vec2,
+    math::{DFinite, Vec2},
     progress::{Batch, DescentIteration, Stage},
     salt::{
         embedding::CardEmbeddingStats, knn::recall::RecallSpotCheck,
         projector::train::LossBreakdown, quality::QualityMetric,
     },
 };
+
+#[cfg(test)]
+mod tests;
 
 /// Log lines the dashboard keeps behind the visible tail.
 ///
@@ -167,7 +170,7 @@ pub(super) enum Observation {
         /// The metric the probe measured.
         metric: QualityMetric,
         /// The reading its control turns on.
-        reading: f64,
+        reading: DFinite,
     },
     /// A pipeline stage completed.
     StageCompleted(Stage),
@@ -201,7 +204,7 @@ pub(super) struct RunState {
     /// A control whose evidence is absent reports nothing. The slot stays empty for a metric the
     /// probe could not measure as well as for one it has not measured yet. The rail draws what
     /// landed and invents nothing for the rest.
-    quality: [Option<f64>; QualityMetric::ALL.len()],
+    quality: [Option<DFinite>; core::mem::variant_count::<QualityMetric>()],
     /// The run's log tail, oldest first.
     log: VecDeque<String>,
 }
@@ -355,13 +358,14 @@ impl RunState {
     /// A second reading of the same metric replaces the first: the reading a control turns on is
     /// one reduction over the probe's steps. A repeat is a fresher answer to the same question
     /// rather than a second measurement.
-    pub(super) fn probe_quality(&mut self, metric: QualityMetric, reading: f64) {
+    pub(super) fn probe_quality(&mut self, metric: QualityMetric, reading: DFinite) {
         let Some(index) = QualityMetric::ALL
             .into_iter()
             .position(|candidate| candidate == metric)
         else {
             return;
         };
+
         self.quality[index] = Some(reading);
     }
 
@@ -466,7 +470,7 @@ impl RunState {
     /// Every reading arrives in one burst as the probe's report reduces its steps. The sequence is
     /// normally empty or whole. A short one is a battery whose evidence was absent for the missing
     /// controls.
-    pub(super) fn quality(&self) -> impl Iterator<Item = (QualityMetric, f64)> + use<> {
+    pub(super) fn quality(&self) -> impl Iterator<Item = (QualityMetric, DFinite)> + use<> {
         QualityMetric::ALL
             .into_iter()
             .zip(self.quality)
@@ -483,6 +487,3 @@ impl RunState {
         self.log.iter().map(String::as_str)
     }
 }
-
-#[cfg(test)]
-mod tests;

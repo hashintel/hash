@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { useFocusMember } from "../../../../worksheet/use-focus-member";
@@ -352,10 +353,12 @@ const SettingsTabs = () => {
 
 export const UserSettingsDialog = ({
   section,
+  settingsLabs,
   onSectionChange,
   onClose,
 }: {
   section: PetrinautSettingsSection;
+  settingsLabs?: ReactNode;
   onSectionChange: (section: PetrinautSettingsSection) => void;
   onClose: () => void;
 }) => {
@@ -576,6 +579,9 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowCompilationOutput}
                         />
                       </SettingsGroup>
+                      {settingsLabs !== undefined && settingsLabs !== null && (
+                        <FocusControls>{settingsLabs}</FocusControls>
+                      )}
                     </>
                   )}
                 </FocusStack>

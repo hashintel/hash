@@ -3,10 +3,6 @@
     clippy::little_endian_bytes,
     reason = "the wire-layout assertions pin the format's canonical little-endian bytes"
 )]
-#![expect(
-    clippy::float_cmp,
-    reason = "the format persists parameters verbatim; round trips are bit-exact contracts"
-)]
 use core::assert_matches;
 use std::{fs, path::PathBuf};
 

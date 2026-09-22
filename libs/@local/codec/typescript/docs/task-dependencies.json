@@ -9,25 +9,25 @@
         "codegen"
       ],
       "affectedBy": [
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen"
       ]
     },
     "codegen": {
       "dependsOn": [
-        "@rust/hash-codec#build:types"
+        "hash-codec#build:types"
       ],
       "affectedBy": [
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen"
       ]
     },
     "lint:tsc": {
@@ -35,12 +35,12 @@
         "codegen"
       ],
       "affectedBy": [
-        "@rust/error-stack",
-        "@rust/error-stack-macros",
-        "@rust/harpc-types",
-        "@rust/harpc-wire-protocol",
-        "@rust/hash-codec",
-        "@rust/hash-codegen"
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen"
       ]
     }
   }

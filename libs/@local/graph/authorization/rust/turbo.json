@@ -2,8 +2,76 @@
   "extends": ["//"],
   "tasks": {
     "build:types": {
+      "command": [
+        "env",
+        "INSTA_UPDATE=always",
+        "mise",
+        "exec",
+        "--env",
+        "dev",
+        "cargo:cargo-insta",
+        "--",
+        "cargo-insta",
+        "test",
+        "--features",
+        "codegen",
+        "--test",
+        "codegen"
+      ],
       "dependsOn": ["^manifest"],
       "outputs": ["types/**"]
+    },
+    "doc:dependency-diagram": {
+      "command": [
+        "cargo",
+        "run",
+        "-p",
+        "hash-repo-chores",
+        "--",
+        "dependency-diagram",
+        "--output",
+        "docs/dependency-diagram.mmd",
+        "--root",
+        "hash-graph-authorization",
+        "--root-deps-and-dependents",
+        "--link-mode",
+        "non-roots",
+        "--include-dev-deps",
+        "--include-build-deps",
+        "--logging-console-level",
+        "info"
+      ]
+    },
+    "fix:clippy": {
+      "command": ["just", "clippy", "--fix"]
+    },
+    "lint:clippy": {
+      "command": ["just", "clippy"]
+    },
+    "test:integration": {
+      "command": [
+        "cargo",
+        "hack",
+        "nextest",
+        "run",
+        "--feature-powerset",
+        "--all-targets",
+        "--filterset",
+        "kind(test) | kind(bench)"
+      ]
+    },
+    "test:unit": {
+      "command": [
+        "mise",
+        "run",
+        "test:unit",
+        "hash-graph-authorization",
+        "--test-strategy=powerset",
+        "--",
+        "--all-targets",
+        "--filterset",
+        "not kind(test) & not kind(bench)"
+      ]
     }
   }
 }

@@ -304,7 +304,7 @@ mod tests {
         let heap = Heap::new();
 
         let lookup = heap.intern_symbol("Hello");
-        let candidates = collect_symbols(&heap, &["hello", "HELLO", "helo", "world"]);
+        let candidates = collect_symbols(&heap, ["hello", "HELLO", "helo", "world"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
 
@@ -318,7 +318,7 @@ mod tests {
         let lookup = heap.intern_symbol("test");
         let candidates = collect_symbols(
             &heap,
-            &[
+            [
                 "tset",  // 2 swaps
                 "rest",  // 1 substitution
                 "tests", // 1 insertion
@@ -347,7 +347,7 @@ mod tests {
         let heap = Heap::new();
 
         let lookup = heap.intern_symbol("test");
-        let candidates = collect_symbols(&heap, &["tset", "rest", "tests", "est", "best"]);
+        let candidates = collect_symbols(&heap, ["tset", "rest", "tests", "est", "best"]);
 
         let matches = did_you_mean(lookup, &candidates, Some(2), None);
 
@@ -359,7 +359,7 @@ mod tests {
     fn custom_cutoff() {
         let heap = Heap::new();
         let lookup = heap.intern_symbol("test");
-        let candidates = collect_symbols(&heap, &["tset", "xyz"]);
+        let candidates = collect_symbols(&heap, ["tset", "xyz"]);
 
         let strict_matches = did_you_mean(lookup, &candidates, None, Some(0.9));
         assert!(
@@ -380,7 +380,7 @@ mod tests {
         let lookup = heap.intern_symbol("user name");
         let candidates = collect_symbols(
             &heap,
-            &[
+            [
                 "username_field", /* Contains both "user" and "name" concepts, but not
                                    * separately, therefore discarded */
                 "user_data",      // Contains "user"
@@ -392,7 +392,7 @@ mod tests {
         let matches = did_you_mean(lookup, &candidates, None, Some(1.0));
         let matches = collect_strings(&matches);
 
-        assert!(!matches.is_empty());
+        assert_ne!(matches, [] as [&str; 0]);
 
         assert!(matches.contains(&"user_data"));
         assert!(matches.contains(&"name_validator"));
@@ -404,24 +404,24 @@ mod tests {
         let lookup = heap.intern_symbol("test");
 
         let matches = did_you_mean(lookup, core::iter::empty::<Symbol<'_>>(), None, None);
-        assert!(matches.is_empty());
+        assert_eq!(matches, [] as [Symbol<'_>; 0]);
     }
 
     #[test]
     fn no_matches_found() {
         let heap = Heap::new();
         let lookup = heap.intern_symbol("test");
-        let candidates = collect_symbols(&heap, &["xyz", "abc", "123"]);
+        let candidates = collect_symbols(&heap, ["xyz", "abc", "123"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
-        assert!(matches.is_empty());
+        assert_eq!(matches, [] as [Symbol<'_>; 0]);
     }
 
     #[test]
     fn single_character_strings() {
         let heap = Heap::new();
         let lookup = heap.intern_symbol("i");
-        let candidates = collect_symbols(&heap, &["I", "a", "o", "if", "in"]);
+        let candidates = collect_symbols(&heap, ["I", "a", "o", "if", "in"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
         let matches = collect_strings(&matches);
@@ -434,10 +434,8 @@ mod tests {
         let heap = Heap::new();
 
         let lookup = heap.intern_symbol("fn");
-        let candidates = collect_symbols(
-            &heap,
-            &["function", "func", "f", "fn_call", "main_fn", "FN"],
-        );
+        let candidates =
+            collect_symbols(&heap, ["function", "func", "f", "fn_call", "main_fn", "FN"]);
 
         let matches = did_you_mean(lookup, &candidates, None, None);
         let matches = collect_strings(&matches);
@@ -453,7 +451,7 @@ mod tests {
     fn deterministic_results() {
         let heap = Heap::new();
         let lookup = heap.intern_symbol("test");
-        let mut candidates = collect_symbols(&heap, &["tset", "rest", "best", "west"]);
+        let mut candidates = collect_symbols(&heap, ["tset", "rest", "best", "west"]);
 
         let first_run_matches = did_you_mean(lookup, &candidates, None, None);
 

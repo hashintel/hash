@@ -1,17 +1,19 @@
 {
-  "package": "@rust/harpc-system",
+  "package": "harpc-system",
   "dependencies": [
-    "@rust/harpc-tower",
-    "@rust/harpc-types"
+    "harpc-tower",
+    "harpc-types"
   ],
   "tasks": {
     "doc:dependency-diagram": {
       "dependsOn": [
-        "@rust/hash-repo-chores#build"
+        "hash-repo-chores#build"
       ],
       "cache": false,
       "affectedBy": [
-        "@rust/hash-repo-chores"
+        "error-stack-macros",
+        "hash-repo-chores",
+        "hash-telemetry"
       ]
     },
     "fix:clippy": {
@@ -21,6 +23,9 @@
       "dependsOn": [],
       "env": [
         "GITHUB_EVENT_NAME"
+      ],
+      "affectedBy": [
+        "error-stack-macros"
       ]
     }
   }

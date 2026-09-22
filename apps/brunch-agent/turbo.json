@@ -46,7 +46,7 @@
       "env": ["TEST_COVERAGE"]
     },
     "test:unit": {
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["codegen", "^build", "@hashintel/petrinaut#manifest"],
       "env": ["TEST_COVERAGE"],
       "inputs": [
         "$TURBO_DEFAULT$",

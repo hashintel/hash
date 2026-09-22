@@ -1,5 +1,4 @@
-use alloc::alloc::Allocator;
-use core::{error::Error, fmt};
+use core::{alloc::Allocator, error::Error, fmt};
 
 use error_stack::Report;
 use hashql_core::id::IdVec;

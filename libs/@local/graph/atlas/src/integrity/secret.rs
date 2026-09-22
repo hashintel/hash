@@ -11,8 +11,15 @@
 //! constant time. It also redacts its own display forms and zeroizes its buffer on drop. None of
 //! these types implements `Serialize`. Their exposure methods reveal the secret bytes.
 
-use alloc::{alloc::Allocator, sync::Arc};
-use core::{error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr};
+use alloc::sync::Arc;
+use core::{
+    alloc::{Allocator, AllocatorClone},
+    error::Error,
+    fmt,
+    marker::PhantomData,
+    mem::MaybeUninit,
+    str::FromStr,
+};
 use std::alloc::Global;
 
 use clap::builder::TypedValueParser;
@@ -32,7 +39,6 @@ use super::{ParseHexError, hex::HexBytes};
 /// The zeroing covers buffers this type and its guard own, never copies made from them. A consumer
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
-#[derive(Clone)]
 pub struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
 
 impl<A: Allocator> SecretString<A> {
@@ -88,6 +94,23 @@ impl<A: Allocator> SecretString<A> {
             // preserves layout and slice metadata.
             unsafe { Arc::from_raw_in(ptr as *const str, alloc) }
         }
+    }
+}
+
+impl<A> Clone for SecretString<A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self(inner) = self;
+
+        inner.clone_from(&source.0);
     }
 }
 
@@ -205,7 +228,6 @@ impl Error for EmptyPasswordError {}
 /// Parsing trims surrounding whitespace and refuses an input that is empty afterwards. The
 /// guarded allocation zeroizes when its last guarded owner drops. [`fmt::Debug`] reveals the
 /// trimmed byte length, and the type has no `Serialize`.
-#[derive(Clone)]
 pub struct PasswordString<A: Allocator = Global>(SecretString<A>);
 
 impl<A: Allocator> fmt::Debug for PasswordString<A> {
@@ -219,6 +241,22 @@ impl<A: Allocator> fmt::Debug for PasswordString<A> {
 impl<A: Allocator> From<PasswordString<A>> for SecretString<A> {
     fn from(PasswordString(secret): PasswordString<A>) -> Self {
         secret
+    }
+}
+
+impl<A> Clone for PasswordString<A>
+where
+    A: AllocatorClone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+
+    #[inline]
+    fn clone_from(&mut self, source: &Self) {
+        let Self(secret) = self;
+        secret.clone_from(&source.0);
     }
 }
 

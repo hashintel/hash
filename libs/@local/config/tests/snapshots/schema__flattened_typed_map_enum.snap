@@ -1,0 +1,54 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "exported::<FlattenedTypedMapEnum>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlattenedTypedMapEnum",
+  "type": "object",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "const": "memory"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "directory": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "disk"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": {
+    "type": "object",
+    "properties": {
+      "host": {
+        "description": "Database hostname.",
+        "type": "string"
+      },
+      "port": {
+        "description": "Database port.",
+        "type": "integer",
+        "format": "uint16",
+        "maximum": 65535,
+        "minimum": 0
+      }
+    },
+    "unevaluatedProperties": false
+  }
+}

@@ -15,9 +15,7 @@ use hash_graph_authorization::policies::{
     principal::PrincipalConstraint,
     store::{CreateWebParameter, PolicyCreationParams, PrincipalStore as _},
 };
-use hash_graph_postgres_store::store::{
-    AsClient, PostgresStore, Transaction as _, TransactionState,
-};
+use hash_graph_postgres_store::store::{AsClient, PostgresStore, TransactionState};
 use type_system::principal::{
     actor::ActorId,
     actor_group::{ActorGroupId, TeamId, WebId},

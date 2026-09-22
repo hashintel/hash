@@ -95,7 +95,7 @@ fn options() -> FeedOptions {
 /// # Panics
 ///
 /// Panics if store-pool construction fails.
-async fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>) {
+fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>) {
     let pool = Arc::new(
         PostgresStorePool::new(
             &DatabaseConnectionInfo::new(
@@ -112,7 +112,6 @@ async fn unconnected_pool() -> (Arc<PostgresStorePool>, Weak<PostgresStorePool>)
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("should construct an unconnected pool"),
     );
     let weak = Arc::downgrade(&pool);
@@ -244,7 +243,7 @@ impl TryCryptoRng for UnavailableEntropy {}
 #[tokio::test]
 async fn open_disabled() {
     let (_fixture, generation) = axes_fixture("runtime-open-disabled");
-    let (pool, weak_pool) = unconnected_pool().await;
+    let (pool, weak_pool) = unconnected_pool();
     let mut runtime = Runtime::open(
         generation,
         &secret(),
@@ -266,7 +265,7 @@ async fn open_disabled() {
 #[tokio::test]
 async fn open_without_axes() {
     let fixture = TamperFixture::publish("runtime-open-without-axes");
-    let (pool, weak_pool) = unconnected_pool().await;
+    let (pool, weak_pool) = unconnected_pool();
     let mut runtime = Runtime::open(
         fixture.generation().clone(),
         &secret(),
@@ -291,7 +290,7 @@ async fn open_without_axes() {
 async fn open_temporal() {
     let (_fixture, generation) = axes_fixture("runtime-open-temporal");
     assert!(generation.repository().files.projector.is_none());
-    let (pool, weak_pool) = unconnected_pool().await;
+    let (pool, weak_pool) = unconnected_pool();
     let mut runtime = Runtime::open(
         generation,
         &secret(),
@@ -322,7 +321,7 @@ async fn open_temporal() {
 #[tokio::test]
 async fn open_invalid_interval() {
     let (_fixture, generation) = axes_fixture("runtime-open-invalid-interval");
-    let (pool, weak_pool) = unconnected_pool().await;
+    let (pool, weak_pool) = unconnected_pool();
     let mut options = options();
     options.task.feed.tick_rate = Duration::ZERO;
     let error = Runtime::open(
@@ -346,7 +345,7 @@ async fn start_entropy_failure() {
     let world = Arc::new(
         World::open(fixture.generation().clone(), &secret()).expect("the world should open"),
     );
-    let (pool, weak_pool) = unconnected_pool().await;
+    let (pool, weak_pool) = unconnected_pool();
     let error = Runtime::start(world, pool, UnavailableEntropy, None)
         .err()
         .expect("unavailable entropy should fail");

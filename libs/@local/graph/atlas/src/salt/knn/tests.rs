@@ -1,8 +1,3 @@
-#![expect(
-    clippy::float_cmp,
-    reason = "bit-exact assertions are contracts; fixtures use exactly representable values or \
-              compare cross-path results of the same kernel"
-)]
 use alloc::sync::Arc;
 use core::{assert_matches, num::NonZero, time::Duration};
 use std::sync::Mutex;

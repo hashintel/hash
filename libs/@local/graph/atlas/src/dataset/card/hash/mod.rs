@@ -22,10 +22,8 @@
 //! unlabelled group. With no constraining source types at all, every candidate forms one
 //! unlabelled group.
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
-};
+use alloc::{alloc::Global, borrow::Cow};
+use core::alloc::Allocator;
 use std::collections::HashSet;
 
 use super::{

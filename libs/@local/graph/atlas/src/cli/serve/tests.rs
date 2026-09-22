@@ -105,7 +105,6 @@ async fn serving(arguments: &[&str]) -> (ScratchDirectory, Result<Serve, Report<
         NoTls,
         PostgresStoreSettings::default(),
     )
-    .await
     .expect("an unconnected pool should construct without reaching a database");
     let serving = ServeCommand::new(
         RootArgs {

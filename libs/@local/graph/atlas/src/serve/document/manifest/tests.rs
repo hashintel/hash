@@ -1,8 +1,5 @@
-use alloc::{
-    alloc::{Allocator, Global},
-    sync::Arc,
-};
-use core::time::Duration;
+use alloc::{alloc::Global, sync::Arc};
+use core::{alloc::Allocator, time::Duration};
 
 use arc_swap::Guard;
 use camino::Utf8PathBuf;

@@ -222,7 +222,7 @@ backend = "npm:renovate"
 trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
 
 [[tools."npm:turbo"]]
-version = "2.10.12"
+version = "2.11.2"
 backend = "npm:turbo"
 
 [[tools.oxfmt]]
@@ -258,7 +258,7 @@ url = "https://github.com/protocolbuffers/protobuf/releases/download/v35.1/proto
 url_api = "https://api.github.com/repos/protocolbuffers/protobuf/releases/assets/445060254"
 
 [[tools.rust]]
-version = "nightly-2026-08-03"
+version = "nightly-2026-09-05"
 backend = "core:rust"
 
 [tools.rust.options]

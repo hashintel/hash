@@ -135,9 +135,9 @@ fn empty_skeleton_reopens() {
 
     let file = LandmarkFile::open(&path).expect("the empty file reopens");
     assert_eq!(file.landmarks(), 0);
-    assert!(file.selected_rows().is_empty());
-    assert!(file.assignment().is_empty());
-    assert!(file.coordinates().is_empty());
+    assert_eq!(file.selected_rows(), [] as [U64<LE>; 0]);
+    assert_eq!(file.assignment(), [] as [U32<LE>; 0]);
+    assert_eq!(file.coordinates(), [] as [Vec2; 0]);
 }
 
 #[test]

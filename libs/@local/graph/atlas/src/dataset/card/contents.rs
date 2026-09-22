@@ -1,10 +1,8 @@
 //! The structured card body and the truncation passes that shrink it toward a token budget.
 
-use alloc::{
-    alloc::{Allocator, Global},
-    borrow::Cow,
-};
+use alloc::{alloc::Global, borrow::Cow};
 use core::{
+    alloc::Allocator,
     fmt,
     fmt::{Display, Write as _},
 };

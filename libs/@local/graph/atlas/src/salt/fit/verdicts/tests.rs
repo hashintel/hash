@@ -60,7 +60,7 @@ fn construction_exposes_the_validated_document() {
     let types = supplied.document().type_verdicts();
     assert_eq!(types.len(), 1);
     assert_eq!(types[0].placement, PlacementClass::Proximal);
-    assert!(supplied.document().pair_verdicts().is_empty());
+    assert_eq!(supplied.document().pair_verdicts(), []);
 }
 
 #[test]

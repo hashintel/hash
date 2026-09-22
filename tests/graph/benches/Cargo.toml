@@ -1,10 +1,10 @@
 [package]
-name              = "hash-graph-benches"
-version.workspace = true
+authors.workspace = true
 edition.workspace = true
 license.workspace = true
+name              = "hash-graph-benches"
 publish.workspace = true
-authors.workspace = true
+version.workspace = true
 # If we leave `autobenches` enabled, then every module in the benches folder is compiled to be a standalone binary,
 # which means we can't use modules to group shared logic (importing via `super`, etc.)
 #
@@ -68,8 +68,3 @@ path = "graph/lib.rs"
 [[bench]]
 name = "policy"
 path = "policy/lib.rs"
-
-[package.metadata.sync.turborepo]
-extra-dev-dependencies = [
-    { name = "@apps/hash-graph", version = "workspace:*" },
-]

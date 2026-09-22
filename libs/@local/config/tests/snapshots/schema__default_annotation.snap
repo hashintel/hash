@@ -1,0 +1,24 @@
+---
+source: libs/@local/config/tests/schema.rs
+expression: "partial_json_schema::<Annotated>()"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Annotated",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "default": {
+        "oneOf": [
+          {
+            "type": "object"
+          }
+        ],
+        "required": [
+          "name"
+        ]
+      }
+    }
+  },
+  "unevaluatedProperties": false
+}

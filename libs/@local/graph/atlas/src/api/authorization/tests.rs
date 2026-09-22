@@ -114,7 +114,7 @@ fn variant_of(files: &TamperFixture, marker: &[u8]) -> Generation {
 /// # Panics
 ///
 /// Panics if pool construction fails.
-async fn pool() -> Arc<PostgresStorePool> {
+fn pool() -> Arc<PostgresStorePool> {
     Arc::new(
         PostgresStorePool::new(
             &DatabaseConnectionInfo::new(
@@ -131,7 +131,6 @@ async fn pool() -> Arc<PostgresStorePool> {
             NoTls,
             PostgresStoreSettings::default(),
         )
-        .await
         .expect("an unconnected pool should construct without reaching a database"),
     )
 }
@@ -143,7 +142,7 @@ async fn pool() -> Arc<PostgresStorePool> {
 /// # Panics
 ///
 /// Panics if fixture publication, activation or manager setup fails.
-async fn boot(name: &str, retention: Duration) -> (TamperFixture, GenerationManager) {
+fn boot(name: &str, retention: Duration) -> (TamperFixture, GenerationManager) {
     let files = TamperFixture::publish(name);
     root_of(&files)
         .activate(files.generation().id())
@@ -152,7 +151,7 @@ async fn boot(name: &str, retention: Duration) -> (TamperFixture, GenerationMana
     let source = RuntimeSource {
         root: root_of(&files),
         secret: secret(),
-        pool: pool().await,
+        pool: pool(),
         feed: None,
     };
     let manager = GenerationManager::new(
@@ -223,13 +222,13 @@ fn scratch_root(name: &str) -> (ScratchDirectory, GenerationRoot) {
 /// # Panics
 ///
 /// Panics outside a Tokio runtime or if pool construction fails.
-async fn test_state<R>(registry: Arc<UniverseRegistry>, tokens: Arc<Authority<R>>) -> AppState<R> {
+fn test_state<R>(registry: Arc<UniverseRegistry>, tokens: Arc<Authority<R>>) -> AppState<R> {
     let visibility = VisibilityLimits {
         bytes: 1_000_000,
         soft: Duration::from_secs(1),
         hard: Duration::from_secs(60),
     };
-    let pool = pool().await;
+    let pool = pool();
     let remote = Arc::new(GraphDatabaseClient::new(
         Arc::clone(&pool),
         tokio::runtime::Handle::current(),
@@ -608,7 +607,7 @@ async fn expired_token_routes(
         Authority::new(AUTH_SECRET, Duration::ZERO, StdRng::seed_from_u64(3))
             .expect("the rng should draw a salt"),
     );
-    let expiring_state = test_state(Arc::clone(&registry), Arc::clone(&expiring_tokens)).await;
+    let expiring_state = test_state(Arc::clone(&registry), Arc::clone(&expiring_tokens));
     let expiring_app = router(expiring_state);
     let filter = FilterDigest::of(b"single-generation-expired-filter");
     let zoom = Zoom::new(3).expect("3 should fit the zoom domain");
@@ -655,7 +654,7 @@ async fn expired_token_routes(
 /// shutdown.
 #[tokio::test]
 async fn token_lifecycle() {
-    let (_files, mut manager) = boot("single-generation", RETENTION).await;
+    let (_files, mut manager) = boot("single-generation", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
     let mut running = pin!(manager.run(shutdown.clone().cancelled_owned()));
@@ -673,7 +672,7 @@ async fn token_lifecycle() {
         Authority::new(AUTH_SECRET, LONG_EXPIRATION, StdRng::seed_from_u64(1))
             .expect("the rng should draw a salt"),
     );
-    let state = test_state(Arc::clone(&registry), Arc::clone(&tokens)).await;
+    let state = test_state(Arc::clone(&registry), Arc::clone(&tokens));
     let app = router(state);
 
     let actor = user_actor(1);
@@ -790,7 +789,7 @@ async fn generation_routes(
 /// the manifest and all data routes.
 #[tokio::test]
 async fn token_retained() {
-    let (files, mut manager) = boot("cross-generation", RETENTION).await;
+    let (files, mut manager) = boot("cross-generation", RETENTION);
     let registry = Arc::clone(manager.registry());
     let shutdown = CancellationToken::new();
     let root = root_of(&files);
@@ -807,12 +806,12 @@ async fn token_retained() {
     let tokens = Arc::new(
         Authority::new(AUTH_SECRET, LONG_EXPIRATION, SysRng).expect("the rng should draw a salt"),
     );
-    let state = test_state(Arc::clone(&registry), Arc::clone(&tokens)).await;
+    let state = test_state(Arc::clone(&registry), Arc::clone(&tokens));
     let routes = super::super::router(
         Arc::clone(&registry),
         Arc::clone(&tokens),
         state.limits,
-        pool().await,
+        pool(),
         state.visibility,
     );
     let app = router(state);
@@ -887,7 +886,7 @@ async fn renewal_empty() {
     let source = RuntimeSource {
         root,
         secret: secret(),
-        pool: pool().await,
+        pool: pool(),
         feed: None,
     };
     let mut manager = GenerationManager::new(
@@ -904,7 +903,7 @@ async fn renewal_empty() {
         Authority::new(AUTH_SECRET, LONG_EXPIRATION, StdRng::seed_from_u64(6))
             .expect("the rng should draw a salt"),
     );
-    let state = test_state(registry, tokens).await;
+    let state = test_state(registry, tokens);
     let app = router(state);
 
     let (status, document) = call(

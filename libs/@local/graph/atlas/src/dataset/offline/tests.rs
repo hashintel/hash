@@ -507,10 +507,6 @@ async fn dump_roundtrips_byte_identically() {
 ///
 /// The rows are nodes, edges, ontology, cards, legends and icons, with embeddings bit-identical.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_dataset_serves_the_row_streams_verbatim() {
     let directory = scratch("row-oracle");
     let source = Fixture::new();
@@ -597,10 +593,6 @@ async fn offline_dataset_serves_the_row_streams_verbatim() {
 ///
 /// Node types come back equal as well.
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_dataset_serves_the_request_streams_verbatim() {
     let directory = scratch("request-oracle");
     let source = Fixture::new();
@@ -700,10 +692,6 @@ async fn served_embeddings_borrow_the_mapped_stream_files() {
 }
 
 #[tokio::test]
-#[expect(
-    clippy::float_cmp,
-    reason = "a served embedding must round-trip bit-identically"
-)]
 async fn offline_embedder_serves_hits_and_refuses_misses() {
     let directory = scratch("embedder-hit-miss");
     Fixture::new()

@@ -58,7 +58,13 @@ const playbackPositionStyle = css({
 const playbackControlsScrollStyle = css({
   width: "full",
   minWidth: "0",
+  // A narrow embed scrolls the row sideways to reach the controls at its end.
+  // Setting overflow on one axis makes the other axis scroll as well unless it
+  // is set too, and a toolbar button's hover scale counts towards the
+  // scrollable area though it takes no layout space: a pointer resting on a
+  // button would otherwise show a vertical scrollbar.
   overflowX: "auto",
+  overflowY: "hidden",
 });
 
 const playbackControlsRowStyle = css({
