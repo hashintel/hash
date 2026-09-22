@@ -299,7 +299,6 @@ export const BrunchDraftExperimentWidget = ({
       try {
         await submitAndWait(output);
       } catch (caught) {
-        preparedOnceRef.current = false;
         setSubmissionError(
           caught instanceof Error ? caught.message : String(caught),
         );
@@ -607,6 +606,7 @@ export const BrunchDraftExperimentWidget = ({
           <button
             className={primaryButtonStyle}
             onClick={() => {
+              preparedOnceRef.current = false;
               setSubmissionError(null);
               setSubmissionPending(true);
               setSubmissionAttempt((attempt) => attempt + 1);

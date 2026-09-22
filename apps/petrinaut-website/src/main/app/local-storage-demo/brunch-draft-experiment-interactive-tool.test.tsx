@@ -528,11 +528,12 @@ describe("BrunchDraftExperimentWidget", () => {
       .fn()
       .mockRejectedValueOnce(new Error("Output was not accepted"))
       .mockResolvedValueOnce(undefined);
-    const { submit } = renderWidget({
+    const definition = createReadableStore(makeDefinition());
+    const { submit, rerender, wrap } = renderWidget({
       input: makeInput(),
       toolCallId: "retry-draft",
       state: awaiting,
-      definition: createReadableStore(makeDefinition()),
+      definition,
       runExperiment: vi.fn(),
       submitOutput,
     });
@@ -542,6 +543,22 @@ describe("BrunchDraftExperimentWidget", () => {
     );
     expect(submit).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
+
+    rerender(
+      wrap(
+        <BrunchDraftExperimentWidget
+          {...awaiting}
+          input={makeInput()}
+          readTitle={() => "Support desk"}
+          submit={() => {}}
+          submitAndWait={(output) => submit(output)}
+          toolCallId="retry-draft"
+        />,
+      ),
+    );
+    await act(async () => {});
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(heading()).toEqual(["Draft could not be submitted"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Retry preparation" }));
 
