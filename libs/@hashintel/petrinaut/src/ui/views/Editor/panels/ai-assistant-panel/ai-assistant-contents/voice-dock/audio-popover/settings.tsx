@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
 import {
   Button,
@@ -101,8 +101,10 @@ export const AudioSettings = ({
   const id = useId();
   const devices = settings.devices;
   const deviceDisabled = disabled || devices.busy;
-  const stopPreview = actions.stopVoicePreview;
-  useEffect(() => () => stopPreview?.(), [stopPreview]);
+  const stopPreviewOnUnmount = useEffectEvent(() => {
+    actions.stopVoicePreview?.();
+  });
+  useEffect(() => () => stopPreviewOnUnmount(), []);
 
   return (
     <>
