@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   actualModeTransitionFiringSchema,
+  createActualModeFrameReplay,
   createActualModeReceivedEventsRecording,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
+  extendActualModeTransitionFiringTimesMs,
   getActualModeMarkingAtTransitionFiringIndex,
+  getActualModeTransitionFiringTimesMs,
   normalizeActualModeTransitionFiring,
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
@@ -320,6 +323,80 @@ describe("Actual mode recordings", () => {
       queued: { tokenCount: 1 },
       done: { tokenCount: 1 },
     });
+  });
+
+  it("extends known firing times without recomputing them", () => {
+    const firings = [
+      {
+        transitionId: "a",
+        inputTokens: {},
+        outputTokens: {},
+        ts: "2026-06-05T10:00:00.000Z",
+      },
+      {
+        transitionId: "b",
+        inputTokens: {},
+        outputTokens: {},
+        ts: "2026-06-05T10:00:02.000Z",
+      },
+      {
+        transitionId: "c",
+        inputTokens: {},
+        outputTokens: {},
+        ts: "not a timestamp",
+      },
+    ];
+    const firstTwo = getActualModeTransitionFiringTimesMs(
+      firings.slice(0, 2),
+      null,
+      null,
+    );
+
+    expect(firstTwo).toEqual([0, 2_000]);
+    expect(
+      extendActualModeTransitionFiringTimesMs(firstTwo, firings, null, null),
+    ).toEqual(getActualModeTransitionFiringTimesMs(firings, null, null));
+    expect(
+      extendActualModeTransitionFiringTimesMs(firstTwo, firings, null, null),
+    ).toEqual([0, 2_000, 2_001]);
+  });
+
+  it("replays firings once across points and restarts on an earlier point", () => {
+    const transitionFirings = [
+      {
+        transitionId: "finish",
+        inputTokens: { queued: [{}] },
+        outputTokens: { done: [{}] },
+        ts: "2026-06-05T10:00:00.000Z",
+      },
+      {
+        transitionId: "finish",
+        inputTokens: { queued: [{}] },
+        outputTokens: { done: [{}] },
+        ts: "2026-06-05T10:00:01.000Z",
+      },
+    ];
+    const replay = createActualModeFrameReplay({
+      definition,
+      initialState: { queued: 2, done: 0 },
+    });
+    const readerAt = (transitionFiringIndex: number | null) =>
+      replay.readerAt({
+        transitionFirings,
+        transitionFiringTimesMs: [0, 1_000],
+        point: {
+          kind:
+            transitionFiringIndex === null ? "initial" : "transition_firing",
+          timeMs: 0,
+          transitionFiringIndex,
+        },
+        number: 0,
+      });
+
+    expect(readerAt(null).getPlaceTokenCount("queued")).toBe(2);
+    expect(readerAt(1).getPlaceTokenCount("queued")).toBe(0);
+    expect(readerAt(1).getPlaceTokenCount("done")).toBe(2);
+    expect(readerAt(0).getPlaceTokenCount("queued")).toBe(1);
   });
 
   it("keeps count-only places as counts while attribute-less tokens move", () => {

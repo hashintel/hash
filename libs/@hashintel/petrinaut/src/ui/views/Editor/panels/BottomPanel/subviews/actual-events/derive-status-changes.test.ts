@@ -2,38 +2,22 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
+import {
+  makeTicketPlace,
+  ticketColor,
+} from "../../../../../shared/status-view.test-helpers";
 import { createActualEventStatusDeriver } from "./derive-status-changes";
 
 import type { SDCPN, StatusView } from "@hashintel/petrinaut-core";
 
 const definition: SDCPN = {
-  places: (["todo", "doing", "done"] as const).map((id) => ({
-    id,
-    name: id,
-    colorId: "ticket",
-    dynamicsEnabled: false,
-    differentialEquationId: null,
-    x: 0,
-    y: 0,
-  })),
-  transitions: [],
-  types: [
-    {
-      id: "ticket",
-      name: "Ticket",
-      iconSlug: "circle",
-      displayColor: "#0000FF",
-      elements: [
-        {
-          elementId: "ticket-id",
-          name: "ticket_id",
-          type: "string",
-          identityRef: "identity-ticket",
-        },
-        { elementId: "attempts", name: "attempts", type: "integer" },
-      ],
-    },
+  places: [
+    makeTicketPlace("todo", "todo"),
+    makeTicketPlace("doing", "doing"),
+    makeTicketPlace("done", "done"),
   ],
+  transitions: [],
+  types: [ticketColor],
   differentialEquations: [],
   parameters: [],
   identities: [
@@ -242,7 +226,7 @@ describe("createActualEventStatusDeriver", () => {
             {
               id: "inner-doing",
               name: "InnerDoing",
-              colorId: "ticket",
+              colorId: ticketColor.id,
               dynamicsEnabled: false,
               differentialEquationId: null,
               x: 0,

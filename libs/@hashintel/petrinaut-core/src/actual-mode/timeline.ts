@@ -9,6 +9,7 @@ import {
 } from "../simulation/engine/token-values";
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "./constants";
 import {
+  applyActualModeTransitionFiring,
   getActualModeMarkingAtTransitionFiringIndex,
   getActualModePlaceMarkingTokenCount,
   isActualModeTokenColourArray,
@@ -45,7 +46,15 @@ const getTimelineBaselineMs = (
   return timelineStartedAtMs ?? timelineNowMs ?? 0;
 };
 
-export const getActualModeTransitionFiringTimesMs = (
+/**
+ * Timeline times, in ms from the baseline, of the firings not yet covered by
+ * `knownTimesMs` (the times of `transitionFirings[0..knownTimesMs.length)`),
+ * appended to a copy of it. Times never decrease along the log: a firing
+ * whose timestamp precedes the previous firing's takes that firing's time,
+ * and one without a parseable timestamp takes the previous time plus 1 ms.
+ */
+export const extendActualModeTransitionFiringTimesMs = (
+  knownTimesMs: readonly number[],
   transitionFirings: readonly ActualModeTransitionFiring[],
   timelineStartedAtMs: number | null,
   timelineNowMs: number | null,
@@ -55,9 +64,9 @@ export const getActualModeTransitionFiringTimesMs = (
     timelineStartedAtMs,
     timelineNowMs,
   );
-  const times: number[] = [];
+  const times = knownTimesMs.slice(0, transitionFirings.length);
 
-  for (const firing of transitionFirings) {
+  for (const firing of transitionFirings.slice(times.length)) {
     const timestampMs = parseActualModeTimestampMs(firing.ts);
     const previousTimeMs = times.at(-1) ?? 0;
     const nextTimeMs =
@@ -70,6 +79,18 @@ export const getActualModeTransitionFiringTimesMs = (
 
   return times;
 };
+
+export const getActualModeTransitionFiringTimesMs = (
+  transitionFirings: readonly ActualModeTransitionFiring[],
+  timelineStartedAtMs: number | null,
+  timelineNowMs: number | null,
+): readonly number[] =>
+  extendActualModeTransitionFiringTimesMs(
+    [],
+    transitionFirings,
+    timelineStartedAtMs,
+    timelineNowMs,
+  );
 
 export const buildActualModeTimelinePoints = (params: {
   status: ActualModeContextValue["status"];
@@ -382,5 +403,68 @@ export const createActualModeTimelineFrameReader = (params: {
         ]),
       ),
     }),
+  };
+};
+
+export type ActualModeFrameReplay = {
+  /**
+   * The reader for `point`, over the marking reached by applying every firing
+   * up to the point's firing index. Firings between the previous point's index
+   * and this one are applied once; a point with an earlier index restarts
+   * from the initial state. `transitionFirings` must extend the list passed
+   * before, so a log that grows between calls keeps its cursor.
+   */
+  readerAt(params: {
+    transitionFirings: readonly ActualModeTransitionFiring[];
+    transitionFiringTimesMs: readonly number[];
+    point: ActualModeTimelinePoint;
+    number: number;
+  }): SimulationFrameReader;
+};
+
+/**
+ * One marking cursor for a run of timeline points visited in firing order,
+ * so a range of frames costs one pass over the firing log rather than a
+ * from-zero replay per frame.
+ */
+export const createActualModeFrameReplay = (params: {
+  definition: Pick<SDCPN, "places" | "transitions" | "types">;
+  initialState: ActualModeMarking;
+}): ActualModeFrameReplay => {
+  const { definition, initialState } = params;
+  let marking = initialState;
+  let appliedThroughFiringIndex = -1;
+
+  return {
+    readerAt({ transitionFirings, transitionFiringTimesMs, point, number }) {
+      const targetFiringIndex = point.transitionFiringIndex ?? -1;
+      if (targetFiringIndex < appliedThroughFiringIndex) {
+        marking = initialState;
+        appliedThroughFiringIndex = -1;
+      }
+      for (
+        let firingIndex = appliedThroughFiringIndex + 1;
+        firingIndex <= targetFiringIndex;
+        firingIndex += 1
+      ) {
+        const firing = transitionFirings[firingIndex];
+        if (firing) {
+          marking = applyActualModeTransitionFiring(marking, firing);
+        }
+      }
+      appliedThroughFiringIndex = Math.max(
+        appliedThroughFiringIndex,
+        targetFiringIndex,
+      );
+      return createActualModeTimelineFrameReader({
+        definition,
+        initialState,
+        transitionFirings,
+        transitionFiringTimesMs,
+        point,
+        number,
+        marking,
+      });
+    },
   };
 };

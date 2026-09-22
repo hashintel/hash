@@ -1,9 +1,9 @@
 import {
-  applyActualModeTransitionFiring,
+  createActualModeFrameReplay,
   createStatusViewFrameEvaluator,
   createStatusViewTracker,
-  createActualModeTimelineFrameReader,
-  getActualModeTransitionFiringTimesMs,
+  diffInstanceLabelStates,
+  extendActualModeTransitionFiringTimesMs,
   getStatusViewEvaluationScope,
 } from "@hashintel/petrinaut-core";
 
@@ -43,13 +43,12 @@ export type ActualEventStatusDeriver = {
 /**
  * Derives, per firing, the status changes under one status view: which
  * instances entered a new label and how long they spent in the previous one.
- * Statuses come from the same frame evaluator and tracker as the Kanban
- * board and canvas badges — label array order, token conditions, scoped
- * (`instanceId::placeId`) places, and the exit label all behave identically —
- * by reconstructing a frame per firing and diffing consecutive instance
- * label states. The pre-firing marking is observed first (emitting nothing),
- * so instances present in the initial state report their real starting
- * label and dwell on their first change.
+ * The frames come from the same replay as the canvas and the Kanban board
+ * and the statuses from the same evaluator and tracker, so label order,
+ * token conditions, scoped (`instanceId::placeId`) places and the exit
+ * label behave identically. The pre-firing marking is observed first
+ * (emitting nothing), so instances present in the initial state report
+ * their real starting label and dwell on their first change.
  */
 export function createActualEventStatusDeriver(args: {
   statusView: StatusView;
@@ -72,21 +71,41 @@ export function createActualEventStatusDeriver(args: {
   const labelName = (labelId: string | null): string | null =>
     labelId === null ? null : (labelNameById.get(labelId) ?? null);
 
-  let tracker = createStatusViewTracker({
-    statusView,
-    evaluateFrame: createStatusViewFrameEvaluator({
+  const createTracker = () =>
+    createStatusViewTracker({
       statusView,
-      places,
-      types,
-      statusConditions,
-    }),
+      evaluateFrame: createStatusViewFrameEvaluator({
+        statusView,
+        places,
+        types,
+        statusConditions,
+      }),
+    });
+
+  let tracker = createTracker();
+  let replay = createActualModeFrameReplay({
+    definition: readerDefinition,
+    initialState,
   });
-  let marking = initialState;
   let previousLabelStates = new Map<InstanceKey, InstanceLabelState>();
-  let baselineObserved = false;
+  let transitionFiringTimesMs: readonly number[] = [];
   let processedCount = 0;
   let lastProcessedFiring: ActualModeTransitionFiring | null = null;
   let changesByFiring: ActualEventStatusChange[][] = [];
+
+  const observeInitialState = (
+    transitionFirings: readonly ActualModeTransitionFiring[],
+  ) => {
+    tracker.observeFrame(
+      replay.readerAt({
+        transitionFirings,
+        transitionFiringTimesMs,
+        point: { kind: "initial", timeMs: 0, transitionFiringIndex: null },
+        number: 0,
+      }),
+    );
+    previousLabelStates = tracker.getInstanceLabelStates();
+  };
 
   return {
     deriveUpTo(transitionFirings) {
@@ -95,43 +114,26 @@ export function createActualEventStatusDeriver(args: {
         (processedCount === 0 ||
           transitionFirings[processedCount - 1] === lastProcessedFiring);
       if (!isExtension) {
-        tracker = createStatusViewTracker({
-          statusView,
-          evaluateFrame: createStatusViewFrameEvaluator({
-            statusView,
-            places,
-            types,
-            statusConditions,
-          }),
+        tracker = createTracker();
+        replay = createActualModeFrameReplay({
+          definition: readerDefinition,
+          initialState,
         });
-        marking = initialState;
-        previousLabelStates = new Map();
-        baselineObserved = false;
+        transitionFiringTimesMs = [];
         processedCount = 0;
         lastProcessedFiring = null;
         changesByFiring = [];
       }
 
-      const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
+      transitionFiringTimesMs = extendActualModeTransitionFiringTimesMs(
+        transitionFiringTimesMs,
         transitionFirings,
         null,
         null,
       );
 
-      if (!baselineObserved) {
-        tracker.observeFrame(
-          createActualModeTimelineFrameReader({
-            definition: readerDefinition,
-            initialState,
-            transitionFirings,
-            transitionFiringTimesMs,
-            point: { kind: "initial", timeMs: 0, transitionFiringIndex: null },
-            number: 0,
-            marking,
-          }),
-        );
-        previousLabelStates = tracker.getInstanceLabelStates();
-        baselineObserved = true;
+      if (processedCount === 0) {
+        observeInitialState(transitionFirings);
       }
 
       for (
@@ -144,11 +146,8 @@ export function createActualEventStatusDeriver(args: {
           continue;
         }
         const timeMs = transitionFiringTimesMs[firingIndex] ?? 0;
-        marking = applyActualModeTransitionFiring(marking, firing);
         tracker.observeFrame(
-          createActualModeTimelineFrameReader({
-            definition: readerDefinition,
-            initialState,
+          replay.readerAt({
             transitionFirings,
             transitionFiringTimesMs,
             point: {
@@ -157,29 +156,21 @@ export function createActualEventStatusDeriver(args: {
               transitionFiringIndex: firingIndex,
             },
             number: firingIndex + 1,
-            marking,
           }),
         );
 
         const labelStates = tracker.getInstanceLabelStates();
-        const changes: ActualEventStatusChange[] = [];
-        for (const [key, labelState] of labelStates) {
-          const previous = previousLabelStates.get(key);
-          if (previous?.currentLabelId === labelState.currentLabelId) {
-            continue;
-          }
-          if (!previous && labelState.currentLabelId === null) {
-            continue;
-          }
-          changes.push({
-            keyDisplay: labelState.keyValues.join(", "),
-            fromLabelName: labelName(previous?.currentLabelId ?? null),
-            toLabelName: labelName(labelState.currentLabelId),
-            dwellMs: previous ? timeMs - previous.enteredCurrentAtMs : null,
-          });
-        }
+        changesByFiring.push(
+          diffInstanceLabelStates(previousLabelStates, labelStates, timeMs).map(
+            (change) => ({
+              keyDisplay: change.keyValues.join(", "),
+              fromLabelName: labelName(change.fromLabelId),
+              toLabelName: labelName(change.toLabelId),
+              dwellMs: change.dwellMs,
+            }),
+          ),
+        );
         previousLabelStates = labelStates;
-        changesByFiring.push(changes);
         lastProcessedFiring = firing;
       }
       processedCount = transitionFirings.length;

@@ -5,7 +5,10 @@ import type {
   TokenRecord,
 } from "@hashintel/petrinaut-core";
 
-/** A colour keyed by `ticket_id` under the `identity-ticket` identity. */
+/**
+ * A colour keyed by `ticket_id` under the `identity-ticket` identity, with an
+ * `attempts` counter for token conditions.
+ */
 export const ticketColor: Color = {
   id: "type-ticket",
   name: "Ticket",
@@ -18,6 +21,7 @@ export const ticketColor: Color = {
       type: "string",
       identityRef: "identity-ticket",
     },
+    { elementId: "attempts", name: "attempts", type: "integer" },
   ],
 };
 

@@ -6,9 +6,8 @@
 import { use, useState, type FC, type PropsWithChildren } from "react";
 
 import {
-  applyActualModeTransitionFiring,
   buildActualModeTimelinePoints,
-  createActualModeTimelineFrameReader,
+  createActualModeFrameReplay,
   getActualModeTransitionFiringTimesMs,
 } from "@hashintel/petrinaut-core";
 
@@ -113,9 +112,10 @@ export const useActualExecutionFrameSource = (params: {
   );
   const currentPoint = timelinePoints[currentFrameIndex];
   const currentFrameReader = currentPoint
-    ? createActualModeTimelineFrameReader({
+    ? createActualModeFrameReplay({
         definition: petriNetDefinition,
         initialState,
+      }).readerAt({
         transitionFirings: actualMode.transitionFirings,
         transitionFiringTimesMs,
         point: currentPoint,
@@ -127,37 +127,18 @@ export const useActualExecutionFrameSource = (params: {
     startIndex: number,
     endIndex = timelinePoints.length,
   ): Promise<SimulationFrameReader[]> => {
-    // Shared replay cursor: timeline points carry non-decreasing firing
-    // indices, so each firing is applied once across the whole range rather
-    // than replaying from zero per reader.
-    let marking = initialState;
-    let appliedThroughFiringIndex = -1;
-    return timelinePoints.slice(startIndex, endIndex).map((point, offset) => {
-      const targetFiringIndex = point.transitionFiringIndex ?? -1;
-      for (
-        let firingIndex = appliedThroughFiringIndex + 1;
-        firingIndex <= targetFiringIndex;
-        firingIndex += 1
-      ) {
-        const firing = actualMode.transitionFirings[firingIndex];
-        if (firing) {
-          marking = applyActualModeTransitionFiring(marking, firing);
-        }
-      }
-      appliedThroughFiringIndex = Math.max(
-        appliedThroughFiringIndex,
-        targetFiringIndex,
-      );
-      return createActualModeTimelineFrameReader({
-        definition: petriNetDefinition,
-        initialState,
+    const replay = createActualModeFrameReplay({
+      definition: petriNetDefinition,
+      initialState,
+    });
+    return timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
+      replay.readerAt({
         transitionFirings: actualMode.transitionFirings,
         transitionFiringTimesMs,
         point,
         number: startIndex + offset,
-        marking,
-      });
-    });
+      }),
+    );
   };
 
   const { source } = actualMode;

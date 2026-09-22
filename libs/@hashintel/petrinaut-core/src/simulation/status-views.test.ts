@@ -8,6 +8,7 @@ import { compileHirArtifacts } from "../hir/compile";
 import { createStatusViewFrameEvaluator } from "./frames/hir-status-view";
 import {
   createStatusViewTracker,
+  diffInstanceLabelStates,
   summarizeStatusIntervals,
 } from "./status-views";
 
@@ -510,6 +511,48 @@ describe("status view derivation", () => {
       { labelId: "label-done", fromMs: 0, toMs: 2_000 },
       { labelId: "label-gone", fromMs: 2_000, toMs: null },
     ]);
+  });
+
+  it("diffs label states between frames with the dwell in the label left", () => {
+    const evaluate = createStatusViewFrameEvaluator({
+      statusView,
+      places,
+      types: [ticketColor],
+      statusConditions: compileStatusConditions(),
+    });
+    const tracker = createStatusViewTracker({
+      statusView,
+      evaluateFrame: evaluate,
+    });
+
+    tracker.observeFrame(makeFrame(0, 0, { todo: [{ ticket_id: "a" }] }));
+    const initial = tracker.getInstanceLabelStates();
+    tracker.observeFrame(
+      makeFrame(1, 4, {
+        doing: [{ ticket_id: "a" }],
+        todo: [{ ticket_id: "b" }],
+      }),
+    );
+    const next = tracker.getInstanceLabelStates();
+    const [keyA, keyB] = [...next.keys()];
+
+    expect(diffInstanceLabelStates(initial, next, 4_000)).toEqual([
+      {
+        key: keyA,
+        keyValues: ["a"],
+        fromLabelId: "label-todo",
+        toLabelId: "label-doing",
+        dwellMs: 4_000,
+      },
+      {
+        key: keyB,
+        keyValues: ["b"],
+        fromLabelId: null,
+        toLabelId: "label-todo",
+        dwellMs: null,
+      },
+    ]);
+    expect(diffInstanceLabelStates(next, next, 5_000)).toEqual([]);
   });
 
   it("derives status from actual-mode frames carrying token values", () => {

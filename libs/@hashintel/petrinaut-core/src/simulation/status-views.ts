@@ -75,6 +75,47 @@ export type InstanceLabelState = {
   enteredCurrentAtMs: number;
 };
 
+export type InstanceLabelChange = {
+  key: InstanceKey;
+  keyValues: readonly string[];
+  /** null when the instance is first seen. */
+  fromLabelId: ID | null;
+  /** null when the token left the view and it declares no exit label. */
+  toLabelId: ID | null;
+  /** Time spent in the previous label, in ms; null when there was none. */
+  dwellMs: number | null;
+};
+
+/**
+ * The instances whose label differs between two tracker snapshots, with the
+ * time each spent in the label it left. An instance that appears with no
+ * label is not a change.
+ */
+export const diffInstanceLabelStates = (
+  previous: ReadonlyMap<InstanceKey, InstanceLabelState>,
+  next: ReadonlyMap<InstanceKey, InstanceLabelState>,
+  nowMs: number,
+): InstanceLabelChange[] => {
+  const changes: InstanceLabelChange[] = [];
+  for (const [key, labelState] of next) {
+    const previousState = previous.get(key);
+    if (previousState?.currentLabelId === labelState.currentLabelId) {
+      continue;
+    }
+    if (!previousState && labelState.currentLabelId === null) {
+      continue;
+    }
+    changes.push({
+      key,
+      keyValues: labelState.keyValues,
+      fromLabelId: previousState?.currentLabelId ?? null,
+      toLabelId: labelState.currentLabelId,
+      dwellMs: previousState ? nowMs - previousState.enteredCurrentAtMs : null,
+    });
+  }
+  return changes;
+};
+
 export type StatusViewTracker = {
   /** Feed frames in order; each frame's time closes and opens intervals. */
   observeFrame(frame: SimulationFrameReader): void;

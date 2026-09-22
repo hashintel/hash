@@ -29,8 +29,11 @@ export {
 } from "./schemas";
 export {
   buildActualModeTimelinePoints,
+  createActualModeFrameReplay,
   createActualModeTimelineFrameReader,
+  extendActualModeTransitionFiringTimesMs,
   getActualModeTransitionFiringTimesMs,
+  type ActualModeFrameReplay,
 } from "./timeline";
 export type {
   ActualModeLegacyTokenCounts,

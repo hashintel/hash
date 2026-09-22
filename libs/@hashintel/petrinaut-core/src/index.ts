@@ -21,9 +21,11 @@ export {
   actualModeTransitionFiringSchema,
   applyActualModeTransitionFiring,
   buildActualModeTimelinePoints,
+  createActualModeFrameReplay,
   createActualModeRecording,
   createActualModeReceivedEventsRecording,
   createActualModeTimelineFrameReader,
+  extendActualModeTransitionFiringTimesMs,
   getActualModeMarkingAtTransitionFiringIndex,
   getActualModeTransitionFiringTimesMs,
   parseActualModeRecording,
@@ -32,6 +34,7 @@ export {
 } from "./actual-mode";
 export type {
   ActualModeContextValue,
+  ActualModeFrameReplay,
   ActualModeMarking,
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
@@ -597,8 +600,10 @@ export {
 } from "./simulation/frames/hir-status-view";
 export {
   createStatusViewTracker,
+  diffInstanceLabelStates,
   getStatusViewExitLabel,
   summarizeStatusIntervals,
+  type InstanceLabelChange,
   type InstanceLabelState,
   type InstanceStatus,
   type StatusInterval,
