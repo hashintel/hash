@@ -25,7 +25,7 @@ use crate::{
         MigrationPolicy, RecordDeclaration, RecordRegistry, UntrimmedJournalRecord,
         VersionedRecord, reject_unknown_fields,
     },
-    routing::{SHARD_COUNT, Shard},
+    routing::Shard,
     shard_log::{ShardCommandError, ShardCommandHandle},
 };
 
@@ -247,31 +247,14 @@ impl From<PartitionKey> for String {
     }
 }
 
-/// Routes a partition to a stable shard by interpreting eight digest bytes as a big-endian integer
-/// and reducing it by the shard count.
+/// Returns the routing-v1 shard for `key`.
 ///
-/// The result does not depend on the process that computes it.
-///
-/// # Panics
-///
-/// Panics if a shard index cannot be represented.
-#[expect(
-    clippy::big_endian_bytes,
-    reason = "shard routing defines the digest prefix as big-endian"
-)]
+/// Routing-v1 uses byte 7 of the SHA-256 digest to select the partition's journal.
 #[must_use]
 pub fn shard_of(key: &PartitionKey) -> Shard {
     let digest: [u8; 32] = Sha256::digest(key.as_str().as_bytes()).into();
-    let routing_value = u64::from_be_bytes(
-        *digest
-            .first_chunk::<8>()
-            .expect("digest should contain eight prefix bytes"),
-    );
-    Shard::try_from(
-        u16::try_from(routing_value % core::num::NonZeroU64::from(SHARD_COUNT))
-            .expect("shard index should fit in u16"),
-    )
-    .expect("a value reduced modulo the shard count should be a valid shard")
+    let [_, _, _, _, _, _, _, shard, ..] = digest;
+    Shard::from_u8(shard)
 }
 
 /// Wraps an application event with its partition and event ID.
@@ -1385,6 +1368,16 @@ mod tests {
         assert_eq!(decoded.event_id(), record.event_id());
         assert_eq!(decoded.partition(), record.partition());
         assert_eq!(decoded.event(), record.event());
+    }
+
+    #[test]
+    fn routing_v1_partition_assignment() {
+        let key = PartitionKey::parse("orders").expect("partition should be valid");
+        assert_eq!(
+            shard_of(&key),
+            Shard::from_u8(228),
+            "routing-v1 should keep the journal assigned to a partition"
+        );
     }
 
     #[test]

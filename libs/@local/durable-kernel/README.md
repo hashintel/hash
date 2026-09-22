@@ -20,7 +20,9 @@ The [domain API](src/domain.rs) connects application code to the kernel:
 An application uses a partition key to keep related events together, such as
 events for the same customer. The kernel maps each key to a shard: a separate
 journal with one writer. Several keys can share a shard. The writer stores their
-events in order, while other shards can accept events independently.
+events in order, while other shards can accept events independently. Routing uses
+one-byte shard IDs, so a namespace has 256 stable shards. A process can own any
+subset.
 
 The kernel validates each new event, writes it to the journal, then applies it.
 Recovery rebuilds state by applying stored events.
