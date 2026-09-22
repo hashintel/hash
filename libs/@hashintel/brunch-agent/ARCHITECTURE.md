@@ -2,6 +2,8 @@
 
 This document describes the implementation as it exists. Detailed application operation and deployment configuration live in [`apps/brunch-agent/README.md`](../../../apps/brunch-agent/README.md).
 
+The current branch’s proposed target contract and unresolved construction-interface decision are recorded in the [Petrinaut tooling remediation replan](docs/refactoring/tooling-remediation-plan.md). The current-state description below is not authority to promote the Stock-over-Flue control into the product path.
+
 ## Runtime composition
 
 `apps/brunch-agent` is the Flue server and composition point. The product panel initializes `ChatAgent` in canonical Petrinaut mode, which returns Petrinaut's stock prompt and mounts the complete stock tool catalogue without Brunch workpiece, Ledger, elicitation, context-projection, or explanation contributions.
