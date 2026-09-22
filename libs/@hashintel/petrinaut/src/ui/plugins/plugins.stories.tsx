@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -64,6 +64,31 @@ const HostNotes = () => (
   </div>
 );
 
+const settingRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "3",
+  paddingX: "3",
+  paddingY: "2.5",
+  fontSize: "sm",
+});
+
+/** Rows of a Labs settings group; the dialog draws the group's frame. */
+const HostLabsRows = () => {
+  const [enabled, setEnabled] = useState(false);
+  return (
+    <div className={settingRowStyle}>
+      <span>Host experiment</span>
+      <Toggle
+        aria-label="Host experiment"
+        value={enabled}
+        onChange={setEnabled}
+      />
+    </div>
+  );
+};
+
 const greetCommandId = "story.host.greet";
 
 /**
@@ -123,6 +148,14 @@ const hostPlugin = definePetrinautPlugin({
       placement: "left-sidebar",
       component: HostNotes,
       defaultCollapsed: true,
+    },
+  ],
+  settingsGroups: [
+    {
+      id: "story.host.labs",
+      section: "labs",
+      title: "Host plugin",
+      component: HostLabsRows,
     },
   ],
   component: HostGreeting,
