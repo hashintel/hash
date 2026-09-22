@@ -11,12 +11,16 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   ExperimentHostContext,
+  ExperimentsContext,
+  openPetrinautSimulationResource,
   OptimizationsContext,
   prepareExperiment,
   usePetrinautInstance,
+  usePetrinautNavigation,
 } from "@hashintel/petrinaut/react";
 import {
   definePetrinautAiInteractiveTool,
+  ExperimentExecutionCard,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
 
@@ -214,6 +218,8 @@ export const BrunchDraftExperimentWidget = ({
 }: WidgetProps & { readTitle: () => string }) => {
   const instance = usePetrinautInstance();
   const experimentHost = use(ExperimentHostContext);
+  const { experiments } = use(ExperimentsContext);
+  const { navigate } = usePetrinautNavigation();
   const optimizationUnavailableReason =
     use(OptimizationsContext).optimizationUnavailableReason ?? null;
   const executionUnavailable =
@@ -393,6 +399,8 @@ export const BrunchDraftExperimentWidget = ({
     setRunError(null);
     const controller = new AbortController();
     sessionDrafts.update(toolCallId, {
+      prepared: current.prepared,
+      definition: currentDefinition,
       run: { phase: "running", controller, progress: null },
     });
     try {
@@ -446,6 +454,16 @@ export const BrunchDraftExperimentWidget = ({
     isCurrent &&
     (draft.run.phase === "idle" || draft.run.phase === "failed");
   const canRun = canAct && optimizationUnavailable === null;
+  const run = draft?.run;
+  const experimentId =
+    run?.phase === "finished"
+      ? run.result.experimentId
+      : run?.phase === "running"
+        ? run.progress?.experimentId
+        : undefined;
+  const canViewExperiment =
+    experimentId &&
+    experiments.some((experiment) => experiment.id === experimentId);
 
   return (
     <section
@@ -567,27 +585,32 @@ export const BrunchDraftExperimentWidget = ({
           </details>
         </div>
       ) : null}
-      {draft?.run.phase === "running" ? (
-        <p className={bodyStyle} role="status">
-          {draft.run.progress
-            ? `${draft.run.progress.phase}: ${draft.run.progress.runsCompleted}/${draft.run.progress.runsTarget} runs${
-                draft.run.progress.steps !== undefined
-                  ? `, step ${draft.run.progress.step ?? 0}/${draft.run.progress.steps}`
-                  : ""
-              }`
-            : "Starting…"}
-        </p>
-      ) : null}
-      {draft?.run.phase === "finished" ? (
-        <p className={bodyStyle} role="status">
-          {draft.run.result.message ??
-            `${draft.run.result.runsCompleted} runs completed. The result stays in Simulate → Experiments.`}
-        </p>
-      ) : null}
-      {draft?.run.phase === "failed" ? (
-        <p className={errorStyle} role="alert">
-          {draft.run.message}
-        </p>
+      {run && run.phase !== "idle" && draft.prepared ? (
+        <ExperimentExecutionCard
+          request={draft.prepared.request}
+          active={run.phase === "running"}
+          progress={
+            run.phase === "running" ? (run.progress ?? undefined) : undefined
+          }
+          result={run.phase === "finished" ? run.result : undefined}
+          error={run.phase === "failed" ? run.message : undefined}
+          onCancel={
+            run.phase === "running" ? () => run.controller.abort() : undefined
+          }
+          onViewExperiment={
+            canViewExperiment
+              ? () => {
+                  navigate(
+                    openPetrinautSimulationResource({
+                      type: "experiment",
+                      id: experimentId,
+                    }),
+                    { cause: "user", action: "simulation-resource" },
+                  );
+                }
+              : undefined
+          }
+        />
       ) : null}
       {canAct ? (
         <div className={actionsStyle}>
@@ -645,19 +668,6 @@ export const BrunchDraftExperimentWidget = ({
           </button>
         </div>
       ) : null}
-      {draft?.run.phase === "running" ? (
-        <div className={actionsStyle}>
-          <button
-            className={secondaryButtonStyle}
-            onClick={() => {
-              if (draft.run.phase === "running") draft.run.controller.abort();
-            }}
-            type="button"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 };
@@ -667,7 +677,7 @@ export const BrunchDraftExperimentWidget = ({
  * proposal against the live model, tells Brunch it is drafted (not run), and
  * lets the person Run or Dismiss it. Run reuses the stock experiment host, so
  * records, the active indicator and the Experiments view behave as shipped.
- * It never navigates and keeps nothing beyond this browser session.
+ * Only View experiment navigates; drafts stay within this browser session.
  */
 export const createBrunchDraftExperimentInteractiveTool = ({
   readTitle,

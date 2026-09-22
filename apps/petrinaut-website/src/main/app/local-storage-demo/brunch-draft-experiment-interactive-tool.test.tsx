@@ -61,6 +61,7 @@ import type {
   AbortSignalLike,
   Petrinaut,
   PetrinautExperimentHost,
+  PetrinautExperimentProgress,
   PetrinautExperimentRequest,
   PetrinautExperimentResult,
   SDCPN,
@@ -732,8 +733,13 @@ describe("BrunchDraftExperimentWidget", () => {
     });
     expect(seenSignal?.aborted).toBe(false);
     await waitFor(() => expect(heading()).toEqual(["Running"]));
-    expect(screen.getByRole("status").textContent).toBe(
-      "optimizing: 5/15 runs, step 1/3",
+    expect(screen.getByRole("status").textContent).toBe("Optimizing");
+    expect(screen.getByText("Step 1 of 3")).toBeTruthy();
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
+      "5",
+    );
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuemax")).toBe(
+      "15",
     );
     expect(screen.queryByRole("button", { name: "Run" })).toBeNull();
 
@@ -745,10 +751,10 @@ describe("BrunchDraftExperimentWidget", () => {
       resolveRun(finishedResult);
     });
     await waitFor(() => expect(heading()).toEqual(["Run complete"]));
-    expect(screen.getByRole("status").textContent).toContain(
-      "15 runs completed",
-    );
+    expect(screen.getByRole("status").textContent).toBe("Finished");
+    expect(screen.getByText("15 runs")).toBeTruthy();
     expect(runExperiment).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 
   it("retries a run failure from the host", async () => {
@@ -768,13 +774,134 @@ describe("BrunchDraftExperimentWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
 
     await waitFor(() => expect(heading()).toEqual(["Run failed"]));
-    expect(screen.getByRole("alert").textContent).toBe("Compilation failed");
+    expect(screen.getByRole("status").textContent).toBe("Failed");
+    expect(screen.getByText("Compilation failed")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry run" }));
 
     await waitFor(() => expect(runExperiment).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(heading()).toEqual(["Run complete"]));
   });
+
+  it.each(["simulate", "optimize"] as const)(
+    "shows a %s run failure from the host",
+    async (mode) => {
+      const runExperiment = vi.fn(() =>
+        Promise.reject(new Error("Compilation failed")),
+      );
+      const { submit } = renderWidget({
+        input: makeInput(
+          makeRequest(
+            mode === "simulate"
+              ? {
+                  execution: { mode },
+                  scenarioParameterValues: {
+                    agents: { mode: "fixed", value: 4 },
+                  },
+                }
+              : {},
+          ),
+        ),
+        toolCallId: "call_draft_fail",
+        state: awaiting,
+        definition: createReadableStore(makeDefinition()),
+        runExperiment,
+      });
+      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByRole("button", { name: "Run" }));
+
+      await waitFor(() => expect(heading()).toEqual(["Run failed"]));
+      expect(screen.getByRole("status").textContent).toBe("Failed");
+      expect(screen.getByText("Compilation failed")).toBeTruthy();
+    },
+  );
+
+  it.each(["simulate", "optimize"] as const)(
+    "retains %s execution state across remount and presents cancellation without another tool output",
+    async (mode) => {
+      const completion = Promise.withResolvers<PetrinautExperimentResult>();
+      let reportProgress:
+        | ((progress: PetrinautExperimentProgress) => void)
+        | undefined;
+      let signal: AbortSignalLike | undefined;
+      const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+        (_request, options) => {
+          reportProgress = options?.onProgress;
+          signal = options?.signal;
+          return completion.promise;
+        },
+      );
+      const props = {
+        input: makeInput(
+          makeRequest(
+            mode === "simulate"
+              ? {
+                  execution: { mode },
+                  scenarioParameterValues: {
+                    agents: { mode: "fixed", value: 4 },
+                  },
+                }
+              : {},
+          ),
+        ),
+        toolCallId: "remounted-run",
+        state: awaiting,
+        definition: createReadableStore(makeDefinition()),
+        runExperiment,
+      };
+      const first = renderWidget(props);
+      await waitFor(() => expect(first.submit).toHaveBeenCalledTimes(1));
+      expect(
+        screen.queryByRole("region", {
+          name: "Experiment: Staffing under peak demand",
+        }),
+      ).toBeNull();
+      expect(runExperiment).not.toHaveBeenCalled();
+      const runButton = screen.getByRole("button", { name: "Run" });
+      act(() => {
+        runButton.click();
+        runButton.click();
+      });
+      expect(runExperiment).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("status").textContent).toBe("Validating");
+      act(() =>
+        reportProgress?.({
+          experimentId: "experiment_1",
+          name: "Staffing under peak demand",
+          phase: mode === "simulate" ? "running" : "refining",
+          runsCompleted: 7,
+          runsTarget: 20,
+        }),
+      );
+      first.unmount();
+      const remounted = renderWidget({ ...props, state: submitted });
+      expect(screen.getByRole("status").textContent).toBe(
+        mode === "simulate" ? "Running" : "Refining",
+      );
+      expect(
+        screen.getByRole("progressbar").getAttribute("aria-valuenow"),
+      ).toBe("7");
+      expect(
+        screen.queryByRole("button", { name: /View experiment/u }),
+      ).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(signal?.aborted).toBe(true);
+      await act(async () =>
+        completion.resolve({
+          ...finishedResult,
+          status: "cancelled",
+          runsCompleted: 7,
+        }),
+      );
+      expect(screen.getByRole("status").textContent).toBe("Cancelled");
+      expect(screen.queryByRole("progressbar")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+      expect(runExperiment).toHaveBeenCalledTimes(1);
+      expect(first.submit).toHaveBeenCalledTimes(1);
+      expect(remounted.submit).not.toHaveBeenCalled();
+    },
+  );
 
   it("requires fresh approval for each model change in simulation-only requests", async () => {
     const runExperiment = vi.fn(() => Promise.resolve(finishedResult));
