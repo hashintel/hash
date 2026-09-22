@@ -736,7 +736,10 @@ describe("the net ledger is a projection over Flue history", () => {
         throw new Error("Missing delivery fixture.");
       await expect(
         verifyMutationResults({
-          body: deliveryText.text,
+          body: JSON.stringify({
+            results: JSON.parse(deliveryText.text) as unknown,
+            context: "Current Petrinaut diagnostics are settled.",
+          }),
           snapshot,
           binding,
         }),
