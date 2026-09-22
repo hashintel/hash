@@ -10,6 +10,8 @@
 //! to use [`crate::shard_log::OpenedShard`] for custom runtimes. Application code
 //! can instead implement [`crate::domain::SimpleDomain`], which supplies this adapter.
 
+use std::io::Write;
+
 use chrono::{DateTime, Utc};
 use error_stack::Report;
 
@@ -76,7 +78,10 @@ pub trait EventDomain: Send + Sync + 'static {
     /// # Errors
     ///
     /// Returns an error if the record cannot be encoded or exceeds the size limit.
-    fn encode_record(record: &Self::RecordCurrent) -> Result<Vec<u8>, Report<CompatError>>;
+    fn encode_record<W: Write>(
+        record: &Self::RecordCurrent,
+        writer: W,
+    ) -> Result<(), Report<CompatError>>;
     /// # Errors
     ///
     /// Returns an error if the proposed record violates the domain’s validation rules.

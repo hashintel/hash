@@ -85,9 +85,16 @@ fn record(payload: Payload) -> EventRecord<Payload> {
     EventRecord::V1(EventRecordV1::new(payload).expect("payload identity should be computed"))
 }
 
+fn encode(
+    record: &impl durable_kernel::registry::DurableRecord,
+) -> Result<Vec<u8>, Report<CompatError>> {
+    let mut bytes = Vec::new();
+    record.encode(&mut bytes)?;
+    Ok(bytes)
+}
+
 fn payload_at_limit() -> Payload {
-    let overhead = record(Payload(String::new()))
-        .encode()
+    let overhead = encode(&record(Payload(String::new())))
         .expect("empty payload should encode")
         .len();
     Payload("x".repeat(MAX_RECORD_BYTES - overhead))
@@ -96,18 +103,16 @@ fn payload_at_limit() -> Payload {
 #[test]
 fn record_size_boundary() {
     let payload = payload_at_limit();
-    let encoded = record(Payload(payload.0.clone()))
-        .encode()
-        .expect("record at the limit should encode");
+    let encoded =
+        encode(&record(Payload(payload.0.clone()))).expect("record at the limit should encode");
     assert_eq!(encoded.len(), MAX_RECORD_BYTES);
     let EventRecord::V1(decoded) =
         EventRecord::<Payload>::decode(&encoded).expect("record at the limit should decode");
     assert_eq!(decoded.event(), &payload);
 
     let oversized = record(Payload(format!("{}x", payload.0)));
-    let error = oversized
-        .encode()
-        .expect_err("record one byte over the limit should fail encoding");
+    let error =
+        encode(&oversized).expect_err("record one byte over the limit should fail encoding");
     let expected = CompatError::TooLarge {
         name: Payload::name(),
         actual_bytes: MAX_RECORD_BYTES + 1,
