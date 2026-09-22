@@ -19,7 +19,7 @@ import {
 } from "@hashintel/brunch-agent-plugin-sdcpn";
 import {
   clientToolHistoryFrom,
-  isClientToolResult,
+  parseClientToolResultPayload,
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
 import { createExperimentToolName } from "@hashintel/petrinaut-core";
@@ -30,13 +30,12 @@ import { retainedSettledRevision } from "./workpiece.ts";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
 const parseBrowserResults = (body: string) => {
-  const deliveries: unknown = JSON.parse(body);
-  if (!Array.isArray(deliveries)) throw new Error("Malformed browser results.");
-  return deliveries.map((delivery: unknown) => {
-    if (!isClientToolResult(delivery))
-      throw new Error("Malformed browser result identity.");
-    return delivery;
+  const payload = parseClientToolResultPayload(body, () => {
+    throw new Error("Malformed browser results.");
   });
+  if (payload.results.length === 0)
+    throw new Error("Malformed browser results.");
+  return payload.results;
 };
 
 const batchRecordOutcome = (
