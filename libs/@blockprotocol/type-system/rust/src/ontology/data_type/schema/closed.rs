@@ -100,15 +100,13 @@ impl ClosedDataType {
         };
 
         let label = if data_type.label.is_empty() {
-            metadata_schema
-                .map_or_default(|schema| schema.label.clone())
+            metadata_schema.map_or_default(|schema| schema.label.clone())
         } else {
             data_type.label
         };
 
         let icon = if data_type.icon.is_none() {
-            metadata_schema
-                .map_or_default(|schema| schema.icon.clone())
+            metadata_schema.map_or_default(|schema| schema.icon.clone())
         } else {
             data_type.icon.clone()
         };
