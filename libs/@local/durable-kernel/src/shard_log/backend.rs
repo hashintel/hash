@@ -10,7 +10,7 @@ use core::{
     time::Duration,
 };
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use error_stack::{Report, ResultExt as _};
 use futures_core::Stream;
 use opendata_common::StorageConfig;
@@ -66,15 +66,15 @@ pub trait JournalWriter: JournalReader {
     /// Exclusive end of durable records visible to this writer.
     fn durable_end_exclusive(&self) -> u64;
 
-    /// Stores a record and returns its sequence only after it is durable. Sequences increase
-    /// across all keys and writer epochs. They may contain gaps.
+    /// Stores a record under the bytes remaining in `key` and returns its sequence only after it
+    /// is durable. Sequences increase across all keys and writer epochs. They may contain gaps.
     ///
     /// # Errors
     ///
     /// Classifies a failure as definitely not committed, possibly committed, or fenced.
     fn append(
         &self,
-        key: Bytes,
+        key: impl Buf + Send,
         value: Bytes,
     ) -> impl Future<Output = Result<u64, Report<ShardAppendError>>> + Send;
 }
@@ -229,7 +229,13 @@ impl JournalWriter for StorageWriter {
         self.log.durable_sequence()
     }
 
-    async fn append(&self, key: Bytes, value: Bytes) -> Result<u64, Report<ShardAppendError>> {
+    async fn append(
+        &self,
+        mut key: impl Buf + Send,
+        value: Bytes,
+    ) -> Result<u64, Report<ShardAppendError>> {
+        let remaining = key.remaining();
+        let key = key.copy_to_bytes(remaining);
         let output = self
             .log
             .append_timeout(vec![Record { key, value }], APPEND_TIMEOUT)
