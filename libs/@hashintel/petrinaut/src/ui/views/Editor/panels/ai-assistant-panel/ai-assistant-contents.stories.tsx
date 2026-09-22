@@ -20,6 +20,7 @@ import {
 } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
+import type { VoiceAudioSettingsState } from "../../../../../react/voice-session/types";
 import type { PetrinautAiToolPresentationResolver } from "../../../../petrinaut";
 import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
@@ -302,7 +303,38 @@ const createStoryVoiceSessionStore = (
         speakerVolume: Math.min(1, Math.max(0, speakerVolume)),
       }),
   };
+  const updateAudioSettings = (
+    update: (settings: VoiceAudioSettingsState) => VoiceAudioSettingsState,
+  ) => {
+    const audioSettings = store.getSnapshot().state?.audioSettings;
+    if (audioSettings) {
+      updateVoiceSessionState(store, {
+        audioSettings: update(audioSettings),
+      });
+    }
+  };
+  const audioSettingsActions = state.audioSettings
+    ? {
+        refreshDevices: () => {},
+        requestSpeaker: () => {},
+        setMicrophoneDevice: (microphoneId: string) =>
+          updateAudioSettings((settings) => ({
+            ...settings,
+            devices: { ...settings.devices, microphoneId },
+          })),
+        setSpeakerDevice: (speakerId: string) =>
+          updateAudioSettings((settings) => ({
+            ...settings,
+            devices: { ...settings.devices, speakerId },
+          })),
+        setSpeed: (speed: number) =>
+          updateAudioSettings((settings) => ({ ...settings, speed })),
+        setVoice: (voice: string) =>
+          updateAudioSettings((settings) => ({ ...settings, voice })),
+      }
+    : undefined;
   const liveActions: VoiceSessionActions = {
+    audioSettings: audioSettingsActions,
     end: () => {},
     pause: () => {},
     setMicrophoneMuted: (microphoneMuted) =>
@@ -558,7 +590,7 @@ export const LiveSessionAudioOptions: Story = {
     await expect(within(speakerMute).queryByText("Mute speaker")).toBeNull();
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
-    ).toHaveAttribute("aria-valuenow", "0.65");
+    ).toHaveAttribute("aria-valuenow", "65");
     await expect(canvas.getByText("65%")).toBeInTheDocument();
     await expect(canvas.queryByText("Audio options")).toBeNull();
     await expect(canvas.queryByRole("button", { name: "Close" })).toBeNull();
@@ -566,10 +598,10 @@ export const LiveSessionAudioOptions: Story = {
       canvas.queryByRole("button", { name: "Repeat question" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Read full response" }),
+      canvas.queryByRole("button", { name: "Read full reply" }),
     ).toBeNull();
     await expect(
-      canvas.queryByRole("button", { name: "Interruption by speaking" }),
+      canvas.queryByRole("checkbox", { name: "Allow interruptions" }),
     ).toBeNull();
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
@@ -612,34 +644,361 @@ export const RealtimeSessionAudioOptions: Story = {
     ).toBeInTheDocument();
     await expect(
       canvas.getByRole("slider", { name: "Speaker volume" }),
-    ).toHaveAttribute("aria-valuenow", "0.4");
+    ).toHaveAttribute("aria-valuenow", "40");
     await expect(canvas.getByText("40%")).toBeInTheDocument();
     await expect(
       canvas.getByRole("button", { name: "Repeat question" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Read full response" }),
+      canvas.getByRole("button", { name: "Read full reply" }),
     ).toBeEnabled();
     await expect(
-      canvas.getByRole("button", { name: "Interruption by speaking" }),
-    ).toHaveAttribute("aria-pressed", "true");
+      canvas.getByRole("checkbox", { name: "Allow interruptions" }),
+    ).toBeChecked();
   },
 };
 
-export const VoiceSessionLongWarning: Story = {
+const realisticAudioSettings = (
+  overrides: Partial<VoiceAudioSettingsState> = {},
+): VoiceAudioSettingsState => ({
+  activeVoice: "alloy",
+  voice: "verse",
+  voices: [
+    { value: "alloy", text: "Alloy" },
+    { value: "verse", text: "Verse" },
+    { value: "coral", text: "Coral" },
+  ],
+  speed: 1.25,
+  devices: {
+    microphones: [
+      { value: "studio-mic", text: "Studio USB microphone" },
+      { value: "laptop-mic", text: "Built-in microphone" },
+    ],
+    speakers: [
+      { value: "headphones", text: "USB headphones" },
+      { value: "display", text: "Studio display" },
+    ],
+    microphoneId: "studio-mic",
+    speakerId: "headphones",
+    canSelectSpeaker: true,
+    canRequestSpeaker: true,
+    busy: false,
+    message: null,
+  },
+  ...overrides,
+});
+
+export const VoicePreviewPlaying: Story = {
   render: () => (
     <Frame
-      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({ voicePreview: "playing" }),
+        microphoneMuted: true,
+        phase: "muted",
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
+export const VoicePreviewLoading: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({ voicePreview: "loading" }),
+        microphoneMuted: true,
+        phase: "muted",
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
+export const VoicePreviewUnavailable: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({
+          voicePreviewError:
+            "Preview unavailable. Select a voice to try again.",
+        }),
+        microphoneMuted: true,
+        phase: "muted",
+        speakerVolume: 0.65,
+      })}
+    />
+  ),
+};
+
+export const ExtendedAudioSettings: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings(),
+        phase: "speaking",
+        speakerVolume: 0.65,
+        warningMessage: "Microphone disconnected. Switched to system default.",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const dock = canvas.getByTestId("ai-voice-dock");
+    const dockButtons = within(dock).getAllByRole("button");
+    const position = (element: HTMLElement) => {
+      const { x, y, width, height } = element.getBoundingClientRect();
+      return { x, y, width, height };
+    };
+    const positions = () => dockButtons.map(position);
+    const beforeOpen = positions();
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    await expect(
+      await canvas.findByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("combobox", { name: "Microphone" }),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: /^Voice/ }),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByText(/^The voice applies next time/),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toHaveAccessibleDescription("Wait for the agent to finish.");
+    const realTimeToggle = canvas.getByRole("button", { name: "Real-time" });
+    await userEvent.click(realTimeToggle);
+    await expect(realTimeToggle).toHaveAttribute("aria-expanded", "true");
+    const speed = canvas.getByRole("slider", { name: "Speed" });
+    await expect(speed).toBeInTheDocument();
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    await expect(positions()).toEqual(beforeOpen);
+    await expect(
+      dockButtons
+        .slice(0, 3)
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Hide conversation", "Audio options", "Show 1 Voice issue"]);
+    speed.focus();
+    await userEvent.keyboard("{ArrowLeft}");
+    await expect(speed).toHaveAttribute("aria-valuenow", "1");
+    await expect(getComputedStyle(speed).cursor).toBe("pointer");
+    await expect(
+      getComputedStyle(canvas.getByRole("slider", { name: "Speaker volume" }))
+        .cursor,
+    ).toBe("pointer");
+    const devicesToggle = canvas.getByRole("button", {
+      name: "Devices",
+    });
+    devicesToggle.focus();
+    await userEvent.keyboard("{Enter}");
+    await expect(devicesToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      canvas.getByRole("combobox", { name: "Microphone" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaker" }),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard("{Enter}");
+    await expect(devicesToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      canvas.queryByRole("combobox", { name: "Microphone" }),
+    ).not.toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Voice" }),
+    ).toBeInTheDocument();
+    const interruptions = canvas.getByRole("checkbox", {
+      name: "Allow interruptions",
+    });
+    await expect(interruptions).not.toBeChecked();
+    await userEvent.click(interruptions);
+    await expect(interruptions).toBeChecked();
+    await userEvent.click(interruptions);
+    await expect(interruptions).not.toBeChecked();
+  },
+};
+
+export const AudioSettingsConnecting: Story = {
+  render: () => (
+    <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
       voiceSession={liveSession({
-        phase: "connected",
-        warningMessage:
-          "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.",
+        audioSettings: realisticAudioSettings({ speed: undefined }),
+        phase: "connecting",
       })}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    const notice = await canvas.findByText(
+      "Audio controls are unavailable until Voice is connected.",
+    );
+    const voice = canvas.getByRole("combobox", { name: "Voice" });
+    await expect(notice.getBoundingClientRect().left).toBe(
+      canvas.getByText("Voice", { exact: true }).getBoundingClientRect().left,
+    );
+    const devices = canvas.getByRole("button", { name: "Devices" });
+    await expect(
+      notice.getBoundingClientRect().top -
+        devices.getBoundingClientRect().bottom,
+    ).toBe(8);
+    await expect(voice).toBeEnabled();
+    await userEvent.click(voice);
+    await userEvent.click(await canvas.findByRole("option", { name: "Coral" }));
+    await expect(voice).toHaveTextContent("Coral");
+  },
+};
+
+export const AudioSettingsUnavailableDevices: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings({
+          speed: undefined,
+          devices: {
+            microphones: [],
+            speakers: [],
+            microphoneId: "",
+            speakerId: "",
+            canSelectSpeaker: false,
+            canRequestSpeaker: false,
+            busy: false,
+            message: "Microphone permission is needed to list audio devices.",
+          },
+        }),
+        phase: "connected",
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Audio options" }),
+    );
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Devices" }),
+    );
+    await expect(
+      await canvas.findByText(
+        "Microphone permission is needed to list audio devices.",
+      ),
+    ).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("combobox", { name: "Speaker" }),
+    ).toBeDisabled();
+  },
+};
+
+const longVoiceStatus =
+  "Voice admission could not be confirmed. Check canonical history before sending again; no automatic retry was made.";
+
+export const VoiceSessionLongWarning: Story = {
+  render: () => (
+    <Frame
+      fixedNarrowWidth
+      initialVoiceDockCollapsed
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      status="streaming"
+      voiceModeAvailable
+      voiceProvider="realtime"
+      voiceSession={liveSession({
+        audioSettings: realisticAudioSettings(),
+        canTakeTurn: true,
+        notice: longVoiceStatus,
+        phase: "speaking",
+        warningMessage: longVoiceStatus,
+      })}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const frame = canvas.getByTestId("ai-assistant-story-frame");
+    const dock = canvas.getByRole("region", { name: "Voice session" });
+    const getPart = (part: string) => {
+      const element = dock.querySelector<HTMLElement>(`[data-part="${part}"]`);
+      if (!element) throw new Error(`Missing Voice dock part: ${part}`);
+      return element;
+    };
+
+    await within(dock).findByRole("button", { name: "Show 1 Voice issue" });
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+
+    const dockBounds = dock.getBoundingClientRect();
+    const frameBounds = frame.getBoundingClientRect();
+    const leftActions = getPart("left-actions");
+    const center = getPart("shrinkable-status");
+    const visibleStatus = getPart("visible-status");
+    const rightActions = getPart("right-actions");
+    const centerBounds = center.getBoundingClientRect();
+    const leftBounds = leftActions.getBoundingClientRect();
+    const rightBounds = rightActions.getBoundingClientRect();
+    const statusBounds = visibleStatus.getBoundingClientRect();
+
+    await expect(frameBounds.width).toBeLessThanOrEqual(390);
+    await expect(dockBounds.left).toBeGreaterThanOrEqual(frameBounds.left);
+    await expect(dockBounds.right).toBeLessThanOrEqual(frameBounds.right);
+    await expect(centerBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(centerBounds.right).toBeLessThanOrEqual(rightBounds.left);
+    await expect(statusBounds.left).toBeGreaterThanOrEqual(leftBounds.right);
+    await expect(statusBounds.right).toBeLessThanOrEqual(rightBounds.left);
+
+    for (const cluster of [leftActions, rightActions]) {
+      await expect(cluster).toBeVisible();
+      const clusterBounds = cluster.getBoundingClientRect();
+      await expect(clusterBounds.width).toBeGreaterThan(0);
+      await expect(clusterBounds.left).toBeGreaterThanOrEqual(dockBounds.left);
+      await expect(clusterBounds.right).toBeLessThanOrEqual(dockBounds.right);
+      for (const action of within(cluster).getAllByRole("button")) {
+        await expect(action).toBeVisible();
+        await expect(action.getBoundingClientRect().width).toBeGreaterThan(0);
+      }
+    }
+
+    await expect(visibleStatus).toBeVisible();
+    await expect(visibleStatus).toHaveTextContent(longVoiceStatus);
+    await expect(visibleStatus.clientWidth).toBeGreaterThan(0);
+    await expect(visibleStatus.scrollWidth).toBeGreaterThan(
+      visibleStatus.clientWidth,
+    );
+    await expect(getComputedStyle(visibleStatus).textOverflow).toBe("ellipsis");
+    await expect(
+      within(dock).getByRole("status", { name: "Voice status" }),
+    ).toHaveTextContent(`Voice status: ${longVoiceStatus}`);
+  },
 };
 
 export const VoiceSessionInputNotRetained: Story = {
