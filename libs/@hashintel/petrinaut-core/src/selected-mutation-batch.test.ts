@@ -172,7 +172,48 @@ describe("selected mutation batch", () => {
         },
       ]),
     ).toHaveLength(4);
-    for (const type of ["addScenario", "addMetric"] as const) {
+    expect(
+      selectedMutationBatchSchema.parse([
+        {
+          operationId: "scenario",
+          type: "addScenario",
+          input: {
+            id: "peak",
+            name: "Peak",
+            scenarioParameters: [
+              { identifier: "active_agents", type: "integer", default: 4 },
+            ],
+            initialState: { type: "per_place", content: {} },
+          },
+        },
+        {
+          operationId: "metric",
+          type: "addMetric",
+          input: { id: "wait", name: "Wait", code: "return 0;" },
+        },
+        {
+          operationId: "describe-scenario",
+          type: "updateScenario",
+          input: { scenarioId: "peak", update: { description: "Mondays" } },
+        },
+        {
+          operationId: "rename-metric",
+          type: "updateMetric",
+          input: { metricId: "wait", update: { name: "Waiting time" } },
+        },
+        {
+          operationId: "drop-metric",
+          type: "removeMetric",
+          input: { metricId: "wait" },
+        },
+        {
+          operationId: "drop-scenario",
+          type: "removeScenario",
+          input: { scenarioId: "peak" },
+        },
+      ]),
+    ).toHaveLength(6);
+    for (const type of ["addSubnet", "addComponentInstance"] as const) {
       expect(() =>
         selectedMutationBatchSchema.parse([
           {
@@ -181,7 +222,7 @@ describe("selected mutation batch", () => {
             input: {},
           },
         ]),
-      ).toThrow();
+      ).toThrow(/Invalid discriminator value/u);
     }
     expect(() =>
       selectedMutationBatchSchema.parse([

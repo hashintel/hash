@@ -10,7 +10,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import { petrinautDocsContent } from "@hashintel/petrinaut/ui";
 
-import { brunchPetrinautDynamicToolNames } from "./brunch-client-tools";
+import { brunchPetrinautAutomaticToolNames } from "./brunch-client-tools";
 import { createBrunchPetrinautTools } from "./brunch-petrinaut-tools";
 import { observeBrowserDefinition } from "./mutation-record";
 
@@ -102,7 +102,7 @@ const toolNamed = (
 };
 
 describe("Brunch-named Petrinaut tools", () => {
-  test("mounts every Brunch-named tool as a dynamic host tool", () => {
+  test("mounts every Brunch-named automatic tool as a dynamic host tool", () => {
     const tools = createBrunchPetrinautTools({
       readTitle: () => "Net",
       mutation: {
@@ -114,7 +114,7 @@ describe("Brunch-named Petrinaut tools", () => {
       },
     });
     expect(tools.map(({ toolName }) => toolName).toSorted()).toEqual(
-      [...brunchPetrinautDynamicToolNames].toSorted(),
+      [...brunchPetrinautAutomaticToolNames].toSorted(),
     );
     expect(toolNamed(tools, "layout_petrinaut_net").visibility).toBe("hidden");
     expect(
@@ -241,6 +241,95 @@ describe("Brunch-named Petrinaut tools", () => {
     settled.resolve();
     await run;
     expect(output).toEqual(expect.objectContaining({ applied: true }));
+  });
+
+  test("shows a saved scenario and metric in the next net read after the batch that saved them", async () => {
+    const instance = instanceFor(twoNodeNet);
+    const tools = createBrunchPetrinautTools({
+      readTitle: () => "Support desk",
+      mutation: {
+        binding: {
+          conversationId: "c",
+          documentId: "brunch-tools",
+          incarnationId: "i",
+        },
+      },
+    });
+    const readNet = toolNamed(tools, "read_petrinaut_net");
+    const before = readNet.execute(paramsFor(instance, {})) as {
+      definition: SDCPN;
+      observation: { sha256: string };
+    };
+    expect(before.definition.scenarios).toBeUndefined();
+    expect(before.definition.metrics).toBeUndefined();
+
+    const basis = {
+      basisId: "basis-1",
+      basis: { kind: "absent" as const, reason: "Loopback tracer" },
+    };
+    const output = (await toolNamed(tools, "mutate_petrinaut_net").execute(
+      paramsFor(instance, {
+        observation: {
+          toolCallId: "call-1",
+          baseHash: before.observation.sha256,
+        },
+        bases: [basis],
+        operations: [
+          {
+            basisId: basis.basisId,
+            operationId: "add-peak",
+            type: "addScenario",
+            input: {
+              id: "peak-demand",
+              name: "Peak demand",
+              scenarioParameters: [
+                { identifier: "active_agents", type: "integer", default: 4 },
+              ],
+              initialState: {
+                type: "per_place",
+                content: { queue: "scenario.active_agents" },
+              },
+            },
+          },
+          {
+            basisId: basis.basisId,
+            operationId: "add-wait",
+            type: "addMetric",
+            input: {
+              id: "average-wait",
+              name: "Average waiting time",
+              code: "return state.places.Queue.count;",
+            },
+          },
+        ],
+      }),
+    )) as { outcomes: { status: string }[] };
+    expect(output.outcomes.map(({ status }) => status)).toEqual([
+      "applied",
+      "applied",
+    ]);
+
+    const after = readNet.execute(paramsFor(instance, {})) as {
+      definition: SDCPN;
+      observation: { sha256: string };
+    };
+    expect(after.observation.sha256).not.toBe(before.observation.sha256);
+    expect(after.definition.scenarios).toEqual([
+      expect.objectContaining({
+        id: "peak-demand",
+        name: "Peak demand",
+        scenarioParameters: [
+          { identifier: "active_agents", type: "integer", default: 4 },
+        ],
+      }),
+    ]);
+    expect(after.definition.metrics).toEqual([
+      expect.objectContaining({
+        id: "average-wait",
+        name: "Average waiting time",
+      }),
+    ]);
+    instance.dispose();
   });
 
   test("does not wait on the host for a tool that left the document unchanged", async () => {

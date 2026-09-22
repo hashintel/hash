@@ -118,6 +118,7 @@ export const assertNodeIdentity = (
       ...definition.parameters,
       ...definition.differentialEquations,
       ...(definition.scenarios ?? []),
+      ...(definition.metrics ?? []),
       ...(definition.subnets ?? []),
       ...(definition.componentInstances ?? []),
     ].map((entry) => entry.id);

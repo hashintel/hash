@@ -194,6 +194,16 @@ const rootRemoveDifferentialEquationInputSchema =
     targetSubnetId: true,
   });
 
+// Scenarios and metrics live on the root net only, so the canonical inputs
+// carry no targetSubnetId and are used as they are. Scenario parameters are
+// the tunable quantities an experiment varies; a count is an `integer` type.
+const rootAddScenarioInputSchema = mutationActionInputSchemas.addScenario;
+const rootUpdateScenarioInputSchema = mutationActionInputSchemas.updateScenario;
+const rootRemoveScenarioInputSchema = mutationActionInputSchemas.removeScenario;
+const rootAddMetricInputSchema = mutationActionInputSchemas.addMetric;
+const rootUpdateMetricInputSchema = mutationActionInputSchemas.updateMetric;
+const rootRemoveMetricInputSchema = mutationActionInputSchemas.removeMetric;
+
 const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
   z.strictObject({
     operationId: operationIdSchema,
@@ -360,6 +370,43 @@ const mutatePetrinetOperationSchema = z.discriminatedUnion("type", [
     input: rootRemoveDifferentialEquationInputSchema.meta(
       mutationActionInputSchemas.removeDifferentialEquation.meta() ?? {},
     ),
+  }),
+  // Simulation scenarios and metrics: the saved entities an experiment names.
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addScenario"),
+    input: rootAddScenarioInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateScenario"),
+    input: rootUpdateScenarioInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeScenario"),
+    input: rootRemoveScenarioInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("addMetric"),
+    input: rootAddMetricInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("updateMetric"),
+    input: rootUpdateMetricInputSchema,
+  }),
+  z.strictObject({
+    operationId: operationIdSchema,
+    basisId: basisIdSchema,
+    type: z.literal("removeMetric"),
+    input: rootRemoveMetricInputSchema,
   }),
 ]);
 

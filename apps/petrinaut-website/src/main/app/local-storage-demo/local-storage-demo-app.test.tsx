@@ -137,6 +137,7 @@ const editorProps = vi.hoisted(() => ({
     handle?: unknown;
     loadPetriNet?: unknown;
     navigation?: unknown;
+    slots?: unknown;
     title?: string;
   } | null,
 }));
@@ -515,7 +516,12 @@ describe("local storage demo Brunch voice integration", () => {
     expect(aiAssistant.requestStop).toBeTypeOf("function");
     expect([...brunchClientToolNames]).toEqual(["read_petrinaut_docs"]);
     expect(aiAssistant.executeMutation).toBeTypeOf("function");
-    expect(aiAssistant.interactiveTools).toEqual([]);
+    // The only interactive tool is the session experiment draft card; the
+    // voice-only brunch_ask widget is never mounted here.
+    expect(
+      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+    ).toEqual(["draft_petrinaut_experiment"]);
+    expect(editorProps.current?.slots).toBeUndefined();
     expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
     expect(aiAssistant.workingLabel).toBe("Brunch is working");
     expect(
@@ -1372,6 +1378,7 @@ describe("local storage demo Brunch controls", () => {
       incarnationId,
     });
     expect([...(transportOptions.clientToolNames ?? [])].toSorted()).toEqual([
+      "draft_petrinaut_experiment",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
       "read_petrinaut_diagnostics",
@@ -1384,6 +1391,7 @@ describe("local storage demo Brunch controls", () => {
       "read_petrinaut_diagnostics",
       "layout_petrinaut_net",
       "mutate_petrinaut_net",
+      "draft_petrinaut_experiment",
     ]);
   });
 });

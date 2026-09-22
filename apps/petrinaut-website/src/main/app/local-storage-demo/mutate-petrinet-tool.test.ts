@@ -248,6 +248,66 @@ const stateRemovals = [
   },
 ];
 
+/** The saved scenario and metric an experiment names, then edited and removed by ID. */
+const experimentEntities = [
+  {
+    operationId: "add-peak",
+    type: "addScenario" as const,
+    input: {
+      id: "peak-demand",
+      name: "Peak demand",
+      scenarioParameters: [
+        {
+          identifier: "active_agents",
+          type: "integer" as const,
+          default: 4,
+        },
+      ],
+      initialState: {
+        type: "per_place" as const,
+        content: { queue: "scenario.active_agents" },
+      },
+    },
+  },
+  {
+    operationId: "add-wait",
+    type: "addMetric" as const,
+    input: {
+      id: "average-wait",
+      name: "Average wait",
+      code: "return state.places.Queue.count;",
+    },
+  },
+  {
+    operationId: "describe-peak",
+    type: "updateScenario" as const,
+    input: {
+      scenarioId: "peak-demand",
+      update: { description: "Monday morning arrivals" },
+    },
+  },
+  {
+    operationId: "rename-wait",
+    type: "updateMetric" as const,
+    input: {
+      metricId: "average-wait",
+      update: { name: "Average waiting time" },
+    },
+  },
+];
+const experimentEntityRemovals = [
+  {
+    operationId: "drop-wait",
+    type: "removeMetric" as const,
+    input: { metricId: "average-wait" },
+  },
+  {
+    operationId: "drop-peak",
+    type: "removeScenario" as const,
+    input: { scenarioId: "peak-demand" },
+  },
+];
+
 const run = (
   tool: ReturnType<typeof createMutatePetrinetAutomaticTool>,
   instance: ReturnType<typeof createInstance>,
@@ -280,6 +340,8 @@ const inputFor = (
     | (typeof edits)[number]
     | typeof colouredPlace
     | (typeof stateRemovals)[number]
+    | (typeof experimentEntities)[number]
+    | (typeof experimentEntityRemovals)[number]
   )[],
 ) => {
   const observed = observeBrowserDefinition(instance.handle);
@@ -485,6 +547,105 @@ describe("mutate_petrinet automatic host tool", () => {
     );
     expect(verified.map(({ outcome }) => outcome)).toEqual(
       stateRemovals.map(() => "applied"),
+    );
+    instance.dispose();
+  });
+
+  test("saves, edits and removes the scenario and metric an experiment names, each verified at the receiving boundary", async () => {
+    const instance = createInstance();
+    const recorder = createBrowserMutationRecorder({
+      handle: instance.handle,
+      binding,
+      requestFor: (toolCallId) => {
+        throw new Error(`Unexpected requestFor(${toolCallId})`);
+      },
+    });
+    const tool = createMutatePetrinetAutomaticTool(binding, {
+      retainAttempt: recorder.retainAttempt,
+    });
+    await run(tool, instance, inputFor(instance, [place]), "batch-place");
+
+    const saved = mutatePetrinetOutputSchema.parse(
+      await run(
+        tool,
+        instance,
+        inputFor(instance, experimentEntities),
+        "batch-experiment-entities",
+      ),
+    );
+    expect(saved.outcomes.map(({ status }) => status)).toEqual(
+      experimentEntities.map(() => "applied"),
+    );
+    expect(instance.definition.get()).toMatchObject({
+      scenarios: [
+        {
+          id: "peak-demand",
+          description: "Monday morning arrivals",
+          scenarioParameters: [
+            { identifier: "active_agents", type: "integer" },
+          ],
+          initialState: {
+            type: "per_place",
+            content: { queue: "scenario.active_agents" },
+          },
+        },
+      ],
+      metrics: [{ id: "average-wait", name: "Average waiting time" }],
+    });
+    // The first scenario and metric each land as one entity creation; the
+    // edits attribute only their requested field.
+    const directPaths = (operationId: string) =>
+      saved.outcomes
+        .filter((outcome) => outcome.operationId === operationId)
+        .flatMap((outcome) =>
+          outcome.status === "applied"
+            ? outcome.effects
+                .filter((effect) => effect.classification === "direct")
+                .map((effect) => effect.path)
+            : [],
+        )
+        .sort();
+    expect(directPaths("add-wait")).toEqual([
+      "/metrics/0/code",
+      "/metrics/0/id",
+      "/metrics/0/name",
+    ]);
+    expect(directPaths("describe-peak")).toEqual(["/scenarios/0/description"]);
+    expect(directPaths("rename-wait")).toEqual(["/metrics/0/name"]);
+
+    const removed = mutatePetrinetOutputSchema.parse(
+      await run(
+        tool,
+        instance,
+        inputFor(instance, experimentEntityRemovals),
+        "batch-experiment-removals",
+      ),
+    );
+    expect(removed.outcomes.map(({ status }) => status)).toEqual(
+      experimentEntityRemovals.map(() => "applied"),
+    );
+    expect(instance.definition.get()).toMatchObject({
+      scenarios: [],
+      metrics: [],
+    });
+
+    const records = recorder
+      .records()
+      .filter((record) =>
+        record.attempts.some((attempt) =>
+          attempt.request.toolCallId.startsWith("batch-experiment-"),
+        ),
+      );
+    expect(records).toHaveLength(
+      experimentEntities.length + experimentEntityRemovals.length,
+    );
+    const verified = await Promise.all(
+      records.flatMap((record) =>
+        record.attempts.map((attempt) => verifyMutationAttempt(attempt)),
+      ),
+    );
+    expect(verified.map(({ outcome }) => outcome)).toEqual(
+      verified.map(() => "applied"),
     );
     instance.dispose();
   });

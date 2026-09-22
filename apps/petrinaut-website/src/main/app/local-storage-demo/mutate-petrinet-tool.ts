@@ -49,6 +49,12 @@ const executeCanonicalMutation = (
     | "removeTypeElement"
     | "removeParameter"
     | "removeDifferentialEquation"
+    | "addScenario"
+    | "updateScenario"
+    | "removeScenario"
+    | "addMetric"
+    | "updateMetric"
+    | "removeMetric"
   >,
   operation: SelectedMutationOperation,
 ): void => {
@@ -118,6 +124,24 @@ const executeCanonicalMutation = (
       break;
     case "removeDifferentialEquation":
       mutations.removeDifferentialEquation(operation.input);
+      break;
+    case "addScenario":
+      mutations.addScenario(operation.input);
+      break;
+    case "updateScenario":
+      mutations.updateScenario(operation.input);
+      break;
+    case "removeScenario":
+      mutations.removeScenario(operation.input);
+      break;
+    case "addMetric":
+      mutations.addMetric(operation.input);
+      break;
+    case "updateMetric":
+      mutations.updateMetric(operation.input);
+      break;
+    case "removeMetric":
+      mutations.removeMetric(operation.input);
       break;
     default: {
       operation satisfies never;

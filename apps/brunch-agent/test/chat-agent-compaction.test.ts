@@ -1,3 +1,4 @@
+import { useInstruction } from "@flue/runtime";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
@@ -19,7 +20,7 @@ vi.mock(
 );
 vi.mock("@flue/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@flue/runtime")>()),
-  useInstruction: () => undefined,
+  useInstruction: vi.fn<typeof useInstruction>(),
   useContextProjection: () => undefined,
   useInitialData: () => undefined,
   useDelivery: () => ({ kind: "user", body: "test" }),
@@ -57,6 +58,17 @@ test("the production ChatAgent supplies no compaction override when unset", asyn
     "anthropic/claude-sonnet-4-6",
     undefined,
     expect.any(Function),
+  );
+});
+
+test("a stale-net turn reserves the proposal for the browser read", async () => {
+  const { ChatAgent: renderChatAgent } =
+    await import("../src/agents/chat-agent/agent.ts");
+  renderChatAgent({ id: "test-instance" });
+  expect(useInstruction).toHaveBeenCalledWith(
+    expect.stringContaining(
+      "do not call activate_skill, read_skill_resource, or any other tool in the same proposal",
+    ),
   );
 });
 
