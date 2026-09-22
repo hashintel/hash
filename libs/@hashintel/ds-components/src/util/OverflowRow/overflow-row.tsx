@@ -9,6 +9,8 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { useIsomorphicLayoutEffect } from "../use-isomorphic-layout-effect";
 import { styles } from "./overflow-row.recipe";
 
+import type { ExclusifyUnion } from "type-fest";
+
 /** Renders the count-derived labels the row generates — `truncate`'s "+X"
  * badge and `summary`'s synthetic texts ("none", "any", "X of Y") — as a
  * custom node. They render as plain text when this is omitted. */
@@ -56,35 +58,19 @@ export type OverflowRowProps = {
    * to "left". A `scroll` row that overflows re-anchors to the start so
    * every item stays reachable by scrolling. */
   align?: "left" | "right" | "center";
-  /** Appends an inline text input for adding items. It claims only a minimum
-   * width while items are fitted, then flexes into the space left over; in a
-   * scrolling row (including the focus-expanded display) it instead grows
-   * with the typed draft, scrolling the items aside, up to 80% of the row.
-   * Enter submits the trimmed draft through `onSubmit` (and clears it) — the
-   * parent decides whether an item is actually added. `value`/`onChange`
-   * optionally control the draft text; `placeholder` shows while the draft
-   * is empty. */
+  /** Appends an inline text input for adding items. */
   withInput?: {
     value?: string;
     onChange?: (value: string) => void;
     onSubmit: (value: string) => void;
     placeholder?: string;
   };
-  /** Lets the keyboard operate on the items. With focus in the row's input
-   * (a zero-size focus anchor when `withInput` is off), ArrowLeft/ArrowRight
-   * from the draft's start move a highlight across the items, and
-   * Backspace/Delete remove the highlighted one by calling `onRemove` with
-   * its `name`. So that every item is rendered and reachable, a `truncate`
-   * or `summary` row displays as `scroll` while focus is inside it.
-   *
-   * The highlighted item's wrapper is marked with `data-highlighted` (DOM
-   * focus stays on the input) and the item styles its own highlight from
-   * that — Chip shows its focus ring automatically; custom items can match
-   * on `[data-part='item-preview'][data-highlighted] &`. */
+  /** Lets the keyboard operate on the items. Left/Right move through the items
+   * and backspace calls onRemove for that item. */
   withKeyboardControl?: {
     onRemove: (value: string) => void;
   };
-} & (
+} & ExclusifyUnion<
   | {
       overflow: "summary";
       renderCountLabel?: CountLabelRenderer;
@@ -95,13 +81,9 @@ export type OverflowRowProps = {
        * never claims full coverage and counts as "X selected" instead. */
       total?: number;
     }
-  | {
-      overflow: "truncate";
-      renderCountLabel?: CountLabelRenderer;
-      total?: never;
-    }
-  | { overflow: "scroll"; renderCountLabel?: never; total?: never }
-);
+  | { overflow: "truncate"; renderCountLabel?: CountLabelRenderer }
+  | { overflow: "scroll" }
+>;
 
 // Whitespace HTML collapses (NBSP, which it doesn't, is deliberately absent).
 const collapsibleWhitespace = /^[\t\n\f\r ]*$/;
@@ -118,21 +100,32 @@ const OverflowRowBase = ({
   withKeyboardControl,
   tags,
   onFocusWithinChange,
+  maskInputDraft,
+  scrollerId,
 }: OverflowRowProps & {
   tags?: UseTagsInputReturn;
-  /** Reports focus entering/leaving the row, for the focus-expansion of
-   * keyboard-controlled `truncate`/`summary` rows. */
   onFocusWithinChange?: (focusWithin: boolean) => void;
+  maskInputDraft?: boolean;
+  /** Lets the interactive wrapper reach the scroll container (nested inside
+   * the machine's root) for its scroll housekeeping. */
+  scrollerId?: string;
 }) => {
   const gapless =
     separator !== undefined &&
     (typeof separator !== "string" || !collapsibleWhitespace.test(separator));
-  const classes = styles({ overflow, gapless, align });
+  const classes = styles({
+    overflow,
+    gapless,
+    align,
+    ringRoom: withKeyboardControl !== undefined,
+  });
   const count = items.length;
   const hasSeparator = separator !== undefined;
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const backspaceHoldBeganWithTextRef = useRef(false);
   const measureRef = useRef<HTMLDivElement>(null);
   const cellRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const separatorCellRef = useRef<HTMLSpanElement | null>(null);
@@ -261,12 +254,14 @@ const OverflowRowBase = ({
   }, [overflow, count, hasInput]);
 
   const updateClip = useCallback(() => {
-    const root = rootRef.current;
-    if (!root) {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
       return;
     }
-    setClipStart(root.scrollLeft > 1);
-    setClipEnd(root.scrollLeft + root.clientWidth < root.scrollWidth - 1);
+    setClipStart(scroller.scrollLeft > 1);
+    setClipEnd(
+      scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 1,
+    );
   }, []);
 
   useIsomorphicLayoutEffect(() => {
@@ -308,10 +303,19 @@ const OverflowRowBase = ({
   ) => {
     if (tags && withKeyboardControl) {
       const itemProps = { index, value: item.name };
+      const previewProps = tags.getItemPreviewProps(itemProps);
+      // The highlighted wrapper delegates focus-visibility to the item it
+      // wraps (DOM focus stays on the row's input): the marker makes the
+      // preset's `_focusVisible` condition fire for the subtree, so items
+      // show their native focus styles without knowing about this row.
+      const highlighted =
+        (previewProps as Record<string, unknown>)["data-highlighted"] !==
+        undefined;
       return (
         <span {...tags.getItemProps(itemProps)} className={classes.item}>
           <span
-            {...tags.getItemPreviewProps(itemProps)}
+            {...previewProps}
+            data-force-focus-visible={highlighted ? "" : undefined}
             className={classes.itemPreview}
           >
             {item.children}
@@ -324,17 +328,52 @@ const OverflowRowBase = ({
 
   // The machine anchors all keyboard handling on its input, so keyboard
   // control without `withInput` still renders one — as a zero-size focus
-  // anchor. The placeholder is applied here rather than through the machine,
-  // which would only show it while `items` is empty. The key keeps the input
-  // element (and its focus) alive when focus-expansion swaps the mode branch.
+  // anchor.
+  const machineInputProps = tags && withInput ? tags.getInputProps() : null;
+  const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace") {
+      if (!event.repeat) {
+        backspaceHoldBeganWithTextRef.current =
+          event.currentTarget.value !== "";
+      } else if (
+        backspaceHoldBeganWithTextRef.current &&
+        event.currentTarget.value === ""
+      ) {
+        return;
+      }
+    }
+    machineInputProps?.onKeyDown?.(event);
+  };
+
+  // The machine treats the input as uncontrolled and writes its draft into
+  // the DOM imperatively, so the mask works the same way.
+  const wasDraftMaskedRef = useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    const masked = maskInputDraft ?? false;
+    const maskChanged = wasDraftMaskedRef.current !== masked;
+    wasDraftMaskedRef.current = masked;
+    const input = inputRef.current;
+    if (!input || !tags) {
+      return;
+    }
+    if (maskChanged) {
+      input.value = masked ? "" : tags.inputValue;
+    } else if (masked && input.value !== "") {
+      // The machine re-synced the draft into the DOM (a controlled
+      // `withInput.value` change while blurred) — re-assert the mask.
+      input.value = "";
+    }
+  });
+
   const inputCell = tags ? (
-    withInput ? (
+    machineInputProps ? (
       <input
-        {...tags.getInputProps()}
+        {...machineInputProps}
         key="input"
         ref={inputRef}
         className={classes.input}
-        placeholder={withInput.placeholder}
+        placeholder={withInput?.placeholder}
+        onKeyDown={handleInputKeyDown}
       />
     ) : (
       <input
@@ -370,18 +409,24 @@ const OverflowRowBase = ({
         {...focusProps}
         ref={rootRef}
         className={cx(classes.root, className)}
-        data-clip-start={clipStart || undefined}
-        data-clip-end={clipEnd || undefined}
-        onScroll={updateClip}
       >
-        {items.map((item, index) => (
-          // eslint-disable-next-line react/no-array-index-key
-          <Fragment key={index}>
-            {index > 0 ? rowSeparator : null}
-            {itemCell(item, index)}
-          </Fragment>
-        ))}
-        {inputCell}
+        <div
+          ref={scrollerRef}
+          id={scrollerId}
+          className={classes.scroller}
+          data-clip-start={clipStart || undefined}
+          data-clip-end={clipEnd || undefined}
+          onScroll={updateClip}
+        >
+          {items.map((item, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <Fragment key={index}>
+              {index > 0 ? rowSeparator : null}
+              {itemCell(item, index)}
+            </Fragment>
+          ))}
+          {inputCell}
+        </div>
       </div>
     );
   }
@@ -500,17 +545,23 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
   const expanded = expandOnFocus && focusWithin;
   const displayedOverflow = expanded ? "scroll" : overflow;
 
+  const maskInputDraft =
+    !focusWithin && overflow !== "scroll" && withInput !== undefined;
+
   // The machine api exposes no highlight getter, so mirror it for the
   // expansion effect below.
   const highlightedIdRef = useRef<string | null>(null);
   const wasExpandedRef = useRef(false);
   const wasFocusWithinRef = useRef(false);
 
-  // Self-assigned element ids: the scroll housekeeping below needs the root
-  // and input elements in contexts where the machine api isn't at hand.
+  // Self-assigned element ids: the scroll housekeeping below needs the
+  // scroller and input elements in contexts where the machine api isn't at
+  // hand. The scroller (the scroll container nested inside the machine's
+  // root) gets its own, machine-independent id.
   const reactId = useId();
   const rootId = `overflow-row:${reactId}`;
   const inputId = `overflow-row:${reactId}:input`;
+  const scrollerId = `overflow-row:${reactId}:scroller`;
 
   const tags = useTagsInput({
     ids: { root: rootId, input: inputId },
@@ -571,7 +622,12 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
       // to it (arrowing past the last item, Escape, typing) — the browser
       // won't scroll to an already-focused element, so bring it into view.
       // A blur clears the highlight too, but by then focus has moved on and
-      // the focus-out effect resets the scroll instead.
+      // the focus-out effect resets the scroll instead. The ghost anchor sits
+      // out of layout at the scroll origin, so without a visible input there
+      // is nothing to reveal — the row stays where it is.
+      if (withInput === undefined) {
+        return;
+      }
       const input = document.getElementById(inputId);
       if (input && document.activeElement === input) {
         input.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -581,9 +637,10 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
 
   // On expansion: re-anchor focus on the input (in case the mode-branch swap
   // recreated it, whose blur would immediately collapse the row again), then
-  // reveal the end of the row, where the input sits. When the focus came from
-  // clicking an item, keep that item's highlight in view instead. When focus
-  // leaves the row, scroll back to its start.
+  // reveal the end of the row, where the input sits — with no visible input
+  // there is nothing there to reveal, so the row stays at its start. When the
+  // focus came from clicking an item, keep that item's highlight in view
+  // instead. When focus leaves the row, scroll back to its start.
   useIsomorphicLayoutEffect(() => {
     const justExpanded = expanded && !wasExpandedRef.current;
     const justBlurred = !focusWithin && wasFocusWithinRef.current;
@@ -592,10 +649,12 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
     if (!justExpanded && !justBlurred) {
       return;
     }
-    const root = document.getElementById(rootId);
+    // Absent when the row has collapsed back to truncate/summary, whose next
+    // expansion mounts a fresh scroller at its start anyway.
+    const scroller = document.getElementById(scrollerId);
     if (justBlurred) {
-      if (root) {
-        root.scrollLeft = 0;
+      if (scroller) {
+        scroller.scrollLeft = 0;
       }
       return;
     }
@@ -607,10 +666,10 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
         ?.scrollIntoView({ block: "nearest", inline: "nearest" });
       return;
     }
-    if (root) {
-      root.scrollLeft = root.scrollWidth;
+    if (scroller && withInput !== undefined) {
+      scroller.scrollLeft = scroller.scrollWidth;
     }
-  }, [expanded, focusWithin, rootId, tags]);
+  }, [expanded, focusWithin, scrollerId, tags, withInput]);
 
   if (!expanded) {
     return (
@@ -618,6 +677,8 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
         {...props}
         tags={tags}
         onFocusWithinChange={setFocusWithin}
+        maskInputDraft={maskInputDraft}
+        scrollerId={scrollerId}
       />
     );
   }
@@ -631,6 +692,8 @@ const InteractiveOverflowRow = (props: OverflowRowProps) => {
       renderCountLabel={undefined}
       tags={tags}
       onFocusWithinChange={setFocusWithin}
+      maskInputDraft={maskInputDraft}
+      scrollerId={scrollerId}
     />
   );
 };

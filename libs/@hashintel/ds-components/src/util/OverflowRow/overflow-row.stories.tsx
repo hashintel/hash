@@ -118,6 +118,69 @@ const countLabelRenderers = [
   },
 ];
 
+const overflowModes = ["truncate", "scroll", "summary"] as const;
+
+// Sizes the "+X" badge like the chip labels without setting a row-level font,
+// which the add-item input (font: inherit) would pick up too.
+const chipCountLabel = (text: string) => (
+  <span className={chipMatchedLabel}>{text}</span>
+);
+
+// A stateful row: Enter in the input adds a chip (duplicates ignored), and
+// ArrowLeft/ArrowRight from the input highlight chips with Backspace/Delete
+// removing the highlighted one. A truncate or summary row displays as scroll
+// while focus is inside it, so every item stays reachable.
+const EditableRow = ({
+  overflow,
+  align,
+  showInput = true,
+  initialNames = names.slice(0, 3),
+}: {
+  overflow: "truncate" | "scroll" | "summary";
+  align?: OverflowRowProps["align"];
+  showInput?: boolean;
+  initialNames?: string[];
+}) => {
+  const [tagNames, setTagNames] = useState(initialNames);
+  const shared = {
+    align,
+    items: tagNames.map((name) => ({
+      name,
+      children: (
+        <Chip color="blue" variant="soft">
+          {name}
+        </Chip>
+      ),
+    })),
+    withInput: showInput
+      ? {
+          placeholder: "Add…",
+          onSubmit: (value: string) =>
+            setTagNames((current) =>
+              current.includes(value) ? current : [...current, value],
+            ),
+        }
+      : undefined,
+    withKeyboardControl: {
+      onRemove: (value: string) =>
+        setTagNames((current) => current.filter((name) => name !== value)),
+    },
+  };
+  if (overflow === "truncate") {
+    return (
+      <OverflowRow
+        {...shared}
+        overflow="truncate"
+        renderCountLabel={chipCountLabel}
+      />
+    );
+  }
+  if (overflow === "summary") {
+    return <OverflowRow {...shared} overflow="summary" separator=", " />;
+  }
+  return <OverflowRow {...shared} overflow="scroll" />;
+};
+
 export const Default: Story = () => (
   <div className={sections}>
     {(["truncate", "scroll"] as const).map((overflow) => (
@@ -187,89 +250,22 @@ export const Default: Story = () => (
         ))}
       </div>
     </div>
-  </div>
-);
-
-// Sizes the "+X" badge like the chip labels without setting a row-level font,
-// which the add-item input (font: inherit) would pick up too.
-const chipCountLabel = (text: string) => (
-  <span className={chipMatchedLabel}>{text}</span>
-);
-
-// A stateful row: Enter in the input adds a chip (duplicates ignored), and
-// with keyboard control on, ArrowLeft/ArrowRight from the input highlight
-// chips and Backspace/Delete remove the highlighted one.
-const EditableRow = ({
-  overflow,
-  align,
-  showInput = true,
-  keyboardControl = true,
-}: {
-  overflow: "truncate" | "scroll" | "summary";
-  align?: OverflowRowProps["align"];
-  showInput?: boolean;
-  keyboardControl?: boolean;
-}) => {
-  const [tagNames, setTagNames] = useState(names.slice(0, 3));
-  const shared = {
-    align,
-    items: tagNames.map((name) => ({
-      name,
-      children: (
-        <Chip color="blue" variant="soft">
-          {name}
-        </Chip>
-      ),
-    })),
-    withInput: showInput
-      ? {
-          placeholder: "Add…",
-          onSubmit: (value: string) =>
-            setTagNames((current) =>
-              current.includes(value) ? current : [...current, value],
-            ),
-        }
-      : undefined,
-    withKeyboardControl: keyboardControl
-      ? {
-          onRemove: (value: string) =>
-            setTagNames((current) => current.filter((name) => name !== value)),
-        }
-      : undefined,
-  };
-  if (overflow === "truncate") {
-    return (
-      <OverflowRow
-        {...shared}
-        overflow="truncate"
-        renderCountLabel={chipCountLabel}
-      />
-    );
-  }
-  if (overflow === "summary") {
-    return <OverflowRow {...shared} overflow="summary" separator=", " />;
-  }
-  return <OverflowRow {...shared} overflow="scroll" />;
-};
-
-export const Interactive: Story = () => (
-  <div className={sections}>
     <div>
-      <div className={heading}>withInput + withKeyboardControl</div>
-      <div className={row}>
-        <Example label="scroll" width={300}>
-          <EditableRow overflow="scroll" />
-        </Example>
-        <Example label="truncate" width={300}>
-          <EditableRow overflow="truncate" />
-        </Example>
+      <div className={heading}>
+        withInput + withKeyboardControl — truncate/summary display as scroll
+        while focused
       </div>
-    </div>
-    <div>
-      <div className={heading}>withInput only</div>
       <div className={row}>
-        <Example label="scroll" width={300}>
-          <EditableRow overflow="scroll" keyboardControl={false} />
+        {overflowModes.map((overflow) => (
+          <Example key={overflow} label={overflow} width={200}>
+            <EditableRow overflow={overflow} />
+          </Example>
+        ))}
+        <Example label="no items" width={160}>
+          <EditableRow overflow="scroll" initialNames={[]} />
+        </Example>
+        <Example label="underflow" width={380}>
+          <EditableRow overflow="scroll" />
         </Example>
       </div>
     </div>
@@ -278,25 +274,11 @@ export const Interactive: Story = () => (
         withKeyboardControl only (Tab into the row, then ← → and Backspace)
       </div>
       <div className={row}>
-        <Example label="scroll" width={300}>
-          <EditableRow overflow="scroll" showInput={false} />
-        </Example>
-      </div>
-    </div>
-    <div>
-      <div className={heading}>
-        focus-expansion — truncate/summary display as scroll while focused
-      </div>
-      <div className={row}>
-        <Example label="truncate (narrow)" width={200}>
-          <EditableRow overflow="truncate" />
-        </Example>
-        <Example label="summary" width={200}>
-          <EditableRow overflow="summary" showInput={false} />
-        </Example>
-        <Example label="summary + input" width={200}>
-          <EditableRow overflow="summary" />
-        </Example>
+        {overflowModes.map((overflow) => (
+          <Example key={overflow} label={overflow} width={150}>
+            <EditableRow overflow={overflow} showInput={false} />
+          </Example>
+        ))}
       </div>
     </div>
   </div>
@@ -304,60 +286,46 @@ export const Interactive: Story = () => (
 
 export const Align: Story = () => (
   <div className={sections}>
-    <div>
-      <div className={heading}>align="right"</div>
-      <div className={row}>
-        <Example label="scroll (underflow)" width={380}>
-          <OverflowRow
-            items={allItems.slice(0, 3)}
-            overflow="scroll"
-            align="right"
-          />
-        </Example>
-        <Example label="scroll (overflow — start stays reachable)" width={200}>
-          <OverflowRow items={allItems} overflow="scroll" align="right" />
-        </Example>
-        <Example label="truncate" width={300}>
-          <OverflowRow
-            items={allItems}
-            overflow="truncate"
-            align="right"
-            className={chipMatchedLabel}
-          />
-        </Example>
+    {(["center", "right"] as const).map((align) => (
+      <div key={align}>
+        <div className={heading}>align="{align}"</div>
+        <div className={row}>
+          <Example
+            label="scroll (overflow — start stays reachable)"
+            width={200}
+          >
+            <OverflowRow items={allItems} overflow="scroll" align={align} />
+          </Example>
+          <Example label="truncate" width={300}>
+            <OverflowRow
+              items={allItems}
+              overflow="truncate"
+              align={align}
+              className={chipMatchedLabel}
+            />
+          </Example>
+          <Example label="summary" width={80}>
+            <OverflowRow
+              items={allItems.slice(0, 4)}
+              overflow="summary"
+              total={6}
+              separator=", "
+              align={align}
+            />
+          </Example>
+          <Example label="scroll (underflow)" width={380}>
+            <OverflowRow
+              items={allItems.slice(0, 3)}
+              overflow="scroll"
+              align={align}
+            />
+          </Example>
+          <Example label="withInput" width={380}>
+            <EditableRow overflow="scroll" align={align} />
+          </Example>
+        </div>
       </div>
-    </div>
-    <div>
-      <div className={heading}>align="right" + withInput</div>
-      <div className={row}>
-        <Example label="scroll" width={380}>
-          <EditableRow overflow="scroll" align="right" />
-        </Example>
-      </div>
-    </div>
-    <div>
-      <div className={heading}>align="center"</div>
-      <div className={row}>
-        <Example label="scroll (underflow)" width={420}>
-          <OverflowRow
-            items={allItems.slice(0, 3)}
-            overflow="scroll"
-            align="center"
-          />
-        </Example>
-        <Example label="scroll (overflow — start stays reachable)" width={200}>
-          <OverflowRow items={allItems} overflow="scroll" align="center" />
-        </Example>
-        <Example label="truncate" width={300}>
-          <OverflowRow
-            items={allItems}
-            overflow="truncate"
-            align="center"
-            className={chipMatchedLabel}
-          />
-        </Example>
-      </div>
-    </div>
+    ))}
   </div>
 );
 
