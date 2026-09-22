@@ -1,6 +1,11 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createUtteranceJudgmentHandler } from "./typesafe-utterance-judgment";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
 
 const environment = {
   PETRINAUT_OPENAI_VOICE_ENABLED: "true",
@@ -141,13 +146,27 @@ describe("utterance judgment handler", () => {
       model: string;
       state: unknown;
       questions: {
-        contribution: { type: string; criteria: Record<string, string> };
+        contribution: {
+          type: string;
+          instructions: string;
+          criteria: Record<string, string>;
+        };
       };
     };
     expect(body.model).toBe("jev-latest");
     expect(body.state).toEqual(state);
     expect(Object.keys(body.questions)).toEqual(["contribution"]);
     expect(body.questions.contribution.type).toBe("choice");
+    // Guard the measured prompt boundary, not the model's semantic accuracy.
+    expect(body.questions.contribution.instructions).toContain(
+      "Repeating or paraphrasing the assistant's question is not a new interview question.",
+    );
+    expect(body.questions.contribution.criteria.interview_content).toContain(
+      "Excludes merely repeating or paraphrasing relayedBrunchText without adding anything.",
+    );
+    expect(body.questions.contribution.criteria.restates_assistant).toContain(
+      "Any added answer or correction takes priority as interview_content.",
+    );
     expect(Object.keys(body.questions.contribution.criteria).sort()).toEqual([
       "control",
       "interview_content",
@@ -191,6 +210,53 @@ describe("utterance judgment handler", () => {
     expect(await response.text()).not.toContain("PRIVATE");
     expect(fetch).toHaveBeenCalledOnce();
   });
+
+  test.each([
+    [2_500, 200],
+    [20_000, 502],
+  ])(
+    "bounds a %i ms upstream observation with status %i",
+    async (delay, status) => {
+      vi.useFakeTimers();
+      const timeoutSpy = vi
+        .spyOn(AbortSignal, "timeout")
+        .mockImplementation((milliseconds) => {
+          const timeout = new AbortController();
+          setTimeout(() => timeout.abort(), milliseconds);
+          return timeout.signal;
+        });
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        (_url, init) =>
+          new Promise((resolve, reject) => {
+            setTimeout(
+              () =>
+                resolve(Response.json({ answers: { contribution: answer } })),
+              delay,
+            );
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          }),
+      );
+      const pending = createUtteranceJudgmentHandler({ environment, fetch })(
+        request(),
+      );
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+      await vi.advanceTimersByTimeAsync(12_000);
+      const response = await pending;
+      expect(response.status).toBe(status);
+      if (status === 200) {
+        expect(await response.json()).toEqual({
+          contribution: answer.choice,
+          confidence: answer.confidence,
+        });
+      }
+      expect(timeoutSpy).toHaveBeenCalledWith(12_000);
+      expect(fetch).toHaveBeenCalledOnce();
+    },
+  );
 
   test("aborts upstream when the caller disconnects, without exposing the error", async () => {
     const abort = new AbortController();

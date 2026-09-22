@@ -259,8 +259,12 @@ audio playback. Both text fields are sent to TypeSafe; neither is logged.
 Local `[Petrinaut Live trace]` records include one `judgment.result` per request
 with `contribution`, `confidence`, `latencyMs`, a provisional `decision` at the
 0.8 threshold, and `applied: "submit"`. Failures have null contribution/confidence.
-The provisional browser timeout is 1 second and server timeout is 2 seconds;
-failures/timeouts are not successful latency samples. Diagnostics are dev-only.
+The log-only browser measurement window is 10 seconds, with a 12-second server
+safety bound. This longer window measures results missed by the initial
+one-second cutoff; it is not an enforcement deadline and never delays submission.
+Report the successful-judgment p50 and counts completing within 500 ms, 1 second,
+and 2 seconds separately from failures/timeouts, which are not successful latency
+samples. Diagnostics are dev-only.
 This endpoint inherits the unauthenticated Voice boundary; origin checks are
 not authentication. Do not enable it on a public deployment.
 
