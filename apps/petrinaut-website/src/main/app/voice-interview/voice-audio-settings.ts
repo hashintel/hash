@@ -316,7 +316,10 @@ export class VoiceAudioSettings {
     const connection = this.#connection;
     if (!connection || !this.mediaDevices || this.#state.devices.busy) return;
     const epoch = this.#epoch;
-    this.#devices({ busy: true, message: null });
+    this.#devices({
+      busy: true,
+      ...(fallback ? {} : { message: null }),
+    });
     let replacement: MediaStream | undefined;
     try {
       replacement = await this.mediaDevices.getUserMedia({
@@ -353,12 +356,14 @@ export class VoiceAudioSettings {
       this.#devices({
         microphoneId: deviceId,
         message: fallback
-          ? "Microphone disconnected. Switched to system default."
+          ? (this.#state.devices.message ??
+            "Microphone disconnected. Switched to system default.")
           : null,
       });
     } catch (error) {
       if (epoch === this.#epoch)
         this.#devices({
+          ...(fallback ? { microphoneId: "" } : {}),
           message:
             error instanceof DOMException && error.name === "NotAllowedError"
               ? "Microphone access denied. Allow microphone access in browser settings, then try again."
@@ -384,14 +389,18 @@ export class VoiceAudioSettings {
     const connection = this.#connection;
     if (!connection?.audio.setSinkId || this.#state.devices.busy) return;
     const epoch = this.#epoch;
-    this.#devices({ busy: true, message: null });
+    this.#devices({
+      busy: true,
+      ...(fallback ? {} : { message: null }),
+    });
     try {
       await connection.audio.setSinkId(deviceId);
       if (epoch === this.#epoch)
         this.#devices({
           speakerId: deviceId,
           message: fallback
-            ? "Speaker disconnected. Switched to system default."
+            ? (this.#state.devices.message ??
+              "Speaker disconnected. Switched to system default.")
             : null,
         });
     } catch (error) {
