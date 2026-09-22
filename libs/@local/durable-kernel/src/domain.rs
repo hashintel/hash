@@ -33,15 +33,15 @@ const MAX_EVENT_RECORD_BYTES: usize = 4 * 1024 * 1024;
 
 /// An application event stored in the journal.
 ///
-/// Event IDs are computed from serialized contents. The serialized contents and partition
-/// must stay the same for an event and its clones.
+/// Event IDs are computed from serialized contents. An event's contents and partition must stay
+/// the same each time it is submitted.
 ///
 /// Repeated submissions of the same event are deduplicated. Give distinct actions with
 /// identical payloads a request ID or another distinguishing field.
 ///
 /// Keep decoding all stored event versions when changing this type. A versioned serde enum is
 /// one way to retain that compatibility.
-pub trait DomainEvent: Serialize + DeserializeOwned + Clone + Send + Sync + 'static {
+pub trait DomainEvent {
     /// The event name stored in journal records. Keep this stable so existing records remain
     /// readable.
     fn name() -> &'static str;
@@ -80,7 +80,7 @@ pub trait Fold<E>: Default + Clone + Send + Sync + Serialize + DeserializeOwned 
 /// Pass an [`Executor`] to [`Kernel::start`](crate::runtime::Kernel::start) to run external
 /// operations.
 pub trait SimpleDomain: Send + Sync + 'static {
-    type Event: DomainEvent;
+    type Event: DomainEvent + Serialize + DeserializeOwned + Clone + Send + Sync + 'static;
     type Projection: Fold<Self::Event>;
 }
 
@@ -229,7 +229,7 @@ pub fn shard_of(key: &PartitionKey) -> Shard {
     tag = "version",
     content = "data",
     rename_all = "snake_case",
-    bound(deserialize = "E: DomainEvent")
+    bound(deserialize = "E: DomainEvent + Serialize + Deserialize<'de>")
 )]
 pub enum EventRecord<E> {
     V1(EventRecordV1<E>),
@@ -251,7 +251,7 @@ struct EventRecordFields<E> {
     event: E,
 }
 
-impl<'de, E: DomainEvent> Deserialize<'de> for EventRecordV1<E> {
+impl<'de, E: DomainEvent + Serialize + Deserialize<'de>> Deserialize<'de> for EventRecordV1<E> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let EventRecordFields {
             event_id,
@@ -263,7 +263,7 @@ impl<'de, E: DomainEvent> Deserialize<'de> for EventRecordV1<E> {
     }
 }
 
-fn derive_event_id<E: DomainEvent>(
+fn derive_event_id<E: DomainEvent + Serialize>(
     partition: &PartitionKey,
     event: &E,
 ) -> Result<EventId, Report<CompatError>> {
@@ -277,7 +277,7 @@ fn derive_event_id<E: DomainEvent>(
     .change_context(CompatError::Encode { name: E::name() })
 }
 
-impl<E: DomainEvent> EventRecordV1<E> {
+impl<E> EventRecordV1<E> {
     pub const fn event_id(&self) -> EventId {
         self.event_id
     }
@@ -293,7 +293,9 @@ impl<E: DomainEvent> EventRecordV1<E> {
     pub fn into_event(self) -> E {
         self.event
     }
+}
 
+impl<E: DomainEvent + Serialize> EventRecordV1<E> {
     /// Derives an event’s identity and builds its journal record.
     ///
     /// # Errors
@@ -359,7 +361,7 @@ impl<E: DomainEvent> EventRecordV1<E> {
 }
 
 /// Builds a record declaration using [`DomainEvent::name`].
-fn event_declaration<E: DomainEvent>() -> RecordDeclaration {
+fn event_declaration<E: DomainEvent + 'static>() -> RecordDeclaration {
     RecordDeclaration {
         name: E::name(),
         codec: core::any::TypeId::of::<E>(),
@@ -375,7 +377,7 @@ fn event_declaration<E: DomainEvent>() -> RecordDeclaration {
     }
 }
 
-impl<E: DomainEvent> DurableRecord for EventRecord<E> {
+impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> DurableRecord for EventRecord<E> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
     fn declaration() -> RecordDeclaration {
@@ -428,7 +430,7 @@ impl<E: DomainEvent> DurableRecord for EventRecord<E> {
     }
 }
 
-impl<E: DomainEvent> VersionedRecord for EventRecord<E> {
+impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> VersionedRecord for EventRecord<E> {
     type Current = EventRecordV1<E>;
 
     fn normalize(self) -> Result<Self::Current, Report<CompatError>> {
@@ -437,7 +439,10 @@ impl<E: DomainEvent> VersionedRecord for EventRecord<E> {
     }
 }
 
-impl<E: DomainEvent> UntrimmedJournalRecord for EventRecord<E> {}
+impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> UntrimmedJournalRecord
+    for EventRecord<E>
+{
+}
 
 /// Application state together with processed event IDs and journal positions.
 ///
@@ -1059,8 +1064,10 @@ impl<S: SimpleDomain> ShardCommandHandle<Hosted<S>> {
 
 #[cfg(test)]
 mod tests {
-    use alloc::{collections::BTreeMap, sync::Arc};
-    use core::{future::poll_fn, num::NonZeroUsize, task::Poll, time::Duration};
+    use alloc::{collections::BTreeMap, rc::Rc, sync::Arc};
+    use core::{
+        future::poll_fn, marker::PhantomData, num::NonZeroUsize, task::Poll, time::Duration,
+    };
 
     use chrono::{DateTime, Utc};
     use error_stack::Report;
@@ -1110,6 +1117,24 @@ mod tests {
 
         fn partition(&self) -> PartitionKey {
             PartitionKey::parse(self.counter()).expect("test counters should be valid keys")
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct BorrowedEvent<'a> {
+        counter: &'a str,
+        amount: u64,
+        #[serde(skip)]
+        local: PhantomData<Rc<()>>,
+    }
+
+    impl DomainEvent for BorrowedEvent<'_> {
+        fn name() -> &'static str {
+            "borrowed_counter_event"
+        }
+
+        fn partition(&self) -> PartitionKey {
+            PartitionKey::parse(self.counter).expect("test counter should be a valid key")
         }
     }
 
@@ -1271,6 +1296,34 @@ mod tests {
         assert_eq!(decoded.event_id(), record.event_id());
         assert_eq!(decoded.partition(), record.partition());
         assert_eq!(decoded.event(), record.event());
+    }
+
+    #[test]
+    fn record_decode_borrowed_event() {
+        let counter = String::from("orders");
+        let record = EventRecordV1::new(BorrowedEvent {
+            counter: &counter,
+            amount: 5,
+            local: PhantomData,
+        })
+        .expect("borrowed event should form a record");
+        let encoded = serde_json::to_string(&EventRecord::V1(record))
+            .expect("borrowed record should serialize");
+        let EventRecord::V1(decoded) =
+            serde_json::from_str::<EventRecord<BorrowedEvent<'_>>>(&encoded)
+                .expect("record should decode an event borrowed from its input");
+        assert_eq!(decoded.event().counter, counter);
+
+        let mut changed: serde_json::Value =
+            serde_json::from_str(&encoded).expect("record should be valid JSON");
+        changed["data"]["event"]["amount"] = json!(6);
+        let changed = serde_json::to_string(&changed).expect("changed record should serialize");
+        let error = serde_json::from_str::<EventRecord<BorrowedEvent<'_>>>(&changed)
+            .expect_err("changing an event should invalidate its stored ID");
+        assert!(
+            error.to_string().contains("event ID mismatch"),
+            "borrowed event decoding should check the stored event ID: {error}"
+        );
     }
 
     #[test]
