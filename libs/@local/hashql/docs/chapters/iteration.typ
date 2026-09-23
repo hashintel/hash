@@ -1,13 +1,6 @@
 #set text(lang: "en", region: "GB")
 #import "../template/lib.typ": note, proof, rule
 
-#let rewrite(body) = html.elem(
-  "aside",
-  attrs: (class: "note rewrite", role: "note", "aria-label": "Suggested rewrite"),
-)[
-  *Suggested rewrite.* #body
-]
-
 #let reject(body) = html.details(class: "note reject")[
   #html.elem("summary")[Rejected idea]
   #html.div(class: "reject-body", body)
