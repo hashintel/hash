@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   definePetrinautPlugin,
+  resolveActiveAssistant,
   resolveInstalledPlugins,
+  selectPluginAssistants,
   selectPluginEditViews,
   selectPluginSettingsGroups,
   selectPluginSubViews,
@@ -112,6 +114,22 @@ describe("resolveInstalledPlugins", () => {
     expect(() => resolveInstalledPlugins([chrome], [elsewhere])).not.toThrow();
   });
 
+  it("refuses two assistants with one id", () => {
+    const assistantsOf = (id: string) =>
+      definePetrinautPlugin({
+        id,
+        assistants: [{ id: "test.assistant", label: id, component: Empty }],
+      });
+    expect(() =>
+      resolveInstalledPlugins(
+        [],
+        [assistantsOf("test.a"), assistantsOf("test.b")],
+      ),
+    ).toThrow(
+      /"test.b" contributes assistant "test.assistant", which plugin "test.a" already contributes/,
+    );
+  });
+
   it("refuses an edit view that would hide the Canvas", () => {
     const canvas = definePetrinautPlugin({
       id: "test.canvas",
@@ -157,5 +175,46 @@ describe("contribution selectors", () => {
         ({ group }) => group.id,
       ),
     ).toEqual(["test.chrome.labs"]);
+  });
+});
+
+describe("resolveActiveAssistant", () => {
+  const stock = definePetrinautPlugin({
+    id: "test.stock",
+    assistants: [{ id: "test.stock", label: "Stock", component: Empty }],
+  });
+  const brunch = definePetrinautPlugin({
+    id: "test.brunch",
+    assistants: [{ id: "test.brunch", label: "Brunch", component: Empty }],
+  });
+  const activeId = (
+    plugins: readonly (typeof stock)[],
+    chosenId: string | null,
+  ) =>
+    resolveActiveAssistant(selectPluginAssistants(plugins), chosenId)?.assistant
+      .id;
+
+  it("has no active assistant when none is installed", () => {
+    expect(activeId([chrome], null)).toBeUndefined();
+    expect(activeId([], "test.brunch")).toBeUndefined();
+  });
+
+  it("uses the only assistant, whatever was chosen", () => {
+    expect(activeId([stock], null)).toBe("test.stock");
+    expect(activeId([stock], "test.brunch")).toBe("test.stock");
+  });
+
+  it("uses the chosen assistant while it is installed, else the first", () => {
+    expect(activeId([stock, brunch], null)).toBe("test.stock");
+    expect(activeId([stock, brunch], "test.brunch")).toBe("test.brunch");
+    expect(activeId([brunch, stock], "test.gone")).toBe("test.brunch");
+  });
+
+  it("keeps the plugin that contributed the assistant", () => {
+    expect(
+      selectPluginAssistants([chrome, brunch]).map(
+        ({ pluginId, assistant }) => `${pluginId}/${assistant.id}`,
+      ),
+    ).toEqual(["test.brunch/test.brunch"]);
   });
 });

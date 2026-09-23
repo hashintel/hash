@@ -14,6 +14,7 @@
  * | `bottom-panel`       | tabs (a `SubView`)                              |
  * | edit views           | workspaces beside the Canvas in Edit mode       |
  * | settings `labs`      | groups after the built-in Labs settings          |
+ * | assistants           | the AI assistant behind the editor's AI panel   |
  * | command registry     | palette commands, static or from `component`    |
  *
  * `component` mounts once inside the editor's providers while the plugin is
@@ -109,6 +110,25 @@ export type PetrinautPluginSettingsGroup = {
   component: ComponentType;
 };
 
+/**
+ * An AI assistant for the editor's AI panel. The editor shows the panel only
+ * while an assistant is active: the one chosen in User settings, or the first
+ * installed. With several installed, User settings offers a selector.
+ */
+export type PetrinautPluginAssistant = {
+  /** Stable, namespaced id, e.g. `website.brunch`. Stored as the choice. */
+  id: string;
+  /** Shown in the selector and in the palette command that switches to it. */
+  label: string;
+  /**
+   * Mounted beside the editor, inside its providers, while this assistant is
+   * active. It builds the assistant with hooks and passes it to
+   * `usePetrinautAiAssistant`; it renders nothing. Switching assistants
+   * unmounts it, and a thrown error removes the AI panel alone.
+   */
+  component: ComponentType;
+};
+
 export type PetrinautPlugin = {
   /** Stable, namespaced id, e.g. `petrinaut.definitions-view`. */
   id: string;
@@ -125,6 +145,7 @@ export type PetrinautPlugin = {
   subViews?: readonly PetrinautPluginSubView[];
   editViews?: readonly PetrinautPluginEditView[];
   settingsGroups?: readonly PetrinautPluginSettingsGroup[];
+  assistants?: readonly PetrinautPluginAssistant[];
   /**
    * Mounted once per editor, inside its providers, while the plugin is
    * installed. It remounts when the editor switches to another document.
@@ -180,6 +201,9 @@ const assertUniqueContributionIds = (
     }
     for (const group of plugin.settingsGroups ?? []) {
       claim(`settings ${group.section}`, group.id, plugin.id);
+    }
+    for (const assistant of plugin.assistants ?? []) {
+      claim("assistant", assistant.id, plugin.id);
     }
     for (const view of plugin.editViews ?? []) {
       if (reservedEditViewIds.has(view.id)) {
@@ -278,3 +302,30 @@ export const selectPluginSettingsGroups = (
       .filter((group) => group.section === section)
       .map((group) => ({ pluginId: plugin.id, group })),
   );
+
+export type PetrinautPluginAssistantEntry = {
+  pluginId: string;
+  assistant: PetrinautPluginAssistant;
+};
+
+export const selectPluginAssistants = (
+  plugins: readonly PetrinautPlugin[],
+): PetrinautPluginAssistantEntry[] =>
+  plugins.flatMap((plugin) =>
+    (plugin.assistants ?? []).map((assistant) => ({
+      pluginId: plugin.id,
+      assistant,
+    })),
+  );
+
+/**
+ * The active assistant: the chosen one while it is installed, otherwise the
+ * first installed, otherwise none. A stale choice falls back without being
+ * cleared, so it applies again once its plugin is back.
+ */
+export const resolveActiveAssistant = (
+  assistants: readonly PetrinautPluginAssistantEntry[],
+  chosenId: string | null,
+): PetrinautPluginAssistantEntry | undefined =>
+  assistants.find(({ assistant }) => assistant.id === chosenId) ??
+  assistants[0];

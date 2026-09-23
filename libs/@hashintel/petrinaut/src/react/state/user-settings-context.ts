@@ -75,6 +75,11 @@ export type UserSettings = {
    * registers; the settings dialog has no control for it.
    */
   brunchDemoMode: boolean;
+  /**
+   * The AI assistant chosen in User settings, by plugin assistant id. `null`
+   * until the user picks one; the editor then uses the first installed.
+   */
+  aiAssistantId: string | null;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -103,6 +108,7 @@ export type UserSettingsActions = {
   setShowWalkthroughOnInit: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setBrunchDemoMode: (value: boolean) => void;
+  setAiAssistantId: (value: string | null) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -136,6 +142,7 @@ export const defaultUserSettings: UserSettings = {
   showWalkthroughOnInit: true,
   showCompilationOutput: false,
   brunchDemoMode: false,
+  aiAssistantId: null,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -168,6 +175,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setShowWalkthroughOnInit: () => {},
   setShowCompilationOutput: () => {},
   setBrunchDemoMode: () => {},
+  setAiAssistantId: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };

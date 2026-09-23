@@ -151,6 +151,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
     },
     setBrunchDemoMode: (value: boolean) =>
       setState((prev) => ({ ...prev, brunchDemoMode: value })),
+    setAiAssistantId: (value: string | null) =>
+      setState((prev) => ({ ...prev, aiAssistantId: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

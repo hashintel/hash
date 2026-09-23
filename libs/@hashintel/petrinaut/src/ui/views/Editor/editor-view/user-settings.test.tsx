@@ -24,6 +24,7 @@ import {
   definePetrinautPlugin,
   type PetrinautPlugin,
 } from "../../../plugins/plugin";
+import { PluginAssistants } from "../../../plugins/plugin-assistants";
 import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
@@ -65,7 +66,9 @@ const renderSettings = (
         <PetrinautNavigationProvider initialState={initialState}>
           <PetrinautOptimizationContext value={optimization}>
             <InstalledPluginsProvider plugins={plugins}>
-              <UserSettings settingsLabs={settingsLabs} />
+              <PluginAssistants>
+                <UserSettings settingsLabs={settingsLabs} />
+              </PluginAssistants>
             </InstalledPluginsProvider>
           </PetrinautOptimizationContext>
         </PetrinautNavigationProvider>
@@ -571,6 +574,49 @@ describe("Labs settings", () => {
     );
     await screen.findByRole("heading", { name: "General" });
     expect(screen.queryByRole("button", { name: "Labs only" })).toBeNull();
+  });
+});
+
+describe("AI assistant selector", () => {
+  const assistantPlugin = (id: string, label: string) =>
+    definePetrinautPlugin({
+      id,
+      assistants: [{ id, label, component: () => null }],
+    });
+
+  it("offers no selector while one assistant is installed", async () => {
+    renderSettings({ overlay: { type: "user-settings" } }, null, undefined, [
+      assistantPlugin("test.stock", "Stock"),
+    ]);
+    await screen.findByRole("heading", { name: "General" });
+    expect(screen.queryByRole("region", { name: "AI assistant" })).toBeNull();
+  });
+
+  it("chooses among several assistants and keeps the choice", async () => {
+    renderSettings({ overlay: { type: "user-settings" } }, null, undefined, [
+      assistantPlugin("test.stock", "Stock"),
+      assistantPlugin("test.brunch", "Brunch"),
+    ]);
+    const select = await screen.findByRole("combobox", { name: "Assistant" });
+    expect(select.textContent).toContain("Stock");
+
+    fireEvent.click(select);
+    fireEvent.click(await screen.findByRole("option", { name: "Brunch" }));
+
+    await vi.waitFor(() =>
+      expect(
+        (
+          JSON.parse(
+            localStorage.getItem("petrinaut:user-settings") ?? "{}",
+          ) as {
+            aiAssistantId?: string;
+          }
+        ).aiAssistantId,
+      ).toBe("test.brunch"),
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Assistant" }).textContent,
+    ).toContain("Brunch");
   });
 });
 

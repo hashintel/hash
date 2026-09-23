@@ -48,6 +48,10 @@ import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
 import { InstalledPlugins } from "../../plugins/installed-plugins";
+import {
+  PluginAssistants,
+  useActiveAiAssistant,
+} from "../../plugins/plugin-assistants";
 import { PluginContributionBoundary } from "../../plugins/plugin-boundary";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -77,7 +81,6 @@ import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { useEditWorkspace } from "./use-edit-workspace";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
-import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
@@ -159,12 +162,10 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
 const EditorViewContent = ({
-  aiAssistant,
   hideNetManagementControls,
   settingsLabs,
   titleEditable,
 }: {
-  aiAssistant?: PetrinautAiAssistant;
   /**
    * See {@link TopBar} for the full semantics.
    */
@@ -217,6 +218,10 @@ const EditorViewContent = ({
 
   const { installedEditViews, activeEditView, isCanvasWorkspace } =
     useEditWorkspace();
+  // The AI panel and its entry points show only while a plugin assistant is
+  // active and has passed its value.
+  const activeAssistant = useActiveAiAssistant();
+  const aiAssistant = activeAssistant?.assistant;
   const pluginEditViews = installedEditViews.map(({ view }) => view);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -685,10 +690,10 @@ const EditorViewContent = ({
             </Activity>
             <SimulationCreationDrawer />
           </SimulationWorkspace>
-          {aiAssistant && (
+          {activeAssistant && aiAssistant && (
             <AiAssistantPanel
-              /** Reset state (e.g. initial messages) when the active net changes */
-              key={`ai-assistant-${petriNetId ?? "no-net"}`}
+              /** A new assistant or net gets a new chat, with its own transport */
+              key={`ai-assistant-${activeAssistant.id}-${petriNetId ?? "no-net"}`}
               aiAssistant={aiAssistant}
               applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
               focusRequest={aiAssistantFocusRequest}
@@ -718,6 +723,8 @@ export const EditorView = (
   props: React.ComponentProps<typeof EditorViewContent>,
 ) => (
   <CodeNavigationProvider>
-    <EditorViewContent {...props} />
+    <PluginAssistants>
+      <EditorViewContent {...props} />
+    </PluginAssistants>
   </CodeNavigationProvider>
 );

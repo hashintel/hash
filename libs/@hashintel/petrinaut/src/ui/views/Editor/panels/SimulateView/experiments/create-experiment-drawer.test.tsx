@@ -304,6 +304,7 @@ const TestProviders = ({
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
     setBrunchDemoMode: () => {},
+    setAiAssistantId: () => {},
     updateSubViewSection: () => {},
   };
 

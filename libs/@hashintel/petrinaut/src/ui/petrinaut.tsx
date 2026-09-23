@@ -22,6 +22,10 @@ import { MonacoProvider } from "./monaco/provider";
 import { petrinautBuiltInPlugins } from "./plugins/built-in-plugins";
 import { InstalledPluginsProvider } from "./plugins/installed-plugins";
 import { resolveInstalledPlugins } from "./plugins/plugin";
+import {
+  HostAiAssistantContext,
+  hostAiAssistantPlugin,
+} from "./plugins/plugin-assistants";
 import { usePetrinautPluginsConfiguration } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
@@ -168,6 +172,11 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
+  /**
+   * @deprecated Install a plugin with an `assistants` entry through
+   * `PetrinautPluginsProvider` instead. A host that passes this gets it as
+   * the first assistant.
+   */
   aiAssistant?: PetrinautAiAssistant;
   /**
    * @deprecated Install a plugin with a Labs `settingsGroups` entry through
@@ -246,7 +255,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   const pluginsConfiguration = usePetrinautPluginsConfiguration();
   const installedPlugins = resolveInstalledPlugins(
     pluginsConfiguration.builtInPlugins ?? petrinautBuiltInPlugins,
-    pluginsConfiguration.plugins,
+    aiAssistant === undefined
+      ? pluginsConfiguration.plugins
+      : [hostAiAssistantPlugin, ...pluginsConfiguration.plugins],
   );
 
   const netManagement: NetManagement = {
@@ -274,12 +285,13 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 className={cx(editorRootStyle, "petrinaut-root")}
                 ref={portalContainerRef}
               >
-                <EditorView
-                  aiAssistant={aiAssistant}
-                  hideNetManagementControls={hideNetManagementControls}
-                  settingsLabs={slots?.settingsLabs}
-                  titleEditable={titleEditable}
-                />
+                <HostAiAssistantContext value={aiAssistant}>
+                  <EditorView
+                    hideNetManagementControls={hideNetManagementControls}
+                    settingsLabs={slots?.settingsLabs}
+                    titleEditable={titleEditable}
+                  />
+                </HostAiAssistantContext>
               </Stack>
             </MonacoProvider>
           </PetrinautPresentationProvider>

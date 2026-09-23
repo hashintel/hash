@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useAssistantChoice } from "../../../../plugins/plugin-assistants";
 import { PluginSettingsGroups } from "../../../../plugins/plugin-settings-groups";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
@@ -365,6 +366,8 @@ export const UserSettingsDialog = ({
 }) => {
   const settings = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
+  const assistantChoice = useAssistantChoice();
+  const activeAssistantId = assistantChoice.activeId;
   const item =
     sections.find((candidate) => candidate.id === section) ?? sections[0];
   const headingRef = useRef<HTMLElement>(null);
@@ -482,6 +485,36 @@ export const UserSettingsDialog = ({
                           onChange={settings.setShowWalkthroughOnInit}
                         />
                       </SettingsGroup>
+                      {assistantChoice.assistants.length > 1 &&
+                        activeAssistantId !== undefined && (
+                          <SettingsGroup title="AI assistant">
+                            <SettingRow
+                              label="Assistant"
+                              description="Choose which assistant answers in the AI panel."
+                              wideControl
+                            >
+                              {(aria) => (
+                                <Select
+                                  {...aria}
+                                  size="sm"
+                                  className={css({
+                                    width: "[156px]",
+                                    maxWidth: "[100%]",
+                                  })}
+                                  required
+                                  value={activeAssistantId}
+                                  onChange={assistantChoice.choose}
+                                  items={assistantChoice.assistants.map(
+                                    (assistant) => ({
+                                      value: assistant.id,
+                                      text: assistant.label,
+                                    }),
+                                  )}
+                                />
+                              )}
+                            </SettingRow>
+                          </SettingsGroup>
+                        )}
                     </>
                   )}
                   {item.id === "viewport" && (

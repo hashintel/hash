@@ -31,8 +31,13 @@ export {
   reactiveModulesPlugin,
 } from "./ui/plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./ui/plugins/plugin";
+export {
+  usePetrinautActiveAssistantId,
+  usePetrinautAiAssistant,
+} from "./ui/plugins/plugin-assistants";
 export type {
   PetrinautPlugin,
+  PetrinautPluginAssistant,
   PetrinautPluginButton,
   PetrinautPluginButtonPlacement,
   PetrinautPluginEditView,

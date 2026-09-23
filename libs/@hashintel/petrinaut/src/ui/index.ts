@@ -249,16 +249,21 @@ export { DefaultChatTransport } from "ai";
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
-// Plugins — how a host adds buttons, commands, panel sections and edit views
-// to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
+// Plugins — how a host adds buttons, commands, panel sections, edit views and
+// AI assistants to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
 export {
   definitionsViewPlugin,
   petrinautBuiltInPlugins,
   reactiveModulesPlugin,
 } from "./plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./plugins/plugin";
+export {
+  usePetrinautActiveAssistantId,
+  usePetrinautAiAssistant,
+} from "./plugins/plugin-assistants";
 export type {
   PetrinautPlugin,
+  PetrinautPluginAssistant,
   PetrinautPluginButton,
   PetrinautPluginButtonPlacement,
   PetrinautPluginEditView,
