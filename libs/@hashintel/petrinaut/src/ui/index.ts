@@ -249,16 +249,21 @@ export { DefaultChatTransport } from "ai";
 // no-op changes outside the handle (e.g. memoising Storybook stories).
 export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
-// Plugins — how a host adds buttons, commands, panel sections and edit views
-// to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
+// Plugins — how a host adds buttons, commands, panel sections, edit views and
+// AI assistants to the editor. `<PetrinautPluginsProvider>` above `<Petrinaut>` installs them.
 export {
   definitionsViewPlugin,
   petrinautBuiltInPlugins,
   reactiveModulesPlugin,
 } from "./plugins/built-in-plugins";
 export { definePetrinautPlugin } from "./plugins/plugin";
+export {
+  usePetrinautActiveAssistantId,
+  usePetrinautAiAssistant,
+} from "./plugins/plugin-assistants";
 export type {
   PetrinautPlugin,
+  PetrinautPluginAssistant,
   PetrinautPluginButton,
   PetrinautPluginButtonPlacement,
   PetrinautPluginEditView,
@@ -272,8 +277,6 @@ export type {
 export { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 export type { PetrinautPluginsProviderProps } from "./plugins/plugins-provider";
 export type { SubView, SubViewResizeConfig } from "./components/sub-view/types";
-// Superseded by plugin settings groups; removed once the Labs host has moved.
-export type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it
 // programmatically (e.g. trigger from their own help menu) without relying on

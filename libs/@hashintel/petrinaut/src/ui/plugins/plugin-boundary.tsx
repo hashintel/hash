@@ -12,6 +12,7 @@ import type {
 export type PluginContributionPlace =
   | "component"
   | "commands"
+  | "assistant"
   | "edit-view"
   | `settings-${PetrinautPluginSettingsSection}`
   | PetrinautPluginButtonPlacement

@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                             |
 | ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations, panel loading, and the welcome guide.                    |
+| **General**  | Animations, panel loading, the welcome guide, and the AI assistant.  |
 | **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
 
@@ -35,6 +35,10 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 ### Show welcome guide
 
 Show the getting-started guide the next time you open Petrinaut.
+
+### AI assistant
+
+When the host offers more than one AI assistant, choose which one answers in the AI panel. The panel switches at once, and each assistant has its own conversation. The choice is saved with your other preferences. With a single assistant there is nothing to choose, and the group is hidden.
 
 ## Viewport
 
@@ -168,10 +172,9 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ## Labs
 
-Hosts can place application-specific controls after Petrinaut's built-in Labs
-groups. For example, a host may put assistant provider and Voice availability
-choices there. The host owns those controls, their availability, and how their
-preferences are saved.
+Hosts can add their own groups after Petrinaut's built-in Labs groups, for
+example a Voice option for one of their assistants. The host owns those
+controls, their availability, and how their preferences are saved.
 
 ### Net Components (experimental)
 

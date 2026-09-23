@@ -1,6 +1,8 @@
 # AI Assistant
 
-Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and in [HASH](https://hash.ai) and may or may not be enabled in other Petrinaut embeds.
+Petrinaut has an in-app AI assistant that can build a net from a natural-language description, review or revise an existing one, read TypeScript compilation diagnostics, run experiments, and consult its own user-guide pages to answer "how do I ..." questions. The host application controls whether the assistant and its tools are available -- it is enabled on [demo.petrinaut.org](https://demo.petrinaut.org) and in [HASH](https://hash.ai) and may or may not be enabled in other Petrinaut embeds. Without an assistant, the AI button, the first-run prompt, and the palette command are absent.
+
+A host can offer more than one assistant. The first one answers until you choose another in **User Settings → General → AI assistant**, or run **Use the _name_ assistant** from the command palette. Each assistant has its own conversation, and switching never moves messages from one to the other. Whether a conversation is still there when you switch back depends on the host; the demo site keeps both.
 
 ## Opening the panel
 

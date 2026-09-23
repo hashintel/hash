@@ -48,11 +48,33 @@ updates start from the latest persisted value so another tab's documents survive
 
 ## Choosing the assistant
 
-Petrinaut's stock assistant is the AI panel fallback. Under **User settings → Labs**, **Use Brunch** selects the Brunch assistant and **Enable Voice** controls whether Voice mode is offered. The assistant choice is stored under `petrinaut-website:assistant`; the separate Voice choice is stored under `petrinaut-website:voice-enabled` and is off when the value is missing or invalid. Both preferences belong to the website host, not Petrinaut.
+The stock assistant and Brunch are Petrinaut assistant plugins. With
+`VITE_BRUNCH_CHAT_ENDPOINT` configured both are installed, and Petrinaut's
+**User settings → General → AI assistant** selector chooses between them; the
+command palette (⌘K) offers **Use the Brunch assistant** or **Use the Petrinaut
+assistant**. Petrinaut stores the choice with its other user settings. Without
+an endpoint the stock assistant is the only one and there is nothing to choose.
+A worked-model document (`/?bundle=<key>`) installs Brunch alone.
 
-A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch`; explicit browser-local assistant choices remain authoritative, so changing the launch fallback does not migrate existing users. With `VITE_BRUNCH_CHAT_ENDPOINT` configured, the command palette (⌘K) continues to offer **Use Brunch** and, once switched, **Use the stock Petrinaut assistant**. With the stock assistant selected, the panel talks to `/api/chat` with the stock tool surface, keeps its messages in the local store, and creates no Flue client, mounts no Brunch tools and shows no Workpiece pane or Voice; Brunch's conversation lives in Flue history and is untouched. Switching back restores it. Without a configured endpoint, the Labs control remains visible but disabled, the stock assistant is the only one, and no command is offered.
+Until the user chooses, the first installed assistant is active. This site
+orders them by its earlier browser-local choice under
+`petrinaut-website:assistant`, which it reads but no longer writes, and
+otherwise by `VITE_PETRINAUT_DEFAULT_ASSISTANT` (`stock` by default, or
+`brunch` for a Brunch-focused deployment).
 
-Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
+Only the active assistant's plugin component is mounted. With the stock
+assistant active, the panel talks to `/api/chat` with the stock tool surface
+and keeps its messages in the local store; no Flue client is created, no
+Brunch tools are mounted, and no Ledger pane or Voice is shown. Brunch's
+conversation lives in Flue history and is untouched; switching back restores
+it.
+
+**User settings → Labs → Brunch → Enable Voice** controls whether Voice mode
+is offered, stored under `petrinaut-website:voice-enabled` and off when the
+value is missing or invalid. Voice is available only while Brunch is active,
+the preference is enabled, and the server capability check reports Voice
+available. Enabling the preference does not start microphone capture or a
+provider session.
 
 ## Worked-model documents
 

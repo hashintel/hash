@@ -11,6 +11,7 @@ import {
 import { petrinautBuiltInPlugins } from "../../plugins/built-in-plugins";
 import { InstalledPluginsProvider } from "../../plugins/installed-plugins";
 import { definePetrinautPlugin } from "../../plugins/plugin";
+import { usePetrinautAiAssistant } from "../../plugins/plugin-assistants";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -108,6 +109,18 @@ const aiAssistant: PetrinautAiAssistant = {
   },
 };
 
+const TestAssistant = () => {
+  usePetrinautAiAssistant(aiAssistant);
+  return null;
+};
+
+const testAssistantPlugin = definePetrinautPlugin({
+  id: "test.assistant",
+  assistants: [
+    { id: "test.assistant", label: "Test", component: TestAssistant },
+  ],
+});
+
 const EditorAtMode = ({
   mode,
   view = "canvas",
@@ -125,8 +138,10 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <InstalledPluginsProvider plugins={petrinautBuiltInPlugins}>
-        <EditorView aiAssistant={aiAssistant} titleEditable />
+      <InstalledPluginsProvider
+        plugins={[...petrinautBuiltInPlugins, testAssistantPlugin]}
+      >
+        <EditorView titleEditable />
       </InstalledPluginsProvider>
     </EditorContext.Provider>
   );
