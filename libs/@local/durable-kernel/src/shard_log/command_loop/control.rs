@@ -44,10 +44,12 @@ async fn resolve<D: ControlDomain>(
             outcome,
         });
     }
+
     let record = D::build_control_record(access.projection(), &request, preflight_rejection)
         .change_context(ShardCommandError::BuildControlRecord {
             event_id: D::control_event_id(&request),
         })?;
+
     let append = match access.propose(record).await? {
         ShardCommandOutcome::Applied {
             event_id,
@@ -67,10 +69,12 @@ async fn resolve<D: ControlDomain>(
             ));
         }
     };
+
     let outcome = D::control_outcome_after_append(access.projection(), &request)
         .change_context_lazy(|| ShardCommandError::ReadControlOutcome {
             event_id: D::control_event_id(&request),
         })?;
+
     Ok(ControlResolution { append, outcome })
 }
 

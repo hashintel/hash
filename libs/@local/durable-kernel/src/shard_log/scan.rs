@@ -53,6 +53,7 @@ where
 {
     let mut stream = pin!(reader.scan(Bytes::from_static(EVENTS_KEY), range).await?);
     let mut records = Vec::new();
+
     while let Some((sequence, bytes)) = stream.try_next().await? {
         if let Some((start, end)) = expected_window
             && (sequence < start || sequence >= end)
@@ -64,12 +65,15 @@ where
                 end,
             }));
         }
+
         let record = T::decode(&bytes).change_context(DurableError::DecodeRecord {
             name: T::declaration().name,
             sequence,
         })?;
+
         records.push((sequence, record));
     }
+
     if let Some((_start, expected_end)) = expected_window {
         let observed_end = stream.next_sequence();
         if observed_end != expected_end {
@@ -80,6 +84,7 @@ where
             }));
         }
     }
+
     Ok(records)
 }
 
@@ -97,7 +102,9 @@ where
             .scan(Bytes::from_static(PROJECTION_SNAPSHOTS_KEY), range)
             .await?
     );
+
     let mut records = Vec::new();
+
     while let Some((sequence, bytes)) = stream.try_next().await? {
         if sequence >= expected_end {
             return Err(Report::new(DurableError::RecordOutsideRecoveryRange {
@@ -107,8 +114,10 @@ where
                 end: expected_end,
             }));
         }
+
         records.push((sequence, T::decode(&bytes)));
     }
+
     if stream.next_sequence() != expected_end {
         return Err(Report::new(DurableError::IncompleteScan {
             name: T::declaration().name,
@@ -116,5 +125,6 @@ where
             expected_end,
         }));
     }
+
     Ok(records)
 }

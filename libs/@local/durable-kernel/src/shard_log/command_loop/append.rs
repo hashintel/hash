@@ -20,6 +20,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                 rejection: D::reject_foreign_shard(&record),
             });
         }
+
         let event_id = D::record_event_id(&record);
         let integration_id = D::record_state_key(&record);
         let mut safe_failures = 0_u32;
@@ -29,6 +30,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                 Ok(transition) => transition,
                 Err(rejection) => return Ok(ShardCommandOutcome::Rejected { rejection }),
             };
+
             let Prepared::Mutation(delta) = transition else {
                 self.notify_state_change_if_established(&integration_id);
                 return Ok(ShardCommandOutcome::AlreadyDurable { event_id });
@@ -37,6 +39,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
             if self.ownership_lost.is_cancelled() {
                 return Err(Report::new(ShardCommandError::OwnershipLostBeforeAppend));
             }
+
             let append_result = self.append(&record).await;
             match append_result {
                 Ok(sequence) => {
@@ -85,10 +88,12 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
             if self.ownership_lost.is_cancelled() {
                 return Err(Report::new(ShardCommandError::OwnershipLostBeforeSnapshot));
             }
+
             let writer = self
                 .writer
                 .as_ref()
                 .ok_or(ShardCommandError::WriterUnavailable)?;
+
             match writer
                 .append_encoded(PROJECTION_SNAPSHOTS_KEY, bytes.clone())
                 .await

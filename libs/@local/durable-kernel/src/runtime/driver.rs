@@ -141,9 +141,11 @@ where
             .map(|effect| EffectId::for_effect(&effect).map(|id| (id, effect)))
             .collect::<Result<Vec<_>, _>>()
             .change_context(KernelError::EncodeEffectId)?;
+
         retain_planned_effects(&effects, &mut executed, &mut retries);
 
         let mut progressed = false;
+
         for (id, effect) in effects {
             if shutdown.is_cancelled() {
                 return Ok(());
@@ -250,6 +252,7 @@ where
         settings,
         shutdown,
     )));
+
     let result = driver
         .await
         .change_context(KernelError::JoinEffectDriver)
@@ -257,11 +260,13 @@ where
         .change_context(KernelError::ShardDriver {
             shard: handle.shard(),
         });
+
     if let Err(error) = result {
         drop(owner);
         tracing::error!(?error, "effect driver failed; shard stopped");
         return Err(error);
     }
+
     if let Err(error) = owner.shutdown().await
         && error.current_context().kind() != ShardCommandErrorKind::Closed
     {
@@ -271,5 +276,6 @@ where
             },
         ));
     }
+
     Ok(())
 }

@@ -54,6 +54,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
         let Err(failure) = self.run_commands().await else {
             return Ok(());
         };
+
         let error = &failure.error;
         tracing::error!(
             shard = %self.location.shard.path_segment(),
@@ -61,16 +62,20 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
             ?error,
             "stopping shard command loop after terminal failure"
         );
+
         let context = error.current_context().clone();
         failure.reply();
+
         if context.kind() == ShardCommandErrorKind::Fenced
             && let Some(on_fenced) = self.on_fenced.take()
         {
             on_fenced();
         }
+
         self.admission_closed.cancel();
         self.receiver.close();
         self.reject_queued(&context);
+
         if let Err(error) = self.close_writer().await {
             tracing::error!(
                 shard = %self.location.shard.path_segment(),
@@ -78,6 +83,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                 "failed to close shard writer after terminal failure"
             );
         }
+
         Err(context)
     }
 
@@ -94,9 +100,11 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                 }
                 command = self.receiver.recv() => command,
             };
+
             let Some(command) = command else {
                 break;
             };
+
             let committing_snapshot = command.kind() == ShardCommandKind::CommitSnapshot;
             let shutting_down = matches!(&command, Command::Shutdown { .. });
             let result = match command {
@@ -113,6 +121,7 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                     send_reply(reply, result)
                 }
             };
+
             if let Err(failure) = result {
                 let kind = failure.error.current_context().kind();
                 if shutting_down
@@ -123,10 +132,12 @@ impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
                 }
                 failure.reply();
             }
+
             if shutting_down {
                 return Ok(());
             }
         }
+
         self.admission_closed.cancel();
         self.close_writer().await?;
         Ok(())

@@ -224,15 +224,18 @@ impl JournalWriter for SimWriter {
         let key = SimKey::try_from(key.as_ref()).change_context(ShardAppendError {
             kind: AppendFailureKind::DefinitelyNotCommitted,
         })?;
+
         let before = self.handle.lock().before_append.take();
         if let Some(pause) = before {
             pause.wait().await;
         }
+
         let result = self.append_record(key, value.to_vec());
         let after = self.handle.lock().after_append.take();
         if let Some(pause) = after {
             pause.wait().await;
         }
+
         match result {
             SimAppendResult::Acked(sequence) => Ok(sequence),
             SimAppendResult::DefinitelyNotCommitted => Err(SimulatedFailure::BeforeStorageCall

@@ -116,23 +116,28 @@ impl AppendOutcomeWeights {
                 + u64::from(self.commit_unknown_lost)
                 + u64::from(self.fenced),
         );
+
         let roll = rng.below(1000);
         let mut threshold = u64::from(self.ack_durable);
         if roll < threshold {
             return SimAppendOutcome::AckDurable;
         }
+
         threshold += u64::from(self.definitely_not_committed);
         if roll < threshold {
             return SimAppendOutcome::DefinitelyNotCommitted;
         }
+
         threshold += u64::from(self.commit_unknown_durable);
         if roll < threshold {
             return SimAppendOutcome::CommitUnknownDurable;
         }
+
         threshold += u64::from(self.commit_unknown_lost);
         if roll < threshold {
             return SimAppendOutcome::CommitUnknownLost;
         }
+
         SimAppendOutcome::Fenced
     }
 }
@@ -167,6 +172,13 @@ struct SimLogState {
 #[derive(Debug, Clone)]
 pub struct SimLogHandle {
     state: Arc<Mutex<SimLogState>>,
+}
+
+/// Appends to a [`SimLogHandle`] under one writer epoch.
+#[derive(Debug)]
+pub struct SimWriter {
+    handle: SimLogHandle,
+    epoch: u64,
 }
 
 impl SimLogHandle {
@@ -278,13 +290,6 @@ impl SimLogHandle {
     }
 }
 
-/// Appends to a [`SimLogHandle`] under one writer epoch.
-#[derive(Debug)]
-pub struct SimWriter {
-    handle: SimLogHandle,
-    epoch: u64,
-}
-
 pub(crate) enum SimAppendResult {
     Acked(JournalSequence),
     DefinitelyNotCommitted,
@@ -298,11 +303,14 @@ impl SimWriter {
         if state.writer_epoch != self.epoch {
             return SimAppendResult::Fenced;
         }
+
         let outcome = state
             .pending
             .pop_front()
             .unwrap_or(SimAppendOutcome::AckDurable);
+
         state.outcome_log.push(outcome);
+
         match outcome {
             SimAppendOutcome::AckDurable => {
                 let sequence = state.store(key, bytes);

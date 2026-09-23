@@ -20,15 +20,18 @@ impl Driver<'_> {
                 return;
             }
         };
+
         let Some(payload) = capture else {
             self.trace.push("snapshot not due".into());
             return;
         };
+
         let timestamp = chrono::DateTime::from_timestamp(
             i64::try_from(step).expect("simulation step should fit in i64"),
             0,
         )
         .expect("simulation step should be a valid timestamp");
+
         let snapshot = payload.into_record(timestamp);
         match self.handle().commit_snapshot(snapshot).await {
             Ok(_sequence) => {}

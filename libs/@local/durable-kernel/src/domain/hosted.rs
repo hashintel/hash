@@ -158,6 +158,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         record: &Self::RecordCurrent,
     ) -> Result<Prepared<Self::Delta>, Self::FoldError> {
         let digest = record.digest()?;
+
         if let Some(seen) = projection.seen.get(&record.event_id()) {
             return if *seen == digest {
                 Ok(Prepared::Noop)
@@ -167,6 +168,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 })
             };
         }
+
         let change = projection
             .domain
             .validate(record.event())
@@ -174,6 +176,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 event_id: record.event_id(),
                 rejection,
             })?;
+
         Ok(Prepared::Mutation(PreparedEvent {
             event_id: record.event_id(),
             partition: record.partition().clone(),
@@ -228,6 +231,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         let record = record
             .normalize()
             .change_context(RecoveryError::InvalidRecord { sequence })?;
+
         let record_shard = record.partition().shard();
         if record_shard != shard {
             return Err(Report::new(RecoveryError::ForeignShard {
@@ -236,6 +240,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 actual: record_shard,
             }));
         }
+
         if let Some(previous) = projection.through_sequence
             && sequence <= previous
         {
@@ -244,9 +249,11 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
                 proposed: sequence,
             }));
         }
+
         let digest = record
             .digest()
             .change_context(RecoveryError::InvalidRecord { sequence })?;
+
         match projection.seen.get(&record.event_id()) {
             // A lost acknowledgement can leave duplicate records in the journal.
             Some(seen) if *seen == digest => {

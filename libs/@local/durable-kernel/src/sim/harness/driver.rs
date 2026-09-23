@@ -82,7 +82,9 @@ impl Driver<'_> {
             self.crash_and_recover(coverage).await;
             result = self.handle().propose(record.clone()).await;
         }
+
         let window = self.journal.outcomes_since(outcome_index);
+
         match result {
             Ok(ShardCommandOutcome::Applied { event_id, .. }) => {
                 properties::EVENT_ACKED_APPLIED_ONCE.check(
@@ -153,9 +155,11 @@ impl Driver<'_> {
             amount: 0,
             request: self.next_request,
         };
+
         let record = EventRecordV1::new(event).expect("invalid-amount event should encode");
         let event_id = record.event_id();
         self.proposed.insert(event_id);
+
         match self.handle().propose(record).await {
             Ok(ShardCommandOutcome::Rejected { .. }) => {
                 self.rejected.insert(event_id);
@@ -201,6 +205,7 @@ impl Driver<'_> {
                     format_args!("effect {identity} replayed with different payload"),
                 );
             }
+
             executions.push(payload);
             properties::EFFECT_EXECUTED_MORE_THAN_ONCE.cover(
                 coverage,
@@ -216,13 +221,16 @@ impl Driver<'_> {
                 upto: effect.upto,
                 cycle: effect.cycle,
             };
+
             let record = EventRecordV1::new(completion).expect("completion event should encode");
             self.trace.push(format!(
                 "execute archive {}@{}",
                 effect.counter, effect.upto
             ));
+
             self.submit(record, SubmitKind::Completion, coverage).await;
         }
+
         effects.len()
     }
 }

@@ -25,17 +25,6 @@ impl Shard {
     }
 }
 
-impl TryFrom<u16> for Shard {
-    type Error = InvalidShard;
-
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        match u8::try_from(value) {
-            Ok(value) => Ok(Self(value)),
-            Err(_out_of_range) => Err(InvalidShard { value }),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 #[display("shard {value} does not fit in a routing-v1 one-byte ID")]
 pub struct InvalidShard {
@@ -49,6 +38,17 @@ pub struct InvalidShardText;
 impl From<InvalidShard> for InvalidShardText {
     fn from(_out_of_range: InvalidShard) -> Self {
         Self
+    }
+}
+
+impl TryFrom<u16> for Shard {
+    type Error = InvalidShard;
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match u8::try_from(value) {
+            Ok(value) => Ok(Self(value)),
+            Err(_out_of_range) => Err(InvalidShard { value }),
+        }
     }
 }
 
