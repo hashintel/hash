@@ -40,7 +40,7 @@ caller whether validation rejected the event or the kernel failed.
 
 Both kinds of failure are `error-stack` reports, which keep the error type and
 details about the failure. See the [domain API](src/domain/mod.rs) for
-validation and the [runtime API](src/runtime.rs) for submission outcomes.
+validation and the [runtime API](src/runtime/mod.rs) for submission outcomes.
 
 ### External operations
 
@@ -60,7 +60,7 @@ shard. The runtime logs the failure and returns it from `shutdown()`.
 ### Run the application
 
 Configure storage and the shards the process owns, register the domain, and
-start the [runtime](src/runtime.rs) with an executor. The runtime recovers every
+start the [runtime](src/runtime/mod.rs) with an executor. The runtime recovers every
 owned shard before executing effects. It provides methods to submit events,
 read state, and shut down.
 
