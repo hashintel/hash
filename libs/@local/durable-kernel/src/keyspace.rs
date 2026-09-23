@@ -6,6 +6,8 @@
 //!
 //! Parse a [`Namespace`], then use [`Keyspace`] to build paths for a [`Shard`].
 
+use core::ascii::Char;
+
 use crate::routing::Shard;
 
 pub const MAX_NAMESPACE_BYTES: usize = 256;
@@ -33,8 +35,18 @@ pub enum InvalidNamespace {
 fn valid_segment(segment: &str) -> bool {
     !segment.is_empty()
         && !matches!(segment, "." | "..")
-        && segment.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'@' | b':')
+        && segment.as_ascii().is_some_and(|chars| {
+            chars.iter().all(|char| {
+                char.is_alphanumeric()
+                    || matches!(
+                        char,
+                        Char::HyphenMinus
+                            | Char::LowLine
+                            | Char::FullStop
+                            | Char::CommercialAt
+                            | Char::Colon
+                    )
+            })
         })
 }
 
