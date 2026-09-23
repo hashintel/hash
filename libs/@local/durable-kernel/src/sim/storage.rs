@@ -31,8 +31,8 @@ use crate::{
 pub enum SimulatedFailure {
     #[display("simulated failure before the storage call")]
     BeforeStorageCall,
-    #[display("simulated append with unknown commit status")]
-    UnknownCommit,
+    #[display("simulated commit-unknown append")]
+    CommitUnknown,
     #[display("simulated newer writer epoch")]
     NewerWriterEpoch,
 }
@@ -241,7 +241,7 @@ impl JournalWriter for SimWriter {
             SimAppendResult::DefinitelyNotCommitted => Err(SimulatedFailure::BeforeStorageCall
                 .into_report(AppendFailureKind::DefinitelyNotCommitted)),
             SimAppendResult::CommitUnknown => {
-                Err(SimulatedFailure::UnknownCommit.into_report(AppendFailureKind::CommitUnknown))
+                Err(SimulatedFailure::CommitUnknown.into_report(AppendFailureKind::CommitUnknown))
             }
             SimAppendResult::Fenced => {
                 Err(SimulatedFailure::NewerWriterEpoch.into_report(AppendFailureKind::Fenced))

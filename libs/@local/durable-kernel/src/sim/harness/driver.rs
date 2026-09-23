@@ -73,19 +73,19 @@ impl Driver<'_> {
     ) {
         self.proposed.insert(record.event_id());
         let outcome_index = self.journal.outcomes_drawn();
-        let mut result = self.handle().propose(record.clone()).await;
-        while let Err(error) = &result
+        let mut proposed = self.handle().propose(record.clone()).await;
+        while let Err(error) = &proposed
             && error.current_context().kind() == ShardCommandErrorKind::CommitUnknown
         {
             self.trace
-                .push("append commit status unknown; reopening and proposing again".into());
+                .push("commit-unknown append; reopening and proposing again".into());
             self.crash_and_recover(coverage).await;
-            result = self.handle().propose(record.clone()).await;
+            proposed = self.handle().propose(record.clone()).await;
         }
 
         let window = self.journal.outcomes_since(outcome_index);
 
-        match result {
+        match proposed {
             Ok(ShardCommandOutcome::Applied { event_id, .. }) => {
                 properties::EVENT_ACKED_APPLIED_ONCE.check(
                     !self.applied.contains(&event_id),
