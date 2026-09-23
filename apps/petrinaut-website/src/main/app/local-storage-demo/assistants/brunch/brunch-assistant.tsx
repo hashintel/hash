@@ -28,7 +28,6 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import {
-  loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../../../voice-interview/voice-interview-control";
@@ -196,28 +195,6 @@ export const BrunchAssistant = () => {
     voice,
   } = useDemoAssistantHost();
   const currentNetTitle = currentDocument.title;
-  const { setConfig: setOpenAIVoiceConfig } = voice;
-
-  // Each time Brunch becomes active it checks again whether this deployment
-  // offers Voice, and forgets the answer when it stops being active, so a
-  // later check never starts from a stale one.
-  useEffect(() => {
-    const abortController = new AbortController();
-    setOpenAIVoiceConfig(undefined);
-    void loadOpenAIVoiceConfig(
-      globalThis.fetch.bind(globalThis),
-      abortController.signal,
-    ).then((config) => {
-      if (!abortController.signal.aborted) {
-        setOpenAIVoiceConfig(config);
-      }
-    });
-
-    return () => {
-      abortController.abort();
-      setOpenAIVoiceConfig(undefined);
-    };
-  }, [setOpenAIVoiceConfig]);
 
   const productConstructionConversationId =
     ordinaryConstructionConversationIdFrom(currentDocument.incarnationId);

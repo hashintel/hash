@@ -10,7 +10,7 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
@@ -47,7 +47,7 @@ import {
   SDCPNContext,
   type SDCPNContextValue,
 } from "../../../../react/state/sdcpn-context";
-import { useCanvasInsets } from "../../../hooks/use-canvas-insets";
+import { getCanvasInsets } from "../../../hooks/use-canvas-insets";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
@@ -234,8 +234,12 @@ const SubmitForSecondConversation = ({
 
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
+/**
+ * The panel renders here without the editor's assistant host, so the probe
+ * derives the insets from the layout state the panel writes.
+ */
 const CanvasInsetProbe = () => {
-  const canvasInsets = useCanvasInsets();
+  const canvasInsets = getCanvasInsets(use(EditorContext));
   return <output data-testid="canvas-right-inset">{canvasInsets.right}</output>;
 };
 

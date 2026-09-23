@@ -38,7 +38,7 @@ Show the getting-started guide the next time you open Petrinaut.
 
 ### AI assistant
 
-When the host offers more than one AI assistant, choose which one answers in the AI panel. The panel switches at once, and each assistant keeps its own conversation. The choice is saved with your other preferences. With a single assistant there is nothing to choose, and the group is hidden.
+When the host offers more than one AI assistant, choose which one answers in the AI panel. The panel switches at once, and each assistant has its own conversation. The choice is saved with your other preferences. With a single assistant there is nothing to choose, and the group is hidden.
 
 ## Viewport
 

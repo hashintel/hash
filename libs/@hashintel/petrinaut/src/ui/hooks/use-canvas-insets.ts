@@ -2,6 +2,7 @@ import { use } from "react";
 
 import { EditorContext } from "../../react/state/editor-context";
 import { PANEL_MARGIN } from "../constants/ui";
+import { useHasActiveAiAssistant } from "../plugins/plugin-assistants";
 import { usePetrinautPresentation } from "../views/shared/presentation-context";
 
 /** How much of the canvas each edge's panels cover, in CSS pixels. */
@@ -80,10 +81,16 @@ const NO_INSETS: CanvasInsets = { left: 0, right: 0, bottom: 0 };
 export const useCanvasInsets = (options?: CanvasInsetOptions): CanvasInsets => {
   const presentation = usePetrinautPresentation();
   const editor = use(EditorContext);
+  // The panel is open only while it has an assistant to show: one that fails
+  // or stops passing a value leaves the open flag set with nothing on screen.
+  const hasAssistant = useHasActiveAiAssistant();
 
   // Where the panels sit beside the canvas rather than over it, the canvas is
   // already the space it occupies and there is nothing to keep clear of.
   return presentation.panelsOverlayCanvas
-    ? getCanvasInsets(editor, options)
+    ? getCanvasInsets(
+        hasAssistant ? editor : { ...editor, isAiAssistantOpen: false },
+        options,
+      )
     : NO_INSETS;
 };

@@ -2161,6 +2161,43 @@ describe("assistant selection", () => {
     ).toBe(true);
   });
 
+  test("keeps the Voice answer when another net opens", async () => {
+    const incarnationId = "voice-across-nets-incarnation";
+    seedStoredNet(incarnationId);
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
+    localStorage.setItem(voicePreferenceStorageKey, "true");
+    flueClientMock.current = flueHistoryClient(incarnationId);
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ available: true, connectionTimeoutMs: 10_000 }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+    await waitFor(() =>
+      expect(voiceDescription()).toBe(
+        "Make Voice mode available for Brunch conversations.",
+      ),
+    );
+
+    act(() => {
+      editorProps.current?.createNewNet?.({
+        petriNetDefinition: {
+          places: [],
+          transitions: [],
+          types: [],
+          parameters: [],
+          differentialEquations: [],
+        },
+        title: "Another net",
+      });
+    });
+
+    await waitFor(() => expect(editorProps.current?.title).toBe("Another net"));
+    expect(voiceDescription()).toBe(
+      "Make Voice mode available for Brunch conversations.",
+    );
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   test("clears cached Voice capability during each Stock to Brunch check", async () => {
     const incarnationId = "delayed-voice-capability-incarnation";
     seedStoredNet(incarnationId);

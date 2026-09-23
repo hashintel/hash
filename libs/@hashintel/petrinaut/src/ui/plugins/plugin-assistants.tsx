@@ -51,9 +51,10 @@ const AssistantSlotContext = createContext<{
  * editor's AI panel. `null` means not ready yet, and hides the panel. Outside
  * an assistant component it does nothing.
  *
- * The panel creates its chat once per assistant and document, so a new
- * `transport` reaches only the next conversation; everything else the
- * assistant carries applies on the next render.
+ * The panel builds its chat once per assistant, document and
+ * `conversationId`. A new `transport` reaches only the next conversation, and
+ * without `followMessages` the `messages` seed the chat once. Every other
+ * field applies on the next render.
  */
 export const usePetrinautAiAssistant = (
   assistant: PetrinautAiAssistant | null,
@@ -91,6 +92,20 @@ export const useActiveAiAssistant = (): ActiveAiAssistant | null => {
   return active !== undefined && published?.id === active.id
     ? { id: active.id, label: active.label, assistant: published.assistant }
     : null;
+};
+
+/**
+ * Whether the AI panel has an assistant to show. Re-renders only when that
+ * changes, not on every value the assistant passes, for the canvas and the
+ * controls that make room for the panel.
+ */
+export const useHasActiveAiAssistant = (): boolean => {
+  const { store, active } = use(AssistantsContext);
+  const activeId = active?.id;
+  return useSyncExternalStore(
+    store.subscribe,
+    () => activeId !== undefined && store.getSnapshot()?.id === activeId,
+  );
 };
 
 /**

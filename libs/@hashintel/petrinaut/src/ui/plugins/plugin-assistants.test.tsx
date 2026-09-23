@@ -6,6 +6,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  renderHook,
   screen,
 } from "@testing-library/react";
 import { type ReactNode, use, useEffect, useState } from "react";
@@ -15,10 +16,12 @@ import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
 import { CommandRegistryProvider } from "../../react/commands/command-registry";
 import { ErrorTrackerContext } from "../../react/error-tracker-context";
+import { EditorContext } from "../../react/state/editor-context";
 import {
   defaultUserSettingsContextValue,
   UserSettingsContext,
 } from "../../react/state/user-settings-context";
+import { useCanvasInsets } from "../hooks/use-canvas-insets";
 import { InstalledPluginsProvider } from "./installed-plugins";
 import { definePetrinautPlugin, type PetrinautPlugin } from "./plugin";
 import {
@@ -26,6 +29,7 @@ import {
   hostAiAssistantPlugin,
   PluginAssistants,
   useActiveAiAssistant,
+  useHasActiveAiAssistant,
   usePetrinautActiveAssistantId,
   usePetrinautAiAssistant,
 } from "./plugin-assistants";
@@ -75,6 +79,10 @@ const ChooseProbe = ({ ids }: { ids: readonly string[] }) => {
 const PanelProbe = () => {
   const active = useActiveAiAssistant();
   const activeId = usePetrinautActiveAssistantId();
+  const present = useHasActiveAiAssistant();
+  if (present !== (active !== null)) {
+    throw new Error("Presence must match the assistant the panel shows.");
+  }
   return (
     <>
       <output aria-label="active assistant">
@@ -253,5 +261,28 @@ describe("PluginAssistants", () => {
     );
     expect(active()).toBe("petrinaut.host-ai-assistant:AI");
     expect(switchCommands(registry)).toEqual(["Use the Brunch assistant"]);
+  });
+});
+
+describe("useCanvasInsets", () => {
+  it("leaves no room for an open panel that has no assistant to show", () => {
+    const editor = renderHook(() => use(EditorContext)).result.current;
+    const openCollapsedPanel = {
+      ...editor,
+      isAiAssistantOpen: true,
+      isAiAssistantCollapsed: true,
+      aiAssistantDockHeight: null,
+      aiAssistantWidth: 400,
+    };
+    const { result } = renderHook(() => useCanvasInsets(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <EditorContext value={openCollapsedPanel}>
+          <InstalledPluginsProvider plugins={[]}>
+            <PluginAssistants>{children}</PluginAssistants>
+          </InstalledPluginsProvider>
+        </EditorContext>
+      ),
+    });
+    expect(result.current.right).toBe(0);
   });
 });

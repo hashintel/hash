@@ -126,10 +126,14 @@ type PetrinautPluginButton = {
   editor, inside every editor provider, builds a `PetrinautAiAssistant` with
   hooks and passes it to `usePetrinautAiAssistant`; the editor renders the
   panel from it. Passing `null` keeps the panel hidden until the assistant
-  is ready. Switching unmounts one component and mounts the other, so each
-  keeps its own conversation, and the editor itself never remounts.
-- The panel creates its chat once per assistant and document, so a changed
-  `transport` reaches the next conversation. `usePetrinautActiveAssistantId`
+  is ready. Switching unmounts one component and mounts the other, and the
+  editor itself never remounts.
+- The panel builds a new chat for each assistant and document, so switching
+  never moves messages from one assistant to another. A conversation is
+  there after switching away and back only when the assistant keeps it and
+  passes it back as `messages`, from host state or a server history.
+- A changed `transport` reaches the next conversation, and without
+  `followMessages` the `messages` seed a chat once. `usePetrinautActiveAssistantId`
   tells a plugin's other contributions, such as its settings group, whether
   its assistant is the active one.
 
