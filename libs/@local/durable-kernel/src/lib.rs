@@ -16,7 +16,7 @@
 //! ```
 //!
 //! The `test-util` feature exposes the simulation tools and direct journal access for tests.
-#![feature(ascii_char, ascii_char_variants)]
+#![feature(ascii_char, ascii_char_variants, never_type)]
 
 extern crate alloc;
 

@@ -682,10 +682,6 @@ impl<P> HostedQuery<P> {
     }
 }
 
-/// An uninhabited type for control requests and work items that [`Hosted`] does not produce.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Never {}
-
 /// Metadata shared by application snapshot declarations.
 const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     name: "domain_projection_snapshot",
@@ -862,7 +858,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
     type RecordCurrent = EventRecordV1<S::Event>;
     type RecoveryError = RecoveryError;
     type StateKey = PartitionKey;
-    type WorkIntent = Never;
+    type WorkIntent = !;
 
     fn empty_projection() -> Self::Projection {
         KernelProjection {
@@ -1036,7 +1032,7 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         Ok(())
     }
 
-    fn live_work(_projection: &Self::Projection) -> Vec<Never> {
+    fn live_work(_projection: &Self::Projection) -> Vec<!> {
         Vec::new()
     }
 
@@ -1055,47 +1051,47 @@ impl<S: SimpleDomain> QueryDomain for Hosted<S> {
 }
 
 impl<S: SimpleDomain> ControlDomain for Hosted<S> {
-    type ControlOutcome = Never;
-    type ControlRejection = Never;
-    type ControlRequest = Never;
-    type ControlSnapshot = Never;
+    type ControlOutcome = !;
+    type ControlRejection = !;
+    type ControlRequest = !;
+    type ControlSnapshot = !;
 
-    fn control_shard(_request: &Never) -> Shard {
-        unreachable!("hosted domains have no control requests")
+    fn control_shard(request: &!) -> Shard {
+        *request
     }
 
-    fn describe_foreign_control(_request: &Never) -> String {
-        unreachable!("hosted domains have no control requests")
+    fn describe_foreign_control(request: &!) -> String {
+        *request
     }
 
     fn inspect_control(
         _projection: &Self::Projection,
-        _request: &Never,
-    ) -> Result<Never, Report<ShardCommandError>> {
-        unreachable!("hosted domains have no control requests")
+        request: &!,
+    ) -> Result<!, Report<ShardCommandError>> {
+        *request
     }
 
-    fn control_prior_outcome(_snapshot: &Never) -> Option<Never> {
-        unreachable!("hosted domains have no control requests")
+    fn control_prior_outcome(snapshot: &!) -> Option<!> {
+        *snapshot
     }
 
-    fn control_event_id(_request: &Never) -> EventId {
-        unreachable!("hosted domains have no control requests")
+    fn control_event_id(request: &!) -> EventId {
+        *request
     }
 
     fn build_control_record(
         _projection: &Self::Projection,
-        _request: &Never,
-        _preflight_rejection: Option<Never>,
+        request: &!,
+        _preflight_rejection: Option<!>,
     ) -> Result<Self::RecordCurrent, Self::FoldError> {
-        unreachable!("hosted domains have no control requests")
+        *request
     }
 
     fn control_outcome_after_append(
         _projection: &Self::Projection,
-        _request: &Never,
-    ) -> Result<Never, Report<RecoveryError>> {
-        unreachable!("hosted domains have no control requests")
+        request: &!,
+    ) -> Result<!, Report<RecoveryError>> {
+        *request
     }
 }
 
