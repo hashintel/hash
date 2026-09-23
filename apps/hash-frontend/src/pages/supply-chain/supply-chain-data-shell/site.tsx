@@ -607,12 +607,17 @@ export const SiteOverview = ({
     </div>
   );
 
+  // Site-level figure: ignores the opportunities table's filter chips (which
+  // the chip's click clears, see revealOverPlanOpportunities) but respects
+  // search, so the count always matches the rows revealed by clicking it.
   const overPlanCount = useMemo(
     () =>
-      opportunities.filter(
-        (opportunity) => opportunity.kind === "planning_over",
+      generatedOpportunities.filter(
+        (opportunity) =>
+          opportunity.kind === "planning_over" &&
+          searchMatchers.opportunity(opportunity),
       ).length,
-    [opportunities],
+    [generatedOpportunities, searchMatchers],
   );
 
   const handleStepClick = useCallback(
@@ -713,6 +718,9 @@ export const SiteOverview = ({
   ]);
 
   const revealOverPlanOpportunities = useCallback(() => {
+    // Clear the table's filter chips so the revealed section shows every row
+    // the header chip counted.
+    setOpportunityFilters((filters) => (filters.length > 0 ? [] : filters));
     setOppSectionRevealRequest((previousRequest) => ({
       kind: "planning_over",
       requestId: (previousRequest?.requestId ?? 0) + 1,
