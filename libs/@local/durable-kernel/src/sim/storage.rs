@@ -26,6 +26,25 @@ use crate::{
     },
 };
 
+/// The storage failure behind a simulated append outcome.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum SimulatedFailure {
+    #[display("simulated failure before the storage call")]
+    BeforeStorageCall,
+    #[display("simulated append with unknown commit status")]
+    UnknownCommit,
+    #[display("simulated newer writer epoch")]
+    NewerWriterEpoch,
+}
+
+impl SimulatedFailure {
+    fn into_report(self, kind: AppendFailureKind) -> Report<ShardAppendError> {
+        Report::new(self)
+            .change_context(DurableError::AppendRecord)
+            .change_context(ShardAppendError { kind })
+    }
+}
+
 /// Pauses one storage operation until the test releases it.
 #[derive(Debug, Default)]
 pub struct SimPause {
@@ -216,18 +235,14 @@ impl JournalWriter for SimWriter {
         }
         match result {
             SimAppendResult::Acked(sequence) => Ok(sequence),
-            SimAppendResult::DefinitelyNotCommitted => Err(Report::new(ShardAppendError {
-                kind: AppendFailureKind::DefinitelyNotCommitted,
-            })
-            .attach("simulated pre-invocation failure")),
-            SimAppendResult::CommitUnknown => Err(Report::new(ShardAppendError {
-                kind: AppendFailureKind::CommitUnknown,
-            })
-            .attach("simulated append with unknown commit status")),
-            SimAppendResult::Fenced => Err(Report::new(ShardAppendError {
-                kind: AppendFailureKind::Fenced,
-            })
-            .attach("simulated newer writer epoch")),
+            SimAppendResult::DefinitelyNotCommitted => Err(SimulatedFailure::BeforeStorageCall
+                .into_report(AppendFailureKind::DefinitelyNotCommitted)),
+            SimAppendResult::CommitUnknown => {
+                Err(SimulatedFailure::UnknownCommit.into_report(AppendFailureKind::CommitUnknown))
+            }
+            SimAppendResult::Fenced => {
+                Err(SimulatedFailure::NewerWriterEpoch.into_report(AppendFailureKind::Fenced))
+            }
         }
     }
 }

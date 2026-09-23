@@ -72,12 +72,13 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
     for _step in 0..step_count {
         actions.push(match rng.below(100) {
             0..=34 => PlannedAction::SubmitFresh {
-                counter: u8::try_from(rng.below(3)).expect("counter index should fit in u8"),
+                counter: u8::try_from(rng.below(3))
+                    .unwrap_or_else(|_err| unreachable!("a value below 3 should fit in u8")),
                 amount: rng.between(1, 9),
             },
             35..=46 => PlannedAction::SubmitDuplicate {
                 index: u8::try_from(rng.below(u64::from(u8::MAX)))
-                    .expect("duplicate index should fit in u8"),
+                    .unwrap_or_else(|_err| unreachable!("a value below u8::MAX should fit in u8")),
             },
             47..=53 => PlannedAction::SubmitInvalid,
             54..=68 => PlannedAction::EffectTurn,
@@ -85,7 +86,8 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
             77..=80 => PlannedAction::CorruptLatestSnapshot,
             81..=88 => PlannedAction::CrashAndRecover,
             89..=92 => PlannedAction::CrashBeforeAppendReply {
-                counter: u8::try_from(rng.below(3)).expect("counter index should fit in u8"),
+                counter: u8::try_from(rng.below(3))
+                    .unwrap_or_else(|_err| unreachable!("a value below 3 should fit in u8")),
                 amount: rng.between(1, 9),
             },
             _ => PlannedAction::FinishEffectsAndCheck,

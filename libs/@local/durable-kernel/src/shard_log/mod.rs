@@ -31,6 +31,7 @@ pub use backend::{
     JournalReader, JournalStorage, JournalStream, JournalWriter, StorageReader, StorageStream,
     StorageWriter,
 };
+pub(crate) use command_loop::DEFAULT_CHANNEL_CAPACITY;
 pub use command_loop::{
     ControlResolution, OpenedShard, QueuedWhenStopped, RecoveredShard, ShardCommandConfig,
     ShardCommandError, ShardCommandErrorKind, ShardCommandHandle, ShardCommandKind,

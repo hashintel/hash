@@ -1,5 +1,10 @@
 //! Defines [`JournalSequence`].
 
+use core::{
+    fmt,
+    ops::{Bound, RangeBounds},
+};
+
 use serde::{Deserialize, Serialize};
 
 /// The sequence a shard's journal assigns to a record when it is appended.
@@ -42,6 +47,38 @@ impl JournalSequence {
         match self.0.checked_add(1) {
             Some(next) => Some(Self(next)),
             None => None,
+        }
+    }
+}
+
+/// A range of journal sequences, displayed in interval notation such as `[3, 9)`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SequenceRange {
+    pub start: Bound<JournalSequence>,
+    pub end: Bound<JournalSequence>,
+}
+
+impl SequenceRange {
+    #[must_use]
+    pub fn from_bounds(range: &impl RangeBounds<JournalSequence>) -> Self {
+        Self {
+            start: range.start_bound().cloned(),
+            end: range.end_bound().cloned(),
+        }
+    }
+}
+
+impl fmt::Display for SequenceRange {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.start {
+            Bound::Included(start) => write!(formatter, "[{start}, ")?,
+            Bound::Excluded(start) => write!(formatter, "({start}, ")?,
+            Bound::Unbounded => formatter.write_str("(.., ")?,
+        }
+        match self.end {
+            Bound::Included(end) => write!(formatter, "{end}]"),
+            Bound::Excluded(end) => write!(formatter, "{end})"),
+            Bound::Unbounded => formatter.write_str("..)"),
         }
     }
 }

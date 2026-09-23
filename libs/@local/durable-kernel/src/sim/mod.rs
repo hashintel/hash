@@ -23,7 +23,7 @@ pub use harness::{
     DstCounters, DstDomain, DstEffect, DstEvent, PlannedAction, ScheduleCoverage, SchedulePlan,
     ScheduleReport, derive_plan, run_plan,
 };
-pub use storage::{SimPause, SimStream};
+pub use storage::{SimPause, SimStream, SimulatedFailure};
 
 /// Generates deterministic pseudo-random numbers for test schedules. Do not use it for
 /// cryptography.
