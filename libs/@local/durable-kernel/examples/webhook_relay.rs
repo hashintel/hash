@@ -220,6 +220,7 @@ struct HttpDeliverer {
 impl Executor<RelayDomain> for HttpDeliverer {
     type Effect = DeliveryAttempt;
     type Error = std::io::Error;
+    type Events = Vec<RelayEvent>;
 
     fn plan<'a>(
         &'a self,

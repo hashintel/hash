@@ -67,6 +67,7 @@ struct NoEffects;
 impl Executor<PayloadDomain> for NoEffects {
     type Effect = ();
     type Error = Infallible;
+    type Events = Vec<Payload>;
 
     fn plan<'a>(&'a self, _: &'a PayloadCount) -> impl IntoIterator<Item = ()> + 'a {
         core::iter::empty()

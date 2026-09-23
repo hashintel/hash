@@ -60,7 +60,7 @@ pub trait DomainEvent {
 /// State is serialized into snapshots. Its serialization must also be deterministic.
 pub trait Fold<E>: Clone + Send + Sync + Serialize + DeserializeOwned + 'static {
     /// The application error reported when validation rejects an event.
-    type Error: Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync;
 
     /// The state change prepared by validation and consumed after the event is durable.
     type Validated: Send;
@@ -78,8 +78,8 @@ pub trait Fold<E>: Clone + Send + Sync + Serialize + DeserializeOwned + 'static 
 ///
 /// Pass an [`Executor`] to [`Kernel::start`](crate::runtime::Kernel::start) to run external
 /// operations.
-pub trait SimpleDomain: Send + Sync + 'static {
-    type Event: DomainEvent + Serialize + DeserializeOwned + Send + 'static;
+pub trait SimpleDomain: 'static {
+    type Event: DomainEvent + Serialize + DeserializeOwned + Send;
     type Projection: Fold<Self::Event>;
 
     /// Creates the application state for an empty journal.
@@ -105,8 +105,10 @@ pub struct Retry<E> {
 /// effect to run again. Pass [`EffectId::for_effect`](crate::ids::EffectId::for_effect) as an
 /// idempotency key to a system that stores the result and returns it for repeated requests.
 pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
-    type Effect: Serialize + Clone + Send + Sync + 'static;
-    type Error: Error + Send + Sync + 'static;
+    type Effect: Serialize + Send;
+    type Error: Error + Send + Sync;
+    /// The completion events returned by [`execute`](Self::execute).
+    type Events: IntoIterator<Item = S::Event, IntoIter: Send> + Send;
 
     fn plan<'a>(
         &'a self,
@@ -124,5 +126,5 @@ pub trait Executor<S: SimpleDomain>: Send + Sync + 'static {
     fn execute(
         &self,
         effect: &Self::Effect,
-    ) -> impl core::future::Future<Output = Result<Vec<S::Event>, Retry<Self::Error>>> + Send;
+    ) -> impl core::future::Future<Output = Result<Self::Events, Retry<Self::Error>>> + Send;
 }

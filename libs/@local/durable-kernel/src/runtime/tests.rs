@@ -256,6 +256,7 @@ struct ArchiveExecutor {
 impl Executor<RtDomain> for ArchiveExecutor {
     type Effect = ArchiveEffect;
     type Error = Infallible;
+    type Events = Vec<RtEvent>;
 
     fn plan<'a>(
         &'a self,
@@ -655,6 +656,7 @@ async fn check_retry_order(panic_first: bool) {
     impl Executor<RtDomain> for RetryingExecutor {
         type Effect = u8;
         type Error = DestinationUnavailable;
+        type Events = Vec<RtEvent>;
 
         fn plan<'a>(&'a self, projection: &'a RtCounters) -> impl IntoIterator<Item = u8> + 'a {
             match projection.totals.get("ready") {
@@ -739,6 +741,7 @@ async fn completion_rejection_stops_affected_shard() {
     impl Executor<RtDomain> for RejectingExecutor {
         type Effect = ();
         type Error = Infallible;
+        type Events = Vec<RtEvent>;
 
         fn plan<'a>(&'a self, projection: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
             projection.totals.contains_key("ready").then_some(())
@@ -858,6 +861,7 @@ async fn failed_start_does_not_run_an_executor() {
     impl Executor<RtDomain> for CountingPlanner {
         type Effect = ();
         type Error = Infallible;
+        type Events = Vec<RtEvent>;
 
         fn plan<'a>(&'a self, _: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
             self.0.fetch_add(1, core::sync::atomic::Ordering::SeqCst);
@@ -915,6 +919,7 @@ async fn dropping_kernel_stops_an_in_flight_executor() {
     impl Executor<RtDomain> for WaitingExecutor {
         type Effect = ();
         type Error = Infallible;
+        type Events = Vec<RtEvent>;
 
         fn plan<'a>(&'a self, _: &'a RtCounters) -> impl IntoIterator<Item = ()> + 'a {
             core::iter::once(())

@@ -47,7 +47,7 @@ pub struct SnapshotRecoveryStats {
 /// same state from stored records, and
 /// [`validate_recovered_prefix`](Self::validate_recovered_prefix) checks that recovered state
 /// includes all acknowledged events.
-pub trait EventDomain: Send + Sync + 'static {
+pub trait EventDomain: 'static {
     /// The wire format, including every supported record version.
     type Record: UntrimmedJournalRecord + Send;
     /// The validated record type used for new submissions and state updates.
@@ -58,13 +58,13 @@ pub trait EventDomain: Send + Sync + 'static {
     type Delta: Send;
     /// An error from validating or applying a record. Proposal validation returns this value
     /// unchanged in [`crate::shard_log::ShardCommandOutcome::Rejected`].
-    type FoldError: core::error::Error + Send + Sync + 'static;
+    type FoldError: core::error::Error + Send + Sync;
     /// An error from restoring or checking durable state.
-    type RecoveryError: core::error::Error + Send + Sync + 'static;
+    type RecoveryError: core::error::Error + Send + Sync;
     /// Identifies the state that changed, for notifications after an append.
-    type StateKey: Clone + Send + core::fmt::Debug;
+    type StateKey: Clone + Send;
     /// Work to resume after recovery.
-    type WorkIntent: Clone + Send + core::fmt::Debug + PartialEq + Eq;
+    type WorkIntent: Send;
 
     /// Creates the state for an empty journal.
     fn empty_projection() -> Self::Projection;
@@ -152,7 +152,7 @@ pub trait ControlDomain: EventDomain {
     type ControlRequest: Send;
     /// Pre-append view of a control request against the projection.
     type ControlSnapshot: Send;
-    type ControlOutcome: Clone + Send + core::fmt::Debug + PartialEq + Eq;
+    type ControlOutcome: Send;
     /// A rejection found before submitting the control request.
     type ControlRejection: Send;
 
@@ -199,7 +199,7 @@ pub trait SnapshotDomain: EventDomain {
     type SnapshotCapture: Send;
     /// Resources needed to load snapshot data, such as an artifact store. Use `()` when
     /// snapshots contain all their data.
-    type SnapshotContext: Clone + Send + Sync + 'static;
+    type SnapshotContext: Clone + Send + Sync;
 
     fn capture_snapshot(
         shard: Shard,
