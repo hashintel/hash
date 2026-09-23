@@ -2,58 +2,34 @@ use error_stack::{Report, ResultExt as _};
 use tokio::sync::oneshot;
 
 use super::{
-    ControlResolution, ShardCommandError, ShardCommandHandle, ShardCommandKind,
-    ShardCommandOutcome, ShardOwner,
+    ShardCommandError, ShardCommandHandle, ShardCommandKind, ShardCommandOutcome, ShardOwner,
+    operation::Operation,
 };
-use crate::{port::Domain, sequence::JournalSequence};
+use crate::port::EventDomain;
 
-pub(super) enum Command<D: Domain> {
+pub(super) enum Command<D: EventDomain> {
     Propose {
         record: D::RecordCurrent,
         reply:
             oneshot::Sender<Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>>>,
     },
-    InspectControl {
-        request: D::ControlRequest,
-        reply: oneshot::Sender<Result<D::ControlSnapshot, Report<ShardCommandError>>>,
-    },
-    ResolveControl {
-        request: D::ControlRequest,
-        preflight_rejection: Option<D::ControlRejection>,
-        reply: oneshot::Sender<Result<ControlResolution<D>, Report<ShardCommandError>>>,
-    },
-    CaptureSnapshot {
-        minimum_sequence_span: u64,
-        reply: oneshot::Sender<Result<Option<D::SnapshotCapture>, Report<ShardCommandError>>>,
-    },
-    CommitSnapshot {
-        snapshot: D::Snapshot,
-        reply: oneshot::Sender<Result<JournalSequence, Report<ShardCommandError>>>,
-    },
-    Query {
-        query: D::Query,
-        reply: oneshot::Sender<Result<D::QueryResult, Report<ShardCommandError>>>,
-    },
+    Operation(Box<dyn Operation<D>>),
     Shutdown {
         reply: oneshot::Sender<Result<(), Report<ShardCommandError>>>,
     },
 }
 
-impl<D: Domain> Command<D> {
-    pub(super) const fn kind(&self) -> ShardCommandKind {
+impl<D: EventDomain> Command<D> {
+    pub(super) fn kind(&self) -> ShardCommandKind {
         match self {
             Self::Propose { .. } => ShardCommandKind::Propose,
-            Self::InspectControl { .. } => ShardCommandKind::InspectControl,
-            Self::ResolveControl { .. } => ShardCommandKind::ResolveControl,
-            Self::CaptureSnapshot { .. } => ShardCommandKind::CaptureSnapshot,
-            Self::CommitSnapshot { .. } => ShardCommandKind::CommitSnapshot,
-            Self::Query { .. } => ShardCommandKind::Query,
+            Self::Operation(operation) => operation.kind(),
             Self::Shutdown { .. } => ShardCommandKind::Shutdown,
         }
     }
 }
 
-impl<D: Domain> ShardCommandHandle<D> {
+impl<D: EventDomain> ShardCommandHandle<D> {
     /// Returns the domain’s validation error in [`ShardCommandOutcome::Rejected`] without
     /// appending the record.
     ///
@@ -73,109 +49,11 @@ impl<D: Domain> ShardCommandHandle<D> {
             })?
     }
 
-    /// Inspects a control request against the projection inside the command loop.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the command loop closes or the domain rejects the inspection.
-    pub async fn inspect_control(
+    pub(super) async fn send_operation(
         &self,
-        request: D::ControlRequest,
-    ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
-        let (reply, response) = oneshot::channel();
-        self.send(Command::InspectControl { request, reply })
-            .await?;
-        response
-            .await
-            .change_context(ShardCommandError::ReplyDropped {
-                command: ShardCommandKind::InspectControl,
-            })?
-    }
-
-    /// Rechecks a control request and appends its acceptance or rejection before processing
-    /// another command.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the command loop closes, the request is rejected, or append or
-    /// recovery fails.
-    pub async fn resolve_control(
-        &self,
-        request: D::ControlRequest,
-        preflight_rejection: Option<D::ControlRejection>,
-    ) -> Result<ControlResolution<D>, Report<ShardCommandError>> {
-        let (reply, response) = oneshot::channel();
-        self.send(Command::ResolveControl {
-            request,
-            preflight_rejection,
-            reply,
-        })
-        .await?;
-        response
-            .await
-            .change_context(ShardCommandError::ReplyDropped {
-                command: ShardCommandKind::ResolveControl,
-            })?
-    }
-
-    /// Captures a snapshot once at least `minimum_sequence_span` journal sequences have passed
-    /// since the last capture attempt. Failed attempts count toward this interval.
-    ///
-    /// Returns `None` if the span is too small or the domain skips capture.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the command loop closes before replying.
-    pub async fn capture_snapshot(
-        &self,
-        minimum_sequence_span: u64,
-    ) -> Result<Option<D::SnapshotCapture>, Report<ShardCommandError>> {
-        let (reply, response) = oneshot::channel();
-        self.send(Command::CaptureSnapshot {
-            minimum_sequence_span,
-            reply,
-        })
-        .await?;
-        response
-            .await
-            .change_context(ShardCommandError::ReplyDropped {
-                command: ShardCommandKind::CaptureSnapshot,
-            })?
-    }
-
-    /// Appends a snapshot through the shard writer.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the command loop closes or the snapshot cannot be committed.
-    pub async fn commit_snapshot(
-        &self,
-        snapshot: D::Snapshot,
-    ) -> Result<JournalSequence, Report<ShardCommandError>> {
-        let (reply, response) = oneshot::channel();
-        self.send(Command::CommitSnapshot { snapshot, reply })
-            .await?;
-        response
-            .await
-            .change_context(ShardCommandError::ReplyDropped {
-                command: ShardCommandKind::CommitSnapshot,
-            })?
-    }
-
-    /// # Errors
-    ///
-    /// Returns an error when the command loop closes before replying.
-    pub async fn query(
-        &self,
-        query: D::Query,
-    ) -> Result<D::QueryResult, Report<ShardCommandError>> {
-        let (reply, response) = oneshot::channel();
-        self.send(Command::Query { query, reply }).await?;
-        response
-            .await
-            .change_context(ShardCommandError::ReplyDropped {
-                command: ShardCommandKind::Query,
-            })?
+        operation: Box<dyn Operation<D>>,
+    ) -> Result<(), Report<ShardCommandError>> {
+        self.send(Command::Operation(operation)).await
     }
 
     #[expect(
@@ -207,7 +85,7 @@ impl<D: Domain> ShardCommandHandle<D> {
     }
 }
 
-impl<D: Domain> ShardOwner<D> {
+impl<D: EventDomain> ShardOwner<D> {
     /// Stops admission, finishes queued commands, and closes the writer.
     ///
     /// # Errors

@@ -4,12 +4,12 @@ use super::{
     CommandLoop, QueuedWhenStopped, RecoveredProjection, ShardCommandError, handle::Command,
 };
 use crate::{
-    port::{Domain, EventDomain, SnapshotDomain},
+    port::{EventDomain, SnapshotDomain},
     sequence::JournalSequence,
     shard_log::{JournalStorage, JournalWriter, ShardLogWriter, SnapshotCandidate},
 };
 
-impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
+impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
     pub(super) fn reject_queued(&mut self, error: &ShardCommandError) {
         let stopped = || Report::new(error.clone()).attach(QueuedWhenStopped);
         while let Ok(command) = self.receiver.try_recv() {
@@ -17,21 +17,7 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                 Command::Propose { reply, .. } => {
                     let _: Result<_, _> = reply.send(Err(stopped()));
                 }
-                Command::InspectControl { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(stopped()));
-                }
-                Command::ResolveControl { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(stopped()));
-                }
-                Command::CaptureSnapshot { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(stopped()));
-                }
-                Command::CommitSnapshot { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(stopped()));
-                }
-                Command::Query { reply, .. } => {
-                    let _: Result<_, _> = reply.send(Err(stopped()));
-                }
+                Command::Operation(operation) => operation.reject(stopped()),
                 Command::Shutdown { reply } => {
                     let _: Result<_, _> = reply.send(Err(stopped()));
                 }
@@ -54,38 +40,47 @@ pub(super) async fn replay_with_snapshots<D: SnapshotDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
     durable_end_exclusive: JournalSequence,
-    context: Option<&D::SnapshotContext>,
+    context: &D::SnapshotContext,
 ) -> Result<RecoveredProjection<D>, Report<ShardCommandError>> {
     let mut corruption_fallbacks = 0_u64;
-    if let Some(context) = context {
-        match writer
-            .scan_projection_snapshots(durable_end_exclusive)
+    match writer
+        .scan_projection_snapshots(durable_end_exclusive)
+        .await
+    {
+        Ok(candidates) => {
+            if let Some(recovered) = replay_from_snapshots::<D>(
+                writer,
+                shard,
+                durable_end_exclusive,
+                context,
+                candidates,
+                &mut corruption_fallbacks,
+            )
             .await
-        {
-            Ok(candidates) => {
-                if let Some(recovered) = replay_from_snapshots::<D>(
-                    writer,
-                    shard,
-                    durable_end_exclusive,
-                    context,
-                    candidates,
-                    &mut corruption_fallbacks,
-                )
-                .await
-                {
-                    return Ok(recovered);
-                }
-            }
-            Err(error) => {
-                corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                tracing::warn!(
-                    shard = %shard.path_segment(),
-                    error = ?error,
-                    "projection-snapshot discovery failed; replaying the complete journal"
-                );
+            {
+                return Ok(recovered);
             }
         }
+        Err(error) => {
+            corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+            tracing::warn!(
+                shard = %shard.path_segment(),
+                error = ?error,
+                "projection-snapshot discovery failed; replaying the complete journal"
+            );
+        }
     }
+    let mut recovered = replay_full_journal::<D>(writer, shard, durable_end_exclusive).await?;
+    recovered.corruption_fallbacks = corruption_fallbacks;
+    Ok(recovered)
+}
+
+/// Replays the complete journal into an empty projection.
+pub(super) async fn replay_full_journal<D: EventDomain>(
+    writer: &ShardLogWriter<impl JournalWriter>,
+    shard: crate::routing::Shard,
+    durable_end_exclusive: JournalSequence,
+) -> Result<RecoveredProjection<D>, Report<ShardCommandError>> {
     replay_durable_prefix::<D>(writer, shard, durable_end_exclusive)
         .await
         .map(|(projection, replayed_events)| RecoveredProjection {
@@ -93,7 +88,7 @@ pub(super) async fn replay_with_snapshots<D: SnapshotDomain>(
             snapshot_through_sequence: None,
             snapshot_created_at: None,
             replayed_events,
-            corruption_fallbacks,
+            corruption_fallbacks: 0,
         })
 }
 

@@ -1,14 +1,13 @@
 //! Defines how the command loop reads and updates a domain's state.
 //!
-//! The loop serializes appends, assigns journal sequences, and recovers when an append is
-//! commit-unknown. The domain supplies record encoding, validation, and
-//! state updates through [`Domain`]. A prepared mutation changes the projection
-//! only after its record is durable.
+//! The loop serializes appends and assigns journal sequences. The domain supplies record
+//! encoding, validation, and state updates through [`EventDomain`]. A prepared mutation changes
+//! the projection only after its record is durable.
 //!
-//! [`EventDomain`] defines event handling. [`QueryDomain`], [`ControlDomain`], and
-//! [`SnapshotDomain`] add reads, control requests, and snapshot recovery. Implement all four
-//! to use [`crate::shard_log::OpenedShard`] for custom runtimes. Application code
-//! can instead implement [`crate::domain::SimpleDomain`], which supplies this adapter.
+//! [`EventDomain`] is enough to run a command loop with [`crate::shard_log::OpenedShard`].
+//! [`QueryDomain`], [`ControlDomain`], and [`SnapshotDomain`] enable reads, control requests, and
+//! snapshot recovery. Application code can instead implement [`crate::domain::SimpleDomain`],
+//! which supplies these through [`crate::domain::Hosted`].
 
 use std::io::Write;
 
@@ -221,10 +220,3 @@ pub trait SnapshotDomain: EventDomain {
     /// Observes the command loop stopping because its writer was fenced.
     fn note_fenced(_context: &Self::SnapshotContext) {}
 }
-
-/// Combines the operations required by the command loop.
-///
-/// Implement [`EventDomain`], [`QueryDomain`], [`ControlDomain`], and [`SnapshotDomain`].
-pub trait Domain: QueryDomain + ControlDomain + SnapshotDomain {}
-
-impl<T: QueryDomain + ControlDomain + SnapshotDomain> Domain for T {}

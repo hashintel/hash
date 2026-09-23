@@ -84,7 +84,7 @@ results for repeated requests with that key.
 
 ### Custom runtimes
 
-The lower-level [`port::Domain`](src/port.rs) API lets applications define their
+The lower-level [`port`](src/port.rs) traits let applications define their
 own record formats, state, snapshots, scheduling, and execution. They use the
 kernel’s journal and recovery code.
 
