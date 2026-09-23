@@ -147,7 +147,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   "reactive-modules":
-    "Zeroth Reactive Modules window: opened from the command palette, floating or docked beside the canvas and resizable in both, Petri Net IR and Python Reactive Module tabs, recompiles on net change from the Simulation Settings' initial state, parameters and dt, which nets compile and which are refused.",
+    "Zeroth Reactive Modules window: opened from the command palette, floating or docked beside the canvas and resizable in both, Petri Net IR and Python Reactive Module tabs, recompiles on net change from the Simulation Settings' initial state, parameters and dt, compiler flags (shape monolithic or modular, marking Real or Int, control closed or open) in the Python tab's header and the IR's zeroth section, which nets compile and which are refused.",
   examples:
     "Walkthroughs of the built-in examples and the scenarios/metrics each ships with: SIR, Vaccination Campaign, Supply Chain with Disruption, Supply Chain Profit, Deployment Pipeline, Production with Machine Failure, Probabilistic Satellite Launcher, Café Queue, Drone Patrol.",
 };
