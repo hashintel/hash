@@ -1,3 +1,4 @@
+import { AMBIENT_INPUT_NAMES } from "./ambient-names";
 /**
  * Prints a whole lowered function back to bare-body TypeScript.
  *
@@ -17,7 +18,6 @@
 import { foldHir } from "./analyze";
 import { hirBoundNames, mapHirChildren, walkHir } from "./hir";
 import { hirBodyToTypeScript } from "./print";
-import { AMBIENT_INPUT_NAMES } from "./user-code-form";
 
 import type { HirExpr, HirFunction, HirSurfaceKind } from "./hir";
 

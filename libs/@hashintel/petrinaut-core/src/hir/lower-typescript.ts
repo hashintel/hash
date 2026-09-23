@@ -23,6 +23,7 @@
 import ts from "typescript";
 
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
+import { SYNTHETIC_MAP_ELEMENT_NAME } from "./synthetic-names";
 import {
   AMBIENT_INPUT_NAMES,
   detectUserCodeForm,
@@ -124,7 +125,7 @@ const MATH_CONSTANTS = new Set(["PI", "E"]);
 /** The element parameter name of a `.map(...)` callback whose source omits
  * or destructures it; reads of the destructured names lower to field
  * accesses on this parameter. */
-export const SYNTHETIC_MAP_ELEMENT_NAME = "__element";
+export { SYNTHETIC_MAP_ELEMENT_NAME };
 
 const BINARY_OPS: Partial<Record<ts.SyntaxKind, HirBinaryOp>> = {
   [ts.SyntaxKind.PlusToken]: "+",

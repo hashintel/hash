@@ -28,10 +28,6 @@
  */
 import { hirBoundNames, mapHirChildren, walkHir } from "./hir";
 import {
-  SYNTHETIC_MAP_ELEMENT_NAME,
-  lowerTypeScriptToHir,
-} from "./lower-typescript";
-import {
   group,
   hardline,
   ifBreak,
@@ -43,6 +39,7 @@ import {
   softline,
   type Doc,
 } from "./print/doc";
+import { SYNTHETIC_MAP_ELEMENT_NAME } from "./synthetic-names";
 
 import type {
   HirBinaryOp,
@@ -795,22 +792,4 @@ export function hirBodyToTypeScript(
     join(hardline, statements),
     options.width ?? DEFAULT_PRINT_WIDTH,
   );
-}
-
-/**
- * Formats a cell expression by lowering and printing it: canonical spacing,
- * minimal parentheses, preserved numeric literals. Returns null when the
- * code does not lower, or when the tree has no faithful single-expression
- * form — callers keep the user's text untouched in that case.
- */
-export function formatTypeScriptExpression(code: string): string | null {
-  const lowered = lowerTypeScriptToHir(code, "scenario-expression");
-  if (!lowered.ok) {
-    return null;
-  }
-  try {
-    return hirExpressionToTypeScript(lowered.fn.body);
-  } catch {
-    return null;
-  }
 }

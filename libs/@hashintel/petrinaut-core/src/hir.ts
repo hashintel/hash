@@ -110,10 +110,8 @@ export {
   type ScenarioHirItem,
   type ScenarioLoweringInput,
 } from "./hir/scenario";
-export {
-  formatTypeScriptExpression,
-  hirExpressionToTypeScript,
-} from "./hir/print";
+export { formatTypeScriptExpression } from "./hir/format-typescript-expression";
+export { hirExpressionToTypeScript } from "./hir/print";
 export {
   type HirParameterSubstitutions,
   type PrintHirFunctionOptions,
