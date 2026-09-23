@@ -53,7 +53,6 @@ use crate::{
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
-        wait_healthcheck,
     },
 };
 
@@ -639,15 +638,6 @@ where
     reason = "Sequential startup flow, no natural split point"
 )]
 pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
-    if args.healthcheck.healthcheck {
-        return wait_healthcheck(
-            || healthcheck(args.config.http_address.clone()),
-            &args.healthcheck,
-        )
-        .await
-        .change_context(GraphError);
-    }
-
     // Validate the configuration before connecting anywhere, so a misconfigured server fails
     // without tearing down established connections.
     let session_auth = args.config.session_auth.clone().into_provider_config()?;
