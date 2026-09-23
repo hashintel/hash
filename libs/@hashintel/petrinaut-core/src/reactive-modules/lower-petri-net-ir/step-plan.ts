@@ -40,7 +40,9 @@ export type PlannedPlace = {
 };
 
 export type StepPlan = {
+  /** Some transition fires at a rate, so the module takes draws. */
   stochastic: boolean;
+  kind: PetriNetIr["kind"];
   target: ResolvedZerothTarget;
   places: PlannedPlace[];
   /** Capped places some transition produces into: their pending tokens count. */
@@ -85,7 +87,6 @@ export const planStep = (
   ir: PetriNetIr,
   target: ResolvedZerothTarget,
 ): StepPlan => {
-  const stochastic = ir.kind === "stochastic";
   const places: PlannedPlace[] = Object.entries(ir.places).map(
     ([name, place]) => ({
       name,
@@ -97,20 +98,21 @@ export const planStep = (
     ([name, transition]) => {
       const consumes = sideTotals(transition.inputs);
       const produces = sideTotals(transition.outputs);
+      // A rate written as code is refused before planning; only constants reach here.
+      const rate = typeof transition.rate === "number" ? transition.rate : null;
       return {
         name,
         description: `${name}: ${describeSide(consumes)} -> ${describeSide(produces)}`,
         consumes,
         produces,
         deltas: netDeltas(consumes, produces),
-        rate: stochastic ? (transition.rate ?? 0) : null,
-        threshold: stochastic
-          ? Math.exp(-(transition.rate ?? 0) * target.dt)
-          : null,
+        rate,
+        threshold: rate === null ? null : Math.exp(-rate * target.dt),
         controllable: transition.controllable === true,
       };
     },
   );
+  const stochastic = transitions.some((transition) => transition.rate !== null);
   const capped = places
     .filter(
       (place) =>
@@ -120,5 +122,5 @@ export const planStep = (
         ),
     )
     .map((place) => place.name);
-  return { stochastic, target, places, capped, transitions };
+  return { stochastic, kind: ir.kind, target, places, capped, transitions };
 };

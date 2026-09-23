@@ -161,7 +161,7 @@ export const lowerMonolithic = (
   const names = netModuleNames(netName);
   const step: ReactiveModuleDecl = {
     ...names,
-    docstring: `${plan.stochastic ? "Stochastic" : "Plain"} Petri net with ${plural(plan.places.length, "place")} and ${plural(plan.transitions.length, "transition")}${plan.stochastic ? `, dt = ${floatText(plan.target.dt)}` : ""}. One update is one Petrinaut step.`,
+    docstring: `${plan.kind === "mixed" ? "Mixed" : plan.stochastic ? "Stochastic" : "Plain"} Petri net with ${plural(plan.places.length, "place")} and ${plural(plan.transitions.length, "transition")}${plan.stochastic ? `, dt = ${floatText(plan.target.dt)}` : ""}. One update is one Petrinaut step.`,
     theory,
     ctrl: plan.places.map((place) => place.name),
     extl,

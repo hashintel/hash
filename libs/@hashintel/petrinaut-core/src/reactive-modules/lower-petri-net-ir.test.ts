@@ -10,6 +10,7 @@ import {
   type PetriNetIr,
   type PetriNetIrArcs,
   petriNetIrArcWeight,
+  petriNetIrInitialTokens,
   resolveZerothTarget,
   type ZerothTarget,
 } from "./petri-net-ir";
@@ -124,9 +125,9 @@ const referenceStep = (
     }
     if (ir.kind === "stochastic") {
       const draw = inputs(`u_${name}`);
+      const rate = typeof transition.rate === "number" ? transition.rate : 0;
       enabled &&=
-        typeof draw === "number" &&
-        draw >= Math.exp(-(transition.rate ?? 0) * target.dt);
+        typeof draw === "number" && draw >= Math.exp(-rate * target.dt);
     }
     if (transition.controllable === true && target.control === "open") {
       enabled &&= inputs(`go_${name}`) === true;
@@ -173,6 +174,15 @@ const placesOnly = (
     Object.keys(ir.places).map((place) => [place, Number(values[place])]),
   );
 
+/** The graph of an IR the lowering accepts. */
+const lowerGraph = (ir: PetriNetIr) => {
+  const outcome = lowerPetriNetIr(ir);
+  if (!outcome.ok) {
+    throw new Error(outcome.errors.map((error) => error.code).join(", "));
+  }
+  return outcome.graph;
+};
+
 const TARGETS: ZerothTarget[] = [
   {},
   { shape: "modular" },
@@ -195,7 +205,7 @@ describe("lowerPetriNetIr", () => {
             Object.fromEntries(
               Object.keys(ir.places).map((place) => [
                 place,
-                ir.marking?.[place] ?? 0,
+                petriNetIrInitialTokens(ir, place),
               ]),
             ),
           ];
@@ -206,7 +216,7 @@ describe("lowerPetriNetIr", () => {
               ),
             );
           }
-          const trace = interpretReactiveModuleGraph(lowerPetriNetIr(ir), {
+          const trace = interpretReactiveModuleGraph(lowerGraph(ir), {
             steps: STEPS,
             inputs,
           }).map((values) => placesOnly(values, ir));
@@ -225,7 +235,7 @@ describe("lowerPetriNetIr", () => {
         ...randomNet(seed, seed % 2 === 0),
         zeroth: { shape: "modular", marking: "int" },
       };
-      const graph = lowerPetriNetIr(ir);
+      const graph = lowerGraph(ir);
       const transitions = Object.keys(ir.transitions);
       for (const module of graph.modules) {
         if (!module.className.startsWith("Transition_")) {
@@ -251,7 +261,7 @@ describe("lowerPetriNetIr", () => {
   });
 
   it("drives every place and flag from exactly one module", () => {
-    const graph = lowerPetriNetIr({
+    const graph = lowerGraph({
       ...randomNet(3, true),
       zeroth: { shape: "modular", marking: "int", control: "open" },
     });

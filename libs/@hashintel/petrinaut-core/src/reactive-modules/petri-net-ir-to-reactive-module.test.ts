@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { petriNetIrToReactiveModule } from "./petri-net-ir-to-reactive-module";
+import {
+  compilePetriNetIr,
+  petriNetIrToReactiveModule,
+} from "./petri-net-ir-to-reactive-module";
 
 import type { PetriNetIr } from "./petri-net-ir";
 
@@ -579,6 +582,83 @@ net = Conflict(theory=LIA, ctrl=(Pool, Left, Right), extl=(go_TakeLeft,))
         avail_Pool = ite(X(fire_TakeLeft), avail_Pool - 2, avail_Pool)  # TakeLeft took 2
         return avail_Pool >= 1
 `,
+    );
+  });
+
+  it("mixes predicate and stochastic transitions, drawing only for the rated ones", () => {
+    const python = petriNetIrToReactiveModule({
+      name: "mixed",
+      kind: "mixed",
+      places: { A: null, B: null },
+      marking: { A: 3 },
+      transitions: {
+        Go: { inputs: { A: null }, outputs: { B: null }, rate: 2 },
+        Back: { inputs: { B: null }, outputs: { A: null } },
+      },
+    });
+    expect(python).toContain(
+      '    """Mixed Petri net with 2 places and 2 transitions, dt = 1.0. One update is one Petrinaut step."""',
+    );
+    expect(python).toContain(
+      "u_Go = Var(REAL)  # uniform draw for Go, each step\n\n",
+    );
+    expect(python).not.toContain("u_Back");
+    expect(python).toContain(
+      `        fire_Go = (A >= 1.0) & (X(u_Go) >= ${Math.exp(-2)})  # Go: A -> B\n`,
+    );
+    expect(python).toContain("        fire_Back = B >= 1.0  # Back: B -> A\n");
+    expect(python).toContain(
+      "net = Mixed(theory=LRA, ctrl=(A, B), extl=(u_Go,))",
+    );
+  });
+
+  it("refuses the constructs it does not lower yet, one diagnostic per item", () => {
+    const outcome = compilePetriNetIr({
+      name: "coloured",
+      kind: "mixed",
+      colours: { Drone: { battery: "real" } },
+      dynamics: {
+        Drain: {
+          colour: "Drone",
+          code: "return tokens.map(() => ({ battery: -1 }));",
+        },
+      },
+      places: { Hangar: { colour: "Drone", dynamics: "Drain" }, Count: null },
+      transitions: {
+        Launch: {
+          inputs: { Hangar: null },
+          outputs: { Count: null },
+          reads: { Count: null },
+          inhibitors: { Count: { weight: 3 } },
+          rate: "return input.Hangar[0].battery;",
+          kernel: "return {};",
+        },
+        Reset: { inputs: { Count: null }, guard: "return true;" },
+      },
+    });
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(
+        outcome.errors.map((error) => [error.code, error.item.name]),
+      ).toEqual([
+        ["coloured-place-not-lowered", "Hangar"],
+        ["dynamics-not-lowered", "Hangar"],
+        ["rate-code-not-lowered", "Launch"],
+        ["kernel-not-lowered", "Launch"],
+        ["read-arc-not-lowered", "Launch"],
+        ["inhibitor-arc-not-lowered", "Launch"],
+        ["guard-not-lowered", "Reset"],
+      ]);
+    }
+    expect(() =>
+      petriNetIrToReactiveModule({
+        name: "guarded",
+        kind: "plain",
+        places: { A: null },
+        transitions: { Go: { inputs: { A: null }, guard: "return true;" } },
+      }),
+    ).toThrow(
+      "transition Go: a guard over the input tokens is not lowered to a reactive module yet",
     );
   });
 

@@ -27,7 +27,8 @@ import type {
 } from "./petri-net-ir";
 
 export type PetriNetIrDiagnosticItem = {
-  kind: "place" | "transition" | "parameter" | "net";
+  kind: "place" | "transition" | "parameter" | "colour" | "dynamics" | "net";
+  /** The SDCPN id when the item comes from a net, its IR name when it comes from an IR. */
   id: string;
   name: string;
 };

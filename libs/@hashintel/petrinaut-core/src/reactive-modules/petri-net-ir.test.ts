@@ -4,6 +4,7 @@ import {
   type PetriNetIr,
   petriNetIrArcWeight,
   petriNetIrInitialTokens,
+  petriNetIrKindOf,
   petriNetIrPlaceCapacity,
   renderPetriNetIr,
   resolveZerothTarget,
@@ -103,6 +104,130 @@ describe("renderPetriNetIr with a zeroth section", () => {
         "",
       ].join("\n"),
     );
+  });
+});
+
+describe("renderPetriNetIr with colours, dynamics and code", () => {
+  it("writes code as literal blocks and a token's attributes on one line", () => {
+    const rendered = renderPetriNetIr({
+      name: "drone_patrol",
+      kind: "mixed",
+      colours: {
+        Drone: { battery: "real", state: { enum: ["idle", "flying"] } },
+      },
+      dynamics: {
+        Drain: {
+          colour: "Drone",
+          code: "return tokens.map((drone) => ({ battery: -2.5 }));",
+        },
+      },
+      places: {
+        Hangar: { colour: "Drone", capacity: 16 },
+        Airborne: { colour: "Drone", dynamics: "Drain" },
+        Sorties: null,
+      },
+      marking: {
+        Hangar: [
+          { battery: 100, state: "idle" },
+          { battery: 80, state: "idle" },
+        ],
+        Sorties: 2,
+      },
+      transitions: {
+        Launch: {
+          inputs: { Hangar: null },
+          outputs: { Airborne: null, Sorties: null },
+          reads: { Sorties: { weight: 1 } },
+          rate: "return 0.6 * (input.Hangar[0].battery / 100);",
+          kernel:
+            'const drone = input.Hangar[0];\nreturn { Airborne: [{ battery: drone.battery, state: "flying" }] };',
+        },
+        Land: {
+          inputs: { Airborne: null },
+          outputs: { Hangar: null },
+          inhibitors: { Sorties: { weight: 5 } },
+          guard: "return input.Airborne[0].battery < 20;",
+          kernel: 'return { Hangar: [{ battery: 100, state: "idle" }] };',
+        },
+      },
+    });
+    expect(rendered).toBe(
+      [
+        "name: drone_patrol",
+        "kind: mixed",
+        "",
+        "colours:",
+        "  Drone:",
+        "    battery: real",
+        "    state:",
+        "      enum:",
+        "        - idle",
+        "        - flying",
+        "",
+        "dynamics:",
+        "  Drain:",
+        "    colour: Drone",
+        "    code: |",
+        "      return tokens.map((drone) => ({ battery: -2.5 }));",
+        "",
+        "places:",
+        "  Hangar:",
+        "    colour: Drone",
+        "    capacity: 16",
+        "  Airborne:",
+        "    colour: Drone",
+        "    dynamics: Drain",
+        "  Sorties:",
+        "",
+        "marking:",
+        "  Hangar:",
+        "    - {battery: 100, state: idle}",
+        "    - {battery: 80, state: idle}",
+        "  Sorties: 2",
+        "",
+        "transitions:",
+        "  Launch:",
+        "    inputs:",
+        "      Hangar:",
+        "    outputs:",
+        "      Airborne:",
+        "      Sorties:",
+        "    reads:",
+        "      Sorties:",
+        "        weight: 1",
+        "    rate: |",
+        "      return 0.6 * (input.Hangar[0].battery / 100);",
+        "    kernel: |",
+        "      const drone = input.Hangar[0];",
+        '      return { Airborne: [{ battery: drone.battery, state: "flying" }] };',
+        "  Land:",
+        "    inputs:",
+        "      Airborne:",
+        "    outputs:",
+        "      Hangar:",
+        "    inhibitors:",
+        "      Sorties:",
+        "        weight: 5",
+        "    guard: |",
+        "      return input.Airborne[0].battery < 20;",
+        "    kernel: |",
+        '      return { Hangar: [{ battery: 100, state: "idle" }] };',
+        "",
+      ].join("\n"),
+    );
+  });
+});
+
+describe("petriNetIrKindOf", () => {
+  it("names a net by which transitions carry a rate", () => {
+    expect(petriNetIrKindOf({ Go: {}, Back: {} })).toBe("plain");
+    expect(
+      petriNetIrKindOf({ Go: { rate: 1 }, Back: { rate: "return 2;" } }),
+    ).toBe("stochastic");
+    expect(petriNetIrKindOf({ Go: { rate: 1 }, Back: {} })).toBe("mixed");
+    expect(
+      petriNetIrInitialTokens({ marking: { A: [{ x: 1 }, { x: 2 }] } }, "A"),
+    ).toBe(2);
   });
 });
 
