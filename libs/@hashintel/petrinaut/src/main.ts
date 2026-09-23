@@ -54,7 +54,6 @@ export type {
   SubView,
   SubViewResizeConfig,
 } from "./ui/components/sub-view/types";
-export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type {
   PetrinautAiComposerControl,
   PetrinautAiComposerControlContext,

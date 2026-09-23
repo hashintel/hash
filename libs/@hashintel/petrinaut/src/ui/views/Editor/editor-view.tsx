@@ -3,7 +3,7 @@
  * @role Arranges the panels, toolbars and dialogs around the canvas
  */
 
-import { Activity, use, useState, type ReactNode } from "react";
+import { Activity, use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -163,15 +163,12 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
  */
 const EditorViewContent = ({
   hideNetManagementControls,
-  settingsLabs,
   titleEditable,
 }: {
   /**
    * See {@link TopBar} for the full semantics.
    */
   hideNetManagementControls?: "all" | "except-title";
-  /** The deprecated `slots.settingsLabs` content, until its host moves to a plugin. */
-  settingsLabs?: ReactNode;
   titleEditable: boolean;
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
@@ -573,7 +570,7 @@ const EditorViewContent = ({
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
       />
-      <UserSettings settingsLabs={settingsLabs} />
+      <UserSettings />
       <CreateNewNetCommands
         enabled={showNetManagementMenuItems}
         showBrunchOptions={showBrunchCreateNew}

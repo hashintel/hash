@@ -151,7 +151,6 @@ export type PetrinautAiAssistant = {
 
 import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
-import type { PetrinautSlots } from "./types/petrinaut-slots";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -178,11 +177,6 @@ export type PetrinautProps = {
    * the first assistant.
    */
   aiAssistant?: PetrinautAiAssistant;
-  /**
-   * @deprecated Install a plugin with a Labs `settingsGroups` entry through
-   * `PetrinautPluginsProvider` instead.
-   */
-  slots?: PetrinautSlots;
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
    * needs to own worker instantiation (e.g. when consuming the published
@@ -236,7 +230,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   createNewNet = noop,
   loadPetriNet = noop,
   aiAssistant,
-  slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
@@ -288,7 +281,6 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
                 <HostAiAssistantContext value={aiAssistant}>
                   <EditorView
                     hideNetManagementControls={hideNetManagementControls}
-                    settingsLabs={slots?.settingsLabs}
                     titleEditable={titleEditable}
                   />
                 </HostAiAssistantContext>

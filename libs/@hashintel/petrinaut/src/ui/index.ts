@@ -277,8 +277,6 @@ export type {
 export { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 export type { PetrinautPluginsProviderProps } from "./plugins/plugins-provider";
 export type { SubView, SubViewResizeConfig } from "./components/sub-view/types";
-// Superseded by plugin settings groups; removed once the Labs host has moved.
-export type { PetrinautSlots } from "./types/petrinaut-slots";
 
 // Walkthrough — first-visit product tour. Exposed so embedders can drive it
 // programmatically (e.g. trigger from their own help menu) without relying on

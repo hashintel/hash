@@ -29,7 +29,6 @@ import { UserSettings } from "./user-settings";
 
 import type { PetrinautNavigationState } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
-import type { ReactNode } from "react";
 
 beforeEach(() => {
   localStorage.clear();
@@ -56,7 +55,6 @@ afterEach(() => {
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
   optimization: PetrinautOptimizationSource | null = null,
-  settingsLabs?: ReactNode,
   plugins: readonly PetrinautPlugin[] = [],
 ) => {
   const registry = createCommandRegistry();
@@ -67,7 +65,7 @@ const renderSettings = (
           <PetrinautOptimizationContext value={optimization}>
             <InstalledPluginsProvider plugins={plugins}>
               <PluginAssistants>
-                <UserSettings settingsLabs={settingsLabs} />
+                <UserSettings />
               </PluginAssistants>
             </InstalledPluginsProvider>
           </PetrinautOptimizationContext>
@@ -443,44 +441,34 @@ describe("Labs settings", () => {
     ).toBeNull();
   });
 
-  it("renders host Labs content after the built-in groups", async () => {
-    const withoutHost = renderSettings({
-      overlay: { type: "user-settings", section: "labs" },
-    });
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(
-      screen.queryByRole("region", { name: "Host AI settings" }),
-    ).toBeNull();
-    withoutHost.unmount();
-
+  it("walks enabled plugin Labs controls and crosses the existing focus flow", async () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
-      <section aria-label="Host AI settings">
-        <button type="button">Use Brunch</button>
-      </section>,
-    );
-    await screen.findByRole("heading", { name: "Labs" });
-    expect(
-      screen.getByRole("region", { name: "Host AI settings" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Use Brunch" })).toBeTruthy();
-  });
-
-  it("walks enabled host Labs controls and crosses the existing focus flow", async () => {
-    renderSettings(
-      { overlay: { type: "user-settings", section: "labs" } },
-      null,
-      <section aria-label="Host AI settings">
-        <button type="button" disabled>
-          Unavailable first
-        </button>
-        <button type="button">First host control</button>
-        <button type="button" aria-disabled="true">
-          Unavailable middle
-        </button>
-        <button type="button">Last host control</button>
-      </section>,
+      [
+        definePetrinautPlugin({
+          id: "test.host",
+          settingsGroups: [
+            {
+              id: "test.host.labs",
+              section: "labs",
+              title: "Host AI settings",
+              component: () => (
+                <>
+                  <button type="button" disabled>
+                    Unavailable first
+                  </button>
+                  <button type="button">First host control</button>
+                  <button type="button" aria-disabled="true">
+                    Unavailable middle
+                  </button>
+                  <button type="button">Last host control</button>
+                </>
+              ),
+            },
+          ],
+        }),
+      ],
     );
     await screen.findByRole("heading", { name: "Labs" });
     const labs = screen.getByRole("tab", { name: "Labs" });
@@ -509,7 +497,7 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(last);
   });
 
-  it("renders plugin Labs groups after host content and walks them in install order", async () => {
+  it("renders plugin Labs groups after the built-in groups and walks them in install order", async () => {
     const labsGroup = (id: string, label: string) =>
       definePetrinautPlugin({
         id,
@@ -525,9 +513,6 @@ describe("Labs settings", () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "labs" } },
       null,
-      <section aria-label="Host AI settings">
-        <button type="button">Host control</button>
-      </section>,
       [
         labsGroup("test.first", "First plugin"),
         labsGroup("test.second", "Second plugin"),
@@ -540,12 +525,14 @@ describe("Labs settings", () => {
     expect(
       screen.getByRole("heading", { name: "Second plugin group" }),
     ).toBeTruthy();
-    const host = screen.getByRole("button", { name: "Host control" });
+    const compilation = screen.getByRole("checkbox", {
+      name: "Compilation output",
+    });
     const first = screen.getByRole("button", { name: "First plugin" });
     const second = screen.getByRole("button", { name: "Second plugin" });
 
-    act(() => host.focus());
-    fireEvent.keyDown(host, { key: "ArrowDown" });
+    act(() => compilation.focus());
+    fireEvent.keyDown(compilation, { key: "ArrowDown" });
     expect(document.activeElement).toBe(first);
     fireEvent.keyDown(first, { key: "ArrowDown" });
     expect(document.activeElement).toBe(second);
@@ -557,7 +544,6 @@ describe("Labs settings", () => {
     renderSettings(
       { overlay: { type: "user-settings", section: "general" } },
       null,
-      undefined,
       [
         definePetrinautPlugin({
           id: "test.labs-only",
@@ -585,7 +571,7 @@ describe("AI assistant selector", () => {
     });
 
   it("offers no selector while one assistant is installed", async () => {
-    renderSettings({ overlay: { type: "user-settings" } }, null, undefined, [
+    renderSettings({ overlay: { type: "user-settings" } }, null, [
       assistantPlugin("test.stock", "Stock"),
     ]);
     await screen.findByRole("heading", { name: "General" });
@@ -593,7 +579,7 @@ describe("AI assistant selector", () => {
   });
 
   it("chooses among several assistants and keeps the choice", async () => {
-    renderSettings({ overlay: { type: "user-settings" } }, null, undefined, [
+    renderSettings({ overlay: { type: "user-settings" } }, null, [
       assistantPlugin("test.stock", "Stock"),
       assistantPlugin("test.brunch", "Brunch"),
     ]);
