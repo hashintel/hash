@@ -40,6 +40,9 @@ const rootStyle = css({
   minHeight: "[0]",
   gap: "3",
   padding: "4",
+  // The toolbar row shares a line with the floating view switcher, which
+  // sits 12px from the top and is `--edit-view-selector-height` tall.
+  paddingTop: "3",
   backgroundColor: "neutral.s10",
 });
 
@@ -63,7 +66,12 @@ const toolbarStyle = css({
 });
 
 const viewSelectStyle = css({
+  display: "flex",
   width: "[220px]",
+});
+
+const viewSelectControlStyle = css({
+  height: "[var(--edit-view-selector-height)]",
 });
 
 const emptyStyle = css({
@@ -413,8 +421,9 @@ export const KanbanView = ({
         {toolbarStart}
         <div className={viewSelectStyle}>
           <Select
+            className={viewSelectControlStyle}
             required
-            size="sm"
+            size="xs"
             value={statusView.id}
             onChange={setSelectedStatusViewId}
             items={statusViews.map((view) => ({

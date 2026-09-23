@@ -26,7 +26,11 @@ const selectorStyle = css({
 
 const controlStyle = cva({
   base: {
-    "&&": { width: "full", height: "[24px]", boxSizing: "border-box" },
+    "&&": {
+      width: "full",
+      height: "[var(--edit-view-selector-height)]",
+      boxSizing: "border-box",
+    },
     // Fade the controls so the blur layer stays fully opaque.
     opacity: "[0.8]",
     _hover: { opacity: "[1]" },

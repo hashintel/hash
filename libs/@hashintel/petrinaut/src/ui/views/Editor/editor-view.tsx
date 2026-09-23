@@ -135,6 +135,7 @@ const canvasContainerStyle = css({
 const workspaceStyle = css({
   position: "relative",
   "--edit-view-selector-width": "[160px]",
+  "--edit-view-selector-height": "[24px]",
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
