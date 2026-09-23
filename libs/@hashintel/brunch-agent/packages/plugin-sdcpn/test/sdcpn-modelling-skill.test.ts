@@ -76,6 +76,9 @@ describe("the authored sdcpn-modelling skill directory", () => {
     });
 
     test("states readiness as the conjunction of workpiece meaning and net executability", () => {
+      expect(experiment).toContain(
+        "In integrated Brunch, the net supplies candidate executable inputs, judged from a verified current canonical `getLatestNetDefinition` result",
+      );
       expect(experiment).toContain("**Readiness is the conjunction**");
       expect(experiment).toContain("Structure alone never triggers a proposal");
       expect(experiment).toContain(
@@ -90,10 +93,17 @@ describe("the authored sdcpn-modelling skill directory", () => {
         "What the result must not claim",
         "definition.scenarios[]",
         "definition.metrics[]",
-        "read_petrinaut_diagnostics",
+        "getNetCompilationErrors",
       ]) {
         expect(experiment).toContain(source);
       }
+      expect(experiment).toContain(
+        "That diagnostic does not check saved scenario or metric compilation",
+      );
+      expect(experiment).toContain(
+        "The separate legacy batched construction mode uses `mutate_petrinaut_net` and `read_petrinaut_diagnostics`",
+      );
+      expect(experiment).toContain("it does not mount the draft tool");
     });
 
     test("teaches the request shape without a Brunch experiment schema or constraint claims", () => {
@@ -108,7 +118,10 @@ describe("the authored sdcpn-modelling skill directory", () => {
         expect(experiment).toContain(field);
       }
       expect(experiment).toContain(
-        "The request carries no constraints and no constraint policy",
+        "`dt` must be no greater than `maxTime`, and `maxTime / dt` must be at most 1,000,000; integer divisibility is not required",
+      );
+      expect(experiment).toContain(
+        "The AI experiment request currently exposes no constraints or constraint policy",
       );
       expect(experiment).toContain("reported, not enforced");
       expect(experiment).toContain(
@@ -119,13 +132,19 @@ describe("the authored sdcpn-modelling skill directory", () => {
 
     test("names the draft tool, the honesty wording and the once-only rule", () => {
       expect(experiment).toContain("`draft_petrinaut_experiment`");
+      expect(experiment).toContain("{ experiment, declarations, unsupported }");
       expect(experiment).toContain(
-        "{ experiment, declarations, basis, unsupported }",
+        "Do not put a basis table, locator, hash, revision or observation tool-call ID in the draft input",
       );
       expect(experiment).toContain(
-        'Say "drafted for this session", not "added to the model"',
+        'Say "drafted for review, not run", not "added to the model"',
       );
-      expect(experiment).toContain("you never call a run");
+      expect(experiment).toContain(
+        "It does not run anything, save anything with the document or navigate",
+      );
+      expect(experiment).toContain(
+        "call it directly only when the person explicitly requests immediate execution",
+      );
       expect(experiment).toContain("## Once, not repeatedly");
       expect(experiment).toContain('Treat an explicit "do not run"');
       expect(experiment).toContain("as authoritative");
@@ -180,7 +199,10 @@ describe("the authored sdcpn-modelling skill directory", () => {
       "do not make up or copy an observation call ID or hash",
     );
     expect(instructions).toContain(
-      "current `query_workpiece` schema still requires `observationToolCallId`",
+      "The host attaches the verified read's correlation to the `query_workpiece` selector; submit only the model-visible selector fields",
+    );
+    expect(instructions).not.toContain(
+      "schema still requires `observationToolCallId`",
     );
   });
 
