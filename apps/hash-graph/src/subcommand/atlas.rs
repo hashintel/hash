@@ -21,9 +21,8 @@ use tokio_postgres::NoTls;
 use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
-        HealthcheckArgs, ServerLifecycle,
+        ServerLifecycle,
         server::{KratosSessionAuthConfig, TemporalConfig, create_temporal_client},
-        wait_healthcheck,
     },
 };
 
@@ -259,54 +258,43 @@ fn print_verdict(verdict: &cli::FitVerdict) {
     println!("{verdict}");
 }
 
-/// Standalone `atlas` subcommand entrypoint.
+/// `atlas fit` subcommand entrypoint.
+#[expect(clippy::significant_drop_tightening, reason = "false positive")]
+pub async fn atlas_fit(args: AtlasFitArgs) -> Result<(), Report<GraphError>> {
+    let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
+    if let Some(s3) = args.s3.client().await.change_context(GraphError)? {
+        storage.set_s3(s3);
+    }
+
+    let mut client = cli::connect(&args.db_info.url())
+        .await
+        .change_context(GraphError)?;
+
+    let command = cli::FitCommand::new(args.root, args.fit, storage)
+        .await
+        .change_context(GraphError)?;
+    let verdict = Box::pin(command.run(&mut client, args.credential))
+        .await
+        .change_context(GraphError)?;
+
+    print_verdict(&verdict);
+
+    Ok(())
+}
+
+/// `atlas serve` subcommand entrypoint.
 #[expect(
     clippy::integer_division_remainder_used,
     reason = "False positive on tokio::select!"
 )]
-#[expect(clippy::significant_drop_tightening, reason = "false positive")]
 #[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
-pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
-    let serve_args = match args.command {
-        AtlasCommand::Fit(fit_args) => {
-            let mut storage = Storage::in_temp_dir().await.change_context(GraphError)?;
-            if let Some(s3) = fit_args.s3.client().await.change_context(GraphError)? {
-                storage.set_s3(s3);
-            }
-
-            let mut client = cli::connect(&fit_args.db_info.url())
-                .await
-                .change_context(GraphError)?;
-
-            let command = cli::FitCommand::new(fit_args.root, fit_args.fit, storage)
-                .await
-                .change_context(GraphError)?;
-            let verdict = Box::pin(command.run(&mut client, fit_args.credential))
-                .await
-                .change_context(GraphError)?;
-
-            print_verdict(&verdict);
-
-            return Ok(());
-        }
-        AtlasCommand::Healthcheck(healthcheck_args) => {
-            return wait_healthcheck(
-                || healthcheck(healthcheck_args.address.clone()),
-                &HealthcheckArgs {
-                    healthcheck: true,
-                    wait: healthcheck_args.wait,
-                    timeout: healthcheck_args.timeout,
-                },
-            )
-            .await
-            .change_context(GraphError);
-        }
-        AtlasCommand::Serve(serve_args) => serve_args,
-    };
-
+pub async fn atlas_serve(
+    args: AtlasServeArgs,
+    telemetry: &Telemetry,
+) -> Result<(), Report<GraphError>> {
     let telemetry = AtlasTelemetry {
         meter: telemetry.meter("Graph Atlas API"),
     };
@@ -314,7 +302,7 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
     let lifecycle = ServerLifecycle::new();
     let server_lifecycle = lifecycle.clone();
     lifecycle.spawn("Atlas", async move {
-        run_atlas(*serve_args, &telemetry, server_lifecycle).await
+        run_atlas(args, &telemetry, server_lifecycle).await
     });
 
     // Wait for shutdown signal or unexpected server exit
@@ -355,7 +343,7 @@ pub async fn atlas(args: AtlasArgs, telemetry: &Telemetry) -> Result<(), Report<
     }
 }
 
-async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckError>> {
+pub(crate) async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!(
         "http://{}:{}/status",
         address.atlas_host, address.atlas_port
@@ -378,7 +366,8 @@ async fn healthcheck(address: AtlasAddress) -> Result<(), Report<HealthcheckErro
 mod tests {
     use tokio::net::TcpListener;
 
-    use super::{AtlasAddress, HealthcheckArgs, healthcheck, wait_healthcheck};
+    use super::{AtlasAddress, healthcheck};
+    use crate::subcommand::{HealthcheckArgs, wait_healthcheck};
 
     #[tokio::test]
     async fn status_healthy() {
@@ -409,5 +398,37 @@ mod tests {
         )
         .await
         .expect("running atlas stub should report healthy");
+    }
+
+    #[tokio::test]
+    async fn status_unreachable_keeps_request_error() {
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .expect("should bind to an ephemeral port");
+        let port = listener
+            .local_addr()
+            .expect("listener should have a local address")
+            .port();
+        drop(listener);
+
+        let address = AtlasAddress {
+            atlas_host: "127.0.0.1".to_owned(),
+            atlas_port: port,
+        };
+        let report = wait_healthcheck(
+            || healthcheck(address.clone()),
+            &HealthcheckArgs {
+                healthcheck: true,
+                wait: false,
+                timeout: None,
+            },
+        )
+        .await
+        .expect_err("closed port should report unhealthy");
+
+        assert!(
+            report.contains::<reqwest::Error>(),
+            "report should keep the request error: {report:?}"
+        );
     }
 }

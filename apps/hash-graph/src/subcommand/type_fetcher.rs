@@ -15,7 +15,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
+    subcommand::{HealthcheckArgs, ServerLifecycle},
 };
 
 /// Address configuration for the type fetcher server.
@@ -149,15 +149,6 @@ pub(crate) async fn wait_for_type_fetcher(
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
-    if args.healthcheck.healthcheck {
-        return wait_healthcheck(
-            || healthcheck(args.config.address.clone()),
-            &args.healthcheck,
-        )
-        .await
-        .change_context(GraphError);
-    }
-
     let lifecycle = ServerLifecycle::new();
     start_type_fetcher(args.config, &lifecycle);
 
@@ -199,7 +190,9 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
     }
 }
 
-async fn healthcheck(address: TypeFetcherAddress) -> Result<(), Report<HealthcheckError>> {
+pub(crate) async fn healthcheck(
+    address: TypeFetcherAddress,
+) -> Result<(), Report<HealthcheckError>> {
     let request_url = format!(
         "http://{}:{}/health",
         address.type_fetcher_host, address.type_fetcher_port

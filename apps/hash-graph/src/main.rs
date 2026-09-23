@@ -33,7 +33,8 @@ fn main() -> Result<(), Report<GraphError>> {
         worker_threads,
     } = Args::parse_args();
 
-    let _sentry_guard = init(&tracing_config.sentry, release_name!());
+    let _sentry_guard =
+        (!subcommand.is_healthcheck()).then(|| init(&tracing_config.sentry, release_name!()));
 
     subcommand.execute(tracing_config, worker_threads)
 }

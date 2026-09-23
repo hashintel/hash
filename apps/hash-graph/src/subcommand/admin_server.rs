@@ -21,7 +21,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::{HealthcheckArgs, ServerLifecycle, wait_healthcheck},
+    subcommand::{HealthcheckArgs, ServerLifecycle},
 };
 
 /// Address configuration for the admin server.
@@ -378,15 +378,6 @@ pub async fn admin_server(
     args: AdminServerArgs,
     telemetry: &Telemetry,
 ) -> Result<(), Report<GraphError>> {
-    if args.healthcheck.healthcheck {
-        return wait_healthcheck(
-            || healthcheck(args.config.address.clone()),
-            &args.healthcheck,
-        )
-        .await
-        .change_context(GraphError);
-    }
-
     let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,

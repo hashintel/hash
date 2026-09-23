@@ -11,14 +11,14 @@ use core::{fmt, num::NonZero, str::FromStr, time::Duration};
 use std::{sync::Once, thread::available_parallelism, time::Instant};
 
 use clap::Parser;
-use error_stack::{Report, ensure};
+use error_stack::{Report, ResultExt as _};
 use hash_telemetry::{Telemetry, TracingConfig, init_tracing};
 use tokio::time::sleep;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 pub use self::{
     admin_server::{AdminServerArgs, admin_server},
-    atlas::{AtlasArgs, atlas},
+    atlas::{AtlasArgs, AtlasCommand, atlas_fit, atlas_serve},
     completions::{CompletionsArgs, completions},
     migrate::{MigrateArgs, migrate},
     server::{ServerArgs, server},
@@ -260,18 +260,56 @@ fn block_on(
         })
 }
 
+/// Probes a running service without initializing telemetry.
+///
+/// A failed probe is an expected result that the caller acts on, so it is reported only through
+/// the returned error, which `main` prints to stderr before exiting with a non-zero code.
+fn run_healthcheck<F, Ret>(probe: F, args: &HealthcheckArgs) -> Result<(), Report<GraphError>>
+where
+    F: Fn() -> Ret + Send,
+    Ret: Future<Output = Result<(), Report<HealthcheckError>>> + Send,
+{
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("runtime should be created")
+        .block_on(wait_healthcheck(probe, args))
+        .change_context(GraphError)
+}
+
 impl Subcommand {
+    /// Returns `true` if this invocation probes a running service instead of running one.
+    pub(crate) fn is_healthcheck(&self) -> bool {
+        match self {
+            Self::Server(args) => args.healthcheck.healthcheck,
+            Self::AdminServer(args) => args.healthcheck.healthcheck,
+            Self::TypeFetcher(args) => args.healthcheck.healthcheck,
+            Self::Atlas(args) => matches!(args.command, AtlasCommand::Healthcheck(_)),
+            Self::Migrate(_) | Self::Completions(_) | Self::Snapshot(_) | Self::ReindexCache(_) => {
+                false
+            }
+        }
+    }
+
     pub(crate) fn execute(
         self,
         tracing_config: TracingConfig,
         worker_threads: WorkerThreads,
     ) -> Result<(), Report<GraphError>> {
         match self {
+            Self::Server(args) if args.healthcheck.healthcheck => run_healthcheck(
+                || server::healthcheck(args.config.http_address.clone()),
+                &args.healthcheck,
+            ),
             Self::Server(args) => block_on(
                 async |telemetry| server(*args, telemetry).await,
                 "Graph API",
                 tracing_config,
                 worker_threads,
+            ),
+            Self::AdminServer(args) if args.healthcheck.healthcheck => run_healthcheck(
+                || admin_server::healthcheck(args.config.address.clone()),
+                &args.healthcheck,
             ),
             Self::AdminServer(args) => block_on(
                 async |telemetry| admin_server(*args, telemetry).await,
@@ -285,18 +323,38 @@ impl Subcommand {
                 tracing_config,
                 worker_threads,
             ),
+            Self::TypeFetcher(args) if args.healthcheck.healthcheck => run_healthcheck(
+                || type_fetcher::healthcheck(args.config.address.clone()),
+                &args.healthcheck,
+            ),
             Self::TypeFetcher(args) => block_on(
                 async |_telemetry| type_fetcher(*args).await,
                 "Type Fetcher",
                 tracing_config,
                 worker_threads,
             ),
-            Self::Atlas(args) => block_on(
-                async |telemetry| atlas(*args, telemetry).await,
-                "Atlas",
-                tracing_config,
-                worker_threads,
-            ),
+            Self::Atlas(args) => match args.command {
+                AtlasCommand::Serve(serve_args) => block_on(
+                    async |telemetry| atlas_serve(*serve_args, telemetry).await,
+                    "Atlas",
+                    tracing_config,
+                    worker_threads,
+                ),
+                AtlasCommand::Fit(fit_args) => block_on(
+                    async |_telemetry| atlas_fit(*fit_args).await,
+                    "Atlas",
+                    tracing_config,
+                    worker_threads,
+                ),
+                AtlasCommand::Healthcheck(healthcheck_args) => run_healthcheck(
+                    || atlas::healthcheck(healthcheck_args.address.clone()),
+                    &HealthcheckArgs {
+                        healthcheck: true,
+                        wait: healthcheck_args.wait,
+                        timeout: healthcheck_args.timeout,
+                    },
+                ),
+            },
             Self::Completions(ref args) => {
                 completions(args);
                 Ok(())
@@ -330,14 +388,16 @@ where
         .map(|timeout| Instant::now() + Duration::from_secs(timeout));
 
     loop {
-        if func().await.is_ok() {
+        let Err(report) = func().await else {
             return Ok(());
+        };
+        if !args.wait {
+            return Err(report);
         }
-        ensure!(args.wait, HealthcheckError::NotHealthy);
         if let Some(end_time) = expected_end_time
             && Instant::now() > end_time
         {
-            return Err(HealthcheckError::Timeout.into());
+            return Err(report.change_context(HealthcheckError::Timeout));
         }
         sleep(Duration::from_secs(1)).await;
     }
