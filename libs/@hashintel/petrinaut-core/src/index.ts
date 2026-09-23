@@ -30,9 +30,11 @@ export {
   parseActualModeRecording,
   retimeActualModeRecordingForReplay,
   unavailableActualMode,
+  validateActualModeInitialState,
 } from "./actual-mode";
 export type {
   ActualModeContextValue,
+  ActualModeDefinition,
   ActualModeFrameReplay,
   ActualModeMarking,
   ActualModeReceivedEvent,

@@ -16,26 +16,63 @@ import {
 import { compileHirArtifacts } from "../hir/compile";
 import { createHirMetricEvaluator } from "../simulation/frames/hir-metric";
 
-import type { SDCPN } from "../types/sdcpn";
-import type { ActualModeMarking } from "./types";
+import type { Color, ColorElementType, Place, SDCPN } from "../types/sdcpn";
+import type { ActualModeMarking, ActualModeTransitionFiring } from "./types";
+
+const makePlace = (id: string, colorId: string | null = null): Place => ({
+  id,
+  name: id.charAt(0).toUpperCase() + id.slice(1),
+  colorId,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+});
 
 const definition: SDCPN = {
-  places: [
-    {
-      id: "queued",
-      name: "Queued",
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-      x: 0,
-      y: 0,
-    },
-  ],
+  places: [makePlace("queued"), makePlace("done")],
   transitions: [],
   types: [],
   differentialEquations: [],
   parameters: [],
 };
+
+const ticketColour: Color = {
+  id: "ticket",
+  name: "Ticket",
+  iconSlug: "circle",
+  displayColor: "#0000FF",
+  elements: [
+    { elementId: "ticket-id", name: "ticket_id", type: "string" },
+    { elementId: "attempts", name: "attempts", type: "integer" },
+  ],
+};
+
+const ticketDefinition: SDCPN = {
+  ...definition,
+  places: [
+    makePlace("queued", "ticket"),
+    makePlace("implementing", "ticket"),
+    makePlace("log"),
+  ],
+  types: [ticketColour],
+};
+
+const ticket = (ticketId: string, attempts = 0) => ({
+  ticket_id: ticketId,
+  attempts,
+});
+
+const firingAt = (
+  transitionId: string,
+  inputTokens: ActualModeTransitionFiring["inputTokens"],
+  outputTokens: ActualModeTransitionFiring["outputTokens"],
+): ActualModeTransitionFiring => ({
+  transitionId,
+  inputTokens,
+  outputTokens,
+  ts: "2026-06-05T10:00:00.000Z",
+});
 
 describe("Actual mode recordings", () => {
   it("parses exported recordings", () => {
@@ -89,21 +126,15 @@ describe("Actual mode recordings", () => {
     const recording = createActualModeRecording({
       title: "Replay",
       source: null,
-      definition,
-      initialState: { queued: 0 },
+      definition: ticketDefinition,
+      initialState: { queued: [] },
       transitionFirings: [
-        {
-          transitionId: "create",
-          inputTokens: {},
-          outputTokens: { queued: [{ ticket_id: "a" }] },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-        {
-          transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "a" }] },
-          outputTokens: { implementing: [{ ticket_id: "a", attempts: 1 }] },
-          ts: "2026-06-05T10:00:01.000Z",
-        },
+        firingAt("create", {}, { queued: [ticket("a")] }),
+        firingAt(
+          "start",
+          { queued: [ticket("a")] },
+          { implementing: [ticket("a", 1)] },
+        ),
       ],
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
@@ -115,16 +146,9 @@ describe("Actual mode recordings", () => {
     const recording = createActualModeRecording({
       title: "Replay",
       source: null,
-      definition,
-      initialState: { queued: 1 },
-      transitionFirings: [
-        {
-          transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "a" }] },
-          outputTokens: {},
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-      ],
+      definition: ticketDefinition,
+      initialState: { queued: [ticket("b")] },
+      transitionFirings: [firingAt("start", { queued: [ticket("a")] }, {})],
       exportedAt: "2026-06-05T10:01:00.000Z",
     });
 
@@ -134,7 +158,56 @@ describe("Actual mode recordings", () => {
           expect.objectContaining({
             path: ["transitionFirings", 0],
             message:
-              'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a"} from place "queued", which holds no matching token (1 remaining)',
+              'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a","attempts":0} from place "queued", which holds no matching token (1 remaining)',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("rejects a recording whose initial state holds an incomplete token record", () => {
+    const recording = createActualModeRecording({
+      title: "Replay",
+      source: null,
+      definition: ticketDefinition,
+      initialState: { queued: [{ ticket_id: "a" }] },
+      transitionFirings: [],
+      exportedAt: "2026-06-05T10:01:00.000Z",
+    });
+
+    expect(() => parseActualModeRecording(recording)).toThrow(
+      expect.objectContaining({
+        issues: [
+          expect.objectContaining({
+            path: ["initialState"],
+            message:
+              'Initial marking holds token {"ticket_id":"a"} in place "queued", which lacks element "attempts" of colour "Ticket"',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("rejects a recording whose firing produces an incomplete token record", () => {
+    const recording = createActualModeRecording({
+      title: "Replay",
+      source: null,
+      definition: ticketDefinition,
+      initialState: { queued: [] },
+      transitionFirings: [
+        firingAt("create", {}, { queued: [ticket("a")] }),
+        firingAt("create", {}, { queued: [{ ticket_id: "b" }] }),
+      ],
+      exportedAt: "2026-06-05T10:01:00.000Z",
+    });
+
+    expect(() => parseActualModeRecording(recording)).toThrow(
+      expect.objectContaining({
+        issues: [
+          expect.objectContaining({
+            path: ["transitionFirings", 1],
+            message:
+              'Transition firing of "create" at 2026-06-05T10:00:00.000Z produces token {"ticket_id":"b"} in place "queued", which lacks element "attempts" of colour "Ticket"',
           }),
         ],
       }),
@@ -232,21 +305,7 @@ describe("Actual mode recordings", () => {
 
   it("reconstructs timeline markings from firing effects", () => {
     const reader = createActualModeTimelineFrameReader({
-      definition: {
-        ...definition,
-        places: [
-          ...definition.places,
-          {
-            id: "done",
-            name: "Done",
-            colorId: null,
-            dynamicsEnabled: false,
-            differentialEquationId: null,
-            x: 100,
-            y: 0,
-          },
-        ],
-      },
+      definition,
       initialState: { queued: 2, done: 0 },
       transitionFirings: [
         {
@@ -347,6 +406,7 @@ describe("Actual mode recordings", () => {
 
   it("keeps a place numeric while every token recorded for it is attribute-less", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
+      definition,
       initialState: { queued: 2 },
       transitionFirings: [
         {
@@ -387,59 +447,63 @@ describe("Actual mode recordings", () => {
     },
   );
 
-  it("removes the marking token whose key matches the recorded input token", () => {
-    const initialState = {
-      queued: [{ ticket_id: "a" }, { ticket_id: "b" }, { ticket_id: "c" }],
-      implementing: [],
-    };
+  it("removes the marking token equal to the recorded input token", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
-      initialState,
+      definition: ticketDefinition,
+      initialState: {
+        queued: [ticket("a"), ticket("b"), ticket("c")],
+        implementing: [],
+      },
       transitionFirings: [
-        {
-          transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "b" }] },
-          outputTokens: { implementing: [{ ticket_id: "b" }] },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
+        firingAt(
+          "start",
+          { queued: [ticket("b")] },
+          { implementing: [ticket("b")] },
+        ),
       ],
       transitionFiringIndex: 0,
     });
 
-    expect(marking.queued).toEqual([{ ticket_id: "a" }, { ticket_id: "c" }]);
-    expect(marking.implementing).toEqual([{ ticket_id: "b" }]);
+    expect(marking.queued).toEqual([ticket("a"), ticket("c")]);
+    expect(marking.implementing).toEqual([ticket("b")]);
   });
 
-  it("throws for a recorded input token that matches no marking token", () => {
+  it("removes the first of several equal marking tokens", () => {
+    const marking = getActualModeMarkingAtTransitionFiringIndex({
+      definition: ticketDefinition,
+      initialState: { queued: [ticket("a"), ticket("b"), ticket("a")] },
+      transitionFirings: [firingAt("start", { queued: [ticket("a")] }, {})],
+      transitionFiringIndex: 0,
+    });
+
+    expect(marking.queued).toEqual([ticket("b"), ticket("a")]);
+  });
+
+  it("throws for a recorded input token that differs from every marking token on one attribute", () => {
     expect(() =>
       getActualModeMarkingAtTransitionFiringIndex({
-        initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
+        definition: ticketDefinition,
+        initialState: { queued: [ticket("a"), ticket("b")] },
         transitionFirings: [
-          {
-            transitionId: "start",
-            inputTokens: { queued: [{ ticket_id: "missing" }] },
-            outputTokens: {},
-            ts: "2026-06-05T10:00:00.000Z",
-          },
+          firingAt("start", { queued: [ticket("a", 1)] }, {}),
         ],
         transitionFiringIndex: 0,
       }),
     ).toThrow(
-      'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"missing"} from place "queued", which holds no matching token (2 remaining)',
+      'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a","attempts":1} from place "queued", which holds no matching token (2 remaining)',
     );
   });
 
-  it("throws for an attribute-less record consumed from an empty token array", () => {
+  it("throws for a record consumed twice from a place that holds it once", () => {
     expect(() =>
       applyActualModeTransitionFiring(
-        { queued: [{ ticket_id: "a" }] },
-        {
-          transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "a" }, {}] },
-          outputTokens: {},
-          ts: "2026-06-05T10:00:00.000Z",
-        },
+        ticketDefinition,
+        { queued: [ticket("a")] },
+        firingAt("start", { queued: [ticket("a"), ticket("a")] }, {}),
       ),
-    ).toThrow(/consumes token \{\} from place "queued".*\(0 remaining\)/);
+    ).toThrow(
+      /consumes token \{"ticket_id":"a","attempts":0\} from place "queued".*\(0 remaining\)/,
+    );
   });
 
   it.each<{ initialState: ActualModeMarking; holds: number }>([
@@ -449,7 +513,7 @@ describe("Actual mode recordings", () => {
     "throws for a firing that consumes more tokens than a count place holds ($holds)",
     ({ initialState, holds }) => {
       expect(() =>
-        applyActualModeTransitionFiring(initialState, {
+        applyActualModeTransitionFiring(definition, initialState, {
           transitionId: "finish",
           inputTokens: { queued: [{}, {}] },
           outputTokens: { done: [{}] },
@@ -488,77 +552,25 @@ describe("Actual mode recordings", () => {
     ).toThrow(/consumes 1 token from place "queued", which holds 0/);
   });
 
-  it("removes the oldest token for an attribute-less record", () => {
-    const marking = getActualModeMarkingAtTransitionFiringIndex({
-      initialState: {
-        queued: [{ ticket_id: "a" }, { ticket_id: "b" }, { ticket_id: "c" }],
-      },
-      transitionFirings: [
-        {
-          transitionId: "start",
-          inputTokens: { queued: [{ ticket_id: "b" }, {}] },
-          outputTokens: {},
-          ts: "2026-06-05T10:00:00.000Z",
-        },
-      ],
-      transitionFiringIndex: 0,
-    });
-
-    expect(marking.queued).toEqual([{ ticket_id: "c" }]);
-  });
-
   it("appends produced tokens as recorded", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
+      definition: ticketDefinition,
       initialState: { queued: [] },
       transitionFirings: [
-        {
-          transitionId: "create",
-          inputTokens: {},
-          outputTokens: { queued: [{ ticket_id: "a" }, {}] },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
+        firingAt("create", {}, { queued: [ticket("a"), ticket("b")] }),
       ],
       transitionFiringIndex: 0,
     });
 
-    expect(marking.queued).toEqual([{ ticket_id: "a" }, {}]);
+    expect(marking.queued).toEqual([ticket("a"), ticket("b")]);
   });
 
   it("exposes recorded token values through the frame reader", () => {
-    const colouredDefinition = {
-      ...definition,
-      places: [
-        {
-          ...definition.places[0]!,
-          id: "queued",
-          name: "Queued",
-          colorId: "ticket",
-        },
-      ],
-      types: [
-        {
-          id: "ticket",
-          name: "Ticket",
-          iconSlug: "circle",
-          displayColor: "#0000FF",
-          elements: [
-            { elementId: "ticket-id", name: "ticket_id", type: "string" },
-            { elementId: "attempts", name: "attempts", type: "integer" },
-          ],
-        },
-      ],
-    } satisfies SDCPN;
-
     const reader = createActualModeTimelineFrameReader({
-      definition: colouredDefinition,
+      definition: ticketDefinition,
       initialState: { queued: [] },
       transitionFirings: [
-        {
-          transitionId: "create",
-          inputTokens: {},
-          outputTokens: { queued: [{ ticket_id: "X-1234" }] },
-          ts: "2026-06-05T10:00:00.000Z",
-        },
+        firingAt("create", {}, { queued: [ticket("X-1234", 2)] }),
       ],
       transitionFiringTimesMs: [0],
       point: {
@@ -569,9 +581,8 @@ describe("Actual mode recordings", () => {
       number: 1,
     });
 
-    // Missing attributes resolve to type defaults on replay.
-    expect(reader.getPlaceTokens(colouredDefinition.places[0]!)).toEqual([
-      { ticket_id: "X-1234", attempts: 0 },
+    expect(reader.getPlaceTokens(ticketDefinition.places[0]!)).toEqual([
+      ticket("X-1234", 2),
     ]);
   });
 
@@ -637,5 +648,149 @@ describe("Actual mode recordings", () => {
     expect(reader.getPlaceTokenCount("items")).toBe(2);
     expect(tokens).toEqual([{ value: 0 }, { value: 0 }]);
     expect(evaluate(reader)).toBe(tokens.length);
+  });
+});
+
+describe("Actual mode token record validation", () => {
+  const sampleColour: Color = {
+    id: "sample",
+    name: "Sample",
+    iconSlug: "circle",
+    displayColor: "#FF0000",
+    elements: (
+      [
+        ["weight", "real"],
+        ["count", "integer"],
+        ["checked", "boolean"],
+        ["sample_id", "uuid"],
+        ["label", "string"],
+      ] as const
+    ).map(([name, type]) => ({ elementId: name, name, type })),
+  };
+  const sampleDefinition: SDCPN = {
+    ...definition,
+    places: [makePlace("samples", "sample"), makePlace("queued")],
+    types: [sampleColour],
+  };
+  const sample = {
+    weight: 1.5,
+    count: 2,
+    checked: true,
+    sample_id: "0f8fad5b-d9cb-469f-a165-70867728950e",
+    label: "first",
+  };
+  const produceSample = (record: Record<string, number | boolean | string>) =>
+    applyActualModeTransitionFiring(
+      sampleDefinition,
+      { samples: [] },
+      firingAt("take", {}, { samples: [record] }),
+    );
+
+  it("accepts a record that carries every element with a value of its type", () => {
+    expect(produceSample(sample).samples).toEqual([sample]);
+  });
+
+  it("rejects a record that lacks an element", () => {
+    const { label: _label, ...withoutLabel } = sample;
+
+    expect(() => produceSample(withoutLabel)).toThrow(
+      `Transition firing of "take" at 2026-06-05T10:00:00.000Z produces token ${JSON.stringify(withoutLabel)} in place "samples", which lacks element "label" of colour "Sample"`,
+    );
+  });
+
+  it("rejects a record with an attribute the colour does not declare", () => {
+    const withExtra = { ...sample, colour: "red" };
+
+    expect(() => produceSample(withExtra)).toThrow(
+      `Transition firing of "take" at 2026-06-05T10:00:00.000Z produces token ${JSON.stringify(withExtra)} in place "samples", which carries attribute "colour" that colour "Sample" does not declare`,
+    );
+  });
+
+  it.each<{
+    name: string;
+    type: ColorElementType;
+    value: number | boolean | string;
+    expected: string;
+  }>([
+    { name: "weight", type: "real", value: "1.5", expected: "a finite number" },
+    { name: "count", type: "integer", value: 2.5, expected: "an integer" },
+    { name: "checked", type: "boolean", value: 1, expected: "a boolean" },
+    {
+      name: "sample_id",
+      type: "uuid",
+      value: "0F8FAD5B-D9CB-469F-A165-70867728950E",
+      expected: "a canonical lowercase UUID string",
+    },
+    { name: "label", type: "string", value: 7, expected: "a string" },
+  ])("rejects a $type element holding $value", ({ name, value, expected }) => {
+    expect(() => produceSample({ ...sample, [name]: value })).toThrow(
+      `whose element "${name}" of colour "Sample" is ${JSON.stringify(value)}, not ${expected}`,
+    );
+  });
+
+  it("rejects a non-empty record for an uncoloured place", () => {
+    expect(() =>
+      applyActualModeTransitionFiring(
+        sampleDefinition,
+        { queued: 1 },
+        firingAt("start", { queued: [{ ticket_id: "a" }] }, {}),
+      ),
+    ).toThrow(
+      'Transition firing of "start" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a"} from place "queued", which carries attribute "ticket_id" although the place has no colour',
+    );
+  });
+
+  it("rejects a firing that names a place the net does not define", () => {
+    expect(() =>
+      applyActualModeTransitionFiring(
+        sampleDefinition,
+        {},
+        firingAt("start", {}, { archived: [{}] }),
+      ),
+    ).toThrow(
+      'Transition firing of "start" at 2026-06-05T10:00:00.000Z names place "archived", which the net does not define',
+    );
+  });
+
+  it("checks a scoped place against the subnet colour", () => {
+    const scopedDefinition: SDCPN = {
+      ...definition,
+      subnets: [
+        {
+          id: "worker",
+          name: "Worker",
+          places: [makePlace("inbox", "ticket")],
+          transitions: [],
+          types: [ticketColour],
+          differentialEquations: [],
+          parameters: [],
+        },
+      ],
+      componentInstances: [
+        {
+          id: "worker-1",
+          name: "WorkerOne",
+          subnetId: "worker",
+          parameterValues: {},
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+
+    expect(
+      applyActualModeTransitionFiring(
+        scopedDefinition,
+        {},
+        firingAt("assign", {}, { "worker-1::inbox": [ticket("a")] }),
+      ),
+    ).toEqual({ "worker-1::inbox": [ticket("a")] });
+    expect(() =>
+      applyActualModeTransitionFiring(
+        scopedDefinition,
+        {},
+        firingAt("assign", {}, { "worker-1::inbox": [{}] }),
+      ),
+    ).toThrow('which lacks element "ticket_id" of colour "Ticket"');
   });
 });

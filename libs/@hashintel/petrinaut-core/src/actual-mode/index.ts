@@ -23,6 +23,10 @@ export {
   actualModeTransitionFiringSchema,
 } from "./schemas";
 export {
+  validateActualModeInitialState,
+  type ActualModeDefinition,
+} from "./token-records";
+export {
   buildActualModeTimelinePoints,
   createActualModeFrameReplay,
   createActualModeTimelineFrameReader,

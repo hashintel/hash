@@ -41,9 +41,11 @@ The current demo path is:
 1. `apps/petrinaut-website` opens `/brunch?sse=<url>`.
 2. The Brunch provider connects with `EventSource`.
 3. Website-local parsers validate the temporary Brunch definition, initial
-   state, and transition firing payloads. The provider applies each firing to
-   the marking reconstructed so far as it arrives; a firing that fails to
-   apply ends the stream with `status: "error"` and the thrown message.
+   state, and transition firing payloads. Once the definition and the initial
+   state have both arrived, the provider checks the initial state against the
+   definition and applies each firing to the marking reconstructed so far; an
+   initial state or firing that fails ends the stream with `status: "error"`
+   and the thrown message.
 4. The website normalizes the Brunch definition into a read-only SDCPN with
    Petrinaut extensions disabled.
 5. `@hashintel/petrinaut` receives `ActualModeContext`.
@@ -55,27 +57,40 @@ The transition firing shape is:
 ```json
 {
   "transitionId": "start_implementation",
-  "inputTokens": { "queued": [{ "ticket_id": "…" }] },
-  "outputTokens": { "implementing": [{ "ticket_id": "…" }] },
+  "inputTokens": { "queued": [{ "ticket_id": "T-1", "attempts": 0 }] },
+  "outputTokens": { "implementing": [{ "ticket_id": "T-1", "attempts": 1 }] },
   "ts": "2026-06-05T17:17:27.866Z"
 }
 ```
 
 `inputTokens` and `outputTokens` list the tokens the firing consumed and
 produced, one record per token, keyed by place id. They are not full
-before/after markings. A record may carry a subset of the colour's attributes
-(at least the identity key elements), `uuid` values are canonical lowercase
-strings, and an attribute-less record (`{}`) is one token about which nothing
-is known. Place keys may be scoped ids (`instanceId::placeId`) when a firing
-touches a componentInstance's copy of a subnet place.
+before/after markings. Place keys may be scoped ids (`instanceId::placeId`)
+when a firing touches a componentInstance's copy of a subnet place.
+
+Each token record must fit its place in the net definition. The same rule
+covers the token arrays of an initial marking:
+
+- A record for a place with a colour carries exactly the colour's elements,
+  with no element missing and no other attribute.
+- Each value is the at-rest form of its element's type: a finite number for
+  `real`, an integer for `integer`, a boolean for `boolean`, a string for
+  `string`, and a canonical lowercase UUID string for `uuid`.
+- A record for an uncoloured place is `{}`.
+- Every place a firing or marking names is defined by the net.
+
+`applyActualModeTransitionFiring` checks the firing's records before applying
+it, and `validateActualModeInitialState` checks an initial marking. Both throw
+an error naming the place, the record, and the element or attribute at fault;
+a firing's error also names the transition and timestamp. Recording parsing,
+the frame replay, and the Brunch provider all run these checks.
 
 Marking reconstruction consumes tokens by value:
 
-- A place stays a token count while every token recorded for it is
-  attribute-less; the first attribute-carrying token turns it into an array.
+- A place stays a token count while every token recorded for it is `{}`; the
+  first token with attributes turns it into an array.
 - A recorded input token removes the first token in the reconstructed place
-  that agrees on every attribute the record carries; a `{}` record removes the
-  oldest token.
+  that is equal to it on every attribute.
 - A firing that consumes a token the reconstructed marking does not hold is
   an error: `applyActualModeTransitionFiring` throws, naming the transition,
   the place and the unmatched record. This covers a recorded input token that
@@ -99,6 +114,7 @@ marking plus the last N firings) is the known follow-up.
 - `schemas.ts`: Zod schemas for core Actual Mode payloads and recordings.
 - `context.ts`: unavailable/default context value.
 - `marking.ts`: marking reconstruction helpers.
+- `token-records.ts`: checks that token records fit their places in the net.
 - `timeline.ts`: live timeline point generation and frame-reader adapter.
 - `recording.ts`: normalized and raw-event recording helpers.
 - `time.ts`: timestamp parsing helpers used by recordings and timelines.

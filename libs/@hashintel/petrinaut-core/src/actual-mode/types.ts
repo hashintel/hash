@@ -27,10 +27,9 @@ export type ActualModeMarking = Record<
 /**
  * Attribute values of the tokens a firing consumed or produced, keyed by
  * placeId, or `instanceId::placeId` for a componentInstance's copy of a subnet
- * place (see `scoped-ids.ts`). A record may carry a subset of the colour's
- * attributes — at least the identity key elements — and missing attributes
- * resolve to type defaults on replay. An attribute-less record (`{}`) is one
- * token about which nothing is known.
+ * place (see `scoped-ids.ts`). A record for a place with a colour carries
+ * exactly the colour's elements, each an at-rest value of the element's type;
+ * a record for an uncoloured place is `{}`.
  */
 export type ActualModeTokenValues = Record<string, ActualModeTokenRecord[]>;
 

@@ -39,6 +39,18 @@ const emit = (type: string, data: unknown) => {
   });
 };
 
+const emitDefinition = async () => {
+  await act(async () => {
+    FakeEventSource.latest!.emit("definition", {
+      places: [
+        { id: "queued", name: "Queued", x: 0, y: 0 },
+        { id: "done", name: "Done", x: 100, y: 0 },
+      ],
+      transitions: [],
+    });
+  });
+};
+
 const StatusProbe = () => {
   const actualMode = use(ActualModeContext);
   return (
@@ -73,18 +85,20 @@ describe("BrunchActualModeProvider", () => {
     FakeEventSource.latest = null;
   });
 
-  it("appends a firing that the marking absorbs", () => {
+  it("appends a firing that the marking absorbs", async () => {
     const { container } = renderProvider();
 
+    await emitDefinition();
     emit("initial_state", { queued: 1, done: 0 });
     emit("transition_firing", finishFiring({ queued: [{}] }));
 
     expect(container.textContent).toBe("streaming|1|");
   });
 
-  it("ends the stream with an error for a firing that consumes a token the marking does not hold", () => {
+  it("ends the stream with an error for a firing that consumes a token the marking does not hold", async () => {
     const { container } = renderProvider();
 
+    await emitDefinition();
     emit("initial_state", { queued: 1, done: 0 });
     emit("transition_firing", finishFiring({ queued: [{}] }));
     emit("transition_firing", finishFiring({ queued: [{}] }));
@@ -94,14 +108,41 @@ describe("BrunchActualModeProvider", () => {
     );
   });
 
-  it("checks firings received before the initial state once it arrives", () => {
+  it("checks firings received before the initial state once it arrives", async () => {
     const { container } = renderProvider();
 
+    await emitDefinition();
     emit("transition_firing", finishFiring({ queued: [{}, {}] }));
     emit("initial_state", { queued: 1, done: 0 });
 
     expect(container.textContent).toBe(
       'error|1|Invalid Brunch transition_firing frame: Transition firing of "finish" at 2026-06-05T10:00:00.000Z consumes 2 tokens from place "queued", which holds 1',
+    );
+  });
+
+  it("checks frames received before the definition once it arrives", async () => {
+    const { container } = renderProvider();
+
+    emit("initial_state", { queued: 1, done: 0 });
+    emit("transition_firing", finishFiring({ queued: [{}, {}] }));
+    expect(container.textContent).toBe("streaming|1|");
+
+    await emitDefinition();
+
+    expect(container.textContent).toBe(
+      'error|1|Invalid Brunch transition_firing frame: Transition firing of "finish" at 2026-06-05T10:00:00.000Z consumes 2 tokens from place "queued", which holds 1',
+    );
+  });
+
+  it("ends the stream with an error for a firing whose token record does not fit its place", async () => {
+    const { container } = renderProvider();
+
+    await emitDefinition();
+    emit("initial_state", { queued: 1, done: 0 });
+    emit("transition_firing", finishFiring({ queued: [{ ticket_id: "a" }] }));
+
+    expect(container.textContent).toBe(
+      'error|0|Invalid Brunch transition_firing frame: Transition firing of "finish" at 2026-06-05T10:00:00.000Z consumes token {"ticket_id":"a"} from place "queued", which carries attribute "ticket_id" although the place has no colour',
     );
   });
 });

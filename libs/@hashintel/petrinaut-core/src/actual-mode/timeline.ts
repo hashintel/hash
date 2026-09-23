@@ -15,6 +15,7 @@ import {
   isActualModeTokenColourArray,
 } from "./marking";
 import { parseActualModeTimestampMs } from "./time";
+import { validateActualModeInitialState } from "./token-records";
 
 import type {
   SimulationFrameRawView,
@@ -22,6 +23,7 @@ import type {
   SimulationFrameState,
 } from "../simulation/api";
 import type { Place, SDCPN, TokenRecord } from "../types/sdcpn";
+import type { ActualModeDefinition } from "./token-records";
 import type {
   ActualModeContextValue,
   ActualModeMarking,
@@ -197,7 +199,7 @@ const getTransitionFiringCount = (
 };
 
 export const createActualModeTimelineFrameReader = (params: {
-  definition: Pick<SDCPN, "places" | "transitions" | "types">;
+  definition: ActualModeDefinition & Pick<SDCPN, "transitions">;
   initialState: ActualModeMarking;
   transitionFirings: readonly ActualModeTransitionFiring[];
   transitionFiringTimesMs: readonly number[];
@@ -222,6 +224,7 @@ export const createActualModeTimelineFrameReader = (params: {
   const marking =
     params.marking ??
     getActualModeMarkingAtTransitionFiringIndex({
+      definition,
       initialState,
       transitionFirings,
       transitionFiringIndex: point.transitionFiringIndex,
@@ -242,9 +245,9 @@ export const createActualModeTimelineFrameReader = (params: {
     const placeMarking = marking[place.id];
     if (isActualModeTokenColourArray(placeMarking)) {
       // Recorded token values are at-rest JSON (uuid values are canonical
-      // strings) and may carry only a subset of attributes; coercion brings
-      // them to runtime form with type defaults for the rest, matching what
-      // simulation frames expose.
+      // strings); coercion brings them to the runtime form simulation frames
+      // expose. Tokens expanded from a count carry no attributes and take
+      // type defaults, as count-only places do below.
       tokensByPlaceId.set(
         place.id,
         placeMarking.map((token) =>
@@ -426,12 +429,17 @@ export type ActualModeFrameReplay = {
  * One marking cursor for a run of timeline points visited in firing order,
  * so a range of frames costs one pass over the firing log rather than a
  * from-zero replay per frame.
+ *
+ * @throws when `initialState` holds a token record that does not fit its
+ * place in `definition`; `readerAt` throws the same for a firing it applies,
+ * and for a firing that consumes a token the marking does not hold.
  */
 export const createActualModeFrameReplay = (params: {
-  definition: Pick<SDCPN, "places" | "transitions" | "types">;
+  definition: ActualModeDefinition & Pick<SDCPN, "transitions">;
   initialState: ActualModeMarking;
 }): ActualModeFrameReplay => {
   const { definition, initialState } = params;
+  validateActualModeInitialState(definition, initialState);
   let marking = initialState;
   let appliedThroughFiringIndex = -1;
 
@@ -449,7 +457,11 @@ export const createActualModeFrameReplay = (params: {
       ) {
         const firing = transitionFirings[firingIndex];
         if (firing) {
-          marking = applyActualModeTransitionFiring(marking, firing);
+          marking = applyActualModeTransitionFiring(
+            definition,
+            marking,
+            firing,
+          );
         }
       }
       appliedThroughFiringIndex = Math.max(

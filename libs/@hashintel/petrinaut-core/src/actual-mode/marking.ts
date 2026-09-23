@@ -1,5 +1,10 @@
 import { createUserKeyedRecord } from "../validation/record-keys";
+import {
+  validateActualModeInitialState,
+  validateActualModeTransitionFiring,
+} from "./token-records";
 
+import type { ActualModeDefinition } from "./token-records";
 import type {
   ActualModeMarking,
   ActualModeTokenRecord,
@@ -65,27 +70,25 @@ const toTokenArray = (
     : emptyTokens(markingValue);
 };
 
-/**
- * A recorded token value may carry only a subset of the colour's attributes
- * (at least the identity key elements), so a marking token matches when it
- * agrees on every attribute the record carries.
- */
-const tokenMatchesRecordedValues = (
-  token: ActualModeTokenRecord,
-  recordedAttributes: readonly [string, ActualModeTokenRecord[string]][],
-): boolean =>
-  recordedAttributes.every(
-    ([attributeName, attributeValue]) =>
-      token[attributeName] === attributeValue,
+const tokenRecordsEqual = (
+  left: ActualModeTokenRecord,
+  right: ActualModeTokenRecord,
+): boolean => {
+  const leftNames = Object.keys(left);
+  return (
+    leftNames.length === Object.keys(right).length &&
+    leftNames.every(
+      (name) => Object.hasOwn(right, name) && left[name] === right[name],
+    )
   );
+};
 
 const hasAttributes = (token: ActualModeTokenRecord): boolean =>
   Object.keys(token).length > 0;
 
 /**
  * Removes the consumed tokens from a place's token array. Each recorded token
- * removes the first marking token that agrees on every attribute it carries,
- * so an attribute-less record removes the oldest token.
+ * removes the first marking token equal to it on every attribute.
  *
  * @throws when a recorded token matches no token left in the place.
  */
@@ -97,9 +100,8 @@ const removeConsumedTokens = (
 ): ActualModeTokenRecord[] => {
   const remaining = [...currentTokens];
   for (const consumedToken of consumedTokens) {
-    const recordedAttributes = Object.entries(consumedToken);
     const matchIndex = remaining.findIndex((token) =>
-      tokenMatchesRecordedValues(token, recordedAttributes),
+      tokenRecordsEqual(token, consumedToken),
     );
     if (matchIndex === -1) {
       throw new Error(
@@ -114,16 +116,21 @@ const removeConsumedTokens = (
 };
 
 /**
- * A place stays a token count while every token recorded for it is
- * attribute-less; the first attribute-carrying token turns it into an array.
+ * Applies one firing to a marking. A place stays a token count while every
+ * token recorded for it is `{}`; the first token with attributes turns it
+ * into an array.
  *
- * @throws when the firing consumes a token the marking does not hold: more
- * tokens than a place holds, or a recorded token that matches none of them.
+ * @throws when a token record does not fit its place in `definition` (see
+ * `validateActualModeTransitionFiring`), or when the firing consumes a token
+ * the marking does not hold: more tokens than a place holds, or a recorded
+ * token equal to none of them.
  */
 export const applyActualModeTransitionFiring = (
+  definition: ActualModeDefinition,
   marking: ActualModeMarking,
   firing: ActualModeTransitionFiring,
 ): ActualModeMarking => {
+  validateActualModeTransitionFiring(definition, firing);
   const next = cloneMarking(marking);
   const placeIds = new Set([
     ...Object.keys(firing.inputTokens),
@@ -162,12 +169,21 @@ export const applyActualModeTransitionFiring = (
   return next;
 };
 
+/**
+ * @throws when `initialState` or a replayed firing holds a token record that
+ * does not fit its place in `definition`, or a firing consumes a token the
+ * marking does not hold.
+ */
 export const getActualModeMarkingAtTransitionFiringIndex = (params: {
+  definition: ActualModeDefinition;
   initialState: ActualModeMarking;
   transitionFirings: readonly ActualModeTransitionFiring[];
   transitionFiringIndex: number | null;
 }): ActualModeMarking => {
-  const { initialState, transitionFiringIndex, transitionFirings } = params;
+  const { definition, initialState, transitionFiringIndex, transitionFirings } =
+    params;
+
+  validateActualModeInitialState(definition, initialState);
 
   if (transitionFiringIndex === null) {
     return initialState;
@@ -183,7 +199,7 @@ export const getActualModeMarkingAtTransitionFiringIndex = (params: {
     const firing = transitionFirings[index];
 
     if (firing) {
-      marking = applyActualModeTransitionFiring(marking, firing);
+      marking = applyActualModeTransitionFiring(definition, marking, firing);
     }
   }
 

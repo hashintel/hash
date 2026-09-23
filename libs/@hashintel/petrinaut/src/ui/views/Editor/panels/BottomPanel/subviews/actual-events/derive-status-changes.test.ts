@@ -59,18 +59,18 @@ describe("createActualEventStatusDeriver", () => {
       {
         transitionId: "create",
         inputTokens: {},
-        outputTokens: { todo: [{ ticket_id: "a" }] },
+        outputTokens: { todo: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:00.000Z",
       },
       {
         transitionId: "start",
-        inputTokens: { todo: [{ ticket_id: "a" }] },
-        outputTokens: { doing: [{ ticket_id: "a" }] },
+        inputTokens: { todo: [{ ticket_id: "a", attempts: 0 }] },
+        outputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:04.000Z",
       },
       {
         transitionId: "archive",
-        inputTokens: { doing: [{ ticket_id: "a" }] },
+        inputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
         outputTokens: {},
         ts: "2026-06-05T10:00:10.000Z",
       },
@@ -108,12 +108,12 @@ describe("createActualEventStatusDeriver", () => {
     const deriver = createActualEventStatusDeriver({
       statusView,
       definition,
-      initialState: { todo: [{ ticket_id: "a" }] },
+      initialState: { todo: [{ ticket_id: "a", attempts: 0 }] },
     });
     const firstFiring = {
       transitionId: "start",
-      inputTokens: { todo: [{ ticket_id: "a" }] },
-      outputTokens: { doing: [{ ticket_id: "a" }] },
+      inputTokens: { todo: [{ ticket_id: "a", attempts: 0 }] },
+      outputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
       ts: "2026-06-05T10:00:05.000Z",
     };
 
@@ -135,8 +135,8 @@ describe("createActualEventStatusDeriver", () => {
       firstFiring,
       {
         transitionId: "finish",
-        inputTokens: { doing: [{ ticket_id: "a" }] },
-        outputTokens: { done: [{ ticket_id: "a" }] },
+        inputTokens: { doing: [{ ticket_id: "a", attempts: 0 }] },
+        outputTokens: { done: [{ ticket_id: "a", attempts: 0 }] },
         ts: "2026-06-05T10:00:08.000Z",
       },
     ]);
@@ -271,7 +271,9 @@ describe("createActualEventStatusDeriver", () => {
       {
         transitionId: "instance-1::start",
         inputTokens: {},
-        outputTokens: { "instance-1::inner-doing": [{ ticket_id: "a" }] },
+        outputTokens: {
+          "instance-1::inner-doing": [{ ticket_id: "a", attempts: 0 }],
+        },
         ts: "2026-06-05T10:00:00.000Z",
       },
     ]);
@@ -288,10 +290,13 @@ describe("createActualEventStatusDeriver", () => {
     ]);
   });
 
-  it("emits nothing for firings whose tokens carry no attributes", () => {
+  it("emits nothing for firings through uncoloured places", () => {
     const deriver = createActualEventStatusDeriver({
       statusView,
-      definition,
+      definition: {
+        ...definition,
+        places: definition.places.map((place) => ({ ...place, colorId: null })),
+      },
       initialState: { todo: 1 },
     });
     const changes = deriver.deriveUpTo([

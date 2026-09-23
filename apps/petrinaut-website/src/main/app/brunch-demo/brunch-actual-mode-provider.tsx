@@ -3,6 +3,7 @@ import { useEffect, useState, type FC, type PropsWithChildren } from "react";
 import {
   ACTUAL_MODE_TIMELINE_TICK_MS,
   applyActualModeTransitionFiring,
+  validateActualModeInitialState,
 } from "@hashintel/petrinaut-core";
 import { ActualModeContext } from "@hashintel/petrinaut/react";
 
@@ -18,6 +19,7 @@ import type {
   ActualModeContextValue,
   ActualModeMarking,
   ActualModeTransitionFiring,
+  SDCPN,
 } from "@hashintel/petrinaut-core";
 
 type AvailableActualModeContextValue = Extract<
@@ -50,19 +52,51 @@ const createLoadingActualModeValue = (
   };
 };
 
-const applyTransitionFiringFrame = (
-  marking: ActualModeMarking,
-  firing: ActualModeTransitionFiring,
-): ActualModeMarking => {
+const withFrameContext = <T,>(frame: string, check: () => T): T => {
   try {
-    return applyActualModeTransitionFiring(marking, firing);
+    return check();
   } catch (err) {
     throw new Error(
-      `Invalid Brunch transition_firing frame: ${
+      `Invalid Brunch ${frame} frame: ${
         err instanceof Error ? err.message : String(err)
       }`,
     );
   }
+};
+
+const applyTransitionFiringFrame = (
+  definition: SDCPN,
+  marking: ActualModeMarking,
+  firing: ActualModeTransitionFiring,
+): ActualModeMarking =>
+  withFrameContext("transition_firing", () =>
+    applyActualModeTransitionFiring(definition, marking, firing),
+  );
+
+/**
+ * The marking reached by applying every received firing to the initial
+ * state, or null until both the definition and the initial state have
+ * arrived.
+ *
+ * @throws when the initial state or a firing does not fit the definition, or
+ * a firing consumes a token the marking does not hold.
+ */
+const replayReceivedFrames = (
+  definition: SDCPN | null,
+  initialState: ActualModeMarking | null,
+  firings: readonly ActualModeTransitionFiring[],
+): ActualModeMarking | null => {
+  if (definition === null || initialState === null) {
+    return null;
+  }
+  withFrameContext("initial_state", () =>
+    validateActualModeInitialState(definition, initialState),
+  );
+  return firings.reduce(
+    (marking, firing) =>
+      applyTransitionFiringFrame(definition, marking, firing),
+    initialState,
+  );
 };
 
 export const BrunchActualModeProvider: FC<
@@ -97,9 +131,12 @@ export const BrunchActualModeProvider: FC<
     let cancelled = false;
     let hasConnectedBefore = false;
     const eventSource = new EventSource(endpoint);
-    // Each firing is applied here as it arrives, so one that consumes a token
-    // the marking does not hold ends the stream with an error before it
-    // reaches the context, whose frames are replayed during render.
+    // Each firing is applied here as it arrives, or once the definition and
+    // initial state it depends on have both arrived, so a token record that
+    // does not fit its place, or a firing that consumes a token the marking
+    // does not hold, ends the stream with an error before it reaches the
+    // context, whose frames are replayed during render.
+    let receivedDefinition: SDCPN | null = null;
     let receivedInitialState: ActualModeMarking | null = null;
     let receivedFirings: ActualModeTransitionFiring[] = [];
     let replayedMarking: ActualModeMarking | null = null;
@@ -155,7 +192,11 @@ export const BrunchActualModeProvider: FC<
 
       if (isReconnect) {
         receivedFirings = [];
-        replayedMarking = receivedInitialState;
+        replayedMarking = replayReceivedFrames(
+          receivedDefinition,
+          receivedInitialState,
+          [],
+        );
       }
 
       setValue((prev) => {
@@ -207,6 +248,13 @@ export const BrunchActualModeProvider: FC<
             return;
           }
 
+          replayedMarking = replayReceivedFrames(
+            sdcpn,
+            receivedInitialState,
+            receivedFirings,
+          );
+          receivedDefinition = sdcpn;
+
           setValue((prev) => ({
             ...prev,
             status: prev.status === "complete" ? "complete" : "streaming",
@@ -225,11 +273,12 @@ export const BrunchActualModeProvider: FC<
       try {
         const data = parseJsonEventData(event as MessageEvent, "initial_state");
         const initialState = parseMarkingFrameData(data);
-        receivedInitialState = initialState;
-        replayedMarking = receivedFirings.reduce(
-          (marking, firing) => applyTransitionFiringFrame(marking, firing),
+        replayedMarking = replayReceivedFrames(
+          receivedDefinition,
           initialState,
+          receivedFirings,
         );
+        receivedInitialState = initialState;
         setValue((prev) => ({
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
@@ -253,8 +302,12 @@ export const BrunchActualModeProvider: FC<
           "transition_firing",
         );
         const firing = parseTransitionFiringFrameData(data);
-        if (replayedMarking !== null) {
-          replayedMarking = applyTransitionFiringFrame(replayedMarking, firing);
+        if (receivedDefinition !== null && replayedMarking !== null) {
+          replayedMarking = applyTransitionFiringFrame(
+            receivedDefinition,
+            replayedMarking,
+            firing,
+          );
         }
         receivedFirings.push(firing);
         setValue((prev) => ({

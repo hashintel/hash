@@ -30,7 +30,7 @@ export type ScopedPlaceVisit = {
  * skipped.
  */
 export const visitComponentInstancePlaces = (
-  sdcpn: SDCPN,
+  sdcpn: Pick<SDCPN, "subnets" | "componentInstances">,
   visit: (scopedPlace: ScopedPlaceVisit) => void,
 ): void => {
   const subnetById = new Map(
@@ -77,7 +77,7 @@ export const visitComponentInstancePlaces = (
  * copies' `colorId`.
  */
 export const getStatusViewEvaluationScope = (
-  sdcpn: SDCPN,
+  sdcpn: Pick<SDCPN, "places" | "types" | "subnets" | "componentInstances">,
 ): { places: Place[]; types: Color[] } => {
   const places: Place[] = [...sdcpn.places];
   const types: Color[] = [
