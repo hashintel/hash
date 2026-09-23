@@ -62,7 +62,10 @@ import {
   NET_STALE_SIGNAL,
   netStaleSignalBody,
 } from "../../conversation/net-freshness.ts";
-import { recordedBrowserObservation } from "../../conversation/net-ledger.ts";
+import {
+  recordedBrowserObservation,
+  verifiedDraftReadBefore,
+} from "../../conversation/net-ledger.ts";
 import { takeReportedDocumentRevision } from "../../conversation/reported-document-revision.ts";
 import { createQueryWorkpieceTool } from "../../conversation/why.ts";
 import {
@@ -159,6 +162,58 @@ export function ChatAgent({ id }: AgentProps) {
         currentRevision,
         retainedRevisionFor: async (revisionId) =>
           retainedSettledRevision(await history(), revisionId),
+        ...(browserContext
+          ? {
+              authorizeDraft: async (draftCallId: string) => {
+                const snapshot = await history();
+                const calls = snapshot.messages.flatMap((message) =>
+                  message.role === "assistant" &&
+                  message.purpose === "assistant"
+                    ? message.parts
+                    : [],
+                );
+                const draftIndex = calls.findIndex(
+                  (part) =>
+                    part.type === "dynamic-tool" &&
+                    part.toolCallId === draftCallId,
+                );
+                if (
+                  draftIndex < 0 ||
+                  calls.filter(
+                    (part) =>
+                      part.type === "dynamic-tool" &&
+                      part.toolCallId === draftCallId,
+                  ).length !== 1
+                )
+                  throw new Error(
+                    "Issued experiment draft is absent or ambiguous.",
+                  );
+                const settlement = calls
+                  .slice(0, draftIndex)
+                  .findLast(
+                    (part) =>
+                      part.type === "dynamic-tool" &&
+                      part.toolName === "mutate_workpiece",
+                  );
+                const revision =
+                  settlement?.type === "dynamic-tool"
+                    ? retainedSettledRevision(snapshot, settlement.toolCallId)
+                    : undefined;
+                if (!revision)
+                  throw new Error(
+                    "Experiment draft requires a current settled Ledger basis.",
+                  );
+                return {
+                  observation: await verifiedDraftReadBefore(
+                    snapshot,
+                    browserContext,
+                    draftCallId,
+                  ),
+                  revisionId: revision.revisionId,
+                };
+              },
+            }
+          : {}),
         ...(initialData?.construction
           ? {
               observationFor: async (callId: string) => {

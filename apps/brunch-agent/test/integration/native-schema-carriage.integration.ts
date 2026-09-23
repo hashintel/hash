@@ -23,6 +23,8 @@ import {
   CANONICAL_PETRINAUT_TOOLS_MODE,
   applyPetrinautConstructionInputSchema,
   applyPetrinautConstructionToolName,
+  draftPetrinautExperimentInputSchema,
+  draftPetrinautExperimentToolName,
   queryWorkpieceInputSchema,
   mutatePetrinetInputSchema,
   mutatePetrinautNetToolName,
@@ -383,6 +385,78 @@ try {
       (tool) => tool.name === applyPetrinautConstructionToolName,
     );
     assert(deepTool);
+    const draftTool = deepRequest.serialized.tools.find(
+      (tool) => tool.name === draftPetrinautExperimentToolName,
+    );
+    assert(draftTool, `${method} must carry the distinct reviewed draft`);
+    assert.deepEqual(
+      draftTool.input_schema,
+      draftPetrinautExperimentInputSchema["~standard"].jsonSchema.input({
+        target: "draft-2020-12",
+      }),
+    );
+    for (const forbidden of [
+      "toolCallId",
+      "baseHash",
+      "revisionId",
+      "observation",
+      "documentId",
+      "binding",
+      "basis",
+      "locators",
+    ])
+      assert(
+        !Object.hasOwn(
+          (draftTool.input_schema as { properties?: Record<string, unknown> })
+            .properties ?? {},
+          forbidden,
+        ),
+      );
+    const validDraft = {
+      experiment: {
+        name: "Baseline",
+        scenarioId: "baseline",
+        scenarioParameterValues: {},
+        runCount: 10,
+        seed: 42,
+        dt: 0.1,
+        maxTime: 10,
+        metricIds: ["throughput"],
+        execution: { mode: "simulate" },
+      },
+      declarations: [
+        {
+          subject: "result",
+          statement: "This does not establish a guarantee.",
+        },
+      ],
+      unsupported: [],
+    };
+    const validateDraft = (arguments_: Record<string, unknown>): void => {
+      validateToolArguments(
+        {
+          name: draftTool.name,
+          description: draftTool.description,
+          parameters: draftTool.input_schema as Tool["parameters"],
+        },
+        {
+          type: "toolCall",
+          id: "draft-control",
+          name: draftTool.name,
+          arguments: arguments_,
+        },
+      );
+    };
+    assert.doesNotThrow(() => validateDraft(validDraft));
+    for (const invalid of [
+      { ...validDraft, basis: { kind: "absent", reason: "invented" } },
+      {
+        ...validDraft,
+        experiment: { ...validDraft.experiment, constraints: [] },
+      },
+      { ...validDraft, declarations: [] },
+    ])
+      assert.throws(() => validateDraft(invalid));
     assert.deepEqual(
       deepTool.input_schema,
       applyPetrinautConstructionInputSchema["~standard"].jsonSchema.input({

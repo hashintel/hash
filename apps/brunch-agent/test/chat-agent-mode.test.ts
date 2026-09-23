@@ -11,6 +11,7 @@ import {
   STOCK_OVER_FLUE_MODE,
   applyPetrinautConstructionToolName,
   declarePetrinautProjectionToolName,
+  draftPetrinautExperimentToolName,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
 import { clientToolResultSignal } from "@hashintel/brunch-agent-transport-aisdk";
@@ -97,6 +98,7 @@ test("Stock-over-Flue returns the exact Stock prompt and canonical catalogue onl
   expect(mounted.models).toEqual(["anthropic/claude-sonnet-4-6"]);
   expect(mounted.contextProjections).toBe(0);
   expect(mounted.tools).toEqual(Object.keys(petrinautAiTools));
+  expect(mounted.tools).not.toContain(draftPetrinautExperimentToolName);
   expect(mounted.skills).toEqual([]);
   expect(mounted.instructions).toEqual([]);
 });
@@ -124,10 +126,17 @@ test.each([
       "read_workpiece",
       "query_workpiece",
       "ping",
+      draftPetrinautExperimentToolName,
       ...Object.keys(petrinautAiTools),
     ]),
   );
+  expect(
+    mounted.tools.filter((name) => name === draftPetrinautExperimentToolName),
+  ).toHaveLength(1);
   expect(mounted.instructions).toContain(petrinautAiCapabilityGuidance);
+  expect(mounted.instructions.join("\n")).toContain(
+    "Only call canonical createExperiment directly when the person explicitly requests immediate execution",
+  );
   const integratedInstructions = mounted.instructions.join("\n");
   expect(integratedInstructions).not.toContain(
     "Pick an interesting domain and build a small but complete SDCPN end-to-end",
@@ -342,10 +351,26 @@ test("catalogues classify every canonical tool per mode and reject an unclassifi
   ).toEqual([
     ...toolCatalogueByMode[INTEGRATED_BRUNCH_MODE]
       .map(({ name }) => name)
-      .slice(0, -canonicalNames.length),
+      .slice(0, -(canonicalNames.length + 1)),
     declarePetrinautProjectionToolName,
     ...canonicalNames,
+    draftPetrinautExperimentToolName,
   ]);
+  expect(
+    toolCatalogueByMode[STOCK_OVER_FLUE_MODE].map(({ name }) => name),
+  ).not.toContain(draftPetrinautExperimentToolName);
+  for (const mode of [
+    INTEGRATED_BRUNCH_MODE,
+    BRUNCH_DECLARED_PROJECTION_MODE,
+    BRUNCH_DEEP_CONSTRUCTION_MODE,
+  ] as const) {
+    expect(toolCatalogueByMode[mode]).toContainEqual({
+      name: draftPetrinautExperimentToolName,
+      definitionOwner: "sdcpn-plugin",
+      executionOwner: "petrinaut-website",
+      capability: "petrinaut-experiment-draft",
+    });
+  }
   for (const mode of [
     STOCK_OVER_FLUE_MODE,
     INTEGRATED_BRUNCH_MODE,

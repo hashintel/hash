@@ -17,6 +17,7 @@ import {
   applyPetrinautConstructionToolName,
   canonicalContent,
   declarePetrinautProjectionToolName,
+  draftPetrinautExperimentToolName,
   isConstructionMutationName,
   isLayoutPetrinautNetToolName,
   isMutatePetrinautNetToolName,
@@ -42,6 +43,8 @@ import { MUTATE_WORKPIECE_TOOL_NAME } from "@hashintel/brunch-agent/flue";
 import {
   createExperimentToolName,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+  readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core";
 
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tools.ts";
@@ -161,7 +164,10 @@ const isNetDefinitionReadTool = (name: string): boolean =>
 
 const isNonMutatingBrowserTool = (name: string): boolean =>
   isNetDefinitionReadTool(name) ||
+  name === draftPetrinautExperimentToolName ||
   name === createExperimentToolName ||
+  name === getNetCompilationErrorsToolName ||
+  name === readPetrinautDocToolName ||
   isReadPetrinautDiagnosticsToolName(name) ||
   isReadPetrinautDocsToolName(name);
 
@@ -274,6 +280,8 @@ export const deriveNetLedger = async (
         pendingDeclaration = undefined;
         continue;
       }
+      // A proposal has no document effect and must not consume a pending declaration.
+      if (call.toolName === draftPetrinautExperimentToolName) continue;
       if (call.toolName === declarePetrinautProjectionToolName) {
         pendingDeclaration = undefined;
         if (call.state !== "output-available") continue;
@@ -744,4 +752,64 @@ export const deriveNetLedger = async (
     }
   }
   return events;
+};
+
+/** Authority belongs to the immutable history prefix before this exact issued draft. */
+export const verifiedDraftReadBefore = async (
+  snapshot: FlueConversationSnapshot,
+  browser: NetLedgerBrowser,
+  draftCallId: string,
+): Promise<DefinitionObservation> => {
+  const positions = snapshot.messages.flatMap((message, messageIndex) =>
+    message.role === "assistant" && message.purpose === "assistant"
+      ? message.parts.flatMap((part, partIndex) =>
+          part.type === "dynamic-tool" &&
+          part.toolName === draftPetrinautExperimentToolName &&
+          part.toolCallId === draftCallId
+            ? [{ messageIndex, partIndex }]
+            : [],
+        )
+      : [],
+  );
+  const position = positions[0];
+  if (positions.length !== 1 || position === undefined)
+    throw new Error(
+      "The issued experiment draft is absent or ambiguous in this conversation.",
+    );
+  const message = snapshot.messages[position.messageIndex];
+  if (message === undefined)
+    throw new Error("The experiment draft history is incomplete.");
+  const prefix = {
+    ...snapshot,
+    messages: [
+      ...snapshot.messages.slice(0, position.messageIndex),
+      { ...message, parts: message.parts.slice(0, position.partIndex) },
+    ],
+  } satisfies FlueConversationSnapshot;
+  const events = await deriveNetLedger(prefix, browser);
+  const relevant = events.filter(
+    (event) =>
+      event.kind === "read" ||
+      event.kind === "mutation" ||
+      event.kind === "construction" ||
+      event.kind === "layout" ||
+      event.kind === "unrecorded",
+  );
+  const latest = relevant.at(-1);
+  if (latest?.kind !== "read")
+    throw new Error(
+      "Experiment draft needs a latest verified canonical net read after all changes.",
+    );
+  const readCall =
+    prefix.messages[latest.position.messageIndex]?.parts[
+      latest.position.partIndex
+    ];
+  if (
+    readCall?.type !== "dynamic-tool" ||
+    readCall.toolName !== getLatestNetDefinitionToolName
+  )
+    throw new Error(
+      "Experiment draft needs a canonical getLatestNetDefinition read.",
+    );
+  return latest.observation;
 };
