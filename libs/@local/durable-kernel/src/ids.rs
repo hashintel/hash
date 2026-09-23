@@ -92,8 +92,8 @@ macro_rules! digest_id {
             where
                 D: ::serde::Deserializer<'de>,
             {
-                let value = String::deserialize(deserializer)?;
-                Self::parse(value).map_err(::serde::de::Error::custom)
+                let text = String::deserialize(deserializer)?;
+                Self::parse(text).map_err(::serde::de::Error::custom)
             }
         }
     };
@@ -105,7 +105,7 @@ digest_id!(JournalRecordDigest, "journal-record digest");
 
 /// Hashes the domain label, a zero byte, and the serialized JSON, in that order.
 ///
-/// Field order and JSON formatting affect the digest. Keep them stable for identities stored in
+/// Field order and JSON formatting affect the digest. Keep them stable for digests stored in
 /// existing records.
 ///
 /// # Errors

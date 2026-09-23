@@ -1,7 +1,7 @@
 //! Defines how the command loop reads and updates a domain's state.
 //!
-//! The loop serializes appends, assigns sequences, and recovers when an append's
-//! outcome is uncertain. The domain supplies record encoding, validation, and
+//! The loop serializes appends, assigns journal sequences, and recovers when an append is
+//! commit-unknown. The domain supplies record encoding, validation, and
 //! state updates through [`Domain`]. A prepared mutation changes the projection
 //! only after its record is durable.
 //!
@@ -53,7 +53,7 @@ pub trait EventDomain: Send + Sync + 'static {
     type RecordCurrent: Send;
     /// Application state after applying the durable journal.
     type Projection: Send + Sync;
-    /// Prepared mutation between `prepare` and `finalize`.
+    /// The mutation that `prepare` returns and `finalize` applies.
     type Delta: Send;
     /// An error from validating or applying a record. Proposal validation returns this value
     /// unchanged in [`crate::shard_log::ShardCommandOutcome::Rejected`].
@@ -89,8 +89,8 @@ pub trait EventDomain: Send + Sync + 'static {
         projection: &Self::Projection,
         record: &Self::RecordCurrent,
     ) -> Result<Prepared<Self::Delta>, Self::FoldError>;
-    /// Applies a mutation at its durable sequence. Called after [`Prepared::Mutation`].
-    /// Duplicates are skipped before append.
+    /// Applies a mutation at its durable journal sequence. The command loop calls it after a
+    /// [`Prepared::Mutation`] is appended. Duplicates are skipped before the append.
     ///
     /// # Errors
     ///
@@ -103,7 +103,7 @@ pub trait EventDomain: Send + Sync + 'static {
 
     fn state_sequence(projection: &Self::Projection, key: &Self::StateKey) -> Option<u64>;
 
-    /// The last journal sequence applied to the projection.
+    /// Returns the last journal sequence applied to the projection.
     fn through_sequence(projection: &Self::Projection) -> Option<u64>;
     /// Validates and applies a stored record during startup or append recovery.
     ///
@@ -127,9 +127,9 @@ pub trait EventDomain: Send + Sync + 'static {
         previous: &Self::Projection,
         recovered: &Self::Projection,
     ) -> Result<(), Report<Self::RecoveryError>>;
-    /// Planned or blocked live work that the scheduler must resume.
+    /// Returns the planned or blocked work that the scheduler must resume.
     fn live_work(projection: &Self::Projection) -> Vec<Self::WorkIntent>;
-    /// Keys whose state-change signal should fire once at startup.
+    /// Returns the keys that receive one state-change notification at startup.
     fn initial_state_keys(projection: &Self::Projection) -> Vec<Self::StateKey>;
 }
 
@@ -151,7 +151,7 @@ pub trait ControlDomain: EventDomain {
     type ControlRejection: Send;
 
     fn control_shard(request: &Self::ControlRequest) -> Shard;
-    /// Rejection message for a control request proposed to the wrong shard.
+    /// Returns the rejection message for a control request proposed to the wrong shard.
     fn describe_foreign_control(request: &Self::ControlRequest) -> String;
     /// # Errors
     ///
@@ -161,7 +161,7 @@ pub trait ControlDomain: EventDomain {
         request: &Self::ControlRequest,
     ) -> Result<Self::ControlSnapshot, Report<ShardCommandError>>;
     fn control_prior_outcome(snapshot: &Self::ControlSnapshot) -> Option<Self::ControlOutcome>;
-    /// The event ID returned when the control request has already been handled.
+    /// Returns the event ID reported when the control request has already been handled.
     fn control_event_id(request: &Self::ControlRequest) -> EventId;
     /// Builds the journal record that accepts or rejects a pending control request.
     ///
@@ -177,8 +177,8 @@ pub trait ControlDomain: EventDomain {
     ///
     /// # Errors
     ///
-    /// Returns an error if the outcome is missing or belongs to a different request. The loop
-    /// treats this as a recovery failure.
+    /// Returns an error if the outcome is missing or belongs to a different request. The
+    /// command loop treats this as a recovery failure.
     fn control_outcome_after_append(
         projection: &Self::Projection,
         request: &Self::ControlRequest,
@@ -199,16 +199,16 @@ pub trait SnapshotDomain: EventDomain {
         shard: Shard,
         projection: &Self::Projection,
     ) -> Option<Self::SnapshotCapture>;
-    /// Checks a saved snapshot’s shard and journal position and returns
+    /// Checks a saved snapshot’s shard and journal sequence and returns
     /// `(shard, through_log_sequence)`. An error rejects the candidate.
     ///
     /// # Errors
     ///
-    /// Returns an error when the snapshot’s shard or journal position is invalid.
+    /// Returns an error when the snapshot’s shard or journal sequence is invalid.
     fn snapshot_bounds(
         snapshot: &Self::Snapshot,
     ) -> Result<(Shard, u64), Report<Self::RecoveryError>>;
-    /// Timestamp recorded in the snapshot and reported during recovery.
+    /// Returns the timestamp recorded in the snapshot. Recovery reports it.
     fn snapshot_created_at(snapshot: &Self::Snapshot) -> DateTime<Utc>;
     /// Loads state from a snapshot. An error makes recovery try an older snapshot, then the
     /// full journal.
@@ -224,11 +224,11 @@ pub trait SnapshotDomain: EventDomain {
 
     /// Observes one completed snapshot-enabled recovery.
     fn note_snapshot_recovery(_context: &Self::SnapshotContext, _stats: &SnapshotRecoveryStats) {}
-    /// Observes the loop stopping because its writer was fenced.
+    /// Observes the command loop stopping because its writer was fenced.
     fn note_fenced(_context: &Self::SnapshotContext) {}
 }
 
-/// Combines the operations required by the shard command loop.
+/// Combines the operations required by the command loop.
 ///
 /// Implement [`EventDomain`], [`QueryDomain`], [`ControlDomain`], and [`SnapshotDomain`].
 pub trait Domain: QueryDomain + ControlDomain + SnapshotDomain {}

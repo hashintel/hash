@@ -1,4 +1,4 @@
-//! One-byte shard IDs for routing-v1.
+//! Defines one-byte shard IDs for routing-v1.
 //!
 //! Each namespace has 256 shard addresses, and a process can own any subset.
 //! [`crate::domain::shard_of`] assigns a shard to each partition key.
@@ -56,8 +56,8 @@ impl core::str::FromStr for Shard {
         {
             return Err(InvalidShardText);
         }
-        let value = u16::from_str_radix(value, 16).map_err(|_invalid| InvalidShardText)?;
-        Self::try_from(value).map_err(|_invalid| InvalidShardText)
+        let index = u16::from_str_radix(value, 16).map_err(|_invalid| InvalidShardText)?;
+        Self::try_from(index).map_err(|_invalid| InvalidShardText)
     }
 }
 impl serde::Serialize for Shard {
@@ -67,8 +67,8 @@ impl serde::Serialize for Shard {
 }
 impl<'de> serde::Deserialize<'de> for Shard {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = <String as serde::Deserialize>::deserialize(deserializer)?;
-        value.parse().map_err(serde::de::Error::custom)
+        let text = <String as serde::Deserialize>::deserialize(deserializer)?;
+        text.parse().map_err(serde::de::Error::custom)
     }
 }
 

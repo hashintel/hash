@@ -36,7 +36,7 @@ const ARCHIVE_THRESHOLD: u64 = 10;
 /// Limits the executor iterations used to check that pending effects eventually finish.
 const EFFECT_ROUND_LIMIT: u32 = 8;
 
-/// Counter events used by the simulation.
+/// Records changes to the simulation's counters.
 ///
 /// Each increment has a request number so equal increments can be distinct events. Zero
 /// increments are rejected. Archive events include the cycle number to distinguish repeated
@@ -219,8 +219,8 @@ impl CoverageSink for ScheduleCoverage {
     }
 }
 
-/// An action in a schedule. Indices are reduced modulo the available items at execution time,
-/// so removing earlier actions during shrinking keeps later indices valid.
+/// Describes one step of a schedule. Indices are reduced modulo the available items at execution
+/// time, so removing earlier actions during shrinking keeps later indices valid.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannedAction {
     SubmitFresh { counter: u8, amount: u64 },
@@ -234,7 +234,7 @@ pub enum PlannedAction {
     FinishEffectsAndCheck,
 }
 
-/// The actions, journal outcomes, and sequence seed needed to reproduce a test run.
+/// Holds the actions, append outcomes, and journal sequence gap seed that reproduce a test run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SchedulePlan {
     pub actions: Vec<PlannedAction>,
@@ -276,7 +276,7 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
         });
     }
     // One action can append several times during retries or recovery. After the supplied
-    // outcomes run out, further appends succeed.
+    // outcomes run out, further appends use `AckDurable`.
     let outcomes = core::iter::repeat_with(|| weights.draw(&mut rng))
         .take(actions.len() * 8)
         .collect();
@@ -308,7 +308,8 @@ fn shared_shard_counters() -> (crate::routing::Shard, Vec<String>) {
     (shard, counters)
 }
 
-/// A completion may be rejected if state changed after the effect was planned.
+/// Identifies the source of a submission. Only a `Completion` can be rejected, because state can
+/// change after its effect is planned.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SubmitKind {
     Fresh,
@@ -316,14 +317,14 @@ enum SubmitKind {
     Completion,
 }
 
-/// Expected state rebuilt from journal bytes. Events are decoded, deduplicated, and applied to
-/// maps using a separate implementation from the application’s [`Fold`].
+/// Holds the expected state, rebuilt from journal bytes. Events are decoded, deduplicated, and
+/// applied to maps by code separate from the application’s [`Fold`] implementation.
 #[derive(Debug, Default)]
 struct ReferenceState {
     totals: BTreeMap<String, u64>,
     archives: BTreeMap<String, u64>,
     event_ids: BTreeSet<EventId>,
-    /// Durable completions to match against external executions.
+    /// The durable completions to match against external executions.
     archive_events: Vec<DstEffect>,
 }
 
@@ -347,7 +348,7 @@ struct Driver<'a> {
     effect_round_limit: u32,
     last_durable_end: u64,
     next_request: u64,
-    /// Caller-owned so a mid-schedule panic still leaves the full trace.
+    /// The caller owns the trace, so it survives a panic during the schedule.
     trace: &'a mut Vec<String>,
 }
 
@@ -404,7 +405,8 @@ impl Driver<'_> {
         }
     }
 
-    /// Restarts after terminal errors so the remaining schedule can run.
+    /// Proposes `record` and checks the outcome. Reopens the command loop after a terminal error
+    /// so the rest of the schedule can run.
     async fn submit(
         &mut self,
         record: EventRecordV1<DstEvent>,
@@ -507,8 +509,8 @@ impl Driver<'_> {
         }
     }
 
-    /// Reads the projection through the loop, reopening it first when a
-    /// prior action left it terminal.
+    /// Reads the projection through the command loop. Reopens the loop and retries if the read
+    /// fails.
     async fn read_projection(&mut self, coverage: &mut ScheduleCoverage) -> DstCounters {
         if let Ok(projection) = self
             .handle()
@@ -523,7 +525,7 @@ impl Driver<'_> {
         self.handle()
             .read(|projection| projection.domain().clone())
             .await
-            .expect("freshly recovered loop should serve reads")
+            .expect("recovered loop should serve reads")
     }
 
     async fn effect_turn(&mut self, coverage: &mut ScheduleCoverage) -> usize {
@@ -566,7 +568,7 @@ impl Driver<'_> {
         effects.len()
     }
 
-    /// Snapshot appends consume scheduled journal outcomes.
+    /// Captures and commits a snapshot. Snapshot appends consume scheduled append outcomes.
     async fn snapshot_commit(&mut self, step: usize, coverage: &mut ScheduleCoverage) {
         let capture = match self.handle().capture_snapshot(1).await {
             Ok(capture) => capture,
@@ -578,7 +580,7 @@ impl Driver<'_> {
             }
         };
         let Some(payload) = capture else {
-            self.trace.push("snapshot span not worth capturing".into());
+            self.trace.push("snapshot not due".into());
             return;
         };
         let timestamp = chrono::DateTime::from_timestamp(
@@ -613,8 +615,8 @@ impl Driver<'_> {
     /// Crashes after an event becomes durable but before the caller receives an
     /// acknowledgement.
     ///
-    /// The test pauses the storage reply after the append, then kills the loop. On restart, the
-    /// stored event must contribute to state exactly once.
+    /// Pauses the storage reply after the append, then aborts the command loop task. After the
+    /// restart, the stored event must contribute to state exactly once.
     async fn crash_before_append_reply(
         &mut self,
         counter: u8,
@@ -632,14 +634,14 @@ impl Driver<'_> {
             EventRecordV1::new(event).expect("event should encode before the injected crash");
         self.proposed.insert(record.event_id());
         let handle = self.handle();
-        let gated_record = record.clone();
-        let in_flight = tokio::spawn(async move { handle.propose(gated_record).await });
+        let in_flight_record = record.clone();
+        let in_flight = tokio::spawn(async move { handle.propose(in_flight_record).await });
         hold.entered().notified().await;
         self.started.task.abort();
         let ack = in_flight.await;
         assert!(
             !matches!(ack, Ok(Ok(ShardCommandOutcome::Applied { .. }))),
-            "a command killed before the storage reply cannot have been acknowledged Applied"
+            "a command aborted before the storage reply should not be acknowledged Applied"
         );
 
         let durable_ids = self.reference_fold().event_ids;
@@ -725,7 +727,7 @@ impl Driver<'_> {
             &properties::DURABLE_END_MONOTONIC,
             durable_end >= self.last_durable_end,
             format_args!(
-                "durable end went from {} to {durable_end}",
+                "durable end decreased from {} to {durable_end}",
                 self.last_durable_end
             ),
         );
@@ -736,7 +738,9 @@ impl Driver<'_> {
         properties::check(
             &properties::PROJECTION_IS_FOLD_OF_DURABLE_PREFIX,
             projection.totals == reference.totals && projection.archives == reference.archives,
-            format_args!("projection {projection:?} != reference fold of the durable prefix"),
+            format_args!(
+                "projection {projection:?} differs from the state rebuilt from the durable prefix"
+            ),
         );
         for record in &self.acknowledged {
             properties::check(
@@ -747,7 +751,10 @@ impl Driver<'_> {
             properties::check(
                 &properties::ACKED_EVENT_SURVIVES_RECOVERY,
                 reference.event_ids.contains(&record.event_id()),
-                format_args!("acknowledged event {} vanished", record.event_id()),
+                format_args!(
+                    "acknowledged event {} did not survive recovery",
+                    record.event_id()
+                ),
             );
         }
         for rejected in &self.rejected {
@@ -1013,7 +1020,7 @@ mod tests {
 
         let schedules = std::env::var("INTEGRATIONS_DST_SCHEDULES")
             .ok()
-            .and_then(|value| value.parse::<u64>().ok())
+            .and_then(|count| count.parse::<u64>().ok())
             .unwrap_or(DEFAULT_SCHEDULES);
         let mut coverage = ScheduleCoverage::new();
         for index in 0..schedules {

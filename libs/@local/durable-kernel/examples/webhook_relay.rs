@@ -1,6 +1,6 @@
 //! Delivers journaled webhooks to a local HTTP endpoint.
 //!
-//! The executor retries HTTP 503 responses, dead-letters a delivery after four
+//! The executor retries HTTP 503 responses, abandons a delivery after four
 //! attempts, and recovers pending deliveries after restart.
 //!
 //! ```sh
@@ -55,7 +55,7 @@ impl DomainEvent for RelayEvent {
     }
 
     fn partition(&self) -> PartitionKey {
-        PartitionKey::parse("relay").expect("static key should parse")
+        PartitionKey::parse("relay").expect("the relay partition key should be valid")
     }
 }
 
@@ -74,9 +74,9 @@ struct RelayQueue {
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 enum DeliveryRejection {
-    #[display("{delivery} already settled")]
+    #[display("delivery {delivery} is already delivered or abandoned")]
     AlreadySettled { delivery: String },
-    #[display("{delivery} is not pending")]
+    #[display("delivery {delivery} is not pending")]
     NotPending { delivery: String },
 }
 
@@ -263,7 +263,7 @@ impl Executor<RelayDomain> for HttpDeliverer {
             }
             Ok(_status) if effect.attempt >= MAX_ATTEMPTS => {
                 println!(
-                    "{delivery} was dead-lettered after {} attempts.",
+                    "{delivery} was abandoned after {} attempts.",
                     effect.attempt
                 );
                 Ok(vec![RelayEvent::Abandoned {
@@ -303,7 +303,7 @@ async fn http_post(body: &str, idempotency_key: &str) -> std::io::Result<u16> {
         .ok()
         .and_then(|text| text.split_whitespace().nth(1))
         .and_then(|code| code.parse().ok())
-        .ok_or_else(|| std::io::Error::other("malformed response"))
+        .ok_or_else(|| std::io::Error::other("HTTP response has no numeric status code"))
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -360,7 +360,7 @@ async fn run_endpoint(listener: TcpListener) {
                 };
                 let _: Result<_, _> = std::fs::write(
                     &path,
-                    serde_json::to_vec(&*state).expect("state should serialize"),
+                    serde_json::to_vec(&*state).expect("endpoint state should serialize"),
                 );
                 status
             };
@@ -407,7 +407,7 @@ async fn report_recovery(running: &RunningKernel<RelayDomain>, key: &PartitionKe
         (0, 0, 0, _) => println!("No journal state was recovered."),
         (pending, delivered, abandoned, failed) => println!(
             "Recovered {pending} pending deliveries with {failed} failed attempts. {delivered} \
-             were delivered and {abandoned} were dead-lettered{}.",
+             were delivered and {abandoned} were abandoned{}.",
             snapshot.map_or_else(String::new, |sequence| format!(
                 " Recovery used snapshot sequence {sequence}"
             )),
@@ -460,7 +460,7 @@ async fn main() {
         .expect("demo endpoint should bind");
     tokio::spawn(run_endpoint(listener));
 
-    let key = PartitionKey::parse("relay").expect("static key should parse");
+    let key = PartitionKey::parse("relay").expect("the relay partition key should be valid");
     let mut config = KernelConfig::new(
         Namespace::parse("webhookrelay").expect("namespace should be valid"),
         format!("file://{}", state_dir().display()),
@@ -495,28 +495,29 @@ async fn main() {
         }
         assert!(
             std::time::Instant::now() < deadline,
-            "demo did not settle in 30s"
+            "all deliveries should finish within 30 seconds"
         );
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    let settled = running
-        .read(&key, |queue: &RelayQueue| {
-            let mut lines: Vec<String> = queue
-                .delivered
-                .iter()
-                .map(|(id, attempts)| format!("{id} was delivered on attempt {attempts}."))
-                .collect();
-            lines.extend(queue.abandoned.iter().map(|(id, attempts)| {
-                format!("{id} was dead-lettered after {attempts} attempts.")
-            }));
-            lines
-        })
-        .await
-        .expect("summary read should succeed");
+    let settled =
+        running
+            .read(&key, |queue: &RelayQueue| {
+                let mut lines: Vec<String> = queue
+                    .delivered
+                    .iter()
+                    .map(|(id, attempts)| format!("{id} was delivered on attempt {attempts}."))
+                    .collect();
+                lines.extend(queue.abandoned.iter().map(|(id, attempts)| {
+                    format!("{id} was abandoned after {attempts} attempts.")
+                }));
+                lines
+            })
+            .await
+            .expect("summary read should succeed");
     println!("\nAll deliveries reached a final outcome.");
     for line in settled {
         println!("{line}");
     }
-    running.shutdown().await.expect("shutdown should be clean");
+    running.shutdown().await.expect("shutdown should succeed");
 }

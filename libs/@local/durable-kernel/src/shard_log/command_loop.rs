@@ -57,7 +57,7 @@ pub enum ShardCommandErrorKind {
     DefinitelyNotCommitted,
     #[display("record commit status is unknown")]
     CommitUnknown,
-    #[display("writer no longer owns the journal")]
+    #[display("a replacement writer owns the journal")]
     Fenced,
     #[display("shard recovery failed")]
     Recovery,
@@ -156,7 +156,8 @@ pub enum ShardCommandError {
     #[display("cannot reference a snapshot for an empty projection")]
     SnapshotForEmptyProjection,
     #[display(
-        "projection snapshot through {snapshot_through} is ahead of projection {current_sequence}"
+        "projection snapshot through journal sequence {snapshot_through} is ahead of the \
+         projection at {current_sequence}"
     )]
     SnapshotAheadOfProjection {
         snapshot_through: u64,
@@ -232,11 +233,12 @@ impl ShardCommandError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Journal position, snapshot selection, and pending work recovered before startup.
+/// Holds the durable journal end, the restored snapshot, and the pending work that recovery found
+/// before startup.
 pub struct StartupRecovery<W> {
     pub durable_end_exclusive: u64,
-    /// Inclusive sequence restored from a validated snapshot, or `None` when
-    /// startup replayed the complete journal.
+    /// The last journal sequence that the restored snapshot includes, or `None` when startup
+    /// replayed the complete journal.
     pub snapshot_through_log_sequence: Option<u64>,
     pub live_work: Vec<W>,
 }
@@ -324,8 +326,8 @@ impl<D: Domain> ShardCommandHandle<D> {
             })?
     }
 
-    /// Captures a snapshot after at least `minimum_sequence_span` journal positions have passed
-    /// since the last capture attempt. Failed attempts also count toward this interval.
+    /// Captures a snapshot once at least `minimum_sequence_span` journal sequences have passed
+    /// since the last capture attempt. Failed attempts count toward this interval.
     ///
     /// Returns `None` if the span is too small or the domain skips capture.
     ///
@@ -421,7 +423,8 @@ impl<D: Domain> ShardCommandHandle<D> {
 /// before closing.
 #[derive(Debug)]
 pub struct ShardOwner<D: Domain> {
-    // Cancel ownership before closing the command channel.
+    // Declared first so that it drops first: ownership is cancelled before the command channel
+    // closes.
     _ownership: DropGuard,
     sender: mpsc::Sender<Command<D>>,
     admission_closed: CancellationToken,
@@ -554,8 +557,7 @@ enum RecoveryMode {
 /// [`Default`] permits local writer reopen for tests and callers that manage recovery without
 /// leases.
 ///
-/// [`ShardCommandConfig::new`] requires lease reacquisition when an append’s commit status is
-/// unknown.
+/// [`ShardCommandConfig::new`] requires lease reacquisition after a commit-unknown append.
 impl Default for ShardCommandConfig {
     fn default() -> Self {
         Self {
@@ -568,7 +570,7 @@ impl Default for ShardCommandConfig {
 }
 
 impl ShardCommandConfig {
-    /// Requires lease reacquisition when an append’s commit status is unknown.
+    /// Requires lease reacquisition after a commit-unknown append.
     #[must_use]
     pub const fn new(channel_capacity: NonZeroUsize, safe_append_retries: u32) -> Self {
         Self {
@@ -584,7 +586,7 @@ impl ShardCommandConfig {
         self
     }
 
-    /// Allows tests to reopen the writer locally when an append’s commit status is unknown.
+    /// Allows tests to reopen the writer locally after a commit-unknown append.
     #[cfg(any(test, feature = "test-util"))]
     #[must_use]
     pub const fn allow_local_reopen(mut self) -> Self {
@@ -610,7 +612,7 @@ pub struct OpenedShard<S: JournalStorage = StorageConfig> {
 }
 
 impl<S: JournalStorage> OpenedShard<S> {
-    /// Opens a shard writer and captures its durable journal position.
+    /// Opens a shard writer and records its durable journal end.
     ///
     /// # Errors
     ///
@@ -813,8 +815,8 @@ impl<D: Domain, S: JournalStorage> RecoveredShard<D, S> {
 
 /// Opens and recovers a shard for tests, then enables commands.
 ///
-/// The returned handle includes all records below the writer’s captured durable position and
-/// the work recovered from them. Production callers must complete lease acquisition before
+/// The returned handle includes all records below the writer’s durable journal end and the work
+/// recovered from them. Production callers must complete lease acquisition before
 /// enabling a shard.
 #[cfg(any(test, feature = "test-util"))]
 /// # Errors
@@ -1093,8 +1095,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                             self.recover_after_failure(event_id, error.change_context(context))
                                 .await?;
                             // After recovery, `prepare` detects the stored event or a conflicting
-                            // ID. If the event is absent, retry it
-                            // before processing another command.
+                            // ID. If the event is absent, the loop retries it before processing
+                            // another command.
                             safe_failures = 0;
                         }
                         AppendFailureKind::Fenced => return Err(error.change_context(context)),
@@ -1178,8 +1180,8 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
 
     fn notify_state_change_if_established(&self, integration_id: &D::StateKey) {
         if self.checkpoint_state_sequence(integration_id).is_some() {
-            // Startup and later state changes refresh these hints, so a full channel may drop a
-            // notification.
+            // A full channel drops the notification. Startup and later state changes send the
+            // key again.
             let _: Result<_, _> = self.state_change_sender.try_send(integration_id.clone());
         }
     }
@@ -1262,8 +1264,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
     }
 
     fn reject_queued(&mut self, error: &ShardCommandError) {
-        let stopped =
-            || Report::new(error.clone()).attach("command was queued when the shard loop stopped");
+        let stopped = || {
+            Report::new(error.clone()).attach("command was queued when the command loop stopped")
+        };
         while let Ok(command) = self.receiver.try_recv() {
             match command {
                 Command::Propose { reply, .. } => {
@@ -1458,8 +1461,8 @@ async fn replay_durable_suffix<D: EventDomain>(
     durable_end_exclusive: u64,
     mut recovered: D::Projection,
 ) -> Result<(D::Projection, u64), Report<ShardCommandError>> {
-    // Use the writer that supplied the durable position, so the scan and its bounds share the
-    // same view of storage.
+    // The scan uses the writer that reported `durable_end_exclusive`, so the scan and its bounds
+    // share one view of storage.
     let scan_started = std::time::Instant::now();
     let through_sequence = D::through_sequence(&recovered);
     let records = writer

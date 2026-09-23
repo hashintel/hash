@@ -36,7 +36,7 @@ pub mod shard_log;
 #[cfg(any(test, feature = "test-util"))]
 pub mod sim;
 
-/// Journal storage, record encoding, and recovery failures.
+/// Describes a journal storage, record encoding, or recovery failure.
 #[derive(Debug, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum DurableError {
     #[display("could not register record {name}")]
@@ -61,7 +61,7 @@ pub enum DurableError {
     #[display("could not read journal key {key:?} from scan cursor {next_sequence}")]
     ReadRecord {
         key: Bytes,
-        /// First sequence the scan has not yet covered.
+        /// The first journal sequence the scan has not covered.
         next_sequence: u64,
     },
     #[display("could not close journal")]

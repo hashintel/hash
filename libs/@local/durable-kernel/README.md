@@ -8,7 +8,7 @@ each shard, duplicate events, snapshots, and recovery.
 
 ## Define an application
 
-The [domain API](src/domain.rs) connects application code to the kernel:
+The [domain API](src/domain/mod.rs) connects application code to the kernel:
 
 | Trait          | What it does                                             |
 | -------------- | -------------------------------------------------------- |
@@ -38,10 +38,9 @@ Applications define their own validation errors. If validation rejects an
 event, the journal and state stay unchanged. The submission result tells the
 caller whether validation rejected the event or the kernel failed.
 
-Both use `error-stack` reports to keep the error type and details about the
-failure.
-See the [domain API](src/domain.rs) for validation and the
-[runtime API](src/runtime.rs) for submission outcomes.
+Both kinds of failure are `error-stack` reports, which keep the error type and
+details about the failure. See the [domain API](src/domain/mod.rs) for
+validation and the [runtime API](src/runtime.rs) for submission outcomes.
 
 ### External operations
 
@@ -66,9 +65,9 @@ owned shard before executing effects. It provides methods to submit events,
 read state, and shut down.
 
 A successful submission means the event is stored durably. Events with the same
-contents have the same ID, so submitting the same event again does not add a
-record. Include a request ID or another field that makes each event distinct
-when identical actions need separate records.
+contents have the same ID, so the kernel stores a repeated submission of the
+same event once. Include a request ID or another field that makes each event
+distinct when identical actions need separate records.
 
 Reads select values from an entire shard’s state. Read callbacks run inside
 the command loop and must not block.
@@ -95,7 +94,7 @@ Both examples define events, rebuild state with `Fold`, and use an executor for
 external operations. They store the journal and external system’s results in
 separate local files. Each supports `reset` to remove its demo data and `crash`
 to exit after an external write succeeds but before its completion event is
-saved. Run it again without arguments to recover.
+saved. Run the example again without arguments to recover.
 
 ### Customer sync example
 
@@ -161,8 +160,8 @@ To follow the code, read `SyncEvent`, the `CustomerSync` implementation of
 
 The [webhook relay](examples/webhook_relay.rs) sends HTTP requests to a local
 endpoint at `127.0.0.1:8929`. The endpoint rejects ordinary webhooks twice before
-accepting the third attempt. One payload fails all four attempts and is moved to the dead-letter queue. The
-kernel stores a snapshot every eight events.
+accepting the third attempt. One payload fails all four attempts and is
+abandoned. The kernel stores a snapshot every eight events.
 
 #### Events and state
 

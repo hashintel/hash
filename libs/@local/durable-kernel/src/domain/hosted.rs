@@ -19,7 +19,7 @@ use crate::{
     shard_log::{ShardCommandError, ShardCommandHandle},
 };
 
-/// Application state together with processed event IDs and journal positions.
+/// Application state together with processed event IDs and journal sequences.
 ///
 /// The kernel uses these fields to detect duplicates and check that recovery preserves
 /// acknowledged events.

@@ -41,7 +41,7 @@ pub struct ProjectionSnapshotV1<S: SimpleDomain> {
     domain: S::Projection,
 }
 
-/// Stores application state and the journal position it includes.
+/// Stores application state and the journal sequence it includes.
 ///
 /// The state is stored inline, up to `MAX_SNAPSHOT_BYTES`. Larger states skip snapshotting.
 /// Recovery uses an earlier snapshot or replays the full journal.
@@ -56,8 +56,8 @@ pub enum ProjectionSnapshot<S: SimpleDomain> {
     V1(ProjectionSnapshotV1<S>),
 }
 
-/// State captured by the command loop for a snapshot. The driver adds the timestamp outside the
-/// loop.
+/// State captured by the command loop for a snapshot. The effect driver adds the timestamp
+/// outside the command loop.
 pub struct ProjectionSnapshotPayload<S: SimpleDomain> {
     shard: Shard,
     through_log_sequence: u64,

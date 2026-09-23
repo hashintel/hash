@@ -82,7 +82,7 @@ impl Executor<PayloadDomain> for NoEffects {
 }
 
 fn record(payload: Payload) -> EventRecord<Payload> {
-    EventRecord::V1(EventRecordV1::new(payload).expect("payload identity should be computed"))
+    EventRecord::V1(EventRecordV1::new(payload).expect("payload event ID should be computed"))
 }
 
 fn encode(
@@ -194,7 +194,7 @@ async fn oversized_submission_preserves_recovery() {
         .expect("accepted events should recover without snapshots");
     assert!(
         recovered.recovery_snapshots().values().all(Option::is_none),
-        "disabled snapshots should leave recovery to the journal"
+        "with snapshots disabled, recovery should replay the full journal"
     );
     assert_eq!(
         recovered

@@ -1,4 +1,4 @@
-//! Storage paths under a validated [`Namespace`].
+//! Builds storage paths under a validated [`Namespace`].
 //!
 //! The kernel reserves `{namespace}/control/v1/...` for control records. Application artifacts
 //! use `{namespace}/artifacts/{kind}/sha256/...`. These paths are part of the storage format
