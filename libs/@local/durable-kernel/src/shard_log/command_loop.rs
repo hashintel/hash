@@ -711,9 +711,9 @@ impl<S: JournalStorage> OpenedShard<S> {
         let recovery = StartupRecovery {
             durable_end_exclusive,
             snapshot_through_log_sequence: recovered.snapshot_through_log_sequence,
-            live_work: D::live_work(&projection),
+            live_work: D::live_work(&projection).into_iter().collect(),
         };
-        let initial_state_changes = D::initial_state_keys(&projection);
+        let initial_state_changes = D::initial_state_keys(&projection).into_iter().collect();
         Ok(RecoveredShard {
             location: self.location,
             writer: Some(writer),
