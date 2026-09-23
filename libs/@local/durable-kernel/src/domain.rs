@@ -294,6 +294,14 @@ impl TryFrom<String> for PartitionKey {
     }
 }
 
+impl core::str::FromStr for PartitionKey {
+    type Err = InvalidPartitionKey;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::parse(value)
+    }
+}
+
 impl From<PartitionKey> for String {
     fn from(key: PartitionKey) -> Self {
         key.0
