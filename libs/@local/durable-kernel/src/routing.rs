@@ -56,8 +56,10 @@ impl core::str::FromStr for Shard {
         {
             return Err(InvalidShardText);
         }
-        let index = u16::from_str_radix(value, 16).map_err(|_invalid| InvalidShardText)?;
-        Self::try_from(index).map_err(|_invalid| InvalidShardText)
+        let index = u16::from_str_radix(value, 16).unwrap_or_else(|_err| {
+            unreachable!("three lowercase hexadecimal digits should parse as a u16")
+        });
+        Self::try_from(index).map_err(|_out_of_range| InvalidShardText)
     }
 }
 impl serde::Serialize for Shard {
