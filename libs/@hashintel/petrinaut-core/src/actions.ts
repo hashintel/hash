@@ -36,7 +36,6 @@ import {
 } from "./extensions";
 import { identityKeyTypesMatch } from "./identity-key-coherence";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
-import { parseScopedId } from "./scoped-ids";
 import { resolveStatusViewLabelPlace } from "./status-view-scope";
 
 import type {
@@ -389,6 +388,23 @@ const assertStatusViewReferences = (
 };
 
 /**
+ * Drops status label place references that no longer resolve. Call after any
+ * mutation that can remove a place, a component instance or a subnet, or
+ * repoint an instance at another subnet, so label references stay valid and a
+ * later `updateStatusView` does not reject the view for a reference the user
+ * never touched.
+ */
+const pruneUnresolvedStatusLabelPlaces = (sdcpn: SDCPN): void => {
+  for (const statusView of sdcpn.statusViews ?? []) {
+    for (const label of statusView.labels) {
+      label.places = label.places.filter((labelPlaceId) =>
+        resolveStatusViewLabelPlace(sdcpn, labelPlaceId),
+      );
+    }
+  }
+};
+
+/**
  * Every colour whose elements reference an identity must carry key elements
  * whose types match the identity's `keyElementTypes` in order — the
  * cross-colour instance key is the tuple of those element values, so a
@@ -603,14 +619,7 @@ export function createPetrinautActions(
                 parsed.placeId,
               );
             }
-            for (const statusView of sdcpn.statusViews ?? []) {
-              for (const label of statusView.labels) {
-                label.places = label.places.filter(
-                  (labelPlaceId) =>
-                    parseScopedId(labelPlaceId).entityId !== parsed.placeId,
-                );
-              }
-            }
+            pruneUnresolvedStatusLabelPlaces(sdcpn);
             sanitizeAllTransitions(sdcpn);
             break;
           }
@@ -1330,6 +1339,7 @@ export function createPetrinautActions(
           if (subnet.id === subnetId) {
             subnets.splice(index, 1);
             removeComponentInstancesReferencingSubnet(sdcpn, subnetId);
+            pruneUnresolvedStatusLabelPlaces(sdcpn);
             break;
           }
         }
@@ -1356,6 +1366,7 @@ export function createPetrinautActions(
             Object.assign(instance, parsed.update);
             componentInstanceSchema.parse(instance);
             assertComponentInstanceReferences(sdcpn, instance);
+            pruneUnresolvedStatusLabelPlaces(sdcpn);
             break;
           }
         }
@@ -1388,6 +1399,7 @@ export function createPetrinautActions(
           if (instance.id === parsed.instanceId) {
             removeArcsReferencingComponentInstance(net, instance.id);
             instances.splice(index, 1);
+            pruneUnresolvedStatusLabelPlaces(sdcpn);
             break;
           }
         }
@@ -1560,6 +1572,9 @@ export function createPetrinautActions(
           }
         }
 
+        if (hasCanvasDeletes) {
+          pruneUnresolvedStatusLabelPlaces(sdcpn);
+        }
         if (hasCanvasDeletes || typeIds.size > 0) {
           sanitizeAllTransitions(sdcpn);
         }

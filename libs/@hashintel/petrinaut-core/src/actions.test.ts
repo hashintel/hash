@@ -874,8 +874,47 @@ describe("Petrinaut core actions", () => {
     expect(instance.definition.get().statusViews ?? []).toHaveLength(0);
   });
 
-  test("removePlace prunes the place from status-view labels", () => {
-    const instance = createInstanceForStatusViews();
+  const createInstanceWithScopedPlaces = () => {
+    const place = (id: string) => ({
+      id,
+      name: id.toUpperCase(),
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    const instance = createInstance({
+      ...emptySDCPN,
+      places: [place("p1"), place("p2")],
+      componentInstances: [
+        {
+          id: "inst",
+          name: "Worker",
+          subnetId: "subnet-1",
+          parameterValues: {},
+          x: 0,
+          y: 0,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Worker",
+          places: [place("p1")],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+    instance.mutations.addIdentity({
+      id: "identity-ticket",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    });
     instance.mutations.addStatusView({
       id: "view-1",
       name: "Ticket status",
@@ -885,16 +924,56 @@ describe("Petrinaut core actions", () => {
           id: "label-1",
           name: "Todo",
           displayColor: "#808080",
-          places: ["p1", "p2"],
+          places: ["p1", "inst::p1", "p2"],
         },
       ],
     });
+    const labelPlaces = () =>
+      instance.definition.get().statusViews![0]!.labels[0]!.places;
+    return { instance, labelPlaces };
+  };
 
+  test("place deletes prune only the label places they remove", () => {
+    const { instance, labelPlaces } = createInstanceWithScopedPlaces();
+
+    // The instance's copy shares the root place's bare id but is a
+    // different place, so it stays.
     instance.mutations.removePlace({ placeId: "p1" });
+    expect(labelPlaces()).toEqual(["inst::p1", "p2"]);
 
-    expect(
-      instance.definition.get().statusViews![0]!.labels[0]!.places,
-    ).toEqual(["p2"]);
+    // The canvas Delete key goes through deleteItemsByIds.
+    instance.mutations.deleteItemsByIds({
+      items: [{ type: "place", id: "p2" }],
+    });
+    expect(labelPlaces()).toEqual(["inst::p1"]);
+
+    // A later edit to the view still validates its references.
+    instance.mutations.updateStatusView({
+      statusViewId: "view-1",
+      update: { name: "Tickets" },
+    });
+    expect(instance.definition.get().statusViews![0]!.name).toBe("Tickets");
+  });
+
+  test("subnet place deletes prune the instance copies from labels", () => {
+    const { instance, labelPlaces } = createInstanceWithScopedPlaces();
+
+    instance.mutations.removePlace({
+      targetSubnetId: "subnet-1",
+      placeId: "p1",
+    });
+
+    expect(labelPlaces()).toEqual(["p1", "p2"]);
+  });
+
+  test("removing a component instance or its subnet prunes its label places", () => {
+    const first = createInstanceWithScopedPlaces();
+    first.instance.mutations.removeComponentInstance({ instanceId: "inst" });
+    expect(first.labelPlaces()).toEqual(["p1", "p2"]);
+
+    const second = createInstanceWithScopedPlaces();
+    second.instance.mutations.removeSubnet({ subnetId: "subnet-1" });
+    expect(second.labelPlaces()).toEqual(["p1", "p2"]);
   });
 
   test("addIdentity rejects duplicate ids and names", () => {
