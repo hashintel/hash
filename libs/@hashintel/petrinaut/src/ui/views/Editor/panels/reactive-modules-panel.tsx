@@ -21,26 +21,21 @@ import type { PetriNetIrDiagnostic } from "@hashintel/petrinaut-core/reactive-mo
 
 const PANEL_LABEL = "Zeroth Reactive Modules";
 
-type TabId = "ir" | "python";
+type TabId = "ir";
 
 const TABS: (HorizontalTabView & { id: TabId })[] = [
   { id: "ir", title: "Petri Net IR" },
-  { id: "python", title: "Python Reactive Module" },
 ];
 
 /**
  * One Monaco model per tab, so each keeps its own scroll position and
- * collapsed regions while the other is shown. The scheme keeps them apart from the language
- * server's documents.
+ * collapsed regions while another is shown. The scheme keeps them apart from
+ * the language server's documents.
  */
 const TAB_MODELS: Record<TabId, { language: string; path: string }> = {
   ir: {
     language: "yaml",
     path: "petrinaut-reactive-modules://export/net.pn.yaml",
-  },
-  python: {
-    language: "python",
-    path: "petrinaut-reactive-modules://export/net.py",
   },
 };
 
@@ -217,13 +212,12 @@ const DiagnosticList = ({
 
 /**
  * A floating, resizable window showing the current net compiled to the
- * Petri net IR and to a Zeroth reactive module. It recompiles as the net
- * changes, starting from the initial state and parameter values the
- * Simulation Settings resolve.
+ * Petri net IR. It recompiles as the net changes, starting from the initial
+ * state and parameter values the Simulation Settings resolve.
  */
 export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
   const { petriNetDefinition, extensions, title } = use(SDCPNContext);
-  const { initialMarking, parameterValues, dt } = use(SimulationContext);
+  const { initialMarking, parameterValues } = use(SimulationContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const [activeTab, setActiveTab] = useState<TabId>("ir");
   // One grammar load per window: a failure fails this window once, and the
@@ -254,7 +248,6 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
           parameterValues,
           lambdaHir: lambdaHir.lambdaHir,
           extensions,
-          dt,
         });
 
   const status =
@@ -264,12 +257,7 @@ export const ReactiveModulesPanel = ({ onClose }: { onClose: () => void }) => {
         ? "Compiling…"
         : null;
 
-  const output =
-    result === null || result.errors.length > 0
-      ? null
-      : activeTab === "ir"
-        ? result.ir
-        : result.python;
+  const output = result === null || result.errors.length > 0 ? null : result.ir;
 
   return (
     <aside

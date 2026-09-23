@@ -1,6 +1,6 @@
 # Zeroth Reactive Modules
 
-The **Zeroth Reactive Modules** window shows the current net compiled for [Zeroth's reactive modules](https://github.com/zeroth-research/reactive-modules): first as a small Petri net IR, then as a Python module that `zrth` can run and verify. It recompiles as you edit the net.
+The **Zeroth Reactive Modules** window shows the current net compiled for [Zeroth's reactive modules](https://github.com/zeroth-research/reactive-modules): a small Petri net IR, the document a reactive-module compiler reads. It recompiles as you edit the net.
 
 ## Opening the window
 
@@ -13,17 +13,15 @@ Open the Command Palette and run **Show Zeroth Reactive Modules**. A floating wi
 
 The window cannot dock into a side panel yet.
 
-## The two tabs
+## The Petri Net IR tab
 
 **Petri Net IR** is a YAML document that describes the net and nothing else, in three sections: `places`, each with its capacity when it has one; `marking`, the tokens each place starts with; and `transitions`, each with its weighted arcs and, for a stochastic net, its `rate`. Keys are UpperCamelCase names derived from your place and transition names, and a field at its default is left out, so an unbounded place is a bare `Name:` line and a place that starts empty is absent from `marking`. Transitions appear in the order a simulation step sweeps them.
 
-**Python Reactive Module** is a Python file that builds the module with `zrth.sugar`: one module variable per place, the initial marking as `init`, and one Petrinaut simulation step as `update`. A plain transition fires whenever it is enabled. A stochastic transition with rate λ is tested against an external uniform draw and fires when the draw is at least e^(−λ·dt), so the module and a Petrinaut run agree step for step.
-
-Both tabs are read-only code editors with syntax highlighting and line numbers. The arrows in the gutter collapse a place, a transition or a function; select text and copy it as usual.
+The tab is a read-only code editor with syntax highlighting and line numbers. The arrows in the gutter collapse a place or a transition; select text and copy it as usual.
 
 ## What it compiles from
 
-The initial state and the parameter values come from the **Simulation Settings** tab of the bottom panel: the selected scenario with its scenario parameter values, or the ad-hoc scenario when no scenario is selected. The time step from the same tab sets the `dt` a stochastic rate is tested over. Change any of them and the window recompiles.
+The initial state and the parameter values come from the **Simulation Settings** tab of the bottom panel: the selected scenario with its scenario parameter values, or the ad-hoc scenario when no scenario is selected. Change either and the window recompiles.
 
 Firing conditions are baked into the net as constants. `return true` keeps a plain transition, `return parameters.rate * 2` gives a stochastic transition its rate. A transition whose condition is `false`, or whose rate is 0, can never fire and is left out with a note under the output.
 

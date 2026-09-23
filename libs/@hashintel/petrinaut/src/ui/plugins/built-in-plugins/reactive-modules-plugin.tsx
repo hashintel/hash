@@ -12,7 +12,7 @@ const pluginId = "petrinaut.reactive-modules";
 type PanelModule = { ReactiveModulesPanel: typeof ReactiveModulesPanel };
 
 /**
- * The window and the compiler behind it load only when the window is first
+ * The window and the export behind it load only when the window is first
  * shown; most sessions never open it. This module stays small because the
  * editor imports every built-in plugin eagerly.
  */
@@ -51,15 +51,7 @@ const ReactiveModulesWindow = () => {
     id: `${pluginId}.show`,
     label: "Show Zeroth Reactive Modules",
     category: "Editor",
-    keywords: [
-      "zeroth",
-      "reactive",
-      "module",
-      "export",
-      "compile",
-      "python",
-      "ir",
-    ],
+    keywords: ["zeroth", "reactive", "module", "export", "compile", "ir"],
     run: () => {
       setPanel(loadReactiveModulesPanel());
       setShowRequests((count) => count + 1);
@@ -83,7 +75,7 @@ const ReactiveModulesWindow = () => {
 
 /**
  * The Zeroth Reactive Modules window: the current net compiled to the Petri
- * net IR and to a Zeroth reactive module, opened from the palette.
+ * net IR, opened from the palette.
  */
 export const reactiveModulesPlugin = definePetrinautPlugin({
   id: pluginId,
