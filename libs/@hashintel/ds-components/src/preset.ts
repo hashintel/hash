@@ -50,6 +50,14 @@ export function createPreset(options?: PresetOptions) {
           "@media (hover: hover) and (pointer: fine)",
           "&:is(:hover, [data-support-hover])",
         ],
+        // Extends Panda's base condition with a delegation marker: a
+        // composite widget that keeps DOM focus elsewhere (e.g. OverflowRow's
+        // keyboard highlight, where focus stays on its input) marks the
+        // active element with `data-force-focus-visible`, and it and its
+        // subtree render their `_focusVisible` styles. `:is()` keeps the
+        // specificity of plain `:focus-visible`.
+        focusVisible:
+          "&:is(:focus-visible, [data-focus-visible], [data-force-focus-visible], [data-force-focus-visible] *)",
         focusVisibleWithin:
           "&:is(:has(:focus-visible), [data-focus-visible-within])",
         inert: "&:is([inert], [inert] *, [data-inert])",

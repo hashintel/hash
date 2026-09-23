@@ -54,6 +54,14 @@ export type BaseInputProps = {
   autocomplete?: boolean;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
+  /**
+   * Extra props merged onto the inner `<input>` element — the hook for wiring
+   * the input up as a part of a composite ark-ui widget (see Combobox).
+   * Defined entries override the input's own attributes (undefined entries
+   * are dropped), event handlers run before the input's own, and
+   * `value`/`defaultValue` are ignored (the input stays controlled).
+   */
+  inputElementProps?: React.ComponentPropsWithoutRef<"input">;
   min?: number;
   max?: number;
   step?: number | "any";
@@ -168,6 +176,7 @@ export const BaseInput = ({
   showEditIcon,
   onClick,
   onKeyDown,
+  inputElementProps,
   min,
   max,
   step,
@@ -206,6 +215,20 @@ export const BaseInput = ({
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || !autocomplete;
   const showClear = clearable !== undefined && !disabled;
+
+  const {
+    value: _extraValue,
+    defaultValue: _extraDefaultValue,
+    onChange: extraOnChange,
+    onFocus: extraOnFocus,
+    onBlur: extraOnBlur,
+    onKeyDown: extraOnKeyDown,
+    ...extraInputAttrs
+  } = inputElementProps ?? {};
+  // Undefined entries must not override the input's own attributes when spread
+  const definedExtraInputAttrs = Object.fromEntries(
+    Object.entries(extraInputAttrs).filter(([, attr]) => attr !== undefined),
+  ) as typeof extraInputAttrs;
 
   // Default clear: empties the input through its own change pipeline (native
   // setter + input event), so `onChange` receives a real ChangeEvent exactly
@@ -274,17 +297,27 @@ export const BaseInput = ({
       required={required}
       aria-invalid={invalid ?? undefined}
       onChange={(event) => {
+        extraOnChange?.(event);
         onChange(event.target.value, event);
       }}
       onFocus={(event) => {
+        extraOnFocus?.(event);
         setFocused(true);
         onFocus?.(event);
       }}
       onBlur={(event) => {
+        extraOnBlur?.(event);
         setFocused(false);
         onBlur?.(event);
       }}
-      onKeyDown={onKeyDown}
+      onKeyDown={
+        extraOnKeyDown
+          ? (event) => {
+              extraOnKeyDown(event);
+              onKeyDown?.(event);
+            }
+          : onKeyDown
+      }
       min={min}
       max={max}
       step={step}
@@ -300,6 +333,7 @@ export const BaseInput = ({
       )}
       {...resolveAutoFocusProps(autoFocus)}
       {...ariaProps}
+      {...definedExtraInputAttrs}
     />
   );
 

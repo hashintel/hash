@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
+import { Combobox } from "@ark-ui/react/combobox";
 import { Menu } from "@ark-ui/react/menu";
 import { Portal } from "@ark-ui/react/portal";
 import { Select } from "@ark-ui/react/select";
@@ -30,7 +31,7 @@ import type { FormInputSize } from "../form-shared";
 
 export { type CustomItem, isCustomItem, isGroup, type Item, type ItemOrGroup };
 
-export type SelectableListAs = "Menu" | "Select";
+export type SelectableListAs = "Menu" | "Select" | "Combobox";
 
 type RenderCtx = {
   as: SelectableListAs;
@@ -161,7 +162,8 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
   const isInteractive = !item.disabled && !item.loading;
 
   const classes = itemStyles({
-    as: ctx.as,
+    // A Combobox list is styled like a Select list.
+    as: ctx.as === "Menu" ? "Menu" : "Select",
     size: ctx.size,
     tone: item.tone,
     selectedTone: item.selectedTone ?? item.tone,
@@ -188,6 +190,19 @@ const ItemRow = ({ item, ctx }: { item: Item; ctx: RenderCtx }) => {
       >
         {body}
       </Select.Item>
+    );
+  }
+
+  if (ctx.as === "Combobox") {
+    return (
+      <Combobox.Item
+        item={item}
+        className={classes.item}
+        data-selected={isSelected || undefined}
+        data-loading={(item.loading && !item.disabled) || undefined}
+      >
+        {body}
+      </Combobox.Item>
     );
   }
 
@@ -287,6 +302,21 @@ const renderEntry = (
       );
     }
 
+    if (ctx.as === "Combobox") {
+      return (
+        <Combobox.ItemGroup key={entry.id} className={groupClasses.group}>
+          {showLabel && (
+            <Combobox.ItemGroupLabel className={groupClasses.groupLabel}>
+              {entry.label}
+            </Combobox.ItemGroupLabel>
+          )}
+          {entry.items.map((child) => (
+            <ItemRow key={getItemId(child)} item={child} ctx={ctx} />
+          ))}
+        </Combobox.ItemGroup>
+      );
+    }
+
     return (
       <Menu.ItemGroup key={entry.id} className={groupClasses.group}>
         {showLabel && (
@@ -308,8 +338,9 @@ const renderEntry = (
  * Renders the visual body of a selectable list — a styled content
  * container with items, groups, empty state, and loading state.
  *
- * Pass `as="Menu"` (default) to render inside an ark-ui `Menu.Root`, or
- * `as="Select"` to render inside an ark-ui `Select.Root`. The consumer
+ * Pass `as="Menu"` (default) to render inside an ark-ui `Menu.Root`,
+ * `as="Select"` to render inside an ark-ui `Select.Root`, or
+ * `as="Combobox"` to render inside an ark-ui `Combobox.Root`. The consumer
  * is responsible for setting the parent's `open` state, `closeOnSelect`,
  * `composite`, and any value/highlight callbacks. For an always-open
  * embedded menu pass `open` and `closeOnSelect={false}` to the parent
@@ -443,6 +474,14 @@ export const SelectableList = ({
       <Select.Content className={cx(classes.content, className)}>
         {body}
       </Select.Content>
+    );
+  }
+
+  if (as === "Combobox") {
+    return (
+      <Combobox.Content className={cx(classes.content, className)}>
+        {body}
+      </Combobox.Content>
     );
   }
 

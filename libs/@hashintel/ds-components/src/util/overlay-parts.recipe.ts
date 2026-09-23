@@ -345,7 +345,7 @@ export const overlayPartsStyles = sva({
           borderBottomWidth: "0",
         },
         closeButton: {
-          marginBottom: "-1.5",
+          marginBottom: "1",
         },
         body: {
           paddingTop: "0",
