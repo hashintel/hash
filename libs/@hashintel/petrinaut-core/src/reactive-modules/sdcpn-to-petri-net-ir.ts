@@ -357,6 +357,14 @@ const evaluateCondition = (
     : { dead: true, reason: `the rate is ${value}` };
 };
 
+/**
+ * A host marks a transition a controller decides with `control:
+ * "controllable"` in its metadata, the convention the flexible
+ * manufacturing cell model follows.
+ */
+const isControllable = (transition: Transition): boolean =>
+  transition.metadata?.control === "controllable";
+
 const lowerTransition = (
   transition: Transition,
   context: TransitionContext,
@@ -421,6 +429,7 @@ const lowerTransition = (
       ...(Object.keys(inputs).length === 0 ? {} : { inputs }),
       ...(Object.keys(outputs).length === 0 ? {} : { outputs }),
       ...(constant.rate === undefined ? {} : { rate: constant.rate }),
+      ...(isControllable(transition) ? { controllable: true } : {}),
     },
   };
 };
@@ -481,6 +490,14 @@ export const sdcpnToPetriNetIr = (
       place.capacity >= 0
         ? place.capacity
         : undefined;
+    if (capacity !== undefined && tokens > capacity) {
+      // A simulation refuses to start from this marking; a module would run from it.
+      diagnostics.errors.push({
+        code: "initial-marking-over-capacity",
+        message: `the initial marking is ${tokens}, over the capacity of ${capacity}`,
+        item,
+      });
+    }
     places[name] = capacity === undefined ? null : { capacity };
   }
 
