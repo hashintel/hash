@@ -353,7 +353,23 @@ export const createApplyPetrinautConstructionHostTool = (
 ) => {
   let currentBinding: BrowserToolBinding | undefined = options.binding;
   let currentLedger: SettledLedgerRevision | undefined = options.initialLedger;
+  // UI messages copy tool inputs. Keep authority private and correlate only a
+  // host-issued receipt with the exact model input and issued call identity.
   const mappedInputs = new WeakSet<object>();
+  const admitted = new Map<
+    string,
+    { readonly mapped: MappedConstructionInput; readonly token: string }
+  >();
+  const publishMapped = (mapped: MappedConstructionInput) => {
+    const token = crypto.randomUUID();
+    mappedInputs.add(mapped);
+    admitted.set(mapped.toolCallId, { mapped, token });
+    return {
+      toolCallId: mapped.toolCallId,
+      modelInput: structuredClone(mapped.modelInput),
+      authorizationToken: token,
+    };
+  };
   const terminal = new Map<
     string,
     {
@@ -397,6 +413,16 @@ export const createApplyPetrinautConstructionHostTool = (
   }) => {
     if (toolName !== applyPetrinautConstructionToolName) return input;
     const modelInput = applyPetrinautConstructionInputSchema.parse(input);
+    const previous = admitted.get(toolCallId);
+    if (previous !== undefined) {
+      if (!sameContent(previous.mapped.modelInput, modelInput))
+        throw new Error("Conflicting duplicate deep construction call.");
+      return {
+        toolCallId,
+        modelInput: structuredClone(modelInput),
+        authorizationToken: previous.token,
+      };
+    }
     const binding = structuredClone(currentBinding ?? options.binding);
     if (options.replayReadiness.status === "pending") {
       const mapped: MappedConstructionInput = {
@@ -409,8 +435,7 @@ export const createApplyPetrinautConstructionHostTool = (
             "Deep construction replay verification is not ready for this conversation.",
         },
       };
-      mappedInputs.add(mapped);
-      return mapped;
+      return publishMapped(mapped);
     }
     let base: BrowserDefinitionObservation | undefined;
     try {
@@ -435,8 +460,7 @@ export const createApplyPetrinautConstructionHostTool = (
           bases: resolveBases(modelInput, ledgerRevision),
         },
       };
-      mappedInputs.add(mapped);
-      return mapped;
+      return publishMapped(mapped);
     } catch (error) {
       const mapped: MappedConstructionInput = {
         toolCallId,
@@ -448,15 +472,43 @@ export const createApplyPetrinautConstructionHostTool = (
           ...(base === undefined ? {} : { base }),
         },
       };
-      mappedInputs.add(mapped);
-      return mapped;
+      return publishMapped(mapped);
     }
   };
 
   const parseMappedInput = (input: unknown): MappedConstructionInput => {
-    if (typeof input !== "object" || input === null || !mappedInputs.has(input))
-      throw new Error("The deep construction call lacks host authority.");
-    return input as MappedConstructionInput;
+    const unauthorized = () =>
+      new Error("The deep construction call lacks host authority.");
+    if (typeof input !== "object" || input === null || Array.isArray(input))
+      throw unauthorized();
+    // The automatic-tool parser returns the private record to execute; a
+    // browser-delivered copy must first prove its private receipt instead.
+    if (mappedInputs.has(input)) return input as MappedConstructionInput;
+    const keys = Object.keys(input);
+    if (
+      keys.length !== 3 ||
+      !keys.every((key) =>
+        ["toolCallId", "modelInput", "authorizationToken"].includes(key),
+      ) ||
+      !("toolCallId" in input) ||
+      typeof input.toolCallId !== "string" ||
+      !("authorizationToken" in input) ||
+      typeof input.authorizationToken !== "string" ||
+      !("modelInput" in input)
+    )
+      throw unauthorized();
+    const prior = admitted.get(input.toolCallId);
+    const parsed = applyPetrinautConstructionInputSchema.safeParse(
+      input.modelInput,
+    );
+    if (
+      prior === undefined ||
+      prior.token !== input.authorizationToken ||
+      !parsed.success ||
+      !sameContent(parsed.data, prior.mapped.modelInput)
+    )
+      throw unauthorized();
+    return prior.mapped;
   };
 
   const refusal = (
