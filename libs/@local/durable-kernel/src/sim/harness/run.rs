@@ -144,9 +144,11 @@ pub async fn run_plan(
             }
         }
     }
+
     driver
         .trace
         .push("finish remaining effects and check".into());
+
     driver.finish_effects_and_check(coverage).await;
     driver.started.task.abort();
 

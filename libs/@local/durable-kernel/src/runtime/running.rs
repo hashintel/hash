@@ -119,15 +119,18 @@ impl<S: SimpleDomain> RunningKernel<S> {
     pub async fn shutdown(mut self) -> Result<(), Report<KernelError>> {
         self.shutdown.cancel();
         let mut first_error = None;
+
         for driver in &mut self.drivers {
             let result = driver
                 .await
                 .change_context(KernelError::JoinShardDriver)
                 .flatten();
+
             if let Err(error) = result {
                 first_error.get_or_insert(error);
             }
         }
+
         for owner in self.owners.drain(..) {
             if let Err(error) = owner.shutdown().await
                 && error.current_context().kind() != ShardCommandErrorKind::Closed
@@ -135,15 +138,18 @@ impl<S: SimpleDomain> RunningKernel<S> {
                 first_error.get_or_insert_with(|| error.change_context(KernelError::Command));
             }
         }
+
         for task in &mut self.loops {
             let result = task
                 .await
                 .change_context(KernelError::JoinCommandLoop)
                 .and_then(|result| result.change_context(KernelError::Command));
+
             if let Err(error) = result {
                 first_error.get_or_insert(error);
             }
         }
+
         first_error.map_or(Ok(()), Err)
     }
 }

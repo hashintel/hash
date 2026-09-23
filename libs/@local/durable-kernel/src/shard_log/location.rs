@@ -75,19 +75,23 @@ pub fn storage_for_path(
             url: url.clone(),
         }));
     };
+
     let path = if prefix.is_empty() {
         control_path.to_owned()
     } else {
         format!("{prefix}/{control_path}")
     };
+
     let block_cache_capacity = options
         .block_cache_bytes
         .div_euclid(options.shard_capacity.get())
         .max(64 * 1024);
+
     let meta_cache_capacity = options
         .meta_cache_bytes
         .div_euclid(options.shard_capacity.get())
         .max(64 * 1024);
+
     Ok(StorageConfig::SlateDb(SlateDbStorageConfig {
         path,
         object_store,

@@ -31,6 +31,32 @@ pub struct OpenedShard<S: JournalStorage = StorageConfig> {
     writer: Option<ShardLogWriter<S::Writer>>,
 }
 
+/// Recovered state awaiting a lease check. Callers must complete that check before
+/// enabling commands.
+pub struct RecoveredShard<D: EventDomain, S: JournalStorage = StorageConfig> {
+    location: ShardLogLocation<S>,
+    writer: Option<ShardLogWriter<S::Writer>>,
+    projection: D::Projection,
+    last_snapshot_through_sequence: Option<JournalSequence>,
+    on_fenced: Option<FencedHook>,
+    recovery: StartupRecovery<D::WorkIntent>,
+    initial_state_changes: Vec<D::StateKey>,
+}
+
+async fn close_after_failure<W: crate::shard_log::JournalWriter>(
+    writer: ShardLogWriter<W>,
+    error: Report<ShardCommandError>,
+) -> Report<ShardCommandError> {
+    match writer.close().await {
+        Ok(()) => error,
+        Err(close_error) => {
+            let mut failures = error.expand();
+            failures.push(close_error.change_context(ShardCommandError::CloseStartupWriter));
+            failures.change_context(ShardCommandError::RecoverStartup)
+        }
+    }
+}
+
 impl<S: JournalStorage> OpenedShard<S> {
     /// Opens a shard writer and records its durable journal end.
     ///
@@ -96,10 +122,12 @@ impl<S: JournalStorage> OpenedShard<S> {
                 .await
         }
         .await;
+
         let recovered = match recovered {
             Ok(recovered) => recovered,
             Err(error) => return Err(close_after_failure(writer, error).await),
         };
+
         D::note_snapshot_recovery(
             context,
             &SnapshotRecoveryStats {
@@ -109,6 +137,7 @@ impl<S: JournalStorage> OpenedShard<S> {
                 latest_snapshot_created_at: recovered.snapshot_created_at,
             },
         );
+
         let context = context.clone();
         let on_fenced: FencedHook = Box::new(move || D::note_fenced(&context));
         Ok(self.into_recovered(writer, durable_end_exclusive, recovered, Some(on_fenced)))
@@ -169,18 +198,6 @@ impl<S: JournalStorage> OpenedShard<S> {
     }
 }
 
-/// Recovered state awaiting a lease check. Callers must complete that check before
-/// enabling commands.
-pub struct RecoveredShard<D: EventDomain, S: JournalStorage = StorageConfig> {
-    location: ShardLogLocation<S>,
-    writer: Option<ShardLogWriter<S::Writer>>,
-    projection: D::Projection,
-    last_snapshot_through_sequence: Option<JournalSequence>,
-    on_fenced: Option<FencedHook>,
-    recovery: StartupRecovery<D::WorkIntent>,
-    initial_state_changes: Vec<D::StateKey>,
-}
-
 impl<D: EventDomain, S: JournalStorage> RecoveredShard<D, S> {
     /// Reports recovery results before the shard starts accepting commands.
     pub const fn startup_recovery(&self) -> &StartupRecovery<D::WorkIntent> {
@@ -198,11 +215,13 @@ impl<D: EventDomain, S: JournalStorage> RecoveredShard<D, S> {
             sender: sender.clone(),
             admission_closed: admission_closed.clone(),
         };
+
         let handle = ShardCommandHandle {
             sender,
             admission_closed: admission_closed.clone(),
             shard: self.location.shard,
         };
+
         let command_loop = CommandLoop {
             location: self.location,
             writer: self.writer.take(),
@@ -215,6 +234,7 @@ impl<D: EventDomain, S: JournalStorage> RecoveredShard<D, S> {
             admission_closed,
             ownership_lost,
         };
+
         let task = tokio::spawn(command_loop.run());
         StartedShard {
             owner,
@@ -239,19 +259,5 @@ impl<D: EventDomain, S: JournalStorage> RecoveredShard<D, S> {
                 .change_context(ShardCommandError::CloseRecoveredWriter)?;
         }
         Ok(())
-    }
-}
-
-async fn close_after_failure<W: crate::shard_log::JournalWriter>(
-    writer: ShardLogWriter<W>,
-    error: Report<ShardCommandError>,
-) -> Report<ShardCommandError> {
-    match writer.close().await {
-        Ok(()) => error,
-        Err(close_error) => {
-            let mut failures = error.expand();
-            failures.push(close_error.change_context(ShardCommandError::CloseStartupWriter));
-            failures.change_context(ShardCommandError::RecoverStartup)
-        }
     }
 }

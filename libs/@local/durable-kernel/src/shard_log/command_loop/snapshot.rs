@@ -55,15 +55,18 @@ async fn commit<D: SnapshotDomain>(
 ) -> Result<JournalSequence, Report<ShardCommandError>> {
     let (snapshot_shard, snapshot_through) =
         D::snapshot_bounds(&snapshot).change_context(ShardCommandError::ReadSnapshotBounds)?;
+
     if snapshot_shard != access.shard() {
         return Err(Report::new(ShardCommandError::SnapshotShardMismatch {
             expected: access.shard(),
             actual: snapshot_shard,
         }));
     }
+
     let Some(current_sequence) = D::through_sequence(access.projection()) else {
         return Err(Report::new(ShardCommandError::SnapshotForEmptyProjection));
     };
+
     if snapshot_through > current_sequence {
         return Err(Report::new(ShardCommandError::SnapshotAheadOfProjection {
             snapshot_through,
@@ -78,16 +81,19 @@ async fn commit<D: SnapshotDomain>(
         .change_context(ShardCommandError::RegisterRecord {
             name: declaration.name,
         })?;
+
     access
         .registry()
         .require::<D::Snapshot>()
         .change_context_lazy(|| ShardCommandError::ValidateSnapshotRegistration {
             name: declaration.name,
         })?;
+
     let mut bytes = Vec::new();
     snapshot
         .encode(&mut bytes)
         .change_context(ShardCommandError::EncodeSnapshot)?;
+
     access
         .store_snapshot(bytes::Bytes::from(bytes), snapshot_through)
         .await

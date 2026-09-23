@@ -41,6 +41,7 @@ pub(super) async fn wait_until_durable_with(
         if log.durable_sequence() >= required {
             return Ok(());
         }
+
         let mut changes = log.subscribe_durable();
         let wait = tokio::time::timeout(attempt_timeout, async {
             while *changes.borrow_and_update() < required {
@@ -53,6 +54,7 @@ pub(super) async fn wait_until_durable_with(
             Ok::<(), Report<DurableError>>(())
         })
         .await;
+
         match wait {
             Ok(result) => return result,
             Err(_elapsed) => {
@@ -65,6 +67,7 @@ pub(super) async fn wait_until_durable_with(
             }
         }
     }
+
     Err(Report::new(DurableError::DurabilityTimeout {
         required: JournalSequence::new(required),
         attempts,

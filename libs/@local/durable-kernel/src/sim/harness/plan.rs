@@ -69,6 +69,7 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
     let step_count = rng.between(24, 64);
     let mut actions =
         Vec::with_capacity(usize::try_from(step_count).expect("step count should fit in usize"));
+
     for _step in 0..step_count {
         actions.push(match rng.below(100) {
             0..=34 => PlannedAction::SubmitFresh {
@@ -93,11 +94,13 @@ pub fn derive_plan(seed: u64, weights: AppendOutcomeWeights) -> SchedulePlan {
             _ => PlannedAction::FinishEffectsAndCheck,
         });
     }
+
     // One action can append several times during retries or recovery. After the supplied
     // outcomes run out, further appends use `AckDurable`.
     let outcomes = core::iter::repeat_with(|| weights.draw(&mut rng))
         .take(actions.len() * 8)
         .collect();
+
     SchedulePlan {
         actions,
         outcomes,

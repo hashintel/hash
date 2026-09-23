@@ -102,17 +102,6 @@ digest_id!(EventId, IdKind::Event);
 digest_id!(EffectId, IdKind::Effect);
 digest_id!(JournalRecordDigest, IdKind::JournalRecordDigest);
 
-impl EffectId {
-    /// Computes an idempotency key from an effect’s serialized contents.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the effect cannot be serialized as JSON.
-    pub fn for_effect<T: Serialize>(effect: &T) -> Result<Self, serde_json::Error> {
-        content_digest_bytes("domain-effect:v1", effect).map(Self::from_bytes)
-    }
-}
-
 /// Hashes the domain label, a zero byte, and the serialized JSON, in that order.
 ///
 /// Field order and JSON formatting affect the digest. Keep them stable for digests stored in
@@ -126,6 +115,17 @@ pub(crate) fn content_digest_bytes<T: Serialize>(
     digest.update([0]);
     digest.update(serde_json::to_vec(value)?);
     Ok(digest.finalize().into())
+}
+
+impl EffectId {
+    /// Computes an idempotency key from an effect’s serialized contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the effect cannot be serialized as JSON.
+    pub fn for_effect<T: Serialize>(effect: &T) -> Result<Self, serde_json::Error> {
+        content_digest_bytes("domain-effect:v1", effect).map(Self::from_bytes)
+    }
 }
 
 #[cfg(test)]

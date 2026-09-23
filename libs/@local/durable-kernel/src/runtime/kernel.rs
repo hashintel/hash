@@ -70,6 +70,7 @@ impl Kernel {
             block_cache_bytes: self.config.block_cache_bytes,
             meta_cache_bytes: self.config.meta_cache_bytes,
         };
+
         let mut running = RunningKernel {
             shards: BTreeMap::new(),
             recovered_snapshots: BTreeMap::new(),
@@ -78,7 +79,9 @@ impl Kernel {
             owners: Vec::new(),
             shutdown,
         };
+
         let mut feeds = Vec::new();
+
         for &shard in &self.shards {
             let recovered = async {
                 let location = ShardLogLocation::for_kernel(
@@ -96,6 +99,7 @@ impl Kernel {
                     .change_context(KernelError::Command)
             }
             .await;
+
             let recovered = match recovered {
                 Ok(recovered) => recovered,
                 Err(error) => {
@@ -105,19 +109,23 @@ impl Kernel {
                     return Err(error);
                 }
             };
+
             let started = recovered.enable(ShardCommandConfig::new(
                 self.config.channel_capacity,
                 self.config.safe_append_retries,
             ));
+
             let handle = started.handle.clone();
             running
                 .recovered_snapshots
                 .insert(shard.get(), started.recovery.snapshot_through_sequence);
+
             feeds.push((handle.clone(), started.state_changes));
             running.loops.push(started.task);
             running.owners.push(started.owner);
             running.shards.insert(shard.get(), handle);
         }
+
         for (owner, (handle, state_changes)) in
             core::mem::take(&mut running.owners).into_iter().zip(feeds)
         {
@@ -133,6 +141,7 @@ impl Kernel {
                 running.shutdown.clone(),
             )));
         }
+
         Ok(running)
     }
 }

@@ -223,6 +223,23 @@ struct HttpDeliverer {
     crash_on_delivery: bool,
 }
 
+async fn http_post(body: &str, idempotency_key: &str) -> std::io::Result<u16> {
+    let mut stream = TcpStream::connect(ENDPOINT).await?;
+    let request = format!(
+        "POST /hooks HTTP/1.1\r\nHost: {ENDPOINT}\r\nIdempotency-Key: \
+         {idempotency_key}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    stream.write_all(request.as_bytes()).await?;
+    let mut response = Vec::new();
+    stream.read_to_end(&mut response).await?;
+    core::str::from_utf8(&response)
+        .ok()
+        .and_then(|text| text.split_whitespace().nth(1))
+        .and_then(|code| code.parse().ok())
+        .ok_or_else(|| std::io::Error::other("HTTP response has no numeric status code"))
+}
+
 impl Executor<RelayDomain> for HttpDeliverer {
     type Effect = DeliveryAttempt;
     type Error = std::io::Error;
@@ -249,7 +266,9 @@ impl Executor<RelayDomain> for HttpDeliverer {
         let key = EffectId::for_effect(effect)
             .expect("effect should serialize")
             .to_string();
+
         let delivery = effect.delivery.clone();
+
         match http_post(&effect.body, &key).await {
             Ok(status) if (200..300).contains(&status) => {
                 if self.crash_on_delivery {
@@ -297,27 +316,14 @@ impl Executor<RelayDomain> for HttpDeliverer {
     }
 }
 
-async fn http_post(body: &str, idempotency_key: &str) -> std::io::Result<u16> {
-    let mut stream = TcpStream::connect(ENDPOINT).await?;
-    let request = format!(
-        "POST /hooks HTTP/1.1\r\nHost: {ENDPOINT}\r\nIdempotency-Key: \
-         {idempotency_key}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-        body.len()
-    );
-    stream.write_all(request.as_bytes()).await?;
-    let mut response = Vec::new();
-    stream.read_to_end(&mut response).await?;
-    core::str::from_utf8(&response)
-        .ok()
-        .and_then(|text| text.split_whitespace().nth(1))
-        .and_then(|code| code.parse().ok())
-        .ok_or_else(|| std::io::Error::other("HTTP response has no numeric status code"))
-}
-
 #[derive(Default, Serialize, Deserialize)]
 struct EndpointState {
     attempts: BTreeMap<String, u32>,
     accepted_keys: BTreeSet<String>,
+}
+
+fn state_dir() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/webhook_relay_demo")
 }
 
 async fn run_endpoint(listener: TcpListener) {
@@ -326,11 +332,13 @@ async fn run_endpoint(listener: TcpListener) {
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
+
     let state = Arc::new(Mutex::new(state));
     loop {
         let Ok((mut socket, _peer)) = listener.accept().await else {
             return;
         };
+
         let state = Arc::clone(&state);
         let path = path.clone();
         tokio::spawn(async move {
@@ -384,10 +392,6 @@ async fn run_endpoint(listener: TcpListener) {
     }
 }
 
-fn state_dir() -> std::path::PathBuf {
-    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/webhook_relay_demo")
-}
-
 async fn report_recovery(running: &RunningKernel<RelayDomain>, key: &PartitionKey) {
     let recovered = running
         .read(key, |queue: &RelayQueue| {
@@ -405,12 +409,14 @@ async fn report_recovery(running: &RunningKernel<RelayDomain>, key: &PartitionKe
         })
         .await
         .expect("queue read should succeed");
+
     let snapshot = running
         .recovery_snapshots()
         .values()
         .next()
         .copied()
         .flatten();
+
     match recovered {
         (0, 0, 0, _) => println!("No journal state was recovered."),
         (pending, delivered, abandoned, failed) => println!(
@@ -466,6 +472,7 @@ async fn main() {
     let listener = TcpListener::bind(ENDPOINT)
         .await
         .expect("demo endpoint should bind");
+
     tokio::spawn(run_endpoint(listener));
 
     let key = PartitionKey::parse("relay").expect("the relay partition key should be valid");
@@ -473,6 +480,7 @@ async fn main() {
         Namespace::parse("webhookrelay").expect("namespace should be valid"),
         format!("file://{}", state_dir().display()),
     );
+
     config.shards = vec![key.shard()];
     config.snapshot_policy =
         SnapshotPolicy::Every(NonZeroU64::new(8).expect("snapshot interval should be nonzero"));
@@ -482,6 +490,7 @@ async fn main() {
         .expect("kernel should open")
         .register::<RelayDomain>()
         .expect("relay domain should register");
+
     let running = kernel
         .start(HttpDeliverer {
             crash_on_delivery: mode == "crash",
@@ -498,13 +507,16 @@ async fn main() {
             .read(&key, |queue: &RelayQueue| queue.pending.len())
             .await
             .expect("queue read should succeed");
+
         if pending == 0 {
             break;
         }
+
         assert!(
             std::time::Instant::now() < deadline,
             "all deliveries should finish within 30 seconds"
         );
+
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
@@ -523,9 +535,12 @@ async fn main() {
             })
             .await
             .expect("summary read should succeed");
+
     println!("\nAll deliveries reached a final outcome.");
+
     for line in settled {
         println!("{line}");
     }
+
     running.shutdown().await.expect("shutdown should succeed");
 }

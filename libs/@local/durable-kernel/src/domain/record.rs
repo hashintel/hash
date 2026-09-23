@@ -82,14 +82,17 @@ pub(super) fn decode_v1_envelope<'de, T: Deserialize<'de>>(
             max_bytes,
         }));
     }
+
     let envelope: Envelope =
         serde_json::from_slice(bytes).change_context(CompatError::Decode { name })?;
+
     if envelope.version != "v1" {
         return Err(Report::new(CompatError::UnsupportedVersion {
             name,
             version: envelope.version,
         }));
     }
+
     serde_json::from_str(envelope.data.get()).change_context(CompatError::Decode { name })
 }
 
@@ -174,6 +177,7 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
                 actual: partition,
             }));
         }
+
         if event_id != record.event_id {
             return Err(Report::new(CompatError::EventIdMismatch {
                 name: E::name(),
@@ -181,6 +185,7 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
                 actual: event_id,
             }));
         }
+
         Ok(Self {
             event_id,
             partition,

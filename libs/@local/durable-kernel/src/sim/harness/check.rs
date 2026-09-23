@@ -10,14 +10,17 @@ use crate::{
 impl Driver<'_> {
     pub(super) fn reference_fold(&self) -> ReferenceState {
         let mut reference = ReferenceState::default();
+
         for (_sequence, bytes) in self.journal.durable_entries(SimKey::Events) {
             let record = EventRecord::<DstEvent>::decode_borrowed(&bytes)
                 .expect("durable simulation entries should decode")
                 .normalize()
                 .expect("durable simulation entries should normalize");
+
             if !reference.event_ids.insert(record.event_id()) {
                 continue;
             }
+
             match record.into_event() {
                 DstEvent::Increment {
                     counter, amount, ..
@@ -39,11 +42,13 @@ impl Driver<'_> {
                 }
             }
         }
+
         reference
     }
 
     pub(super) async fn finish_effects_and_check(&mut self, coverage: &mut ScheduleCoverage) {
         let mut turns = 0_u32;
+
         while self.effect_turn(coverage).await > 0 {
             turns += 1;
             properties::PENDING_EFFECTS_COMPLETE.check(
@@ -60,6 +65,7 @@ impl Driver<'_> {
                 self.last_durable_end
             ),
         );
+
         self.last_durable_end = durable_end;
 
         let reference = self.reference_fold();
@@ -70,11 +76,13 @@ impl Driver<'_> {
                 "projection {projection:?} differs from the state rebuilt from the durable prefix"
             ),
         );
+
         for record in &self.acknowledged {
             properties::ACK_IMPLIES_DURABLE.check(
                 reference.event_ids.contains(&record.event_id()),
                 format_args!("acknowledged event {} is not durable", record.event_id()),
             );
+
             properties::ACKED_EVENT_SURVIVES_RECOVERY.check(
                 reference.event_ids.contains(&record.event_id()),
                 format_args!(
@@ -83,12 +91,14 @@ impl Driver<'_> {
                 ),
             );
         }
+
         for rejected in &self.rejected {
             properties::REJECTED_NEVER_DURABLE.check(
                 !reference.event_ids.contains(rejected),
                 format_args!("rejected event {rejected} became durable"),
             );
         }
+
         for archive in &reference.archive_events {
             let identity = EffectId::for_effect(archive).expect("effect should serialize");
             properties::DURABLE_COMPLETION_IMPLIES_EXECUTED.check(
@@ -99,6 +109,7 @@ impl Driver<'_> {
                 ),
             );
         }
+
         for durable in &reference.event_ids {
             properties::DURABLE_EVENTS_WERE_PROPOSED.check(
                 self.proposed.contains(durable),

@@ -54,6 +54,10 @@ enum SyncEvent {
     },
 }
 
+fn customer_partition() -> PartitionKey {
+    PartitionKey::parse("customers").expect("the customer partition key should be valid")
+}
+
 impl DomainEvent for SyncEvent {
     fn name() -> &'static str {
         "customer_sync_event"
@@ -194,6 +198,74 @@ struct CrmSync {
     crash_after_last: bool,
 }
 
+const CUSTOMERS: [(&str, &str); 5] = [
+    ("customer-1", "Ada Lovelace"),
+    ("customer-2", "Grace Hopper"),
+    ("customer-3", "Edsger Dijkstra"),
+    ("customer-4", "Barbara Liskov"),
+    ("customer-5", "Donald Knuth"),
+];
+
+fn state_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/customer_sync_demo")
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct CrmRecord {
+    customer_id: CustomerId,
+    name: String,
+    remote_id: RemoteId,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+struct CrmState {
+    by_idempotency_key: BTreeMap<EffectId, CrmRecord>,
+}
+
+struct UpsertOutcome {
+    remote_id: RemoteId,
+    duplicate: bool,
+}
+
+fn upsert_crm(
+    idempotency_key: EffectId,
+    effect: &UpsertCustomer,
+) -> std::io::Result<UpsertOutcome> {
+    let path = state_dir().join("crm.json");
+    let mut crm: CrmState = std::fs::read(&path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+        .unwrap_or_default();
+
+    if let Some(existing) = crm.by_idempotency_key.get(&idempotency_key) {
+        return Ok(UpsertOutcome {
+            remote_id: existing.remote_id.clone(),
+            duplicate: true,
+        });
+    }
+
+    let remote_id = RemoteId(format!("crm-{}", effect.customer_id));
+    crm.by_idempotency_key.insert(
+        idempotency_key,
+        CrmRecord {
+            customer_id: effect.customer_id.clone(),
+            name: effect.name.clone(),
+            remote_id: remote_id.clone(),
+        },
+    );
+
+    std::fs::create_dir_all(path.parent().expect("CRM path should have a parent"))?;
+    std::fs::write(
+        path,
+        serde_json::to_vec_pretty(&crm).expect("CRM state should serialize"),
+    )?;
+
+    Ok(UpsertOutcome {
+        remote_id,
+        duplicate: false,
+    })
+}
+
 impl Executor<CustomerDomain> for CrmSync {
     type Effect = UpsertCustomer;
     type Error = CrmRejected;
@@ -267,68 +339,6 @@ impl Executor<CustomerDomain> for CrmSync {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
-struct CrmState {
-    by_idempotency_key: BTreeMap<EffectId, CrmRecord>,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-struct CrmRecord {
-    customer_id: CustomerId,
-    name: String,
-    remote_id: RemoteId,
-}
-
-struct UpsertOutcome {
-    remote_id: RemoteId,
-    duplicate: bool,
-}
-
-fn upsert_crm(
-    idempotency_key: EffectId,
-    effect: &UpsertCustomer,
-) -> std::io::Result<UpsertOutcome> {
-    let path = state_dir().join("crm.json");
-    let mut crm: CrmState = std::fs::read(&path)
-        .ok()
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default();
-
-    if let Some(existing) = crm.by_idempotency_key.get(&idempotency_key) {
-        return Ok(UpsertOutcome {
-            remote_id: existing.remote_id.clone(),
-            duplicate: true,
-        });
-    }
-
-    let remote_id = RemoteId(format!("crm-{}", effect.customer_id));
-    crm.by_idempotency_key.insert(
-        idempotency_key,
-        CrmRecord {
-            customer_id: effect.customer_id.clone(),
-            name: effect.name.clone(),
-            remote_id: remote_id.clone(),
-        },
-    );
-    std::fs::create_dir_all(path.parent().expect("CRM path should have a parent"))?;
-    std::fs::write(
-        path,
-        serde_json::to_vec_pretty(&crm).expect("CRM state should serialize"),
-    )?;
-    Ok(UpsertOutcome {
-        remote_id,
-        duplicate: false,
-    })
-}
-
-fn customer_partition() -> PartitionKey {
-    PartitionKey::parse("customers").expect("the customer partition key should be valid")
-}
-
-fn state_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/customer_sync_demo")
-}
-
 async fn report_recovery(running: &RunningKernel<CustomerDomain>, key: &PartitionKey) {
     let (pending, synced) = running
         .read(key, |sync: &CustomerSync| {
@@ -342,14 +352,6 @@ async fn report_recovery(running: &RunningKernel<CustomerDomain>, key: &Partitio
         println!("Recovered {pending} pending customers and {synced} synced customers.");
     }
 }
-
-const CUSTOMERS: [(&str, &str); 5] = [
-    ("customer-1", "Ada Lovelace"),
-    ("customer-2", "Grace Hopper"),
-    ("customer-3", "Edsger Dijkstra"),
-    ("customer-4", "Barbara Liskov"),
-    ("customer-5", "Donald Knuth"),
-];
 
 #[tokio::main]
 async fn main() {
@@ -366,6 +368,7 @@ async fn main() {
         Namespace::parse("customersync").expect("namespace should be valid"),
         format!("file://{}", state_dir().join("journal").display()),
     );
+
     config.shards = vec![key.shard()];
     config.poll_interval = Duration::from_millis(50);
 
@@ -385,11 +388,13 @@ async fn main() {
 
     let mut queued = 0;
     let mut already_durable = 0;
+
     for (customer_id, name) in CUSTOMERS {
         let event = SyncEvent::CustomerQueued {
             customer_id: CustomerId(customer_id.to_owned()),
             name: name.to_owned(),
         };
+
         match running.submit(event).await {
             Ok(Submitted::Applied) => queued += 1,
             Ok(Submitted::AlreadyDurable) => already_durable += 1,
@@ -399,6 +404,7 @@ async fn main() {
             Err(error) => println!("The customer submission failed: {error:#}."),
         }
     }
+
     println!("Queued {queued} new customers. {already_durable} were already durable.\n");
 
     let deadline = std::time::Instant::now() + Duration::from_secs(20);
@@ -409,18 +415,22 @@ async fn main() {
             })
             .await
             .expect("sync state should be readable");
+
         if mode == "defer" && pending == 1 && synced == 4 {
             println!("The run ended with 4 synced customers and customer-3 still pending.");
             running.shutdown().await.expect("shutdown should succeed");
             return;
         }
+
         if pending == 0 {
             break;
         }
+
         assert!(
             std::time::Instant::now() < deadline,
             "customer sync should finish within 20 seconds"
         );
+
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
@@ -428,9 +438,12 @@ async fn main() {
         .read(&key, |sync: &CustomerSync| sync.synced.clone())
         .await
         .expect("sync state should be readable");
+
     println!("Customer sync completed with {} customers.", synced.len());
+
     for (customer_id, remote_id) in synced {
         println!("{customer_id} was synced as {remote_id}.");
     }
+
     running.shutdown().await.expect("shutdown should succeed");
 }

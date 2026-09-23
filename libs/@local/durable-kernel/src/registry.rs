@@ -84,78 +84,32 @@ pub enum DeclarationError {
     Unregistered { name: &'static str },
 }
 
-/// Owns the record declarations shared by a kernel's readers and writers.
-#[derive(Debug, Default)]
-pub struct RecordRegistry {
-    declarations: RwLock<BTreeMap<&'static str, RecordDeclaration>>,
-}
-
-impl RecordRegistry {
-    /// Registers a declaration. Repeating an identical registration succeeds.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the name already has a different declaration, or if an
-    /// [`DurabilityClass::ImmutableJournal`] declaration uses a migration policy other than
-    /// [`MigrationPolicy::NeverRetireWhileUntrimmed`].
-    pub fn register(&self, declaration: RecordDeclaration) -> Result<(), Report<DeclarationError>> {
-        if declaration.migration != MigrationPolicy::NeverRetireWhileUntrimmed
-            && declaration.durability == DurabilityClass::ImmutableJournal
-        {
-            return Err(Report::new(DeclarationError::InvalidJournalMigration {
-                name: declaration.name,
-                migration: declaration.migration,
-            }));
-        }
-        let mut declarations = self
-            .declarations
-            .write()
-            .unwrap_or_else(PoisonError::into_inner);
-        if let Some(existing) = declarations.get(declaration.name) {
-            return if *existing == declaration {
-                Ok(())
-            } else {
-                Err(Report::new(DeclarationError::ConflictingDeclaration {
-                    registered: *existing,
-                    requested: declaration,
-                }))
-            };
-        }
-        declarations.insert(declaration.name, declaration);
-        drop(declarations);
-        Ok(())
-    }
-
-    /// Checks that the record type has a matching registered declaration.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the declaration is absent, differs from the registered declaration,
-    /// or disagrees with the type's migration policy.
-    pub fn require<T: DurableRecord>(&self) -> Result<(), Report<DeclarationError>> {
-        let declaration = T::declaration();
-        if T::MIGRATION_POLICY != declaration.migration {
-            return Err(Report::new(DeclarationError::MigrationMismatch {
-                name: declaration.name,
-                expected: declaration.migration,
-                actual: T::MIGRATION_POLICY,
-            }));
-        }
-        let declarations = self
-            .declarations
-            .read()
-            .unwrap_or_else(PoisonError::into_inner);
-        match declarations.get(declaration.name) {
-            Some(registered) if *registered == declaration => Ok(()),
-            Some(registered) => Err(Report::new(DeclarationError::ConflictingDeclaration {
-                registered: *registered,
-                requested: declaration,
-            })),
-            None => Err(Report::new(DeclarationError::Unregistered {
-                name: declaration.name,
-            })),
-        }
-    }
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+pub enum CompatError {
+    #[display("unsupported {name} version {version:?}")]
+    UnsupportedVersion { name: &'static str, version: String },
+    #[display("{name} could not be encoded")]
+    Encode { name: &'static str },
+    #[display("{name} could not be decoded")]
+    Decode { name: &'static str },
+    #[display("{name} is {actual_bytes} bytes; maximum is {max_bytes}")]
+    TooLarge {
+        name: &'static str,
+        actual_bytes: usize,
+        max_bytes: usize,
+    },
+    #[display("{name} record partition {actual} does not match the event's partition {expected}")]
+    PartitionMismatch {
+        name: &'static str,
+        expected: PartitionKey,
+        actual: PartitionKey,
+    },
+    #[display("{name} event ID mismatch: expected {expected}, found {actual}")]
+    EventIdMismatch {
+        name: &'static str,
+        expected: EventId,
+        actual: EventId,
+    },
 }
 
 pub trait DurableRecord: Sized {
@@ -219,32 +173,81 @@ pub trait MutableCasRecord: VersionedRecord + Send + Sync {
 /// Marks a record type that can be discarded and rebuilt from its source data.
 pub trait RebuildableRecord: DurableRecord {}
 
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-pub enum CompatError {
-    #[display("unsupported {name} version {version:?}")]
-    UnsupportedVersion { name: &'static str, version: String },
-    #[display("{name} could not be encoded")]
-    Encode { name: &'static str },
-    #[display("{name} could not be decoded")]
-    Decode { name: &'static str },
-    #[display("{name} is {actual_bytes} bytes; maximum is {max_bytes}")]
-    TooLarge {
-        name: &'static str,
-        actual_bytes: usize,
-        max_bytes: usize,
-    },
-    #[display("{name} record partition {actual} does not match the event's partition {expected}")]
-    PartitionMismatch {
-        name: &'static str,
-        expected: PartitionKey,
-        actual: PartitionKey,
-    },
-    #[display("{name} event ID mismatch: expected {expected}, found {actual}")]
-    EventIdMismatch {
-        name: &'static str,
-        expected: EventId,
-        actual: EventId,
-    },
+/// Owns the record declarations shared by a kernel's readers and writers.
+#[derive(Debug, Default)]
+pub struct RecordRegistry {
+    declarations: RwLock<BTreeMap<&'static str, RecordDeclaration>>,
+}
+
+impl RecordRegistry {
+    /// Registers a declaration. Repeating an identical registration succeeds.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the name already has a different declaration, or if an
+    /// [`DurabilityClass::ImmutableJournal`] declaration uses a migration policy other than
+    /// [`MigrationPolicy::NeverRetireWhileUntrimmed`].
+    pub fn register(&self, declaration: RecordDeclaration) -> Result<(), Report<DeclarationError>> {
+        if declaration.migration != MigrationPolicy::NeverRetireWhileUntrimmed
+            && declaration.durability == DurabilityClass::ImmutableJournal
+        {
+            return Err(Report::new(DeclarationError::InvalidJournalMigration {
+                name: declaration.name,
+                migration: declaration.migration,
+            }));
+        }
+
+        let mut declarations = self
+            .declarations
+            .write()
+            .unwrap_or_else(PoisonError::into_inner);
+
+        if let Some(existing) = declarations.get(declaration.name) {
+            return if *existing == declaration {
+                Ok(())
+            } else {
+                Err(Report::new(DeclarationError::ConflictingDeclaration {
+                    registered: *existing,
+                    requested: declaration,
+                }))
+            };
+        }
+
+        declarations.insert(declaration.name, declaration);
+        drop(declarations);
+        Ok(())
+    }
+
+    /// Checks that the record type has a matching registered declaration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the declaration is absent, differs from the registered declaration,
+    /// or disagrees with the type's migration policy.
+    pub fn require<T: DurableRecord>(&self) -> Result<(), Report<DeclarationError>> {
+        let declaration = T::declaration();
+        if T::MIGRATION_POLICY != declaration.migration {
+            return Err(Report::new(DeclarationError::MigrationMismatch {
+                name: declaration.name,
+                expected: declaration.migration,
+                actual: T::MIGRATION_POLICY,
+            }));
+        }
+        let declarations = self
+            .declarations
+            .read()
+            .unwrap_or_else(PoisonError::into_inner);
+        match declarations.get(declaration.name) {
+            Some(registered) if *registered == declaration => Ok(()),
+            Some(registered) => Err(Report::new(DeclarationError::ConflictingDeclaration {
+                registered: *registered,
+                requested: declaration,
+            })),
+            None => Err(Report::new(DeclarationError::Unregistered {
+                name: declaration.name,
+            })),
+        }
+    }
 }
 
 #[cfg(test)]
