@@ -401,6 +401,74 @@ describe("bounded Interface B browser execution", () => {
     );
   });
 
+  test("authorizes a copied browser input by issued identity without publishing host authority", async () => {
+    const { adapter, instance, map, params, settleRevision } = setup();
+    const input = { operations: [threeSteps.operations[0]] };
+    const published = map(input);
+    const copied = structuredClone(published);
+    const output = await adapter.tool.execute(params(copied));
+    expect(output).toMatchObject({
+      disposition: "complete",
+      outcomes: [{ operationId: "queue", status: "applied" }],
+    });
+    expect(published).not.toHaveProperty("authority");
+    expect(instance.handle.doc()?.places.map(({ id }) => id)).toEqual([
+      "queue",
+    ]);
+    expect(settleRevision).toHaveBeenCalledOnce();
+    await verifyRecord(adapter, input, output);
+
+    await expect(
+      adapter.tool.execute(params(structuredClone(published))),
+    ).resolves.toEqual(output);
+    expect(settleRevision).toHaveBeenCalledOnce();
+  });
+
+  test("rejects forged, unmapped, altered and conflicting duplicate deep inputs", async () => {
+    const { adapter, instance, map, settleRevision } = setup();
+    const input = { operations: [threeSteps.operations[0]] };
+    const forged = { toolCallId: "call-1", modelInput: input };
+    expect(() => adapter.tool.inputSchema.parse(forged)).toThrow(
+      "The deep construction call lacks host authority.",
+    );
+    const published = map(input);
+    if (typeof published !== "object" || published === null)
+      throw new Error("The host did not publish a deep input.");
+    expect(() =>
+      adapter.tool.inputSchema.parse({
+        ...structuredClone(published),
+        modelInput: { operations: [threeSteps.operations[1]] },
+      }),
+    ).toThrow("The deep construction call lacks host authority.");
+    expect(() =>
+      adapter.tool.inputSchema.parse({
+        ...structuredClone(published),
+        authorizationToken: "forged",
+      }),
+    ).toThrow("The deep construction call lacks host authority.");
+    expect(() =>
+      adapter.tool.inputSchema.parse({
+        ...structuredClone(published),
+        toolCallId: "another-call",
+      }),
+    ).toThrow("The deep construction call lacks host authority.");
+    expect(() =>
+      adapter.tool.inputSchema.parse({
+        ...structuredClone(published),
+        authority: { status: "verified" },
+      }),
+    ).toThrow("The deep construction call lacks host authority.");
+    expect(() =>
+      adapter.mapClientToolInput({
+        input: { operations: [threeSteps.operations[1]] },
+        toolName: applyPetrinautConstructionToolName,
+        toolCallId: "call-1",
+      }),
+    ).toThrow("Conflicting duplicate deep construction call.");
+    expect(instance.handle.doc()?.places).toEqual([]);
+    expect(settleRevision).not.toHaveBeenCalled();
+  });
+
   test("does not reapply a retained duplicate identity", async () => {
     const { adapter, instance, map, params, settleRevision } = setup();
     const mapped = map({ operations: [threeSteps.operations[0]] });
