@@ -284,10 +284,6 @@ pub async fn atlas_fit(args: AtlasFitArgs) -> Result<(), Report<GraphError>> {
 
 /// `atlas serve` subcommand entrypoint.
 #[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
-#[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]

@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 5b231cfa7735cd31633b6181309784cb71e8399a3a26ec3f9210d1759c2a443f # shrinks to ax = -531.95355, ay = -528.51135, bx = -361.65552, by = 380.1235
+cc ac4d0ceb8ec43788b977ec31ec0161762feb1dac566cd5954eefc80b65238e4a # shrinks to DistanceSquaredLanesMatchTheScalarMetricBitwiseArgs = DistanceSquaredLanesMatchTheScalarMetricBitwiseArgs { ax: 0.0, ay: 9.8530076043621e149, bx: 5.975735525782382e149, by: 1.2214848430948013e149 }

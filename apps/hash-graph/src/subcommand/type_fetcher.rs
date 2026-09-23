@@ -141,10 +141,6 @@ pub(crate) async fn wait_for_type_fetcher(
 
 /// Standalone `type-fetcher` subcommand entrypoint.
 #[expect(
-    clippy::integer_division_remainder_used,
-    reason = "False positive on tokio::select!"
-)]
-#[expect(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]

@@ -286,10 +286,6 @@ where
     ///
     /// Panics if [`DownloadOptions::poll_interval`] is zero or when polling without a time-enabled
     /// Tokio runtime.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "the remainder is `tokio::select!`'s own branch dispatch"
-    )]
     pub(crate) async fn run(
         &mut self,
         DownloadOptions { poll_interval }: DownloadOptions,

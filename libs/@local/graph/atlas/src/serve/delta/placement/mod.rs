@@ -248,10 +248,6 @@ impl DeltaPlacementTask {
     /// # Panics
     ///
     /// A late tick can panic if `interval` computes an unrepresentable next deadline.
-    #[expect(
-        clippy::integer_division_remainder_used,
-        reason = "Tokio select uses a remainder to randomize its first branch"
-    )]
     async fn wait_for_tick(
         &mut self,
         rx: &mut mpsc::Receiver<PendingEntry<Initial>>,
