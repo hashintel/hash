@@ -127,8 +127,21 @@ import { emptySDCPN } from "./use-local-storage-sdcpns";
 import { useVoicePreference } from "./voice-preference";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
 
-import type { DocumentRecord } from "./documents/document-repository";
+import type {
+  DocumentRecord,
+  DocumentRepository,
+} from "./documents/document-repository";
 import type { LocalStorageDemoSearch } from "./local-storage-demo-search";
+
+const useCurrentSettlementAction = (
+  settleRevision: DocumentRepository["settleRevision"],
+): DocumentRepository["settleRevision"] => {
+  const latest = useRef(settleRevision);
+  useLayoutEffect(() => {
+    latest.current = settleRevision;
+  }, [settleRevision]);
+  return useCallback((revision) => latest.current(revision), []);
+};
 
 const DEMO_CAPABILITIES = {
   disabledExtensions: [],
@@ -848,10 +861,13 @@ export const LocalStorageDemoApp = ({
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
   }) satisfies CanonicalPetrinautReplayReadiness;
-  // Repository facades may be reprojected when history changes; their action
-  // function is the stable production boundary the adapters need.
-  // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
-  const settleConstructionRevision = source.repository.settleRevision;
+  // A persisted revision can change the repository action's identity while a
+  // canonical tool is still settling. Keep the host adapter's evidence store
+  // alive, but dispatch settlement through the latest committed action.
+  const settleConstructionRevision = useCurrentSettlementAction(
+    // eslint-disable-next-line typescript/unbound-method -- repository actions do not use `this`
+    source.repository.settleRevision,
+  );
   const canonicalHostTools = useMemo(() => {
     if (!integratedConstructionBrowser || !activeHandle) return undefined;
     return createCanonicalPetrinautHostTools({
