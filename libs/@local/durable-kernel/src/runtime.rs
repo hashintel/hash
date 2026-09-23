@@ -605,10 +605,12 @@ where
 {
     let mut executed: BTreeSet<EffectId> = BTreeSet::new();
     let mut retries = BTreeMap::<EffectId, tokio::time::Instant>::new();
+
     loop {
         if shutdown.is_cancelled() {
             return Ok(());
         }
+
         let planner = Arc::clone(&executor);
         let effects = match handle
             .read(move |projection| collect_plan(planner.as_ref(), projection.domain()))
@@ -617,17 +619,20 @@ where
             Ok(effects) => effects,
             Err(error) => return settle_driver_error(error, &shutdown),
         };
+
         let effects = effects
             .into_iter()
             .map(|effect| effect_id(&effect).map(|id| (id, effect)))
             .collect::<Result<Vec<_>, _>>()
             .change_context(KernelError::EncodeEffectId)?;
         retain_planned_effects(&effects, &mut executed, &mut retries);
+
         let mut progressed = false;
         for (id, effect) in effects {
             if shutdown.is_cancelled() {
                 return Ok(());
             }
+
             if executed.contains(&id)
                 || retries
                     .get(&id)
@@ -635,12 +640,14 @@ where
             {
                 continue;
             }
+
             match execute_effect::<S, X>(Arc::clone(&executor), effect, &id).await? {
                 Ok(events) => {
                     for event in events {
                         let record = EventRecordV1::new(event)
                             .change_context(KernelError::BuildCompletionEvent { effect_id: id })?;
                         let event_id = record.event_id();
+
                         match handle.propose(record).await {
                             Ok(
                                 ShardCommandOutcome::Applied { .. }
@@ -664,6 +671,7 @@ where
                             }
                         }
                     }
+
                     retries.remove(&id);
                     executed.insert(id);
                     progressed = true;
@@ -679,13 +687,17 @@ where
                             },
                         ));
                     };
+
                     retries.insert(id, deadline);
                 }
             }
         }
+
         maybe_snapshot(&handle, settings.snapshot_policy).await;
+
         let now = tokio::time::Instant::now();
         retries.retain(|_, deadline| *deadline > now);
+
         if !progressed {
             let delay = retries
                 .values()
@@ -693,6 +705,7 @@ where
                 .min()
                 .unwrap_or(settings.poll_interval)
                 .min(settings.poll_interval);
+
             tokio::select! {
                 () = shutdown.cancelled() => return Ok(()),
                 _changed = state_changes.receiver.recv() => {}
