@@ -20,11 +20,11 @@
 
 extern crate alloc;
 
-use core::{ops::Bound, time::Duration};
+use core::time::Duration;
 
 use bytes::Bytes;
 
-use crate::sequence::JournalSequence;
+use crate::sequence::{JournalSequence, SequenceRange};
 
 pub mod domain;
 pub mod ids;
@@ -59,11 +59,8 @@ pub enum DurableError {
     OpenWriter,
     #[display("could not read journal")]
     ReadJournal,
-    #[display("could not scan journal key {key:?} in range {range:?}")]
-    Scan {
-        key: Bytes,
-        range: (Bound<JournalSequence>, Bound<JournalSequence>),
-    },
+    #[display("could not scan journal key {key:?} in range {range}")]
+    Scan { key: Bytes, range: SequenceRange },
     #[display("could not read journal key {key:?} from scan cursor {next_sequence}")]
     ReadRecord {
         key: Bytes,

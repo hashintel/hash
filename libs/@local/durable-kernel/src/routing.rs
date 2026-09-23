@@ -46,6 +46,12 @@ pub struct InvalidShard {
 #[display("shard must be three lowercase hexadecimal digits in 000..0ff")]
 pub struct InvalidShardText;
 
+impl From<InvalidShard> for InvalidShardText {
+    fn from(_out_of_range: InvalidShard) -> Self {
+        Self
+    }
+}
+
 impl core::str::FromStr for Shard {
     type Err = InvalidShardText;
 
@@ -60,7 +66,7 @@ impl core::str::FromStr for Shard {
         let index = u16::from_str_radix(value, 16).unwrap_or_else(|_err| {
             unreachable!("three lowercase hexadecimal digits should parse as a u16")
         });
-        Self::try_from(index).map_err(|_out_of_range| InvalidShardText)
+        Ok(Self::try_from(index)?)
     }
 }
 impl serde::Serialize for Shard {

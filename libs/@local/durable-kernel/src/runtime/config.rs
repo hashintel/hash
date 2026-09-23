@@ -66,7 +66,7 @@ impl KernelConfig {
             shards: Vec::new(),
             snapshot_policy: SnapshotPolicy::Every(DEFAULT_SNAPSHOT_INTERVAL),
             poll_interval: Duration::from_millis(250),
-            channel_capacity: NonZeroUsize::new(64).unwrap_or(NonZeroUsize::MIN),
+            channel_capacity: crate::shard_log::DEFAULT_CHANNEL_CAPACITY,
             safe_append_retries: 3,
             block_cache_bytes: 64 * 1024 * 1024,
             meta_cache_bytes: 8 * 1024 * 1024,

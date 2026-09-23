@@ -1,8 +1,7 @@
 //! Validates SHA-256 IDs and hashes serialized record contents.
 //!
 //! [`EventId`] identifies an event. [`JournalRecordDigest`] detects conflicting record contents.
-//! Use [`EffectId::for_effect`] to compute an [`EffectId`] for external operations,
-//! or [`content_digest`] to hash other serialized values with a domain label.
+//! Use [`EffectId::for_effect`] to compute an [`EffectId`] for external operations.
 
 use core::str::FromStr;
 
@@ -118,25 +117,14 @@ impl EffectId {
 ///
 /// Field order and JSON formatting affect the digest. Keep them stable for digests stored in
 /// existing records.
-///
-/// # Errors
-///
-/// Returns an error if the value cannot be serialized as JSON.
-pub fn content_digest<T: Serialize>(
-    domain: &str,
-    projection: &T,
-) -> Result<String, serde_json::Error> {
-    Ok(hex::encode(content_digest_bytes(domain, projection)?))
-}
-
 pub(crate) fn content_digest_bytes<T: Serialize>(
     domain: &str,
-    projection: &T,
+    value: &T,
 ) -> Result<[u8; 32], serde_json::Error> {
     let mut digest = Sha256::new();
     digest.update(domain.as_bytes());
     digest.update([0]);
-    digest.update(serde_json::to_vec(projection)?);
+    digest.update(serde_json::to_vec(value)?);
     Ok(digest.finalize().into())
 }
 

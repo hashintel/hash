@@ -29,7 +29,7 @@ use crate::{
         RecoveredShard, ShardAppendError, ShardCommandConfig, ShardCommandError,
         ShardCommandErrorKind, ShardCommandOutcome, ShardLogLocation, StartedShard,
     },
-    sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle},
+    sim::{SimAppendOutcome, SimAppendResult, SimKey, SimLogHandle, SimulatedFailure},
 };
 
 fn encode(record: &impl registry::DurableRecord) -> Result<Vec<u8>, Report<CompatError>> {
@@ -1139,8 +1139,11 @@ async fn terminal_failure_reports() {
             AppendFailureKind::Fenced
         );
         assert!(
-            format!("{failure:?}").contains("simulated newer writer epoch"),
-            "active proposal should retain the storage attachment"
+            matches!(
+                failure.downcast_ref::<SimulatedFailure>(),
+                Some(SimulatedFailure::NewerWriterEpoch)
+            ),
+            "active proposal should retain the storage failure"
         );
 
         let stopped = queued

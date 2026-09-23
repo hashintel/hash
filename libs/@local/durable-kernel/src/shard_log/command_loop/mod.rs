@@ -12,7 +12,7 @@ mod recovery;
 mod run;
 mod startup;
 
-use core::{convert::Infallible, num::NonZeroUsize};
+use core::num::NonZeroUsize;
 
 use chrono::{DateTime, Utc};
 use tokio::sync::mpsc;
@@ -30,12 +30,13 @@ use crate::{
     shard_log::{JournalStorage, ShardLogLocation, ShardLogWriter},
 };
 
-const DEFAULT_CHANNEL_CAPACITY: usize = 64;
+pub(crate) const DEFAULT_CHANNEL_CAPACITY: NonZeroUsize =
+    NonZeroUsize::new(64).expect("default channel capacity should be nonzero");
 
 const DEFAULT_SAFE_APPEND_RETRIES: u32 = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ShardCommandOutcome<R = Infallible> {
+pub enum ShardCommandOutcome<R = !> {
     /// Validation rejected the record before it was appended.
     Rejected {
         rejection: R,
@@ -96,8 +97,7 @@ pub struct ShardCommandConfig {
 impl Default for ShardCommandConfig {
     fn default() -> Self {
         Self {
-            channel_capacity: NonZeroUsize::new(DEFAULT_CHANNEL_CAPACITY)
-                .unwrap_or(NonZeroUsize::MIN),
+            channel_capacity: DEFAULT_CHANNEL_CAPACITY,
             safe_append_retries: DEFAULT_SAFE_APPEND_RETRIES,
             recovery_mode: RecoveryMode::LocalReopen,
         }

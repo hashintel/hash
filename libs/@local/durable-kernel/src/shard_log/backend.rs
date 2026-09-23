@@ -24,7 +24,10 @@ use super::{
     APPEND_TIMEOUT, DURABILITY_WAIT_ATTEMPTS, ShardAppendError, flush_with_timeout,
     wait_until_durable_with,
 };
-use crate::{DurableError, sequence::JournalSequence};
+use crate::{
+    DurableError,
+    sequence::{JournalSequence, SequenceRange},
+};
 
 /// Reads durable records as pairs of [`JournalSequence`] and stored bytes, in increasing sequence
 /// order.
@@ -172,12 +175,10 @@ impl Stream for StorageStream {
     }
 }
 
-fn storage_range(
-    range: (Bound<JournalSequence>, Bound<JournalSequence>),
-) -> (Bound<u64>, Bound<u64>) {
+fn storage_range(range: SequenceRange) -> (Bound<u64>, Bound<u64>) {
     (
-        range.0.map(JournalSequence::get),
-        range.1.map(JournalSequence::get),
+        range.start.map(JournalSequence::get),
+        range.end.map(JournalSequence::get),
     )
 }
 
@@ -195,7 +196,7 @@ impl JournalReader for StorageReader {
         key: Bytes,
         range: impl RangeBounds<JournalSequence> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
-        let range = (range.start_bound().cloned(), range.end_bound().cloned());
+        let range = SequenceRange::from_bounds(&range);
         let inner = self
             .0
             .scan(key.clone(), storage_range(range))
@@ -221,7 +222,7 @@ impl JournalReader for StorageWriter {
         key: Bytes,
         range: impl RangeBounds<JournalSequence> + Send,
     ) -> Result<Self::Stream, Report<DurableError>> {
-        let range = (range.start_bound().cloned(), range.end_bound().cloned());
+        let range = SequenceRange::from_bounds(&range);
         let inner = self
             .log
             .scan(key.clone(), storage_range(range))
