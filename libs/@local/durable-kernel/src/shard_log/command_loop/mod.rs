@@ -6,10 +6,14 @@
 //! events may arrive after another command has changed the state.
 
 mod append;
+mod control;
 mod error;
 mod handle;
+mod operation;
+mod query;
 mod recovery;
 mod run;
+mod snapshot;
 mod startup;
 
 use core::num::NonZeroUsize;
@@ -20,12 +24,13 @@ use tokio_util::sync::{CancellationToken, DropGuard};
 
 use self::handle::Command;
 pub use self::{
+    control::ControlResolution,
     error::{QueuedWhenStopped, ShardCommandError, ShardCommandErrorKind, ShardCommandKind},
     startup::{OpenedShard, RecoveredShard, StartedShard},
 };
 use crate::{
     ids::EventId,
-    port::{Domain, EventDomain},
+    port::EventDomain,
     sequence::JournalSequence,
     shard_log::{JournalStorage, ShardLogLocation, ShardLogWriter},
 };
@@ -48,12 +53,6 @@ pub enum ShardCommandOutcome<R = !> {
     AlreadyDurable {
         event_id: EventId,
     },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ControlResolution<D: Domain> {
-    pub append: ShardCommandOutcome,
-    pub outcome: D::ControlOutcome,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,12 +102,22 @@ impl ShardCommandConfig {
     }
 }
 
-#[derive(Debug, Clone)]
 /// Submits commands to one shard. Clones share the same writer and command queue.
-pub struct ShardCommandHandle<D: Domain> {
+#[derive(Debug)]
+pub struct ShardCommandHandle<D: EventDomain> {
     sender: mpsc::Sender<Command<D>>,
     admission_closed: CancellationToken,
     shard: crate::routing::Shard,
+}
+
+impl<D: EventDomain> Clone for ShardCommandHandle<D> {
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+            admission_closed: self.admission_closed.clone(),
+            shard: self.shard,
+        }
+    }
 }
 
 /// Owns the right to stop a shard. Submission handles can be cloned independently.
@@ -117,7 +126,7 @@ pub struct ShardCommandHandle<D: Domain> {
 /// already in progress may finish. Use [`shutdown`](Self::shutdown) to finish queued commands
 /// before closing.
 #[derive(Debug)]
-pub struct ShardOwner<D: Domain> {
+pub struct ShardOwner<D: EventDomain> {
     // Declared first so that it drops first: ownership is cancelled before the command channel
     // closes.
     _ownership: DropGuard,
@@ -125,12 +134,15 @@ pub struct ShardOwner<D: Domain> {
     admission_closed: CancellationToken,
 }
 
-struct CommandLoop<D: Domain, S: JournalStorage> {
+/// Runs once when the command loop stops because its writer was fenced.
+type FencedHook = Box<dyn FnOnce() + Send>;
+
+struct CommandLoop<D: EventDomain, S: JournalStorage> {
     location: ShardLogLocation<S>,
     writer: Option<ShardLogWriter<S::Writer>>,
     projection: D::Projection,
     last_snapshot_attempt_through_sequence: Option<JournalSequence>,
-    snapshot_context: Option<D::SnapshotContext>,
+    on_fenced: Option<FencedHook>,
     safe_append_retries: u32,
     receiver: mpsc::Receiver<Command<D>>,
     state_change_sender: mpsc::Sender<D::StateKey>,

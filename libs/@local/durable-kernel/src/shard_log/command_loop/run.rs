@@ -1,13 +1,18 @@
-use error_stack::{Report, ResultExt as _};
+use bytes::Bytes;
+use error_stack::Report;
+use futures_util::future::BoxFuture;
 use tokio::sync::oneshot;
 
 use super::{
-    CommandLoop, ControlResolution, ShardCommandError, ShardCommandErrorKind, ShardCommandOutcome,
-    handle::Command,
+    CommandLoop, ShardCommandError, ShardCommandErrorKind, ShardCommandKind, ShardCommandOutcome,
+    handle::Command, operation::LoopAccess,
 };
-use crate::{port::Domain, shard_log::JournalStorage};
+use crate::{
+    port::EventDomain, registry::RecordRegistry, routing::Shard, sequence::JournalSequence,
+    shard_log::JournalStorage,
+};
 
-struct CommandFailure {
+pub(super) struct CommandFailure {
     error: Report<ShardCommandError>,
     reply: Option<Box<dyn FnOnce(Report<ShardCommandError>) + Send>>,
 }
@@ -26,7 +31,7 @@ impl CommandFailure {
     }
 }
 
-fn send_reply<T: Send + 'static>(
+pub(super) fn send_reply<T: Send + 'static>(
     reply: oneshot::Sender<Result<T, Report<ShardCommandError>>>,
     result: Result<T, Report<ShardCommandError>>,
 ) -> Result<(), CommandFailure> {
@@ -44,7 +49,7 @@ fn send_reply<T: Send + 'static>(
     }
 }
 
-impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
+impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
     pub(super) async fn run(mut self) -> Result<(), ShardCommandError> {
         let Err(failure) = self.run_commands().await else {
             return Ok(());
@@ -59,9 +64,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         let context = error.current_context().clone();
         failure.reply();
         if context.kind() == ShardCommandErrorKind::Fenced
-            && let Some(snapshot_context) = &self.snapshot_context
+            && let Some(on_fenced) = self.on_fenced.take()
         {
-            D::note_fenced(snapshot_context);
+            on_fenced();
         }
         self.admission_closed.cancel();
         self.receiver.close();
@@ -92,51 +97,14 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             let Some(command) = command else {
                 break;
             };
-            let committing_snapshot = matches!(&command, Command::CommitSnapshot { .. });
+            let committing_snapshot = command.kind() == ShardCommandKind::CommitSnapshot;
             let shutting_down = matches!(&command, Command::Shutdown { .. });
             let result = match command {
                 Command::Propose { record, reply } => {
                     let result = self.process(record).await;
                     send_reply(reply, result)
                 }
-                Command::InspectControl { request, reply } => {
-                    let result = self.inspect_control_request(&request);
-                    send_reply(reply, result)
-                }
-                Command::ResolveControl {
-                    request,
-                    preflight_rejection,
-                    reply,
-                } => {
-                    let result =
-                        Box::pin(self.process_control_request(request, preflight_rejection)).await;
-                    send_reply(reply, result)
-                }
-                Command::CaptureSnapshot {
-                    minimum_sequence_span,
-                    reply,
-                } => {
-                    let capture = D::through_sequence(&self.projection)
-                        .filter(|through| {
-                            let span = self.last_snapshot_attempt_through_sequence.map_or_else(
-                                || through.get().saturating_add(1),
-                                |previous| through.get().saturating_sub(previous.get()),
-                            );
-                            span >= minimum_sequence_span.max(1)
-                        })
-                        .and_then(|through| {
-                            self.last_snapshot_attempt_through_sequence = Some(through);
-                            D::capture_snapshot(self.location.shard, &self.projection)
-                        });
-                    send_reply(reply, Ok(capture))
-                }
-                Command::CommitSnapshot { snapshot, reply } => {
-                    let result = self.process_snapshot(snapshot).await;
-                    send_reply(reply, result)
-                }
-                Command::Query { query, reply } => {
-                    send_reply(reply, Ok(D::answer(&self.projection, query)))
-                }
+                Command::Operation(operation) => operation.run(self).await,
                 Command::Shutdown { reply } => {
                     self.admission_closed.cancel();
                     self.receiver.close();
@@ -163,62 +131,41 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         self.close_writer().await?;
         Ok(())
     }
+}
 
-    fn inspect_control_request(
-        &self,
-        request: &D::ControlRequest,
-    ) -> Result<D::ControlSnapshot, Report<ShardCommandError>> {
-        if D::control_shard(request) != self.location.shard {
-            return Err(Report::new(ShardCommandError::ControlShardMismatch {
-                expected: self.location.shard,
-                actual: D::control_shard(request),
-            })
-            .attach(D::describe_foreign_control(request)));
-        }
-        D::inspect_control(&self.projection, request)
+impl<D: EventDomain, S: JournalStorage> LoopAccess<D> for CommandLoop<D, S> {
+    fn shard(&self) -> Shard {
+        self.location.shard
     }
 
-    async fn process_control_request(
+    fn projection(&self) -> &D::Projection {
+        &self.projection
+    }
+
+    fn registry(&self) -> &RecordRegistry {
+        &self.location.registry
+    }
+
+    fn last_snapshot_attempt(&self) -> Option<JournalSequence> {
+        self.last_snapshot_attempt_through_sequence
+    }
+
+    fn set_last_snapshot_attempt(&mut self, through: JournalSequence) {
+        self.last_snapshot_attempt_through_sequence = Some(through);
+    }
+
+    fn propose(
         &mut self,
-        request: D::ControlRequest,
-        preflight_rejection: Option<D::ControlRejection>,
-    ) -> Result<ControlResolution<D>, Report<ShardCommandError>> {
-        let snapshot = self.inspect_control_request(&request)?;
-        if let Some(outcome) = D::control_prior_outcome(&snapshot) {
-            return Ok(ControlResolution {
-                append: ShardCommandOutcome::AlreadyDurable {
-                    event_id: D::control_event_id(&request),
-                },
-                outcome,
-            });
-        }
-        let record = D::build_control_record(&self.projection, &request, preflight_rejection)
-            .change_context(ShardCommandError::BuildControlRecord {
-                event_id: D::control_event_id(&request),
-            })?;
-        let append = match self.process(record).await? {
-            ShardCommandOutcome::Applied {
-                event_id,
-                shard_sequence,
-            } => ShardCommandOutcome::Applied {
-                event_id,
-                shard_sequence,
-            },
-            ShardCommandOutcome::AlreadyDurable { event_id } => {
-                ShardCommandOutcome::AlreadyDurable { event_id }
-            }
-            ShardCommandOutcome::Rejected { rejection } => {
-                return Err(Report::new(rejection).change_context(
-                    ShardCommandError::ControlRecordRejected {
-                        event_id: D::control_event_id(&request),
-                    },
-                ));
-            }
-        };
-        let outcome = D::control_outcome_after_append(&self.projection, &request)
-            .change_context_lazy(|| ShardCommandError::ReadControlOutcome {
-                event_id: D::control_event_id(&request),
-            })?;
-        Ok(ControlResolution { append, outcome })
+        record: D::RecordCurrent,
+    ) -> BoxFuture<'_, Result<ShardCommandOutcome<D::FoldError>, Report<ShardCommandError>>> {
+        Box::pin(Self::process(self, record))
+    }
+
+    fn store_snapshot(
+        &mut self,
+        bytes: Bytes,
+        through: JournalSequence,
+    ) -> BoxFuture<'_, Result<JournalSequence, Report<ShardCommandError>>> {
+        Box::pin(Self::append_snapshot(self, bytes, through))
     }
 }

@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     ids::{EventId, JournalRecordDigest},
-    port::{ControlDomain, EventDomain, Prepared, QueryDomain},
+    port::{EventDomain, Prepared, QueryDomain},
     registry::{
         CompatError, DeclarationError, DurableRecord as _, RecordRegistry, VersionedRecord as _,
     },
@@ -68,7 +68,8 @@ impl<P> KernelProjection<P> {
     }
 }
 
-/// Adapts [`SimpleDomain`] to the [`crate::port::Domain`] interface used by the command loop.
+/// Adapts [`SimpleDomain`] to the [`crate::port`] traits used by the command loop: events,
+/// queries, and snapshots.
 pub struct Hosted<S>(PhantomData<fn() -> S>);
 
 impl<S> fmt::Debug for Hosted<S> {
@@ -283,51 +284,6 @@ impl<S: SimpleDomain> QueryDomain for Hosted<S> {
 
     fn answer(projection: &Self::Projection, query: Self::Query) -> Self::QueryResult {
         query.answer(projection);
-    }
-}
-
-impl<S: SimpleDomain> ControlDomain for Hosted<S> {
-    type ControlOutcome = !;
-    type ControlRejection = !;
-    type ControlRequest = !;
-    type ControlSnapshot = !;
-
-    fn control_shard(request: &!) -> Shard {
-        *request
-    }
-
-    fn describe_foreign_control(request: &!) -> String {
-        *request
-    }
-
-    fn inspect_control(
-        _projection: &Self::Projection,
-        request: &!,
-    ) -> Result<!, Report<ShardCommandError>> {
-        *request
-    }
-
-    fn control_prior_outcome(snapshot: &!) -> Option<!> {
-        *snapshot
-    }
-
-    fn control_event_id(request: &!) -> EventId {
-        *request
-    }
-
-    fn build_control_record(
-        _projection: &Self::Projection,
-        request: &!,
-        _preflight_rejection: Option<!>,
-    ) -> Result<Self::RecordCurrent, Self::FoldError> {
-        *request
-    }
-
-    fn control_outcome_after_append(
-        _projection: &Self::Projection,
-        request: &!,
-    ) -> Result<!, Report<RecoveryError>> {
-        *request
     }
 }
 

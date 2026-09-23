@@ -3,15 +3,14 @@ use error_stack::{Report, ResultExt as _};
 use super::{CommandLoop, ShardCommandError, ShardCommandOutcome};
 use crate::{
     DurableError,
-    port::{Domain, Prepared},
-    registry::DurableRecord as _,
+    port::{EventDomain, Prepared},
     sequence::JournalSequence,
     shard_log::{
         AppendFailureKind, EVENTS_KEY, JournalStorage, PROJECTION_SNAPSHOTS_KEY, ShardAppendError,
     },
 };
 
-impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
+impl<D: EventDomain, S: JournalStorage> CommandLoop<D, S> {
     pub(super) async fn process(
         &mut self,
         record: D::RecordCurrent,
@@ -76,39 +75,11 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
         }
     }
 
-    pub(super) async fn process_snapshot(
+    pub(super) async fn append_snapshot(
         &mut self,
-        snapshot: D::Snapshot,
+        bytes: bytes::Bytes,
+        snapshot_through: JournalSequence,
     ) -> Result<JournalSequence, Report<ShardCommandError>> {
-        let (snapshot_shard, snapshot_through) =
-            D::snapshot_bounds(&snapshot).change_context(ShardCommandError::ReadSnapshotBounds)?;
-        if snapshot_shard != self.location.shard {
-            return Err(Report::new(ShardCommandError::SnapshotShardMismatch {
-                expected: self.location.shard,
-                actual: snapshot_shard,
-            }));
-        }
-        let Some(current_sequence) = D::through_sequence(&self.projection) else {
-            return Err(Report::new(ShardCommandError::SnapshotForEmptyProjection));
-        };
-        if snapshot_through > current_sequence {
-            return Err(Report::new(ShardCommandError::SnapshotAheadOfProjection {
-                snapshot_through,
-                current_sequence,
-            }));
-        }
-
-        self.location
-            .registry
-            .require::<D::Snapshot>()
-            .change_context_lazy(|| ShardCommandError::ValidateSnapshotRegistration {
-                name: D::Snapshot::declaration().name,
-            })?;
-        let mut bytes = Vec::new();
-        snapshot
-            .encode(&mut bytes)
-            .change_context(ShardCommandError::EncodeSnapshot)?;
-        let bytes = bytes::Bytes::from(bytes);
         let mut safe_failures = 0_u32;
         loop {
             if self.ownership_lost.is_cancelled() {
