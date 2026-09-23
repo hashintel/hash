@@ -197,6 +197,7 @@ struct CrmSync {
 impl Executor<CustomerDomain> for CrmSync {
     type Effect = UpsertCustomer;
     type Error = CrmRejected;
+    type Events = Vec<SyncEvent>;
 
     fn plan<'a>(
         &'a self,

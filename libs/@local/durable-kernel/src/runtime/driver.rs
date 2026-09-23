@@ -39,7 +39,7 @@ async fn execute_effect<S, X>(
     executor: Arc<X>,
     effect: X::Effect,
     id: &EffectId,
-) -> Result<Result<Vec<S::Event>, domain::Retry<EffectError>>, Report<KernelError>>
+) -> Result<Result<X::Events, domain::Retry<EffectError>>, Report<KernelError>>
 where
     S: SimpleDomain,
     X: Executor<S>,
