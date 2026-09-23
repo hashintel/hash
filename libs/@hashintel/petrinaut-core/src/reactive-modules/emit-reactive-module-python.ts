@@ -1,3 +1,5 @@
+import { walkReactiveExpr } from "./reactive-module-graph";
+
 import type {
   ReactiveExpr,
   ReactiveModuleDecl,
@@ -28,13 +30,44 @@ const LINE_WIDTH = 88;
 const literal = (value: number, asFloat: boolean): string =>
   Number.isInteger(value) ? (asFloat ? `${value}.0` : `${value}`) : `${value}`;
 
-const COMPARISONS = new Set(["<=", ">="]);
+const COMPARISONS = new Set(["<", "<=", ">", ">=", "==", "!="]);
+const LOGICAL = new Set(["&", "|"]);
+const ARITHMETIC = new Set(["+", "-"]);
 
-/** An operand of `&`: a comparison needs parentheses under Python's precedence. */
-const conjunct = (node: ReactiveExpr, text: string): string =>
-  node.kind === "binary" && COMPARISONS.has(node.op) ? `(${text})` : text;
+/**
+ * An operand of `&` or `|`: a comparison or the other logical operator
+ * needs parentheses under Python's precedence, where `&` and `|` bind
+ * tighter than comparisons.
+ */
+const logicalOperand = (
+  node: ReactiveExpr,
+  text: string,
+  parent: "&" | "|",
+): string =>
+  node.kind === "binary" &&
+  (COMPARISONS.has(node.op) || (LOGICAL.has(node.op) && node.op !== parent))
+    ? `(${text})`
+    : text;
 
-const expr = (node: ReactiveExpr, asFloat: boolean): string => {
+/** An operand of `~` or of a scale: anything but a name, a literal or a call. */
+const tightOperand = (node: ReactiveExpr, text: string): string =>
+  node.kind === "binary" ? `(${text})` : text;
+
+const isLiteral = (node: ReactiveExpr): boolean =>
+  node.kind === "num" || node.kind === "bool";
+
+/**
+ * A literal as an `Expr`, for an `ite` whose branches are both literals:
+ * the sugar needs one branch to carry the theory and sort.
+ */
+const literalExpr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
+  const sort =
+    node.kind === "bool" ? "BOOL" : theory === "LRA" ? "REAL" : "INT";
+  return `expr(${expr(node, theory)}, theory=${theory}, sort=${sort})`;
+};
+
+const expr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
+  const asFloat = theory === "LRA";
   switch (node.kind) {
     case "ref":
       return node.next ? `X(${node.name})` : node.name;
@@ -43,50 +76,60 @@ const expr = (node: ReactiveExpr, asFloat: boolean): string => {
     case "bool":
       return node.value ? "True" : "False";
     case "binary": {
-      const left = expr(node.left, asFloat);
-      const right = expr(node.right, asFloat);
-      return node.op === "&"
-        ? `${conjunct(node.left, left)} & ${conjunct(node.right, right)}`
+      const left = expr(node.left, theory);
+      const right = expr(node.right, theory);
+      return node.op === "&" || node.op === "|"
+        ? `${logicalOperand(node.left, left, node.op)} ${node.op} ${logicalOperand(node.right, right, node.op)}`
         : `${left} ${node.op} ${right}`;
     }
-    case "ite":
-      return `ite(${expr(node.condition, asFloat)}, ${expr(node.thenBranch, asFloat)}, ${expr(node.elseBranch, asFloat)})`;
+    case "ite": {
+      const thenBranch =
+        isLiteral(node.thenBranch) && isLiteral(node.elseBranch)
+          ? literalExpr(node.thenBranch, theory)
+          : expr(node.thenBranch, theory);
+      return `ite(${expr(node.condition, theory)}, ${thenBranch}, ${expr(node.elseBranch, theory)})`;
+    }
+    case "not":
+      return `~${tightOperand(node.operand, expr(node.operand, theory))}`;
+    case "scale":
+      return `${literal(node.factor, asFloat)} * ${tightOperand(node.operand, expr(node.operand, theory))}`;
+    case "relu":
+      return `relu(${expr(node.operand, theory)})`;
   }
 };
 
 const tupleLiteral = (names: string[]): string =>
   names.length === 1 ? `(${names[0]},)` : `(${names.join(", ")})`;
 
-const usesNext = (node: ReactiveExpr): boolean => {
-  switch (node.kind) {
-    case "ref":
-      return node.next;
-    case "num":
-    case "bool":
-      return false;
-    case "binary":
-      return usesNext(node.left) || usesNext(node.right);
-    case "ite":
-      return (
-        usesNext(node.condition) ||
-        usesNext(node.thenBranch) ||
-        usesNext(node.elseBranch)
-      );
-  }
+/** Whether some node of the expression satisfies `test`. */
+const some = (
+  node: ReactiveExpr,
+  test: (candidate: ReactiveExpr) => boolean,
+): boolean => {
+  let found = false;
+  walkReactiveExpr(node, (candidate) => {
+    found ||= test(candidate);
+  });
+  return found;
 };
 
-const usesIte = (node: ReactiveExpr): boolean => {
-  switch (node.kind) {
-    case "ref":
-    case "num":
-    case "bool":
-      return false;
-    case "binary":
-      return usesIte(node.left) || usesIte(node.right);
-    case "ite":
-      return true;
-  }
-};
+const usesNext = (node: ReactiveExpr): boolean =>
+  some(node, (candidate) => candidate.kind === "ref" && candidate.next);
+
+const usesIte = (node: ReactiveExpr): boolean =>
+  some(node, (candidate) => candidate.kind === "ite");
+
+const usesRelu = (node: ReactiveExpr): boolean =>
+  some(node, (candidate) => candidate.kind === "relu");
+
+const usesLiteralIte = (node: ReactiveExpr): boolean =>
+  some(
+    node,
+    (candidate) =>
+      candidate.kind === "ite" &&
+      isLiteral(candidate.thenBranch) &&
+      isLiteral(candidate.elseBranch),
+  );
 
 const moduleExprs = (module: ReactiveModuleDecl): ReactiveExpr[] => [
   ...module.init,
@@ -111,10 +154,11 @@ const imports = (graph: ReactiveModuleGraph): string[] => {
     ...(exprs.some(usesIte) ? ["ite"] : []),
   ];
   return [
-    `from zrth import ${[...theories, ...sortNames, "Var"].join(", ")}`,
+    `from zrth import ${[...theories, ...sortNames, "Var", ...(exprs.some(usesLiteralIte) ? ["expr"] : [])].join(", ")}`,
     ...(graph.root.kind === "compose"
       ? ["from zrth import Module as compose"]
       : []),
+    ...(exprs.some(usesRelu) ? ["from zrth.expr import relu"] : []),
     `from zrth.sugar import ${sugar.join(", ")}`,
     "",
     ...sorts.map(
@@ -139,13 +183,13 @@ const declarations = (variables: ReactiveVariable[]): string[] => {
 };
 
 const classBody = (module: ReactiveModuleDecl): string[] => {
-  const asFloat = module.theory === "LRA";
+  const { theory } = module;
   const lines = [
     `class ${module.className}(Module):`,
     `${INDENT}"""${module.docstring}"""`,
     "",
     `${INDENT}def init(${["self", ...module.extl].join(", ")}):`,
-    `${INDENT}${INDENT}return ${module.init.map((node) => expr(node, asFloat)).join(", ")}`,
+    `${INDENT}${INDENT}return ${module.init.map((node) => expr(node, theory)).join(", ")}`,
     "",
     `${INDENT}def update(${["self", ...module.ctrl, ...module.extl].join(", ")}):`,
   ];
@@ -156,12 +200,12 @@ const classBody = (module: ReactiveModuleDecl): string[] => {
       const trailer =
         statement.comment === undefined ? "" : `  # ${statement.comment}`;
       lines.push(
-        `${INDENT}${INDENT}${statement.target} = ${expr(statement.expr, asFloat)}${trailer}`,
+        `${INDENT}${INDENT}${statement.target} = ${expr(statement.expr, theory)}${trailer}`,
       );
     }
   }
   lines.push(
-    `${INDENT}${INDENT}return ${module.returns.map((node) => expr(node, asFloat)).join(", ")}`,
+    `${INDENT}${INDENT}return ${module.returns.map((node) => expr(node, theory)).join(", ")}`,
   );
   return lines;
 };

@@ -28,7 +28,22 @@ export type ReactiveVariable = {
   comment?: string;
 };
 
-export type ReactiveBinaryOperator = "+" | "-" | ">=" | "<=" | "&";
+/**
+ * Arithmetic on numbers, comparisons from numbers to Bool, and `&`/`|` on
+ * Bool. Multiplication exists only by a constant, as `scale`, because the
+ * theories are linear.
+ */
+export type ReactiveBinaryOperator =
+  | "+"
+  | "-"
+  | "<"
+  | "<="
+  | ">"
+  | ">="
+  | "=="
+  | "!="
+  | "&"
+  | "|";
 
 export type ReactiveExpr =
   | {
@@ -50,7 +65,12 @@ export type ReactiveExpr =
       condition: ReactiveExpr;
       thenBranch: ReactiveExpr;
       elseBranch: ReactiveExpr;
-    };
+    }
+  | { kind: "not"; operand: ReactiveExpr }
+  /** `factor * operand`, the one multiplication a linear theory has. */
+  | { kind: "scale"; factor: number; operand: ReactiveExpr }
+  /** `max(0, operand)`; `max`, `min` and `abs` are written with it. */
+  | { kind: "relu"; operand: ReactiveExpr };
 
 export type ReactiveStatement =
   | { kind: "comment"; text: string }
@@ -116,6 +136,37 @@ export const ite = (
   elseBranch: ReactiveExpr,
 ): ReactiveExpr => ({ kind: "ite", condition, thenBranch, elseBranch });
 
+export const not = (operand: ReactiveExpr): ReactiveExpr => ({
+  kind: "not",
+  operand,
+});
+
+export const scale = (factor: number, operand: ReactiveExpr): ReactiveExpr => ({
+  kind: "scale",
+  factor,
+  operand,
+});
+
+export const relu = (operand: ReactiveExpr): ReactiveExpr => ({
+  kind: "relu",
+  operand,
+});
+
+/** `max(a, b)` as `a + relu(b - a)`. */
+export const max = (left: ReactiveExpr, right: ReactiveExpr): ReactiveExpr =>
+  binary("+", left, relu(binary("-", right, left)));
+
+/** `min(a, b)` as `a - relu(a - b)`. */
+export const min = (left: ReactiveExpr, right: ReactiveExpr): ReactiveExpr =>
+  binary("-", left, relu(binary("-", left, right)));
+
+/** The terms joined with `|`; `null` for no terms. */
+export const disjunction = (terms: ReactiveExpr[]): ReactiveExpr | null =>
+  terms.reduce<ReactiveExpr | null>(
+    (any, term) => (any === null ? term : binary("|", any, term)),
+    null,
+  );
+
 /** `current` changed by `amount` when `condition` holds; unconditionally without one. */
 export const changedWhen = (
   condition: ReactiveExpr | null,
@@ -169,6 +220,38 @@ export const awaitedNames = (expr: ReactiveExpr, into: Set<string>): void => {
       awaitedNames(expr.condition, into);
       awaitedNames(expr.thenBranch, into);
       awaitedNames(expr.elseBranch, into);
+      return;
+    case "not":
+    case "scale":
+    case "relu":
+      awaitedNames(expr.operand, into);
+  }
+};
+
+/** Every sub-expression, the expression itself first. */
+export const walkReactiveExpr = (
+  expr: ReactiveExpr,
+  visit: (node: ReactiveExpr) => void,
+): void => {
+  visit(expr);
+  switch (expr.kind) {
+    case "ref":
+    case "num":
+    case "bool":
+      return;
+    case "binary":
+      walkReactiveExpr(expr.left, visit);
+      walkReactiveExpr(expr.right, visit);
+      return;
+    case "ite":
+      walkReactiveExpr(expr.condition, visit);
+      walkReactiveExpr(expr.thenBranch, visit);
+      walkReactiveExpr(expr.elseBranch, visit);
+      return;
+    case "not":
+    case "scale":
+    case "relu":
+      walkReactiveExpr(expr.operand, visit);
   }
 };
 
