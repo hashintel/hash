@@ -471,20 +471,21 @@ impl<E: DomainEvent + Serialize> EventRecordV1<E> {
     }
 }
 
-/// Builds a record declaration using [`DomainEvent::name`].
-fn event_declaration<E: DomainEvent + 'static>() -> RecordDeclaration {
-    RecordDeclaration {
-        name: E::name(),
-        codec: core::any::TypeId::of::<E>(),
-        owning_module: "kernel::domain",
-        emitted_version: 1,
-        supported_versions: &[1],
-        algorithm_versions: &[AlgorithmVersion {
-            name: "domain_event_identity",
-            version: 1,
-        }],
-        durability: DurabilityClass::ImmutableJournal,
-        migration: MigrationPolicy::NeverRetireWhileUntrimmed,
+impl RecordDeclaration {
+    fn for_event<E: DomainEvent + 'static>() -> Self {
+        Self {
+            name: E::name(),
+            codec: core::any::TypeId::of::<E>(),
+            owning_module: "kernel::domain",
+            emitted_version: 1,
+            supported_versions: &[1],
+            algorithm_versions: &[AlgorithmVersion {
+                name: "domain_event_identity",
+                version: 1,
+            }],
+            durability: DurabilityClass::ImmutableJournal,
+            migration: MigrationPolicy::NeverRetireWhileUntrimmed,
+        }
     }
 }
 
@@ -492,7 +493,7 @@ impl<E: DomainEvent + Serialize + DeserializeOwned + 'static> DurableRecord for 
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
     fn declaration() -> RecordDeclaration {
-        event_declaration::<E>()
+        RecordDeclaration::for_event::<E>()
     }
 
     fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>> {
@@ -688,11 +689,13 @@ const DOMAIN_SNAPSHOT_DECLARATION: RecordDeclaration = RecordDeclaration {
     migration: MigrationPolicy::NeverRetireWhileUntrimmed,
 };
 
-fn snapshot_declaration<S: SimpleDomain>() -> RecordDeclaration {
-    RecordDeclaration {
-        name: core::any::type_name::<ProjectionSnapshot<S>>(),
-        codec: core::any::TypeId::of::<S::Projection>(),
-        ..DOMAIN_SNAPSHOT_DECLARATION
+impl RecordDeclaration {
+    fn for_snapshot<S: SimpleDomain>() -> Self {
+        Self {
+            name: core::any::type_name::<ProjectionSnapshot<S>>(),
+            codec: core::any::TypeId::of::<S::Projection>(),
+            ..DOMAIN_SNAPSHOT_DECLARATION
+        }
     }
 }
 
@@ -751,7 +754,7 @@ impl<S: SimpleDomain> DurableRecord for ProjectionSnapshot<S> {
     const MIGRATION_POLICY: MigrationPolicy = MigrationPolicy::NeverRetireWhileUntrimmed;
 
     fn declaration() -> RecordDeclaration {
-        snapshot_declaration::<S>()
+        RecordDeclaration::for_snapshot::<S>()
     }
 
     fn encode<W: Write>(&self, writer: W) -> Result<(), Report<CompatError>> {
