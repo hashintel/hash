@@ -268,28 +268,6 @@ impl<S: SimpleDomain> EventDomain for Hosted<S> {
         }
     }
 
-    fn validate_recovered_prefix(
-        previous: &Self::Projection,
-        recovered: &Self::Projection,
-    ) -> Result<(), Report<RecoveryError>> {
-        if let Some(previous) = previous.through_sequence
-            && recovered.through_sequence.is_none_or(|new| new < previous)
-        {
-            return Err(Report::new(RecoveryError::RegressedSequence {
-                previous,
-                recovered: recovered.through_sequence,
-            }));
-        }
-        for (event_id, digest) in &previous.seen {
-            if recovered.seen.get(event_id) != Some(digest) {
-                return Err(Report::new(RecoveryError::LostEvent {
-                    event_id: *event_id,
-                }));
-            }
-        }
-        Ok(())
-    }
-
     fn live_work(_projection: &Self::Projection) -> impl IntoIterator<Item = !> {
         core::iter::empty()
     }

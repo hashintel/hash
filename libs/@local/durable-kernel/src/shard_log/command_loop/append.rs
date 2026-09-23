@@ -41,27 +41,11 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
             let append_result = self.append(&record).await;
             match append_result {
                 Ok(sequence) => {
-                    if let Err(error) = D::finalize(&mut self.projection, delta, sequence)
+                    // The record is durable even if the state update fails, so the shard stops and
+                    // startup recovery rebuilds the state.
+                    D::finalize(&mut self.projection, delta, sequence)
                         .change_context(ShardCommandError::FinalizeRecord { event_id, sequence })
-                    {
-                        // The record is durable even though the state update failed. Recover
-                        // and verify that it was applied before accepting another command.
-                        self.recover_after_failure(event_id, error).await?;
-                        return match D::prepare(&self.projection, &record) {
-                            Ok(Prepared::Noop) => {
-                                self.notify_state_change_if_established(&integration_id);
-                                Ok(ShardCommandOutcome::AlreadyDurable { event_id })
-                            }
-                            Ok(Prepared::Mutation(_)) => {
-                                Err(Report::new(ShardCommandError::MissingRecoveredEvent {
-                                    event_id,
-                                }))
-                            }
-                            Err(prepare_error) => Err(Report::new(prepare_error).change_context(
-                                ShardCommandError::ConflictingRecoveredEvent { event_id },
-                            )),
-                        };
-                    }
+                        .change_context(ShardCommandError::LeaseRequired { event_id })?;
                     if self.checkpoint_state_sequence(&integration_id) != previous_state_sequence {
                         self.notify_state_change_if_established(&integration_id);
                     }
@@ -81,12 +65,9 @@ impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
                             safe_failures = safe_failures.saturating_add(1);
                         }
                         AppendFailureKind::CommitUnknown => {
-                            self.recover_after_failure(event_id, error.change_context(context))
-                                .await?;
-                            // After recovery, `prepare` detects the stored event or a conflicting
-                            // ID. If the event is absent, the loop retries it before processing
-                            // another command.
-                            safe_failures = 0;
+                            return Err(error
+                                .change_context(context)
+                                .change_context(ShardCommandError::LeaseRequired { event_id }));
                         }
                         AppendFailureKind::Fenced => return Err(error.change_context(context)),
                     }

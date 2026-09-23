@@ -74,8 +74,6 @@ pub enum ShardCommandError {
     CloseStartupWriter,
     #[display("could not recover shard during startup")]
     RecoverStartup,
-    #[display("could not recover shard after event {event_id} failed")]
-    RecoverAfterFailure { event_id: EventId },
     #[display("could not close writer before recovery")]
     CloseUnrecoveredWriter,
     #[display("could not close recovered writer before enabling commands")]
@@ -101,10 +99,6 @@ pub enum ShardCommandError {
         event_id: EventId,
         sequence: JournalSequence,
     },
-    #[display("acknowledged event {event_id} is absent after recovery")]
-    MissingRecoveredEvent { event_id: EventId },
-    #[display("acknowledged event {event_id} conflicts after recovery")]
-    ConflictingRecoveredEvent { event_id: EventId },
     #[display("could not read snapshot bounds")]
     ReadSnapshotBounds,
     #[display("projection snapshot for shard {:03x} was proposed to shard {:03x}", actual.get(), expected.get())]
@@ -125,10 +119,6 @@ pub enum ShardCommandError {
     EncodeSnapshot,
     #[display("recovering event {event_id} requires acquiring a new lease")]
     LeaseRequired { event_id: EventId },
-    #[display("could not reopen shard writer")]
-    ReopenWriter,
-    #[display("recovered journal prefix is invalid")]
-    ValidateRecoveredPrefix,
     #[display("could not close shard writer")]
     CloseWriter,
     #[display("could not read stored journal events")]
@@ -170,17 +160,12 @@ impl ShardCommandError {
             | Self::RegisterRecord { .. }
             | Self::CloseStartupWriter
             | Self::RecoverStartup
-            | Self::RecoverAfterFailure { .. }
             | Self::CloseUnrecoveredWriter
             | Self::CloseRecoveredWriter
             | Self::ReadControlOutcome { .. }
             | Self::FinalizeRecord { .. }
-            | Self::MissingRecoveredEvent { .. }
-            | Self::ConflictingRecoveredEvent { .. }
             | Self::ReadSnapshotBounds
             | Self::ValidateSnapshotRegistration { .. }
-            | Self::ReopenWriter
-            | Self::ValidateRecoveredPrefix
             | Self::CloseWriter
             | Self::ReadJournal
             | Self::ReplayRecord { .. } => ShardCommandErrorKind::Recovery,

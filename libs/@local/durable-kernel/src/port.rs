@@ -44,9 +44,7 @@ pub struct SnapshotRecoveryStats {
 ///
 /// [`prepare`](Self::prepare) must leave state unchanged. [`finalize`](Self::finalize) applies
 /// accepted changes after storage confirms the append. [`replay`](Self::replay) rebuilds the
-/// same state from stored records, and
-/// [`validate_recovered_prefix`](Self::validate_recovered_prefix) checks that recovered state
-/// includes all acknowledged events.
+/// same state from stored records.
 pub trait EventDomain: 'static {
     /// The wire format, including every supported record version.
     type Record: UntrimmedJournalRecord + Send;
@@ -120,16 +118,6 @@ pub trait EventDomain: 'static {
         shard: Shard,
         sequence: JournalSequence,
         record: Self::Record,
-    ) -> Result<(), Report<Self::RecoveryError>>;
-    /// Checks that recovered state includes all acknowledged events.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if recovery loses or changes an acknowledged event, or moves the
-    /// sequence backwards.
-    fn validate_recovered_prefix(
-        previous: &Self::Projection,
-        recovered: &Self::Projection,
     ) -> Result<(), Report<Self::RecoveryError>>;
     /// Returns the planned or blocked work that the scheduler must resume.
     fn live_work(projection: &Self::Projection) -> impl IntoIterator<Item = Self::WorkIntent>;

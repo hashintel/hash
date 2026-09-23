@@ -1,71 +1,15 @@
 use error_stack::{Report, ResultExt as _};
 
 use super::{
-    CommandLoop, QueuedWhenStopped, RecoveredProjection, RecoveryMode, ShardCommandError,
-    handle::Command,
+    CommandLoop, QueuedWhenStopped, RecoveredProjection, ShardCommandError, handle::Command,
 };
 use crate::{
-    ids::EventId,
     port::{Domain, EventDomain, SnapshotDomain},
     sequence::JournalSequence,
     shard_log::{JournalStorage, JournalWriter, ShardLogWriter, SnapshotCandidate},
 };
 
 impl<D: Domain, S: JournalStorage> CommandLoop<D, S> {
-    pub(super) async fn recover_after_failure(
-        &mut self,
-        event_id: EventId,
-        failure: Report<ShardCommandError>,
-    ) -> Result<(), Report<ShardCommandError>> {
-        if self.recovery_mode == RecoveryMode::FullLeaseHandshake {
-            return Err(failure.change_context(ShardCommandError::LeaseRequired { event_id }));
-        }
-        if let Err(recovery) = self.recover_durable_prefix().await {
-            let mut failures = failure.expand();
-            failures.push(recovery);
-            return Err(
-                failures.change_context(ShardCommandError::RecoverAfterFailure { event_id })
-            );
-        }
-        Ok(())
-    }
-
-    async fn recover_durable_prefix(&mut self) -> Result<(), Report<ShardCommandError>> {
-        if let Some(writer) = self.writer.take() {
-            // Reopening obtains a new writer epoch even if closing the old writer fails.
-            if let Err(error) = writer.close().await {
-                tracing::warn!(
-                    shard = %self.location.shard.path_segment(),
-                    ?error,
-                    "failed to close shard writer before recovery"
-                );
-            }
-        }
-        let writer = ShardLogWriter::open(&self.location)
-            .await
-            .change_context(ShardCommandError::ReopenWriter)?;
-        let durable_end_exclusive = writer.durable_end_exclusive();
-        self.writer = Some(writer);
-        let writer = self
-            .writer
-            .as_ref()
-            .ok_or(ShardCommandError::WriterUnavailable)?;
-        let recovered = replay_with_snapshots::<D>(
-            writer,
-            self.location.shard,
-            durable_end_exclusive,
-            self.snapshot_context.as_ref(),
-        )
-        .await?;
-        D::validate_recovered_prefix(&self.projection, &recovered.projection)
-            .change_context(ShardCommandError::ValidateRecoveredPrefix)?;
-        self.projection = recovered.projection;
-        self.last_snapshot_attempt_through_sequence = self
-            .last_snapshot_attempt_through_sequence
-            .max(recovered.snapshot_through_sequence);
-        Ok(())
-    }
-
     pub(super) fn reject_queued(&mut self, error: &ShardCommandError) {
         let stopped = || Report::new(error.clone()).attach(QueuedWhenStopped);
         while let Ok(command) = self.receiver.try_recv() {

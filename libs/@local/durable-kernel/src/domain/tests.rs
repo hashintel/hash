@@ -831,67 +831,6 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
     );
 }
 
-#[test]
-fn recovered_prefix_cannot_regress_or_lose_events() {
-    let record = incremented("orders", 5);
-    let shard = record.partition().shard();
-    let mut acknowledged = KernelProjection::<Counters>::default();
-    Toy::replay(
-        &mut acknowledged,
-        shard,
-        JournalSequence::new(0),
-        EventRecord::V1(record),
-    )
-    .expect("acknowledged record should replay");
-
-    let empty = KernelProjection::<Counters>::default();
-    let error = Toy::validate_recovered_prefix(&acknowledged, &empty)
-        .expect_err("recovery should preserve the acknowledged prefix");
-    assert_eq!(
-        error.current_context(),
-        &RecoveryError::RegressedSequence {
-            previous: JournalSequence::new(0),
-            recovered: None,
-        }
-    );
-    Toy::validate_recovered_prefix(&acknowledged, &acknowledged.clone())
-        .expect("identical state should preserve the acknowledged prefix");
-    Toy::validate_recovered_prefix(&empty, &acknowledged)
-        .expect("recovery should extend an empty prefix");
-
-    let mut advanced = acknowledged.clone();
-    let record = incremented("orders", 5);
-    Toy::replay(
-        &mut advanced,
-        shard,
-        JournalSequence::new(1),
-        EventRecord::V1(record),
-    )
-    .expect("duplicate replay should advance the sequence");
-    let error = Toy::validate_recovered_prefix(&advanced, &acknowledged)
-        .expect_err("a lower recovered sequence should be a regression");
-    assert_eq!(
-        error.current_context(),
-        &RecoveryError::RegressedSequence {
-            previous: JournalSequence::new(1),
-            recovered: Some(JournalSequence::new(0)),
-        }
-    );
-    Toy::validate_recovered_prefix(&acknowledged, &advanced)
-        .expect("a later sequence should preserve the acknowledged prefix");
-
-    let event_id = incremented("orders", 5).event_id();
-    let mut seen = advanced.seen().clone();
-    seen.remove(&event_id);
-    let missing = with_seen(&advanced, seen);
-    let error = Toy::validate_recovered_prefix(&advanced, &missing)
-        .expect_err("advancing the journal should not hide a missing acknowledged event");
-    assert_eq!(
-        error.current_context(),
-        &RecoveryError::LostEvent { event_id }
-    );
-}
-
 #[tokio::test]
 async fn propose_read_dedupe_and_reject_through_the_real_loop() {
     let root = tempfile::tempdir().expect("object store root tempdir should be created");
@@ -1581,7 +1520,7 @@ async fn snapshot_failure(
         .recover_with_snapshots(&())
         .await
         .expect("shard should recover");
-    let started = recovered.enable(ShardCommandConfig::default().require_full_lease_handshake());
+    let started = recovered.enable(ShardCommandConfig::default());
     started
         .handle
         .propose(record)
@@ -1676,8 +1615,7 @@ async fn snapshot_commit_unknown_continues() {
             .recover_with_snapshots(&())
             .await
             .expect("recovery should handle either snapshot outcome");
-        let restarted =
-            recovered.enable(ShardCommandConfig::default().require_full_lease_handshake());
+        let restarted = recovered.enable(ShardCommandConfig::default());
         let totals = restarted
             .handle
             .read(|state| state.domain().totals.clone())
