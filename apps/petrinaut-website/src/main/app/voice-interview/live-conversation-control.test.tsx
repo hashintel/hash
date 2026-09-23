@@ -155,6 +155,74 @@ test.each(["log", undefined] as const)(
   },
 );
 
+test("connected enforcement offers exact recovery, context, and clears it on session end", async () => {
+  window.localStorage.setItem(
+    LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+    Response.json({
+      contribution: "social_or_backchannel",
+      confidence: 0.99,
+    }),
+  );
+  const props = context();
+  props.messages.push({
+    id: "question",
+    role: "assistant",
+    parts: [
+      { type: "text", text: "Do five staff cover weekends?", state: "done" },
+    ],
+  });
+  vi.mocked(props.submitVoiceInput).mockResolvedValue({
+    kind: "message",
+    messageId: "one",
+  });
+  try {
+    render(
+      <VoiceInterviewControl
+        {...props}
+        config={{ ...config, utteranceJudgment: "enforce" }}
+        resolveInputSubmission={() => "root"}
+      />,
+    );
+    const [onState, , onInput, onDelegation] = vi.mocked(createLiveConversation)
+      .mock.calls[0]!;
+    act(() => onState({ phase: "connected", message: null }));
+    await act(async () =>
+      onInput({ id: "one", text: "<script>PRIVATE okay</script>" }),
+    );
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    const body = fetch.mock.calls[0]?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected a JSON request");
+    expect(JSON.parse(body)).toMatchObject({
+      currentInterviewQuestion: "Do five staff cover weekends?",
+    });
+    expect(screen.getByText("Not sent to Brunch (1)")).toBeTruthy();
+    expect(screen.getByText("<script>PRIVATE okay</script>")).toBeTruthy();
+    expect(document.querySelector("script")).toBeNull();
+    act(() => onDelegation("unmatched"));
+    expect(props.submitVoiceInput).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Not sent to Brunch (1)"));
+    const send = screen.getByRole("button", { name: "Send to Brunch" });
+    fireEvent.click(send);
+    fireEvent.click(send);
+    await waitFor(() => expect(props.submitVoiceInput).toHaveBeenCalledOnce());
+    expect(props.submitVoiceInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "one",
+        text: "<script>PRIVATE okay</script>",
+      }),
+    );
+    await act(async () => onInput({ id: "two", text: "hang on" }));
+    expect(screen.getByText("Not sent to Brunch (1)")).toBeTruthy();
+    act(() => onState({ phase: "ended", message: null }));
+    expect(screen.queryByText("Not sent to Brunch (1)")).toBeNull();
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
 test("starts Live directly after the voice disclosure is acknowledged", () => {
   window.localStorage.setItem(
     LIVE_VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

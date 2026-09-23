@@ -10,13 +10,15 @@ export const utteranceContributions = [
 
 export type UtteranceContribution = (typeof utteranceContributions)[number];
 
-/** Enforcement requires a separate decision after the log-only experiment. */
-export type UtteranceJudgmentMode = "off" | "log";
+/** Enforcement is an owner-approved local trial, not a shared rollout. */
+export type UtteranceJudgmentMode = "off" | "log" | "enforce";
 
 export interface UtteranceJudgmentState {
   readonly transcript: string;
   /** Last Brunch prose successfully offered to Live, not proof it was played. */
   readonly relayedBrunchText: string | null;
+  /** Latest finalized canonical assistant turn; may contain a question. */
+  readonly currentInterviewQuestion?: string | null;
 }
 
 export interface UtteranceJudgment {

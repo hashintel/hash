@@ -1,4 +1,5 @@
 import { selectCanonicalSpeech } from "./canonical-speech";
+import { LiveUtteranceGate } from "./live-utterance-gate";
 import { logLiveDiagnostic } from "./shared/live-diagnostic";
 
 import type {
@@ -6,6 +7,7 @@ import type {
   UtteranceJudgmentState,
 } from "../../../shared/live-utterance-judgment";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { WithheldUtterance } from "./live-utterance-gate";
 import type {
   RealtimeBrunchBridge,
   VoiceSubmissionSettlement,
@@ -19,6 +21,7 @@ import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 interface Chat {
   readonly canAcceptVoiceInput: boolean;
+  readonly currentInterviewQuestion?: string | null;
   readonly segments: readonly CanonicalSpeechSegment[];
   readonly settlements: readonly VoiceSubmissionSettlement[];
   readonly snapshot?: FlueConversationState;
@@ -45,7 +48,9 @@ interface Dependencies {
   ) => boolean;
   readonly appendInstructions: (text: string, delegationId: string) => boolean;
   readonly notice: (message: string | null) => void;
-  /** Optional log-only observation. Never controls submission or admission. */
+  readonly enforce?: boolean;
+  readonly withheldChanged?: (inputs: readonly WithheldUtterance[]) => void;
+  /** Observes alongside submission unless local enforcement is enabled. */
   readonly judge?: (
     state: UtteranceJudgmentState,
     signal: AbortSignal,
@@ -55,6 +60,7 @@ interface Dependencies {
 /** Session-local correlation only. Flue and the composer retain all canonical ownership. */
 export class LiveBrunchBridge {
   readonly #dependencies: Dependencies;
+  readonly #gate?: LiveUtteranceGate;
   readonly #abort = new AbortController();
   readonly #seenInputs = new Set<string>();
   readonly #offeredSegments = new Set<string>();
@@ -81,10 +87,25 @@ export class LiveBrunchBridge {
 
   public constructor(dependencies: Dependencies) {
     this.#dependencies = dependencies;
+    if (dependencies.enforce) {
+      this.#gate = new LiveUtteranceGate({
+        judge: dependencies.judge,
+        withheldChanged: dependencies.withheldChanged,
+        canSubmit: () =>
+          !this.#abort.signal.aborted &&
+          !this.#waitingForComposer &&
+          this.#chat.canAcceptVoiceInput &&
+          this.#chat.status !== "error",
+        submit: (input) => {
+          void this.#submitInput(input, null);
+        },
+      });
+    }
   }
 
   public stop(): void {
     this.#abort.abort();
+    this.#gate?.stop();
     this.#turns.clear();
     this.#unclaimedDelegations.clear();
   }
@@ -97,6 +118,14 @@ export class LiveBrunchBridge {
 
   public acceptDelegation(delegationId: string): void {
     if (this.#abort.signal.aborted) return;
+    if (this.#gate) {
+      logLiveDiagnostic("delegation.unmatched", { delegationId });
+      this.#dependencies.appendInstructions(
+        "The application decides which finalized speech to send to Brunch. This delegation does not identify or submit an utterance. Wait for backend results; do not claim an answer was received or work completed without confirmation. The person can use Send to Brunch to recover withheld speech.",
+        delegationId,
+      );
+      return;
+    }
     const turn = [...this.#turns].findLast(
       (candidate) => candidate.delegationId === null,
     );
@@ -148,8 +177,8 @@ export class LiveBrunchBridge {
     }
     if (
       input.text.length > 32_000 ||
-      this.#waitingForComposer ||
-      !this.#chat.canAcceptVoiceInput
+      (!this.#gate &&
+        (this.#waitingForComposer || !this.#chat.canAcceptVoiceInput))
     ) {
       logLiveDiagnostic("input.dropped", {
         inputId: input.id,
@@ -164,6 +193,25 @@ export class LiveBrunchBridge {
       this.#unserved(delegationId);
       return;
     }
+    if (this.#gate) {
+      this.#gate.accept(input, {
+        transcript: input.text,
+        relayedBrunchText: this.#lastOfferedText,
+        currentInterviewQuestion: this.#chat.currentInterviewQuestion ?? null,
+      });
+      return;
+    }
+    await this.#submitInput(input, delegationId);
+  }
+
+  public release(inputId: string): void {
+    this.#gate?.release(inputId);
+  }
+
+  async #submitInput(
+    input: WithheldUtterance,
+    delegationId: string | null,
+  ): Promise<void> {
     this.#dependencies.notice(null);
     const turn: Turn = {
       inputId: input.id,
@@ -177,7 +225,8 @@ export class LiveBrunchBridge {
     this.#waitingForComposer = turn;
     this.#turns.add(turn);
     // No await: a slow judge must not change the composer's admission window.
-    if (this.#dependencies.judge) void this.#observeJudgment(turn, input.text);
+    if (this.#dependencies.judge && !this.#gate)
+      void this.#observeJudgment(turn, input.text);
     try {
       logLiveDiagnostic("brunch.submit", { inputId: input.id, delegationId });
       const result = await this.#dependencies.submit({
@@ -196,6 +245,7 @@ export class LiveBrunchBridge {
           // not response completion, frees the composer's waiting-input slot.
           if (this.#waitingForComposer === turn)
             this.#waitingForComposer = undefined;
+          queueMicrotask(() => this.#gate?.drain());
         },
       });
       this.#abort.signal.throwIfAborted();
@@ -225,6 +275,7 @@ export class LiveBrunchBridge {
     } finally {
       if (this.#waitingForComposer === turn)
         this.#waitingForComposer = undefined;
+      this.#gate?.drain();
     }
   }
 
@@ -316,9 +367,11 @@ export class LiveBrunchBridge {
       return;
     }
     this.#settle();
+    this.#gate?.drain();
   }
 
   #interruptTurns(): void {
+    this.#gate?.cancelPending();
     for (const turn of this.#turns) {
       logLiveDiagnostic("brunch.interrupted", {
         inputId: turn.inputId,
