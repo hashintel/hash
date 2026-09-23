@@ -1260,7 +1260,14 @@ export const isConstructionMutationName = (
   isObservedStateMutation(name) ||
   isBatchedStateMutation(name);
 
-/** The canonical mutation names for which some inputs are host-observable. */
+/**
+ * Names eligible for Brunch's one-call canonical evidence (only the root
+ * inputs accepted by the predicate below). Scenario and metric add/update/
+ * remove calls remain Petrinaut-executed: its handle owns their change events
+ * and revisions, and the repository persists them independently. Brunch does
+ * not currently bind those facts to the originating tool call, so the Ledger
+ * reports those calls as `unrecorded`—not as unchanged or unsaved documents.
+ */
 export const hostRecordedCanonicalMutationNames = [
   "addPlace",
   "addTransition",
