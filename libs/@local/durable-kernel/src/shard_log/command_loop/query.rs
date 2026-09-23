@@ -23,8 +23,8 @@ impl<D: QueryDomain> Operation<D> for Query<D> {
         self: Box<Self>,
         access: &mut dyn LoopAccess<D>,
     ) -> BoxFuture<'_, Result<(), CommandFailure>> {
-        let result = send_reply(self.reply, Ok(D::answer(access.projection(), self.query)));
-        Box::pin(core::future::ready(result))
+        let sent = send_reply(self.reply, Ok(D::answer(access.projection(), self.query)));
+        Box::pin(core::future::ready(sent))
     }
 
     fn reject(self: Box<Self>, error: Report<ShardCommandError>) {

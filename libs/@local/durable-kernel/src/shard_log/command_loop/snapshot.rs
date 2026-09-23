@@ -110,8 +110,8 @@ impl<D: SnapshotDomain> Operation<D> for CommitSnapshot<D> {
     ) -> BoxFuture<'_, Result<(), CommandFailure>> {
         let Self { snapshot, reply } = *self;
         Box::pin(async move {
-            let result = commit::<D>(access, snapshot).await;
-            send_reply(reply, result)
+            let committed = commit::<D>(access, snapshot).await;
+            send_reply(reply, committed)
         })
     }
 

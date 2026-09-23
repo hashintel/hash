@@ -176,12 +176,12 @@ pub trait CoverageSink {
 }
 
 impl Property {
-    /// Checks a safety property. Failures include the property ID, statement, and supplied
-    /// detail.
+    /// Checks a safety property.
     ///
     /// # Panics
     ///
-    /// Panics when `condition` is false.
+    /// Panics when `condition` is false. The message names the property ID, its statement, and
+    /// `detail`.
     #[track_caller]
     pub fn check(&self, condition: bool, detail: impl fmt::Display) {
         debug_assert_eq!(self.class, PropertyClass::Safety);

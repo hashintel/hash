@@ -92,8 +92,8 @@ impl<D: ControlDomain> Operation<D> for InspectControl<D> {
         self: Box<Self>,
         access: &mut dyn LoopAccess<D>,
     ) -> BoxFuture<'_, Result<(), CommandFailure>> {
-        let result = inspect::<D>(access.shard(), access.projection(), &self.request);
-        Box::pin(core::future::ready(send_reply(self.reply, result)))
+        let inspection = inspect::<D>(access.shard(), access.projection(), &self.request);
+        Box::pin(core::future::ready(send_reply(self.reply, inspection)))
     }
 
     fn reject(self: Box<Self>, error: Report<ShardCommandError>) {
@@ -122,8 +122,8 @@ impl<D: ControlDomain> Operation<D> for ResolveControl<D> {
             reply,
         } = *self;
         Box::pin(async move {
-            let result = resolve::<D>(access, request, preflight_rejection).await;
-            send_reply(reply, result)
+            let resolution = resolve::<D>(access, request, preflight_rejection).await;
+            send_reply(reply, resolution)
         })
     }
 
