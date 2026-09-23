@@ -1,4 +1,4 @@
-import { Select, type SelectItem } from "@hashintel/ds-components";
+import { NumberInput, Select, type SelectItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type {
@@ -26,8 +26,10 @@ export type TargetControl = {
 
 export type TargetHeaderModel = {
   controls: TargetControl[];
-  /** The step length a stochastic rate is tested over; `null` for a plain net. */
+  /** The step length rates are tested over and dynamics step by; `null` when neither applies. */
   dt: number | null;
+  /** The slots a coloured place without a capacity gets; `null` for an uncoloured net. */
+  slots: number | null;
 };
 
 const SHAPE_ITEMS: SelectItem<string>[] = [
@@ -49,7 +51,10 @@ export const targetHeaderControls = (
   target: ResolvedZerothTarget,
   document: PetriNetIr | null,
 ): TargetHeaderModel => {
-  const stochastic = document?.kind === "stochastic";
+  const stochastic = document !== null && document.kind !== "plain";
+  const places = document === null ? [] : Object.values(document.places);
+  const coloured = places.some((place) => place?.colour !== undefined);
+  const dynamic = places.some((place) => place?.dynamics !== undefined);
   const controllable =
     document !== null &&
     Object.values(document.transitions).some(
@@ -61,12 +66,18 @@ export const targetHeaderControls = (
       {
         id: "marking",
         label: "Marking",
-        // A plain net counts tokens in Int whatever the flag says.
-        value: stochastic ? target.marking : "int",
+        // A plain net counts in Int, a coloured one in Real, whatever the flag says.
+        value:
+          coloured || dynamic ? "real" : stochastic ? target.marking : "int",
         items: MARKING_ITEMS,
-        ...(stochastic
+        ...(stochastic && !coloured && !dynamic
           ? {}
-          : { disabledReason: "A plain net's marking is always Int" }),
+          : {
+              disabledReason:
+                coloured || dynamic
+                  ? "A coloured net or one with dynamics holds Reals"
+                  : "A plain net's marking is always Int",
+            }),
       },
       {
         id: "control",
@@ -81,7 +92,8 @@ export const targetHeaderControls = (
             }),
       },
     ],
-    dt: stochastic ? target.dt : null,
+    dt: stochastic || dynamic ? target.dt : null,
+    slots: coloured ? target.slots : null,
   };
 };
 
@@ -113,6 +125,10 @@ const labelStyle = css({
 
 const selectStyle = css({
   minWidth: "[96px]",
+});
+
+const slotsStyle = css({
+  width: "[56px]",
 });
 
 const dtStyle = css({
@@ -155,6 +171,27 @@ export const TargetHeader = ({
           />
         </label>
       ))}
+      {model.slots === null ? null : (
+        <div
+          className={controlStyle}
+          title="Slots of a coloured place without a capacity"
+        >
+          <span className={labelStyle}>Slots</span>
+          <NumberInput
+            size="xs"
+            hideStepper
+            min={1}
+            aria-label="Slots flag"
+            value={model.slots}
+            className={slotsStyle}
+            onChange={(value) => {
+              if (value !== null && value >= 1) {
+                onChange({ slots: Math.floor(value) });
+              }
+            }}
+          />
+        </div>
+      )}
       {model.dt === null ? null : (
         <span className={dtStyle} title="From Simulation Settings">
           dt {model.dt}
