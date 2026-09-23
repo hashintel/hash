@@ -785,7 +785,7 @@ mod tests {
             CompatError, DeclarationError, DurableRecord, MigrationPolicy, RecordDeclaration,
             RecordRegistry, UntrimmedJournalRecord, VersionedRecord,
         },
-        routing::{Shard, shard_path},
+        routing::Shard,
     };
 
     #[tokio::test]
@@ -894,7 +894,10 @@ mod tests {
         }
 
         fn log_path(shard: Shard) -> String {
-            format!("tenants/alice/control/v1/shards/{}/log", shard_path(shard))
+            format!(
+                "tenants/alice/control/v1/shards/{}/log",
+                shard.path_segment()
+            )
         }
 
         fn location(&self, shard: Shard) -> ShardLogLocation {

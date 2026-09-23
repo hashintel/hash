@@ -16,6 +16,12 @@ impl Shard {
     pub const fn from_u8(value: u8) -> Self {
         Self(value)
     }
+
+    /// Returns the three-digit hexadecimal shard path segment.
+    #[must_use]
+    pub fn path_segment(self) -> String {
+        format!("{:03x}", self.get())
+    }
 }
 
 impl TryFrom<u16> for Shard {
@@ -33,12 +39,6 @@ impl TryFrom<u16> for Shard {
 #[display("shard {value} does not fit in a routing-v1 one-byte ID")]
 pub struct InvalidShard {
     pub value: u16,
-}
-
-/// Fixed-width path segment for one shard, shared by every key layout.
-#[must_use]
-pub fn shard_path(shard: Shard) -> String {
-    format!("{:03x}", shard.get())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
@@ -62,7 +62,7 @@ impl core::str::FromStr for Shard {
 }
 impl serde::Serialize for Shard {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&shard_path(*self))
+        serializer.serialize_str(&self.path_segment())
     }
 }
 impl<'de> serde::Deserialize<'de> for Shard {
