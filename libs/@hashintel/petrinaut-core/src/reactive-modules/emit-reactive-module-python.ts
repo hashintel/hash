@@ -32,7 +32,6 @@ const literal = (value: number, asFloat: boolean): string =>
 
 const COMPARISONS = new Set(["<", "<=", ">", ">=", "==", "!="]);
 const LOGICAL = new Set(["&", "|"]);
-const ARITHMETIC = new Set(["+", "-"]);
 
 /**
  * An operand of `&` or `|`: a comparison or the other logical operator
@@ -56,16 +55,6 @@ const tightOperand = (node: ReactiveExpr, text: string): string =>
 const isLiteral = (node: ReactiveExpr): boolean =>
   node.kind === "num" || node.kind === "bool";
 
-/**
- * A literal as an `Expr`, for an `ite` whose branches are both literals:
- * the sugar needs one branch to carry the theory and sort.
- */
-const literalExpr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
-  const sort =
-    node.kind === "bool" ? "BOOL" : theory === "LRA" ? "REAL" : "INT";
-  return `expr(${expr(node, theory)}, theory=${theory}, sort=${sort})`;
-};
-
 const expr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
   const asFloat = theory === "LRA";
   switch (node.kind) {
@@ -83,10 +72,12 @@ const expr = (node: ReactiveExpr, theory: ReactiveTheory): string => {
         : `${left} ${node.op} ${right}`;
     }
     case "ite": {
+      // The sugar needs one branch to carry the theory and sort when both are literals.
+      const thenText = expr(node.thenBranch, theory);
       const thenBranch =
         isLiteral(node.thenBranch) && isLiteral(node.elseBranch)
-          ? literalExpr(node.thenBranch, theory)
-          : expr(node.thenBranch, theory);
+          ? `expr(${thenText}, theory=${theory}, sort=${node.thenBranch.kind === "bool" ? "BOOL" : asFloat ? "REAL" : "INT"})`
+          : thenText;
       return `ite(${expr(node.condition, theory)}, ${thenBranch}, ${expr(node.elseBranch, theory)})`;
     }
     case "not":
