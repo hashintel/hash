@@ -1,4 +1,4 @@
-//! Application events, state, and external operations.
+//! Defines application events, state, and external operations.
 //!
 //! Implement [`DomainEvent`] for events, [`Fold`] for state updates, and [`Executor`] for
 //! external work. [`SimpleDomain`] connects the event and state types. The [`crate::runtime`]
@@ -42,12 +42,12 @@ use crate::ids::{EffectId, content_digest_bytes};
 /// Keep decoding all stored event versions when changing this type. A versioned serde enum is
 /// one way to retain that compatibility.
 pub trait DomainEvent {
-    /// The event name stored in journal records. Keep this stable so existing records remain
-    /// readable.
+    /// Returns the event name stored in journal records. Keep it stable so existing records
+    /// remain readable.
     fn name() -> &'static str;
 
-    /// The partition used for shard routing, state-change notifications, and startup key
-    /// discovery.
+    /// Returns the partition used for shard routing, state-change notifications, and startup
+    /// key discovery.
     fn partition(&self) -> PartitionKey;
 }
 

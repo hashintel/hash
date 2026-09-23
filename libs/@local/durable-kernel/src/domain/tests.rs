@@ -367,7 +367,7 @@ fn toy_snapshot(shard: &str, padding: usize) -> ProjectionSnapshot<ToyDomain> {
         shard.parse().expect("test shard should parse"),
         &projection,
     )
-    .expect("a projection with a journal position should be captured")
+    .expect("a projection with a journal sequence should be captured")
     .into_record(DateTime::UNIX_EPOCH)
 }
 
@@ -383,7 +383,7 @@ fn snapshots_encode_and_decode_at_the_size_boundary() {
     ProjectionSnapshot::<ToyDomain>::decode(&encoded).expect("maximum-size snapshot should decode");
 
     let error = encode(&toy_snapshot("00f", MAX_SNAPSHOT_BYTES - base + 1))
-        .expect_err("an oversized snapshot should be refused at encode");
+        .expect_err("an oversized snapshot should be rejected at encode");
     assert_eq!(
         error.current_context(),
         &CompatError::TooLarge {
@@ -397,7 +397,7 @@ fn snapshots_encode_and_decode_at_the_size_boundary() {
     padded.push(b' ');
     assert!(
         ProjectionSnapshot::<ToyDomain>::decode(&padded).is_err(),
-        "an oversized snapshot should be refused at decode"
+        "an oversized snapshot should be rejected at decode"
     );
 }
 
@@ -538,7 +538,7 @@ fn replay_preserves_historical_admission() {
         Counters::default().validate(&event).is_err(),
         "current admission should reject zero"
     );
-    let record = EventRecordV1::new(event).expect("historical record should have a valid identity");
+    let record = EventRecordV1::new(event).expect("historical record should have a valid ID");
     let shard = shard_of(record.partition());
     let mut projection = KernelProjection::<Counters>::default();
     Toy::replay(&mut projection, shard, 0, EventRecord::V1(record))
@@ -610,16 +610,16 @@ async fn record_decode_invalid_fields() {
             },
         ),
     ] {
-        let mut data = serde_json::to_value(&record).expect("record should serialize");
-        data[field] = value;
-        let error = serde_json::from_value::<EventRecordV1<CounterEvent>>(data.clone())
+        let mut record_json = serde_json::to_value(&record).expect("record should serialize");
+        record_json[field] = value;
+        let error = serde_json::from_value::<EventRecordV1<CounterEvent>>(record_json.clone())
             .expect_err("invalid record should fail deserialization");
         assert!(
             error.to_string().contains(expected_error),
             "error should contain {expected_error:?}: {error}"
         );
 
-        let bytes = serde_json::to_vec(&json!({"version": "v1", "data": data}))
+        let bytes = serde_json::to_vec(&json!({"version": "v1", "data": record_json}))
             .expect("wire record should serialize");
         let journal = SimLogHandle::new(42, Vec::new());
         let SimAppendResult::Acked(sequence) = journal
@@ -784,7 +784,7 @@ fn replay_tolerates_double_append_and_refuses_conflicts() {
         .insert(record.event_id(), other_digest);
     let event_id = record.event_id();
     let error = Toy::replay(&mut projection, shard, 2, EventRecord::V1(record))
-        .expect_err("an event ID stored with different content should be refused");
+        .expect_err("an event ID stored with different content should be rejected");
     assert_eq!(
         error.current_context(),
         &RecoveryError::ConflictingReuse {
@@ -901,7 +901,7 @@ async fn propose_read_dedupe_and_reject_through_the_real_loop() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 }
 
 #[tokio::test]
@@ -965,16 +965,16 @@ async fn shutdown_full_queue() {
             };
             hold.release().notify_one();
             for (index, proposal) in [active, queued].into_iter().enumerate() {
-                let result = proposal.await.expect("proposal task should join");
+                let outcome = proposal.await.expect("proposal task should join");
                 if cancel_shutdown && index == 1 {
-                    let error = result.expect_err("losing the owner should stop accepted work");
+                    let error = outcome.expect_err("losing the owner should stop accepted work");
                     assert_eq!(
                         error.current_context().kind(),
                         ShardCommandErrorKind::Fenced
                     );
                 } else {
                     assert!(matches!(
-                        result.expect("accepted proposal should finish"),
+                        outcome.expect("accepted proposal should finish"),
                         ShardCommandOutcome::Applied { .. }
                     ));
                 }
@@ -982,10 +982,10 @@ async fn shutdown_full_queue() {
             if let Some(shutdown) = shutdown {
                 shutdown.await.expect("shutdown should close the writer");
             }
-            let result = started.task.await.expect("loop task should join");
+            let stopped = started.task.await.expect("loop task should join");
             if cancel_shutdown {
                 assert_eq!(
-                    result.expect_err("owner drop should stop the loop").kind(),
+                    stopped.expect_err("owner drop should stop the loop").kind(),
                     ShardCommandErrorKind::Fenced
                 );
                 assert_eq!(
@@ -994,7 +994,7 @@ async fn shutdown_full_queue() {
                     "owner drop should let the active append finish and reject queued writes"
                 );
             } else {
-                result.expect("loop should shut down cleanly");
+                stopped.expect("loop should shut down without an error");
                 assert_eq!(
                     journal.durable_entries(SimKey::Events).len(),
                     2,
@@ -1315,7 +1315,7 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 
     let (handle, started) = start(location).await;
     let through = handle
@@ -1364,7 +1364,7 @@ async fn crash_replay_rebuilds_state_and_still_dedupes() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 }
 
 #[tokio::test]
@@ -1403,7 +1403,7 @@ async fn foreign_partition_is_rejected() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 }
 
 #[tokio::test]
@@ -1445,7 +1445,7 @@ async fn snapshots_bound_recovery_and_roundtrip_state() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 
     let opened = OpenedShard::open(location)
         .await
@@ -1474,7 +1474,7 @@ async fn snapshots_bound_recovery_and_roundtrip_state() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 }
 
 #[test]
@@ -1577,7 +1577,7 @@ async fn snapshot_failure(
     assert!(
         matches!(error.current_context(), ShardCommandError::AppendSnapshot { through_sequence, .. }
             if *through_sequence == snapshot_through),
-        "snapshot append failure should identify the captured journal position"
+        "snapshot append failure should identify the captured journal sequence"
     );
     (journal, started, error)
 }
@@ -1618,7 +1618,7 @@ async fn snapshot_commit_unknown_continues() {
             .handle
             .propose(record)
             .await
-            .expect_err("uncertain event commit should still stop the shard");
+            .expect_err("a commit-unknown event append should stop the shard");
         assert_eq!(
             error.current_context().kind(),
             ShardCommandErrorKind::CommitUnknown
@@ -1626,20 +1626,20 @@ async fn snapshot_commit_unknown_continues() {
         assert_eq!(
             error
                 .downcast_ref::<ShardAppendError>()
-                .expect("recovery failure should retain the uncertain append")
+                .expect("recovery failure should retain the commit-unknown append")
                 .kind,
             AppendFailureKind::CommitUnknown
         );
         assert_eq!(
             error.current_context(),
             &ShardCommandError::LeaseRequired { event_id },
-            "lease recovery should identify the uncertain event"
+            "lease recovery should identify the commit-unknown event"
         );
         started
             .task
             .await
             .expect("task should join")
-            .expect_err("uncertain event should be terminal");
+            .expect_err("a commit-unknown event should be terminal");
 
         let location = ShardLogLocation::simulated(shard, journal, Arc::default());
         let recovered: RecoveredShard<Toy, _> = OpenedShard::open(location)
@@ -1665,7 +1665,7 @@ async fn snapshot_commit_unknown_continues() {
             .task
             .await
             .expect("task should join")
-            .expect("loop should stop cleanly");
+            .expect("loop should stop without an error");
     }
 }
 
@@ -1760,7 +1760,7 @@ async fn snapshot_failed_attempt_interval() {
         .task
         .await
         .expect("loop task should join")
-        .expect("loop should stop cleanly");
+        .expect("loop should stop without an error");
 }
 
 #[test]

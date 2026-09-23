@@ -1,4 +1,4 @@
-//! Storage operations used by journal submission and recovery.
+//! Defines the storage operations that journal submission and recovery use.
 //!
 //! Implement [`JournalStorage`] to supply readers and writers. The kernel checks record formats
 //! and scan boundaries for each backend. [`StorageConfig`] opens the object-storage backend.
@@ -28,21 +28,22 @@ use crate::DurableError;
 
 /// Reads durable records as `(journal sequence, stored bytes)` in increasing sequence order.
 ///
-/// Each sequence is a position assigned at append time across all keys in one journal. Positions
-/// can have gaps. A stream yields an error if storage cannot supply the next record.
+/// The journal assigns each record its journal sequence at append time. All keys in one journal
+/// share one sequence, and it can have gaps. The stream yields an error if storage cannot supply
+/// the next record.
 pub trait JournalStream: Stream<Item = Result<(u64, Bytes), Report<DurableError>>> + Send {
-    /// Exclusive end of the range read, including positions with no record for the requested key.
-    /// After the stream returns `None`, this must report how far storage was read, even if the scan
-    /// stopped before the requested end.
+    /// Returns the exclusive end of the journal sequences read, including sequences with no record
+    /// for the requested key. After the stream returns `None`, this must report how far storage was
+    /// read, even if the scan stopped before the requested end.
     fn next_sequence(&self) -> u64;
 }
 
 /// Scans a journal without changing its contents.
 pub trait JournalReader: Send + Sync + 'static {
-    /// A cursor over durable records for one key.
+    /// Streams the durable records of one key.
     type Stream: JournalStream;
 
-    /// Reads records in sequence order within `range`. Sequence gaps and empty ranges are valid.
+    /// Reads records in journal sequence order within `range`. Gaps and empty ranges are valid.
     ///
     /// # Errors
     ///
@@ -63,15 +64,19 @@ pub trait JournalReader: Send + Sync + 'static {
 
 /// Appends through one writer epoch. Opening a replacement must invalidate older writers.
 pub trait JournalWriter: JournalReader {
-    /// Exclusive end of durable records visible to this writer.
+    /// Returns the exclusive end of the durable journal sequences visible to this writer.
     fn durable_end_exclusive(&self) -> u64;
 
-    /// Stores a record under the bytes remaining in `key` and returns its sequence only after it
-    /// is durable. Sequences increase across all keys and writer epochs. They may contain gaps.
+    /// Stores a record under the bytes remaining in `key`. Returns its journal sequence once the
+    /// record is durable. Journal sequences increase across all keys and writer epochs and can have
+    /// gaps.
     ///
     /// # Errors
     ///
-    /// Classifies a failure as definitely not committed, possibly committed, or fenced.
+    /// Returns a [`ShardAppendError`] whose kind is
+    /// [`DefinitelyNotCommitted`](super::AppendFailureKind::DefinitelyNotCommitted),
+    /// [`CommitUnknown`](super::AppendFailureKind::CommitUnknown), or
+    /// [`Fenced`](super::AppendFailureKind::Fenced).
     fn append(
         &self,
         key: impl Buf + Send,
@@ -81,9 +86,9 @@ pub trait JournalWriter: JournalReader {
 
 /// Opens journal readers and writers over the same storage.
 pub trait JournalStorage: Send + Sync + 'static {
-    /// A read-only view that leaves writer ownership unchanged.
+    /// Reads the journal. Opening a reader leaves writer ownership unchanged.
     type Reader: JournalReader;
-    /// A writer that can scan its durable prefix during recovery.
+    /// Appends to the journal and scans its durable prefix during recovery.
     type Writer: JournalWriter;
 
     /// # Errors
@@ -104,16 +109,16 @@ pub trait JournalStorage: Send + Sync + 'static {
     ) -> impl Future<Output = Result<Self::Writer, Report<DurableError>>> + Send;
 }
 
-/// A reader backed by opendata-log.
+/// Implements [`JournalReader`] with opendata-log.
 pub struct StorageReader(LogDbReader);
 
-/// A writer backed by opendata-log.
+/// Implements [`JournalWriter`] with opendata-log.
 pub struct StorageWriter {
     log: LogDb,
     durability_timeout: Duration,
 }
 
-/// A scan backed by opendata-log.
+/// Implements [`JournalStream`] with opendata-log.
 pub struct StorageStream {
     read: Option<ReusableBoxFuture<'static, (LogIterator, opendata_log::Result<Option<LogEntry>>)>>,
     key: Bytes,

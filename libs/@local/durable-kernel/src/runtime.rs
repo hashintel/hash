@@ -11,9 +11,9 @@
 //! [`RunningKernel::shutdown`].
 //!
 //! Run one process per shard set. Opening a replacement writer invalidates the old one.
-//! [`RunningKernel::shutdown`] waits for active effects and closes storage. Dropping it cancels
-//! effect tasks and asks command loops to close. Recovery may repeat an external write whose
-//! completion was not recorded.
+//! [`RunningKernel::shutdown`] waits for active effects and closes storage. Dropping a
+//! [`RunningKernel`] cancels effect tasks and asks command loops to close. Recovery may repeat an
+//! external write whose completion was not recorded.
 
 use alloc::{
     collections::{BTreeMap, BTreeSet},
@@ -42,7 +42,8 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq, derive_more::Display, derive_more::Error)]
-/// A configuration, storage, or runtime failure returned in an [`error_stack::Report`].
+/// Describes a configuration, storage, or runtime failure. The kernel returns it in an
+/// [`error_stack::Report`].
 pub enum KernelError {
     #[display("at least one owned shard is required")]
     NoOwnedShards,
@@ -70,7 +71,7 @@ pub enum KernelError {
     ShardDriver { shard: Shard },
     #[display("effect {effect_id} task was cancelled")]
     EffectTaskCancelled { effect_id: EffectId },
-    #[display("could not encode effect identity")]
+    #[display("could not encode effect ID")]
     EncodeEffectId,
     #[display("could not construct completion event for effect {effect_id}")]
     BuildCompletionEvent { effect_id: EffectId },
@@ -116,7 +117,8 @@ impl<R: core::error::Error + Send + Sync + 'static> From<domain::FoldError<R>>
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SnapshotPolicy {
     Disabled,
-    /// Waits at least this many journal sequence positions between snapshot attempts.
+    /// Attempts a snapshot once the journal sequence has advanced by at least this much since the
+    /// previous attempt.
     Every(NonZeroU64),
 }
 
@@ -124,13 +126,13 @@ const DEFAULT_SNAPSHOT_INTERVAL: NonZeroU64 =
     NonZeroU64::new(512).expect("default snapshot interval should be nonzero");
 
 #[derive(Debug, Clone)]
-/// Storage and scheduling settings for the shards owned by this process.
+/// Configures storage and scheduling for the shards this process owns.
 ///
 /// [`new`](Self::new) supplies defaults. Set [`shards`](Self::shards) before opening a kernel.
 pub struct KernelConfig {
     /// Every storage key starts with this namespace.
     pub name: Namespace,
-    /// Storage location expressed as a local file URL or an S3 URL.
+    /// The storage location, as a local file URL or an S3 URL.
     pub blob_url: String,
     pub aws_region: Option<String>,
     /// The kernel rejects submissions routed outside these shards.
@@ -138,16 +140,18 @@ pub struct KernelConfig {
     pub snapshot_policy: SnapshotPolicy,
     /// Idle drivers wait this long. It is also the default retry delay.
     pub poll_interval: Duration,
-    /// Maximum queued commands per shard. Submissions wait when the queue is full.
+    /// The maximum number of queued commands per shard. Submissions wait when the queue is full.
     pub channel_capacity: NonZeroUsize,
-    /// Retry limit for appends known not to have reached storage.
+    /// The maximum number of retries for an append that did not reach storage.
     pub safe_append_retries: u32,
     pub block_cache_bytes: u64,
     pub meta_cache_bytes: u64,
 }
 
 impl KernelConfig {
-    /// Enables snapshots and retries. Set [`shards`](Self::shards) before opening a kernel.
+    /// Creates a configuration that attempts a snapshot after the journal sequence advances by at
+    /// least 512 and retries an append up to three times when it did not reach storage. Set
+    /// [`shards`](Self::shards) before opening a kernel.
     ///
     /// ```
     /// use durable_kernel::{
@@ -178,7 +182,7 @@ impl KernelConfig {
     }
 }
 
-/// A validated configuration ready to open shard storage with [`start`](Self::start).
+/// Holds a validated configuration. [`start`](Self::start) opens the shard storage.
 pub struct Kernel {
     config: KernelConfig,
     keyspace: Keyspace,
@@ -272,10 +276,7 @@ impl Kernel {
                 Ok(recovered) => recovered,
                 Err(error) => {
                     if let Err(close_error) = running.shutdown().await {
-                        tracing::warn!(
-                            ?close_error,
-                            "failed to close shards after startup failure"
-                        );
+                        tracing::warn!(?close_error, "could not close shards after startup failed");
                     }
                     return Err(error);
                 }
@@ -313,9 +314,9 @@ impl Kernel {
 }
 
 #[derive(Debug)]
-/// Whether a submitted event was rejected, newly stored, or already present in the journal.
+/// Reports whether a submitted event was rejected, newly stored, or already in the journal.
 pub enum Submitted<R> {
-    /// Validation refused the event. It was not appended.
+    /// Validation rejected the event. The journal is unchanged.
     Rejected(error_stack::Report<R>),
     Applied,
     AlreadyDurable,
@@ -419,8 +420,8 @@ impl<S: SimpleDomain> RunningKernel<S> {
             .change_context(KernelError::Command)
     }
 
-    /// Snapshot sequence restored during recovery for each shard. A value of
-    /// `None` means recovery replayed the full journal.
+    /// Returns the journal sequence of the snapshot each shard restored during recovery, keyed by
+    /// shard ID. `None` means the shard replayed its full journal.
     #[must_use]
     pub const fn recovery_snapshots(&self) -> &BTreeMap<u8, Option<u64>> {
         &self.recovered_snapshots
@@ -431,7 +432,7 @@ impl<S: SimpleDomain> RunningKernel<S> {
     ///
     /// # Errors
     ///
-    /// Returns an error when a driver or shard loop failed while running or during shutdown.
+    /// Returns an error when a driver or command loop failed while running or during shutdown.
     pub async fn shutdown(mut self) -> Result<(), Report<KernelError>> {
         self.shutdown.cancel();
         let mut first_error = None;
@@ -677,7 +678,7 @@ where
                     progressed = true;
                 }
                 Err(retry) => {
-                    tracing::debug!(reason = ?retry.reason, effect_id = %id, "effect execution retries later");
+                    tracing::debug!(reason = ?retry.reason, effect_id = %id, "effect execution failed; retrying later");
                     let delay = retry.after.unwrap_or(settings.poll_interval);
                     let Some(deadline) = tokio::time::Instant::now().checked_add(delay) else {
                         return Err(retry.reason.change_context(
@@ -731,7 +732,7 @@ async fn maybe_snapshot<S: SimpleDomain>(
         }
         Ok(None) => {}
         Err(error) => {
-            tracing::debug!(error = ?error, "snapshot capture unavailable");
+            tracing::debug!(error = ?error, "could not capture snapshot");
         }
     }
 }
@@ -848,17 +849,17 @@ mod tests {
         let rejection = domain::FoldError::<Infallible>::from(report);
         assert!(
             core::error::Error::source(&rejection).is_some(),
-            "fold error should expose its report as a source"
+            "`FoldError` should expose its report as a source"
         );
         let report: Report<KernelError> = Report::from(rejection);
 
         assert!(
             report.contains::<serde_json::Error>(),
-            "fold conversion should retain the JSON cause"
+            "the `FoldError` conversion should retain the JSON cause"
         );
         assert!(
             report.contains::<CompatError>(),
-            "fold conversion should retain the codec context"
+            "the `FoldError` conversion should retain the codec context"
         );
         assert_eq!(
             report.downcast_ref::<CodecAttempt>(),
@@ -866,7 +867,7 @@ mod tests {
         );
         assert!(
             format!("{report:?}").contains("codec diagnostic"),
-            "fold conversion should retain printable attachments"
+            "the `FoldError` conversion should retain printable attachments"
         );
     }
 
@@ -1221,7 +1222,7 @@ mod tests {
         assert_eq!(
             *external.lock().expect("test mutex should not be poisoned"),
             vec![("orders".to_owned(), 11)],
-            "the effect must execute exactly once in this session"
+            "the effect should execute exactly once before the restart"
         );
         assert_eq!(
             running
@@ -1229,7 +1230,7 @@ mod tests {
                 .await
                 .expect("read should succeed"),
             BTreeMap::new(),
-            "archiving resets the counter"
+            "archiving should reset the counter"
         );
         assert!(matches!(
             running
@@ -1729,7 +1730,7 @@ mod tests {
         let error = running
             .submit(increment(&foreign, 1, 1))
             .await
-            .expect_err("foreign partition should be refused");
+            .expect_err("foreign partition should be rejected");
         assert!(matches!(
             error.current_context(),
             KernelError::NotOwned { .. }

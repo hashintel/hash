@@ -2,8 +2,8 @@
 //!
 //! Each [`DurableRecord`] has a [`RecordDeclaration`] with its stored name,
 //! format version, ID algorithm versions, and rules for upgrading stored records.
-//! A [`RecordRegistry`] rejects conflicting declarations for the same name, including
-//! their codec identities. A kernel shares its registry with its readers and writers.
+//! A [`RecordRegistry`] rejects a second declaration for a name when any field differs,
+//! including the codec. A kernel shares its registry with its readers and writers.
 //! Applications must keep stored formats compatible across builds.
 //!
 //! [`crate::domain`] supplies these declarations for application events and snapshots. Custom
@@ -44,14 +44,14 @@ pub struct AlgorithmVersion {
     pub version: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// The stored name, supported versions, and compatibility rules for a record type.
+/// Describes a record type's stored name, supported versions, and compatibility rules.
 ///
-/// A name identifies one declaration within a [`RecordRegistry`]. Registering different codecs
-/// or version rules under an existing name fails.
+/// A name identifies one declaration within a [`RecordRegistry`]. Registering a declaration that
+/// differs in any field under an existing name fails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecordDeclaration {
     pub name: &'static str,
-    /// Identifies the codec within this process. Use `TypeId::of::<RecordType>()`.
+    /// Identifies the codec within this process.
     pub codec: core::any::TypeId,
     pub owning_module: &'static str,
     pub emitted_version: u32,
@@ -95,8 +95,9 @@ impl RecordRegistry {
     ///
     /// # Errors
     ///
-    /// Returns an error if the name has a different declaration or a journal declaration allows
-    /// removal of decoders for stored records.
+    /// Returns an error if the name already has a different declaration, or if an
+    /// [`DurabilityClass::ImmutableJournal`] declaration uses a migration policy other than
+    /// [`MigrationPolicy::NeverRetireWhileUntrimmed`].
     pub fn register(&self, declaration: RecordDeclaration) -> Result<(), Report<DeclarationError>> {
         if declaration.migration != MigrationPolicy::NeverRetireWhileUntrimmed
             && declaration.durability == DurabilityClass::ImmutableJournal
@@ -215,7 +216,7 @@ pub trait MutableCasRecord: VersionedRecord + Send + Sync {
     }
 }
 
-/// Records that can be discarded and rebuilt from their source data.
+/// Marks a record type that can be discarded and rebuilt from its source data.
 pub trait RebuildableRecord: DurableRecord {}
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]

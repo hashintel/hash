@@ -96,7 +96,7 @@ pub enum RecoveryError {
         expected.path_segment()
     )]
     SnapshotShardMismatch { expected: Shard, actual: Shard },
-    #[display("durable prefix regressed from {previous} to {recovered:?}")]
+    #[display("recovered journal sequence {recovered:?} is below the previous {previous}")]
     RegressedSequence {
         previous: u64,
         recovered: Option<u64>,

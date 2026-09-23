@@ -1,11 +1,11 @@
-//! Safety and coverage checks for kernel tests.
+//! Defines the safety and coverage properties that kernel tests check.
 //!
 //! Safety properties must hold each time they are checked. Coverage properties identify failure
 //! cases that must occur at least once across a set of schedules. Property-based tests check
 //! safety and shrink failing schedules. Seeded tests also check coverage.
 //!
-//! Keep property IDs stable so recorded failures remain useful.
-//! Retire an ID rather than rename it.
+//! Keep property IDs stable so recorded failures remain useful. To change a property, retire
+//! its ID and add a new one.
 //!
 //! [`CATALOG`] lists the checks. Use [`check`] for safety conditions and [`covered`] to record
 //! exercised failure cases through a [`CoverageSink`].
@@ -14,7 +14,7 @@ use core::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PropertyClass {
-    /// Must hold at every evaluation point.
+    /// Must hold each time it is checked.
     Safety,
     /// Must occur at least once across the schedules.
     Coverage,
@@ -37,7 +37,7 @@ pub const ACK_IMPLIES_DURABLE: Property = Property {
 pub const DURABLE_END_MONOTONIC: Property = Property {
     id: "KRN-A2-DURABLE-END-MONOTONIC",
     class: PropertyClass::Safety,
-    statement: "the last durable journal position never decreases",
+    statement: "the last durable journal sequence never decreases",
 };
 
 pub const PROJECTION_IS_FOLD_OF_DURABLE_PREFIX: Property = Property {
@@ -56,7 +56,7 @@ pub const ACKED_EVENT_SURVIVES_RECOVERY: Property = Property {
 pub const EVENT_ACKED_APPLIED_ONCE: Property = Property {
     id: "KRN-A5-APPLIED-ONCE",
     class: PropertyClass::Safety,
-    statement: "one event identity is acknowledged Applied at most once",
+    statement: "an event ID is acknowledged Applied at most once",
 };
 
 pub const REJECTED_NEVER_DURABLE: Property = Property {
@@ -87,7 +87,7 @@ pub const PENDING_EFFECTS_COMPLETE: Property = Property {
 pub const DURABLE_EVENTS_WERE_PROPOSED: Property = Property {
     id: "KRN-A10-DURABLE-HAS-PROVENANCE",
     class: PropertyClass::Safety,
-    statement: "every event in the durable prefix was proposed by a client of the loop",
+    statement: "every event in the durable prefix was proposed by a client of the command loop",
 };
 
 pub const RECOVERY_FINDS_UNACKNOWLEDGED_APPEND: Property = Property {
@@ -143,10 +143,10 @@ pub const CORRUPT_SNAPSHOT_FELL_BACK: Property = Property {
 pub const EFFECT_EXECUTED_MORE_THAN_ONCE: Property = Property {
     id: "KRN-S9-EFFECT-REEXECUTED",
     class: PropertyClass::Coverage,
-    statement: "one effect identity executes more than once because its completion was lost",
+    statement: "an effect ID executes more than once because its completion was lost",
 };
 
-/// Every catalogued property, for exhaustive coverage accounting.
+/// Lists every property. Coverage checks compare observations against this list.
 pub const CATALOG: &[Property] = &[
     ACK_IMPLIES_DURABLE,
     DURABLE_END_MONOTONIC,

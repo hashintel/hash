@@ -6,7 +6,7 @@
 //!
 //! [`ShardCommandHandle`] serializes submissions and applies each record after it is durable.
 //! Keep the [`ShardOwner`] until shutdown. Dropping it stops the shard.
-//! [`AppendFailureKind`] distinguishes safe retries from writes that require recovery.
+//! [`AppendFailureKind`] says whether a failed append can be retried or requires recovery.
 //! Use [`read_journal`] to inspect stored events without acquiring a writer.
 //! Implement [`JournalStorage`] to use another backend with the same command and recovery checks.
 use alloc::sync::Arc;
@@ -50,12 +50,12 @@ const EVENTS_KEY: &[u8] = b"events";
 const PROJECTION_SNAPSHOTS_KEY: &[u8] = b"projection-snapshots";
 const APPEND_TIMEOUT: Duration = Duration::from_secs(30);
 const DURABILITY_TIMEOUT: Duration = Duration::from_secs(60);
-/// Retries a stalled durability subscription before reporting an uncertain append result. A
-/// leased shard stops on that result and must reacquire its lease.
+/// Number of durability waits before an append is reported as commit-unknown. A leased shard
+/// stops on that result and must reacquire its lease.
 const DURABILITY_WAIT_ATTEMPTS: u32 = 3;
 const PINNED_FENCE_MESSAGE: &str = "detected newer db client";
 
-/// A snapshot reference's log sequence and the snapshot record it points to.
+/// The journal sequence of a snapshot reference and the snapshot record it points to.
 type SnapshotCandidate<T> = (u64, Result<T, Report<crate::registry::CompatError>>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display)]
@@ -68,7 +68,7 @@ pub enum AppendFailureKind {
     #[display("record commit status is unknown")]
     CommitUnknown,
     /// A replacement writer owns the journal. This writer must stop.
-    #[display("writer no longer owns the journal")]
+    #[display("a replacement writer owns the journal")]
     Fenced,
 }
 
@@ -79,7 +79,7 @@ pub struct ShardAppendError {
     pub kind: AppendFailureKind,
 }
 
-/// Invalid storage options or a failure to create the local storage directory.
+/// Reports invalid storage options or a failure to create the local storage directory.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum StorageConfigError {
     #[display("unsupported shard-log blob URL {url:?}")]
@@ -92,7 +92,7 @@ pub enum StorageConfigError {
     CreateLocalDirectory { path: PathBuf },
 }
 
-/// A journal open failure. The report retains the storage or timeout error.
+/// Reports a failure to open a journal. The report retains the storage or timeout error.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum ShardLogOpenError {
     #[display("could not open writer for shard {}", shard.get())]
@@ -106,7 +106,7 @@ pub enum ShardLogOpenError {
 }
 
 #[derive(Debug, Clone)]
-/// A journal's storage configuration and shared record registry.
+/// Holds a journal's storage configuration and shared record registry.
 ///
 /// Share one registry across locations that must agree on record names and codecs.
 pub struct ShardLogLocation<S: JournalStorage = StorageConfig> {
@@ -118,7 +118,7 @@ pub struct ShardLogLocation<S: JournalStorage = StorageConfig> {
 }
 
 impl<S: JournalStorage> ShardLogLocation<S> {
-    /// A shard log at an explicit storage configuration.
+    /// Creates a shard location with an explicit storage configuration.
     ///
     /// `read_timeout` bounds read-only opens. `durability_timeout` bounds writer opens, closes, and
     /// each wait for an append to become durable.
@@ -191,12 +191,12 @@ impl ShardLogLocation {
     }
 }
 
-/// Storage location and cache budgets shared by the owned shards.
+/// Holds the storage location and cache budgets that the owned shards share.
 #[derive(Debug, Clone)]
 pub struct LogStorageOptions {
     pub blob_url: String,
     pub aws_region: Option<String>,
-    /// Number of shards sharing the cache budgets.
+    /// The number of shards that share the cache budgets.
     pub shard_capacity: NonZeroU64,
     pub block_cache_bytes: u64,
     pub meta_cache_bytes: u64,
@@ -453,7 +453,7 @@ impl ShardLogWriter<StorageWriter> {
 }
 
 /// Reads journal records without acquiring a writer. Production recovery uses the active
-/// writer’s view of the log.
+/// writer’s view of the journal.
 #[cfg(any(test, feature = "test-util"))]
 pub struct ShardLogRecovery<R: JournalReader = StorageReader> {
     reader: R,
@@ -655,8 +655,9 @@ fn post_invocation_failure_kind(message: &str) -> AppendFailureKind {
     }
 }
 
-/// Retries durability waits because the notification can arrive after the write.
-/// Exhausting the attempts leaves the append status unknown and stops a leased shard.
+/// Waits up to `attempts` times for `required` to become durable. It retries because the
+/// durability notification can arrive after the write. Running out of attempts leaves the append
+/// commit-unknown, which stops a leased shard.
 async fn wait_until_durable_with(
     log: &LogDb,
     required: Sequence,
@@ -1062,7 +1063,7 @@ mod tests {
         assert_eq!(
             snapshots
                 .into_iter()
-                .map(|(sequence, value)| (sequence, value.expect("snapshot should decode")))
+                .map(|(sequence, candidate)| (sequence, candidate.expect("snapshot should decode")))
                 .collect::<Vec<_>>(),
             vec![(snapshot, record("snapshot"))]
         );
@@ -1315,7 +1316,7 @@ mod tests {
             .await
             .expect("record should append");
 
-        // The durable end is exclusive, so the next append advances it by two from `first`.
+        // After the second append, the exclusive durable end is `first + 2`.
         let required = first + 2;
         let (waited, appended) = tokio::join!(
             wait_until_durable_with(writer.raw_log(), required, Duration::from_millis(20), 50,),
@@ -1346,7 +1347,7 @@ mod tests {
         );
         assert!(
             started.elapsed() >= Duration::from_millis(30),
-            "all retry attempts should run before reporting unknown commit status"
+            "all three attempts should time out before the wait fails"
         );
         writer.close().await.expect("writer should close");
     }

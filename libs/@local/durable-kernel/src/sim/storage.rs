@@ -1,4 +1,4 @@
-//! In-memory storage and pause points for the shared journal interfaces.
+//! Implements the shared journal interfaces with in-memory storage and pause points.
 
 use alloc::sync::Arc;
 use core::{
@@ -33,12 +33,12 @@ pub struct SimPause {
 }
 
 impl SimPause {
-    /// Signalled when the storage operation reaches the pause.
+    /// Returns the `Notify` that is signalled when the storage operation reaches the pause.
     pub const fn entered(&self) -> &Notify {
         &self.entered
     }
 
-    /// Notify once to resume the storage operation.
+    /// Returns the `Notify` to signal once to resume the storage operation.
     pub const fn release(&self) -> &Notify {
         &self.release
     }
@@ -68,7 +68,8 @@ impl SimLogHandle {
 }
 
 impl ShardLogLocation<SimLogHandle> {
-    /// A shard journal with scheduled append outcomes and repeatable sequence gaps.
+    /// Creates a shard journal location with scheduled append outcomes and repeatable journal
+    /// sequence gaps.
     #[must_use]
     pub const fn simulated(
         shard: Shard,
@@ -85,7 +86,7 @@ impl ShardLogLocation<SimLogHandle> {
     }
 }
 
-/// A scan of the simulated journal's stored records.
+/// Streams the stored records returned by one scan of the simulated journal.
 pub struct SimStream {
     entries: alloc::vec::IntoIter<(u64, Bytes)>,
     next_sequence: u64,

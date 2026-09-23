@@ -23,7 +23,8 @@ pub use harness::{
 };
 pub use storage::{SimPause, SimStream};
 
-/// A deterministic generator for test schedules. Unsuitable for cryptographic use.
+/// Generates deterministic pseudo-random numbers for test schedules. Do not use it for
+/// cryptography.
 #[derive(Debug, Clone)]
 pub struct SplitMix64 {
     state: u64,
@@ -60,19 +61,19 @@ impl SplitMix64 {
     }
 }
 
-/// The journal key spaces the writer distinguishes.
+/// Identifies the journal key space an entry belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimKey {
     Events,
     Snapshots,
 }
 
-/// The outcome assigned to an append by the test schedule.
+/// Describes the outcome the test schedule assigns to an append.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimAppendOutcome {
-    /// The record is stored, durable, and acknowledged.
+    /// Stores the record durably and acknowledges the append.
     AckDurable,
-    /// The record was not stored, so the caller may safely retry.
+    /// Does not store the record. The caller can retry.
     DefinitelyNotCommitted,
     /// Stores the record but loses the acknowledgement. The caller must recover to determine
     /// whether it committed.
@@ -80,7 +81,7 @@ pub enum SimAppendOutcome {
     /// Loses the acknowledgement without storing the record. Recovery must establish that it is
     /// absent before retrying.
     CommitUnknownLost,
-    /// Rejects this writer because a newer writer owns the log.
+    /// Rejects this writer because a newer writer owns the journal.
     Fenced,
 }
 
@@ -95,7 +96,7 @@ pub struct AppendOutcomeWeights {
 }
 
 impl AppendOutcomeWeights {
-    /// Uses mostly successful appends, with a nonzero weight for every failure outcome.
+    /// Draws `AckDurable` for 76% of appends and gives every other outcome a nonzero weight.
     pub const DEFAULT: Self = Self {
         ack_durable: 760,
         definitely_not_committed: 100,
@@ -148,11 +149,11 @@ struct SimLogState {
     entries: Vec<SimEntry>,
     next_sequence: u64,
     durable_end_exclusive: u64,
-    /// The active writer’s epoch. Older writers are rejected.
+    /// The active writer’s epoch. Appends from older epochs are rejected.
     writer_epoch: u64,
     /// Generates sequence gaps independently of append outcomes.
     gap_rng: SplitMix64,
-    /// Consumes one outcome per append. Once exhausted, appends succeed with `AckDurable`.
+    /// One outcome per upcoming append. When it is empty, appends use `AckDurable`.
     pending: VecDeque<SimAppendOutcome>,
     /// Records append outcomes in order so tests can inspect those used by one command.
     outcome_log: Vec<SimAppendOutcome>,
@@ -208,8 +209,8 @@ impl SimLogHandle {
         }
     }
 
-    /// Returns stored sequences and bytes for `key` in sequence order, independently of the
-    /// command loop’s state.
+    /// Returns the stored journal sequences and bytes for `key` in sequence order, independently
+    /// of the command loop’s state.
     #[must_use]
     pub fn durable_entries(&self, key: SimKey) -> Vec<(u64, Bytes)> {
         self.lock()
@@ -225,14 +226,14 @@ impl SimLogHandle {
         self.lock().durable_end_exclusive
     }
 
-    /// Number of append outcomes used so far, for indexing into
-    /// [`Self::outcomes_since`].
+    /// Returns the number of append outcomes used. Pass it to [`Self::outcomes_since`] to get
+    /// the outcomes used after this call.
     #[must_use]
     pub fn outcomes_drawn(&self) -> usize {
         self.lock().outcome_log.len()
     }
 
-    /// Checks the stored snapshot bytes for the corruption marker.
+    /// Returns whether the newest stored snapshot holds the corruption marker.
     #[must_use]
     pub fn latest_snapshot_is_corrupt(&self) -> bool {
         self.lock()
@@ -264,7 +265,7 @@ impl SimLogHandle {
         }
     }
 
-    /// The append outcomes used at or after `index`, in order.
+    /// Returns the append outcomes used at or after `index`, in order.
     #[must_use]
     pub fn outcomes_since(&self, index: usize) -> Vec<SimAppendOutcome> {
         self.lock()
@@ -275,7 +276,7 @@ impl SimLogHandle {
     }
 }
 
-/// One writer epoch over a [`SimLogHandle`].
+/// Appends to a [`SimLogHandle`] under one writer epoch.
 #[derive(Debug)]
 pub struct SimWriter {
     handle: SimLogHandle,
@@ -322,7 +323,7 @@ impl SimWriter {
 
 impl SimLogState {
     fn store(&mut self, key: SimKey, bytes: Vec<u8>) -> u64 {
-        // Real log sequences are ordered and can have gaps.
+        // Real journal sequences increase and can have gaps.
         let gap = self.gap_rng.between(1, 3);
         let sequence = self.next_sequence;
         self.next_sequence += gap;
@@ -334,7 +335,7 @@ impl SimLogState {
         let advanced = sequence + 1;
         assert!(
             advanced >= self.durable_end_exclusive,
-            "durable end regressed: {advanced} < {}",
+            "durable end should not decrease: {advanced} < {}",
             self.durable_end_exclusive
         );
         self.durable_end_exclusive = advanced;

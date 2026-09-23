@@ -321,7 +321,7 @@ fn upsert_crm(
 }
 
 fn customer_partition() -> PartitionKey {
-    PartitionKey::parse("customers").expect("static key should parse")
+    PartitionKey::parse("customers").expect("the customer partition key should be valid")
 }
 
 fn state_dir() -> PathBuf {
@@ -418,7 +418,7 @@ async fn main() {
         }
         assert!(
             std::time::Instant::now() < deadline,
-            "customer sync did not settle"
+            "customer sync should finish within 20 seconds"
         );
         tokio::time::sleep(Duration::from_millis(100)).await;
     }

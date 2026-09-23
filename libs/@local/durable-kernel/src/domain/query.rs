@@ -6,10 +6,8 @@ use super::KernelProjection;
 ///
 /// Closures also implement this trait.
 pub trait ProjectionQuery<P>: Send {
-    /// The returned value.
     type Output: Send;
 
-    /// Returns a value from `projection`.
     fn answer(self, projection: &P) -> Self::Output;
 }
 

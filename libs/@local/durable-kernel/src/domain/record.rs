@@ -140,11 +140,11 @@ impl<E> EventRecordV1<E> {
 }
 
 impl<E: DomainEvent + Serialize> EventRecordV1<E> {
-    /// Derives an event’s identity and builds its journal record.
+    /// Derives an event’s ID and builds its journal record.
     ///
     /// # Errors
     ///
-    /// Returns an error if the event cannot be serialized to derive its identity.
+    /// Returns an error if the event cannot be serialized to derive its ID.
     pub fn new(event: E) -> Result<Self, Report<CompatError>> {
         let partition = event.partition();
         let event_id = partition.derive_event_id(&event)?;
