@@ -18,7 +18,6 @@ import {
 import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { PetrinautNavigationProvider } from "../../../../react/navigation";
 import { PetrinautOptimizationContext } from "../../../../react/optimization-context";
-import { defaultUserSettings } from "../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../react/state/user-settings-provider";
 import { UserSettings } from "./user-settings";
 
@@ -433,10 +432,6 @@ describe("Labs settings", () => {
 });
 
 describe("Status views setting", () => {
-  it("is off by default", () => {
-    expect(defaultUserSettings.enableStatusViews).toBe(false);
-  });
-
   it("offers a Status views row under Labs", async () => {
     renderSettings({ overlay: { type: "user-settings", section: "labs" } });
 

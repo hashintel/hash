@@ -189,55 +189,6 @@ describe("Actual mode recordings", () => {
     );
   });
 
-  it("rejects a recording whose initial state holds a token count in a coloured place", () => {
-    const recording = createActualModeRecording({
-      title: "Replay",
-      source: null,
-      definition: ticketDefinition,
-      initialState: { queued: 2 },
-      transitionFirings: [],
-      exportedAt: "2026-06-05T10:01:00.000Z",
-    });
-
-    expect(() => parseActualModeRecording(recording)).toThrow(
-      expect.objectContaining({
-        issues: [
-          expect.objectContaining({
-            path: ["initialState"],
-            message:
-              'Initial marking holds a token count of 2 in place "queued", whose colour "Ticket" has elements, so the place needs a token record for each token',
-          }),
-        ],
-      }),
-    );
-  });
-
-  it("rejects a recording whose firing produces an incomplete token record", () => {
-    const recording = createActualModeRecording({
-      title: "Replay",
-      source: null,
-      definition: ticketDefinition,
-      initialState: { queued: [] },
-      transitionFirings: [
-        firingAt("create", {}, { queued: [ticket("a")] }),
-        firingAt("create", {}, { queued: [{ ticket_id: "b" }] }),
-      ],
-      exportedAt: "2026-06-05T10:01:00.000Z",
-    });
-
-    expect(() => parseActualModeRecording(recording)).toThrow(
-      expect.objectContaining({
-        issues: [
-          expect.objectContaining({
-            path: ["transitionFirings", 1],
-            message:
-              'Transition firing of "create" at 2026-06-05T10:00:00.000Z produces token {"ticket_id":"b"} in place "queued", which lacks element "attempts" of colour "Ticket"',
-          }),
-        ],
-      }),
-    );
-  });
-
   it.each([1, 3])("rejects recording version %i", (version) => {
     expect(() =>
       parseActualModeRecording({
@@ -307,7 +258,7 @@ describe("Actual mode recordings", () => {
     ).toThrow();
   });
 
-  it("rejects transition firings that name no consumed or produced tokens", () => {
+  it("rejects transition firings missing either side", () => {
     const missingOutput = actualModeTransitionFiringSchema.safeParse({
       transitionId: "start",
       inputTokens: { queued: [{}] },

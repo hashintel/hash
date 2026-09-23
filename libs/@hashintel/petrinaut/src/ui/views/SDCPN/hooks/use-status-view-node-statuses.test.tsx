@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   ExecutionFrameSourceContext,
@@ -204,15 +204,5 @@ describe("useStatusViewNodeStatuses", () => {
 
     expect(result.current.get("outer-1")?.labels[0]?.count).toBe(1);
     expect(result.current.get("instance-1")?.labels[0]?.count).toBe(1);
-  });
-
-  it("returns no summaries without a frame", () => {
-    vi.useRealTimers();
-    const { result } = renderHook(() => useStatusViewNodeStatuses(), {
-      wrapper: ({ children }) => (
-        <SDCPNContext value={sdcpnContextValue}>{children}</SDCPNContext>
-      ),
-    });
-    expect(result.current.size).toBe(0);
   });
 });

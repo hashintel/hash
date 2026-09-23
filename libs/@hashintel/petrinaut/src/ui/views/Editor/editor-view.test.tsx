@@ -343,10 +343,9 @@ describe("Kanban board view", () => {
 
   test("offers the canvas and the board, but not Definitions, in Actual mode", async () => {
     render(<StatusViewsWorkspace mode="actual" />);
-    const selector = screen.getByRole("radiogroup", { name: "Actual view" });
+    screen.getByRole("radiogroup", { name: "Actual view" });
     expect(screen.getByRole("radio", { name: "Canvas" })).toBeTruthy();
     expect(screen.queryByRole("radio", { name: "Definitions" })).toBeNull();
-    expect(selector).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "Kanban" }));
     expect(await screen.findByRole("region", { name: "Kanban" })).toBeTruthy();
   });

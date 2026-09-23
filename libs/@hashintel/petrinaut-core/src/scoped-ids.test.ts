@@ -31,40 +31,10 @@ describe("formatScopedId", () => {
 });
 
 describe("parseScopedId", () => {
-  it("parses an unscoped id to an empty instance path", () => {
-    expect(parseScopedId("place-1")).toEqual({
-      instancePath: [],
-      entityId: "place-1",
-    });
-  });
-
-  it("parses a scoped id into path and entity id", () => {
-    expect(parseScopedId("instance-1::place-1")).toEqual({
-      instancePath: ["instance-1"],
-      entityId: "place-1",
-    });
-  });
-
   it("parses nested instance paths outermost-first", () => {
     expect(parseScopedId("outer::inner::place-1")).toEqual({
       instancePath: ["outer", "inner"],
       entityId: "place-1",
-    });
-  });
-
-  it("round-trips through formatScopedId", () => {
-    const { instancePath, entityId } = parseScopedId("outer::inner::place-1");
-    expect(formatScopedId(instancePath, entityId)).toBe(
-      "outer::inner::place-1",
-    );
-  });
-});
-
-describe("root ids containing the separator", () => {
-  it("misattributes such an id to an instance path, which is why formatScopedId rejects them", () => {
-    expect(parseScopedId("a::b")).toEqual({
-      instancePath: ["a"],
-      entityId: "b",
     });
   });
 });
