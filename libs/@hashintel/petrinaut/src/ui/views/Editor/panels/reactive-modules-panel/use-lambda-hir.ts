@@ -9,10 +9,17 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 
-/** Each transition's condition lowered to HIR, keyed by transition id. */
-export type LambdaHir = Readonly<
+/** Lowered code keyed by the id of the transition or equation it belongs to. */
+export type HirById = Readonly<
   Record<string, HirArtifacts["lambdas"][string]["hir"]>
 >;
+
+/** The net's code lowered to HIR: conditions and kernels by transition, equations by id. */
+export type NetHir = {
+  lambdaHir: HirById;
+  kernelHir: HirById;
+  dynamicsHir: HirById;
+};
 
 export type LambdaHirState = {
   /**
@@ -20,12 +27,12 @@ export type LambdaHirState = {
    * yet; the previous lowering still stands in for the transitions it covers.
    */
   status: "compiling" | "ready" | "stale" | "error";
-  lambdaHir: LambdaHir | null;
+  netHir: NetHir | null;
   error: string | null;
 };
 
 /**
- * The parts of the net a condition's lowering depends on: its code, the
+ * The parts of the net the code's lowering depends on: the code itself, the
  * places and parameters it may read, and the extensions that decide whether
  * it compiles at all. Moving a node must not send the net back to the
  * worker.
@@ -38,25 +45,46 @@ const lambdaCodeKey = (
     extensions,
     parameters: sdcpn.parameters,
     types: sdcpn.types,
-    places: sdcpn.places.map(({ id, name, colorId }) => ({
-      id,
-      name,
-      colorId,
-    })),
+    differentialEquations: sdcpn.differentialEquations,
+    places: sdcpn.places.map(
+      ({ id, name, colorId, dynamicsEnabled, differentialEquationId }) => ({
+        id,
+        name,
+        colorId,
+        dynamicsEnabled,
+        differentialEquationId,
+      }),
+    ),
     transitions: sdcpn.transitions.map(
-      ({ id, lambdaType, lambdaCode, inputArcs }) => ({
+      ({
         id,
         lambdaType,
         lambdaCode,
+        transitionKernelCode,
         inputArcs,
+        outputArcs,
+      }) => ({
+        id,
+        lambdaType,
+        lambdaCode,
+        transitionKernelCode,
+        inputArcs,
+        outputArcs,
       }),
     ),
   });
 
+const hirById = (
+  artifacts: Record<string, { hir?: HirArtifacts["lambdas"][string]["hir"] }>,
+): HirById =>
+  Object.fromEntries(
+    Object.entries(artifacts).map(([id, artifact]) => [id, artifact.hir]),
+  );
+
 /**
- * Lowers the net's conditions in the language worker whenever their code
- * changes. Compiling there is asynchronous and the net changes as the user
- * edits, so a stale answer never overwrites a newer one.
+ * Lowers the net's conditions, kernels and equations in the language worker
+ * whenever their code changes. Compiling there is asynchronous and the net
+ * changes as the user edits, so a stale answer never overwrites a newer one.
  */
 export const useLambdaHir = (
   sdcpn: SDCPN,
@@ -67,7 +95,7 @@ export const useLambdaHir = (
   const latest = useLatest({ sdcpn, extensions });
   const [entry, setEntry] = useState<{
     key: string;
-    lambdaHir: LambdaHir | null;
+    netHir: NetHir | null;
     error: string | null;
   } | null>(null);
 
@@ -84,12 +112,11 @@ export const useLambdaHir = (
         }
         setEntry({
           key,
-          lambdaHir: Object.fromEntries(
-            Object.entries(artifacts.lambdas).map(([id, artifact]) => [
-              id,
-              artifact.hir,
-            ]),
-          ),
+          netHir: {
+            lambdaHir: hirById(artifacts.lambdas),
+            kernelHir: hirById(artifacts.kernels),
+            dynamicsHir: hirById(artifacts.dynamics),
+          },
           error: null,
         });
       })
@@ -99,7 +126,7 @@ export const useLambdaHir = (
         }
         setEntry({
           key,
-          lambdaHir: null,
+          netHir: null,
           error: caught instanceof Error ? caught.message : String(caught),
         });
       });
@@ -109,14 +136,14 @@ export const useLambdaHir = (
   }, [key, latest, requestHirArtifacts]);
 
   if (entry === null) {
-    return { status: "compiling", lambdaHir: null, error: null };
+    return { status: "compiling", netHir: null, error: null };
   }
   if (entry.error !== null) {
-    return { status: "error", lambdaHir: null, error: entry.error };
+    return { status: "error", netHir: null, error: entry.error };
   }
   return {
     status: entry.key === key ? "ready" : "stale",
-    lambdaHir: entry.lambdaHir,
+    netHir: entry.netHir,
     error: null,
   };
 };

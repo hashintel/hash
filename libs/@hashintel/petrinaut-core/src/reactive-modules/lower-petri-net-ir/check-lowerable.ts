@@ -1,4 +1,5 @@
-import type { PetriNetIr } from "../petri-net-ir";
+import { type PetriNetIr, petriNetIrArcKind } from "../petri-net-ir";
+
 import type { PetriNetIrDiagnostic } from "../sdcpn-to-petri-net-ir";
 
 /**
@@ -51,14 +52,17 @@ export const checkLowerable = (ir: PetriNetIr): PetriNetIrDiagnostic[] => {
         item,
       });
     }
-    if (transition.reads !== undefined) {
+    const kinds = new Set(
+      Object.values(transition.inputs ?? {}).map(petriNetIrArcKind),
+    );
+    if (kinds.has("read")) {
       errors.push({
         code: "read-arc-not-lowered",
         message: `a read arc ${NOT_YET}`,
         item,
       });
     }
-    if (transition.inhibitors !== undefined) {
+    if (kinds.has("inhibitor")) {
       errors.push({
         code: "inhibitor-arc-not-lowered",
         message: `an inhibitor arc ${NOT_YET}`,

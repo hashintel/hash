@@ -1,6 +1,7 @@
 import {
   type PetriNetIr,
   type PetriNetIrTransition,
+  petriNetIrArcKind,
   petriNetIrArcWeight,
   petriNetIrInitialTokens,
   petriNetIrPlaceCapacity,
@@ -54,6 +55,9 @@ export type StepPlan = {
 const sideTotals = (arcs: PetriNetIrTransition["inputs"]): PlannedArcs => {
   const totals = new Map<string, number>();
   for (const [place, arc] of Object.entries(arcs ?? {})) {
+    if (petriNetIrArcKind(arc) !== "standard") {
+      continue;
+    }
     totals.set(place, (totals.get(place) ?? 0) + petriNetIrArcWeight(arc));
   }
   return [...totals];

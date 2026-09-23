@@ -440,14 +440,14 @@ export const ReactiveModulesPanel = ({
     requestHirArtifacts,
   );
   const result =
-    lambdaHir.lambdaHir === null
+    lambdaHir.netHir === null
       ? null
       : compileReactiveModuleExport({
           sdcpn: petriNetDefinition,
           title,
           initialMarking,
           parameterValues,
-          lambdaHir: lambdaHir.lambdaHir,
+          ...lambdaHir.netHir,
           extensions,
           zeroth: target,
         });

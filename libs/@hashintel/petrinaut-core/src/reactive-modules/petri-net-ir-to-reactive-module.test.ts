@@ -623,13 +623,19 @@ net = Conflict(theory=LIA, ctrl=(Pool, Left, Right), extl=(go_TakeLeft,))
           code: "return tokens.map(() => ({ battery: -1 }));",
         },
       },
-      places: { Hangar: { colour: "Drone", dynamics: "Drain" }, Count: null },
+      places: {
+        Hangar: { colour: "Drone", dynamics: "Drain" },
+        Count: null,
+        Spare: null,
+      },
       transitions: {
         Launch: {
-          inputs: { Hangar: null },
+          inputs: {
+            Hangar: null,
+            Count: { kind: "read" },
+            Spare: { weight: 3, kind: "inhibitor" },
+          },
           outputs: { Count: null },
-          reads: { Count: null },
-          inhibitors: { Count: { weight: 3 } },
           rate: "return input.Hangar[0].battery;",
           kernel: "return {};",
         },

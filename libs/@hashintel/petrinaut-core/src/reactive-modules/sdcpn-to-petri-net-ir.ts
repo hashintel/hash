@@ -6,23 +6,41 @@ import {
 } from "../extensions";
 import { parseParameterValue } from "../parameter-values";
 import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
+import { petriNetIrKindOf } from "./petri-net-ir";
 import { evaluateStaticLambda } from "./sdcpn-to-petri-net-ir/evaluate-static-lambda";
 import {
   createIrNamePool,
   type IrNamePool,
   toIrNetName,
 } from "./sdcpn-to-petri-net-ir/ir-names";
+import {
+  addGuardEvidence,
+  addKernelEvidence,
+  addMarkingLiteral,
+  createStringEvidence,
+  lowerColours,
+  type StringEvidence,
+} from "./sdcpn-to-petri-net-ir/lower-colours";
+import { printUserCode } from "./sdcpn-to-petri-net-ir/print-user-code";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirFunction } from "../hir/hir";
-import type { InitialMarking } from "../simulation/api";
-import type { SDCPN, Transition } from "../types/sdcpn";
+import type { InitialMarking, InitialPlaceMarking } from "../simulation/api";
+import type {
+  Color,
+  DifferentialEquation,
+  Place,
+  SDCPN,
+  Transition,
+} from "../types/sdcpn";
 import type {
   PetriNetIr,
+  PetriNetIrArc,
   PetriNetIrArcs,
-  PetriNetIrKind,
+  PetriNetIrDynamics,
   PetriNetIrMarking,
   PetriNetIrPlace,
+  PetriNetIrToken,
   PetriNetIrTransition,
 } from "./petri-net-ir";
 
@@ -40,13 +58,16 @@ export type PetriNetIrDiagnostic = {
   item: PetriNetIrDiagnosticItem;
 };
 
+/** Lowered code keyed by the id of the transition or equation it belongs to. */
+export type HirById = Readonly<Record<string, HirFunction | undefined>>;
+
 export type SdcpnToPetriNetIrInput = {
   sdcpn: SDCPN;
   /** The net's title, lowered to the IR's `name`. */
   title: string;
   /**
-   * Token counts keyed by place id, as a simulation would start. A place
-   * absent here starts empty.
+   * Token counts or token records keyed by place id, as a simulation would
+   * start. A place absent here starts empty.
    */
   initialMarking: InitialMarking;
   /**
@@ -59,7 +80,11 @@ export type SdcpnToPetriNetIrInput = {
    * `hir` of the lambda artifacts `compileHirArtifacts` produces with
    * `includeHir`. A transition without an entry is reported as not compiled.
    */
-  lambdaHir: Readonly<Record<string, HirFunction | undefined>>;
+  lambdaHir: HirById;
+  /** Each transition's kernel lowered to HIR, keyed by transition id. */
+  kernelHir?: HirById;
+  /** Each differential equation lowered to HIR, keyed by equation id. */
+  dynamicsHir?: HirById;
   /** Defaults to every extension on. */
   extensions?: PetrinautExtensionSettings;
   /**
@@ -97,30 +122,6 @@ const rejectUnsupported = (
       message: "the net has no places yet",
       item: netItem,
     });
-  }
-  for (const place of sdcpn.places) {
-    const item: PetriNetIrDiagnosticItem = {
-      kind: "place",
-      id: place.id,
-      name: place.name,
-    };
-    if (extensions.colors && place.colorId !== null) {
-      diagnostics.errors.push({
-        code: "coloured-place",
-        message: "coloured tokens are outside the IR",
-        item,
-      });
-    }
-    if (
-      extensions.dynamics &&
-      (place.dynamicsEnabled || place.differentialEquationId !== null)
-    ) {
-      diagnostics.errors.push({
-        code: "place-dynamics",
-        message: "continuous dynamics are outside the IR",
-        item,
-      });
-    }
   }
   if (extensions.subnets && (sdcpn.componentInstances?.length ?? 0) > 0) {
     diagnostics.errors.push({
@@ -167,41 +168,29 @@ const bakeParameters = (
   return valid ? parameters : null;
 };
 
-const effectiveLambdaType = (
-  transition: Transition,
-  sdcpn: SDCPN,
-  extensions: PetrinautExtensionSettings,
-) =>
-  getEffectiveTransitionLambdaType(
-    transition,
-    getTransitionLogicAvailability(transition, sdcpn, extensions),
-  );
+const placeItem = (place: Place): PetriNetIrDiagnosticItem => ({
+  kind: "place",
+  id: place.id,
+  name: place.name,
+});
 
-const netKind = (
-  sdcpn: SDCPN,
+/** The colour a place's tokens have, when the colours extension is on and the place names one. */
+const placeColourId = (
+  place: Place,
   extensions: PetrinautExtensionSettings,
-  netItem: PetriNetIrDiagnosticItem,
-  diagnostics: Diagnostics,
-): PetriNetIrKind | null => {
-  const kinds = new Set(
-    sdcpn.transitions.map((transition) =>
-      effectiveLambdaType(transition, sdcpn, extensions),
-    ),
-  );
-  if (kinds.size > 1) {
-    diagnostics.errors.push({
-      code: "mixed-transition-kinds",
-      message:
-        "the IR holds either predicate transitions or stochastic ones, and this net has both",
-      item: netItem,
-    });
-    return null;
-  }
-  return kinds.has("stochastic") ? "stochastic" : "plain";
-};
+): string | null => (extensions.colors ? place.colorId : null);
 
-const initialTokens = (
-  marking: InitialMarking[string] | undefined,
+/** Whether a place's tokens move between steps: the dynamics extension on, and the place opted in. */
+const placeDynamicsId = (
+  place: Place,
+  extensions: PetrinautExtensionSettings,
+): string | null =>
+  extensions.dynamics && place.dynamicsEnabled
+    ? place.differentialEquationId
+    : null;
+
+const initialCount = (
+  marking: InitialPlaceMarking | undefined,
   item: PetriNetIrDiagnosticItem,
   diagnostics: Diagnostics,
 ): number => {
@@ -209,7 +198,7 @@ const initialTokens = (
     return 0;
   }
   if (typeof marking !== "number") {
-    // Token records belong to a coloured place, which is reported above.
+    // Token records on a plain place: only their number counts.
     return marking.length;
   }
   if (!Number.isInteger(marking) || marking < 0) {
@@ -223,13 +212,66 @@ const initialTokens = (
   return marking;
 };
 
+/** A coloured place's tokens as IR records, typed against the colour. */
+const initialTokens = (
+  marking: InitialPlaceMarking | undefined,
+  colour: Color,
+  item: PetriNetIrDiagnosticItem,
+  evidence: StringEvidence,
+  diagnostics: Diagnostics,
+): PetriNetIrToken[] => {
+  if (marking === undefined) {
+    return [];
+  }
+  if (typeof marking === "number") {
+    if (marking === 0) {
+      return [];
+    }
+    diagnostics.errors.push({
+      code: "marking-token-invalid",
+      message: `the initial marking is a count of ${marking}, and a coloured place starts with token records`,
+      item,
+    });
+    return [];
+  }
+  return marking.map((record) => {
+    const token: PetriNetIrToken = {};
+    for (const element of colour.elements) {
+      const value = getOwn(record, element.name);
+      if (value === undefined) {
+        diagnostics.errors.push({
+          code: "marking-token-invalid",
+          message: `a starting token has no ${element.name}`,
+          item,
+        });
+        continue;
+      }
+      // Ids are stored at rest as strings; a runtime bigint prints the same way.
+      const cell = typeof value === "bigint" ? value.toString() : value;
+      if (typeof cell === "string" && element.type === "string") {
+        addMarkingLiteral(evidence, colour.id, element.name, cell);
+      }
+      token[element.name] = cell;
+    }
+    return token;
+  });
+};
+
 /** The weight an arc entry already carries: none for a missing entry, one for a bare key. */
-const weightOf = (entry: PetriNetIrArcs[string] | undefined): number =>
+const weightOf = (entry: PetriNetIrArc | undefined): number =>
   entry === undefined ? 0 : (entry?.weight ?? 1);
 
-/** An arc entry of the given weight: a bare key for one, a record otherwise. */
-const withWeight = (total: number): PetriNetIrArcs[string] =>
-  total === 1 ? null : { weight: total };
+/** An arc entry: a bare key for a standard arc of one, a record otherwise. */
+const arcEntry = (
+  total: number,
+  kind: "standard" | "read" | "inhibitor",
+): PetriNetIrArc =>
+  kind === "standard" && total === 1
+    ? null
+    : {
+        ...(total === 1 ? {} : { weight: total }),
+        ...(kind === "standard" ? {} : { kind }),
+      };
 
 const resolvePlace = (
   placeId: string | null,
@@ -262,19 +304,31 @@ type TransitionContext = {
   extensions: PetrinautExtensionSettings;
   /** `null` while a parameter value is invalid; conditions then go unevaluated. */
   parameters: ParameterValues | null;
-  lambdaHir: Readonly<Record<string, HirFunction | undefined>>;
+  lambdaHir: HirById;
+  kernelHir: HirById;
+  /** IR names by place id. */
   placeNames: ReadonlyMap<string, string>;
+  /** IR names by place display name, for the code the IR carries. */
+  placeIrNamesByDisplay: ReadonlyMap<string, string>;
+  /** Colour ids by place display name, for the places whose tokens carry attributes. */
+  placeColours: ReadonlyMap<string, string>;
+  colouredPlaceIds: ReadonlySet<string>;
+  coloursById: ReadonlyMap<string, Color>;
   names: IrNamePool;
+  evidence: StringEvidence;
 };
 
 type EvaluatedCondition =
-  | { dead: false; rate?: number }
-  | { dead: true; reason: string };
+  | { kind: "constant"; rate?: number }
+  | { kind: "dead"; reason: string }
+  /** The condition reads its tokens or draws, so the IR carries its code. */
+  | { kind: "code"; hir: HirFunction };
 
 /**
  * Evaluates the condition to a firing rate (stochastic) or a live/dead
- * verdict (predicate). `null` means an error was reported, or that the
- * parameters are invalid and the verdict has to wait.
+ * verdict (predicate), or hands back the code when it depends on the
+ * tokens. `null` means an error was reported, or that the parameters are
+ * invalid and the verdict has to wait.
  */
 const evaluateCondition = (
   transition: Transition,
@@ -299,7 +353,7 @@ const evaluateCondition = (
       });
       return null;
     }
-    return { dead: false };
+    return { kind: "constant" };
   }
   if (context.parameters === null) {
     return null;
@@ -315,12 +369,15 @@ const evaluateCondition = (
   }
   const evaluated = evaluateStaticLambda(hir, context.parameters);
   if (!evaluated.ok) {
-    diagnostics.errors.push({
-      code: evaluated.code,
-      message: evaluated.message,
-      item,
-    });
-    return null;
+    if (evaluated.code === "lambda-failed") {
+      diagnostics.errors.push({
+        code: evaluated.code,
+        message: evaluated.message,
+        item,
+      });
+      return null;
+    }
+    return { kind: "code", hir };
   }
   const { value } = evaluated;
   if (!stochastic) {
@@ -333,8 +390,8 @@ const evaluateCondition = (
       return null;
     }
     return value
-      ? { dead: false }
-      : { dead: true, reason: "the predicate is false" };
+      ? { kind: "constant" }
+      : { kind: "dead", reason: "the predicate is false" };
   }
   if (typeof value !== "number" || Number.isNaN(value)) {
     diagnostics.errors.push({
@@ -354,8 +411,80 @@ const evaluateCondition = (
     return null;
   }
   return value > 0
-    ? { dead: false, rate: value }
-    : { dead: true, reason: `the rate is ${value}` };
+    ? { kind: "constant", rate: value }
+    : { kind: "dead", reason: `the rate is ${value}` };
+};
+
+/** The code of a surface as the IR carries it, or `null` after reporting why not. */
+const codeOf = (
+  hir: HirFunction,
+  code: string,
+  context: TransitionContext,
+  item: PetriNetIrDiagnosticItem,
+  diagnostics: Diagnostics,
+): string | null => {
+  const printed = printUserCode(
+    hir,
+    context.placeIrNamesByDisplay,
+    context.parameters ?? {},
+  );
+  if (!printed.ok) {
+    diagnostics.errors.push({
+      code,
+      message: `the code cannot be written into the IR: ${printed.message}`,
+      item,
+    });
+    return null;
+  }
+  return printed.code;
+};
+
+const lowerArcs = (
+  transition: Transition,
+  context: TransitionContext,
+  item: PetriNetIrDiagnosticItem,
+  diagnostics: Diagnostics,
+): { inputs: PetriNetIrArcs; outputs: PetriNetIrArcs } => {
+  const inputs: PetriNetIrArcs = {};
+  const inputKinds = new Map<string, "standard" | "read" | "inhibitor">();
+  for (const arc of transition.inputArcs) {
+    const place = resolvePlace(
+      getArcEndpointPlaceId(arc),
+      context.placeNames,
+      item,
+      diagnostics,
+    );
+    if (place === null) {
+      continue;
+    }
+    const kind = inputKinds.get(place);
+    if (kind !== undefined && kind !== arc.type) {
+      diagnostics.errors.push({
+        code: "arc-kinds-conflict",
+        message: `two input arcs from ${place} are of different kinds, and the IR keeps one entry per place`,
+        item,
+      });
+      continue;
+    }
+    inputKinds.set(place, arc.type);
+    inputs[place] = arcEntry(weightOf(inputs[place]) + arc.weight, arc.type);
+  }
+  const outputs: PetriNetIrArcs = {};
+  for (const arc of transition.outputArcs) {
+    const place = resolvePlace(
+      getArcEndpointPlaceId(arc),
+      context.placeNames,
+      item,
+      diagnostics,
+    );
+    if (place !== null) {
+      outputs[place] = arcEntry(
+        weightOf(outputs[place]) + arc.weight,
+        "standard",
+      );
+    }
+  }
+  return { inputs, outputs };
 };
 
 /**
@@ -376,50 +505,78 @@ const lowerTransition = (
     id: transition.id,
     name: transition.name,
   };
-  const constant = evaluateCondition(transition, context, item, diagnostics);
+  const condition = evaluateCondition(transition, context, item, diagnostics);
+  const { inputs, outputs } = lowerArcs(transition, context, item, diagnostics);
+  const stochastic =
+    getEffectiveTransitionLambdaType(
+      transition,
+      getTransitionLogicAvailability(
+        transition,
+        context.sdcpn,
+        context.extensions,
+      ),
+    ) === "stochastic";
 
-  const inputs: PetriNetIrArcs = {};
-  const outputs: PetriNetIrArcs = {};
-  for (const arc of transition.inputArcs) {
-    if (arc.type !== "standard") {
+  // A kernel only matters where it writes attributes: into a coloured place.
+  const writesColoured = transition.outputArcs.some((arc) => {
+    const placeId = getArcEndpointPlaceId(arc);
+    return placeId !== null && context.colouredPlaceIds.has(placeId);
+  });
+  let kernel: string | null = null;
+  if (writesColoured) {
+    const hir = getOwn(context.kernelHir, transition.id);
+    if (hir === undefined) {
       diagnostics.errors.push({
-        code: "arc-kind-unsupported",
-        message: `${arc.type} arcs are outside the IR, which holds standard arcs only`,
+        code: "kernel-not-compiled",
+        message:
+          "the transition produces coloured tokens and its kernel has not compiled; check its diagnostics",
         item,
       });
-      continue;
-    }
-    const place = resolvePlace(
-      getArcEndpointPlaceId(arc),
-      context.placeNames,
-      item,
-      diagnostics,
-    );
-    if (place !== null) {
-      inputs[place] = withWeight(weightOf(inputs[place]) + arc.weight);
-    }
-  }
-  for (const arc of transition.outputArcs) {
-    const place = resolvePlace(
-      getArcEndpointPlaceId(arc),
-      context.placeNames,
-      item,
-      diagnostics,
-    );
-    if (place !== null) {
-      outputs[place] = withWeight(weightOf(outputs[place]) + arc.weight);
+    } else {
+      addKernelEvidence(
+        context.evidence,
+        hir,
+        context.placeColours,
+        context.coloursById,
+      );
+      kernel = codeOf(hir, "kernel-not-printable", context, item, diagnostics);
     }
   }
 
-  if (constant === null) {
+  if (condition === null) {
     return null;
   }
-  if (constant.dead) {
+  if (condition.kind === "dead") {
     diagnostics.warnings.push({
       code: "dead-transition",
-      message: `${constant.reason}, so the transition is left out`,
+      message: `${condition.reason}, so the transition is left out`,
       item,
     });
+    return null;
+  }
+  let guard: string | undefined;
+  let rate: number | string | undefined;
+  if (condition.kind === "code") {
+    addGuardEvidence(context.evidence, condition.hir, context.placeColours);
+    const code = codeOf(
+      condition.hir,
+      "condition-not-printable",
+      context,
+      item,
+      diagnostics,
+    );
+    if (code === null) {
+      return null;
+    }
+    if (stochastic) {
+      rate = code;
+    } else {
+      guard = code;
+    }
+  } else {
+    rate = condition.rate;
+  }
+  if (writesColoured && kernel === null) {
     return null;
   }
 
@@ -429,17 +586,75 @@ const lowerTransition = (
     transition: {
       ...(Object.keys(inputs).length === 0 ? {} : { inputs }),
       ...(Object.keys(outputs).length === 0 ? {} : { outputs }),
-      ...(constant.rate === undefined ? {} : { rate: constant.rate }),
+      ...(guard === undefined ? {} : { guard }),
+      ...(rate === undefined ? {} : { rate }),
+      ...(kernel === null ? {} : { kernel }),
       ...(isControllable(transition) ? { controllable: true } : {}),
     },
   };
 };
 
+const lowerDynamics = (
+  equation: DifferentialEquation,
+  context: {
+    hir: HirFunction | undefined;
+    colourNames: ReadonlyMap<string, string>;
+    placeIrNamesByDisplay: ReadonlyMap<string, string>;
+    parameters: ParameterValues | null;
+  },
+  diagnostics: Diagnostics,
+): PetriNetIrDynamics | null => {
+  const item: PetriNetIrDiagnosticItem = {
+    kind: "dynamics",
+    id: equation.id,
+    name: equation.name,
+  };
+  const colour =
+    equation.colorId === null
+      ? undefined
+      : context.colourNames.get(equation.colorId);
+  if (colour === undefined) {
+    diagnostics.errors.push({
+      code: "dynamics-without-colour",
+      message: "the differential equation names no colour a place uses",
+      item,
+    });
+    return null;
+  }
+  if (context.hir === undefined) {
+    diagnostics.errors.push({
+      code: "dynamics-not-compiled",
+      message:
+        "the differential equation has not compiled; check its diagnostics",
+      item,
+    });
+    return null;
+  }
+  if (context.parameters === null) {
+    return null;
+  }
+  const printed = printUserCode(
+    context.hir,
+    context.placeIrNamesByDisplay,
+    context.parameters,
+  );
+  if (!printed.ok) {
+    diagnostics.errors.push({
+      code: "dynamics-not-printable",
+      message: `the code cannot be written into the IR: ${printed.message}`,
+      item,
+    });
+    return null;
+  }
+  return { colour, code: printed.code };
+};
+
 /**
  * Turns a net into the Petri net IR, with its initial marking taken from
  * `initialMarking` and its conditions evaluated to constants against
- * `parameterValues`. Every reason the net cannot become an IR is reported as
- * an error; a transition that can never fire is left out with a warning.
+ * `parameterValues` where they can be, or carried as code where they read
+ * their tokens. Every reason the net cannot become an IR is reported as an
+ * error; a transition that can never fire is left out with a warning.
  */
 export const sdcpnToPetriNetIr = (
   input: SdcpnToPetriNetIrInput,
@@ -460,7 +675,6 @@ export const sdcpnToPetriNetIr = (
     extensions,
     diagnostics,
   );
-  const kind = netKind(sdcpn, extensions, netItem, diagnostics);
 
   const names = createIrNamePool(input.reservedNames ?? []);
   const placeNames = new Map(
@@ -468,22 +682,92 @@ export const sdcpnToPetriNetIr = (
       (place) => [place.id, names.claim(place.name || place.id, "P")] as const,
     ),
   );
+  const placeIrNamesByDisplay = new Map(
+    sdcpn.places.map(
+      (place) => [place.name, placeNames.get(place.id) ?? place.id] as const,
+    ),
+  );
+  const coloursById = new Map(sdcpn.types.map((colour) => [colour.id, colour]));
+  const equationsById = new Map(
+    sdcpn.differentialEquations.map((equation) => [equation.id, equation]),
+  );
+  const usedColourIds = new Set<string>();
+  const usedEquationIds = new Set<string>();
+  for (const place of sdcpn.places) {
+    const colourId = placeColourId(place, extensions);
+    if (colourId !== null) {
+      usedColourIds.add(colourId);
+    }
+    const equationId = placeDynamicsId(place, extensions);
+    if (equationId !== null) {
+      usedEquationIds.add(equationId);
+    }
+  }
+  const colourNames = new Map(
+    sdcpn.types
+      .filter((colour) => usedColourIds.has(colour.id))
+      .map(
+        (colour) =>
+          [colour.id, names.claim(colour.name || colour.id, "C")] as const,
+      ),
+  );
+  const equationNames = new Map(
+    sdcpn.differentialEquations
+      .filter((equation) => usedEquationIds.has(equation.id))
+      .map(
+        (equation) =>
+          [
+            equation.id,
+            names.claim(equation.name || equation.id, "D"),
+          ] as const,
+      ),
+  );
+  const placeColours = new Map<string, string>();
+  const colouredPlaceIds = new Set<string>();
+  for (const place of sdcpn.places) {
+    const colourId = placeColourId(place, extensions);
+    if (colourId !== null && coloursById.has(colourId)) {
+      placeColours.set(place.name, colourId);
+      colouredPlaceIds.add(place.id);
+    }
+  }
+  const evidence = createStringEvidence();
+
   const places: Record<string, PetriNetIrPlace> = {};
   const marking: PetriNetIrMarking = {};
   for (const place of sdcpn.places) {
-    const item: PetriNetIrDiagnosticItem = {
-      kind: "place",
-      id: place.id,
-      name: place.name,
-    };
+    const item = placeItem(place);
     const name = placeNames.get(place.id) ?? place.id;
-    const tokens = initialTokens(
-      getOwn(input.initialMarking, place.id),
-      item,
-      diagnostics,
-    );
-    if (tokens > 0) {
-      marking[name] = tokens;
+    const colourId = placeColourId(place, extensions);
+    const colour = colourId === null ? undefined : coloursById.get(colourId);
+    if (colourId !== null && colour === undefined) {
+      diagnostics.errors.push({
+        code: "unknown-colour",
+        message: `the place's colour ${colourId} does not exist`,
+        item,
+      });
+    }
+    const equationId = placeDynamicsId(place, extensions);
+    if (equationId !== null && !equationsById.has(equationId)) {
+      diagnostics.errors.push({
+        code: "unknown-dynamics",
+        message: `the place's differential equation ${equationId} does not exist`,
+        item,
+      });
+    }
+    const initial = getOwn(input.initialMarking, place.id);
+    let tokens = 0;
+    if (colour === undefined) {
+      tokens = initialCount(initial, item, diagnostics);
+      if (tokens > 0) {
+        marking[name] = tokens;
+      }
+    } else {
+      const rows = initialTokens(initial, colour, item, evidence, diagnostics);
+      tokens = rows.length;
+      if (rows.length > 0) {
+        marking[name] = rows;
+      }
     }
     const capacity =
       typeof place.capacity === "number" &&
@@ -499,7 +783,36 @@ export const sdcpnToPetriNetIr = (
         item,
       });
     }
-    places[name] = capacity === undefined ? null : { capacity };
+    const entry: NonNullable<PetriNetIrPlace> = {
+      ...(capacity === undefined ? {} : { capacity }),
+      ...(colour === undefined ? {} : { colour: colourNames.get(colour.id) }),
+      ...(equationId === null || !equationsById.has(equationId)
+        ? {}
+        : { dynamics: equationNames.get(equationId) }),
+    };
+    places[name] = Object.keys(entry).length === 0 ? null : entry;
+  }
+
+  const dynamics: Record<string, PetriNetIrDynamics> = {};
+  for (const equationId of usedEquationIds) {
+    const equation = equationsById.get(equationId);
+    const name = equationNames.get(equationId);
+    if (equation === undefined || name === undefined) {
+      continue;
+    }
+    const lowered = lowerDynamics(
+      equation,
+      {
+        hir: getOwn(input.dynamicsHir ?? {}, equation.id),
+        colourNames,
+        placeIrNamesByDisplay,
+        parameters,
+      },
+      diagnostics,
+    );
+    if (lowered !== null) {
+      dynamics[name] = lowered;
+    }
   }
 
   const transitions: Record<string, PetriNetIrTransition> = {};
@@ -511,8 +824,14 @@ export const sdcpnToPetriNetIr = (
         extensions,
         parameters,
         lambdaHir: input.lambdaHir,
+        kernelHir: input.kernelHir ?? {},
         placeNames,
+        placeIrNamesByDisplay,
+        placeColours,
+        colouredPlaceIds,
+        coloursById,
         names,
+        evidence,
       },
       diagnostics,
     );
@@ -521,9 +840,10 @@ export const sdcpnToPetriNetIr = (
     }
   }
 
-  if (diagnostics.errors.length > 0 || kind === null) {
+  if (diagnostics.errors.length > 0) {
     return { ok: false, ...diagnostics };
   }
+  const colours = lowerColours(sdcpn, usedColourIds, colourNames, evidence);
   const description = sdcpn.description?.trim();
   return {
     ok: true,
@@ -532,7 +852,9 @@ export const sdcpnToPetriNetIr = (
       ...(description === undefined || description === ""
         ? {}
         : { description }),
-      kind,
+      kind: petriNetIrKindOf(transitions),
+      ...(Object.keys(colours).length === 0 ? {} : { colours }),
+      ...(Object.keys(dynamics).length === 0 ? {} : { dynamics }),
       places,
       ...(Object.keys(marking).length === 0 ? {} : { marking }),
       transitions,

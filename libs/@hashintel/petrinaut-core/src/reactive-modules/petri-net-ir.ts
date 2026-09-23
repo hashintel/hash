@@ -67,8 +67,16 @@ export type PetriNetIrDynamics = {
   code: PetriNetIrCode;
 };
 
-/** One arc keyed by its place; `null` carries one token. */
-export type PetriNetIrArc = { weight: number } | null;
+/**
+ * One arc keyed by its place; `null` is a standard arc of weight one. A
+ * `read` arc needs the place to hold the weight and leaves it alone; an
+ * `inhibitor` arc needs the place to hold fewer. Input arcs keep the order
+ * the model gives them, which is the order token bindings are enumerated in.
+ */
+export type PetriNetIrArc = {
+  weight?: number;
+  kind?: "read" | "inhibitor";
+} | null;
 
 export type PetriNetIrArcs = Record<string, PetriNetIrArc>;
 
@@ -95,14 +103,10 @@ export type PetriNetIrToken = Record<string, PetriNetIrTokenValue>;
 export type PetriNetIrMarking = Record<string, number | PetriNetIrToken[]>;
 
 export type PetriNetIrTransition = {
-  /** Standard input arcs keyed by place: tokens the firing consumes. Absent means none. */
+  /** Input arcs keyed by place, in binding order. Absent means none. */
   inputs?: PetriNetIrArcs;
   /** Output arcs keyed by place: tokens the firing produces. Absent means none. */
   outputs?: PetriNetIrArcs;
-  /** Read arcs: places that must hold the weight, which the firing leaves alone. */
-  reads?: PetriNetIrArcs;
-  /** Inhibitor arcs: places that must hold fewer than the weight. */
-  inhibitors?: PetriNetIrArcs;
   /**
    * A predicate transition's condition over its input tokens, a `lambda`
    * surface returning a boolean. Absent means the transition fires whenever
@@ -224,6 +228,10 @@ export type PetriNetIr = {
 
 export const petriNetIrArcWeight = (arc: PetriNetIrArc): number =>
   arc?.weight ?? 1;
+
+export const petriNetIrArcKind = (
+  arc: PetriNetIrArc,
+): "standard" | "read" | "inhibitor" => arc?.kind ?? "standard";
 
 /** The tokens a place starts with: its count, or the number of its records. */
 export const petriNetIrInitialTokens = (
