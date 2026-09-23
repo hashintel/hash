@@ -15,7 +15,7 @@ use tokio_util::sync::{CancellationToken, DropGuard};
 
 use super::{
     AppendFailureKind, JournalStorage, JournalWriter, ShardAppendError, ShardLogLocation,
-    ShardLogWriter,
+    ShardLogWriter, SnapshotCandidate,
 };
 use crate::{
     DurableError,
@@ -1310,10 +1310,6 @@ struct RecoveredProjection<D: EventDomain> {
     corruption_fallbacks: u64,
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "recovery checks each snapshot before replaying the events after it"
-)]
 async fn replay_with_snapshots<D: SnapshotDomain>(
     writer: &ShardLogWriter<impl JournalWriter>,
     shard: crate::routing::Shard,
@@ -1327,85 +1323,17 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
             .await
         {
             Ok(candidates) => {
-                for (reference_sequence, candidate) in candidates.into_iter().rev() {
-                    let snapshot = match candidate {
-                        Ok(snapshot) => snapshot,
-                        Err(error) => {
-                            corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                            tracing::warn!(
-                                shard = %shard.path_segment(),
-                                reference_sequence,
-                                error = ?error,
-                                "ignored malformed projection-snapshot reference"
-                            );
-                            continue;
-                        }
-                    };
-                    let through = match D::snapshot_bounds(&snapshot) {
-                        Ok((_shard, through)) => through,
-                        Err(error) => {
-                            corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                            tracing::warn!(
-                                shard = %shard.path_segment(),
-                                reference_sequence,
-                                error = ?error,
-                                "ignored projection snapshot with invalid addressing"
-                            );
-                            continue;
-                        }
-                    };
-                    if through >= reference_sequence || through >= durable_end_exclusive {
-                        corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                        tracing::warn!(
-                            shard = %shard.path_segment(),
-                            reference_sequence,
-                            through_log_sequence = through,
-                            durable_end_exclusive,
-                            "ignored projection snapshot with an impossible journal range"
-                        );
-                        continue;
-                    }
-                    let projection =
-                        match D::load_snapshot_projection(context, shard, &snapshot).await {
-                            Ok(projection) => projection,
-                            Err(error) => {
-                                corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                                tracing::warn!(
-                                    shard = %shard.path_segment(),
-                                    reference_sequence,
-                                    error = ?error,
-                                    "ignored unusable projection snapshot"
-                                );
-                                continue;
-                            }
-                        };
-                    match replay_durable_suffix::<D>(
-                        writer,
-                        shard,
-                        durable_end_exclusive,
-                        projection,
-                    )
-                    .await
-                    {
-                        Ok((projection, replayed_events)) => {
-                            return Ok(RecoveredProjection {
-                                projection,
-                                snapshot_through_log_sequence: Some(through),
-                                snapshot_created_at: Some(D::snapshot_created_at(&snapshot)),
-                                replayed_events,
-                                corruption_fallbacks,
-                            });
-                        }
-                        Err(error) => {
-                            corruption_fallbacks = corruption_fallbacks.saturating_add(1);
-                            tracing::warn!(
-                                shard = %shard.path_segment(),
-                                reference_sequence,
-                                error = ?error,
-                                "replaying events after the snapshot failed; trying an older snapshot"
-                            );
-                        }
-                    }
+                if let Some(recovered) = replay_from_snapshots::<D>(
+                    writer,
+                    shard,
+                    durable_end_exclusive,
+                    context,
+                    candidates,
+                    &mut corruption_fallbacks,
+                )
+                .await
+                {
+                    return Ok(recovered);
                 }
             }
             Err(error) => {
@@ -1427,6 +1355,93 @@ async fn replay_with_snapshots<D: SnapshotDomain>(
             replayed_events,
             corruption_fallbacks,
         })
+}
+
+/// Restores the newest usable snapshot and replays the events after it.
+///
+/// Returns `None` when no candidate can be restored. Each skipped candidate increments
+/// `corruption_fallbacks`.
+async fn replay_from_snapshots<D: SnapshotDomain>(
+    writer: &ShardLogWriter<impl JournalWriter>,
+    shard: crate::routing::Shard,
+    durable_end_exclusive: u64,
+    context: &D::SnapshotContext,
+    candidates: Vec<SnapshotCandidate<D::Snapshot>>,
+    corruption_fallbacks: &mut u64,
+) -> Option<RecoveredProjection<D>> {
+    for (reference_sequence, candidate) in candidates.into_iter().rev() {
+        let snapshot = match candidate {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+                tracing::warn!(
+                    shard = %shard.path_segment(),
+                    reference_sequence,
+                    error = ?error,
+                    "ignored malformed projection-snapshot reference"
+                );
+                continue;
+            }
+        };
+        let through = match D::snapshot_bounds(&snapshot) {
+            Ok((_shard, through)) => through,
+            Err(error) => {
+                *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+                tracing::warn!(
+                    shard = %shard.path_segment(),
+                    reference_sequence,
+                    error = ?error,
+                    "ignored projection snapshot with invalid addressing"
+                );
+                continue;
+            }
+        };
+        if through >= reference_sequence || through >= durable_end_exclusive {
+            *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+            tracing::warn!(
+                shard = %shard.path_segment(),
+                reference_sequence,
+                through_log_sequence = through,
+                durable_end_exclusive,
+                "ignored projection snapshot with an impossible journal range"
+            );
+            continue;
+        }
+        let projection = match D::load_snapshot_projection(context, shard, &snapshot).await {
+            Ok(projection) => projection,
+            Err(error) => {
+                *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+                tracing::warn!(
+                    shard = %shard.path_segment(),
+                    reference_sequence,
+                    error = ?error,
+                    "ignored unusable projection snapshot"
+                );
+                continue;
+            }
+        };
+        match replay_durable_suffix::<D>(writer, shard, durable_end_exclusive, projection).await {
+            Ok((projection, replayed_events)) => {
+                return Some(RecoveredProjection {
+                    projection,
+                    snapshot_through_log_sequence: Some(through),
+                    snapshot_created_at: Some(D::snapshot_created_at(&snapshot)),
+                    replayed_events,
+                    corruption_fallbacks: *corruption_fallbacks,
+                });
+            }
+            Err(error) => {
+                *corruption_fallbacks = corruption_fallbacks.saturating_add(1);
+                tracing::warn!(
+                    shard = %shard.path_segment(),
+                    reference_sequence,
+                    error = ?error,
+                    "replaying events after the snapshot failed; trying an older snapshot"
+                );
+            }
+        }
+    }
+    None
 }
 
 async fn replay_durable_prefix<D: EventDomain>(
