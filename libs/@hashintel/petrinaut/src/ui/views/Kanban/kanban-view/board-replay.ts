@@ -52,10 +52,16 @@ export const createBoardReplay = (args: {
 }): BoardReplay => {
   const { statusView, places, types, statusConditions } = args;
 
-  let conditionErrorCount = 0;
+  // Condition errors are counted per observed frame, so re-observing the
+  // last frame replaces its count instead of adding to it, and a rebuild
+  // starts the count again.
+  let settledConditionErrorCount = 0;
+  let lastFrameConditionErrorCount = 0;
   let firstConditionErrorMessage = "";
-  const createTracker = () =>
-    createStatusViewTracker({
+  const createTracker = () => {
+    settledConditionErrorCount = 0;
+    lastFrameConditionErrorCount = 0;
+    return createStatusViewTracker({
       statusView,
       evaluateFrame: createStatusViewFrameEvaluator({
         statusView,
@@ -63,13 +69,14 @@ export const createBoardReplay = (args: {
         types,
         statusConditions,
         onConditionError: (error) => {
-          if (conditionErrorCount === 0) {
+          if (settledConditionErrorCount + lastFrameConditionErrorCount === 0) {
             firstConditionErrorMessage = error.message;
           }
-          conditionErrorCount += 1;
+          lastFrameConditionErrorCount += 1;
         },
       }),
     });
+  };
 
   // All three are owned by the serialized tasks below; advanceTo itself
   // never touches them.
@@ -77,17 +84,32 @@ export const createBoardReplay = (args: {
   let observedFrameCount = 0;
   let queue: Promise<unknown> = Promise.resolve();
 
-  const snapshot = (): BoardSnapshot => ({
-    instances: tracker.getInstanceStatuses(),
-    nowMs: tracker.lastObservedTimeMs(),
-    conditionErrors:
-      conditionErrorCount === 0
-        ? null
-        : {
-            count: conditionErrorCount,
-            firstMessage: firstConditionErrorMessage,
-          },
-  });
+  const observeFrame = (
+    frame: SimulationFrameReader,
+    isLastObservedFrame: boolean,
+  ) => {
+    if (!isLastObservedFrame) {
+      settledConditionErrorCount += lastFrameConditionErrorCount;
+    }
+    lastFrameConditionErrorCount = 0;
+    tracker.observeFrame(frame);
+  };
+
+  const snapshot = (): BoardSnapshot => {
+    const conditionErrorCount =
+      settledConditionErrorCount + lastFrameConditionErrorCount;
+    return {
+      instances: tracker.getInstanceStatuses(),
+      nowMs: tracker.lastObservedTimeMs(),
+      conditionErrors:
+        conditionErrorCount === 0
+          ? null
+          : {
+              count: conditionErrorCount,
+              firstMessage: firstConditionErrorMessage,
+            },
+    };
+  };
 
   return {
     advanceTo(frameIndex, getFramesInRange) {
@@ -100,16 +122,16 @@ export const createBoardReplay = (args: {
         const fromIndex = Math.max(observedFrameCount - 1, 0);
         if (toIndexExclusive > fromIndex) {
           const frames = await getFramesInRange(fromIndex, toIndexExclusive);
-          for (const frame of frames) {
+          for (const [offset, frame] of frames.entries()) {
             if (frame.time * 1_000 < tracker.lastObservedTimeMs()) {
               tracker = createTracker();
               const replayed = await getFramesInRange(0, toIndexExclusive);
               for (const replayedFrame of replayed) {
-                tracker.observeFrame(replayedFrame);
+                observeFrame(replayedFrame, false);
               }
               break;
             }
-            tracker.observeFrame(frame);
+            observeFrame(frame, fromIndex + offset === observedFrameCount - 1);
           }
           observedFrameCount = toIndexExclusive;
         }

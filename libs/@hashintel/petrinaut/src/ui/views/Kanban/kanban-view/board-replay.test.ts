@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
+
 import {
   makeFrame,
   makeTicketPlace,
@@ -125,5 +127,54 @@ describe("createBoardReplay", () => {
     const snapshot = await replay.advanceTo(3, reshapedFetch);
     expect(reshapedFetch).toHaveBeenCalledWith(0, 4);
     expect(snapshot.instances[0]?.currentLabelId).toBe("label-todo");
+  });
+
+  it("counts each frame's condition errors once across advances and rebuilds", async () => {
+    const conditionedView: StatusView = {
+      ...statusView,
+      labels: [
+        {
+          id: "label-retrying",
+          name: "Retrying",
+          displayColor: "#f97316",
+          places: ["todo"],
+          tokenCondition: "token.attempts > 1",
+        },
+        ...statusView.labels,
+      ],
+    };
+    const { artifacts, failures } = compileHirArtifacts({
+      places,
+      transitions: [],
+      types: [ticketColor],
+      differentialEquations: [],
+      parameters: [],
+      identities: [
+        { id: "identity-ticket", name: "Ticket", keyElementTypes: ["string"] },
+      ],
+      statusViews: [conditionedView],
+    });
+    expect(failures).toEqual([]);
+    const replay = createBoardReplay({
+      statusView: conditionedView,
+      places,
+      types: [ticketColor],
+      statusConditions: artifacts.statusConditions,
+    });
+    // The `frames` tokens carry no `attempts`, so the condition fails on
+    // each of frames 0-1, where the ticket sits in todo.
+    const getFramesInRange = makeGetFramesInRange();
+
+    const atFirstFrame = await replay.advanceTo(0, getFramesInRange);
+    expect(atFirstFrame.conditionErrors?.count).toBe(1);
+
+    // Frame 0 is observed again on this advance; its error is not recounted.
+    const forward = await replay.advanceTo(4, getFramesInRange);
+    expect(forward.conditionErrors?.count).toBe(2);
+    const sameFrame = await replay.advanceTo(4, getFramesInRange);
+    expect(sameFrame.conditionErrors?.count).toBe(2);
+
+    const scrubbedBack = await replay.advanceTo(0, getFramesInRange);
+    expect(scrubbedBack.conditionErrors?.count).toBe(1);
   });
 });
